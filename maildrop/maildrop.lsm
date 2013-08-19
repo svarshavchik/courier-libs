@@ -1,0 +1,33 @@
+Begin3
+Title:          maildrop
+Version:        1.0
+Entered-date:05JUL00
+Description:    Maildrop is a powerful mail filter/mail delivery agent.
+                Maildrop works with your mail server to deliver incoming
+                E-mail.  Maildrop reads the message to be delivered, then
+                optionally reads instructions from a file, specifying how to
+                filter mail. Based on these instructions, maildrop may deliver
+                the message to an, or forward it, instead of saving the
+                message in your usual mailbox.
+                Maildrop uses a sophisticated filtering language which allows
+                very complex mail filtering rules to be defined and used.
+                Maildrop provides advanced filtering tools such as RFC821
+                parsing, and GDBM database file support.
+                Maildrop uses a structured, real, meta-programming language in
+                order to define filtering instructions.  Its basic features are
+                fast and efficient.  At sites which carry a light load, the
+                more advanced, CPU-demanding, features can be used to build
+                very sophisticated mail filters.  Maildrop deployments have
+                been reported at sites that support as many as 30,000
+                mailboxes.
+                Sample mail filtering recipes as well as complete documentation
+                is provided in both HTML and man page format.
+Keywords:       mail, filter, linux, spam, procmail, maildrop
+Author:         mrsam@stop.mail-abuse.org (Sam Varshavchik)
+Maintained-by:  mrsam@stop.mail-abuse.org (Sam Varshavchik)
+Primary-site:   http://download.sourceforge.net/courier/
+			485 Kb maildrop-1.0.tar.gz
+			  2 kb maildrop.lsm
+Alternate-site: ftp://metalab.unc.edu/pub/Linux/system/mail/mailhandlers
+Copying-policy: GPL
+End

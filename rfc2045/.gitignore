@@ -1,0 +1,13 @@
+/headercheck
+/makemime
+/makemime.1
+/makemime.html
+/reformime
+/reformime.1
+/reformime.html
+/rfc2045.3
+/rfc2045.html
+/rfc2045_config.h
+/rfc2045_config.h.in
+/rfc2045charset.h
+/testrfc3676parser

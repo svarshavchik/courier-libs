@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Search Results</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$ADD=Add to existing nickname:#]
+[#$CREATE=Create new nickname:#]
+[#$SUBMIT=Submit#]
+
+[#$NOTFOUND=<p class="error">ERROR: No matching address found</p>#]
+
+-->
+
+<div align="center">
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Search Results</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<form method="post" action="[#R#]">
+  [#P#]<input type="hidden" name="form" value="abooklist" />
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" cellspacing="0" width="100%"
+          class="ldapsearch">
+            <tbody>
+              <tr>
+                <td align="center"><font
+                size="+3">Search&nbsp;Results</font></td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td align="left">[#O#]</td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td align="center"><a
+                  href="[#s#]&amp;form=ldaplist">Search&nbsp;Again</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

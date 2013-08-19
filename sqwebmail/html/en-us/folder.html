@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html" />
+  <title>Folder contents</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="generator" content="Bluefish 2.0.2" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+
+<script language="javascript" type="text/javascript">
+
+function ff(s) {
+	var e;
+
+	if (document.getElementById)
+	{
+		e=document.getElementById(s);
+	}
+	else if (document.all)
+	{
+		e=document[s];
+	}
+
+	return e;
+}
+
+function setsel(c,r,s) {
+
+	var x=ff(r);
+	var v=ff(c);
+
+	if (v != null && x != null)
+	{
+		if (v.checked)
+		{
+			x.className="folder-index-bg-sel";
+		}
+		else
+		{
+			x.className=s;
+		}
+	}
+
+}
+
+function deleteAll() {
+	if (confirm("Do you really want to delete all messages from current folder?"))
+	{
+		return true;
+	}
+	return false;
+}
+
+</script>
+
+<!--
+
+[#$DSPFMT_YDATE=%d %b %Y#]
+[#$DSPFMT_WDATE=%a %I:%M %p#]
+
+[#$NUM=<span style="color: #ffff00" class="folder-index-header">#</span>#]
+[#$DATE=<span style="color: #ffff00" class="folder-index-header">Date</span>#]
+[#$FROM=<span style="color: #ffff00" class="folder-index-header">From</span><br />#]
+[#$TO=<span style="color: #ffff00" class="folder-index-header">To</span><br />#]
+[#$SUBJECT=<span style="color: #ffff00" class="folder-index-header">Subject</span>#]
+[#$SIZE=<span style="color: #ffff00" class="folder-index-header">Size</span><br />#]
+[#$FOLDERTITLE=Folder - #]
+[#$SEARCHRESULTSTITLE=Search Results - #]
+[#$SHOWNCOUNT=Shown: %ld&nbsp;-&nbsp;%ld of %ld#]
+[#$RETURNTOFOLDER=Return to folder#]
+[#$LASTMESSAGESEARCHED=Last searched message was #%ld#]
+[#$JUMPTO=Jump to:#]
+[#$NOMESSAGES=No messages...#]
+[#$DELETE=Delete#]
+[#$PURGEALL=Purge All#]
+[#$PURGE=Purge Selected#]
+[#$ORMOVETO=, or move to:#]
+[#$GO=Go#]
+[#$FIRSTPAGE=@@first.png, width="48" height="24" alt="First Page" title="First Page"@First@#]
+[#$PREVPAGE=@@left.png, width="48" height="24" alt="Prev Page" title="Prev Page"@Prev@#]
+[#$NEXTPAGE=@@right.png, width="48" height="24" alt="Next Page" title="Next Page"@Next@#]
+[#$LASTPAGE=@@last.png, width="48" height="24" alt="Last Page" title="Last Page"@Last@#]
+[#$SELECTALL=Select all shown#]
+[#$UNSELECTALL=Deselect all shown#]
+[#$INBOX=INBOX#]
+[#$DRAFTS=Drafts#]
+[#$TRASH=Trash#]
+[#$SENT=Sent#]
+[#$PUBLICFOLDERS=<em>Public Folders</em>#]
+[#$PERMERR=<span class="error">ERROR: You do not have the permission to create messages in this folder, or you have exceeded your mail quota.</span>#]
+[#$NODELPERM=<span class="error">ERROR: You do not have the permission to remove messages from this folder.</span>#]
+[#$NOINSERTPERM=<span class="error">ERROR: You do not have the permission to insert messages into the destination folder.</span>#]
+[#$OTHERERROR=<span class="error">ERROR: Some error occurred, please try again later or contact site administrator.</span>#]
+[#$ACL=<span class="error">ERROR: You do not have the permission to open this folder</span>#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">[#f#]</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar2#] <!-- Border around the folders list -->
+
+
+<div class="folder-index-box">
+
+<form method="post" name="delete" action="[#p#]">
+  [#P#]<input type="hidden" name="form" value="folderdel" />
+  <table border="0" width="100%" bgcolor="#000000" cellpadding="2"
+  cellspacing="2" class="folder-index-background">
+    <tbody>
+      <tr>
+        <td bgcolor="#ffffff" class="folder-index-background-2">[#F#]</td>
+      </tr>
+    </tbody>
+  </table>
+  <!-- ===========  -->
+
+  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"
+        width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%">
+          <table border="0" width="100%">
+            <tbody>
+              <tr>
+                <td align="left" width="100%" valign="middle">[#T#]</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+  <!-- ============ -->
+</form>
+<br />
+<form method="post" name="search" action="[#p#]">
+  [#P#]<input type="hidden" name="form" value="folder" />
+  <input type="hidden" name="pos" value="[#input:pos#]" />
+
+  <!-- ===========  -->
+
+  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"
+        width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%">
+          <table border="0" width="100%">
+            <tbody>
+	      <tr>
+                <td align="left" width="100%" valign="middle">Search this folder beginning with message #[#MSGPOS#]: <input type="text" name="searchtxt" width="20" /><input type="submit" name="do.search" value="Search" /></td>
+	      </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+  <!-- ============ -->
+</form>
+
+</div>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

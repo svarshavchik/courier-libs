@@ -1,0 +1,64 @@
+##VERSION: $Id:$
+#
+# sqwebmaild created from sqwebmaild.dist by sysconftool
+#
+# Do not alter lines that begin with ##, they are used when upgrading
+# this configuration.
+#
+#  Copyright 2004-2005 Double Precision, Inc.  See COPYING for
+#  distribution information.
+#
+#  Courier sqwebmaild daemon configuration
+#
+##NAME: PIDFILE:0
+#
+
+PIDFILE=@piddir@/sqwebmaild.pid
+
+##NAME: DEBUG_LOGIN:0
+#
+# Dump additional login diagnostics to syslog
+#
+# DEBUG_LOGIN=0   - turn off login debugging
+# DEBUG_LOGIN=1   - turn on login debugging
+# DEBUG_LOGIN=2   - turn on login debugging + log passwords too
+#
+# Note that most information is sent to syslog at level 'debug', so
+# you may need to modify your /etc/syslog.conf to be able to see it.
+
+DEBUG_LOGIN=0
+
+##NAME: MAILDIRPATH:0
+#
+# MAILDIRPATH - directory name of the maildir directory.
+
+MAILDIRPATH=Maildir
+
+##NAME: SQWEBMAIL_PREFORK:0
+#
+# Override default number of pre-forked child processes, or set to 0
+# to disable pre-forking.
+
+# SQWEBMAIL_PREFORK=5
+
+##NAME: LOGGEROPTS:0
+#
+# courierlogger(1) options, e.g. to set syslog facility
+#
+
+LOGGEROPTS=""
+
+##NAME: LDAP_FILTERSTRINGS:0
+#
+# LDAP search filter template.  This is the default setting:
+#
+# LDAP_SEARCH_FILTER_EXACT='(|(uid=@)(sn=@)(cn=@))'
+#
+# LDAP_SEARCH_FILTER_APPROX='(|(uid=@*)(sn=@*)(mail=@*)(cn=@*))'
+#
+# If the first search does not return anything, the second one is tried.
+#
+# Each occurence of @ is replaced by the search key
+#
+# You may provide your own settings below.
+

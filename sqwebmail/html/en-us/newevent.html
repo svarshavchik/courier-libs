@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Calendar Event</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+[#$NOATTACH=No attachments...#]
+
+[#$QUOTAERR=<font style="color: #ff0000" size="+1" class="error">ERROR: You have exceeded your quota</font><br /><br />#]
+[#$TIMEERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Invalid date/time entered</font><br /><br />#]
+[#$NOTIMEERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Enter event starting/ending time, below:</font><br /><br />#]
+
+[#$CONFLICTERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Scheduling conflict</font><br /><br />#]
+
+[#$CONFLICTERR2=SCHEDULING CONFLICT:&nbsp;#]
+
+[#$CALENDARERR=<font style="color: #ff0000" size="+1" class="error">ERROR: The following error has occured when saving this event: <div style="margin-left: 3.5em;"><pre>%s</pre></div>If the calendar server is down, save/postpone this event, and try logging in again from the main menu.</font><br /><br />#]
+
+[#$LOCKERR=<font style="color: #ff0000" size="+1" class="error">ERROR: An error has occured trying to lock the calendar for update.  Please try again.</font><br /><br />#]
+
+[#$NOTFOUNDERR=<font style="color: #ff0000" size="+1" class="error">ERROR: The original event was not found.  This can happen if this event was updated or modified by someone else.  Save this event info, and check your calendar for updates to this event.</font><br /><br />#]
+
+[#$EVENTLOCKEDERR=<font style="color: #ff0000" size="+1" class="error">ERROR: This event is currently locked by another calendar update.  Please try again later.</font><br /><br />#]
+
+[#$CANCELLED=<span style="color: #ff0000">(CANCELLED)&nbsp;</span>#]
+[#$BOOKED=<span style="color: #ff0000">(LOCKED)&nbsp;</span>#]
+
+[#$REMOVE=Remove#]
+
+[#$RECURRING=<select name="recurring"><option value="0">Weekly</option><option value="1">Monthly</option><option value="2">Annual</option></select>&nbsp;event&nbsp;end&nbsp;date:#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Calendar&nbsp;Event</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#99ccff" class="bluebox">
+      <td></td>
+      <td valign="middle" width="100%">
+        <table width="100%" border="0" cellpadding="8">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle">[#NEWEVENT#]
+
+                <form method="post" action="[#p#]">
+                  [#P#]<input type="hidden" name="form" value="newevent"
+                  /><input type="hidden" name="today" value="today" /><input
+                  type="hidden" name="tomorrow" value="tomorrow" /><input
+                  type="hidden" name="draftmessage"
+                  value="[#input:draftmessage#]" />
+
+                  <table border="0">
+                    <tbody>
+                      <tr>
+                        <th align="right">New&nbsp;event&nbsp;time:</th>
+                        <td><input type="text" size="20" name="starttime"
+                        /></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>
+                          <table border="0">
+                            <tbody>
+                              <tr valign="top">
+                                <td>Examples:</td>
+                                <td><span class="tt">today&nbsp;11am<br />
+                                  tomorrow&nbsp;2:15pm<br />
+                                  friday&nbsp;9am<br />
+                                  Aug&nbsp;3&nbsp;2001&nbsp;1:30pm<br />
+                                  8/3/2001&nbsp;4pm<br />
+                                  2001.08.03&nbsp;4pm</span></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th align="right">[#RECURRING#]</th>
+                        <td width="100%"><input type="text" size="10"
+                          maxlength="10" name="endtime" /><span
+                          class="tt">&nbsp;MM/DD/YYYY</span></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>(For a recurring event only - enter ending
+                        date)</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <th align="right">Event&nbsp;duration:</th>
+                        <td><input type="text" size="2" maxlength="2"
+                          name="hours" value="1" /><span
+                          class="tt">hr&nbsp;</span><input type="text"
+                          size="2" maxlength="2" name="mins" value="0"
+                          /><span class="tt">min&nbsp;</span> 
+                          <input type="submit" value="Add event time(s)"
+                          name="do.neweventtime" />&nbsp;&nbsp;<!-- [#?8#]-->
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <th
+                        align="right">Add&nbsp;event&nbsp;participant:</th>
+                        <td><input type="text" size="20" name="participant1"
+                          />&nbsp;<font size="-1">(enter E-mail
+                          address)</font>, or:</td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>[#ABOOKNAMELIST#]</td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>
+                          <input type="submit" value="Add participant"
+                          name="do.addparticipant" />&nbsp;&nbsp;<!-- [#?#]-->
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <hr width="80%" />
+        [#EVENTSTART#]
+
+        <form method="post" action="[#p#]" enctype="multipart/form-data">
+          [#P#]<input type="hidden" name="form" value="newevent" /><input
+          type="hidden" name="draftmessage" value="[#input:draftmessage#]" />
+
+          <table width="100%" border="0" cellpadding="8">
+            <tbody>
+              <tr valign="top">
+                <th align="right">Event&nbsp;time(s):&nbsp;</th>
+                <td width="100%">[#EVENTTIMES#]</td>
+              </tr>
+              <tr>
+                <th align="right">From:&nbsp;</th>
+                <td>[#EVENTFROM#]<!-- [#?8#]-->
+                </td>
+              </tr>
+              <tr valign="top">
+                <th align="right">Event&nbsp;participant(s):&nbsp;</th>
+                <td width="100%">[#EVENTPARTICIPANTS#]<!-- [#?#]-->
+                </td>
+              </tr>
+              <tr>
+                <th align="right">Subject:&nbsp;</th>
+                <td><input type="text" size="60" name="headersubject"
+                  value="[#input:headersubject#]" /></td>
+              </tr>
+              <tr>
+                <th valign="top" align="right">Contents:&nbsp;</th>
+                <td>[#EVENTTEXT#]
+                  <hr width="80%" />
+
+                  <table width="100%" bgcolor="#000080" border="0"
+                  cellpadding="4" cellspacing="0" class="attachments-header">
+                    <tbody>
+                      <tr>
+                        <th align="left"><span style="color: #ffff00"
+                          class="attachments-header">&nbsp;&nbsp;&nbsp;&nbsp;Event
+                          attachments:</span></th>
+                        <th align="right"><span style="color: #ffff00"
+                          class="attachments-header">Size</span></th>
+                      </tr>
+                    </tbody>
+                  </table>
+                  [#EVENTATTACH#] 
+                  <input type="submit" value="&nbsp;Delete attachment "
+                  name="do.neweventdeleteattach" />
+
+                  <table border="0">
+                    <tbody>
+                      <tr valign="middle">
+                        <td align="right">Upload:&nbsp;<input type="file"
+                          size="20" name="uploadfile" /></td>
+                        <td>
+                          <input type="submit" value="Upload"
+                          name="do.neweventupload" /></td>
+                        <td><label><input type="checkbox"
+                          name="attach_inline" />Display attachment
+                          inline</label> <!-- [#?5#]-->
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="right">
+                          <select name="pubkey">
+                            <option selected="selected"></option>[#ATTACHPUB#]
+                          </select>
+                        </td>
+                        <td colspan="2">
+                          <input type="submit" value="Attach public key"
+                          name="do.neweventuppubkey" /></td>
+                      </tr>
+                      <tr valign="top">
+                        <td align="right">
+                          <select name="privkey">
+                            <option selected="selected"></option>[#ATTACHSEC#]
+                          </select>
+                        </td>
+                        <td colspan="2">
+                          <input type="submit" value="Attach private key"
+                          name="do.neweventupprivkey" /><br />
+                          <input type="checkbox" name="really"
+                          />&nbsp;Yes,&nbsp;I&nbsp;really&nbsp;want&nbsp;to&nbsp;do&nbsp;this&nbsp;<!-- [#?#]-->
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td>&nbsp;</td>
+                <td>
+                  <table border="0">
+                    <tbody>
+                      <tr>
+                        <td>
+                          <input type="submit" value="Preview"
+                          name="do.neweventpreview" /></td>
+                        <td>
+                          <input type="submit" value="Save/Postpone"
+                          name="do.neweventpostpone" /></td>
+                        <td>
+                          <input type="submit" value="Add to calendar"
+                          name="do.neweventsave" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td>&nbsp;</td>
+                <td><label><input type="checkbox" name="okconflict"
+                  />Ignore&nbsp;scheduling&nbsp;conflicts</label>
+                  <!-- [#?8#]-->
+                </td>
+              </tr>
+              <tr>
+                <td>&nbsp;</td>
+                <td><label><input type="checkbox" name="okerrors" />Ignore
+                  errors updating other participants' calendars<br />
+                  <span class="tt">&nbsp;&nbsp;&nbsp;&nbsp;</span><font
+                  size="-2">(and remove those participants from the
+                  event)</font></label>
+                  <!-- [#?#]-->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+      </td>
+      <td></td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+[#EVENTEND#]</div>
+
+<p>[#B#]</p>
+</body>
+</html>

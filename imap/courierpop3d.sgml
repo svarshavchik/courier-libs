@@ -1,0 +1,119 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>courierpop3d</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>courierpop3d</refname>
+    <refpurpose>The <application moreinfo="none">Courier</application>
+      POP3 server</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">@sbindir@/couriertcpd</command>
+      <arg choice="req" rep="norepeat">-nodnslookup</arg>
+      <arg choice="req" rep="norepeat">-stderr=syslog</arg>
+      <arg choice="req" rep="norepeat">110</arg>
+      <arg choice="req" rep="norepeat">@libexecdir@/courier/courierpop3login</arg>
+      <arg choice="opt" rep="repeat"><replaceable>modules</replaceable></arg>
+      <arg choice="req" rep="norepeat">@libexecdir@/courier/courierpop3d</arg>
+      <arg choice="req" rep="norepeat">./Maildir</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+This is a simple POP3 server for Maildirs.</para>
+
+    <note>
+      <para>
+The <command moreinfo="none">couriertcpd</command>, <command moreinfo="none">courierpop3login</command>,
+and <command moreinfo="none">courierpop3d</command> modules may be installed elsewhere than
+indicated here.</para>
+    </note>
+
+    <para>
+<command moreinfo="none">courierpop3login</command> is usually started by
+<command moreinfo="none">couriertcpd</command>. It
+already expects that a POP3 client is connected to standard input and output,
+presumably via a network socket.
+<command moreinfo="none">courierpop3login</command> reads the POP3
+userid and password, then runs the
+authentication <literal moreinfo="none">modules</literal>. The remaining
+arguments are passed along as arguments to <literal moreinfo="none">modules</literal>.</para>
+
+    <para>
+<literal moreinfo="none">modules</literal>
+is one or more authentication modules (see the
+<ulink url="authlib.html"><citerefentry>
+	  <refentrytitle>authlib</refentrytitle>
+	  <manvolnum>7</manvolnum>
+	</citerefentry>
+</ulink>
+manual page).</para>
+
+    <para>
+Each authentication modules runs the program specified by its first
+argument, allowing the authentication modules to be chained. The last program
+in the chain is
+<command moreinfo="none">courierpop3d</command>
+, which provides the actual POP3 service. In
+accordance with the authentication protocol, as described in
+<ulink url="authlib.html"><citerefentry>
+	  <refentrytitle>authlib</refentrytitle>
+	  <manvolnum>7</manvolnum>
+	</citerefentry>
+</ulink>
+<command moreinfo="none">courierpop3d</command> reads
+file descriptor 3 to see if the userid/password has been succesfully
+validated. If not, <command moreinfo="none">courierpop3d</command> terminates.</para>
+
+    <para>
+Otherwise, <command moreinfo="none">courierpop3d</command> expects to be already running
+under the
+appropriate user and group id, with its current directory set to the account's
+home directory.</para>
+
+    <para>
+The first order of business is to find the account's Maildir. If the
+environment variable <envar>MAILDIR</envar> is set, that's where we go.
+That should be the
+pathname to the account's Maildir. The environment variable
+<envar>MAILDIR</envar> may be set by the
+authentication module.
+If <envar>MAILDIR</envar> is not set,
+<command moreinfo="none">courierpop3d</command> uses its first argument.
+Usually, the default maildir is
+<filename moreinfo="none">$HOME/Maildir</filename>, therefore the first argument to
+<command moreinfo="none">courierpop3d</command> is
+"<literal moreinfo="none">./Maildir</literal>".</para>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="authlib.html"><citerefentry>
+	  <refentrytitle>authlib</refentrytitle>
+	  <manvolnum>7</manvolnum>
+	</citerefentry>
+</ulink>,
+<ulink url="userdb.html"><citerefentry>
+	  <refentrytitle>userdb</refentrytitle>
+	  <manvolnum>8</manvolnum>
+	</citerefentry>
+</ulink>.</para>
+
+  </refsect1>
+
+</refentry>

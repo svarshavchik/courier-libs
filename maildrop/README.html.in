@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=utf-8" />
+
+  <title>maildrop - mail delivery agent with filtering
+  abilities</title>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <link rel="icon" href="icon.gif" type="image/gif" />
+</head>
+
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EF" vlink=
+"#51188E" alink="#FF0000">
+  <!-- Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+
+  <h1>maildrop - mail delivery agent with filtering
+  abilities</h1>Current development version is @VERSION@, stable
+  version is @PREVIOUS_VERSION@.
+
+  <p>Copyright 1998-2008, Double Precision Inc.</p>
+
+  <p>This program is distributed under the terms of the GNU General
+  Public License. See <code>COPYING</code> for additional
+  information.</p>
+
+  <h2>Where to find <em>maildrop</em></h2>Join the maildrop mailing
+  list - <code><a href=
+  "http://lists.sourceforge.net/lists/listinfo/courier-maildrop">http://lists.sourceforge.net/lists/listinfo/courier-maildrop</a></code>.
+
+  <p>I've started a list of "<a href="maildroptips.html">tips and
+  tricks</a>" for writing mail filters with maildrop.</p>
+
+  <p>The HTML version of the <em>maildrop</em> README is located at
+  <code>http://www.courier-mta.org/maildrop/</code>. Although the
+  following files may also be found there, please check your
+  favorite archive for any local copies:</p>
+
+  <div align="center">
+    <table border="1" cellpadding="5" width="80%" bgcolor=
+    "#CCCCCC">
+      <tbody>
+        <tr>
+          <td>
+            <p>The STABLE version of maildrop:</p>
+
+            <p><code><a href=
+            "maildrop-@PREVIOUS_VERSION@.tar.gz">maildrop-@PREVIOUS_VERSION@.tar.gz</a></code>
+            - the source code tarball.</p>
+
+            <p><code><a href=
+            "maildrop-@PREVIOUS_VERSION@-1.src.rpm">maildrop-@PREVIOUS_VERSION@-1.src.rpm</a></code>-
+            the distribution source code in the RPM format. To
+            build a binary RPM run the command <code>rpm --rebuild
+            maildrop-@PREVIOUS_VERSION@-1.src.rpm</code>.</p>
+
+            <p><code><a href=
+            "maildrop-@PREVIOUS_VERSION@-1.i386.rpm">maildrop-@PREVIOUS_VERSION@-1.i386.rpm</a></code>
+            - pre-built binary RPM for Red Hat Linux. Please note
+            that the binary RPM's configuration includes the
+            <code>--enable-restrict-trusted=0</code> flag: a
+            relaxed security level which allows all users to use
+            the -d option to <em>maildrop</em>. <em>Maildrop</em>'s
+            default, strict, security model may result in sendmail
+            temporarily deferring local mail (it will be eventually
+            delivered). See <code><a href=
+            "INSTALL.html">INSTALL</a></code> for more information.
+            If your system does not require relaxed security, you
+            may rebuild the source RPM (after making the
+            appropriate adjustment to the .spec file).</p>
+            <hr width="80%" />
+
+            <p>The DEVELOPMENT version of maildrop:</p>
+
+            <p><code><a href=
+            "maildrop-@VERSION@.tar.gz">maildrop-@VERSION@.tar.gz</a></code></p>
+
+            <p><code><a href=
+            "maildrop-@VERSION@-1.src.rpm">maildrop-@VERSION@-1.src.rpm</a></code></p>
+
+            <p><code><a href=
+            "maildrop-@VERSION@-1.i386.rpm">maildrop-@VERSION@-1.i386.rpm</a></code></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The RPMs are signed with my GnuPG key: <code><a href=
+  "http://www.courier-mta.org/KEYS.bin">http://www.courier-mta.org/KEYS.bin</a></code>.</p>
+
+  <p><em>maildrop</em> includes documentation in HTML, as well as
+  traditional man pages. The HTML versions may also be found at
+  <code><a href=
+  "maildrop.html">http://www.courier-mta.org/maildrop/maildrop.html</a>.</code></p>
+
+  <h2>Introduction</h2>
+
+  <p><em>maildrop</em> is a replacement for your local mail
+  delivery agent. <em>maildrop</em> reads a mail message from
+  standard input, then delivers the message to your mailbox.
+  <em>maildrop</em> knows how to deliver mail to mbox-style
+  mailboxes, and maildirs.</p>
+
+  <p><em>maildrop</em> will optionally read instructions from a
+  file, which describes how to filter incoming mail. Instructions
+  can be provided having mail delivered to alternate mailboxes, or
+  forwarded somewhere else. Unlike procmail, <em>maildrop</em> uses
+  a structured filtering language.</p>
+
+  <p><em>maildrop</em> is written in C++, and is significantly
+  larger than procmail in compiled form. However, it uses resources
+  much more efficiently. Unlike procmail, <em>maildrop</em> will
+  not read a 10 megabyte mail message into memory. Large messages
+  are saved in a temporary file, and are filtered from the
+  temporary file. Temporary files are saved in the user's home
+  directory. If the standard input to <em>maildrop</em> is a file,
+  and not a pipe, a temporary file will not be necessary.</p>
+
+  <p><em>maildrop</em> checks the syntax of the mail delivery
+  instructions the filter file, before attempting to deliver a
+  message. Unlike procmail, if the filter file contains syntax
+  errors, <em>maildrop</em> terminates without delivering the
+  message. The user can fix the typo without causing any mail to be
+  lost.</p>
+
+  <h2>Installation</h2>See <code><a href=
+  "INSTALL.html">INSTALL</a></code> for installation information.
+  If you are using an RPM-based GNU/Linux distribution, you can
+  install the binary RPM (see above), or rebuild the source RPM.
+
+  <h2>Maildrop mailing list</h2>
+
+  <p>Subscribe to the maildrop mailing list at <a target="_blank"
+  href=
+  "http://lists.sourceforge.net/mailman/listinfo/courier-maildrop">http://lists.sourceforge.net/mailman/listinfo/courier-maildrop</a>,
+  or send a message to
+  <code>&lt;courier-maildrop-request</code><code>@lists.sourceforge.net&gt;</code>
+  and put "subscribe" in the subject line. Search the list archives
+  at <a target="_blank" href=
+  "http://markmail.org/browse/net.sourceforge.lists.courier-maildrop">
+  http://markmail.org/browse/net.sourceforge.lists.courier-maildrop</a>.</p>
+</body>
+</html>

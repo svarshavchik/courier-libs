@@ -1,0 +1,95 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2003-2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>maildirkw</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class="manual">Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>maildirkw</refname>
+    <refpurpose>set maildir message keywords</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildirkw</command>
+      <arg choice="opt" rep="norepeat">-c</arg>
+      <arg choice="opt" rep="norepeat">-l</arg>
+      <arg choice="opt" rep="norepeat">-a</arg>
+      <arg choice="opt" rep="norepeat">-r</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>message</replaceable></arg>
+
+      <arg choice="opt" rep="repeat"><replaceable>keyword</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildirkw</command>
+      <arg choice="opt" rep="norepeat">-c</arg>
+      <arg choice="req" rep="norepeat">-L</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">maildirkw</command>
+modifies the <application moreinfo="none">Courier</application> IMAP server
+compatible maildir message keywords.
+This command allows an easy way to set or clear custom IMAP keywords
+associated with a particular message.
+<replaceable>maildir</replaceable> is the pathname to a maildir, or a maildir
+folder.
+The <option>-L</option> option lists all messages in the maildir, and their
+associated keywords.
+<replaceable>message</replaceable> specified which message's keywords
+should be set.
+One or more <replaceable>keyword</replaceable>s specifies a list of keywords
+to be set for this message.
+The specified list of <replaceable>keyword</replaceable>s replaces any
+keywords presently set for the <replaceable>message</replaceable>,
+unless the
+<option>-a</option> or the
+<option>-r</option> option is specified.</para>
+    <para>
+The
+<option>-a</option> option adds the <replaceable>keyword</replaceable> to
+existing keywords that are set for <replaceable>message</replaceable>.
+The
+<option>-r</option> removes <replaceable>keyword</replaceable>s from
+<replaceable>message</replaceable>, leaving any remaining keywords set in
+place.</para>
+
+    <para>
+The
+<option>-l</option> should be used if
+the <application moreinfo="none">Courier</application> IMAP server's
+configuration file has the <literal moreinfo="none">IMAP_USELOCKS</literal> option set.
+<option>-l</option>
+enables a compatible locking mechanism to update the message's keywords.</para>
+
+    <para>
+<option>-c</option> enables case-sensitive keywords.
+IMAP keywords are normally case insensitive.
+<option>-c</option> needs to be used if the
+<ulink url="http://www.courier-mta.org/cone/smap1.html">SMAP1</ulink>
+protocol extension is used, which uses case sensitive keywords.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildiracl.html"><citerefentry><refentrytitle>maildiracl</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.</para>
+  </refsect1>
+
+</refentry>

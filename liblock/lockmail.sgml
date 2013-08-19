@@ -1,0 +1,204 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2002-2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>lockmail</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class='manual'>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>lockmail</refname>
+    <refpurpose>create mail lock files</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">lockmail</command>
+      <arg choice="opt" rep="norepeat">-r</arg>
+      <arg choice="opt" rep="norepeat">-t <replaceable>timeout</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>lockfile</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>program</replaceable></arg>
+      <arg rep="repeat" choice="opt">argument</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">lockmail</command> is a helper utility for working with mailbox
+files.
+Mailbox files must be locked to prevent other applications from modifying the
+mailbox at the same time.
+Different system use different locking conventions.
+<command moreinfo="none">lockmail</command> uses two of the most common locking mechanisms
+in use, which should work reliably on most systems.</para>
+
+    <para>
+<replaceable>lockfile</replaceable> is the pathname to an existing mailbox
+file.
+By default, <command moreinfo="none">lockmail</command> tries to lock the mailbox every
+five seconds (if the mailbox is already locked), and will give up after
+three minutes.
+After the mailbox is successfully locked, <command moreinfo="none">lockmail</command> runs
+<replaceable>program</replaceable> as a child process, with any optional
+<replaceable>argument</replaceable>s.
+When <replaceable>program</replaceable> terminates, <command moreinfo="none">lockmail</command>
+removes the mailbox lock, and terminates itself.</para>
+  </refsect1>
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <variablelist>
+      <varlistentry>
+        <term>-r</term>
+        <listitem>
+          <para>
+If a regular lock fails, try a read-only lock.
+Use this option to lock mailbox files in a read-only directory.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-t <replaceable>timeout</replaceable></term>
+	<listitem>
+	  <para>
+If the lock attempt fails, try again for up to
+<replaceable>timeout</replaceable> seconds.
+The actual timeout is rounded up to the next five second interval
+(a lock attempt is tried every five seconds).</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>DESCRIPTION</title>
+    <para>
+This section briefly describes the locking mechanism used by
+<command moreinfo="none">lockmail</command>.
+<command moreinfo="none">lockmail</command> uses three different locking conventions in
+order to maximize compatibility with other mail software:
+C-Client folder locks, dot-locks, and file locks.
+</para>
+
+    <refsect2>
+      <title>C-Client folder locks</title>
+      <para>
+Mail software based on the <literal moreinfo="none">C-Client</literal> library creates
+lock files named
+<filename moreinfo="none">/tmp/.<replaceable>dddddd</replaceable>.<replaceable>iiiiii</replaceable></filename>.
+Here, <replaceable>dddddd</replaceable> and <replaceable>iiiiii</replaceable>
+are the device number and the inode number of the mailbox file
+(the <structfield>st_dev</structfield> and <structfield>st_ino</structfield>
+fields in the inode), in hexadecimal.
+If the process ID saved in the C-Client folder lock file is not valid,
+<command moreinfo="none">lockmail</command> concludes that it's a stale lock file, and
+will remove it.</para>
+
+      <note>
+	<para>
+A race condition exists where a <literal moreinfo="none">C-Client</literal> process is
+killed after it creates a lock file, but before saving its process ID in the
+lock file.
+The race window is very small, but it exists.
+The <literal moreinfo="none">C-Client</literal> library does not appear to ever clear out
+the lock file.</para>
+
+	<para>
+<command moreinfo="none">lockmail</command>
+attempts to resolve this race condition by deleting zero-length lock files
+that are at least five minutes old.</para>
+      </note>
+    </refsect2>
+
+    <refsect2>
+      <title>dot-locks</title>
+      <para>
+<command moreinfo="none">lockmail</command>
+also creates, and honors dot-lock files.
+Dot-lock files are first created as temporary files, then linked to
+<filename moreinfo="none"><replaceable>lockfile</replaceable>.lock</filename>.
+The link operation fails if the dot-lock file already exists.
+<command moreinfo="none">lockmail</command>
+uses an enhanced method of dot-locking, where its process ID, and the name
+of the server where <command moreinfo="none">lockmail</command> is running is also saved
+in its dot-lock file.
+If the operation fails due to an existing dot-lock file that was created
+by another <command moreinfo="none">lockmail</command> process on the same server, and the
+process ID no longer exists, this stale dot-lock file is removed immediately.
+In all other situations a dot-lock file older than five minutes is considered
+stale, and removed.
+</para>
+
+      <note>
+	<para>
+A failure to create a dot-lock file is silently ignored if the reason for
+the failure is because
+<command moreinfo="none">lockmail</command>
+does not have the write permission in the dot-lock file's directory.
+The incoming mail spool directory (usually
+<filename moreinfo="none">/var/mail</filename>)
+typically does not have global write permissions, so the attempt to
+create the dot-lock file in the spool directory will fail, and
+<command moreinfo="none">lockmail</command>
+will be content with using file-locking only.
+</para>
+      </note>
+    </refsect2>
+    <refsect2>
+      <title>File locks</title>
+
+      <para>
+The final locking mechanism
+<command moreinfo="none">lockmail</command>
+uses is the operating system's file locking facility.
+If
+<command moreinfo="none">lockmail</command>
+fails to obtain all three locks,
+<command moreinfo="none">lockmail</command>
+will sleep for five seconds and try again.
+The only exception is a failure to create a dot-lock because of no write
+access to the dot-lock file's directory, which is ignored.
+If
+<command moreinfo="none">lockmail</command>
+still fails to obtain all required locks in the amount of time specified
+by the <option>-t</option> option (or its default value),
+<command moreinfo="none">lockmail</command> will terminate with the
+<literal moreinfo="none">EX_TEMPFAIL</literal> exit code.
+</para>
+
+      <para>
+<command moreinfo="none">lockmail</command>
+runs <replaceable>program</replaceable> after obtaining the last file
+lock, waits until <replaceable>program</replaceable> terminates, and
+releases all locks.
+<replaceable>program</replaceable> must terminate before any of the locks
+obtained by <command moreinfo="none">lockmail</command> expire, and are considered stale.
+<command moreinfo="none">lockmail</command> will then terminate with the same exit code
+as <replaceable>program</replaceable>.</para>
+    </refsect2>
+  </refsect1>
+  <refsect1>
+    <title>EXIT STATUS</title>
+
+    <para>
+<command moreinfo="none">lockmail</command> terminates with the same exit status as
+<replaceable>program</replaceable>
+<command moreinfo="none">lockmail</command> terminates with the <literal moreinfo="none">EX_TEMPFAIL</literal>
+exit status if it was unable to obtain a lock, or if
+<replaceable>program</replaceable>
+was killed by a signal.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
+</para>
+  </refsect1>
+</refentry>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Create Message</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.8.1, see http://www.w3.org/Amaya/"
+  />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body onload="init();">
+<!--
+
+[#$DSPFMT_DATE=%d %b %Y, %I:%M:%S %p#]
+
+[#$TOLAB=To:#]
+[#$CCLAB=Cc:#]
+[#$BCCLAB=Bcc:#]
+[#$SUBJECTLAB=Subject:#]
+[#$MESSAGELAB=Message:#]
+[#$SENDLAB=Send#]
+[#$PREVIEWLAB=Preview#]
+[#$FORWARDLAB=---------- Forwarded message ----------#]
+[#$SAVEDRAFT=Save Draft#]
+[#$ATTACHMENTS=Attachments:#]
+[#$UPLOAD=Add/Remove#]
+[#$SALUTATION=%F writes:#]
+[#$SPELLCHECKDONE=<strong class="spellcheckdone">Spell check completed</strong>#]
+[#$CHECKSPELLING=Check spelling#]
+[#$QUOTAERR=<font style="color: #ff0000" size="+1" class="error">ERROR: You have exceeded your quota</font>#]
+[#$FROMLAB=From:#]
+[#$REPLYTOLAB=Reply-To:#]
+[#$ADDRESSBOOK=Address Book:#]
+
+[#$PRESERVELAB=Preserve a copy of the message in the Sent folder#]
+[#$SIGNLAB=Sign&nbsp;message&nbsp;with:&nbsp;#]
+[#$ENCRYPTLAB=Encrypt&nbsp;message&nbsp;to:&nbsp;#]
+[#$PASSPHRASE=Passphrase&nbsp;(if&nbsp;required):&nbsp;#]
+[#$DSN=Request&nbsp;delivery&nbsp;confirmation&nbsp;receipt#]
+
+[#$ATTACHMENT=Attachment: %s#]
+
+[#$DISPATT=<span class="message-attachment-link">Display</span>#]
+[#$DOWNATT=<span class="message-attachment-link">Download</span>#]
+
+[#$KEY=<table border="0" bgcolor="#000000" cellpadding="1"><tr><td><table border="0" cellspacing="0" cellpadding="8" bgcolor="#eeeeee"><tr><td>Encryption key</td></tr></table></td></tr></table>#]
+
+[#$FMTNAME=Format text as:#]
+[#$FMTTEXTPLAIN=plain text format#]
+[#$FMTTEXTWIKI=plain text + inferred HTML#]
+[#$FMTHELP=help#]
+
+[#$SELECT1=<select name="nick" size="4" multiple="multiple" class="nicklist">#]
+[#$SELECT2=</select>#]
+
+[#$TEXT1=<textarea name="message" cols="76" rows="15" wrap="soft" class="new-message-message-text">#]
+[#$TEXT2=</textarea><br />#]
+
+[#$HDRMAXLEN=512#]
+-->
+<script type="text/javascript" language="Javascript">
+<!--
+
+function init()
+{
+if (document.msg.focusto.value == "headers")
+{
+document.msg.headerto.focus();
+}
+}
+//-->
+
+
+
+  </script>
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Create Message[#d#]</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%">
+        <table width="100%" border="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle">
+                <form method="post" name="msg" action="[#p#]">
+                  [#P#][#W#]</form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

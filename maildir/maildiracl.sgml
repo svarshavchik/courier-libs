@@ -1,0 +1,510 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2003-2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>maildiracl</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class="manual">Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>maildiracl</refname>
+    <refpurpose>manage access control lists</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl</command>
+      <arg choice="req" rep="norepeat">-reset</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl</command>
+      <arg choice="req" rep="norepeat">-list</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>INBOX[.folder]</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl</command>
+      <arg choice="req" rep="norepeat">-set</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>INBOX[.folder]</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>[-]identifier</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>[+/-]rights</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl</command>
+      <arg choice="req" rep="norepeat">-delete</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>INBOX[.folder]</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>[-]identifier</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl</command>
+      <arg choice="req" rep="norepeat">-compute</arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>INBOX[.folder]</replaceable></arg>
+      <arg choice="req" rep="repeat"><replaceable>identifier</replaceable></arg>
+    </cmdsynopsis>
+
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">maildiracl</command>
+manages <quote>access control lists</quote> (or ACLs)
+of the <application moreinfo="none">Courier</application> IMAP server maildir folders.
+Access control lists are used primarily to provide fine-grained control
+for accessing virtual shared folders via IMAP.</para>
+
+      <note>
+	<para>
+The <application moreinfo="none">Courier</application> IMAP server server implements
+two types of shared folders:
+filesystem permission-based shared folders,
+as well as virtual shared folders based on IMAP access control lists.
+Use the <command moreinfo="none">maildiracl</command>
+command to set up access control lists for virtual shared folders.
+Use the
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+command
+to implement shared folders based on
+filesystem permissions.</para>
+
+	<para>
+See the <application moreinfo="none">Courier</application> IMAP
+server documentation for additional information
+on setting up virtual shared folders.</para>
+
+      </note>
+
+    <refsect2><title>ACL overview</title>
+
+      <para>
+ACLs provide a fine-grained mechanism for controlling
+access to shared folders.
+ACLs may be used to specify, for example, that
+<literal moreinfo="none">user1</literal> may only open and read the messages in the folder;
+and <literal moreinfo="none">user2</literal> can not only do that, but also delete messages,
+and create subfolders.</para>
+
+      <para>
+Each folder maintains its own individual access control list, that specifies
+who can do what to the folder.
+An ACL is a list of <quote>identifier</quote> and <quote>rights</quote>
+pairs.
+Each <quote>identifier</quote> and <quote>rights</quote> pair means that an
+entity called <quote>identifier</quote>
+(using the <literal moreinfo="none">UTF-8</literal> character set)
+is allowed to do <quote>rights</quote>
+on this folder.
+<quote>rights</quote> consists of one or more letters, each letter
+signifies a particular action:</para>
+
+      <variablelist>
+	<varlistentry>
+	  <term>a</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may modify this folder's ACLs.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>c</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may create subfolders of this folder (this includes renaming another
+folder as this folder's subfolders).</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>e</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may remove deleted messages from this folder.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>i</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may add messages to this folder (either uploading them one by one,
+or copying messages from another folder).</para>
+	  </listitem>
+	</varlistentry>
+	
+	<varlistentry>
+	  <term>l</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may actually see that this folder exists.
+If <replaceable>identifier</replaceable> does not have the <quote>l</quote>
+right on this folder, the folder is effectively invisible to
+<replaceable>identifier</replaceable>.</para>
+	  </listitem>
+	</varlistentry>
+	
+	<varlistentry>
+	  <term>r</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may open this folder.
+Note that if <replaceable>identifier</replaceable>
+knows the name of this folder, it can open it even if
+<replaceable>identifier</replaceable> does not the <quote>l</quote>
+right on this folder.</para>
+	  </listitem>
+	</varlistentry>
+	
+	<varlistentry>
+	  <term>s</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may mark messages in this folder as seen, or unseen.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>t</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may mark messages in this folder as deleted, or undeleted.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>w</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may change other status flags of messages in this folder.
+May also add or remove custom keywords on individual messages.</para>
+	  </listitem>
+	</varlistentry>
+	
+	<varlistentry>
+	  <term>x</term>
+	  <listitem>
+	    <para>
+<replaceable>identifier</replaceable>
+may delete this folder (which includes renaming this folder as another
+mailbox's subfoler.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+
+      <refsect3>
+	<title>Negative rights</title>
+
+	<para>
+An ACL entry of <quote>-identifier</quote> and <quote>rights</quote>
+is called a <quote>negative right</quote>, which
+explicitly removes <quote>rights</quote> from <quote>identifier</quote>.
+More than one <quote>identifier</quote> is usually used to determine the
+actual rights someone has for the given folder.
+The actual access rights are determined by taking all rights from all
+applicable <replaceable>identifier</replaceable>, than subtracting any
+negative rights, as specified in the following section.</para>
+      </refsect3>
+
+      <refsect3>
+	<title>Identifiers</title>
+
+	<para>
+Access rights on a given folder are computed by obtained the rights
+on the following identifiers, then subtracting the negative rights on the
+same identifiers:</para>
+
+	<variablelist>
+	  <varlistentry>
+	    <term><literal moreinfo="none">owner</literal></term>
+	    <listitem>
+	      <para>
+The owner of the maildir containing this folder.
+The maildir's INBOX's ACL defaults to all rights for its owner.
+A new folder's ACL is the same as its parent's ACL.
+In all cases, trying to remove the <quote>a</quote> right from the owner
+(either directly or using a negative right) results in an error.</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal moreinfo="none">anyone</literal></term>
+	    <listitem>
+	      <para>
+This identifier refers literally to every userid.
+The associated rights (or negative rights) are always used.</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal moreinfo="none">anonymous</literal></term>
+	    <listitem>
+	      <para>
+This is a synonym from <quote>anyone</quote>.</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal moreinfo="none">user=</literal><replaceable>loginid</replaceable></term>
+	    <listitem>
+	      <para>
+Rights (or negative rights) for IMAP account <quote>loginid</quote>.
+<note>
+		  <para>
+<quote>loginid</quote> is what's logged to syslog after a succesful
+login.
+In some situations <quote>loginid</quote> is not exactly the actual login ID
+used by the IMAP client.</para>
+		</note>
+</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal moreinfo="none">group=</literal><replaceable>name</replaceable></term>
+	    <listitem>
+	      <para>
+Rights (or negative rights) for account group <quote>name</quote>.
+Access rights are granted to an account group as a whole.
+The account options feature of the Courier Authentication Library specifies
+which account belongs to which account group.
+See courier-authlib's documentation for more information.
+</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal moreinfo="none">administrators</literal></term>
+	    <listitem>
+	      <para>
+This is an alias for <quote>group=administrators</quote>.
+Accounts that are members of an account group called
+<quote>administrators</quote> are considered administrative accounts, and
+automatically receive all access rights on all accessible folders.</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+
+	<para>
+Consider the following access control list:</para>
+
+	<informalexample>
+	  <programlisting format="linespecific">
+owner          aceilrstwx
+anyone         lr
+user=john      w
+-user=mary     r
+administrators aceilrstwx
+</programlisting>
+	</informalexample>
+
+	<para>
+This access control list specifies that the folder's owner has complete
+control over the mailbox (as well as the administrators, which have complete
+access to every folder); everyone else can see it and open it,
+except for <quote>mary</quote> who can see that the mailbox exists, but
+can't open it; additionally, <quote>john</quote> can change the status and
+keywords of individual messages (but not mark them as deleted/undeleted or
+seen/unseen, which requires additional rights).</para>
+      </refsect3>
+    </refsect2>
+  </refsect1>
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl -reset <replaceable>maildir</replaceable></command>
+    </cmdsynopsis>
+
+    <para>
+This command resets access control lists in
+<filename moreinfo="none"><replaceable>maildir</replaceable></filename>
+which as a path to a maildir.
+Under certain conditions, the files where a folder's ACLs are saved may
+continue to exist after the folder is removed.
+The <literal moreinfo="none">-reset</literal> options goes through
+<replaceable>maildir</replaceable>
+and removes all stale ACL files for removed folders.</para>
+
+    <note>
+      <para>
+The <application moreinfo="none">Courier</application> IMAP server
+normally performs this maintenance
+function automatically.
+It is not necessary to run this command under normal conditions.</para>
+    </note>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl -list
+<replaceable>maildir</replaceable>
+<replaceable>folder</replaceable>
+</command>
+    </cmdsynopsis>
+
+      <para>
+This command
+lists the access control lists set for <replaceable>folder</replaceable>.
+<replaceable>folder</replaceable> must be either
+<quote>INBOX</quote> or <quote>INBOX.folder.subfolder</quote>, which is the
+same naming convention for
+the <application moreinfo="none">Courier</application> IMAP server.</para>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl -set
+<replaceable>maildir</replaceable>
+<replaceable>folder</replaceable>
+<replaceable>identifier</replaceable>
+<replaceable>rights</replaceable></command>
+    </cmdsynopsis>
+
+      <para>
+Puts <replaceable>identifier</replaceable> (which may begin with a minus
+sign to specify a negative right) and
+<replaceable>rights</replaceable> in
+<replaceable>folder</replaceable>'s access control list.
+Existing rights for
+<replaceable>identifier</replaceable>
+(or <replaceable>identifier</replaceable>) are replaced by
+<replaceable>rights</replaceable> unless <quote>rights</quote> begins with
+<quote>+</quote> or <quote>-</quote>, which modifies the existing rights
+by adding or removing from them accordingly.
+Some examples:</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+maildiracl -set /home/user1/Maildir INBOX.Sent user=john lr
+
+maildiracl -set /home/user2/Maildir INBOX.Notes anyone -r
+
+maildiracl -set /home/user3/Maildir INBOX.Private -user=tom +r
+</programlisting>
+    </informalexample>
+
+    <note>
+      <para>
+Observe that the last command <emphasis>revokes</emphasis> the <quote>r</quote>
+right from <quote>tom</quote>, by adding it as a negative right.</para>
+    </note>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl -delete
+<replaceable>maildir</replaceable>
+<replaceable>folder</replaceable>
+<replaceable>identifier</replaceable></command></cmdsynopsis>
+
+      <para>
+This command removes <replaceable>identifier</replaceable>
+from
+<replaceable>folder</replaceable>'s access control list, if it exists.
+Use <quote>-<replaceable>identifier</replaceable></quote> to remove
+negative rights.</para>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">maildiracl -compute
+<replaceable>maildir</replaceable>
+<replaceable>folder</replaceable>
+[<replaceable>identifier</replaceable>]+</command></cmdsynopsis>
+
+    <para>
+This command takes a list of one or more
+<replaceable>identifier</replaceable>s.
+All access rights for the
+<replaceable>identifier</replaceable>s are combined together, then
+any appropriate negative rights are removed, and the result is printed
+on standard output.
+Use the following procedure to compute access rights the same way as they
+are computed by
+the <application moreinfo="none">Courier</application> IMAP server:</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+maildiracl -compute /home/tom46/Maildir INBOX.Sent owner user=tom46
+</programlisting>
+    </informalexample>
+
+    <para>
+This command computes access rights <quote>tom46</quote> has on
+his own folder.</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+maildiracl -compute /home/john34/Maildir INBOX.Public user=tom46
+</programlisting>
+    </informalexample>
+
+    <para>
+This command computes access rights <quote>tom46</quote> has on
+<quote>john34</quote>'s folder.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>IRREVOCABLE ACCESS RIGHTS</title>
+
+    <para>
+The owner of the mailbox must always have the <quote>a</quote> amd
+<quote>l</quote> access rights.
+The <literal moreinfo="none">administrators</literal> group must always have all access
+rights to all folders.
+Attempts to set access control lists, that do not include these minimum
+access rights, will be rejected.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>BUGS</title>
+
+    <para>
+All identifiers are specified using the <literal moreinfo="none">UTF-8</literal> character
+set.</para>
+
+    <para>
+All non-Latin letters in folder names are specified using the
+<literal moreinfo="none">modified-UTF7</literal> coding as used in IMAP.</para>
+
+    <para>
+This implementation of access control lists is based on
+version 2 (or <quote>ACL2</quote>) of IMAP
+access control lists, which is a work-in-progress.
+The existing IMAP ACL,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2086.txt">RFC 2086</ulink>
+is transparently implemented inside the ACL2 model.</para>
+
+    <para>
+If history's of any guidance, ACL2 is subject to change at any time.
+Be sure to check the release notes
+when upgrading to a newer version of this software.
+The <quote>ACL overview</quote> portion of this manual page is a
+<emphasis>very</emphasis> brief summary of ACL2, which leaves out optional
+parts of ACL2 that are not implemented.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildirkw.html"><citerefentry><refentrytitle>maildirkw</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,</para>
+  </refsect1>
+
+</refentry>

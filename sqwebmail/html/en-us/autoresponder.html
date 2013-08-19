@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="GENERATOR" content="amaya 8.8.5, see http://www.w3.org/Amaya/"
+  />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <title>Autoreplies</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+</head>
+
+<body>
+<!--
+
+[#$BADNAME=<span style="color: #ee0000">ERROR: Invalid character in autoreply name</span><br />#]
+[#$EEXIST=<span style="color: #ee0000">ERROR: Autoreply name already exists</span><br />#]
+[#$SAVEFAILED=<span style="color: #ee0000">ERROR: Unable to save autoreply text: %s</span><br />#]
+[#$QUOTA=<span style="color: #ee0000">ERROR: autoreply exceeds allowed quota</span>#]
+[#$ERROR=<span style="color: #ee0000">ERROR: %s</span><br />#]
+[#$INUSE=<span style="color: #ee0000">ERROR: Autoreply <span class="tt">%s</span> currently used by a mail filter</span><br />#]
+
+[#$UPLOAD=Upload file: #]
+[#$SAVE=Save#]
+
+[#$ATT=<table align="center" border="0" bgcolor="#000000" cellpadding="1" cellspacing="0" class="box-small-outer"><tr><td><table border="0" bgcolor="#eeeeee" cellpadding="4" cellspacing="0" width="100%" class="mailfilter"><tr><td>Attachment: %s</td></tr></table></td></tr></table><br /><br /><br />#]
+
+[#$CHSET=<table width="90%%" align="center" border="0" bgcolor="#000000"><tr><td><table width="100%%" border="0" bgcolor="#eeeeee"><tr><td style="padding: 1em">The above text is written in the "<span class="tt">%s</span>" character set,<br />and some characters could not be converted to your display's "<span class="tt">%s</span>" character set.</td></tr></table></td></tr></table>#]
+
+[#$TITLE1=<p align="center"><font size="+2" class="autoresptitle">#]
+[#$TITLE2=</font></p>#]
+
+[#$TEXT1=<textarea style="font-family: courier;" cols="75" rows="10" name="text" wrap="soft" class="autoresptext">#]
+[#$TEXT2=</textarea><br />#]
+
+-->
+<!-- Top Header. Shows folder list and email address. -->
+
+<div align="center">
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Autoreplies</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<form method="post" enctype="multipart/form-data" action="[#R#]">
+  [#P#]<input type="hidden" name="form" value="autoresponder" />
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"
+        width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" cellspacing="0" width="100%"
+          class="mailfilter">
+            <tbody>
+              <tr>
+                <td colspan="2" align="center">[#AUTORESPONSE_DELETE#]</td>
+              </tr>
+              <tr>
+                <td align="right">Existing autoreplies:</td>
+                <td>[#select:autoresponse_choose:autoresplist#][#option:#][#endoption#][#AUTORESPONSE_LIST#][#endselect#] 
+                  <input type="submit" value="Edit" name="do.autorespedit" /> 
+                  <input type="submit" value="Delete"
+                  name="do.autorespdelete" /></td>
+              </tr>
+              <tr>
+                <td align="right">Create new autoreply:</td>
+                <td><input type="text" size="20" name="newname" /> 
+                  <input type="submit" value="Create" name="do.newautoresp"
+                /></td>
+              </tr>
+              <tr>
+                <td colspan="2"><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2">[#AUTORESPONSE#]</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

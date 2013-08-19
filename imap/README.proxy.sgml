@@ -1,0 +1,233 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+ "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+
+  <!-- Copyright 2004-2009 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+
+<chapter id="proxy">
+
+  <title>The <application>Courier</application>
+    IMAP/POP3 proxy</title>
+
+  <para>
+The <application>Courier</application>
+IMAP and POP3 servers now include a built-in proxy aggregator.
+With a proxy aggregator, the mail accounts are split between multiple,
+independent servers, with an IMAP/POP3 server running on each individual
+server.
+A separate, proxy server sits in front and accepts ordinary IMAP
+and POP3 connections.  It reads the login ID, determines which server the
+account is located on, connects to the server, and logs in.
+Then, for the lifetime on the login session the front-end server takes itself
+out of the loop, and forwards all session traffic between the IMAP/POP3
+client, and the back-end server.</para>
+
+  <section id="requirements">
+    <title>Requirements</title>
+
+    <para>
+The <application>Courier</application>
+mail server can operate in IMAP/POP3 proxy mode only
+when the <application>Courier</application> Authentication Library uses the
+<literal>userdb</literal>,
+<literal>LDAP</literal>,
+<literal>MySQL</literal>, or the
+<literal>PostgreSQL</literal> authentication module.
+<emphasis>Challenge-Response (CRAM) authentication
+will also work with the
+<literal>LDAP</literal>,
+<literal>MySQL</literal>, or the
+<literal>PostgreSQL</literal> authentication module</emphasis>.
+Yes, CRAM authentication will work (except for <literal>userdb</literal>).</para>
+  </section>
+
+  <section id="configuration">
+    <title>Configuration</title>
+
+    <para>
+Follow the regular installation instructions to set up
+The <application>Courier</application>
+mail server with the actual mail accounts.
+The proxy feature uses the <quote>account options</quote> feature of the
+<application>Courier</application> Authentication Library,
+specifically an option called <quote>mailhost</quote>.
+Account option configuration process depends on the authentication module.
+With <literal>userdb</literal>, account options are specified by the
+<quote>options</quote> <literal>userdb</literal> attribute:</para>
+
+    <informalexample>
+      <programlisting>
+userdb user@example.com set options=mailhost=servera.example.com
+</programlisting>
+    </informalexample>
+
+    <para>
+Instructions for setting up account options with
+<literal>LDAP</literal>,
+<literal>MySQL</literal>, or
+<literal>PostgreSQL</literal>, may be found in the appropriate configuration
+file.  Briefly:</para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+In <filename>authldaprc</filename>, put
+<quote>LDAP_AUXOPTIONS&lt;TAB&gt;mailhost=mailhost</quote>,
+then populate the <quote>mailhost</quote> LDAP attribute
+(this may entail modifications of the LDAP schema).</para>
+      </listitem>
+
+      <listitem>
+	<para>
+In <filename>authmysqlrc</filename>, put
+<quote>MYSQL_AUXOPTIONS&lt;TAB&gt;CONCAT("mailhost=",mailhost)</quote>
+(or modify the existing <literal>MYSQL_AUXOPTIONS</literal> setting
+accordingly), then create a <quote>mailhost</quote> column in the account
+table.</para>
+      </listitem>
+
+      <listitem>
+	<para>
+In <filename>authpgsqlrc</filename>, put
+<quote>PGSQL_AUXOPTIONS&lt;TAB&gt;'mailhost=' || mailhost</quote>
+(or append <literal>",mailhost=" || mailhost</literal>
+to an existing setting),
+then create a <quote>mailhost</quote> column in the account
+table.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+The <quote>mailhost</quote> option for each account should be the name of
+the server where that account is located.
+If possible, this should match, <emphasis>exactly</emphasis>,
+the <envar>PROXY_HOSTNAME</envar> environment variable or the value
+returned by the <quote>gethostname</quote> on the server.</para>
+
+    <para>
+The final step is to set <quote>IMAP_PROXY</quote> and/or
+<quote>POP3_PROXY</quote> to <quote>1</quote> in the
+<filename>imapd</filename> and/or the <filename>pop3d</filename>
+configuration file, in the Courier configuration file directory on
+the proxy server.</para>
+
+    <section>
+      <title>Using the same configuration files on all servers</title>
+
+      <para>
+It is possible to have both the proxy server, and the back-end servers with
+the actual accounts, read the same configuration file that enables proxying.
+Ordinarily, if the back-end server also has the proxy setting turned on, it
+will also attempt to establish a proxy connection (to itself;
+lather, rinse, repeat until the server runs out of sockets).</para>
+
+      <para>
+However, if the <quote>mailhost</quote> option matches the server's hostname,
+as returned by <quote>gethostname</quote>, no proxying takes place.
+Therefore, if specific attention and care is made, when setting up the
+server names and account options, all servers can boot off the
+same configuration file.</para>
+    </section>
+
+    <section>
+      <title>Alternative configurations</title>
+
+      <para>
+If the server names are set up properly, it's possible to set things up
+without a dedicated front-end proxy aggregator server.
+All mail accounts are divided between a pool of servers, who are just one,
+big, happy family.
+IMAP and POP3 clients can connect to any server, at random.
+If they try to log into an account that happens to reside on the
+same box, then everything will be ready to go.
+If not, the server automatically opens a proxy connection to the right
+box, and everything will be ready to go as well.</para>
+    </section>
+
+    <section>
+      <title>Homogenous environments</title>
+
+      <para>
+Both servers involved in a proxy connections should be running the
+same version of the
+<application>Courier</application> IMAP/POP3 server.
+The proxy code included in the
+Courier-IMAP package tarball will talk to
+the server from the
+Courier-MTA
+package tarball that includes the same build of the IMAP daemon, and
+vice-versa.
+Run <quote>imapd --version</quote> to determine the build of the IMAP
+daemon.</para>
+
+      <para>
+All servers
+<emphasis>MUST</emphasis>
+use the same identical <filename>imapd</filename>
+and <filename>pop3d</filename> configuration files (with the possible
+exception of the proxy flag).
+The next section explains why.</para>
+
+    </section>
+
+    <section>
+      <title>Heterogenous environments</title>
+
+      <para>
+It should generally be possible to have the
+The <application>Courier</application>
+IMAP/POP3 server establish a proxy connection to some other third party,
+non-<application>Courier</application>, IMAP or POP3 server.
+Of course, the <application>Courier</application> Authentication Library
+running on the proxy server must have the same understanding of the
+account names and passwords as the other IMAP/POP3 server.
+The main issue is the different levels of protocol implementations.</para>
+
+      <para>
+Both the IMAP and POP3 protocols have optional features that different
+servers may or may not implement.
+Some servers will implement certain optional features of the IMAP or POP3
+protocol; other servers will implement different features parts.</para>
+
+      <para>
+When the IMAP/POP3 client connects to the server, the client typically
+obtains the list of available optional features.
+After logging in, the client will have no reason to expect that it's now
+talking to a different server with a different set of protocol features.
+Therefore, it may not be possible to use a Courier proxy with some
+other IMAP/POP3 server that implements a widely different set of
+features.
+This may work with some clients, that don't make use of optional features;
+while other clients will report strange, or unpredictable errors.</para>
+
+      <para>
+In some cases, setting the <literal>IMAP_PROXY_FOREIGN</literal> flag,
+in
+the <filename>imapd</filename> configuration file, may help.
+This command will send a message to the IMAP client explicitly informing
+the client that the list of available protocol features has changed;
+however some clients may ignore or not implement this particular message.
+There is no equivalent POP3 command.</para>
+
+      <note>
+	<para>
+As previously mentioned the IMAP/POP3 clients may use any supported
+authentication method, including CRAM authentication (in most cases),
+with or without encryption, to log in.
+However, Courier will always use plain userid/password authentication,
+without encryption, to establish proxy connections.
+When using a different server, that server must be configured to allow
+plain userid/password authentication.</para>
+
+	<para>
+Note that the default configuration of the <literal>UW-IMAP</literal>
+server requires encryption, and refuses non-encrypted connections.
+Proxy connections are presumably carried over a private network, and
+there is no reason to use encryption.
+Therefore, the <literal>UW-IMAP</literal> server will have to be
+re-configured to allow non-encrypted connections, if it's to be used
+with Courier in proxy mode.</para>
+      </note>
+    </section>
+  </section>
+</chapter>

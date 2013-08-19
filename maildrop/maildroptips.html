@@ -1,0 +1,325 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content=
+  "text/html; charset=us-ascii" />
+
+  <title>Maildrop tips and tricks.</title>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <!-- Copyright 2000-2002 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+  <link rel="icon" href="icon.gif" type="image/gif" />
+</head>
+
+<body>
+  <h1>Maildrop tips and tricks</h1>Last update: 10/11/1998.<br />
+  <hr width="100%" />
+
+  <table>
+    <tbody>
+      <tr>
+        <td align="left" rowspan="6" width="10%"></td>
+
+        <th align="left"><a href="#include">The include
+        statement</a></th>
+
+        <td></td>
+      </tr>
+
+      <tr>
+        <th align="left"><a href="#linessize">The
+        <code>$LINES</code> and <code>$SIZE</code>
+        environment</a></th>
+
+        <td></td>
+      </tr>
+
+      <tr>
+        <th align="left"><a href="#exclamation">Partial matches
+        using the ! operator</a></th>
+
+        <td></td>
+      </tr>
+
+      <tr>
+        <th align="left"><a href="#shortcircuit">Short-circuit
+        evaluation using logical operators</a></th>
+
+        <td></td>
+      </tr>
+
+      <tr>
+        <th align="left"><a href="#foreach">The
+        <code>foreach</code> statement</a></th>
+
+        <td></td>
+      </tr>
+
+      <tr>
+        <th align="left"><a href="#hometmp">The
+        <code>$HOME/.tmp</code> directory</a></th>
+
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <hr width="100%" />
+  <br />
+  Here's a list of tips and tricks to write efficient mail filters
+  using maildrop. Maildrop - just like any programming language -
+  can do certain things better than others.<br />
+  &nbsp;
+
+  <h2><a name="include" id="include">The include statement</a></h2>
+
+  <p>When maildrop is started, it reads
+  <code>$HOME/.mailfilter</code>, or some other file containing
+  mail filtering instructions. Before doing anything else, this
+  entire file is read and semi-compiled. Any grammatical or syntax
+  errors will result in maildrop terminating with a temporary error
+  code, without doing anything with the message.</p>
+
+  <p>The entire file must be 'semi-compiled". The
+  'semi-compilation' process consists of building an logical
+  representation of the filtering statements in memory.</p>
+
+  <p>If you have a long and complicated set of instructions, it
+  will be semi-compiled whether or not it will actually be
+  executed. For example, consider the following code:<br />
+  &nbsp;</p>
+  <pre>
+if ( /^Subject: rosebud/ )
+{
+    ...
+    some
+    really
+    long
+    set
+    of
+    instructions
+    ...
+}
+</pre>If the contents of the "<code>if</code>" construct are large,
+maildrop may spend considerable amount of time and memory
+semi-compiling filtering instructions that may never be used.
+Consider putting all these instructions into a separate file, and
+using the <code>include</code> statement to execute them.
+
+  <p>The <code>include</code> statement is processed only when it
+  is actually executed by maildrop. That carries certain side
+  effects. One feature of maildrop is the semi-compilation which
+  weeds out errors in the filtering recipe file, holding all mail
+  and not doing anything until the errors are fixed. The
+  <code>include</code> statement is not processed until it is
+  actually executed. If there are errors in the file referenced by
+  the <code>include</code> statement, maildrop will not know about
+  them until it executes the <code>include</code> statement. When
+  maildrop detects the error, it will terminate with a temporary
+  error code, holding all mail. However, any filtering instructions
+  before the <code>include</code> statement would've already been
+  executed.</p>
+
+  <h2><a name="linessize" id="linessize">The <code>$LINES</code>
+  and <code>$SIZE</code> environment variables</a></h2>
+
+  <p>These variables are initialized to the number of lines in the
+  message, and the size of the message in bytes. They may not be
+  exact, due to the presence of the From_ line, or -A arguments on
+  the command line, but they will always be a reasonable
+  approximation.</p>
+
+  <p>Scanning headers for patterns will take the same amount of
+  time whether the body of the message has 100 or 1,000 lines.
+  However, the "b" option causes the message body to be searched.
+  If someone sends you a 5 megabyte binary file, each pattern
+  matched against the message body will take a significant time to
+  complete.</p>
+
+  <p>Whenever possible, the first thing you should do is check both
+  variables to see if the message&nbsp; is excessively large. If
+  so, divert the message to a separate mailbox, or reject it.</p>
+
+  <p>Weighted scoring is especially sensitive to the size of the
+  message being delivered. Normally, as soon as a pattern match is
+  found, maildrop terminates the pattern scan. If weighted scoring
+  is used then the pattern scan is immediately restarted, until the
+  end of the message is reached.</p>
+
+  <p>A fixed overhead is required to start a pattern scan going, so
+  that weighted scoring that matches a very short pattern, like
+  <code>/[:lower:]/:Dbw,1,1</code> will take a significant amount
+  of CPU time to complete. Maildrop is simply not optimized for
+  these kinds of situations.</p>
+
+  <p>Nevertheless, on a Pentium 200, /[:lower:]/:Dbw,1,1 perform
+  reasonably well for messages less than 60K long.</p>
+
+  <p>Here's an example of using <code>$LINES</code> and
+  <code>$SIZE</code> to divert large messages to a separate
+  mailbox:</p>
+  <pre>
+ 
+    if ($LINES &gt; 1000 || $SIZE &gt; 60000)
+    {
+        to "mail/IN.large"
+    }
+
+    .
+    .
+    .
+</pre>
+
+  <h2><a name="exclamation" id="exclamation">Partial matches using
+  the ! operator</a></h2>
+
+  <p>Maildrop implements the ! operator in patterns by breaking up
+  the pattern into two separate patterns, which are compiled and
+  executed separately.</p>
+
+  <p>Whenever the first pattern is successfully matched, maildrop
+  runs the second pattern. If the second pattern does not match,
+  maildrop resumes matching the first pattern until it matches
+  again.</p>
+
+  <p>Since starting a pattern match involves some fixed overhead,
+  minimizing the number of times the first pattern will match will
+  reduce the amount of time it takes to match the entire
+  pattern.</p>
+
+  <p>For example: you're trying to extract an IP address from the
+  first Received header. Here's your first attempt at doing so:</p>
+  <pre>
+ 
+    /^Received:.*![0-9\.]+/
+    IP=$MATCH2
+</pre>This will not work at all. From the manual page for
+maildropfilter:
+  <pre>
+ 
+       When  there  is  more  than  one  way  to  match a string,
+       maildrop favors matching as much  as  possible  initially.
+</pre>
+
+  <p><br />
+  So this fragment will set IP to the last digit, or period found
+  in the first Received: header, because the first half of the
+  pattern will match as much as possible.</p>
+
+  <p>Here's your second attempt, then:</p>
+  <pre>
+ 
+    /^Received:.*[^0-9\.]![0-9\.]+/
+    IP=$MATCH2
+</pre>This will work, except the first half of the pattern will end
+up matching every character in the Received: header that's not a
+digit or a period. Maildrop will then stop and try to run the
+second half of the pattern.
+
+  <p>Your mail server will probably put a left bracket before the
+  IP address of the relay. Noting that, the following code picks up
+  the IP address as efficiently as possible:</p>
+  <pre>
+ 
+    /^Received:.*\[![0-9\.]+/
+    IP=$MATCH2
+</pre>
+
+  <h2><a name="shortcircuit" id="shortcircuit">Short-circuit
+  evaluation using logical operators</a></h2>
+
+  <p>The logical operators <code>||</code> and
+  <code>&amp;&amp;</code> work in maildrop just like they work in
+  C. Consider the following expression:</p>
+  <pre>
+ 
+    if (/ ... some pattern ... / || / ... some other pattern ... /)
+    {
+        .
+        .
+        .
+    }
+</pre>If the first pattern is found, maildrop will not execute the
+second pattern, since the logical expression will be true no matter
+what. You can use that to your advantage. If you have two patterns,
+and one of them takes more time to process, put the other first.
+Even if both patterns are relatively quick, if you expect one of
+them to be found almost every time, put that one first so that it
+will not be necessary to run the second pattern most of the time.
+
+  <p>The same concept works for the <code>&amp;&amp;</code>
+  operator:</p>
+  <pre>
+ 
+    if (/ ... some pattern ... / &amp;&amp; / ... some other pattern ... /)
+    {
+        .
+        .
+        .
+    }
+</pre>If the first pattern is not found, maildrop will not execute
+the second pattern, since the logical expression will be false no
+matter what.
+
+  <h2><a name="foreach" id="foreach">The <code>foreach</code>
+  statement</a></h2>
+
+  <p>The <code>foreach</code> statement is implemented as follows.
+  Maildrop will execute the regular expression, and compile a list
+  of all the patterns in the message matched by the regular
+  expression. Afterwards, maildrop will execute the
+  <code>foreach</code> statement, once for each matched
+  pattern.</p>
+
+  <p>It is important to note that maildrop will create a list in
+  memory containing every pattern matched by the regular
+  expression. if the regular expression is found many times in the
+  message, this will require a lot of memory. For example, the
+  following is a Very Bad Thing[tm]:</p>
+  <pre>
+ 
+    foreach /[:alpha:]/
+    {
+        .
+        .
+        .
+    }
+</pre>Maildrop does not include any built-in limits on resource
+usage, except for the watchdog timer. Therefore, as a system
+administrator, it is your responsibility to limit resources used by
+the maildrop process.
+
+  <p>This implementation of the <code>foreach</code> statement is
+  the one that yields the least number of surprises. Observe that
+  the contents of the <code>foreach</code> construct can modify the
+  message using the <code>xfilter</code> statement. Furthermore,
+  the regular expression may include variable substitution, and
+  those variables could be modified by the <code>foreach</code>
+  statement. If the foreach statement were to be executed "on the
+  fly", these factors would yield unpredictable - and rather messy
+  - results.</p>
+
+  <h2><a name="hometmp" id="hometmp">The <code>$HOME/.tmp</code>
+  directory</a></h2>
+
+  <p>Under certain conditions, maildrop will need to use a
+  temporary file. Temporary files are created in the
+  <code>$HOME/.tmp</code> directory. Temporary files are used to
+  store large messages (instead of storing them in memory).
+  Temporary files may also be used by the xfilter command, or in
+  other situations.</p>
+
+  <p>Maildrop will automatically delete all temporary files before
+  terminating. However, if the maildrop process is killed, or
+  terminates abnormally, a temporary file may remain and take up
+  disk space. To have those leftover files automatically cleaned
+  up, put the following code in <code>/etc/profile</code>, or some
+  other file that all users run after logging in:</p>
+  <pre>
+ 
+    find $HOME/.tmp -depth -mtime +7 \( \( \
+        -type d -exec rmdir {} \; \) -o -exec rm -f {} \; \) 2&gt;/dev/null
+</pre>&nbsp;
+</body>
+</html>

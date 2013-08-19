@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+                      "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+  <title>Known bugs in SqWebMail</title>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE">
+  <meta name="GENERATOR" content="amaya V2.2">
+  <!-- Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+</head>
+
+<body>
+<h1>Known bugs in SqWebMail</h1>
+<ul>
+  <li>This is really not an SqWebMail bug. The UNIX version of Netscape
+    Communicator reliably crashes when you edit a lot of text in a TEXTAREA
+    input for some time. First, it attempts to allocate about 40 megabytes of
+    RAM, then crashes soon thereafter. This is not my problem. Hit 'PREVIEW'
+    periodically, to save your unsent work. If Communicator crashes, you can
+    recover most of your text from the Drafts folder.<br>
+    <br>
+  </li>
+  <li>Another Communicator bug. When uploading an attachment, Communicator
+    will hang if you select a directory instead of a file.<br>
+    <br>
+  </li>
+  <li><p>In practice, SqWebMail is somewhat tolerant of the mailbox contents
+    being changed in a middle of a session by another mail client, accessing
+    the same account. Still, all bets are off, and be aware of potential
+    consequences (such as clicking on one message, and the message coming up
+    blank, or another message appearing).</p>
+    <p></p>
+  </li>
+  <li>A lot of disk space is temporarily required when a message is sent, or a
+    new attachment is uploaded. When a message is sent, first the message is
+    saved as a draft, in the Drafts folder. Then, the draft is rewritten to
+    the Sent folder, and the copy in Drafts is deleted. Which means that if
+    disk quotas are used, low quotas will make it somewhat difficult to send
+    messages with large attachments. It gets even worse when files are
+    uploaded as attachments. Say you already have a message with attachments,
+    totalling 500KBs.  You are about to upload another 200KB file. First, your
+    HTTP POST is saved in a temporary file - 200KB+change. Then, the uploaded
+    file is extracted into another temporary file - 200KB. Then, a new version
+    of your message is created, with the new attachment encoded using base64 -
+    500KB+264KB. Total additional disk space required to handle a 200KB
+    attachment: 200KB+200KB+764KB.  If you're using filesystem-based quotas,
+    everything gets counted against your quota. It's not as bad if you're
+    using the deliverquota maildir agent, which will ignore most of the
+    baggage.
+    <p></p>
+  </li>
+  <li>And from the "it's not a bug but a feature" department. New caching and
+    handling algorythm effective with version 0.11. The Trash folder is
+    introduced. Instead of deleted messages now hanging around in their
+    original folder before being purged (but displayed separately), deleted
+    messages will now migrate to the Trash folder, before being purged later.
+    When you select a message to be deleted, it will show up marked with the
+    status of D in its original folder, if you go back to the folder contents
+    page. When you leave the folder, it will now be moved to the Trash folder.
+    <p>What really happens is that when you delete a message, SqWebMail will
+    create a hard link into the Trash folder, then mark the message as deleted
+    in the original folder. When you leave the folder, SqWebMail will go
+    through the folder and unlink all deleted messages.</p>
+    <p>Moving a message to another folder works exactly the same, except that
+    the message is linked into that folder, instead of Trash.</p>
+    <p>If you move a message to another folder, and you immediately go back to
+    the folder contents window (or you move a message directly from the folder
+    contents window), the message will show up as deleted. If you try to move
+    a message again into another folder, this operation will quietly fail
+    without giving you an error message.<br>
+    <br>
+    </p>
+  </li>
+  <li>Because messages are displayed as a part of an HTML page (as a table
+    cell, actually), styles and BODY attributes of HTML messages are lost.
+    BGCOLOR should really become BGCOLOR of the table cell; similarly LINK,
+    ALINK, VLINK should be implemented as a style, as well as any STYLE
+    attributes from the BODY tag.<br>
+    <br>
+  </li>
+  <li>Netscape Communicator does not yet support all HTML 4.0 attributes. Once
+    you move or delete a message from a mailbox, it's marked as a 'D', and you
+    can't do anything with it. If you want to move the message again, go to
+    the folder where you moved it to. In the folder contents page, messages
+    marked with a D get a DISABLED attribute for their checkmark. Communicator
+    does not support the disabled tag, so if you try to move or delete the
+    message again, it'll be a no-op.</li>
+</ul>
+</body>
+</html>

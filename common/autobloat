@@ -1,0 +1,71 @@
+#!/bin/sh
+
+LC_ALL=C
+export LC_ALL
+
+doit() {
+
+	if test ! -f configure.in
+	then
+	    for d in */.
+	    do
+		( cd $d >/dev/null 2>&1 || continue; doit ) || exit 1
+	    done
+	    exit 0
+	fi
+
+echo `pwd`:
+
+	if test -f po/Makefile.in.in
+	then
+		if test ! -f po/Makefile
+		then
+			cp po/Makefile.in.in po/Makefile
+		fi
+	fi
+
+	if grep -q LT_INIT configure.in
+	then
+		libtoolize --force --copy `if grep -q LIBLTDL configure.in ; then echo --ltdl; fi`
+	else
+	    if grep -q PROG_LIBTOOL configure.in
+	    then
+		libtoolize --force --copy `if grep -q LIBLTDL configure.in ; then echo --ltdl; fi`
+	    fi
+	fi
+	aclocal || exit 1
+	if grep -q AM_CONFIG_HEADER configure.in
+	then
+		autoheader || exit 1
+	fi
+	if grep -q AC_PROG_SYSCONFTOOL configure.in
+	then
+		sysconftoolize || exit 1
+	fi
+	if test -f AUTHORS -a -f NEWS -a -f README
+	then
+		automake --add-missing || exit 1
+	else
+		automake --foreign --add-missing || exit 1
+	fi
+	autoconf || exit 1
+
+	grep '^subdirs=' <configure >configure.tmp
+	subdirs=
+	. ./configure.tmp
+	rm configure.tmp
+	subdirs="`echo $subdirs`"
+	if test "$subdirs" = ""
+	then
+		subdirs="`echo */.`"
+	fi
+	for d in $subdirs
+	do
+	    if test -f "$d/configure.in"
+	    then
+		( cd $d >/dev/null 2>&1 || continue; doit ) || exit 1
+	    fi
+	done
+}
+
+doit

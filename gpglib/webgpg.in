@@ -1,0 +1,39 @@
+#! @SHELL@
+#
+#
+# Copyright 2001 Double Precision, Inc.  See COPYING for
+# distribution information.
+#
+# This scripts initializes Maildir/gpg, enabling GPG code for the given
+# maildir.
+
+GPG=@GPG@
+
+maildir="$1"
+
+# Sanity check
+
+test ! -d "$maildir" && echo "$maildir: not a directory" >&2 && exit 1
+
+umask 077
+test -d "$maildir/gpg" && echo "$maildir/gpg: already exists" >&2 && exit 1
+test -f "$maildir/gpg/options" && echo "$maildir/gpg/options: already exists" >&2 && exit 1
+
+mkdir $maildir/gpg || exit 1
+cat >$maildir/gpg/options <<EOF
+
+force-v3-sigs
+escape-from-lines
+lock-once
+comment ""
+no-secmem-warning
+
+EOF
+
+owner=`@PERL@ -e '@a=stat "'$maildir'"; print "$a[4]:$a[5]";'`
+
+chown -R $owner $maildir/gpg
+
+echo "$maildir/gpg/options created, please verify that the options are correct."
+
+echo "See INSTALL for more information."

@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Copyright 2001-2002 Double Precision, Inc.  See COPYING for
+# distribution information.
+
+srcfile="$1"
+dstfile="$2"
+
+if test ! -f $srcfile
+then
+	echo "$srcfile: not found" >&2
+	exit 1
+fi
+
+rm -rf $dstfile.tmpdir
+mkdir -p $dstfile.tmpdir
+xsltproc --nonet -o $dstfile.tmpdir/ /usr/share/sgml/docbook/xsl-stylesheets/manpages/docbook.xsl $srcfile
+
+for f in $dstfile.tmpdir/*
+do
+    sed -n '1p' <$f >$dstfile.tmp
+    sed -n '20,$d;/<!--/p' <$srcfile | sed 's/\"/ /g;s/^/\.\\\"/g' >>$dstfile.tmp || exit 1
+
+    sed '1d' <$f >>$dstfile.tmp || exit 1
+    mv $dstfile.tmp `basename $f` || exit 1
+done
+
+rm -rf $dstfile.tmpdir
+#`dirname $0`/fixman "$srcfile" "$dstfile"

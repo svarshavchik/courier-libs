@@ -1,0 +1,16 @@
+##VERSION: $Id:$
+#
+# ldapaddressbook created from ldapaddressbook.dist by sysconftool
+#
+# Do not alter lines that begin with ##, they are used when upgrading
+# this configuration.
+#
+#  This is a list of some public LDAP address books.  This is a global
+#  list -- all clients will have this list by default.
+#
+##NAME: ldapaddressbook:0
+
+Bigfoot	ldap.bigfoot.com	389	c=US		
+Infospace	ldap.infospace.com	389	c=US		
+Netscape Netcenter	memberdir.netscape.com	389	ou=member_directory,o=netcenter.com	ou=people,o=netcenter.com	
+WhoWhere	ldap.whowhere.com	389	c=US		

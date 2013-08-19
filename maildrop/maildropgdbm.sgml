@@ -1,0 +1,273 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>maildropgdbm</refentrytitle>
+    <manvolnum>7</manvolnum>
+    <refmiscinfo class='manual'>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>maildropgdbm</refname>
+    <refpurpose>GDBM/DB support in maildrop</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <informalexample>
+      <programlisting format="linespecific">
+gdbmopen(filename, mode)
+
+gdbmclose
+
+gdbmfetch(key [,default])
+
+gdbmstore(key,value)
+</programlisting>
+    </informalexample>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+    <para>
+The gdbm family of functions provides access to the GDBM library - a library
+of routines that manage simple database files. The library provides a way of
+quickly storing and looking up key/data pairs.</para>
+
+    <para>
+GDBM support in <command moreinfo="none">maildrop</command> is optional, and may not be
+available to you.</para>
+
+<para>GDBM support in <command moreinfo="none">maildrop</command> can optionally be
+implemented using the DB library. This option is selected by the system
+administrator. If this is the
+case, these functions still work exactly as described below, except that they
+will operate on DB hash files, instead of GDBM files.</para>
+
+<para>To see whether GDBM or DB support is used, run the command
+"<command moreinfo="none">maildrop -v"</command>.</para>
+
+    <para>
+GDBM support is minimal, and simplistic. A filter file may have only one
+gdbm file open at the same time. However, the filter file can close the
+current gdbm file, and open another one. If another filter file is included
+using the include statement, the included filter file may open its own,
+separate, gdbm file.</para>
+
+    <para>
+A GDBM file contains a list of key/value pairs. All keys in the GDBM file
+are unique. After storing an arbitrary key/value pair in the GDBM file, the
+value associated with the given key can be quickly located and
+retrieved.</para>
+
+    <refsect2>
+
+      <title>gdbmclose - close gdbm file</title>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+gdbmclose
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+This function closes the current GDBM file.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>gdbmfetch - retrieve data</title>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+gdbmfetch (<replaceable>key</replaceable> [, <replaceable>options</replaceable>] [, <replaceable>default</replaceable>])
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+This function retrieves the data for the given key.
+<replaceable>key</replaceable> is the key
+to retrieve. The <command moreinfo="none">gdbmfetch</command> function returns the data
+associated with
+this key. If the key does not exist in the GDBM file,
+<command moreinfo="none">gdbmfetch</command> returns
+the <command moreinfo="none">default</command> argument. If the <command moreinfo="none">default</command>
+argument is not specified,
+<command moreinfo="none">gdbmfetch</command> returns empty text. Please note that the
+<command moreinfo="none">default</command>
+argument is not actually evaluated unless the key does not exist in the GDBM
+file.</para>
+
+      <para>
+The <replaceable>options</replaceable> argument specifies additional
+<command moreinfo="none">maildrop</command> value-added features.
+The following functionality is not
+available in the GDBM library, but is rather provided by
+<command moreinfo="none">maildrop</command>.</para>
+
+      <para>
+If the <replaceable>options</replaceable> argument is set to "D", and the key could not be found in
+the GDBM database, and the key is of the form "user@domain", <command moreinfo="none">maildrop</command>
+will then attempt to look up the key "user@". If that key is also not found,
+<command moreinfo="none">maildrop</command> finally looks up the key "domain".</para>
+
+      <para>
+If "domain" is also not found, and domain is of the form
+"<literal moreinfo="none">a.b.c.d.tld</literal>"
+(with variable number of period-separated sections),
+<command moreinfo="none">maildrop</command> then
+attempts to look up the key
+"<literal moreinfo="none">b.c.d.tld</literal>". If that key is not found,
+<command moreinfo="none">maildrop</command> tries "<literal moreinfo="none">c.d.tld</literal>",
+and so on, until a key
+is found, or there are no more subdomains to remove, at which point
+<command moreinfo="none">gdbmfetch</command>
+will return either the <command moreinfo="none">default</command> argument, or empty
+text.</para>
+
+      <para>
+If the <replaceable>options</replaceable> argument is set to "D", and the
+key could not be
+found in the GDBM database, and the key is of the form
+"<literal moreinfo="none">a.b.c.d.tld</literal>" (with
+variable number of period-separated sections),
+<command moreinfo="none">maildrop</command> will also
+attempt to look up keys for successive higher-level domains in the GDBM
+database.</para>
+
+      <note>
+	<para>
+GDBM databases are case sensitive.
+Make sure that the GDBM database is created using lowercase letters only,
+and use the
+<ulink url="maildropfilter.html#tolower"><command moreinfo="none">tolower</command></ulink>
+function to convert the key to lowercase.</para>
+      </note>
+
+      <para>
+If the <replaceable>options</replaceable> argument is
+"<literal moreinfo="none">I</literal>", and the key is not
+in the GDBM database, and the key is of the form "w.x.y.z" (with
+variable number of period-separated sections),
+<command moreinfo="none">maildrop</command> then tries to
+look up the key "w.x.y", then "w.x",
+until
+a key is found, or there are no more sections to remove. Use this feature to
+look up IP-address based GDBM lists.</para>
+
+      <note>
+	<para>
+These features are implemented by brute force: if the
+query doesn't succeed, try again. Take note of potential denial-of-service
+attacks where key is set to a long text string consisting mostly of periods,
+which will result in numerous GDBM queries that will take an excessive amount
+of time to complete.</para>
+      </note>
+    </refsect2>
+
+    <refsect2>
+      <title>gdbmopen - open gdbm file</title>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+gdbmopen (<replaceable>file</replaceable> [, <replaceable>mode</replaceable>])
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+<command moreinfo="none">gdbmopen</command> opens the indicated GDBM file.
+The optional second argument specifies the following:</para>
+
+      <variablelist>
+	<varlistentry>
+	  <term>"R"</term>
+	  <listitem>
+	    <para>
+Open this GDBM file for reading.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>"W"</term>
+	  <listitem>
+	    <para>
+Open this GDBM file for reading and writing.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>"C"</term>
+	  <listitem>
+	    <para>
+Open this GDBM file for reading and writing. If the
+GBDM file doesn't exist, create it.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>"N"</term>
+	  <listitem>
+	    <para>
+Create a new GDBM file. If the file exists, the existing
+file is deleted. The file is opened for reading and writing.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+
+      <para>
+The <replaceable>mode</replaceable> argument
+defaults to <literal moreinfo="none">"R"</literal> is used. In embedded mode, only
+<literal moreinfo="none">"R"</literal> is allowed.</para>
+
+      <para>
+The GDBM library allows multiple processes to read the same GDBM file at
+the same time, but it does not allow multiple access when the GDBM file is
+open for writing. Using
+<ulink url="maildropfilter.html#flock"><command moreinfo="none">flock</command></ulink>
+or
+<ulink url="maildropfilter.html#dotlock"><command moreinfo="none">dotlock</command></ulink>
+is highly recommended.</para>
+
+      <para>
+In delivery mode, <command moreinfo="none">maildrop</command> runs from the recipient's home
+directory. Keep that in mind while specifying the filename.</para>
+
+      <para>
+The gdbmopen function returns 0 if the GDBM file was successfully opened,
+non-zero otherwise.</para>
+    </refsect2>
+
+    <refsect2>
+
+      <title>gdbmstore - store data</title>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+gdbmstore(<replaceable>key</replaceable>, <replaceable>value</replaceable>)
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+
+      <para>
+<replaceable>key</replaceable> is the key value to store in the GDBM file.
+<replaceable>value</replaceable> is the
+value to store. If <replaceable>key</replaceable> already exists in the GDBM
+file, <replaceable>value</replaceable>
+replacest the old value.
+The <command moreinfo="none">gdbmstore</command> function is only
+permitted if the GDBM file is opened for writing.
+If <replaceable>gdbmopen</replaceable> opened
+the GDBM file for reading only, <command moreinfo="none">gdbmstore</command>
+will return -1. Otherwise, <command moreinfo="none">gdbmstore</command> returns 0.</para>
+    </refsect2>
+  </refsect1>
+</refentry>

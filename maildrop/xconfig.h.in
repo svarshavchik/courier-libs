@@ -1,0 +1,58 @@
+#ifndef	config_h
+#define	config_h
+
+
+/*
+
+  These variables are set by the configure script - DO NOT EDIT
+
+  Directory for temporary files.
+*/
+
+#define	TEMPDIR "@TEMPDIR@"
+
+/*  Temporary files are used for messages larger than SMALLMSG bytes. */
+
+#define	SMALLMSG @SMALLMSG@
+
+/*  Watchdog timer */
+
+#define	GLOBAL_TIMEOUT	@GLOBAL_TIMEOUT@
+
+/*  Terminate line with a CRLF pair. */
+
+#define	CRLF_TERM	@CRLF_TERM@
+
+/*  Initial values for corresponding variables */
+
+#define	LOCKEXT_DEF	"@LOCKEXT_DEF@"
+#define	LOCKSLEEP_DEF	"@LOCKSLEEP_DEF@"
+#define	LOCKTIMEOUT_DEF	"@LOCKTIMEOUT_DEF@"
+#define	LOCKREFRESH_DEF	"@LOCKREFRESH_DEF@"
+
+/*  Set to 1 to restrict -d option to trusted users only */
+
+#define	RESTRICT_TRUSTED	@RESTRICT_TRUSTED@
+
+/*  Set to 1 to keep the original From_ line in message (if any).
+    Otherwise, the original From_ line is kept only if invoked by root. */
+
+#define	KEEP_FROMLINE		@KEEP_FROMLINE@
+
+/*  Define the DEFAULT extension for enhanced embedded mode. */
+
+#define	DEFAULTEXT	"-default"
+
+/*  Use flock/lockf locking */
+
+#define	USE_FLOCK	@USE_FLOCK@
+
+/*  Use dotlock locking */
+
+#define	USE_DOTLOCK	@USE_DOTLOCK@
+
+/*  Automatic version */
+
+#define VERSION		"@VERSION@"
+
+#endif

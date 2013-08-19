@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Preferences</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$PWDERR=<p class="error">ERROR: Unable to change password.  Possible reasons why you cannot change the password are:</p><ul class="error"><li>You did not enter the old password correctly</li><li>You did not enter the new password twice correctly</li><li>Your new password is too short, or is based on a dictionary word, and short/dictionary-based passwords are not allowed</li><li>Your new password contains forbidden characters</li></ul>#]
+[#$PWDOK=<p class="success">Your password was changed successfully!</p>#]
+[#$PREFSOK=<p class="success">Your preferences were updated successfully!</p>#]
+[#$DATE=Date#]
+[#$SENDER=Sender#]
+[#$SUBJECT=Subject#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Preferences</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="75%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"><!-- here -->
+
+        <form method="post" name="preferences" action="[#R#]">
+          [#P#]<input type="hidden" name="form" value="preferences" />[#x#]
+
+          <table border="0" cellspacing="0" cellpadding="4" bgcolor="#99ccff" class="bluebox"
+          width="100%">
+            <tbody>
+              <tr>
+                <td><!--
+
+                  Start of preferences box
+                  -->
+
+                  <table border="0" cellspacing="8" cellpadding="4"
+                  width="100%">
+                    <tbody>
+                      <tr>
+                        <td>[#z#]</td>
+                        <td width="100%"><label for="fullheaders">Display
+                          full message headers</label></td>
+                      </tr>
+                      <tr>
+                        <td>[#H#]</td>
+                        <td><label for="doshowhtml">Display HTML
+                          E-Mail</label></td>
+                      </tr>
+                      <tr>
+                        <td>[#FLOWEDTEXT#]</td>
+                        <td><label for="noflowedtext">Do not display flowed
+                          text formatted mail.</label></td>
+                      </tr>
+                      <tr>
+                        <td>[#NOARCHIVE#]</td>
+                        <td><label for="noarchive">Do not archive sent
+                          messages in the Sent folder.</label></td>
+                      </tr>
+                      <tr>
+                        <td>[#NOAUTORENAMESENT#]</td>
+                        <td><label for="noautorenamesent">Do not rename
+                          the Sent folder every month.</label></td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td>Automatically purge deleted messages after [#v#]
+                          days.<br />
+                          (Set zero to disable autopurge.)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <hr width="90%" />
+
+                  <table border="0" cellspacing="8" cellpadding="4">
+                    <tbody>
+                      <!-- [#?7#] Calendar 
+
+                      <td></td>
+                      <td></td>
+                      <td></td>
+
+                      <td></td>
+                      <td></td>
+                      <td></td>
+
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      -->
+                       <tr>
+                        <td></td>
+                        <td>Calendar week begins on:</td>
+                        <td>[#PREFWEEK#]</td>
+                        <td width="100%"></td>
+                      </tr>
+                      <!-- [#?#] -->
+                      <tr>
+                        <td></td>
+                        <td>Sort messages by:</td>
+                        <td>[#w#]</td>
+                        <td width="100%"></td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td>Messages per page:</td>
+                        <td>[#u#]</td>
+                        <td width="100%"></td>
+                      </tr>
+                      <tr>
+                        <td>[#y#]</td>
+                        <td colspan="2"><label for="oldest1st">Show oldest
+                          messages first.</label></td>
+                        <td width="100%"></td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td colspan="2"><br />
+                          <br />
+                          Your signature:
+
+			   <p><textarea style="font-family: courier;" 
+				cols="40" rows="4" name="signature" 
+				wrap="off">[#t#]</textarea>
+			   </p>
+                        </td>
+                        <td width="100%"></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td colspan="2"><br />
+                          <br />
+
+
+                          <div align="center">
+                          Mailing Lists</div>
+
+                          <p>Enter the addresses of mailing lists you are
+			  subscribed to (one per line): <textarea 
+			      style="font-family: courier;" cols="40" 
+			      rows="4" name="mailinglists" 
+			      wrap="soft">[#MAILINGLISTS#]</textarea>
+			  </p>
+                        </td>
+                        <td width="100%"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div align="center">
+
+                  <table border="0" cellspacing="0" cellpadding="4">
+                    <tbody>
+                      <tr>
+                        <td>
+                          <input type="submit"
+                          value="Update&nbsp;preferences"
+                          name="do.changeprefs" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </div>
+                  <!--
+
+                  Do not remove the following code, which causes password entry to be
+                  omitted if configured with enable-webpass=no
+
+                  [#?0#]
+
+                  -->
+                  <hr width="90%" />
+                  <br />
+
+
+                  <table width="100%" border="0">
+                    <tbody>
+                      <tr>
+                        <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        <td>
+                          <table border="0">
+                            <tbody>
+                              <tr>
+                                <td colspan="2" align="center"><font
+                                  size="+1">Change Mail Password</font> <br />
+                                  <br />
+                                </td>
+                              </tr>
+                              <tr>
+                                <td align="right">Old&nbsp;Password:</td>
+                                <td><input type="password" size="16"
+                                  name="oldpass" maxlength="128" /></td>
+                              </tr>
+                              <tr>
+                                <td align="right">New&nbsp;Password:</td>
+                                <td><input type="password" size="16"
+                                  name="newpass" maxlength="128" /></td>
+                              </tr>
+                              <tr>
+                                <td
+                                  align="right">New&nbsp;Password&nbsp;Again:</td>
+                                <td><input type="password" size="16"
+                                  name="newpass2" maxlength="128" /></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                        <td width="100%"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div align="center">
+
+                  <table border="0" cellspacing="0" cellpadding="4">
+                    <tbody>
+                      <tr>
+                        <td>
+                          <input type="submit" value="Change Password"
+                          name="do.changepwd" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </div>
+                  <!--
+
+                  [#?#]
+
+                  -->
+                  <!-- [#?8#] -->
+                  <hr />
+
+                  <div align="center">
+                  <a href="[#s#]&amp;form=eventacl">Calendar access control
+                  list</a></div>
+                  <!-- [#?#] -->
+                  <!--
+
+                  End of preferences box
+
+                  -->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+      </td>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

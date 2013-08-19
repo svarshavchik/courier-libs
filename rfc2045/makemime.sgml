@@ -1,0 +1,592 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2001-2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>makemime</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class='manual'>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>makemime</refname>
+    <refpurpose>Create MIME-formatted messages</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">makemime</command>
+      <arg rep="repeat" choice="opt"><replaceable>options</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">makemime</command>
+      <arg choice="opt" rep="norepeat">@<replaceable>filename</replaceable></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">makemime</command> creates MIME-formatted messages of arbitrary
+complexity.
+<command moreinfo="none">makemime</command> reads one or more individual files,
+MIME-encodes them, adds basic MIME headers, and adds any additional headers
+specified bye command line options. The result is saved to another file or
+standard output. Complex MIME-formatted messages are created by piping together
+multiple instances of <command moreinfo="none">makemime</command>.
+Advanced options direct <command moreinfo="none">makemime</command> to
+<function moreinfo="none">fork</function>() itself, and handle the details of setting up all
+the pipelines.</para>
+
+    <para>
+In most cases, options for <command moreinfo="none">makemime</command> come directly from the
+command line. @<filename moreinfo="none">filename</filename> reads the options from a file.
+"<literal moreinfo="none">@&amp;<replaceable>n</replaceable></literal>" reads options from a pipe
+on file descriptor #<replaceable>n</replaceable>.
+"<literal moreinfo="none">@-</literal>" is a shortcut for
+"<literal moreinfo="none">@&amp;0</literal>", which reads options from standard input.</para>
+
+    <para>
+When options are read from a file or a pipe, each option must be on a
+line by itself. If an option requires an argument, the argument must follow
+on the next line.</para>
+
+    <para>
+For readability, leading whitespace is deleted when options
+are read from a file or a pipe. Empty lines are also ignored, as well as lines
+that begin with the '<token>#</token>' character.</para>
+
+    <para>
+Options and their arguments may contain characters that are special
+characters to the shell, such as '<token>(</token>' and '<token>)</token>'.
+These characters must be backslashed when specified on the command line, to
+avoid their special meaning to the shell.
+These characters MUST NOT be backslashed when options are read
+from a file or a pipe. Similarly, the contents of most headers nearly always
+include spaces.  Therefore they must be quoted when specified on the command
+line.  Header contents MUST NOT be quoted when options come from a file or a
+pipe.</para>
+
+    <para><command moreinfo="none">makemime</command> reads the content to be formatted
+as a MIME message from some other file.
+The files can also be a pipe. It is possible to supply both the
+options and a file from the same pipe, by terminating the options list with
+a line containing the single character "-". The remainder of the pipe will be
+available to be used as an input file (which must be explicitly specified
+by one of the options). Of course, only one input file can come from a single
+pipe.</para>
+
+    <refsect2>
+<title>MIME overview</title>
+
+      <para>
+A MIME-formatted message contains one or several MIME sections. MIME headers
+specify how multiple MIME sections are to be interpreted as a whole (whether
+they are attached together; whether they are alternative representations of
+the same content; or something even more esoteric). This manual page gives a
+very brief, terse, overview of basic MIME concepts. The description is biased
+towards describing the functionality of the <command moreinfo="none">makemime</command>
+utility.
+See
+<ulink url="http://www.rfc-editor.org/rfc/rfc2045.txt">RFC 2045</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2046.txt">RFC 2046</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2047.txt">RFC 2047</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2048.txt">RFC 2048</ulink>, and
+<ulink url="http://www.rfc-editor.org/rfc/rfc2048.txt">RFC 2049</ulink>
+for a formal definition of MIME-formatted messages.</para>
+
+      <para>
+Each file in a MIME message is encoded as a single MIME section. A MIME
+section consists of at least one header line,
+"<literal moreinfo="none">Content-Type:</literal>".
+The "<literal moreinfo="none">Content-Type:</literal>" header gives the type of the data 
+ontained in the file. Other header lines may also be present.
+Their relative order does not matter. MIME
+headers are followed by a blank line, then the contents of the file, encoded
+appropriately.
+All MIME sections generated by <command moreinfo="none">makemime</command> will always
+contain another header,
+"<literal moreinfo="none">Content-Transfer-Encoding:</literal>". This header gives the
+encoding method used for the file; it is an optional header, but
+<command moreinfo="none">makemime</command> always creates it.</para>
+
+      <para>
+The MIME encoding method defaults to
+"<literal moreinfo="none">7bit</literal>" if this header is absent.
+<literal moreinfo="none">7bit</literal>
+encoding is only suitable for plain text messages in the US-ASCII character
+set.
+The "<literal moreinfo="none">8bit</literal>" encoding method is used by plain text messages
+in other character sets that use octets with the high bit set. An
+alternative to 8bit encoding is
+"<literal moreinfo="none">quoted-printable</literal>". The "<literal moreinfo="none">base64</literal>" encoding
+method is used for files containing binary data (anything other than plain
+text).</para>
+
+      <para>
+MIME sections that contain text messages have their
+"<literal moreinfo="none">Content-Type:</literal>" header
+set to "<literal moreinfo="none">text/plain</literal>";
+or "<literal moreinfo="none">text/html</literal>" for HTML messages.
+There are also several
+other, rare, content types that can be used. MIME sections that contain other
+kinds of data will use some other, appropriate
+"<literal moreinfo="none">Content-Type:</literal>" header, such as
+"<literal moreinfo="none">image/gif</literal>", or "<literal moreinfo="none">audio/x-wav</literal>".</para>
+
+      <para>
+MIME sections that contain textual content may also use the
+<literal moreinfo="none">base64</literal> encoding
+method, they are not required to use <literal moreinfo="none">7bit</literal>,
+<literal moreinfo="none">8bit</literal>, or <literal moreinfo="none">quoted-printable</literal>.
+"<literal moreinfo="none">text/pdf</literal>" sections, that contain PDF files,
+typically contain binary data
+and must use the <literal moreinfo="none">base64</literal> encoding.
+Consequently, MIME sections that typically
+contain binary data, such as
+<literal moreinfo="none">image/gif</literal> and <literal moreinfo="none">audio/x-wav</literal>,
+are free to use
+encodings other than <literal moreinfo="none">base64</literal>, as long as all the data can
+be represented by
+printable characters (but, in practice, that never happens).</para>
+
+      <para>
+MIME sections may also contain other, optional, headers such as
+"<literal moreinfo="none">Content-Disposition:</literal>",
+"<literal moreinfo="none">Content-ID:</literal>", and "<literal moreinfo="none">Content-Name:</literal>".
+Consult the
+appropriate RFCs for the specific usage of these headers. These headers can be
+added by <command moreinfo="none">makemime</command> by using the
+<option>-a</option> option, as described below. These
+headers play no part in creating the overall structure of a MIME-encoded
+message, and <command moreinfo="none">makemime</command> does not care much about these
+headers. It simply
+includes them, and their content, upon request.</para>
+
+      <para>
+Multiple files are formatted as a single message MIME message in two steps:
+first, by creating a MIME section for each file;
+and then creating a single MIME section that contains other MIME sections.
+A "<literal moreinfo="none">multipart/mixed</literal>" MIME section contains a
+collection of MIME sections that represent different objects, attached
+together.
+A "<literal moreinfo="none">multipart/alternative</literal>" MIME section contains a
+collection of MIME
+sections which are alternative representations of the same object, such as an
+HTML and a plain text version of the same message. Other "multipart" MIME
+sections also exist, and their usage is defined by their respective
+RFCs.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>Creating a single MIME section</title>
+
+      <cmdsynopsis sepchar=" ">
+	<command moreinfo="none">makemime</command>
+	<arg choice="req" rep="norepeat">-c "<replaceable>type</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-e "<replaceable>encoding</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-o <replaceable>outputfile</replaceable></arg>
+	<arg choice="opt" rep="norepeat">-C "<replaceable>charset</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-N "<replaceable>name"</replaceable></arg>
+	<arg rep="repeat" choice="opt">-a "<replaceable>header: value"</replaceable></arg>
+	<arg choice="req" rep="norepeat"><replaceable>filename</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+The <option>-c</option> option reads <filename moreinfo="none">filename</filename>,
+encodes it appropriately, adds the
+"<literal moreinfo="none">Content-Type: <replaceable>type</replaceable></literal>" and
+"<literal moreinfo="none">Content-Transfer-Encoding:</literal>" MIME headers, then writes the
+result to standard output. <literal moreinfo="none">type</literal> can be any valid MIME type,
+except for <literal moreinfo="none">multipart</literal>.
+Setting <filename moreinfo="none">filename</filename> to "<literal moreinfo="none">-</literal>"
+reads from standard input.
+Setting <filename moreinfo="none">filename</filename> to "&amp;<replaceable>n</replaceable>"
+reads from file descriptor #<replaceable>n</replaceable>.</para>
+
+      <para>
+The <option>-C</option> option sets the MIME <literal moreinfo="none">charset</literal>
+attribute for <literal moreinfo="none">text/plain</literal> content. The <option>-N</option>
+option sets the <literal moreinfo="none">name</literal> attribute for
+<literal moreinfo="none">Content-Type:</literal>.</para>
+
+      <para>
+<replaceable>encoding</replaceable> argument should be specified. It's more
+efficient to do so. <replaceable>encoding</replaceable> must be one of the
+following:
+<literal moreinfo="none">7bit</literal>, <literal moreinfo="none">8bit</literal>,
+<literal moreinfo="none">quoted-printable</literal>, or <literal moreinfo="none">base64</literal>.</para>
+
+      <para>
+If <replaceable>encoding</replaceable> is not specified,
+<command moreinfo="none">makemime</command>
+reads the <filename moreinfo="none">filename</filename> twice - once to figure out the best
+encoding method, and the second time to encode <filename moreinfo="none">filename</filename>.
+If <filename moreinfo="none">filename</filename> is a pipe <command moreinfo="none">makemime</command>
+creates a temporary file, which is not very efficient if
+<filename moreinfo="none">filename</filename> is large.
+However letting <command moreinfo="none">makemime</command> pick the encoding method
+is more convenient if <filename moreinfo="none">filename</filename> is relatively small.</para>
+
+      <para>
+Another possibility is to omit <replaceable>encoding</replaceable> and set
+<replaceable>type</replaceable> to <literal moreinfo="none">auto</literal>.
+This combination sets "<literal moreinfo="none">Content-Type:</literal>" to either
+<literal moreinfo="none">text/plain</literal>, or
+<literal moreinfo="none">application/octet-stream</literal>, based on the selected
+<replaceable>encoding</replaceable>.</para>
+
+      <para>
+By default the encoded MIME section is written to standard output.
+The <option>-o</option> option writes the MIME section to
+<replaceable>outputfile</replaceable>. <replaceable>outputfile</replaceable> may be
+"&amp;<replaceable>n</replaceable>",
+which writes the MIME section to a pipe on file descriptor
+#<replaceable>n</replaceable>.</para>
+
+      <para>
+<command moreinfo="none">makemime</command> does not generate any other headers.
+Particularly, the
+"<literal moreinfo="none">Mime-Version:</literal>" header is required for
+MIME-formatted E-mail messages. Additional headers are specified by the
+<option>-a</option> option, which may be used
+multiple times to insert multiple headers.
+<command moreinfo="none">makemime</command> doesn't do anything
+with them except to insert the headers into the generated MIME section.</para>
+
+      <para>Note that
+"<literal moreinfo="none">Mime-Version:</literal>" is only required for the top level
+MIME section.
+This header is not required for individual MIME sections that are later
+combined into a multipart MIME collection.</para>
+
+      <note>
+	<para>
+The <option>-c</option> option must occur listed first, the remaining
+options must follow the <option>-c</option> option.</para>
+      </note>
+    </refsect2>
+
+    <refsect2>
+      <title>Creating a multipart MIME collection</title>
+
+      <cmdsynopsis sepchar=" ">
+	<command moreinfo="none">makemime</command>
+	<arg choice="req" rep="norepeat">-m "multipart/<replaceable>type</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-e "<replaceable>encoding</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-o <replaceable>outputfile</replaceable></arg>
+	<arg rep="repeat" choice="opt">-a "<replaceable>header: value"</replaceable></arg>
+	<arg choice="req" rep="norepeat"><replaceable>filename</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+The <option>-m</option> option is identical to the <option>-c</option> option,
+except for three differences.</para>
+
+      <para>
+<replaceable>type</replaceable> must be either
+"<literal moreinfo="none">multipart/mixed</literal>",
+"<literal moreinfo="none">multipart/alternative</literal>", or
+some other MIME multipart content type. Additionally,
+"<replaceable>encoding</replaceable>" can only be
+"<literal moreinfo="none">7bit</literal>" or "<literal moreinfo="none">8bit</literal>", and will default to "<literal moreinfo="none">8bit</literal>" if not specified. Finally,
+<filename moreinfo="none">filename</filename> must be a MIME-formatted section, NOT a regular
+file. Usually
+<filename moreinfo="none">filename</filename> is created by a previous
+invocation of <command moreinfo="none">makemime</command> (it can also be a pipe, like
+the <option>-c</option> option), but it can be created via any other
+means.</para>
+
+      <para>
+The <option>-m</option> option creates an initial multipart MIME collection,
+that contains
+only one MIME section, taken from <filename moreinfo="none">filename</filename>.
+The collection is written to standard output, or the pipe or
+to <replaceable>outputfile</replaceable>.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>Creating a multipart MIME section</title>
+
+      <cmdsynopsis sepchar=" ">
+	<command moreinfo="none">makemime</command>
+	<arg choice="req" rep="norepeat">-j <replaceable>file1</replaceable>"</arg>
+	<arg choice="opt" rep="norepeat">-o <replaceable>outputfile</replaceable></arg>
+	<arg choice="req" rep="norepeat"><replaceable>file2</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+This option adds a MIME section to an existing MIME collection.
+<replaceable>file1</replaceable> must be a MIME collection that was
+previously created by the <option>-m</option> option.
+<replaceable>file2</replaceable> must be a MIME section that was previously
+created by the <option>-c</option> option.
+The <option>-j</option> options adds the MIME section in
+<replaceable>file2</replaceable> to the MIME collection in
+<replaceable>file1</replaceable>.  The result is written to standard output
+or to <replaceable>outputfile</replaceable>.</para>
+
+      <para>
+
+<replaceable>file1</replaceable> and/or <replaceable>file2</replaceable> may
+be
+"<literal moreinfo="none">@&amp;<replaceable>n</replaceable></literal>" which reads from
+file descriptor #<replaceable>n</replaceable>.
+The <replaceable>outputfile</replaceable>
+may also specify a file descriptor.</para>
+
+      <para><replaceable>file1</replaceable> and
+<replaceable>file2</replaceable> should ideally be created by
+<command moreinfo="none">makemime</command> as well.
+It's also possible to use MIME-formatted files created by other software, but
+with some degree of care. <command moreinfo="none">makemime</command> is not intended to be a
+MIME parser, but a MIME generator. However some amount of MIME parsing is
+necessary to append a MIME section to an existing MIME collection.
+<command moreinfo="none">makemime</command>'s parsing is sufficient
+for appending a new section to a MIME collection, as long as the
+MIME headers in the MIME collections are straightforward. Very convoluted MIME
+headers may confuse <command moreinfo="none">makemime</command>, and it may not be able to
+handle them.</para>
+    </refsect2>
+
+    <refsect2>
+<title>Recursive MIME collections</title>
+
+      <para>
+MIME collection may contain other MIME collections as well as MIME
+sections. The <option>-m</option> and the <option>-j</option> options may use
+a multipart MIME collection in place of a MIME section automatically
+because a multipart MIME collection is just a special type of a MIME section.
+The following example
+encodes a text message that can be alternatively represented as HTML or plain
+text, with some additional attachments:</para>
+
+      <para>
+1. Create a MIME collection that has a
+<literal moreinfo="none">text/plain</literal> and a <literal moreinfo="none">text/html</literal> MIME
+section.</para>
+
+      <para>
+2. Create a MIME collection consisting of the MIME section generated in
+step one, plus additional MIME sections containing other attachments.</para>
+
+      <para>For example:</para>
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+# Take two files containing the text and the html version of a message, and
+# add MIME headers to them.
+
+makemime -c "text/plain; charset=iso-8859-1" -o tmp1.txt msg.txt
+makemime -c "text/html; charset=iso-8859-1" -o tmp1.html msg.html
+
+# Combine the result into a multipart/alternative collection
+
+makemime -m "multipart/alternative" -a "Content-Disposition: inline" \
+                                    -o tmp.ma1 tmp1.txt
+makemime -j tmp.ma1 -o tmp.ma2 tmp1.html
+
+# Add MIME headers to an image attachment.
+
+makemime -c "image/gif" -a "Content-Disposition: attachment" \
+                        -o tmp2.gif attachment.gif
+
+# Create the final multipart/mixed collection
+
+makemime -m "multipart/mixed" -a "Mime-Version: 1.0" \
+                              -o tmp.mm1 tmp.ma2
+makemime -j tmp.mm1 -o output.msg tmp2.gif
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+<filename moreinfo="none">output.msg</filename> now contains the complete MIME collection.
+Just add the
+<literal moreinfo="none">Subject:</literal>, <literal moreinfo="none">From:</literal>, and
+<literal moreinfo="none">To:</literal> headers (can also be done by additional
+<option>-a</option> options, of
+course), and send it on its way.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>Building complex MIME encodings</title>
+
+      <para>
+There are several different ways to build complete MIME encodings from
+multiple MIME sections.  One way is to use temporary files to create MIME
+sections, then combine them together into a single MIME collection. A slightly
+more complicated approach involves setting up pipes between multiple makemime
+processes, in order to avoid using temporary files.</para>
+
+      <para>This can be done manually, by hand. It is also possible to have
+<command moreinfo="none">makemime</command> do this automatically. <command moreinfo="none">makemime</command>
+will set up these pipes and run multiple instances of itself to create a
+single MIME collection, with
+multiple attachments of complexity limited only by your system's limit on
+the maximum number of open files and pipes.</para>
+
+      <para>
+Any file that's read by the
+<option>-c</option>,
+<option>-m</option>,
+and
+<option>-j</option>
+options (
+<option>-o</option>
+specifies a file to
+create, and doesn't count) may be replaced by a single argument containing a
+left parenthesis, additional options, then a single argument containing a
+right parenthesis.
+A single invocation of <command moreinfo="none">makemime</command> can only use one
+<option>-c</option>, <option>-m</option>, or <option>-j</option> option.
+However, another <option>-c</option>, <option>-m</option>, or
+<option>-j</option> option may be specified
+inside the left and the right parenthesis, and its output is used in place of
+the file it replaced.  In the previous example the third and the fourth
+invocation of <command moreinfo="none">makemime</command> can be replaced with the following
+command:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+makemime -j \(                                           \
+               -m "multipart/alternative"                \
+               -a "Content-Disposition: inline" tmp1.txt \
+             \) -o tmp.ma2                               \
+             tmp1.html
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+Note that the parenthesis must be backslashed, to avoid their special
+meaning to the shell. An equivalent argument file would have the following
+contents:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+-j
+   (
+      -m
+          multipart/alternative
+      -a
+          Content-Disposition: inline
+      tmp1.txt
+   )
+   -o
+      tmp.ma2
+ tmp1.html
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+These constructs can be arbitrarily nested, and are limited by the amount
+of available memory and resources.  The entire sequence in the previous
+section is equivalent to the following command:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+makemime -j                                                 \
+         \(                                                 \
+            -m "multipart/mixed"                            \
+            -a "Mime-Version: 1.0"                          \
+            \(                                              \
+                -j                                          \
+                \(                                          \
+                   -m "multipart/alternative"               \
+                   -a "Content-Disposition: inline"         \
+                   \(                                       \
+                      -c "text/plain; charset=iso-8859-1"   \
+                      msg.txt                               \
+                   \)                                       \
+                \)                                          \
+                \(                                          \
+                    -c "text/html; charset=iso-8859-1"      \
+                    msg.html                                \
+                \)                                          \
+            \)                                              \
+         \)                                                 \
+         -o output.msg                                      \
+         \(                                                 \
+            -c "image/gif"                                  \
+            -a "Content-Disposition: attachment"            \
+            attachment.gif                                  \
+         \)
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+An equivalent argument file would be:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+-j
+(
+   -m
+       multipart/mixed
+   -a
+       Mime-Version: 1.0
+   (
+       -j
+       (
+           -m
+               multipart/alternative
+           -a
+               Content-Disposition: inline
+           (
+               -c
+                   text/plain; charset=iso-8859-1
+               msg.txt
+           )
+       )
+       (
+           -c
+               text/html; charset=iso-8859-1
+           msg.html
+       )
+   )
+)
+-o
+   output.msg
+(
+   -c
+       image/gif
+   -a
+       Content-Disposition: attachment
+   attachment.gif
+)
+</programlisting>
+	</informalexample>
+      </blockquote>
+    </refsect2>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildropfilter.html"><citerefentry><refentrytitle>maildropfilter</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>,
+<ulink url="reformail.html"><citerefentry><refentrytitle>reformail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="reformime.html"><citerefentry><refentrytitle>reformime</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<citerefentry><refentrytitle>egrep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+<citerefentry><refentrytitle>grep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+<ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
+<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2045.txt">RFC 2045</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2046.txt">RFC 2046</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2047.txt">RFC 2047</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2048.txt">RFC 2048</ulink>,
+<ulink url="http://www.rfc-editor.org/rfc/rfc2048.txt">RFC 2049</ulink>.</para>
+  </refsect1>
+</refentry>

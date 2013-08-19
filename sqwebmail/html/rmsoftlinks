@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Copyright 1998 - 2000 Double Precision, Inc.  See COPYING for
+# distribution information.
+
+
+DIR="$1"
+REALDIR="$2"
+
+SOFTLINK=""
+
+echo "rmsoftlinks $DIR $REALDIR"
+
+for component in `echo $REALDIR | tr '-' ' '`
+do
+	if test "$SOFTLINK" = ""
+	then
+		SOFTLINK="$component"
+	else
+		SOFTLINK="$SOFTLINK""-$component"
+	fi
+
+	if test "$SOFTLINK" != "$REALDIR"
+	then
+		test -f $DIR/$SOFTLINK/LANGUAGE && continue
+		echo rm -f $DIR/$SOFTLINK
+		rm -f $DIR/$SOFTLINK
+	fi
+done

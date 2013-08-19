@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+#
+# DO NOT REMOVE THIS FILE
+#
+# This is a sample sendit wrapper for sqwebmail. sqwebmail will invoke this
+# wrapper script to send an email message.  The complete message will be
+# provided on standard input.
+#
+# $1 will contain the return (or bounce) address for this mailboxid, as
+# specified by auth.c
+#
+# $2 will contain the sqwebmail mailboxid of the sender (note that we're
+# executing under whatever id auth.c sets for this mailboxid).  Furthermore,
+# $REMOTE_ADDR will contain the IP address where the client is coming from
+# (the rest of the CGI vars are available too).
+#
+# The environment variable DSN will contain any requested -N option to
+# sendmail (not used by qmail).
+#
+# You may modify the message in whatever fashion before passing it on to the
+# MTA.
+#
+# exec /usr/sbin/sendmail -oi -t -f "$1"
+
+exec @mailer@ $DSN -f "$1"

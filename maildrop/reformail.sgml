@@ -1,0 +1,284 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>reformail</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class='manual'>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>reformail</refname>
+    <refpurpose>E-mail reformatting tool</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command>reformail</command>
+      <arg choice="plain" rep="norepeat">-s</arg>
+      <arg choice="plain" rep="norepeat">command</arg>
+      <arg choice="opt" rep="repeat">option</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>reformail</command>
+      <arg choice="plain" rep="norepeat">-D</arg>
+      <arg choice="plain" rep="norepeat">len</arg>
+      <arg choice="plain" rep="norepeat"><replaceable>filename</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>reformail</command>
+      <arg choice="plain" rep="repeat">-x <replaceable>header:</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>reformail</command>
+      <arg choice="plain" rep="repeat">-X <replaceable>header:</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>reformail</command>
+      <arg rep="repeat" choice="opt"><replaceable>options</replaceable></arg>
+    </cmdsynopsis>
+    <sidebar>
+      <simpara>See below for additional options</simpara>
+    </sidebar>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+<para>
+The <command>reformail</command> program reads a message on standard input,
+reformats it
+in some way, and writes the message to standard output:</para>
+
+    <refsect2>
+      <title>Splitting mailboxes into individual messages</title>
+
+      <para>
+The <option>-s</option> option splits the mbox-formatted mailbox file on
+standard input into
+individual messages.
+An external program is executed for each
+message. The contents of each individual message will be provided to the
+external program on standard input.</para>
+
+      <para>
+If the <envar>FILENO</envar> environment variable is set to a number,
+<command>reformail</command> will consecutively increment
+<envar>FILENO</envar>
+each time the program is executed for each individual
+message.</para>
+
+      <para>
+If <envar>FILENO</envar> is not set, it's initial value will be "000".
+If <envar>FILENO</envar> is set to a non-numeric value,
+<envar>FILENO</envar> will remain unchanged.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>Detecting duplicate messages</title>
+
+      <para>
+The <option>-D</option> option implements a simple way to delete duplicate
+messages in incoming mail. <replaceable>filename</replaceable> is a file that
+will be approximately '<replaceable>len</replaceable>' bytes long.
+This file will be used by
+<command>reformail</command> to save message IDs seen in
+recent mail.
+<command>reformail</command> reads the message on standard input.
+If the message has a <literal>Message-ID:</literal> header that's already in
+the cache file,
+<command>reformail</command> terminates with the exit code set to 0. Otherwise,
+<command>reformail</command> terminates with the exit code set to 1.</para>
+    <note>
+      <para>
+	Unlike a similar feature in the <command>formail</command> command,
+	<command>reformail</command> takes care of locking
+	the file, so it's not necessary to implement your own locking
+	mechanism for this option.
+      </para>
+    </note>
+
+    </refsect2>
+
+    <refsect2>
+      <title>Extracting headers</title>
+
+      <para>
+The <option>-x</option> and <option>-X</option> options extract the indicated
+headers from the message, and print them to standard output. Multiple
+<option>-x</option> and <option>-X</option> options can be specified at
+the same time, and may be intermixed.</para>
+
+      <para>
+The <option>-x</option> option extracts and prints the contents of the header.
+The <option>-X</option> option prints the name of the header as well.</para>
+
+      <para>In all other situations, <command>reformail</command>
+copies the message on
+its standard input to its standard output, reformatting the message as
+follows:</para>
+    </refsect2>
+  </refsect1>
+
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>-a'header: value'</term>
+	<listitem>
+	  <para>
+Append a custom header to the message if this
+header does not already exist. If the header is either
+<literal>Message-ID:</literal> or
+<literal>Resent-Message-ID:</literal> and the value is empty,
+<command>reformail</command> generates
+a (hopefully) unique message ID for you.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-A'header: value'</term>
+	<listitem>
+	  <para>
+Append a custom header to the message even if this
+header already exists. If the header is
+either <literal>Message-ID:</literal> or
+<literal>Resent-Message-ID:</literal>
+and the value is empty, <command>reformail</command> generates
+a (hopefully) unique message ID for you.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-c</term>
+	<listitem>
+	  <para>
+Concatenate multi-line headers. Headers split on multiple lines are
+combined into a single line.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-d<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+If n is <literal>1</literal>, each line will be terminated with CRLF.
+If n is <literal>0</literal>
+(default), each line will be terminated with LF.
+<command>reformail</command> reads a
+message with either line terminator, and will force the message to have
+the specified line termination.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-f0</term>
+	<listitem>
+	  <para>
+Remove the "<literal>From_</literal>" line from the message, if it's
+there.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-f1</term>
+	<listitem>
+	  <para>
+Add the "<literal>From_</literal>" line to the message, if it's not there.
+<command>reformail</command> will attempt to generate the
+"<literal>From_</literal>" line from any
+<literal>Errors-To:</literal>, <literal>Return-Path:</literal>, or
+<literal>From:</literal> headers in the message.
+"<literal>root</literal>" will be used
+if
+<command>reformail</command> is unable to determine the return address.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-i'<replaceable>header: value</replaceable>'</term>
+	<listitem>
+	  <para>
+Appends a custom header to the message. If this
+header already exists it is renamed by prepending "<literal>Old-</literal>"
+to the name of
+the header.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-I'<replaceable>header: value</replaceable>'</term>
+	<listitem>
+	  <para>
+Append a custom header to the message. If this
+header already exists in the message, the old header is completely
+removed. If the value is empty, any existing header is completely removed,
+and nothing gets appended.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-R oldheader: newheader:</term>
+	<listitem>
+	  <para>
+Rename the indicated header.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-u'header:'</term>
+	<listitem>
+	  <para>
+If this header occurs multiple times in the message,
+remove all occurrences except the first one.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-U'header:'</term>
+	<listitem>
+	  <para>
+If this header occurs multiple times in the message,
+remove all occurrences except the last one.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>AUTOREPLIES</title>
+
+    <anchor id="Autoreplies"/>
+    <para>
+      The autoreply options from earlier versions of <command>mailbot</command>
+      have been moved into
+      <ulink url="mailbot.html"><citerefentry><refentrytitle>mailbot</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>BUGS</title>
+
+    <para>
+For the <option>-a</option>, <option>-A</option>, and <option>-I</option>
+options, a space after the header name and the colon is
+considered to be a non-empty field.</para>
+
+    <para>
+Do not provide the same header to more than one family of header-modifying
+options, such as <option>-u</option>/<option>-U</option> and
+<option>-a</option>/<option>-A</option>. Doing so yields unpredictable
+results.
+It's better to run <option>reformail</option> several times (use a pipe,
+perhaps).</para>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
+<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
+<ulink url="mailbot.html"><citerefentry><refentrytitle>mailbot</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.
+</para>
+  </refsect1>
+</refentry>

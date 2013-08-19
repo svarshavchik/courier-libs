@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Event</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$EVENT=Event:&nbsp;&nbsp;&nbsp;&nbsp;#]
+[#$PARTICIPANTS=Participants:&nbsp;&nbsp;&nbsp;&nbsp;#]
+
+[#$QUOTAERR=<font style="color: #ff0000" size="+1" class="error">ERROR: You have exceeded your quota</font>#]
+
+[#$CONFLICTERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Scheduling conflict - select "Uncancel" again to override.</font><br /><br />#]
+
+[#$NOTFOUNDERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Event not found.</font><br /><br />#]
+
+[#$CALENDARERR=<font style="color: #ff0000" size="+1" class="error">ERROR: An error has occured when updating the calendar: <div style="margin-left: 3.5em;"><span class="tt">%s</span></div></font><br /><br />#]
+
+[#$LOCKERR=<font style="color: #ff0000" size="+1" class="error">ERROR: An error has occured trying to lock the calendar.  Please try again.</font><br /><br />#]
+
+[#$CANCELIMAGE=@@cancel.png, width="28" height="20" alt="Cancel&nbsp;event" title="Cancel&nbsp;event" border="0"@@#]
+[#$UNCANCELIMAGE=@@uncancel.png, width="28" height="20" alt="Uncancel&nbsp;event" title="Uncancel&nbsp;event" border="0"@@#]
+
+[#$CANCELTEXT=Cancel&nbsp;event#]
+[#$UNCANCELTEXT=Uncancel&nbsp;event#]
+
+
+[#$NOTFOUNDERR=<font style="color: #ff0000" size="+1" class="error">ERROR: The original event was not found.  This can happen if this event was updated or modified by someone else.</font>#]
+
+[#$ATTACHMENT=Attachment: %s#]
+
+[#$DISPATT=<span class="message-attachment-link">Display</span>#]
+[#$DOWNATT=<span class="message-attachment-link">Download</span>#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Event</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr>
+      <td bgcolor="#99ccff" class="bluebox">&nbsp;</td>
+      <td class="calendarevent" valign="middle"
+        width="100%">[#EVENTDISPLAYINIT#]
+
+        <table border="0" cellspacing="8" cellpadding="8" width="100%">
+          <tbody>
+            <tr>
+              <td>
+                <table border="0">
+                  <tbody>
+                    <tr valign="bottom">
+                      <td align="center"><a
+                        href="[#EVENTBACKLINK#]">[#@calendar.png, width="31"
+                        height="22" alt="Return&nbsp;to&nbsp;calendar"
+                        title="Return&nbsp;to&nbsp;calendar"
+                        border="0"@@#]</a><br />
+                        <a href="[#EVENTBACKLINK#]"><font size="1">Return to
+                        calendar</font></a></td>
+                      <td width="10">&nbsp;</td>
+                      <td align="center"><a
+                        href="[#EVENTEDITLINK#]">[#@reply.png, width="28"
+                        height="20" border="0" title="Edit Event" alt="Edit
+                        Event"@@#]</a><br />
+                        <a href="[#EVENTEDITLINK#]"><font
+                        size="1">Modify&nbsp;event</font></a></td>
+                      <td width="10">&nbsp;</td>
+                      <td align="center"><a
+                        href="[#EVENTCANCELUNCANCELLINK#]">[#EVENTCANCELUNCANCELIMAGE#]</a><br
+                        />
+                        <a href="[#EVENTCANCELUNCANCELLINK#]"><font
+                        size="1">[#EVENTCANCELUNCANCELTEXT#]</font></a></td>
+                      <td width="10">&nbsp;</td>
+                      <td align="center"><a
+                        href="[#EVENTDELETELINK#]">[#@trash2.png, width="28"
+                        height="20" border="0" title="Delete Event"
+                        alt="Delete Event"@@#]</a><br />
+                        <a href="[#EVENTDELETELINK#]"><font
+                        size="1">Delete&nbsp;event</font></a></td>
+                      <td width="10">&nbsp;</td>
+                      <td align="center"><a
+                        href="[#s#]&amp;form=newevent">[#@replyall.png,
+                        width="28" height="20" border="0" title="New Event"
+                        alt="New Event"@@#]</a><br />
+                        <a href="[#s#]&amp;form=newevent"><font
+                        size="1">New&nbsp;event</font></a></td>
+                      <td width="10">&nbsp;</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td><hr width="100%" />
+                [#EVENTDISPLAY#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td bgcolor="#99ccff" class="bluebox">&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>deliverquota</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo class="manual">Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>deliverquota</refname>
+    <refpurpose>deliver to a maildir with a quota</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">deliverquota</command>
+      <arg choice="opt" rep="norepeat">-c</arg>
+      <arg choice="opt" rep="norepeat">-w <replaceable>percent</replaceable></arg>
+      <arg choice="opt" rep="norepeat">-W <replaceable>filename</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>quota</replaceable></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">deliverquota</command> delivers mail to a
+<replaceable>maildir</replaceable> taking into account any
+software-imposed quota on the maildir.
+This manually-enforced quota mechanism is described in the
+<ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
+and
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>
+manual pages.
+Instead of setting up your mail
+server to deliver the message directly
+to a maildir, configure the mail server to
+run the <command moreinfo="none">deliverquota</command> program in order to deliver the
+message,
+and specify the
+location of the maildir as the argument to
+<command moreinfo="none">deliverquota</command>.</para>
+
+    <para>
+The second argument to <command moreinfo="none">deliverquota</command> is optional.
+If present, <replaceable>quota</replaceable> specifies a new quota setting
+for this maildir.
+Specifying <replaceable>quota</replaceable> is equivalent to running
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>
+with the <option>-q</option> option.
+The second argument to <command moreinfo="none">deliverquota</command> is considered obsolete,
+and may be removed in the future.</para>
+
+    <para>
+<command moreinfo="none">deliverquota</command> reads the message from standard input
+and delivers it
+to <replaceable>maildir</replaceable>.
+<replaceable>maildir</replaceable>
+may specify a path directly to a maildir folder,
+not the main <replaceable>maildir</replaceable>
+(as long as the folder was created by the
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink> command.</para>
+
+    <para>
+The <option>-c</option> option automatically creates the maildir,
+and all missing parent subdirectories (as '<command moreinfo="none">mkdir -p</command>').
+This option should be used with caution.</para>
+
+    <para>
+The <option>-w N</option> option places a warning message
+into the maildir if the maildir has a quota setting, and after
+the message was successfully delivered the maildir was at least
+<replaceable>N</replaceable> percent full.
+The warning message is copied
+from the file specified by the <option>-W</option> option, or from
+<filename moreinfo="none">@sysconfdir@/quotawarnmsg</filename> if <option>-W</option> was not
+specified.
+The
+"<literal moreinfo="none">Date:</literal>" and
+"<literal moreinfo="none">Message-Id:</literal>" headers are added to the message.
+The warning is repeated every 24 hours (at least), until the maildir drops
+below
+<replaceable>N</replaceable> percent full.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>RETURN CODE</title>
+
+    <para>
+<command moreinfo="none">deliverquota</command> delivers the message to the maildir
+and terminates with
+exit code 0 if the message can be delivered without going over quota.</para>
+
+    <para>
+If the maildir is over its specified quota, <command moreinfo="none">deliverquota</command>
+terminates with exit code 77 (EX_NOPERM).</para>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="http://www.qmail.org/man/man5/maildir.html">http://www.qmail.org/man/man5/maildir.html</ulink>.
+</para>
+  </refsect1>
+
+</refentry>

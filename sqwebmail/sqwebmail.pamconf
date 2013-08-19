@@ -1,0 +1,24 @@
+#%PAM-1.0
+#
+#
+# Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+# distribution information.
+#
+# This is a sample PAM configuration file.  If auth.c is configured
+# to use the PAM library for authentication, you must separately configure
+# PAM modules which will be used to authenticate logins for the "webmail"
+# service, (or whatever SQWEBMAIL_PAM is defined as).
+#
+# There are two ways most PAM installation work.  In the most common case,
+# you can simply create a /etc/pam.d/webmail file.  If that's your setup,
+# you can copy this file as /etc/pam.d/webmail.  Other PAM libraries use
+# a single configuration file, /etc/pam.conf (or something similar), to
+# configure all service.  You would probably be able to get it to work
+# by appending the following lines, and prefixing each one with "webmail"
+# and a tab.
+#
+# It is your responsibility to figure out how PAM works, it's not yet
+# standardized enough for me to do it for you.
+
+auth       required	/lib/security/pam_pwdb.so shadow nullok
+account    required	/lib/security/pam_pwdb.so

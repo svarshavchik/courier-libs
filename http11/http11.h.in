@@ -1,0 +1,68 @@
+#ifndef	http11_h
+#define	http11_h
+
+/*
+** Copyright 1998 - 2003 Double Precision, Inc.
+** See COPYING for distribution information.
+*/
+
+#if HAVE_CONFIG_H
+#include	"config.h"
+#endif
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+#if HAVE_LIBFCGI
+#include <stdlib.h>
+#include "fcgi_stdio.h"
+#endif
+
+
+/* HTTP 1.1 library */
+
+/* Implement Accept-Language: and Content-Language: headers as follows.
+**
+** libdir contains one subdirectory for each support content language.
+**
+** softlinks are used to provide default variations of each content.
+** (example: en -> en-us )
+**
+** subdirectory/LANGUAGE is a file with one line, containing the name of
+** the directory.  So, we can open en/LANGUAGE, read en-us, and send that
+** back as the Content-Language:
+**
+** subdirectory/LOCALE is a file with one line - the corresponding locale.
+** en-us/LOCALE will contain en_US, for example.
+**
+*/
+
+char *http11_best_content_language(const char *libdir, const char *acc_lang);
+	/* acc_lang is our Accept-Language: header.  Figure out the best
+	** content language we can use.
+	**
+	** Note - return pointer must be free()d.
+	*/
+
+const char *http11_content_language(const char *libdir, const char *cont_lang);
+	/* Return the real content language by reading LANGUAGE */
+
+const char *http11_content_locale(const char *libdir, const char *cont_lang);
+	/* Return the LOCALE */
+
+const char *http11_content_ispelldict(const char *libdir, const char *cont_lang);
+	/* Return the ISPELL dictionary */
+
+const char *http11_content_charset(const char *libdir, const char *acc_lang);
+	/* Return the CHARSET */
+
+FILE *http11_open_langfile(const char *libdir, const char *acc_lang,
+		const char *file);
+	/* Open arbitrary file */
+
+#define	HTTP11_DEFAULTLANG	"@DEFAULTLANG@"
+#ifdef  __cplusplus
+}
+#endif
+#endif

@@ -1,0 +1,553 @@
+
+/*
+
+
+Copyright 2001-2010 Double Precision, Inc.  See COPYING for
+distribution information.
+
+*/
+
+
+/* Default: bg.png background image (white default), black text */
+
+a:link {color: #0000cc}
+a:visited {color: #0000cc}
+a:active {color: #990000}
+
+body { background-color: #ffffff;
+color: #000000;
+background-image: url(bg.png);
+}
+
+/* Safari (and presumably Konquerer) incorrectly displays buttons as block elements */
+button { display: inline; font-size: 90%; }
+
+
+.cite0 { background-color: #dddddd; }
+.cite1 { background-color: #ffffcc; }
+.cite2 { background-color: #ffdddd; }
+
+.cite0 > .quotedtext { border-color: #dddddd; }
+.cite1 > .quotedtext { border-color: #ffffcc; }
+.cite2 > .quotedtext { border-color: #ffdddd; }
+
+.cite0, .cite1, .cite2 {
+	border-style: inset;
+	border-top-width: thin;
+	border-bottom-width: thin;
+	border-right-width: thin;
+	border-left-width: medium;
+	border-top-color: #000000;
+	border-bottom-color: #000000;
+	border-right-color: #000000;
+}
+
+.cite0 {
+    border-left-color: #bbbbbb;
+}
+
+.cite1 {
+    border-left-color: #ddddaa;
+}
+
+.cite2 {
+    border-left-color: #ddbbbb;
+}
+
+.quotedtext {
+	border-style: solid;
+	border-width: .2em;
+}
+
+.tt {
+	font-family: "Liberation Mono", "Courier New", courier, monospace;
+}
+
+
+.indent {
+	margin-left: 3.5em;
+}
+
+/* Width of timezone login dropdown needs to be set */
+
+.timezonelist { width: 20em }
+
+/* box at the top of every page, with the page title and E-mail addr */
+ 
+.pageheader { font-size: 200%; font-weight: bold;}
+
+/* If you change these then you'll need to change the corner gifs as well */
+
+.graybox { background-color: #cccccc; }
+.bluebox { background-color: #99ccff; }
+
+tr.graybox td {white-space: nowrap}
+
+/************************* List of folders *****************************/
+
+   /* Light yellow background color */
+
+.folderlist { background-color: #ffffff; }
+
+   /* List of folders header - yellow "Folder/# messages" on blue. */
+
+.folderlist-header { background-color: #ccddee; color: #000080}
+
+   /* Background colors for entries for subfolders and parent folder dirs */
+
+.folderparentdir { background-color: #ffffff }
+
+.foldersubdir { background-color: #ffffff }
+
+  /* Background color for unsubscribed shared folder */
+
+.folderunsubscribed { background-color: #ffffff }
+
+  /* Unread messages count */
+
+.subfolderlistunread, .folderlistunread { color: #800000; font-size: 90% }
+
+  /* Total messages count */
+
+.subfoldercnt, .foldercnt { color: #000000 }
+
+  /* A link to an actual folder */
+
+.folderlink:link, .folderlink:visited { }
+.folderlink:active { background-color: white; }
+
+	/* Calendar summary on the main folders screen */
+
+.eventsummarytitle,
+.eventsummarytitle a:link,
+.eventsummarytitle a:visited,
+.eventsummarytitle a:active { color: #008000 }
+
+.eventsummary,
+.eventsummary a:link,
+.eventsummary a:visited,
+.eventsummary a:active { font-family: "Courier New"; font-size: 90%;
+			 text-decoration: none; background-color: #f0fff0; }
+
+	/* sent message */
+
+.sentmsg { color: #000000 }
+
+/***************************** Folder contents ***********************/
+
+.folder-index-box {
+	border: 1px #ccc solid;
+	padding: 5px;
+	background-color: #fff;
+	width: 95%;
+}
+
+	/* Folder index header #1 - next page/prev page */
+
+.folder-index-border-1 { background-color: #cccccc; }
+.folder-index-border-2 { background-color: #ffffff; }
+.folder-index-background { background-color: #ffffff; }
+.folder-index-background-2 { background-color: #ffffff; }
+.folder-nextprev-background { background-color: #ffffff; }
+.folder-nextprev-buttons { background-color: #ffffff; }
+
+        /* Return to folder link on the search result page version of folder.html */
+
+.folder-return-link { padding: 10px }
+
+/* Search stopped at this message */
+
+.folder-last-message-searched { text-align: right; font-size: 80% }
+
+	/* Main folder index header - light yellow text on dark blue */
+
+.folder-index-header { background-color: #000080; color: #ffffff }
+
+	/* Alternating background colors in the folder index */
+
+.folder-index-bg-1 { background-color: #eeeecc }
+.folder-index-bg-1:hover { background-color: #bbbbbb }
+.folder-index-bg-2 { background-color: #ddddbb }
+.folder-index-bg-2:hover { background-color: #bbbbbb }
+
+.folder-index-bg-1, .folder-index-bg-2 { white-space: nowrap }
+
+	/* Selected message */
+
+.folder-index-bg-sel { background-color: #ccffcc }
+.folder-index-bg-sel:hover { background-color: #aaaaaa }
+
+	/* styles applied to read and unread messages */
+
+.read-message, .read-message a { }
+.unread-message, .unread-message a { color: #3333ff; }
+
+/*
+** The following styles apply to individual fields of each message
+** in the folder index
+*/
+
+.message-number { }
+.message-status { }
+.message-date { }
+.message-from { }
+.message-subject { }
+.message-size { font-family: "Courier New", courier, monospace; }
+
+/*** Search results ***/
+
+.message-searchmatch { font-size: 80%;
+		       padding-left: 2em;
+		       font-family: "Liberation Sans", "Sans Serif", "Arial" }
+.searchmatch-affix { }
+.searchmatch { font-weight: bold; }
+
+/***************************** Folder permissions ***********************/
+
+.folder-acl-box {
+	border: 1px #ccc solid;
+	padding: 5px;
+	background-color: #fff;
+	width: 95%;
+}
+
+.acl-a, .acl-c, .acl-e, .acl-i, .acl-l, .acl-r, .acl-s, .acl-t, .acl-w,
+.acl-x { font-family: "Courier New", courier, monospace;
+	 font-size: 80% }
+
+
+.folder-acl-list {
+	border: 1px #ccc solid;
+	padding: 5px;
+	background-color: #eee;
+	width: 95%;
+}
+
+.folder-acl-list tbody tr td, .folder-acl-list tbody tr th {
+	vertical-align: top;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+.folder-acl-list-action { font-size: 60% }
+
+/***************************** Message ******************************/
+
+.folder-move-background { background-color: #ddeeff; }
+
+.message-menu-background { background-color: #ddeeff; }
+
+.message-menu-button { background-color: #ddeeff; }
+.message-menu-button a {text-decoration: none; }
+
+.message-x-of-y { background-color: #ddeeff; color: #000000 }
+
+/* message-rfc822-header style applies to the header portion */
+
+.message-rfc822-header { }
+
+/* message-rfc822-header-name style applies to the header name only */
+
+.message-rfc822-header-name { white-space: nowrap;
+			    }
+
+/* message-rfc822-header-contents style applies to the header contents only */
+
+.message-rfc822-header-contents {
+	font-family: "Courier New", courier, monospace;
+}
+
+/* Addresses in from/to header */
+
+.message-rfc822-header-address { color: #00007f }
+.message-rfc822-header-address:after { content: "(+)"; font-size: 55%; vertical-align: super; }
+
+/*
+message-text-plain applies to text/plain content
+
+NOTE: Non-flowed text/plain content uses PRE. Flowed text/plain content uses DIV.
+
+*/
+
+pre.message-text-plain {
+	font-family: "Liberation Mono", "Courier New", courier, monospace;
+}
+
+.message-text-plain {
+        font-family: "Liberation Sans", "Sans Serif", "Arial";
+}
+
+/*
+** Additional styles applied to http and mailto links parsed in text/plain
+** content.
+*/
+
+.message-text-plain-http-link { }
+.message-text-plain-mailto-link { }
+
+/* Background for text/html notice */
+
+.message-text-html-notice { background-color: #ddeeff }
+
+.message-charset-notice { background-color: #ddeeff }
+
+/* Background for key import prompt */
+
+.message-application-pgpkeys { background-color: #dddddd; text-decoration: none; }
+
+/* GPG status border and message */
+
+.message-gpg { background-color: #ffffff }
+.message-gpg-good { background-color: #008000 }
+.message-gpg-good-text tt pre { color: #008000 }
+.message-gpg-bad { background-color: #ee0000 }
+.message-gpg-bad-text tt pre { color: #ee0000 }
+
+/* Notice that this message contains gpg-encoded content */
+
+.message-gpg-notice { }
+
+/* Notice that this message contains unsupported gpg-encoded content */
+
+.message-gpg-unsupported { color: #800000 }
+
+/* "Importing keys" */
+
+.message-gpg-importing { }
+
+/* Link to download or display an attachment */
+
+.message-download-attachment { background-color: #dddddd; }
+.message-attachment-header { font-family: courier; }
+.message-attachment-link { text-decoration: none; }
+
+/* [urlhost] prefix of A elements in rendered HTML mail */
+
+.urlhost {
+	font-family: "Liberation Mono", "Courier New", courier, monospace;
+	font-size: 55%;
+	vertical-align: super;
+	padding-right: .2em;
+}
+
+/***************************** Encryption Settings *******************/
+
+.gpgerroutput { color: #c00000 }
+
+/* Additional styles that can be applied to the titles */
+
+.gpgpublickeytitle { }
+.gpgprivatekeytitle { }
+.gpgsignkeytitle { }
+.gpgdefaulttitle { }
+.gpgcreatetitle { }
+
+/* Color of the horizontal bars that separate listed keys */
+
+.gpgpubkeys { background-color: #000000 }
+.gpgseckeys { background-color: #000000 }
+
+/* Colors of listed keys - black on medium gray */
+
+.gpgpubkey { background-color: #d0d0d0; color: #000000 }
+.gpgseckey { background-color: #d0d0d0; color: #000000 }
+
+.gpgcreate { background-color: #eeeeee; color: #505000 }
+
+/***************************** Create Message ************************/
+
+	/* Color of the preview box */
+.preview { background-color: #ffffff; }
+
+	/* Color of the new message box */
+.new-message-box { background-color: #99ccff; }
+
+	/* The following style is applied to the From/To/Cc/Bcc... headers */
+
+.new-message-header { color: #000000 }
+
+	/* If necessary, individual styles are available too */
+
+.new-message-header-headerfrom { }
+.new-message-header-addressbook { }
+.new-message-header-headerto { }
+.new-message-header-headercc { }
+.new-message-header-headerbcc { }
+.new-message-header-headerreply-to { }
+.new-message-header-headersubject { }
+.new-message-header-message { }
+
+.new-message-header-text { }
+.new-message-message-text { }
+
+/***************************** Attachments *************************/
+
+	/* Header line, yellow on blue */
+
+.attachments-header { background-color: #000080; color: #ffffff }
+
+/***************************** Check spelling **************************/
+
+/*
+** The text excerpt window.  Light green background, blue text, red
+** misspelled word.
+*/
+
+.spellcheck-background { background-color: #dddddd }
+
+.spellcheck-excerpt { background-color: #ddffdd; color: #000080 }
+
+.spellcheck-excerpt strong { color: #800000 }
+
+	/* Main spell check window -- black on light yellow */
+
+.spellcheck-main { background-color: #ffffc0; color: #000000 }
+
+	/* Continue/Finish background color */
+
+.spellcheck-continue { background-color: #eeeeee }
+
+	/* "Spell check completed" - actually in newmsg.html */
+
+.spellcheckdone { color: #608060 }
+
+/************** Quick Nickname Add *****************/
+
+.quickadd { color: #000000 }
+
+/************** Initial LDAP search window ****************/
+
+	/* Address Book search - black on light gray */
+
+.addressbook { background-color: #dddddd; color: #000000 }
+
+	/* Additional style applied to the name of the addressbook entry */
+
+.nicktitle { }
+
+	/* Additional styles that can be applied to addressbook content */
+.nickname { }
+.nickaddr { }
+
+.nicknewname { }
+.nicknewaddr { }
+
+.nicklist { }
+
+.nickedit-box { }
+
+/******** Initial LDAP lookup window ***********/
+
+.ldaplist { color: #000000 }
+
+.ldaplist-title { color: #000080; }
+
+.ldaplist-name { color: #004000; }
+.ldaplist-ldapurl { color: #000080; }
+
+	/* Add new LDAP address book */
+
+.ldaplist-add-title { }
+.ldaplist-add-fields { }
+
+/******** LDAP search results **********/
+
+.ldapsearch { color: #000000 }
+
+/* Additional styles that can be applied to the name, and address */
+
+.ldapsearch-name { }
+.ldapsearch-addr { }
+
+/********* Mail filters/autoresponder ***********/
+
+.mailfilter { color: #000000 }
+
+.mailfilter-title { font-size: 125% }
+
+.autoresplist { }
+
+.autoresptitle { }
+
+.autoresptext { }
+
+/********* Daily calendar *********/
+
+.dailycalendar { background-color: #ffffff; color: #000000 }
+
+.dailycalendardate { font-size: 200% }
+.dailycalendarweeklylink,
+.dailycalendarmonthlylink,
+.dailycalendarneweventlink { font-size: 80% }
+
+.dailyeventtimes { font-family: "Liberation Mono", "Courier New", courier, monospace; }
+.dailyeventsubject { font-family: "Liberation Mono", "Courier New", courier, monospace; }
+
+.dailynextprev { text-decoration: none; }
+
+.calendarevent { color: #000000; background-color: #ffffff }
+
+/********* Weekly calendar *********/
+
+.weekly-border { background-color: #000000 }
+
+.weekly-bg { background-color: #e7e7ff }
+
+.weekly-day,
+.weekly-day a:link,
+.weekly-day a:visited,
+.weekly-day a:active { font-size: 125%; text-decoration: none; }
+
+/********* Monthly calendar *********/
+
+.monthly-border { background-color: #000000 }
+
+.monthly-bg { background-color: #e7e7ff }
+
+.monthly-bg-othermonth { background-color: #e7e7e7 }
+
+.monthly-day,
+.monthly-day a:link,
+.monthly-day a:visited,
+.monthly-day a:active { font-size: 125%; text-decoration: none; background-color: #dddde7;
+	border-style: outset; border-width: 1px; border-color: #dddde7; }
+
+/********* Event Access Control List *********/
+
+.accesscontroltitle { font-size: 150% }
+
+
+
+/***************************** Miscellaneous *************************/
+
+/* An error message */
+
+.error { color: #c00000; font-size: 150% }
+
+.small-error { color: #c00000 }
+
+/* A list of possible causes for an error message */
+
+ul.error li {
+	margin-bottom: 2em;
+}
+
+/* Success message */
+
+.success { color: #00c000; font-size: 150% }
+
+.small-success { color: #00c000 }
+
+/* Outer border in readmsg page */
+
+.box-border-1 { background-color: #cccccc }
+.box-border-2 { background-color: #ffffff }
+
+/* Boxes with a black border */
+
+.box-outer, .box-small-outer { background-color: #ddeeff }
+
+.box-outer { width: 100% }
+.box-outer tbody tr td { padding: 0; }
+
+.box-white-outer { width: 100%; background-color: #ffffff }

@@ -1,0 +1,83 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2000 - 2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>mkpop3dcert</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>mkpop3dcert</refname>
+    <refpurpose>create a test SSL certificate for POP3 over SSL</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">@sbindir@/mkpop3dcert</command>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+POP3 over SSL requires a valid, signed, X.509 certificate.  The default
+location for the certificate file is
+<filename moreinfo="none">@datadir@/pop3d.pem</filename>.
+<command moreinfo="none">mkpop3dcert</command> generates a self-signed X.509 certificate,
+mainly for
+testing.
+For production use the X.509 certificate must be signed by a
+recognized certificate authority, in order for mail clients to accept the
+certificate.</para>
+
+    <para>
+<filename moreinfo="none">@datadir@/pop3d.pem</filename> must be owned by the
+@mailuser@ user and
+have no group or world permissions.
+The <command moreinfo="none">mkpop3dcert</command> command will
+enforce this.  To prevent an unfortunate accident,
+<command moreinfo="none">mkpop3dcert</command>
+will not work if <command moreinfo="none">@datadir@/pop3d.pem</command> already exists.</para>
+
+    <para>
+<command moreinfo="none">mkpop3dcert</command> requires
+<application moreinfo="none">OpenSSL</application> to be installed.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>FILES</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>@datadir@/pop3d.pem</term>
+	<listitem>
+	  <simpara>
+X.509 certificate.
+</simpara>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>@sysconfdir@/pop3d.cnf</term>
+	<listitem>
+	  <simpara>
+Parameters used by OpenSSL to
+create the X.509 certificate.
+</simpara>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink></para>
+   </refsect1>
+</refentry>

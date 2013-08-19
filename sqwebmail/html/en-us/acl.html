@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html" />
+  <title>Folder permissions</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.8.1, see http://www.w3.org/Amaya/"
+  />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <script type="text/javascript" language="Javascript">
+<!--
+
+function updent()
+{
+	if (document.form1.entitytype.value == "user"
+		|| document.form1.entitytype.value == "group"
+		|| document.form1.entitytype.value == "other")
+	{
+		document.form1.entity.disabled=false;
+	}
+	else
+	{
+		document.form1.entity.disabled=true;
+		document.form1.entity.value="";
+	}
+}
+//-->
+
+
+
+
+  </script>
+</head>
+
+<body onload="javascript:updent()">
+<!--
+
+[#$FOLDERTITLE=Folder permissions - #]
+[#$INBOX=INBOX#]
+[#$DRAFTS=Drafts#]
+[#$TRASH=Trash#]
+[#$SENT=Sent#]
+[#$PUBLICFOLDERS=<em>Public Folders</em>#]
+
+[#$ACL_a=<span class="acl-a">Administrator</span>#]
+[#$ACL_c=<span class="acl-c">Create subfolders</span>#]
+[#$ACL_e=<span class="acl-e">Expunge messages</span>#]
+[#$ACL_i=<span class="acl-i">Insert messages</span>#]
+[#$ACL_l=<span class="acl-l">Visible (lookup)</span>#]
+[#$ACL_r=<span class="acl-r">Open</span>#]
+[#$ACL_s=<span class="acl-s">Change read/unread status</span>#]
+[#$ACL_t=<span class="acl-t">Mark messages as deleted</span>#]
+[#$ACL_w=<span class="acl-w">Update message flags</span>#]
+[#$ACL_x=<span class="acl-x">Delete folder</span>#]
+[#$ACL_unknown=<em>Access type "%s" not implemented</em>#]
+
+[#$ACL_all=aceilrstwx#]
+
+[#$ACL_noaccess=<div class="small-error">You do not have administrative access to this folder</div>#]
+
+[#$ACL_failed=<div class="small-error">Requested permissions are not valid</div>#]
+
+[#$ENTITY=Entity#]
+[#$ACCESSRIGHTS=Access Rights#]
+[#$EDIT=edit#]
+[#$DELETE=delete#]
+[#$OR=or, user=#]
+[#$UPDATEHDR=Update access rights:#]
+
+[#$UPDATE=Update#]
+
+[#$ACL_noaccess=<p class="small-error">Internal error - unable to update ACLs</p>#]
+[#$ACL_cantread=<p class="small-error">ACL access denied.</p>#]
+
+[#$USER=user:#]
+[#$GROUP=group:#]
+[#$OWNER=owner#]
+[#$ANONYMOUS=anonymous#]
+[#$ADMINISTRATORS=administrators#]
+[#$OTHER=other:#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">[#f#]</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar2#] <!-- Border around the folders list -->
+
+
+<div class="folder-acl-box">
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="2" align="left">Your have the following permissions on
+        this folder:</th>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;</td>
+      <td>[#LISTRIGHTS#]</td>
+    </tr>
+  </tbody>
+</table>
+<br />
+
+<hr width="80%" />
+[#GETACL#]
+
+<p><a href="[#s#]&amp;form=folders&amp;folderdir=[#D#]">Finished</a></p>
+<!-- ============ -->
+</div>
+
+<p>[#B#]</p>
+</div>
+</body>
+</html>

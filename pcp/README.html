@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content=
+  "text/html; charset=utf-8" />
+
+  <title>Calendaring in SqWebMail</title>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <!-- Copyright 2000-2004 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+  <link rel="icon" href="icon.gif" type="image/gif" />
+</head>
+
+<body>
+  <h1>Calendaring in <code>SqWebMail</code></h1>
+
+  <p>This is currently a work in progress. At this point, the
+  calendaring implementation includes basic calendaring/scheduling
+  resources.</p>
+
+  <blockquote>
+    <p>Dogfood: "pcp" is the acronym for "Personal Calendaring
+    Protocol".</p>
+  </blockquote>
+
+  <h2>Enabling calendaring</h2>
+
+  <p>To enable calendaring, create the file
+  <code>calendarmode</code> in the configuration directory
+  (<code>/usr/local/share/sqwebmail</code>, or
+  <code>$sysconfdir</code>, usually
+  <code>/usr/lib/courier/etc</code>). The <code>calendarmode</code>
+  file should contain a single word: either "local" - enable
+  account calendaring; or "net" - enable calendaring in groupware
+  mode. Example:</p>
+  <pre>
+echo "local" &gt;calendarmode
+</pre>
+
+  <p>Additionally, if groupware calendaring is enabled, the
+  <code>pcpd</code> daemon process must be started. This is now
+  taken care of automatically by the sqwebmail startup script
+  (<code>sqwebmaild.rc</code> script in the sqwebmail distribution,
+  and the <code>webmaild</code> script in the Courier
+  distribution). The next step is to set up individual access
+  control lists, which are described below.</p>
+
+  <blockquote>
+    NOTE: if you've installed SqWebMail/Courier binary RPMs, the
+    RPMs will automatically take care of starting <code>pcpd</code>
+    at system boot time if groupware calendaring is enabled.
+  </blockquote>
+
+  <blockquote>
+    NOTE: check your umask, <code>calendarmode</code> needs to be
+    globally readable.
+  </blockquote>
+
+  <h2>Technical implementation</h2>
+
+  <p>There are two calendaring modes:</p>
+
+  <blockquote>
+    <h3>Local mode</h3>
+
+    <p>Local calendar access requires very little additional
+    resources, in addition to basic webmail support, and it needs
+    very little overhead. Calendaring information is saved in
+    <code>$HOME/Maildir/calendar</code>, which is automatically
+    created during first webmail login after enabling
+    calendaring.</p>
+
+    <h3>Groupware mode</h3>
+
+    <p>Groupware mode offer the ability to synchronize events on
+    multiple calendar. Groupware mode requires additional server
+    resources. A rule of thumb is that groupware mode will require
+    between 10% and 100% of CPU and I/O bandwidth, when compared to
+    basic webmail. Groupware may also require additional disk
+    space, since copies of the event data is copied to each
+    calendar. Events may have large attachments, so allow for
+    plenty of disk space.</p>
+  </blockquote>
+
+  <p>In all cases, calendaring is designed to be used in private,
+  non-public settings. This calendaring implementation will not
+  work well in a public webmail environment. Currently, quotas are
+  not implemented on the calendar data. SqWebMail does not work
+  with filesystem quotas. SqWebMail creates cached folder indexes,
+  and an inability to create a folder index will result in a total
+  application failure. SqWebMail does support a software quota
+  implementation, however the software-based quota currently does
+  not include calendaring data. This issue may be addressed in the
+  future.</p>
+
+  <p>This calendaring implementation is built on top of an API
+  protocol library that is designed to be flexible and extensible.
+  Only basic calendaring is implemented right now. The API library
+  uses locks when accessing calendar data. Locks are not really
+  necessary in local mode, but are needed for groupware mode. The
+  API library uses dot-lock files, which are designed to work on a
+  network filesystem, as long as the clocks on the clients and
+  servers are synchronized. When a network filesystem is used it is
+  essential to make sure that the clocks on all machines are
+  synchronized with NTP, or an equivalent clock synchronization
+  protocol.</p>
+
+  <h2>Overview</h2>
+
+  <p>Basic calendaring allows creation and modification of calendar
+  events. A calendar event is handled similarly to mail messages. A
+  calendar event has a subject, and a description. It is possible
+  to attach files to calendar events, similar to how files can be
+  attached to messages. This is mainly useful in groupware mode.
+  Note however that group events place individual copies of the
+  event on each calendar, and large attachments can quickly eat up
+  storage space.</p>
+
+  <p>Individual events may be marked as cancelled, or completely
+  removed from the calendar. A cancelled event still appears on the
+  calendar, but new events will not check events marked as
+  cancelled for scheduling conflicts. Adding a new event checks
+  only non-cancelled events for any scheduling conflicts.</p>
+
+  <p>Events are created and edited like regular E-mail messages.
+  Until an event is added to the calendar, it is saved in the
+  Drafts folder while it is being edited. To cancel an event
+  without saving it on the calendar, open the Drafts folder, and
+  delete it.</p>
+
+  <h2>Groupware Calendaring</h2>
+
+  <blockquote>
+    <hr />
+
+    <p><strong>NOTE:</strong> Groupware calendaring is experimental
+    at this time. If you're using groupware calendaring on
+    platforms that PAM for authentication, be sure to configure the
+    PAM library to authenticate the "calendar" service.</p>
+    <hr />
+  </blockquote>
+
+  <p>It is helpful to know how groupware mode is implemented, in
+  order not to be surprised by some of its quirks. The details of
+  initializing groupware mode have already been covered, and are
+  not repeated here.</p>
+
+  <p>Groupware mode works essentially by replicating calendar
+  events across multiple calendaring. Whoever creates a calendar
+  event specifies additional "participants". When groupware
+  calendaring is enabled, additional fields on the New Event screen
+  are used to enter additional participants' E-mail address. All
+  participants' mailboxes must reside on the same server. In far
+  distant future it will be possible to cluster <code>pcpd</code>
+  across multiple servers. When the event is saved, the
+  <code>pcpd</code> daemon replicates the event to all
+  participants' calendars. Subsequent modifications to the event
+  are similarly replicated.</p>
+
+  <p>But, before all this happens, it is necessary to set up access
+  control lists. Access control lists determine who is authorized
+  to place events on whose calendars. You wouldn't want everyone,
+  and their aunt, to place random events on your calendar, do
+  you?</p>
+
+  <p>The preferences screen will have a link on the bottom to a
+  separate preferences page where access controls are entered. To
+  allow someone to place events on your calendar, add their E-mail
+  address to your access control list. Right now, two access
+  controls are available:</p>
+
+  <ul>
+    <li><code>MODIFY</code> - allow this address to add/modify
+    events to your calendar.</li>
+
+    <li><code>CONFLICT</code> - allow this address to add/modify
+    events to your calendar which have scheduling conflicts with
+    existing events. <code>CONFLICT</code> implies
+    <code>MODIFY</code> and <code>MODIFY</code> must be selected
+    also, in order for <code>CONFLICT</code> to work.</li>
+  </ul>
+
+  <p>Everyone is responsible for setting up their own access
+  control lists. Right now, the "MODIFY" access control is always
+  selected, because that's the only thing that makes sense. There
+  will be other access controls added, in some distance
+  future...</p>
+
+  <h3>Updating groupware events</h3>
+
+  <p>Only the original person who created an event is capable of
+  modifying it. Other event participants may also mark the event as
+  cancelled on their calendar, but should not make any other
+  changes. Remember that the event creator is responsible for
+  propagating event updates. A participant can still make changes
+  to that event, but those changes will not be replicated, because
+  only the event on the creator's calendar has the necessary
+  internal replication linkage. If a participant modifies a
+  replicated event, if the original creator makes any subsequent
+  updates, the replication process won't be able to automatically
+  delete the original event on the participant's calendar, to be
+  replaced with the updated event. The original replicated event is
+  gone, it's been updated on the participant's calendar. The
+  updated event looks like a completely separate event, which
+  probably has the same starting/ending times, and will trigger a
+  scheduling conflict.</p>
+
+  <p>Participants may mark replicated events as cancelled, which
+  will not break the replication link. That's what
+  cancelling/uncancelling was originally designed for. A
+  participant may try to completely delete the replicated event,
+  but it'll be back if the original event creator updates the
+  event, which will cause it to be replicated back again out to
+  everyone's calendar.</p>
+
+  <p>The original event creator may add/remove participants as part
+  of updating the event. The event will be properly added/removed
+  from the affected calendars, accordingly (and hopefully).</p>
+
+  <p>Suppose an event has been replicated to someone's calendar,
+  and this participant then went ahead and removed the creator's
+  access control list entry. If the original event creator attempts
+  to save an update to the event, the update will fail to
+  authorize. There's an additional option on the new/update event
+  page called "Ignore errors updating other participants'
+  calendars". That's self-explanatory - this error condition will
+  be ignored, and the offender is automatically removed from this
+  event's list of participants.</p>
+
+  <h3>Entering E-mail addresses</h3>
+
+  <p>As described previously, groupware events are created by
+  entering the participant's E-mail addresses. For this document's
+  purposes, an "E-mail address" means the login ID that's provided
+  to log into SqWebMail. Someone may customize their From: header,
+  but that doesn't count. It's their webmail login address that
+  matters.</p>
+
+  <p>The E-mail address should include @domain. If absent, it will
+  default to the creator's login E-mail domain. Therefore, in most
+  cases it's not really necessary to explicitly tack on @domain
+  when entering E-mail addresses, the default will be correct most
+  of the time. If the default is wrong, it will be very
+  obvious.</p>
+
+  <p>The calendaring screens automatically check the address book,
+  when displaying events. If the E-mail address is found in the
+  address book, the calendaring screens will quietly show the
+  person's name, in addition to the E-mail address. Initialize
+  those address books.</p>
+
+  <h2>Issues</h2>
+
+  <p>There are some minor design issues that may be addressed in
+  the future. Some of them are already obvious, from the preceding
+  documentation.</p>
+
+  <h3>Event updates</h3>
+
+  <p>An existing event is updated essentially by making a copy of
+  it, and saving the updated event as a new event, while
+  simultaneously deleting the old event. It's possible to open an
+  existing event, for editing, more than once. If one copy of the
+  event is placed back to the calendar, the old event information
+  is removed, and the new event information takes its place. If
+  another, previously opened, copy of the old event is opened from
+  the Drafts folder, edited and saved, the updated event already on
+  the calendar is NOT removed, and essentially another event is
+  added to the calendar (assuming no scheduling conflicts with the
+  previously updated copy of the event).</p>
+
+  <p>This should not be a major issue, since a scheduling conflict
+  will be reported in most cases, thus bringing this issue to
+  light. Note that it's always possible to manually override any
+  scheduling conflicts, and place conflicting events on the
+  calendar, but a manual override is always required. It's also
+  possible to detect an attempt to save a duplicate updated,
+  because the old event is no longer on the calendar, however this
+  will raise other issues concerning groupware mode. The current
+  approach is the simplest way to implement editing of existing
+  events, and any complications can always be easily fixed by
+  hand.</p>
+
+  <h3>Expired calendar events</h3>
+
+  <p>Calendar events are automatically deleted 30 days after their
+  last occurence.</p>
+
+  <h3>Recurring events</h3>
+
+  <p>When asked to generate weekly/monthly/annual recurring dates
+  for an event, until a certain date, the system stops after
+  generating 100 dates. This is to prevent bad input from
+  generating a huge list.</p>
+
+  <h3>Limitations</h3>
+
+  <p>On most systems, calendaring works only until year 2038, when
+  the 32 bit time counter wraps around. On 64-bit systems
+  calendaring will work beyond year 2038.</p>
+
+  <h3>Localization</h3>
+
+  <p>Calendaring get the date/time format, names of the days of the
+  week, and names of the months of the year, from the locale
+  settings. The calendar's locale can be set by initializing
+  <code>html/en-us/LOCALE</code> (in the stock tarball) which is
+  installed either in <code>/usr/local/share/sqwebmail</code> or
+  <code>/usr/lib/courier/share/sqwebmail</code> by default. Note
+  that the LOCALE setting will be reflected in all other SqWebMail
+  functions. If the locale text uses a character set other than
+  <code>iso-8859-1</code> then it will also be necessary to
+  initialize the CHARSET file.</p>
+
+  <p>If the locale is changed, the sample dates in
+  <code>html/en-us/newevent.html</code> may also need changed to
+  reflect the locale's weekday and month names. Date entry in
+  calendaring uses the locale's weekday and month names as well.
+  The strings 'tomorrow' and 'today' are also set in the
+  <code>newevent.html</code> file - look inside the hidden comments
+  at the beginning of this file.</p>
+
+  <blockquote>
+    NOTE: SqWebMail accepts dates either in MM/DD/YYYY or
+    YYYY.MM.DD no matter what locale is in effect. This is for
+    ENTERING dates only - the dates are always displayed according
+    to the current locale This will be fixed in a future release.
+  </blockquote>
+
+  <blockquote>
+    NOTE: Error messages generated by the internal calendaring
+    protocol library are in English, and at this time there is no
+    flexible mechanism to localize them. This will be fixed in a
+    future release.
+  </blockquote>
+</body>
+</html>

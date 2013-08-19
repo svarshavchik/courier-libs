@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Attachments</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$NOATTACH=No attachments...#]
+[#$QUOTAERR=<font style="color: #ff0000" size="+1" class="error">ERROR: You have exceeded your quota</font>#]
+[#$LIMITERR=<font style="color: #ff0000" size="+1" class="error">ERROR: Maximum message size is %lu MB</font>#]
+[#$MAKEMIMEERR=<font style="color: #ff0000" size="+1" class="error">%s: failed to MIME-encode the attachment.  Contact the system administrator.</font>#]
+
+[#$PRESERVELAB=Preserve a copy of the message in the Sent folder#]
+[#$SIGNLAB=Sign&nbsp;message&nbsp;with:&nbsp;#]
+[#$ENCRYPTLAB=Encrypt&nbsp;message&nbsp;to:&nbsp;#]
+[#$PASSPHRASE=Passphrase&nbsp;(if&nbsp;required):&nbsp;#]
+[#$DSN=Request&nbsp;delivery&nbsp;confirmation&nbsp;receipt#]
+
+[#$KEYDESCR=GnuPG key#]
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Attachments</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<form method="post" action="[#p#]" enctype="multipart/form-data">
+  <!--form method="get" action="[#p#]"-->
+  [#P#] <input type="hidden" name="form" value="doattach" />
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" cellspacing="0">
+            <tbody>
+              <tr>
+                <td>
+                  <table width="100%" bgcolor="#000080" border="0"
+                  cellpadding="4" cellspacing="0" class="attachments-header">
+                    <tbody>
+                      <tr>
+                        <th align="left"><span style="color: #ffff00"
+                          class="attachments-header">&nbsp;&nbsp;&nbsp;&nbsp;Attachment</span></th>
+                        <th align="left"><span style="color: #ffff00"
+                          class="attachments-header">MIME&nbsp;Type</span></th>
+                        <th align="right"><span style="color: #ffff00"
+                          class="attachments-header">Size</span></th>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <table width="100%" border="0" cellpadding="4"
+                  cellspacing="0">
+                    <tbody>
+                      <tr>
+                        <td>[#A#] 
+                          <input type="submit" value="&nbsp;Delete selected "
+                          name="dodelete" />
+                          <hr width="100%" />
+
+                          <table border="0">
+                            <tbody>
+                              <tr valign="middle">
+                                <td align="right"><input type="file"
+                                  size="20" name="uploadfile" /></td>
+                                <td>
+                                  <input type="submit" value="Upload"
+                                  name="upload" /></td>
+                                <td><label><input type="checkbox"
+                                  name="attach_inline" />Display attachment
+                                  inline</label> <!-- [#?5#]-->
+                                </td>
+                              </tr>
+                              <tr>
+                                <td colspan="3">
+                                  <select name="pubkey">
+                                    <option
+                                    selected="selected"></option>[#ATTACHPUB#]
+                                  </select>
+                                   
+                                  <input type="submit"
+                                  value="Attach public key" name="uppubkey"
+                                /></td>
+                              </tr>
+                              <tr>
+                                <td colspan="3">
+                                  <select name="privkey">
+                                    <option
+                                    selected="selected"></option>[#ATTACHSEC#]
+                                  </select>
+                                   
+                                  <input type="submit"
+                                  value="Attach private key" name="upprivkey"
+                                  /><input type="checkbox" name="really"
+                                  />Yes, I really want to do this <!-- [#?#]-->
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <hr width="100%" />
+                          [#ATTACHOPTS#] <br />
+
+                          <input type="submit" value="Preview"
+                          name="previewmsg" /> 
+                          <input type="submit" value="Send" name="sendmsg" /> 
+                          <input type="submit" value="Save Draft"
+                          name="savedraft" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="generator" content="Bluefish 2.0.1" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <title>Mail Filters</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+</head>
+
+<body>
+<!--
+
+[#$BADIMPORT=<span style="color: #ee0000">ERROR: You have an incompatible existing mail filter, contact your system administrator</span><br />#]
+[#$BADRULENAME=<span style="color: #ee0000">ERROR: Invalid or missing rule name, please reenter</span><br />#]
+[#$EXISTS=<span style="color: #ee0000">ERROR: Rule name already exists, please reenter</span><br />#]
+[#$BADHEADER=<span style="color: #ee0000">ERROR: Invalid or missing header name, please reenter</span><br />#]
+[#$AUTOREPLY=<span style="color: #ee0000">ERROR: Invalid or missing autoreply name, please reenter</span><br />#]
+[#$BADVALUE=<span style="color: #ee0000">ERROR: Invalid or missing header pattern or recipient address, please reenter</span><br />#]
+[#$ERRTOFOLDER=<span style="color: #ee0000">ERROR: Invalid or missing folder, forwarding address, or error message, please reenter</span><br />#]
+[#$FROMHDR=<span style="color: #ee0000">ERROR: Invalid characters in the custom <span class="tt">From:</span> header, please reenter</span><br />#]
+[#$INTERNAL=<span style="color: #ee0000">ERROR: Unable to save rule - contact system administrator</span><br />#]
+[#$UPDATED=<span style="color: #008000">The following filters have been saved:</span><br />#]
+[#$INBOX=INBOX#]
+[#$DRAFTS=Drafts#]
+[#$TRASH=Trash#]
+[#$SENT=Sent#]
+
+-->
+
+<div align="center">
+<!-- Top Header. Shows folder list and email address. -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Mail Filters</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar3#] <!-- End of List of Sections. Folders, Create Messages, Etc. -->
+ <!-- Border around the folders list -->
+
+
+<form method="post" action="[#R#]">
+  [#P#]<input type="hidden" name="form" value="filter" />
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" cellspacing="0" width="100%"
+          class="mailfilter">
+            <tbody>
+              <tr>
+                <td align="center"><font size="+1"
+                  class="mailfilter-title">Existing mail filters:</font></td>
+              </tr>
+              <tr valign="middle">
+                <td>
+                  <table border="0" width="100%">
+                    <tbody>
+                      <tr>
+                        <td align="center">[#LOADMAILFILTER#] 
+                          <select name="currentfilter"
+                            size="8">[#MAILFILTERLIST#]
+                          </select>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <input type="submit" value="Up" name="do.moveup" /> 
+                          <input type="submit" value="Down"
+                          name="do.movedown" /> 
+                          <input type="submit" value="Edit" name="do.edit" /> 
+                          <input type="submit" value="Delete"
+                          name="do.delete" /> 
+                          <input type="submit" value="Add" name="do.add"
+                        /></td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <input type="submit" value="Save all changes"
+                          name="do.save" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td align="center"><font size="+1"
+                  class="mailfilter-title">Edit/Add mail filter</font></td>
+              </tr>
+              <tr>
+                <td>
+                  <table border="0">
+                    <tbody>
+                      <tr>
+                        <td>Rule&nbsp;name:</td>
+                        <td><input type="text" size="20" name="rulename"
+                          value="[#input:rulename#]" /></td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td colspan="0"><hr width="100%" />
+                        </td>
+                      </tr>
+                      <tr valign="middle">
+                        <td>Condition:</td>
+                        <td>
+                          <table border="0">
+                            <tbody>
+                              <tr>
+                                <td>[#radio:filtertype:header#]</td>
+                                <td>
+                                  <table border="0" cellpadding="0">
+                                    <tbody>
+                                      <tr>
+                                        <td rowspan="2">Header&nbsp;<input
+                                          type="text" size="20"
+                                          value="[#input:headername#]"
+                                          name="headername"
+                                          />,&nbsp;or&nbsp;[#radio:filtertype:body#]&nbsp;Body</td>
+                                        <td>[#select:headermatchtype#]
+                                          [#option:startswith:headermatch:startswith#]
+                                          starts with [#endoption#]
+                                          [#option:contains:headermatch:contains#]
+                                          contains [#endoption#]
+                                          [#option:endswith:headermatch:endswith#]
+                                          ends with [#endoption#]
+                                          [#option:notstartswith:headermatch:notstartswith#]
+                                          doesn't start with [#endoption#]
+                                          [#option:notcontains:headermatch:notcontains#]
+                                          doesn't contain [#endoption#]
+                                          [#option:notendswith:headermatch:notendswith#]
+                                          doesn't end with [#endoption#]
+                                          [#endselect#]</td>
+                                        <td><input type="text" size="20"
+                                          name="headervalue"
+                                          value="[#input:headervalue#]"
+                                        /></td>
+                                      </tr>
+                                      <tr>
+                                        <td
+                                          align="right">[#checkbox:autoresponse_regexp:autoresponse_regexp#]</td>
+                                        <td>this&nbsp;is&nbsp;a&nbsp;regular&nbsp;expression&nbsp;(a&nbsp;pattern)</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:anymessage#]</td>
+                                <td>Any&nbsp;message</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:hasrecipient#]</td>
+                                <td>[#select:hasrecipienttype#]
+                                  [#option:hasrecipient:hasrecipienttype:hasrecipient#]
+                                  Addressed to [#endoption#]
+                                  [#option:nothasrecipient:hasrecipienttype:nothasrecipient#]
+                                  Not addressed to [#endoption#]
+                                  [#endselect#] &nbsp;<input type="text"
+                                  size="20" name="hasrecipientaddr"
+                                  value="[#input:hasrecipientaddr#]" /></td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:hastextplain#]</td>
+                                <td>Is&nbsp;a&nbsp;plain&nbsp;text&nbsp;message</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:nothastextplain#]</td>
+                                <td>Is&nbsp;not&nbsp;a&nbsp;plain&nbsp;text&nbsp;message&nbsp;(HTML,&nbsp;attachments,&nbsp;...)</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:hasmultipart#]</td>
+                                <td>Is&nbsp;a&nbsp;multipart&nbsp;MIME&nbsp;message</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:nothasmultipart#]</td>
+                                <td>Is&nbsp;not&nbsp;a&nbsp;multipart&nbsp;MIME&nbsp;message</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:filtertype:hassize#]</td>
+                                <td>Message is [#select:sizecompare#]
+                                  [#option:islargerthan:sizecompare:islargerthan#]
+                                  larger than [#endoption#]
+                                  [#option:issmallerthan:sizecompare:issmallerthan#]
+                                  smaller than [#endoption#] [#endselect#]
+                                  <input type="text" size="8"
+                                  name="bytecount"
+                                  value="[#input:bytecount#]" /> bytes</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td colspan="0"><hr width="100%" />
+                        </td>
+                      </tr>
+                      <tr valign="middle">
+                        <td>Action:</td>
+                        <td>
+                          <table border="0">
+                            <tbody>
+                              <tr>
+                                <td>[#radio:action:savefolder#]</td>
+                                <td>Save&nbsp;in:</td>
+                                <td>[#MAILFILTERLISTFOLDERS#]</td>
+                                <td
+                                  rowspan="2">[#checkbox:continuefiltering:continuefiltering#]&nbsp;and&nbsp;continue&nbsp;filtering.</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:action:forwardto#]</td>
+                                <td>Forward&nbsp;to:</td>
+                                <td><input type="text" size="20"
+                                  name="forwardaddy"
+                                  value="[#input:forwardaddy#]" /></td>
+                              </tr>
+                              <tr>
+                                <td colspan="4">&nbsp;</td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:action:bounce#]</td>
+                                <td>Reject&nbsp;with&nbsp;error:</td>
+                                <td colspan="2"><input type="text" size="20"
+                                  name="bouncemsg"
+                                  value="[#input:bouncemsg#]" /></td>
+                              </tr>
+                              <tr valign="top">
+                                <td>[#radio:action:autoresponse#]</td>
+                                <td>Send an autoreply:</td>
+                                <td
+                                  colspan="2">[#select:autoresponse_choose#]
+                                  [#option:#][#endoption#]
+                                  [#AUTORESPONSE_PICK#] [#endselect#] <br />
+                                  [#checkbox:autoresponse_dsn:autoresponse_dsn#]Use
+                                  DSN format for autoreplies<br />
+                                  [#checkbox:autoresponse_dupe:autoresponse_dupe#]Suppress
+                                  duplicate autoreplies for <input
+                                  type="text" size="4"
+                                  name="autoresponse_days"
+                                  value="[#input:autoresponse_days#]"
+                      	          />days<br />
+                                  [#checkbox:autoresponse_noquote:autoresponse_noquote#]Do not quote the original message
+                                  in the autoreply text</td>
+                              </tr>
+                              <tr>
+                                <td></td>
+                                <td>Custom <span class="tt">From:</span>
+                                  header:</td>
+                                <td colspan="2"><input type="text" size="20"
+                                  name="autoresponse_from"
+                                  value="[#input:autoresponse_from#]" /></td>
+                              </tr>
+                              <tr>
+                                <td>[#radio:action:purge#]</td>
+                                <td>Purge</td>
+                                <td colspan="2">&nbsp;</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td colspan="0"><hr width="100%" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td colspan="0">
+                          <input type="submit" value="Submit"
+                          name="do.submitfilter" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td align="center">IMPORTANT: You <strong>MUST</strong>
+                  select "Save all changes", above, for any changes to take
+                  effect.</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

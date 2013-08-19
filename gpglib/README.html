@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>GnuPG support in SqWebMail</title>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EE" vlink="#551A8B"
+alink="#FF0000" xml:lang="en" lang="en">
+<!-- Copyright 1998 - 2001 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+
+<h1>GnuPG support in <code>SqWebMail</code></h1>
+
+<p>Table of contents:</p>
+<ul>
+  <li><a href="#intro">Introduction</a><br />
+    <br />
+  </li>
+  <li><a href="#require">Requirements</a><br />
+    <br />
+  </li>
+  <li><a href="#implementation">Implementation</a><br />
+    <br />
+  </li>
+  <li><a href="#interop">Interoperability</a><br />
+    <br />
+  </li>
+  <li><a href="#passphrase">Using passphrase-protected private keys</a><br />
+    <br />
+  </li>
+  <li><a href="#bugs">Bugs</a><br />
+    <br />
+  </li>
+  <li><a href="#random">Important note for Linux and other systems that use
+    the <code>/dev/random</code> device.</a><br />
+    <br />
+  </li>
+</ul>
+
+<h2><a name="intro" id="intro">Introduction</a></h2>
+
+<p>This is experimental beta of GnuPG support in <code>SqWebMail</code>. The
+following functionality is available:</p>
+<ul>
+  <li>Create new keypairs<br />
+    <br />
+  </li>
+  <li>List public/private keys<br />
+    <br />
+  </li>
+  <li>Delete keys<br />
+    <br />
+  </li>
+  <li>Sign keys<br />
+    <br />
+  </li>
+  <li>Export keys (attach them to the current message)<br />
+    <br />
+  </li>
+  <li>Import keys from messages<br />
+    <br />
+  </li>
+  <li>Sign outgoing messages<br />
+    <br />
+  </li>
+  <li>Encrypt outgoing messages<br />
+    <br />
+  </li>
+  <li>Display and verify signed messages<br />
+    <br />
+  </li>
+  <li>Decrypt encrypted messages<br />
+    <br />
+  </li>
+  <li>Reply and forward encrypted messages.  Correctly handle
+    multipart/alternative and multipart/related.<br />
+    <br />
+  </li>
+</ul>
+
+<p><code>SqWebMail</code> creates and manages its own keyrings.
+<code>$HOME/.gnupg</code> is not used. This allows GnuPG functions to work
+for virtual accounts that have no home directory.</p>
+
+<h2><a name="require" id="require">Requirements</a></h2>
+
+<p>This implementation requires GnuPG, which is used for all of the heavy
+lifting.  No encryption code exists in <code>SqWebMail</code> itself. The
+configuration script searches the current PATH for the <code>gpg</code>
+binary. The final <code>SqWebMail</code> binary gets the hardcoded absolute
+path to the <code>gpg</code> binary. If <code>gpg</code> is not found in the
+current PATH, <code>/usr/bin/gpg</code> will be used. Therefore, if GnuPG is
+locally installed in a non-default location, make sure that <code>gpg</code>
+can be found in the current PATH.</p>
+
+<h2><a name="implementation" id="implementation">Implementation</a></h2>
+
+<p><code><code>SqWebMail</code></code> runs <code>gpg</code> automatically to
+handle all the actual tasks involved in encrypting and decrypting messages.
+<code>make install</code> also installs two more binaries:
+<code>reformime</code> and <code>mimegpg</code>. Those binaries do some other
+things, and nothing really needs to be done about them, or to them, except to
+know that they're there.</p>
+
+<h3>The <code>webgpg</code> script</h3>
+<code>make install</code> automatically installs a shell script,
+<code>webgpg</code>. Encryption/decryption capabilities for all mail accounts
+are disabled by default. The <code>webgpg</code> script takes one argument -
+the complete pathname to a Maildir. <code>webgpg</code> creates a new
+subdirectory, <code>Maildir/gpg</code>, and initializes it. Once that
+subdirectory is created, encryption/decryption in <code>SqWebMail</code> will
+become available for that account. Not every mail account has to have
+encryption/decryption enabled. This functionality can be selectively enabled
+and disabled for individual accounts.
+
+<p>NOTE: <code>webgpg</code> script MUST be executed by the same userid and
+groupid that owns the <code>Maildir</code> directory.</p>
+
+<p>NOTE: The current implementation consists of the bare minimum required to
+get the overall functionality.  As a result, a number of shortcuts are taken
+with respect to avoiding some hoops that GnuPG occasionally requires to be
+jumped through.  For example, by default GnuPG requires that a public key
+must be signed before it can be used for encryption.  <code>SqWebMail</code>
+will automatically provide the "always-trust" option to bypass the check.
+Basically, if you have the public key in your keyring, you can use it.</p>
+
+<h3>Issues with adding or activating encryption for existing accounts</h3>
+
+<p>Obviously, encryption/decryption takes additional server CPU cycles. There
+is no hard and fast rule for how much additional load is needed. Fortunately,
+this is not an "all or none" deal. Encryption support can be activated in a
+controlled manner and phased in gradually, in steps, allowing the impact on
+the web/mail server to be closely monitored, and controlled.</p>
+
+<h3>Issues with adding or activating encryption for new accounts</h3>
+
+<p>The <code>webgpg</code> script needs to be used to initialize encryption
+support for newly-created accounts.  Many systems use the
+<code>/etc/skel</code> directory as a template for setting up the initial
+contents of new accounts.  In that case, use run "<code>webgpg
+/etc/skel/Maildir</code>", and all new accounts will have encryption
+automatically activated.</p>
+
+<h2><a name="interop" id="interop">Interoperability</a></h2>
+
+<p>As of now, <code>SqWebMail</code>'s encryption/decryption is experimental.
+There's not been much interoperability testing with other encryption-capable
+mail software.  It is very much possible that there are some interoperability
+issues that will have to be worked out.</p>
+
+<p>The directory <code>Maildir/gpg</code> does pretty much what
+<code>$HOME/.gnupg</code> does for the command-line <code>gpg</code> tool.
+<code>SqWebMail</code> does not use <code>$HOME/.gnupg</code>, it keeps its
+keyrings and other GnuPG-related stuff in the <code>Maildir/gpg</code>
+directory. That's because <code>SqWebMail</code> can be configured to use
+both physical system accounts and virtual mail accounts, and after
+authenticating, there is no difference whatsoever between the two. Therefore,
+<code>SqWebMail</code> has no concept of the $HOME directory. Its entire
+universe consists of the <code>Maildir</code> directory, and its contents.
+<code>SqWebMail</code> is completely unaware of the existence of
+<code>$HOME/.gnupg</code>, and will never be aware of it. Any keypairs in
+<code>$HOME/.gnupg</code> will have to be imported into
+<code>Maildir/gpg</code>.</p>
+
+<h3>Importing keys</h3>
+
+<p>Since <code>$HOME/.gnupg</code> is not used, any existing keys will have
+to be imported.  If shell access is available, the <code>pubring</code> and
+<code>secring</code> files can simply be copied to <code>Maildir/gpg</code>.
+The following procedure can be used to import keys in all other
+circumstances. The following example imports keys from mail account M to
+<code>SqWebMail</code> mail account W.</p>
+<ul>
+  <li>Create a temporary keypair in W.<br />
+    <br />
+  </li>
+  <li>Create a new message, addressed to M, attach the new public key, and
+    send it.<br />
+    <br />
+  </li>
+  <li>In M, take the new public key and import it.<br />
+    <br />
+  </li>
+  <li>Export M's secret key.  With GnuPG, use the following command:
+    <pre>gpg --export-secret-key --armor [fingerprint]</pre>
+    <p>The output from this command looks something like this:</p>
+    <pre>-----BEGIN PGP PRIVATE KEY BLOCK-----
+Version: GnuPG v1.0.4 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
++M3OSONvootZCzKXP6VT29Vf+lZLQkjSyuY28PpfflaFKi8YpeCEKo4dDhynxCbV
+NAYk2I6wXguwl4MOT0ebkEWM1WS9lTsto7cCzz0ovSg3xe82PozA/4s6E5UUgl1B
+
+...
+RQj/UASJxoPEEDHAhfZ0FYPsDFbo/P///4nDiTQk6Pz///+J2I1l+FteXcOJ9lWJ
+RSBQ/3Uc/3UY/3UU/3UQ/3UM/3UI6GsAAACDxBz/dSxqBf91KGoAicP/dST8McCJ
+-----END PGP PRIVATE KEY BLOCK-----</pre>
+    <br />
+    <br />
+  </li>
+  <li>Wrap this inside a MIME-formatted mail message.  The end result should
+    look something like this:
+    <pre>Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="xxx"
+
+--xxx
+Content-Type: text/plain
+
+Here's the key
+
+--xxx
+Content-Type: application/pgp-keys
+
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+Version: GnuPG v1.0.4 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
++M3OSONvootZCzKXP6VT29Vf+lZLQkjSyuY28PpfflaFKi8YpeCEKo4dDhynxCbV
+NAYk2I6wXguwl4MOT0ebkEWM1WS9lTsto7cCzz0ovSg3xe82PozA/4s6E5UUgl1B
+
+...
+RQj/UASJxoPEEDHAhfZ0FYPsDFbo/P///4nDiTQk6Pz///+J2I1l+FteXcOJ9lWJ
+RSBQ/3Uc/3UY/3UU/3UQ/3UM/3UI6GsAAACDxBz/dSxqBf91KGoAicP/dST8McCJ
+-----END PGP PRIVATE KEY BLOCK-----
+
+--xxx</pre>
+    <br />
+    <br />
+  </li>
+  <li>Encrypt the whole message using W's public key.  The end result should
+    look something like this:
+    <pre>Mime-version: 1.0
+Content-Type: multipart/encrypted;
+    boundary="yyy";
+    protocol="application/pgp-encrypted"
+
+--yyy
+Content-Type: application/pgp-encrypted
+Content-Transfer-Encoding: 7bit
+
+Version: 1
+
+--yyy
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v1.0.4 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+hQIOA8nMaZ+WFjCiEAf+IzymijY0K0ELubJnDuTo0OZg6n8EApLTdwXVZ7sjoWvU
+YbEjfvwBXp+wc7X4lvw3S/AGYe4/mmshgTnRjuDPKsN3zHViYGdGF0UaB40sjUp3
+
+...
+U9Qi2kvxRvV0b8nBN1qeFUSSRF8Ncwug1sr/rFVNNWA0yavb5WDFrqRE6WFJU3z3
+p0vPPRbdWCOTP7WGOygpHdRMLQSCxG4m+L9uG3roG5Uu7A==
+=GutI
+-----END PGP MESSAGE-----
+
+--yyy--</pre>
+    <br />
+  </li>
+  <li>Mail this message to W.  Repeat the procedure with M's public key
+    (<code>gpg --export-key --armor).  If you're handy with composing MIME
+    messages, both keys can be sent in a single encrypted message. <br />
+    <br />
+    </code></li>
+  <li>In <code>SqWebMail</code>, you should be able to decrypt the message
+    containing the keys, and import them.</li>
+</ul>
+
+<h2><a name="passphrase" id="passphrase">Using passphrase-protected private
+keys</a></h2>
+
+<p>SqWebMail can handle passphrase-protected keys only when SSL is being
+used. This is an artificial restriction that prevents passphrases from going
+over the network, in the clear. When SSL is used, SqWebMail will
+automatically prompt for a passphrase. Leave the passphrase field empty if
+the secret key is not protected by a passphrase.</p>
+
+<h2><a name="bugs" id="bugs">Bugs</a></h2>
+<ol>
+  <li>Although <code>SqWebMail</code> contains mappings for many charsets,
+    GnuPG versions prior to 1.0.6 know only about <code>iso-8859-1</code> and
+    <code>iso-8859-2</code>. All messages displayed by <code>SqWebMail</code>
+    from GnuPG 1.0.5 or earlier will come out in <code>iso-8859-1</code>. <br
+    />
+    <br />
+  </li>
+  <li>Currently, there are no command line options in GnuPG for removing key
+    signatures (is that even possible?).  You can sign keys, but can't
+    "unsign" them.<br />
+    <br />
+  </li>
+  <li>There has not been any/much interoperability testing with other
+    GnuPG/PGP mail software.  It is entirely possible that
+    <code>SqWebMail</code>'s implementation is currently not interoperable,
+    and may require some tinkering as time goes by.<br />
+    <br />
+  </li>
+  <li>GnuPG will always blather "Warning: secret key NOT protected" when
+    using keys not protected by a passphrase. This whinge is harmless, and
+    can be ignored.<br />
+    <br />
+  </li>
+  <li>The error message from GnuPG for a missing passphrase is not very
+    helpful: "Unable to get tty input". This is because SqWebMail runs GnuPG
+    with the --no-tty flag, and provides a passphrase separately, when it's
+    entered. When SqWebMail does not provide a passphrase, GnuPG complains
+    that tty input is disabled.<br />
+    <br />
+  </li>
+</ol>
+
+<h2><a name="random" id="random">Important note for Linux and other systems
+that use the <code>/dev/random</code> device.</a></h2>
+
+<p>If GnuPG is compiled on a system that has a <code>/dev/random</code>
+device, GnuPG will use the <code>/dev/random</code> device as a source for
+random entropy. The <code>/dev/random</code> device driver in Linux, and in
+many other implementations, creates the entropy pool from system device
+driver background activity. Unfortunately, it's is not a bottomless pit of
+random entropy. When the random device driver entropy pool is empty,
+<code>/dev/random</code> halts until device drivers create more noise.</p>
+
+<p>That means that when GnuPG is used on Linux, GnuPG may pause for an
+excessive period of time, and issue its famous "please do something" prompt.
+Since GnuPG is invoked in automatic mode, there is no other alternative,
+except to wait until more device driver noise becomes available.</p>
+
+<p>This is more likely to happen when GnuPG is used to create new keypairs,
+especially ones that are 1024 bits, or longer. Before deploying, extensive
+testing is recommended to make sure that even an idle system generates
+sufficient background noise so that the additional wait is not excessive.
+There are several possible solutions that can also be used:</p>
+<ol>
+  <li>GnuPG can be optionally configured to use a pseudo-random generator
+    that does not use <code>/dev/random</code>, but instead uses several
+    alternative sources of random junk. Consult GnuPG's documentation for
+    more information.<br />
+    <br />
+  </li>
+  <li>Many systems also have a <code>/dev/urandom</code> device, which
+    automatically generates pseudo-random noise if <code>/dev/random</code>
+    runs out of entropy. This makes it possible to simply remove the
+    <code>/dev/random</code> device and create a link from
+    <code>/dev/random</code> to <code>/dev/urandom</code>.</li>
+</ol>
+
+<p>Although - technically - both approaches can theoretically result in
+slightly less secure keypairs, practically the difference is probably
+academic in nature.</p>
+</body>
+</html>

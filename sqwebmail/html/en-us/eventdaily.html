@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Calendar for [#CALENDARTODAY#]</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$DATEFORMAT=%A, %B %e %Y#]
+
+[#$NOEVENTS=<div align="center"><em>No events for today</em></div>#]
+
+[#$PREVDAY=&lt;&lt;&nbsp;%x#]
+[#$NEXTDAY=%x&nbsp;&gt;&gt;#]
+[#$CANCELLED=CANCELLED:&nbsp;#]
+[#$BOOKED=PENDING:&nbsp;#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Calendar&nbsp;for&nbsp;[#CALENDARTODAY#]</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr>
+      <td bgcolor="#99ccff" class="bluebox">&nbsp;</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%">
+        <table class="dailycalendar" width="100%" border="0">
+          <tbody>
+            <tr valign="top">
+              <td align="left">[#CALENDARPREVDAY#]</td>
+              <td align="center" class="dailycalendardate"
+                width="100%">[#CALENDARTODAYV#]</td>
+              <td align="left">[#CALENDARNEXTDAY#]</td>
+            </tr>
+            <tr>
+              <td>&nbsp;</td>
+              <td align="center"><a class="dailycalendarweeklylink"
+                href="[#CALENDARWEEKLYLINK#]">Weekly&nbsp;view</a>/<a
+                class="dailycalendarmonthlylink"
+                href="[#CALENDARMONTHLYLINK#]">Monthly&nbsp;view</a><br />
+                <a class="dailycalendarneweventlink"
+                href="[#s#]&amp;form=newevent">New&nbsp;Event</a></td>
+              <td>&nbsp;</td>
+            </tr>
+            <tr>
+              <td colspan="3"><hr width="100%" />
+                <br />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3">[#CALENDARDAYVIEW#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td bgcolor="#99ccff" class="bluebox">&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

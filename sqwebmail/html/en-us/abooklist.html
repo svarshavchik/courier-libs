@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Address Book</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$PROMPT=<table border="0"><tr><td align="right">Choose:&nbsp;</td><td>#]
+[#$SUBMIT=</td><td><input type="submit" value="Edit" name="nick.edit" /><input type="submit" value="Delete" name="nick.delete" /></td></tr><tr><td align="right">New nickname:</td><td><input name="nick2" /></td><td><input type="submit" name="nick.edit2" value="Create" /></td></tr></table>#]
+[#$TITLE1=<hr width="90%" /><div align="center"><font size="+2" class="nicktitle">#]
+[#$TITLE2=</font></div>#]
+[#$DELETE=Delete#]
+[#$NAME=Name:&nbsp;#]
+[#$ADDRESS=Address:&nbsp;#]
+[#$ADD=Add#]
+[#$EDIT=Edit#]
+[#$SELECT1=<select name="nick" class="nicklist"><option value=""></option>#]
+[#$SELECT2=</select>#]
+
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Address&nbsp;Book</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle">
+        <table width="100%" border="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle">
+                <form method="post" name="addressbook" action="[#R#]">
+                  [#P#]<input type="hidden" name="form" value="abooklist"
+                  />[#a#] <br />
+
+                  <hr />
+
+                  <div align="center">
+                  <a
+                  href="[#s#]&amp;form=ldaplist">Global&nbsp;address&nbsp;book
+                  search</a></div>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td bgcolor="#99ccff" class="bluebox"></td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

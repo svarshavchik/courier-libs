@@ -1,0 +1,22 @@
+#
+# Copyright 2001 Double Precision, Inc.  See COPYING for
+# distribution information.
+#
+# This file lists the available timezones in the login dropdown list
+#
+# The first entry, "* *", renders as an empty, default choice in the
+# dropdown list.  It's impossible to provide a default list of every
+# timezone in use, hence the default leaves your TZ setting untouched.
+#
+# You may wish to remove the default, and move up your local timezone
+# up, since the first listed timezone is going to be the dropdown
+# default.
+#
+
+*		*
+EST5EDT		US Eastern
+EST		US Eastern/Indiana
+CST6CDT		US Central
+MST7MDT		US Mountain
+MST		US Mountain/Arizona
+PST8PDT		US Pacific

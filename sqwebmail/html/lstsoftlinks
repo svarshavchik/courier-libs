@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+# distribution information.
+
+for f in $*
+do
+	SOFTLINK=""
+	for component in `echo $f | tr '-' ' '`
+	do
+		if test "$SOFTLINK" = ""
+		then
+			SOFTLINK="$component"
+		else
+			SOFTLINK="$SOFTLINK""-$component"
+		fi
+
+		if test -f $SOFTLINK/LANGUAGE
+		then
+			test `cat $SOFTLINK/LANGUAGE` = $SOFTLINK && continue
+		fi
+		echo $SOFTLINK
+	done
+done

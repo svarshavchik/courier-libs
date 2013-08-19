@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+  <title>Folders[#d#]</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+</head>
+
+<body>
+<!--
+
+[#$UNREAD=(%u unread messages)#]
+[#$INVALID=<p><span class="error">Invalid folder name</span></p><br />#]
+[#$EXISTS=<p><span class="error">Folder already exists</span></p><br />#]
+[#$DELETE=<p><span class="error">Unable to delete or rename this folder - folder contains messages or is used by a mail filter</span></p><br />#]
+[#$DELETEPERMS=<p><span class="error">You do not have the permission to delete this folder</span></p><br />#]
+[#$CREATEPERMS=<p><span class="error">You do not have the permission to create this folder</span></p><br />#]
+[#$RENAME=<p><span class="error">You do not have the permission to rename this folder</span></p><br />#]
+[#$WASSENT=<p><span class="sentmsg">Your message has been sent.</span></p><br />#]
+[#$INBOX=INBOX#]
+[#$DRAFTS=Drafts#]
+[#$SENT=Sent#]
+[#$TRASH=Trash#]
+[#$FOLDERICON=@@folder.png, width="21" height="16" alt="Folder" title="Folder"@ @#]
+[#$FOLDERSICON=@@folders.png, width="21" height="16" alt="Folders" title="Folders"@ @#]
+[#$ACLICON=@@key.png, width="21" height="16" alt="Folders" title="Permissions" border="0"@Permissions@#]
+[#$QUOTAUSAGE=<div align="center">You are using %d%% of your quota.</div>#]
+
+[#$CALENDAR=<div class="eventsummarytitle" align="center"><a href="%s">Your Calendar</a></div>#]
+
+[#$NOEVENTS=<em>No upcoming calendar events</em>#]
+[#$CALENDARLOGINERR=The following error occured when trying to log in to the calendar server:#]
+[#$CANCELLED=CANCELLED:&nbsp;#]
+[#$BOOKED=PENDING:&nbsp;#]
+[#$PUBLICFOLDERS=<em>Public Folders</em>#]
+[#$NEWEVENT=New Event#]
+
+-->
+
+<div align="center">
+<!-- Top Header. Shows folder list and email address. -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Folders[#d#]</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#] <!-- End of List of Sections. Folders, Create Messages, Etc. -->
+ <!-- Border around the folders list -->
+ <!-- List folders -->
+
+
+<form method="post" action="[#p#]">
+
+  <table width="95%" class="box-small-outer" border="0" cellspacing="1"
+  cellpadding="1">
+    <tbody>
+      <tr>
+        <td>
+          <table width="100%" class="folderlist" cellspacing="4"
+          cellpadding="4" border="0">
+            <tbody>
+              <tr>
+                <td>
+                  <div class="folderlist">
+                  <!-- [#?7#] Calendar link -->
+                  [#EVENTSUMMARY#]
+                  <hr width="100%" />
+                  <!-- [#?#] -->
+                  [#QUOTA#]
+
+                  <table border="0" cellspacing="0" cellpadding="4"
+                  width="100%" class="folderlist-header">
+                    <tbody>
+                      <tr>
+                        <td align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        Folder</td>
+                        <td align="right"># messages&nbsp;&nbsp;</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!--
+                  End folder box titles
+                  -->
+                  <!--
+
+                  Start folders
+
+                  -->
+                  [#L#] <!--
+
+                  End folders
+
+                  -->
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <br />
+  <!-- Put color around create/delete folders -->
+
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" width="100%">
+            <tbody>
+              <tr>
+                <td align="left" width="100%" valign="middle"><!--
+
+                  Do not remove the following code, which causes the folder rename/delete
+                  HTML to be deleted, when browsing the shared folder hierarchy.
+
+                  [#?1#]
+
+                  -->
+
+                  <p>[#P#] <input type="hidden" name="form" value="folders"
+                  /><input type="hidden" name="folder" value="INBOX"
+                  />Rename&nbsp;to:&nbsp;[#E#]&nbsp;<input type="text"
+                  size="16" name="renametoname" maxlength="128" />&nbsp; 
+                  <input type="submit" value="Rename folder" name="do.rename"
+                  /></p>
+
+                  <p>
+                  <input type="submit" value="Delete folder" name="do.delete"
+                  />&nbsp;<label><input type="checkbox" name="deletecontent"
+                  />&nbsp;Delete folder contents</label></p>
+                  <!--
+
+                  [#?#]
+
+                  -->
+                  <!--
+
+                  And the following code gets used instead when we're in the shared hierarchy
+
+                  [#?2#]
+
+                  -->
+
+                  <p>[#P#]<input type="hidden" name="form" value="folders"
+                  /><input type="hidden" name="folder" value="INBOX" /> 
+                  <input type="submit" value="Subscribe/Unsubscribe"
+                  name="do.subunsub"
+                  />&nbsp;to&nbsp;the&nbsp;folder&nbsp;selected&nbsp;above.</p>
+                  <!--
+
+                  [#?#]
+
+                  -->
+                  [#l#] <!--
+
+                  End black border around folder box
+
+                  -->
+                   <!--
+
+                  Start create new folder form
+
+                  -->
+                   <!--
+
+                  Do not remove the following code, which causes the folder rename/delete
+                  HTML to be deleted, when browsing the shared folder hierarchy.
+
+                  [#?1#]
+
+                  -->
+
+
+                  <table border="0" cellspacing="0">
+                    <tbody>
+                      <tr>
+                        <td align="right">Create new folder:&nbsp;</td>
+                        <td><input type="text" size="16" name="foldername"
+                          maxlength="128" /></td>
+                        <td>&nbsp;</td>
+                        <td>
+                          <input type="submit" value="Create"
+                          name="do.create" />[#P#]<input type="hidden"
+                          name="form" value="folders" /><input type="hidden"
+                          name="folder" value="INBOX" /></td>
+                      </tr>
+                      <tr>
+                        <td align="right">Create this folder<br />
+                          in new directory:&nbsp;</td>
+                        <td colspan="3" align="left"><input type="text"
+                          size="16" name="dirname" maxlength="128" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!-- End create new folder form -->
+                  <!--
+
+                  [#?#]
+
+                  -->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+<!-- End of white body for folders list -->
+<!-- End of Border around the folders list -->
+<!-- End of extreme outside table -->
+<!-- End of extreme outside table -->
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

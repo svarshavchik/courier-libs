@@ -1,0 +1,8 @@
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+
+This event has been removed from your calendar. 
+
+
+

@@ -1,0 +1,495 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>imapd</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>imapd</refname>
+    <refpurpose>The <application moreinfo="none">Courier</application> IMAP server</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">@libexecdir@/couriertcpd</command>
+      <arg choice="req" rep="norepeat">couriertcpd options</arg>
+      <arg choice="req" rep="norepeat">@prefix@/sbin/imaplogin</arg>
+      <arg choice="opt" rep="repeat"><replaceable>modules</replaceable></arg>
+      <arg choice="req" rep="norepeat">@prefix@/bin/imapd</arg>
+      <arg choice="req" rep="norepeat">./Maildir</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command moreinfo="none">@prefix@/bin/imapd</command>
+      <arg choice="req" rep="norepeat">./Maildir</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command moreinfo="none">imapd</command> is the <application moreinfo="none">Courier</application>
+IMAP server that provides IMAP access to
+Maildir mailboxes.
+Normally you don't have to worry about it, as <command moreinfo="none">imapd</command>
+runs automatically after receiving a network connection, accompanied by
+the appropriate userid and password.</para>
+
+    <para>
+<command moreinfo="none">couriertcpd</command> opens network ports that receive incoming
+IMAP connections.
+After an incoming network connections is established,
+<command moreinfo="none">couriertcpd</command>
+runs the command specified by its first argument, which is
+<command moreinfo="none">imaplogin</command> passing the remaining arguments to
+<command moreinfo="none">imaplogin</command>.
+<command moreinfo="none">imaplogin</command> reads the IMAP login userid and password,
+then runs the modules specified by its remaining options, which
+are <application moreinfo="none">Courier</application>
+server authentication modules described in the
+<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
+manual page.</para>
+
+    <para>
+The last daisy-chained command is
+<command moreinfo="none">imapd</command>, which is the actual IMAP server,
+which is started from the logged-in account's home directory.
+The sole argument to <command moreinfo="none">imapd</command> is the pathname
+to the default IMAP mailbox, which is usually
+<filename moreinfo="none">./Maildir</filename>.
+Some authentication modules are capable of specifying a different
+filename, by setting the <envar>MAILDIR</envar> environment variable.
+</para>
+
+    <para>
+<command moreinfo="none">imapd</command> may also be invoked from the shell prompt, in which
+case it issues a <literal moreinfo="none">PREAUTH</literal> response, then changes the
+current directory to either its
+argument, or the contents of the <envar>MAILDIR</envar> environment
+variable, then attempts to talk IMAP on standard input and output.</para>
+
+    <para>
+<command moreinfo="none">imapd</command> implements IMAP4REV1, as defined by
+<ulink url="http://www.rfc-editor.org/rfc/rfc2060.txt">RFC 2060</ulink>.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>FILES AND ENVIRONMENT VARIABLES</title>
+
+    <variablelist>
+      <varlistentry>
+	<term><envar>AUTH*</envar></term>
+	<listitem>
+	  <simpara>
+<command moreinfo="none">imapd</command> examines several environment variables whose
+names start with AUTH - these environment variables are set by
+<command moreinfo="none">imaplogin</command> and the authentication modules.
+Their absence tells
+<command moreinfo="none">imapd</command> that it's running from the command line.
+</simpara>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>MAILDIR</envar></term>
+	<listitem>
+	  <simpara>
+<envar>MAILDIR</envar> - if defined,
+<command moreinfo="none">imapd</command> changes its directory to the
+one specified by this environment variable.
+Otherwise <command moreinfo="none">imapd</command> changes
+its directory to the one specified on the command line.</simpara>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><filename moreinfo="none">`<command moreinfo="none">pwd</command>`/.</filename></term>
+	<listitem>
+	  <simpara>
+The current directory is assumed to be the main INBOX
+Maildir.</simpara>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><filename moreinfo="none">`<command moreinfo="none">pwd</command>`/.<replaceable>folder</replaceable></filename></term>
+	<listitem>
+	  <simpara>
+Maildir folders, each one containing their own
+tmp, new, cur, etc...</simpara>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>
+Other environment variables are initialized from the
+<filename moreinfo="none">@sysconfdir@/imapd</filename> and
+<filename moreinfo="none">@sysconfdir@/imapd-ssl</filename> configuration files.
+These files are loaded into the environment by the system startup script
+that runs <command moreinfo="none">couriertcpd</command>.</para>
+
+    <refsect2>
+      <title>Realtime concurrent folder status updates</title>
+
+      <para>
+Setting the <literal moreinfo="none">IMAP_ENHANCEDIDLE</literal> to
+<literal moreinfo="none">1</literal> in
+<filename moreinfo="none">@sysconfdir@/imapd</filename> enables realtime concurrent folder
+status updates.
+When relatime folder status updates are enabled all IMAP mail clients
+that have the same folder open will be
+immediately notified of any changes to the folder's contents.</para>
+
+      <para>
+The <application moreinfo="none">Courier</application> IMAP server always allows
+more than one mail client to have the
+same folder opened.
+However, when two or more clients have the same folder opened, the mail
+clients may not necessarily know when another client added or removed
+messages from the folder.
+The base IMAP protocol specification requires IMAP mail clients to explicitly
+check for any changes to the folder's contents.
+No provisions exists to notify the mail client immediately when the folder's
+contents are modified by another mail client.</para>
+
+      <para>
+The <literal moreinfo="none">IDLE</literal> extension to the base IMAP protocol provides
+a delivery mechanism for notifying mail clients of changes to the mail
+folder's contents.  Although at this time it's not known to which extent
+the <literal moreinfo="none">IDLE</literal> extension is supported by IMAP mail clients,
+the <application moreinfo="none">Courier</application> IMAP server fully implements
+the <literal moreinfo="none">IDLE</literal>
+extension provided that the following requirements are met:
+</para>
+
+      <variablelist>
+	<varlistentry>
+	  <term><application moreinfo="none">Gamin</application> or <application moreinfo="none">FAM</application></term>
+	  <listitem>
+	    <para>
+Either <ulink url="http://www.gnome.org/~veillard/gamin/">Gamin</ulink> or
+<ulink url="http://oss.sgi.com/projects/fam/">FAM</ulink>
+must be properly installed and
+configured prior to installing
+the <application moreinfo="none">Courier</application> IMAP server.</para>
+
+	    <para>
+<application moreinfo="none">Gamin</application>/<application moreinfo="none">FAM</application>
+is an application library that
+provides an interface to the operating system's kernel
+that applications can use to be notified when specific files
+or directories are changed, and the
+<application moreinfo="none">Courier</application> IMAP server leverages this API to
+implement realtime concurrent folder status updates.
+According to the most recently available documentation,
+<application moreinfo="none">Gamin</application> is a Linux-specific library, and
+<application moreinfo="none">FAM</application>
+builds and runs on Linux and IRIX.
+<application moreinfo="none">FAM</application>
+should also build on other platforms, but without a supported kernel monitor
+FAM will fall back to a polling mode.
+At press time,
+<application moreinfo="none">FAM</application>'s
+web site reports that
+<application moreinfo="none">FAM</application>
+succesfully builds (in polling mode) on FreeBSD and Solaris.</para>
+
+	    <para>
+<application moreinfo="none">FAM</application> (but not <application moreinfo="none">Gamin</application>)
+also works with NFS filesystems.
+On NFS clients <command moreinfo="none">fam</command> transparently forwards file monitoring
+requests to a peer <command moreinfo="none">fam</command> process on the NFS server.</para>
+
+	    <para>
+Installation and configuration of
+<application moreinfo="none">Gamin</application> or
+<application moreinfo="none">FAM</application> is beyond
+the scope of this document.  This documentation presumes that Gamin or FAM is
+succesfully installed.  Use the resources and tools on
+<application moreinfo="none">Gamin</application>'s or
+<application moreinfo="none">FAM</application>'s web site
+for assistance with setting them up.
+Systems that use GNOME or KDE desktops already have
+<application moreinfo="none">FAM</application> or
+<application moreinfo="none">Gamin</application>
+installed, as
+<application moreinfo="none">FAM</application> or <application moreinfo="none">Gamin</application>
+is used by the current versions of both desktops.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><literal moreinfo="none">IDLE</literal> IMAP capability</term>
+	  <listitem>
+	    <para>
+<literal moreinfo="none">IDLE</literal>
+must be listed in the
+<envar>IMAP_CAPABILITY</envar>
+setting in the <filename moreinfo="none">@sysconfdir@/imapd</filename>
+configuration file.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><envar>IMAP_USELOCKS</envar></term>
+	  <listitem>
+	    <para>
+This setting in <filename moreinfo="none">@sysconfdir@/imapd</filename>
+must be enabled.
+This setting uses dot-lock files to synchronize updates to folder indexes
+between multiple IMAP clients that have the same folder opened.</para>
+
+	    <para>
+This setting is safe to use with NFS, as it does not use actual file locking
+calls, and does not require the services of the problematic NFS lock
+daemon.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>An IMAP mail client that fully supports the
+<literal moreinfo="none">IDLE</literal>
+protocol extension.</term>
+	  <listitem>
+<para>
+Of course, an IMAP client that supports the <literal moreinfo="none">IDLE</literal>
+protocol extension is required.
+At press time the status and extent of <literal moreinfo="none">IDLE</literal> support
+in most IMAP mail clients is not known.</para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><envar>IMAP_ENHANCEDIDLE</envar></term>
+	  <listitem>
+	    <para>
+This setting in <filename moreinfo="none">@sysconfdir@/imapd</filename>
+actually enables concurrent realtime folder status updates using the
+<literal moreinfo="none">IDLE</literal> extension.
+Note that it is possible to enable the <literal moreinfo="none">IDLE</literal> extension
+even if
+<application moreinfo="none">FAM</application> or
+<application moreinfo="none">Gamin</application>
+is not available, or without
+enabling either the <envar>IMAP_USELOCKS</envar> and/or
+<envar>IMAP_ENHANCEDIDLE</envar> settings.
+The resulting consequences are described are as follows:</para>
+
+	    <orderedlist inheritnum="ignore" continuation="restarts">
+	      <listitem>
+		<para>
+Without <envar>IMAP_USERLOCKS</envar> there exists a small possibility
+that multiple mail clients will receive a slightly inconsistent folder index
+if both clients try to update the contents of the folder at the same time.
+Usually, the worst case result is that some clients will eventually end up
+downloading the same message twice from the server, and caching it incorrectly
+in the local cache (if the IMAP client caches message contents).
+Clearing the local message cache will quickly eliminate any residual
+confusion that results from this situation.</para>
+	      </listitem>
+	      <listitem>
+		<para>
+Without <application moreinfo="none">FAM</application> or <application moreinfo="none">Gamin</application>, and
+<envar>IMAP_ENHANCEDIDLE</envar> set, the
+<application moreinfo="none">Courier</application> IMAP server will
+manually check for changes to the folder's contents every 60 seconds,
+in IDLE mode (instead of in real time).
+</para>
+	      </listitem>
+	    </orderedlist>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </refsect2>
+
+    <refsect2>
+      <title>Verifying realtime concurrent folder status updates</title>
+      <para>
+Use the following procedure to verify that realtime concurrent folder status
+updates are properly working.
+It is helpful to be familiar with the IMAP protocol.
+If that's not the case, just be extra careful in entering the IMAP protocol
+commands.
+The following instructions describe the procedure for connecting to the
+IMAP server, and manually issuing IMAP protocol commands, as if they
+originate from an IMAP client.
+The following instructions use "<literal moreinfo="none">C:</literal>" to indicate IMAP
+client commands that must be entered, and "<literal moreinfo="none">S:</literal>" to
+indicate the expected replies from the server.</para>
+
+      <note>
+	<para>
+The actual replies from the server may differ slightly, due to the actual
+server configuration, and other minor factors.
+The following examples have long lines wrapped for readability.
+
+Slight observed differences from the expected replies are normal, but they
+should still be substantively the same.</para>
+</note>
+
+      <orderedlist inheritnum="ignore" continuation="restarts">
+	<listitem>
+	  <para>
+Prepare a test account with a couple of messages.
+Open two or three terminal windows.
+In each window, connect to the IMAP server, and enter IDLE mode:
+</para>
+	  <programlisting format="linespecific">
+S:* OK Courier-IMAP ready. Copyright 1998-2002 Double Precision, Inc.
+  See COPYING for distribution information.
+C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
+S:a OK LOGIN Ok.
+C:a SELECT INBOX
+S:* FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+  * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)]
+    Limited
+  * 2 EXISTS
+  * 0 RECENT
+  * OK [UIDVALIDITY 939609418] Ok
+  a OK [READ-WRITE] Ok
+C:a IDLE
+S:+ entering ENHANCED idle mode
+</programlisting>
+	  <note>
+<para>
+The default <application moreinfo="none">Courier</application> IMAP server
+configuration permits a maximum of four
+connections from the same IP address.
+It may be necessary to adjust this setting in
+<filename moreinfo="none">@sysconfdir@/imapd</filename>
+for the duration of this test.</para>
+	  </note>
+
+	</listitem>
+
+	<listitem>
+<para>
+The last message from the server must be "entering ENHANCED idle mode".
+Otherwise, it means that some of the necessary prerequisites have not been
+met.
+Verify that <application moreinfo="none">FAM</application>
+or <application moreinfo="none">Gamin</application> was set up prior to installing
+The <application moreinfo="none">Courier</application> IMAP server
+(use <citerefentry><refentrytitle>ldd</refentrytitle><manvolnum>1</manvolnum></citerefentry>
+to verify that the <command moreinfo="none">imapd</command> executable is linked with
+the <filename moreinfo="none">libfam</filename> library), and verify the settings in the
+<filename moreinfo="none">@sysconfdir@/imapd</filename>.</para>
+	</listitem>
+
+	<listitem>
+<para>
+Open another terminal window, connect to the server, and modify the flags
+of one of the messages:</para>
+
+	  <programlisting format="linespecific">
+S:* OK Courier-IMAP ready. Copyright 1998-2002 Double Precision, Inc.
+  See COPYING for distribution information.
+C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
+S:a OK LOGIN Ok.
+C:a SELECT INBOX
+S:* FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+  * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)]
+    Limited
+  * 2 EXISTS
+  * 0 RECENT
+  * OK [UIDVALIDITY 939609418] Ok
+  a OK [READ-WRITE] Ok
+C:STORE 1 +FLAGS (\Deleted)
+* 1 FETCH (FLAGS (\Deleted))
+a OK STORE completed.
+</programlisting>
+	</listitem>
+
+	<listitem>
+	  <para>
+The last command sets the <literal moreinfo="none">\Deleted</literal> flag on the first
+message in the folder.
+Immediately after entering the last command,
+"<literal moreinfo="none">* 1 FETCH (FLAGS (\Deleted))</literal>" should also appear
+in all other terminal windows.
+On systems where <application moreinfo="none">FAM</application> uses the fall-back polling
+mode this response may appear after a brief delay of a few seconds.
+The delay should never exceed 15-20 seconds.
+</para>
+	</listitem>
+
+	<listitem>
+<para>
+Verify that all terminal windows reliably receive folder status updates in
+real time by alternatively entering the commands
+"<literal moreinfo="none">a STORE 1 -FLAGS (\Deleted)</literal>"
+and
+"<literal moreinfo="none">a STORE 1 +FLAGS (\Deleted)</literal>",
+to toggle the deleted flag on the first message.
+Observe that the message is received by all terminal windows quickly,
+and reliably.</para>
+	</listitem>
+
+	<listitem>
+<para>
+With the <literal moreinfo="none">\Deleted</literal> flag set on the first message,
+enter the <command moreinfo="none">EXPUNGE</command> command, which removes the deleted
+message from the folder:</para>
+
+<programlisting format="linespecific">
+C:a EXPUNGE
+S:* 1 EXPUNGE
+  * 2 EXISTS
+  * 0 RECENT
+S:a OK EXPUNGE completed
+</programlisting>
+
+	  <para>
+The lines that begin with the "*" character should also appear in all other
+terminal windows (depending on the initial folder state one of the terminal
+windows may have a different <literal moreinfo="none">RECENT</literal> message, which is
+fine).
+</para>
+	</listitem>
+	<listitem>
+<para>
+Use a mail client to create and send a test message to the test account.
+As soon as the mail server delivers the message, the following
+messages should appear in every terminal window:
+</para>
+
+<programlisting format="linespecific">
+* 3 EXISTS
+* 0 RECENT
+* 3 FETCH (FLAGS ())
+</programlisting>
+
+<para>
+The numbers in these messages may be different, depending upon the
+initial contents of the test mail folder.
+One of the terminal windows should have a different <literal moreinfo="none">RECENT</literal>
+count,
+and one of the terminal windows should include a
+<literal moreinfo="none">\Recent</literal> flag in the untagged
+<literal moreinfo="none">FLAGS</literal> message.
+These difference are acceptable; the important thing is to make sure that
+all terminal windows have the same <literal moreinfo="none">EXISTS</literal> message.
+</para>
+	</listitem>
+      </orderedlist>
+    </refsect2>
+  </refsect1>
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
+ 
+<ulink url="userdb.html"><citerefentry><refentrytitle>userdb</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink></para>
+
+  </refsect1>
+
+</refentry>

@@ -1,0 +1,974 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2000-2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>couriertcpd</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>couriertcpd</refname>
+    <refpurpose>the <application>Courier</application> mail server
+TCP server daemon</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command>couriertcpd</command>
+      <arg choice="opt" rep="norepeat">-pid=<replaceable>pidfile</replaceable></arg>
+      <arg rep="repeat" choice="opt"><replaceable>option</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>list</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>program</replaceable></arg>
+      <arg choice="req" rep="repeat"><replaceable>arg</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>couriertcpd</command>
+      <arg choice="req" rep="norepeat">-pid=<replaceable>pidfile</replaceable></arg>
+      <arg choice="req" rep="norepeat">-stop</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis sepchar=" ">
+      <command>couriertcpd</command>
+      <arg choice="req" rep="norepeat">-pid=<replaceable>pidfile</replaceable></arg>
+      <arg choice="req" rep="norepeat">-restart</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+<command>couriertcpd</command> accepts incoming network connections, and runs
+<command>program</command> after establishing each network connection. The
+<command>program</command>'s standard input and output are set to the network
+connection.</para>
+
+    <para>
+<replaceable>list</replaceable> is a comma-separated list of TCP port numbers
+where incoming
+connections are created. <command>program</command> is the program to
+run. If <command>program</command> requires any
+arguments, they are specified on the command line, after
+<command>program</command> itself.</para>
+
+    <para>
+Before running <command>program</command>, <command>couriertcpd</command>
+initializes
+several environment variables that describe the network connection. The
+environment inherited by <command>program</command> will be the environment
+inherited by <command>couriertcpd</command>, plus any additional environment
+variables initialized by <command>couriertcpd</command>. It is also possible to
+reject certain network connections. Several options are available to specify
+which network connections will be rejected.</para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>-access=<replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>
+Specifies an optional access
+file. The access file lists the IP addresses from which connections
+should be accepted or rejected. The access file is also used to
+initialize environment variables based on the IP address of the
+connection. <replaceable>filename</replaceable> is a GDBM or DB database file
+that's usually
+created by a script from one or more text files. See "ACCESS FILE" below for
+more information.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-accesslocal</term>
+	<listitem>
+	  <para>
+Lookup the local interface IP and port in the access file, in addition to
+looking up the remote IP. This gives a mechanism for setting environment
+variables depending on which IP address and/or port the client connected to.
+In the access file, "1.2.3.4.25" matches connections to IP address 1.2.3.4
+port 25; "1.2.3.4" matches connections to IP address 1.2.3.4 on any port;
+and "*.25" matches connections to port 25 on any IP address.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-address=<replaceable>n.n.n.n</replaceable></term>
+	<listitem>
+	  <para>
+Accept network connections only to IP address
+<replaceable>n.n.n.n</replaceable>. If not specified,
+<command>couriertcpd</command>
+accepts connections to any IP address that the system accepts connections
+on. If the system has multiple network interfaces with separate IP
+addresses, this option makes <command>couriertcpd</command> accept connections
+only to one specific IP address. Most systems have multiple network
+interfaces: the loopback interface, plus the local network interface, so
+that <literal>-address=127.0.0.1</literal> accepts connections only from the
+local system. When multiple port numbers are specified, it is also
+possible to selectively bind different network addresses to each port
+number when <replaceable>list</replaceable> specifies more than one port
+number. See "<ulink url="#list">Multiple port list</ulink>" below for more
+information.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-block=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>][,<replaceable>msg</replaceable>]]
+	  or
+	-allow=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>[,]]]</term>
+	<listitem>
+	  <para>
+Initialize the environment variable <replaceable>var</replaceable> if both of
+the following
+conditions are true: <replaceable>var</replaceable> is not already initialized;
+the connecting IP address can be found in a DNS-based access list. See
+DNS ACCESS LISTS, below.
+Multiple <option>-block</option> and
+<option>-allow</option> options can be specified.</para>
+
+	  <para>
+	    <option>-block</option> and <option>-allow</option> are very
+	    similar, differing only in minor semantics.
+	    <option>-block</option>'s semantics are more appropriate for
+	    using DNS access list to block access, and
+	    <option>-allow</option>'s semantics are more appropriate for
+	    using DNS access list to whitelist IP addresses and exempt them
+	    even if they appear in other
+	    <option>-block</option>ed zones.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>-denymsg=<replaceable>text</replaceable></term>
+        <listitem>
+           <para>
+Specifies an optional message to be returned to the client if the
+<parameter>-access</parameter> option rejects them.
+The default is to drop the TCP
+connection without sending back any messages.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-drop=<replaceable>var</replaceable></term>
+	<listitem>
+	  <para>
+	    If the environment variable <replaceable>var</replaceable> is set to
+	    a nonempty value, terminate immediately. Do not run the
+	    <command>program</command> to handle the connection.
+	    See DNS ACCESS LISTS, below, for more information.
+	    <replaceable>var</replaceable> defaults to
+	    <quote>BLOCK</quote>, if not specified.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-group=<replaceable>group</replaceable></term>
+	<listitem>
+	  <para>
+Set <command>couriertcpd</command>'s its
+group ID. <replaceable>group</replaceable> may be specified numerically, or by
+its name. Only the superuser may use <option>-group</option>.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-listen=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+Length of the queue which holds pending connections.
+<replaceable>n</replaceable> is a number. If not specified, the system default
+is used.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-maxperc=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+Maximum number of connections accepted
+from the same C network block. Using this option is recommended, because
+connection slots are limited. Without this option, the same C network
+block can potentially use up all available connection slots.</para>
+	</listitem>
+      </varlistentry>
+
+  <varlistentry>
+	<term>-maxperip=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+Maximum number of connections
+accepted from the same IP address.  Use both the <option>-maxperc</option>
+and <option>-maxperip</option> options to fine tune connection limits. For
+example, when <command>couriertcpd</command> is listening on the SMTP port it
+makes sense to set an upper limit on the number of connections from the
+same C block. Domains that send a large amount of mail often have
+multiple servers sending outbound mail from the same C block, so it makes
+sense to set limits on individual C blocks. On the other hand, if
+<command>couriertcpd</command> is listening on the POP3 port it makes more
+sense to set limits on individual IP addresses.  If a C block of
+addresses is assigned to a dialup modem pool, it is certainly possible to
+have many IP addresses within the same C block have connections to the
+POP3 server at the same time.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-maxprocs=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+Maximum number of connection slots,
+or the maximum number of processes started. This effectively specifies
+the maximum number of connections accepted at the same time. After the
+maximum number of connections has been opened, <command>couriertcpd</command>
+waits for an existing connection to close, before accepting any more
+connections.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-warn=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+Log a <errorcode>LOG_WARNING</errorcode> message to
+syslog when the number of active processes exceeds
+<replaceable>n</replaceable>.  The default is 90% of
+<replaceable>maxprocs</replaceable>. <command>couriertcpd</command> logs a
+<errorcode>LOG_ALERT</errorcode> syslog message when the number of active
+processes
+reaches the maximum.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-nodnslookup</term>
+	<listitem>
+	  <para>
+Do not look up the hostname associated with connecting IP address and the
+local addres, do not initialize the
+<envar>TCPREMOTEHOST</envar> or <envar>TCPLOCALHOST</envar> environment
+variables (see below).</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-noidentlookup</term>
+	<listitem>
+	  <para>
+Do not perform an <emphasis>ident</emphasis>
+lookup, and do not initialize the <envar>TCPREMOTEINFO</envar> environment
+variable.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-pid=<replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>
+If given, <command>couriertcpd</command> puts itself into the background
+and saves its process ID in this file, usually
+somewhere in <filename>/var/run</filename>.</para>
+<para>This option must also be present when using the <option>-restart</option>
+and <option>-stop</option> options.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-restart</term>
+	<listitem>
+	  <para>
+Send a SIGHUP to an existing <command>couriertcpd</command> process.  Specify
+the same <option>-pid</option>
+argument as the one that was used to start <command>couriertcpd</command>. The
+process ID is read from the <option>-pid</option> file, and the
+<command>couriertcpd</command> receives a SIGHUP signal.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-stderr=socket</term>
+	<listitem>
+	  <para>
+Set <command>program</command>'s standard error to
+the network connection, just like its standard input and output.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-stderr=<replaceable>logfile</replaceable></term>
+	<listitem>
+	  <para>
+Set <command>program</command>'s standard
+error to the specified file, <filename>logfile</filename>.
+The file is created, if necessary, and is opened in append mode.</para>
+	</listitem>
+      </varlistentry>
+
+
+      <varlistentry>
+	<term>-stderrlogger=<replaceable>logprogram</replaceable></term>
+	<listitem>
+	  <para>
+Set <command>program</command>'s
+standard error to a pipe, which is read by <command>logprogram</command>.
+Only one instance of
+<replaceable>logger</replaceable> is started, which receives standard error
+from every
+instance of <command>program</command>.
+The specified <replaceable>logger</replaceable> is executed with
+the output end of the stderr pipe connected as standard input.
+<replaceable>logprogram</replaceable> is
+executed with one argument - <command>program</command>'s name.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-stderrloggername=name</term>
+	<listitem>
+	  <para>
+Use <replaceable>name</replaceable> as the argument to
+<replaceable>logprogram</replaceable>, instead of the
+<command>program</command>'s name.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-stop</term>
+	<listitem>
+	  <para>
+Stop (kill) an existing <command>couriertcpd</command>
+process.  Specify the same <option>-pid</option> argument as the one that was
+used to start <command>couriertcpd</command>. The process ID is read from the
+<option>-pid</option> file, and the <command>couriertcpd</command> process is
+killed. All child processes of <command>couriertcpd</command> will receive a
+SIGTERM signal.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>-user=<replaceable>user</replaceable></term>
+	<listitem>
+	  <para>
+Set <command>couriertcpd</command>'s user
+ID. Also, the group ID is set to the user's group ID. Using both
+<option>-group</option> and <option>-user</option> is not necessary. Only the
+superuser can specify <option>-user</option>.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+
+  </refsect1>
+
+  <refsect1>
+
+    <title>MULTIPLE PORT LIST</title>
+
+    <anchor id="list"/>
+
+    <para>
+The <replaceable>list</replaceable> argument can be a comma-separated list of
+multiple port
+numbers. <command>couriertcpd</command> will create network connections on any
+listed port. Each port number can be optionally specified as "address.port",
+for example:</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+couriertcpd -pid=/var/run/smtp.pid 127.0.0.1.25,999 <replaceable>program</replaceable>
+</programlisting>
+    </informalexample>
+
+<para>
+This instance accepts network connections to either port 25 or port 999,
+however connections on port 25 are created only on the IP address 127.0.0.1,
+the loopback interface.</para>
+
+    <para>Whenever an IP address is not specified, network connections are
+accepted
+to any IP address (called "wildcarding"). On IPv6-capable systems,
+<command>couriertcpd</command> will attempt to create two incoming network
+connection ports, if an IP address is not specified. After creating the first
+port as an IPv6 wildcard port, couriertcpd will then attept to create an IPv4
+wildcard port, with the same port number. Some BSD-derived systems must use
+separate IPv6 and IPv4 wildcard ports to create incoming network connections.
+Most other systems only need an IPv6 port to create both IPv6 and IPv4
+incoming network connections. <command>couriertcpd</command> quietly ignores a
+failure to create an IPv4 wildcard port, as long as an IPv6 wildcard was
+succesfully created.</para>
+
+    <para>
+The <option>-address</option> option can be used to default a specific IP
+address for every listed port number.  For example:</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+couriertcpd -pid=/var/run/smtp.pid 127.0.0.1.25,127.0.0.1.999 <replaceable>program</replaceable>
+</programlisting>
+    </informalexample>
+
+<para>
+and</para>
+
+    <informalexample>
+      <programlisting format="linespecific">
+couriertcpd -pid=/var/run/smtp.pid -address=127.0.0.1 25,999 <replaceable>program</replaceable>
+</programlisting>
+    </informalexample>
+
+<para>
+will create network connections on ports 25 and 999 of the IP address
+127.0.0.1.</para>
+
+  </refsect1>
+
+  <refsect1>
+
+    <title>ACCESS FILE</title>
+
+    <para>
+The access file lists IP addresses that <command>couriertcpd</command> will
+accept or reject connections from. An access file is optional. Without an
+access file <command>couriertcpd</command> accepts a connection from any IP
+address.</para>
+
+    <para>
+Both IPv4 and IPv6 addresses can be specified, if IPv6 support is
+available. A non-standard syntax is currently used to specify IPv6 addresses.
+This is subject to change in the near future. IPv6 support is currently
+considered to be experimental.</para>
+
+    <para>
+The access file is a binary database file that's usually created by a
+script, such as
+<ulink url="makesmtpaccess.html"><citerefentry><refentrytitle>makesmtpaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
+from one or more plain text
+files. Blank lines in the text file are ignored. Lines that start with the #
+character are also ignored.</para>
+
+    <refsect2>
+      <title>Rejecting and accepting connections by IP address</title>
+
+      <para>
+The following line instructs <command>couriertcpd</command> to reject all
+connections from an IP address range:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+netblock&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+      <para><replaceable>netblock</replaceable> is an IP address, such as
+<literal>192.68.0.2</literal>. <token>&lt;tab&gt;</token>
+is the ASCII tab character. There MUST be exactly one tab character after the
+IP address and the word "deny".</para>
+
+      <para>
+You can also block connections from an entire network C block:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+192.68.0&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+      <para>
+This blocks connections from IP addresses <literal>192.68.0.0</literal>
+through <literal>192.68.0.255</literal>.
+Blocking connections from an entire B or A network block works the same
+way.</para>
+
+<para>
+Use the word "<literal>allow</literal>" instead of "<literal>deny</literal>"
+to explicitly allow connections
+from that IP address or netblock. For example:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+192.68.0&lt;tab&gt;deny
+192.68.0.10&lt;tab&gt;allow
+</programlisting>
+      </informalexample>
+
+      <para>
+This blocks all connections from <literal>192.68.0.0</literal> to
+<literal>192.68.0.255</literal> except for <literal>192.68.0.10</literal>.
+These two lines can occur in any order. <command>couriertcpd</command>
+always uses the line with the most specific IP address.</para>
+
+      <para>
+If the IP address of the connection is not found in the access file the
+connection is accepted by default. The following line causes unlisted
+connections to be rejected:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+*&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+    </refsect2>
+
+    <refsect2>
+      <title>IPv6 addresses</title>
+
+      <note>
+	<para>
+IPv6 support in the access file is experimental, and is subject to
+change in a future release.  The following syntax is subject to change at any
+time.</para>
+      </note>
+
+      <para>
+The access file can also specify IPv6 addresses, if IPv6 support is
+available.  The existing IPv4 address format is used for IPv6-mapped IPv4
+addresses, and no changes are required.  For all other IPv6 addresses use the
+following format:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+:hhhh:hhhh:hhhh:hhhh:hhhh:hhhh:hhhh:hhhh&lt;tab&gt;<replaceable>action</replaceable>
+</programlisting>
+      </informalexample>
+
+<para>
+The IPv6 address must begin with :. The initial : character is not really
+a part of the IPv6 address, it is only used to designate this record as an
+IPv6 address, allowing an access file to contain a mixture of IPv4 and IPv6
+addresses. The IPv6 address follows the initial : character, and it must be
+spelled out <emphasis>using zero-padded lowercase hexadecimal
+digits</emphasis>.
+For example:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+:0000:0000:0000:0000:0000:f643:00a2:9354&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+      <para>
+Netblocks must be specified using even-word boundaries only:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+:3ffe&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+      <para>
+This will deny entire 3ffe::/16 (6bone network, which is phased out).
+</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+:2002:c0a8&lt;tab&gt;deny
+</programlisting>
+      </informalexample>
+
+      <para>
+This will deny 2002:c0a8::/32 (6to4 addresses derived from private
+address space).</para>
+
+    </refsect2>
+
+    <refsect2>
+      <title>Setting environment variables</title>
+
+      <para>
+<literal>allow</literal> can be optionally followed by a list of environment
+variable
+assignments, separated by commas. The environment variables are set before
+executing <command>program</command> or checking
+access lists (see below). For example:</para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+192.68.0&lt;tab&gt;allow,RELAYCLIENT
+192.68.0.10&lt;tab&gt;allow,RELAYCLIENT,SIZELIMIT=1000000
+</programlisting>
+      </informalexample>
+
+      <para>
+This sets <envar>RELAYCLIENT</envar> environment variable for connections
+from the <literal>192.68.0</literal> block. In addition to that, the <envar>SIZELIMIT</envar>
+environment variable is set to <literal>1000000</literal> if the connection comes from the IP
+address <literal>192.68.0.10</literal>.</para>
+
+      <para>
+Note that <envar>RELAYCLIENT</envar> must be explicitly specified for the IP
+address <literal>192.68.0.10</literal>. The first line is NOT used for
+connections from this IP
+address. <command>couriertcpd</command> only reads one entry from the access
+file, the entry for the most specific IP address.</para>
+
+    </refsect2>
+
+    <refsect2>
+
+      <title>DNS ACCESS LISTS</title>
+
+      <para>
+	An alternative to listing banned IP addresses in access files
+	is to use an external DNS-based IP access list.
+      </para>
+
+      <para>
+	There is no provision to support IPv6-based lists, because none yet
+	exist. IPv6-based access list support will be added in the
+	future.
+      </para>
+
+      <para>
+	<command>couriertcpd</command>'s default configuration
+	does not automatically reject connections from banned IP address
+	unless the <option>-drop</option> option is present.
+	Instead,
+	<command>couriertcpd</command> sets an environment variable
+	if the connecting address has a hit in the DNS access list.
+	The
+	<application>Courier</application>
+	mail server rejects all mail if the connection's environment has
+	the environment variable <envar>BLOCK</envar> set to a non-empty
+	string, and it just so happens that
+	<option>-block</option> and <option>-allow</option> set the
+	<envar>BLOCK</envar> environment variable by default.
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-allow=dnswl.example.com -block=dnsbl.example.com</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	<option>-allow</option> and <option>-block</option>'s parameter gives
+	the DNS zone where the access list query gets performed.
+	In this example,
+	<command>couriertcpd</command> makes a DNS query for
+	<quote>d.c.b.a.dnswl.example.com</quote>, then, if necessary, for
+	<quote>d.c.b.a.dnsbl.example.com</quote>, for a connection from the
+	IP address <replaceable>a.b.c.d</replaceable>.
+      </para>
+
+      <para>
+	If the DNS query succeeds (more details below),
+	<option>-allow</option> sets the environment variable to an empty
+	string, and <option>-block</option> sets the environment variable
+	from the <literal>TXT</literal> record in the DNS response, or to
+	<quote>Access denied.</quote> if the DNS access list did not return
+	a <literal>TXT</literal> record. It should be possible to use
+	<command>couriertcpd</command> with DNS access lists that use either
+	<literal>A</literal> or <literal>TXT</literal> records.
+      </para>
+
+      <para>
+	The DNS zone parameter to <option>-allow</option> and
+	<option>-block</option> has up to three additional components,
+	which must be given in the following order, if more than one optional
+	component gets specified:
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-allow=dnswl.example.com,BLOCK2</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	The environment variable that gets set by the DNS access list query
+	can be changed from the default of <envar>BLOCK</envar> to something
+	else, <envar>BLOCK2</envar> in this example.
+	The <application>Courier</application> mail server pays attention
+	only to <envar>BLOCK</envar>, this is for the benefit of local or
+	custom hacks, which want to leverage <command>couriertcpd</command>'s
+	DNS access list lookup facilities, but want it for other purposes.
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-block=dnsbl.example.com/127.0.0.2</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	<command>couriertcpd</command>'s DNS access list lookup normally
+	ignores the contents of the actual <literal>A</literal> record in
+	the DNS access list, however some DNS access lists may use different
+	<literal>A</literal> record to indicate different kinds of records.
+	Given an explicit IP address to <command>couriertcpd</command>
+	results in the environment variable getting set only if the
+	lookup returned the matching <literal>A</literal> record.
+	An <literal>A</literal> record must exist in the DNS access list, in
+	addition to any <literal>TXT</literal> record. If an explicit IP
+	address is not given, any <literal>A</literal> or <literal>TXT</literal>
+	record sets
+	<option>-allow</option>
+	and
+	<option>-block</option>'s
+	environment variable.
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-block=dnsbl.example.com,BLOCK,Go away</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	The last component specifies a custom message that overrides any
+	<literal>TXT</literal> record in the DNS access list.
+	Note that this is a single parameter to
+	<application>couriertcpd</application>, so the parameter must be
+	quoted if it contains any spaces or special
+	shell metacharacters.
+      </para>
+
+      <para>
+	The custom message parameter gets specified for the
+	<option>-block</option>, option.
+	<option>-allow</option> also allows takes this parameter, but it
+	has a different meaning. If its set, even if it's an empty string,
+	<command>couriertcpd</command> looks for
+	<literal>TXT</literal> records in the DNS access list that's
+	used as a whitelist, in addition to the <literal>A</literal>
+	records (using the <quote>any</quote> query):
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-allow=dnswl.example.com,BLOCK,</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	Without this parameter <command>couriertcpd</command>
+	queries for <literal>A</literal> records only.
+      </para>
+
+      <para>
+	Finally,
+	a literal IP address, if given, must always follow the variable name:
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+-block=dnsbl.example.com,BLOCK/127.0.0.2,Go away</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	<option>-block</option> normally searches the DNS access list for either
+	<literal>A</literal> or <literal>TXT</literal> records using the
+	<quote>any</quote> DNS query. Sometimes this can cause problems, or
+	not work at all, with older DNS servers. Specifying a custom message
+	results in <option>-block</option> executing an ordinary
+	<literal>A</literal> DNS query.
+	<option>-allow</option> always uses an <literal>A</literal> query.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>MULTIPLE DNS LISTS</title>
+
+      <para>
+	Multiple <option>-block</option>
+	and <option>-allow</option>
+	options can be given. The connecting IP address
+	gets looked up in multiple access lists. This is implemented as
+	follows.</para>
+
+      <para>
+	<command>couriertcpd</command> processes all
+	<option>-block</option>
+	and <option>-allow</option> options in list order.
+	If each option's environment variable
+	(<envar>BLOCK</envar> or something else) is already set,
+	<command>couriertcpd</command> skips the DNS access list lookup.
+	Therefore, when multiple options use the same environment variable,
+	the first DNS access list it exists in will set the environment
+	variable, and the remaining ones get ignored, but any remaining
+	<option>-block</option>s
+	and <option>-allow</option>s for different environment variables still
+	get processed.
+      </para>
+
+      <para>
+	It follows that, in general, <option>-allow</option> options should
+	always be listed first, before any <option>-block</option>s; but it's
+	also possible to implement a complicated policy with some
+	<option>-allow</option>s, then some
+	<option>-block</option>s, then more
+	<option>-allow</option>s and
+	<option>-block</option>s.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>ADDITIONAL DNS ACCESS LIST VARIABLES</title>
+
+      <para>
+	Three additional environment variables may get set in conjunction with
+	a successful DNS access list lookup:
+      </para>
+
+      <variablelist>
+	<varlistentry>
+	  <term>BLOCK_IP</term>
+	  <para>
+	    The contents of the <literal>A</literal> record in the DNS
+	    access list, if one exists (this is not set for DNS access lists
+	    that use TXT record).
+	  </para>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>BLOCK_TXT</term>
+	  <para>
+	    The contents of the <literal>TXT</literal> record in the DNS
+	    access list, if one exists. This will generally be the same as
+	    <envar>BLOCK</envar> for <option>-block</option>s, but will
+	    also provide the contents of the <literal>TXT</literal> record
+	    for <option>-allow</option>s (if it has a dummy custom message
+	    portion) which always set
+	    <envar>BLOCK</envar> to an empty string.
+	  </para>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>BLOCK_ZONE</term>
+	  <para>
+	    The DNS zone of the succesfull access list lookup, like
+	    <quote>dnsbl.example.com</quote>.
+	  </para>
+	</varlistentry>
+      </variablelist>
+
+      <para>
+	<option>-block</option> and
+	<option>-allow</option> options that specify a custom environment
+	variable name follow the same naming convention, of appending
+	<quote>_IP</quote>, <quote>_TXT</quote>, and <quote>_ZONE</quote>
+	suffix to the name of the custom environment variable.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>USING DNS WHITELISTS WITH SPF</title>
+
+      <para>
+	Including <quote>allowok</quote> keyword in an SPF setting automatically
+	passes the SPF check for senders whose IP address is found in
+	an <option>-allow</option>-ed access list.
+	See
+	<ulink url="courier.html"><citerefentry>
+	    <refentrytitle>courier</refentrytitle>
+	    <manvolnum>8</manvolnum>
+	  </citerefentry>
+	</ulink>.
+      </para>
+    </refsect2>
+  </refsect1>
+
+  <refsect1>
+    <title>ENVIRONMENT VARIABLES</title>
+
+    <para>
+<command>couriertcpd</command> also initializes the following environment
+variables prior to running <command>program</command>:</para>
+    <variablelist>
+      <varlistentry>
+	<term>TCPLOCALHOST</term>
+	<listitem>
+	  <para>
+The name of the host on the local end of
+the network connection, looked up in DNS. <envar>TCPLOCALHOST</envar> will
+not be set if the IP address of the network connection's local end cannot
+be found in DNS, or if <option>-nodnslookup</option> option is specified.
+<envar>TCPLOCALHOST</envar> will be set to the string
+<errorcode>softdnserr</errorcode> if the DNS lookup fails with a temporary
+error
+(so you cannot tell if the IP address has a valid host name associated
+with it), or if the reverse and forward DNS lookups do not match.
+<envar>TCPLOCALHOST</envar> will not be set if the reverse DNS lookup fails
+completely.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPLOCALIP</term>
+	<listitem>
+	  <para>
+The IP address of the local end of the network connection.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPLOCALPORT</term>
+	<listitem>
+	  <para>
+Rhe number of the port of the local end of the network connection.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPREMOTEHOST</term>
+	<listitem>
+	  <para>
+The hostname of the connecting host. Like
+<envar>TCPLOCALHOST</envar>, but for the connecting IP address.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPREMOTEIP</term>
+	<listitem>
+	  <para>
+Connecting IP address.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPREMOTEINFO</term>
+	<listitem>
+	  <para>
+Identification string received from the
+IDENT server on the remote IP address. Not set if the IDENT server
+returned an error, or if the <option>-noidentlookup</option> option was
+specified.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TCPREMOTEPORT</term>
+	<listitem>
+	  <para>
+TCP port of the remote end of the network connection.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>.</para>
+  </refsect1>
+</refentry>

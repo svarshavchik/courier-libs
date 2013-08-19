@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Global Address Book Search</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.8.1, see http://www.w3.org/Amaya/"
+  />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+
+[#$DELABOOK=Delete address book#]
+[#$SYSBOOK=<font size="-1" class="ldaplist-ldapurl">&nbsp;(system)</font>#]
+
+-->
+
+<div align="center">
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td> </td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Global Address Book Search</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td> </td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<form method="post" action="[#R#]">
+  [#P#]<input type="hidden" name="form" value="ldaplist" />
+
+  <table cellpadding="0" cellspacing="0" border="0" width="95%">
+    <tbody>
+      <tr style="line-height: 0">
+        <td align="left" valign="top">[#@bluetopleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"
+        width="100%"></td>
+        <td style="line-height: 0" align="right"
+          valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+          border="0"@@#]</td>
+      </tr>
+      <tr>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle">
+          <table border="0" cellpadding="4" cellspacing="0" width="100%"
+          class="ldaplist">
+            <tbody>
+              <tr>
+                <td align="center"><font size="+3"
+                  class="ldaplist-title">Search</font></td>
+              </tr>
+              <tr>
+                <td>[#o#]</td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <table border="0" align="center">
+                    <tbody>
+                      <tr>
+                        <td>Search for: <input type="text" size="20"
+                          name="value" />  
+                          <input type="submit" value="Search"
+                          name="ldapsearch" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td><hr width="90%" />
+                </td>
+              </tr>
+              <tr>
+                <td align="center"><font size="+3"
+                  class="ldaplist-add-title">Add Address Book</font></td>
+              </tr>
+              <tr>
+                <td align="center">
+                  <table border="0" class="ldaplist-add-fields">
+                    <tbody>
+                      <tr>
+                        <td align="right"><strong>Name:</strong></td>
+                        <td><input type="text" size="20" name="name" /></td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                      <tr>
+                        <td align="right">Host:</td>
+                        <td><input type="text" size="20" name="host" /></td>
+                        <td align="right">Port:</td>
+                        <td><input type="text" size="8" name="port" /></td>
+                      </tr>
+                      <tr>
+                        <td align="right">Root Suffix:</td>
+                        <td><input type="text" size="20" name="suffix" /></td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                      <tr>
+                        <td colspan="4" align="center"><input type="hidden"
+                          name="addabook" value="1" /> 
+                          <input type="submit" value="Add" name="go" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td bgcolor="#99ccff" class="bluebox"></td>
+      </tr>
+      <tr style="line-height: 0">
+        <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+        <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+        <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+          height="11" alt="" border="0"@@#]</td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+</div>
+
+<p>[#B#]</p>
+</body>
+</html>

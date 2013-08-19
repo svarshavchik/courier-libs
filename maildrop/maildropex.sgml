@@ -1,0 +1,303 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2010 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>maildropex</refentrytitle>
+    <manvolnum>7</manvolnum>
+    <refmiscinfo class='manual'>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>maildropex</refname>
+    <refpurpose>maildrop filtering language examples</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <informalexample>
+      <simpara>
+<filename>$HOME/.mailfilter</filename>,
+<filename>$HOME/.mailfilters/*</filename>
+</simpara>
+    </informalexample>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+If <filename>$HOME/.mailfilter</filename> exists, filtering instructions in
+this file will be carried out prior to delivering the message. The filtering
+instructions may
+instruct <command>maildrop</command> to discard the message, save the
+message in a
+different mailbox, or forward the message to another address. If
+<filename>$HOME/.mailfilter</filename> does not exist,
+or does not provide explicit delivery
+instructions, <command>maildrop</command> delivers the message to the
+user's system mailbox.</para>
+
+    <para>
+The files in <filename>$HOME/.mailfilters</filename>
+are used when <command>maildrop</command> is
+invoked in embedded mode.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>EXAMPLES</title>
+
+    <para>
+Take all mail that's sent to the 'auto' mailing list, and save it in
+<filename>Mail/auto</filename>. The 'auto' mailing list software adds a
+"<literal>Delivered-To: auto@domain.com</literal>" header to all messages:
+    </para>
+    <blockquote>
+      <informalexample>
+	<programlisting format="linespecific">
+if (/^Delivered-To: *auto@domain\.com$/)
+    to Mail/auto
+</programlisting>
+      </informalexample>
+    </blockquote>
+    <para>
+After the <command>to</command> command delivers the message,
+<command>maildrop</command> automatically
+stops filtering and terminates without executing the subsequent instructions
+in the
+<systemitem class="resource">filter file</systemitem>.</para>
+
+    <para>
+Take all mail from <email>boss@domain.com</email> about the current project
+status, save it in <filename>Mail/project</filename>, then forward a copy to
+John:</para>
+
+    <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+if (/^From: *boss@domain\.com/ \ 
+    &amp;&amp; /^Subject:.*[:wbreak:]project status[:wbreak:]/)
+{
+    cc "!john"
+    to Mail/project
+}
+</programlisting>
+	</informalexample>
+      </blockquote>
+    <para>
+Note that it is necessary to use a backslash in order to continue the
+<command>if</command> statement on the next line.</para>
+
+    <para>
+Keep copies of the last 50 messages that you received in the
+<filename>maildir</filename>
+directory 'backup'. NOTE: 'backup' must be a <filename>maildir</filename>
+directory, not a
+mailbox. You can create a <filename>maildir</filename> using the
+<command>maildirmake</command>
+command.</para>
+
+<blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+cc backup
+`cd backup/new &amp;&amp; rm -f dummy \`ls -t | sed -e 1,50d\``
+</programlisting>
+	</informalexample>
+      </blockquote>
+<para>
+Put this at the beginning of your filter file, before any other filtering
+instructions. This is a good idea to have when you are learning
+<command>maildrop</command>. If you make a mistake and accidentally delete a
+message, you
+can recover it from the backup/new subdirectory.</para>
+
+    <para>
+Save messages that are at least 100 lines long (approximately) into
+<filename>Mail/IN.Large:</filename>:</para>
+
+<blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+     if ( $LINES &gt; 100 )
+        to Mail/IN.Large
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+    <para>
+Send messages from the auto mailing list to the program 'archive', using a
+lock file to make sure that only one instance of the archive program will be
+running at the same time:</para>
+
+<blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+     if (/^Delivered-To: *auto@domain\.com$/)
+        dotlock "auto.lock" {
+
+               to "|archive"
+        }
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+    <para>
+Check if the <literal>Message-ID:</literal> header in the message is identical
+to the same header
+that was recently seen. Discard the message if it is, otherwise continue to
+filter the message:</para>
+
+    <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+`reformail -D 8000 duplicate.cache`
+if ( $RETURNCODE == 0 )
+    exit
+</programlisting>
+	</informalexample>
+      </blockquote>
+    <para>
+      The <ulink url="reformail.html">reformail</ulink> command maintains a
+      list of
+      recently seen Message-IDs in the file
+      <filename>duplicate.cache</filename>.
+    </para>
+
+    <note>
+      <para>
+	Unlike a similar feature in the <command>formail</command> command,
+	<ulink url="reformail.html">reformail</ulink> takes care of locking
+	the file, so it's not necessary to implement your own locking
+	mechanism for this option.
+      </para>
+    </note>
+
+    <para>
+Here's a more complicated example. This fragment is intended to go right
+after the message has been filtered according to your regular rules, and just
+before the message should be saved in your mailbox:</para>
+
+    <blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+cc $DEFAULT
+xfilter "reformail -r -t"
+/^To:.*/
+getaddr($MATCH) =~ /^.*/;
+
+MATCH=tolower($MATCH)
+flock "vacation.lock" {
+        `fgrep -iqx "$MATCH" vacation.lst 2&gt;/dev/null || { \
+                  echo "$MATCH" &gt;&gt;vacation.lst ; \
+                  exit 1 ; \
+              } `
+}
+if ( $RETURNCODE == 0 )
+   exit
+to "| ( cat - ; echo ''; cat vacation.msg) | $SENDMAIL"
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+    <para>
+This code maintains a list of everyone who sent you mail in the file called
+<filename>vacation.lst</filename>.
+When a message is received from anyone that is not already on
+the list, the address is added to the list, and the contents of the file
+<filename>vacation.msg</filename> are mailed back to the sender.
+This is intended to reply notify
+people that you will not be answering mail for a short period of time.</para>
+
+    <para>
+The first statement saves the original message in your regular mailbox.
+Then,
+<ulink url="maildropfilter.html#xfilter"><command>xfilter</command></ulink>
+is used to generate an
+autoreply header to the sender. The <literal>To:</literal> header in the
+autoreply - which was
+the sender of the original message - is extracted, and the <ulink url="maildropfilter.html#getaddr"><command>getaddr</command></ulink>
+function is used to strip the
+person's name, leaving the address only. The file 
+<filename>vacation.lst</filename> is checked,
+using a lock file to guarantee atomic access and update (overkill, probably).
+Note that the backslashes are required.</para>
+
+    <para>
+If the address is already in the file, <command>maildrop</command> exits,
+otherwise the
+contents of <filename>vacation.msg</filename> are appended to the autoreply
+header, and mailed out.</para>
+
+    <note>
+      <para>
+An easier to make a vacation script is with
+<ulink url="mailbot.html"><citerefentry><refentrytitle>mailbot</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.</para>
+    </note>
+
+    <para>
+Here's a version of the vacation script that uses a GDBM database file
+instead. The difference between this script and the previous script is that
+the previous script will send a vacation message to a given E-mail address
+only once. The following script will store the time that the vacation message
+was sent in the GDBM file. If it's been at least a week since the vacation
+message has been sent to the given address, another vacation message will be
+sent.</para>
+
+    <para>
+Even though a GDBM database file is used, locking is still necessary
+because the GDBM library does not allow more than one process to open the same
+database file for writing:</para>
+
+<blockquote>
+	<informalexample>
+	  <programlisting format="linespecific">
+cc $DEFAULT
+xfilter "reformail -r -t"
+/^To:.*/
+getaddr($MATCH) =~ /^.*/;
+MATCH=tolower($MATCH)
+flock "vacation.lock" {
+    current_time=time;
+    if (gdbmopen("vacation.dat", "C") == 0)
+    {
+       if ( (prev_time=gdbmfetch($MATCH)) ne "" &amp;&amp; \
+             $prev_time &gt;= $current_time - 60 * 60 * 24 * 7)
+       {
+           exit
+       }
+       gdbmstore($MATCH, $current_time)
+       gdbmclose
+    }
+}
+to "| ( cat - ; echo ''; cat vacation.msg) | $SENDMAIL"
+</programlisting>
+	</informalexample>
+      </blockquote>
+
+    <para>
+This script requires that <command>maildrop</command> must be compiled with
+GDBM
+support enabled, which is done by default if GDBM libraries are present.</para>
+
+    <para>
+After you return from vacation, you can use a simple Perl script to obtain
+a list of everyone who sent you mail (of course, that can also be determined
+by examining your mailbox).</para>
+
+  </refsect1>
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildropfilter.html"><citerefentry><refentrytitle>maildropfilter</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
+<ulink url="reformail.html"><citerefentry><refentrytitle>reformail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="mailbot.html"><citerefentry><refentrytitle>mailbot</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<citerefentry><refentrytitle>egrep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+<citerefentry><refentrytitle>grep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
+</para>
+  </refsect1>
+</refentry>

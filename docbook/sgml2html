@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Copyright 2001-2002 Double Precision, Inc.  See COPYING for
+# distribution information.
+
+srcfile="$1"
+dstfile="$2"
+
+if test ! -f $srcfile
+then
+	echo "$srcfile: not found" >&2
+	exit 1
+fi
+
+rm -rf $dstfile.tmp
+mkdir $dstfile.tmp
+xsltproc -o $dstfile.tmp/ `dirname $0`/manpages.xsl $srcfile || exit 1
+xsltproc `dirname $0`/fixhtml.xsl $dstfile.tmp/* >$dstfile.tmp2 || exit 1
+rm -rf $dstfile.tmp
+mv $dstfile.tmp2 $dstfile || exit 1

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Calendar Access Control List</title>
+  <link rel="stylesheet" type="text/css" href="[#SQWEBMAILCSS#]" />
+  <meta name="GENERATOR" content="amaya 8.0, see http://www.w3.org/Amaya/" />
+  <meta name="MSSmartTagsPreventParsing" content="TRUE" />
+</head>
+
+<body>
+<!--
+[#$MODIFY=MODIFY#]
+[#$CONFLICT=CONFLICT#]
+[#$REMOVE=<font size="-1">(remove)</font>#]
+[#$NOACL=ERROR: Server does not support ACLs#]
+-->
+
+<div align="center">
+<!-- Top Header -->
+
+<table cellpadding="0" cellspacing="0" border="0" width="95%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top"
+        style="line-height: 0">[#@graytopleft.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="top"
+        style="line-height: 0">[#@graytopright.png, width="11" height="11"
+        alt="" border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#cccccc" class="graybox">
+      <td>&nbsp;</td>
+      <td bgcolor="#cccccc" class="graybox" width="100%">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td align="left" width="100%" valign="middle"
+              class="pageheader">Calendar&nbsp;Access&nbsp;Control&nbsp;List</td>
+              <td align="right" valign="middle">[#G#]</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#cccccc" class="graybox"></td>
+      <td align="right" valign="bottom">[#@graybottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+<!-- End of Top Header -->
+<!-- Sections. Folders, Create Messages, Preferences, Etc. -->
+[#include:navbar#]
+
+<table cellpadding="0" cellspacing="0" border="0" width="50%">
+  <tbody>
+    <tr style="line-height: 0">
+      <td align="left" valign="top">[#@bluetopleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle" width="100%"></td>
+      <td style="line-height: 0" align="right"
+        valign="top">[#@bluetopright.png, width="11" height="11" alt=""
+        border="0"@@#]</td>
+    </tr>
+    <tr bgcolor="#99ccff" class="bluebox">
+      <td valign="middle">&nbsp;</td>
+      <td valign="middle" width="100%">
+        <div align="center" class="accesscontroltitle">
+        Access&nbsp;Control&nbsp;List&nbsp;Key</div>
+        <br />
+
+
+        <table align="center" border="0">
+          <tbody>
+            <tr valign="top">
+              <td><span class="tt">MODIFY</span></td>
+              <td>-&nbsp;allow&nbsp;updates&nbsp;to&nbsp;your&nbsp;calendar</td>
+            </tr>
+            <tr valign="top">
+              <td><span class="tt">CONFLICT</span></td>
+              <td>-&nbsp;allow&nbsp;updates&nbsp;causing&nbsp;a&nbsp;scheduling&nbsp;conflict</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr width="90%" />
+        <br />
+        [#EVENTACL#] <br />
+
+        <hr width="90%" />
+
+        <form method="post" action="[#R#]">
+          [#P#]<input type="hidden" name="form" value="eventacl" />
+
+          <div align="center" class="addaccesscontroltitle">
+          Add&nbsp;Access</div>
+          <br />
+
+
+          <table border="0">
+            <tbody>
+              <tr valign="top">
+                <td>Add:</td>
+                <td>
+                  <table border="0">
+                    <tbody>
+                      <tr>
+                        <td><input type="text" size="20" name="addemail"
+                          style="font-family: monospace" /></td>
+                      </tr>
+                      <tr>
+                        <td>or:</td>
+                      </tr>
+                      <tr>
+                        <td>[#ABOOKNAMELIST#]</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+                <td rowspan="2"><label><input type="checkbox"
+                  checked="checked" name="aclMODIFY"
+                  />&nbsp;MODIFY</label><br />
+                  <label><input type="checkbox" name="aclCONFLICT"
+                  />&nbsp;CONFLICT</label></td>
+                <td>&nbsp;</td>
+              </tr>
+              <tr>
+                <td>&nbsp;</td>
+                <td><font size="-1">(E-mail address)</font></td>
+                <td>&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <input type="submit" value="Add" name="submit" /></form>
+      </td>
+      <td valign="middle">&nbsp;</td>
+    </tr>
+    <tr style="line-height: 0">
+      <td align="left" valign="bottom">[#@bluebottomleft.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+      <td bgcolor="#99ccff" class="bluebox" valign="middle"></td>
+      <td align="right" valign="bottom">[#@bluebottomright.png, width="11"
+        height="11" alt="" border="0"@@#]</td>
+    </tr>
+  </tbody>
+</table>
+[#EVENTEND#]</div>
+
+<p>[#B#]</p>
+</body>
+</html>

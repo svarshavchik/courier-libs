@@ -1,0 +1,69 @@
+#! @PERL@
+#
+#
+# Copyright 1998 - 2000 Double Precision, Inc.  See COPYING for
+# distribution information.
+#
+# This script is only used when sqwebmail is compiled with the option to
+# use a cache to store login information (saving a getpw lookup for each
+# HTTP request, which can be very expensive on large sites).
+#
+# If the login cache option is used, this script must be regularly executed
+# by cron to remove stale cache entries.
+
+$cachedir="@cachedir@";
+$timeout=@TIMEOUTHARD@;	# DO NOT CHANGE UNDER PENALTY OF LAW!!!
+			# If you change the hard timeout as described in
+			# INSTALL, you'll have to fix this, and you'll have
+			# to delete the contents of cachedir.
+			# YOU'VE BEEN WARNED.
+
+chdir($cachedir) || exit 0;
+
+#
+# timeout is hardcoded at configure time.  Cached entries are created in
+# subdirs named after int( time / $timeout).  Therefore, the oldest possibly
+# valid login would be in ( (time-$timeout) / $timeout ), or:
+#
+
+$oldestdir=int(time / $timeout)-1;
+
+#
+# So, our task is simply to remove all directories older than that.
+#
+opendir(TOPDIR, ".") || exit 0;
+
+while (defined ($name=readdir(TOPDIR)))
+{
+	next unless $name =~ /^[0-9]+$/;
+	next unless $name < $oldestdir;
+	push @DIRS, $name;
+}
+closedir(TOPDIR);
+
+while ( defined ($name=shift @DIRS) )
+{
+	chdir($name) && &rmrf && chdir("..") && rmdir($name) && next;
+	chomp(($pwd=`pwd`)); die "$pwd/$name: $!\n";
+}
+
+sub rmrf {
+my(@dir);
+my($name);
+
+	opendir(DIR, ".") || return 0;
+	while (defined ($name=readdir(DIR)))
+	{
+		next if $name eq "." || $name eq "..";
+		push @dir, $name;
+	}
+	closedir(DIR);
+
+	while ( defined ($name=shift @dir))
+	{
+		next if unlink($name);
+		chdir($name) && &rmrf && chdir("..") && rmdir($name) && next;
+		chomp(($pwd=`pwd`)); die "$pwd/$name: $!\n";
+	}
+	return 1;
+}

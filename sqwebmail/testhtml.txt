@@ -1,0 +1,94 @@
+foo
+bar
+&amp;
+&#20;
+a=b
+&gt;
+pi: []
+
+comment: []
+
+sgml comment: []
+
+Empty tag: [<span />][<span />]
+
+Opening tag: {<span lang>]
+Closing tag: [</span>]
+
+Opening tag: {<span lang="value">]
+Closing tag: [</span>]
+
+Opening tag: {<span lang="value">]
+Closing tag: [</span>]
+
+Opening tag: {<span lang="value">]
+Closing tag: [</span>]
+
+Opening tag: {<span dir="val&#x22;ue">]
+Closing tag: [</span>]
+
+Bad tags:
+
+-
+&gt;
+&gt;
+
+
+
+&lt;A&gt; tags:
+
+<div />
+
+<div><span class="urlhost">[localhost]</span><a href="http://redirect?http%3A%2F%2Flocalhost%2F%3Ffoo%3Dbar%26bar%3Dfoo" target="_blank" title="http://localhost/?foo=bar&#x26;bar=foo">localhost</a></div>
+<div><span class="urlhost">[localhost]</span><a href="http://redirect?http%3A%2F%2Flocalhost%2F%3Ffoo%3Dbar%26bar%3Dfoo" target="_blank" title="http://localhost/?foo=bar&#x26;bar=foo">localhost</a></div>
+<div><span class="urlhost">[localhost]</span><a href="http://redirect?http%3A%2F%2Flocalhost%2F%3Ffoo%3D%22bar" target="_blank" title="http://localhost/?foo=&#x22;bar">localhost</a></div>
+<div><span class="urlhost">[localhost]</span><a href="http://redirect?https%3A%2F%2Flocalhost" target="_blank" title="https://localhost">localhost</a></div>
+<div><a href="http://mailto?nobody%40example%2Ecom%26subject%3Dfoo%26to%3Dnobody">nobody@example.com</a></div>
+<div><a href="&#x3C;nobody@example.com&#x3E;">nobody@example.com</a></div>
+<div><a>nobody@example.com</a></div>
+
+Checking nesting (max 128):
+
+<div>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+<a><a><a><a><a><a><a><a><a><a><a><a><a><a>
+
+</a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></a></div>
+
+Checking script discarding:
+
+
+
+Foobar.
+
+Checking blockquote handling
+
+<blockquote>
+   <blockquote class="cite0"><div class="quotedtext">
+     cite
+
+     <blockquote>
+        <blockquote class="cite1"><div class="quotedtext">
+          cite
+          <blockquote class="cite2"><div class="quotedtext">
+            cite
+            <blockquote class="cite0"><div class="quotedtext">
+            cite
+            </div></blockquote>
+          </div></blockquote>
+        </div></blockquote>
+     </blockquote>
+   </div></blockquote>
+</blockquote>
+
+Checking IMG
+
+<img alt="Blocked image" />
+
+<img src="&#x3C;internal&#x3E;" alt="Allowed image" />
