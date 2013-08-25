@@ -5,7 +5,7 @@ export LC_ALL
 
 doit() {
 
-	if test ! -f configure.in
+	if test ! -f configure.ac
 	then
 	    for d in */.
 	    do
@@ -24,21 +24,21 @@ echo `pwd`:
 		fi
 	fi
 
-	if grep -q LT_INIT configure.in
+	if grep -q LT_INIT configure.ac
 	then
-		libtoolize --force --copy `if grep -q LIBLTDL configure.in ; then echo --ltdl; fi`
+		libtoolize --force --copy `if grep -q LIBLTDL configure.ac ; then echo --ltdl; fi`
 	else
-	    if grep -q PROG_LIBTOOL configure.in
+	    if grep -q PROG_LIBTOOL configure.ac
 	    then
-		libtoolize --force --copy `if grep -q LIBLTDL configure.in ; then echo --ltdl; fi`
+		libtoolize --force --copy `if grep -q LIBLTDL configure.ac ; then echo --ltdl; fi`
 	    fi
 	fi
 	aclocal || exit 1
-	if grep -q AM_CONFIG_HEADER configure.in
+	if grep -q AM_CONFIG_HEADER configure.ac
 	then
 		autoheader || exit 1
 	fi
-	if grep -q AC_PROG_SYSCONFTOOL configure.in
+	if grep -q AC_PROG_SYSCONFTOOL configure.ac
 	then
 		sysconftoolize || exit 1
 	fi
@@ -61,7 +61,7 @@ echo `pwd`:
 	fi
 	for d in $subdirs
 	do
-	    if test -f "$d/configure.in"
+	    if test -f "$d/configure.ac"
 	    then
 		( cd $d >/dev/null 2>&1 || continue; doit ) || exit 1
 	    fi
