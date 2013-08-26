@@ -54,7 +54,7 @@ int	Search::init(const char *expr, const char *opts)
 	int errindex;
 
 	pcre_regexp=pcre_compile(expr,
-				 strchr(opts, 'D') ? 0:PCRE_CASELESS,
+				 PCRE_UTF8 | (strchr(opts, 'D') ? 0:PCRE_CASELESS),
 				 &errptr,
 				 &errindex, 0);
 
@@ -90,6 +90,7 @@ int	Search::init(const char *expr, const char *opts)
 		return -1;
 	}
 
+	search_expr=expr;
 	int cnt=0;
 
 	pcre_fullinfo(pcre_regexp, pcre_regexp_extra,
@@ -198,40 +199,46 @@ int Search::find(const char *str, const char *expr, const char *opts,
 
 int Search::findinline(Message &msg, const char *expr, Buffer *foreachp)
 {
+	struct rfc2045_decodemsgtoutf8_cb decode_cb;
+
+	memset(&decode_cb, 0, sizeof(decode_cb));
+
+	if (!match_header)
+		decode_cb.flags |= RFC2045_DECODEMSG_NOHEADERS;
+
+	if (!match_body)
+		decode_cb.flags |= RFC2045_DECODEMSG_NOBODY;
+
 	current_line.reset();
-	if (msg.appendline(current_line))	return (0);	// Empty msg
+	decode_cb.output_func=&Search::search_cb;
+	decode_cb.arg=this;
+	foreachp_arg=foreachp;
+	rfc2045_decodemsgtoutf8(&msg.rfc2045src_parser,
+				msg.rfc2045p, &decode_cb);
+	return 0;
+}
 
-int	eof;
+int Search::search_cb(const char *ptr, size_t cnt, void *arg)
+{
+	return ((Search *)arg)->search_cb(ptr, cnt);
+}
 
-	for (;;)
+int Search::search_cb(const char *ptr, size_t cnt)
+{
+	while (cnt)
 	{
-	int	c='\n';
+		size_t i;
 
-		next_line.reset();
-		if ((eof=msg.appendline(next_line)) == 0)
+		if (*ptr == '\n')
 		{
-			c=(unsigned char)*(const char *)next_line;
+			current_line += '\0';
 
-			if ( isspace( c ) && c != '\n')
-				// Continued header
-			{
-				current_line.pop();
-				current_line += next_line;
-				continue;
-			}
-		}
-		current_line.pop();
-
-		current_line += '\0';
-
-		if (match_header)
-		{
 			if (VerboseLevel() > 2)
 			{
 			Buffer	msg;
 
 				msg="Matching /";
-				msg.append(expr);
+				msg.append(search_expr);
 				msg.append("/ against ");
 				msg += current_line;
 				msg.pop();	// Trailing null byte.
@@ -257,73 +264,34 @@ int	eof;
 				score += weight1;
 				weight1 *= weight2;
 
-				if (!scoring_match || foreachp)
+				if (!scoring_match || foreachp_arg)
 				{
 					init_match_vars(orig_str,
 							match_count,
 							pcre_vectors,
-							foreachp);
-					if (!foreachp)
-						return (0);
+							foreachp_arg);
+					if (!foreachp_arg)
+						// Stop searching now
+						return (-1);
 				}
 			}
 			else	if (VerboseLevel() > 2)
 				merr.write("Not matched.\n");
-		}
-		if ( c == '\n')	break;
-		current_line=next_line;
-	}
-	if (!match_body || eof)	return (0);
 
-	while (current_line.reset(), msg.appendline(current_line) == 0)
-	{
-		current_line.pop();
-		current_line += '\0';
+			current_line.reset();
 
-		if (VerboseLevel() > 2)
-		{
-		Buffer	msg;
-
-			msg="Matching /";
-			msg.append(expr);
-			msg.append("/ against ");
-			msg += current_line;
-			msg.pop();	// Trailing null byte.
-			msg += '\n';
-			msg += '\0';
-			merr.write(msg);
+			++ptr;
+			--cnt;
+			continue;
 		}
 
-		const char *orig_str=current_line;
-		int match_count;
 
-		match_count=pcre_exec(pcre_regexp,
-				      pcre_regexp_extra,
-				      orig_str,
-				      strlen(orig_str),
-				      0,
-				      0,
-				      pcre_vectors,
-				      pcre_vector_count);
-
-		if (match_count > 0)
-		{
-			score += weight1;
-			weight1 *= weight2;
-
-			if (!scoring_match || foreachp)
-			{
-				init_match_vars(orig_str,
-						match_count,
-						pcre_vectors,
-						foreachp);
-				if (!foreachp)
-					return (0);
-			}
-		}
-		else	if (VerboseLevel() > 2)
-			merr.write("Not matched.\n");
-
+		for (i=0; i<cnt; ++i)
+			if (ptr[i] == '\n')
+				break;
+		current_line.append(ptr, i);
+		ptr += i;
+		cnt -= i;
 	}
 	return (0);
 }

@@ -1,0 +1,229 @@
+cat >testsuite.msg <<EOF
+From: =?iso-8859-1?q?h=E9ader?= <nobody@example.com>
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=zzz
+
+--zzz
+Subject: =?iso-8859-1?q?t=E9st?=
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+b=F6dy
+
+test
+EOF
+
+cat >testsuite1.filter <<EOF
+if (/héader/)
+{
+   EXITCODE=0
+   exit
+}
+EXITCODE=1
+exit
+EOF
+
+cat >testsuite2.filter <<EOF
+if (/héader/:h)
+{
+   EXITCODE=0
+   exit
+}
+EXITCODE=1
+exit
+EOF
+cat >testsuite3.filter <<EOF
+if (/héader/:b)
+{
+   EXITCODE=0
+   exit
+}
+EXITCODE=1
+exit
+EOF
+
+cat >testsuite4.filter <<EOF
+if (/tést/:h)
+{
+   EXITCODE=0
+   exit
+}
+EXITCODE=1
+exit
+EOF
+
+cat >testsuite5.filter <<EOF
+if (/bödy/:b)
+{
+   EXITCODE=0
+   exit
+}
+EXITCODE=1
+exit
+EOF
+
+chmod 600 ./testsuite1.filter ./testsuite2.filter ./testsuite3.filter ./testsuite4.filter ./testsuite5.filter
+
+type="small message"
+
+# Small file
+if ./maildrop ./testsuite1.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 1 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite2.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 2 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite3.filter <testsuite.msg
+then
+    echo "Test 3 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite4.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 4 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite5.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 5 failed: $type"
+    exit 1
+fi
+
+type="small pipe"
+if cat testsuite.msg | ./maildrop ./testsuite1.filter
+then
+    :
+else
+    echo "Test 1 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite2.filter
+then
+    :
+else
+    echo "Test 2 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite3.filter
+then
+    echo "Test 3 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite4.filter
+then
+    :
+else
+    echo "Test 4 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite5.filter
+then
+    :
+else
+    echo "Test 5 failed: $type"
+    exit 1
+fi
+
+dd if="/dev/zero" bs=8192 count=2 2>/dev/null | tr '\0' '\012' >>testsuite.msg
+
+type="large message"
+
+# Large file
+if ./maildrop ./testsuite1.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 1 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite2.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 2 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite3.filter <testsuite.msg
+then
+    echo "Test 3 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite4.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 4 failed: $type"
+    exit 1
+fi
+
+if ./maildrop ./testsuite5.filter <testsuite.msg
+then
+    :
+else
+    echo "Test 5 failed: $type"
+    exit 1
+fi
+
+type="large pipe"
+if cat testsuite.msg | ./maildrop ./testsuite1.filter
+then
+    :
+else
+    echo "Test 1 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite2.filter
+then
+    :
+else
+    echo "Test 2 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite3.filter
+then
+    echo "Test 3 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite4.filter
+then
+    :
+else
+    echo "Test 4 failed: $type"
+    exit 1
+fi
+
+if cat testsuite.msg | ./maildrop ./testsuite5.filter
+then
+    :
+else
+    echo "Test 5 failed: $type"
+    exit 1
+fi
+
+rm -f testsuite?.filter testsuite.msg

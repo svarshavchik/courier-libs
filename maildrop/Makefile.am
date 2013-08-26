@@ -73,11 +73,12 @@ TESTSUITE=testsuite.txt.noidn
 endif
 
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
-	maildrop.lsm testsuite.txt.idn testsuite.txt.noidn
+	maildrop.lsm testsuite.txt.idn testsuite.txt.noidn testsuite2
 
 check-am:
 	@chmod +x testsuite
 	./testsuite | cmp -s - $(srcdir)/$(TESTSUITE)
+	@SHELL@ $(srcdir)/testsuite2
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
 	maildropgdbm.html maildropgdbm.7

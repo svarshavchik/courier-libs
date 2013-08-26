@@ -72,5 +72,10 @@ private:
 	int findinline(Message &, const char *, Buffer *);
 	int findinsection(Message &, const char *, Buffer *);
 	void init_match_vars(const char *, int, int *, Buffer *);
+
+	Buffer search_expr;
+	Buffer *foreachp_arg;
+	static int search_cb(const char *ptr, size_t cnt, void *arg);
+	int search_cb(const char *ptr, size_t cnt);
 } ;
 #endif
