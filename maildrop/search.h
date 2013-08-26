@@ -2,7 +2,6 @@
 #define	search_h
 
 
-#include	"re.h"
 #include	"buffer.h"
 
 #if	HAVE_PCRE_H
@@ -48,7 +47,6 @@ class Search {
 	int	*pcre_vectors;
 	size_t	pcre_vector_count;
 
-	Re	regexp;
 	Buffer	current_line;
 	Buffer	next_line;
 
@@ -73,7 +71,6 @@ public:
 private:
 	int findinline(Message &, const char *, Buffer *);
 	int findinsection(Message &, const char *, Buffer *);
-	void init_match_vars(ReMatch &, Buffer *);
 	void init_match_vars(const char *, int, int *, Buffer *);
 } ;
 #endif
