@@ -206,6 +206,7 @@ EOF
 
 ./reformail -f0 <<EOF
 From testing
+Return-Path: old
 Subject: remove From_ test
 
 test

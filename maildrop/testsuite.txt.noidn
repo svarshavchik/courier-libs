@@ -29,6 +29,7 @@ To: nobody@example.com
 
 test
 Subject: remove From_ test
+Return-Path: <testing>
 
 test
 Subject: remove From_ test

@@ -179,8 +179,13 @@ the specified line termination.</para>
 	<term>-f0</term>
 	<listitem>
 	  <para>
-Remove the "<literal>From_</literal>" line from the message, if it's
-there.</para>
+	    Any initial blank lines are removed. If the first non-blank
+	    line is a
+	    "<literal>From_</literal>" line, it gets converted to a
+	    "Return-Path:" header, and any existing "Return-Path:" header
+	    gets removed. If the message does not start with a 
+	    "<literal>From_</literal>" line, the message remains unchanged.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>

@@ -348,6 +348,24 @@ const	char *p;
 		current_line=p;
 		return ( no_from_filter_header() );
 	}
+
+	for (const char *q="Return-Path: <"; *q; ++q)
+	{
+		optI.push(*q);
+	}
+	for (p += 5; *p && *p != '\n' && isspace(*p); ++p)
+		;
+	if (*p == '<')
+		++p;
+
+	while (*p && *p != '\n' && *p != '>' && !isspace(*p))
+	{
+		optI.push(*p);
+		++p;
+	}
+	optI.push('>');
+	optI.push(0);
+
 	p=NextLine();
 	if (!p)	return (p);
 	current_line=p;
