@@ -41,6 +41,12 @@
 extern "C" int gethostname(const char *, size_t);
 #endif
 
+void rfc2045_error(const char *p)
+{
+	fprintf(stderr, "%s\n", p);
+	fflush(stderr);
+	exit(1);
+}
 
 extern void setprocgroup();
 
@@ -765,9 +771,7 @@ Buffer	msg;
 	if (VerboseLevel() > 1)
 	{
 		msg.reset();
-		msg.append("Message start at ");
-		msg.append((unsigned long)maildrop.msginfo.msgoffset);
-		msg.append(" bytes, envelope sender=");
+		msg.append("Message envelope sender=");
 		if (maildrop.msginfo.fromname.Length() > 0)
 			msg += maildrop.msginfo.fromname;
 		msg.append("\n");

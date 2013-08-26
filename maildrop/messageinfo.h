@@ -11,21 +11,18 @@ class	Message;
 ///////////////////////////////////////////////////////////////////////////
 //
 //  The MessageInfo class collects information about a message - namely
-//  it calculates where the message headers actually start in the Message
-//  class.  We ignore blank lines and "From " lines at the beginning of
-//  the message
+//  it extract the email address from the Return-Path: header, if present.
 //
 ///////////////////////////////////////////////////////////////////////////
 
 class	MessageInfo {
 public:
-	off_t msgoffset;	// Skip leading blank lines and From header
 	Buffer fromname;	// Envelope sender
 
-	MessageInfo() : msgoffset(0)	{}
+	MessageInfo() {}
 	~MessageInfo()			{}
 
 	void	info(Message &);
-	void	filtered() { msgoffset=0; }
+	void	filtered() {}
 } ;
 #endif

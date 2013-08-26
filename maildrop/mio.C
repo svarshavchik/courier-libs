@@ -8,7 +8,7 @@
 #include	"mio.h"
 #include	"funcs.h"
 #include	"buffer.h"
-
+#include	"rfc2045/rfc2045.h"
 
 int mopen(const char *fname, int flags, mode_t mode)
 {
@@ -57,7 +57,7 @@ int	n;
 
 //-------------------------------------------------------------------------
 
-Mio::Mio() : fd_(-1), readcnt(0), writecnt(0), err(0)
+Mio::Mio() : fd_(-1), readcnt(0), writecnt(0), err(0), rfc2045p(0)
 {
 }
 
@@ -94,6 +94,9 @@ int Mio::fill()
 		err= -1;
 		return (-1);
 	}
+	if (rfc2045p)
+		rfc2045_parse(rfc2045p, (const char *)buf, readcnt);
+
 	--readcnt;
 	return (*(readptr=buf)++);
 }

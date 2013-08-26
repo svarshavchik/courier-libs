@@ -30,8 +30,11 @@ class Mio {
 	int readcnt;
 	int writecnt;
 	int err;
-	unsigned char buf[1024];
+
+	unsigned char buf[8192];
 public:
+	struct rfc2045 *rfc2045p;
+
 	Mio();
 	virtual ~Mio();
 	int Open(const char *, int, mode_t=0666);

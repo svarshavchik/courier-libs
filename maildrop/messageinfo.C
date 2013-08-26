@@ -1,24 +1,23 @@
 #include "config.h"
 #include	"messageinfo.h"
 #include	"message.h"
-
+#include	<ctype.h>
 
 void MessageInfo::info(Message &msg)
 {
 Buffer	buf;
-off_t	msgstart=0;
 
-	msgoffset=0;
 	msg.Rewind();
-	fromname.reset();
+	fromname.set("MAILER-DAEMON");
+
 	for (;;)
 	{
-		msgstart=msg.tell();
 		buf.reset();
 		if (msg.appendline(buf) < 0)	return;
 
-	int	l=buf.Length();
-	const	char *p=buf;
+		int	l=buf.Length();
+
+		const char *p=buf;
 
 		if (l && p[l-1] == '\n')
 		{
@@ -26,20 +25,40 @@ off_t	msgstart=0;
 			buf.Length(l);
 		}
 
-		if (l == 0)	continue;
+		if (l == 0)	break;
 
-		if (l < 5)	break;
-		if (p[0] == 'F' && p[1] == 'r' && p[2] == 'o' && p[3] == 'm'
-			&& p[4] == ' ')
+		p=buf;
+		if (strncasecmp(p, "Return-Path:", 12))
+			continue;
+
+		p += 12;
+		l -= 12;
+
+		while (*p && *p != '\n' && isspace(*p) && l)
 		{
-		int i;
-			for (i=5; i<l; i++)
-				if (p[i] == ' ')	break;
-
-			fromname.reset();
-			fromname.append(p+5, i-5);
+			++p;
+			--l;
 		}
-		else	break;
+
+		if (l && *p == '<')
+		{
+			++p;
+			--l;
+		}
+
+		int i;
+
+		for (i=0; i<l; i++)
+		{
+			if (!p[i])
+				break;
+			if (p[i] == '>')
+				break;
+			if (isspace(p[i]))
+				break;
+		}
+		fromname.reset();
+		fromname.append(p, i);
+		break;
 	}
-	msgoffset=msgstart;
 }

@@ -27,6 +27,7 @@ libmdcommon_la_SOURCES=alarm.C alarm.h alarmsleep.C alarmsleep.h alarmtimer.C \
 	funcs.h maildrop.C maildrop.h mio.C mio.h setgroupid.c setgroupid.h \
 	tempfile.C tempfile.h
 libmdcommon_la_LIBADD=../maildir/libmaildir.la \
+	../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la \
 	../unicode/libunicode.la \
 	../numlib/libnumlib.la ../liblock/liblock.la \

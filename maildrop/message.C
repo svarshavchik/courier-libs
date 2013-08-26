@@ -5,10 +5,41 @@
 #include	"funcs.h"
 #include	"varlist.h"
 
+static int rfc2045_seek_func(off_t pos, void *arg)
+{
+	Message *p=reinterpret_cast<Message *>(arg);
+
+	p->seek(pos);
+	return 0;
+}
+
+static ssize_t rfc2045_read_func(char *buf, size_t cnt, void *arg)
+{
+	Message *p=reinterpret_cast<Message *>(arg);
+
+	ssize_t n=0;
+
+	while (cnt)
+	{
+		int c=p->get_c();
+
+		if (c < 0)
+			return -1;
+		*buf++=c;
+		--cnt;
+		++n;
+	}
+	return n;
+}
 
 Message::Message() : buffer(0), bufptr(0),
-		extra_headers(0), extra_headersptr(0), msgsize(0)
+		     extra_headers(0), extra_headersptr(0), msgsize(0),
+		     rfc2045src_parser(rfc2045src()),
+		     rfc2045p(0)
 {
+	rfc2045src_parser.seek_func=rfc2045_seek_func;
+	rfc2045src_parser.read_func=rfc2045_read_func;
+	rfc2045src_parser.arg=reinterpret_cast<void *>(this);
 }
 
 Message::~Message()
@@ -16,6 +47,8 @@ Message::~Message()
 	mio.fd(-1);	// Either way, it's not our file
 	if (buffer)	delete[] buffer;
 	if (extra_headers) delete[] extra_headers;
+	if (rfc2045p)
+		rfc2045_free(rfc2045p);
 }
 
 void Message::Init()
@@ -30,11 +63,14 @@ void Message::Init()
 		delete[] extra_headers;
 		extra_headers=0;
 	}
+	if (rfc2045p)
+		rfc2045_free(rfc2045p);
 	extra_headersptr=0;
 	msgsize=0;
 	msglines=0;
 	tempfile.Close();
 	mio.fd(-1);
+	rfc2045p=rfc2045_alloc();
 }
 
 void Message::Init(int fd)
@@ -57,13 +93,14 @@ void Message::Init(int fd)
 		if (fd < 0)	throw "dup() failed.";
 
 		mio.fd(fd);
+		mio.rfc2045p=rfc2045p;
 		if (mio.Rewind() < 0)	seekerr();
 
 	int	c;
 
 		while ((c=mio.get()) >= 0)
 			if (c == '\n')	msglines++;
-
+		mio.rfc2045p=0;
 		return;
 	}
 	// Well, just read the message, and let Init() figure out what to
@@ -75,12 +112,15 @@ void Message::Init(int fd)
 #ifdef	BUFSIZ
 char	buf[BUFSIZ];
 #else
-char	buf[512];
+char	buf[8192];
 #endif
 int	n;
 
 	while ((n=read(fd, buf, sizeof(buf))) > 0)
+	{
+		rfc2045_parse(rfc2045p, buf, n);
 		Init(buf, n);
+	}
 	if (n < 0)
 		throw "Error - read() failed reading message.";
 #if CRLF_TERM
@@ -183,13 +223,6 @@ void Message::Rewind()
 {
 	RewindIgnore();
 
-off_t	n=maildrop.msginfo.msgoffset;
-
-	while (n)
-	{
-		(void)get_c();
-		--n;
-	}
 	extra_headersptr=extra_headers;
 	if (extra_headersptr && !*extra_headersptr)
 		extra_headersptr=0;

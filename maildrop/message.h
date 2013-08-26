@@ -1,6 +1,7 @@
 #ifndef	message_h
 #define	message_h
 
+#include "rfc2045/rfc2045.h"
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -75,7 +76,12 @@ public:
 	off_t MessageSize();
 	off_t MessageLines() { return (msglines); }
 	void setmsgsize();
-	} ;
+
+	// API translator for rfc2045 functions
+
+	struct rfc2045src rfc2045src_parser;
+	struct rfc2045 *rfc2045p;
+} ;
 
 #include	"funcs.h"
 #include	"maildrop.h"
@@ -134,7 +140,7 @@ off_t	pos;
 		pos=mio.tell();
 		if (pos == -1)	seekerr();
 	}
-	pos -= maildrop.msginfo.msgoffset;
+
 	if (extra_headersptr)
 		pos += extra_headersptr-extra_headers;
 	else
@@ -158,8 +164,6 @@ int	l=0;
 		extra_headersptr=0;
 		n -= l;
 	}
-	n += maildrop.msginfo.msgoffset;
-
 	if (mio.fd() >= 0)
 	{
 		if (mio.seek(n, SEEK_SET) < 0)	seekerr();
@@ -174,7 +178,6 @@ int	l=0;
 inline off_t Message::MessageSize()
 {
 	off_t s=msgsize;
-	s -= maildrop.msginfo.msgoffset;
 	if (extra_headers)
 		s += strlen(extra_headers);
 
