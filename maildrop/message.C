@@ -118,7 +118,6 @@ int	n;
 
 	while ((n=read(fd, buf, sizeof(buf))) > 0)
 	{
-		rfc2045_parse(rfc2045p, buf, n);
 		Init(buf, n);
 	}
 	if (n < 0)
@@ -130,6 +129,7 @@ int	n;
 
 void Message::Init(const void *data, unsigned cnt)
 {
+	rfc2045_parse(rfc2045p, (const char *)data, cnt);
 	{
 	const char *p=(const char*)data;
 	unsigned n=cnt;

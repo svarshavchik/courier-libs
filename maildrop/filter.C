@@ -185,7 +185,15 @@ int	maxfd=pipe1.fds[0];
 
 			if (n < 0)
 			{
-				if (errno != EINTR)	// Perfectly OK
+				if (errno != EINTR
+#ifdef EAGAIN
+				    && errno != EAGAIN
+#endif
+#ifdef EWOULDBLOCK
+				    && errno != EWOULDBLOCK
+#endif
+
+				    )	// Perfectly OK
 				{
 					FD_CLR(pipe0.fds[1], &writefd);
 					pipe0.close1();
@@ -211,7 +219,14 @@ int	maxfd=pipe1.fds[0];
 
 			if (readbuflen < 0)
 			{
-				if (errno != EINTR)
+				if (errno != EINTR
+#ifdef EAGAIN
+				    && errno != EAGAIN
+#endif
+#ifdef EWOULDBLOCK
+				    && errno != EWOULDBLOCK
+#endif
+				    )
 				{
 					merr << "maildrop: error reading from filter.\n";
 					errflag=1;

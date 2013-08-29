@@ -64,166 +64,179 @@ EOF
 
 chmod 600 ./testsuite1.filter ./testsuite2.filter ./testsuite3.filter ./testsuite4.filter ./testsuite5.filter
 
-type="small message"
+runtest() {
+    type="small message $1"
 
-# Small file
-if ./maildrop ./testsuite1.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 1 failed: $type"
-    exit 1
-fi
+    # Small file
+    if ./maildrop ./testsuite1.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 1 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite2.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 2 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite2.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 2 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite3.filter <testsuite.msg
-then
-    echo "Test 3 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite3.filter <testsuite.msg
+    then
+	echo "Test 3 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite4.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 4 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite4.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 4 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite5.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 5 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite5.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 5 failed: $type"
+	exit 1
+    fi
 
-type="small pipe"
-if cat testsuite.msg | ./maildrop ./testsuite1.filter
-then
-    :
-else
-    echo "Test 1 failed: $type"
-    exit 1
-fi
+    type="small pipe"
+    if cat testsuite.msg | ./maildrop ./testsuite1.filter
+    then
+	:
+    else
+	echo "Test 1 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite2.filter
-then
-    :
-else
-    echo "Test 2 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite2.filter
+    then
+	:
+    else
+	echo "Test 2 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite3.filter
-then
-    echo "Test 3 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite3.filter
+    then
+	echo "Test 3 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite4.filter
-then
-    :
-else
-    echo "Test 4 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite4.filter
+    then
+	:
+    else
+	echo "Test 4 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite5.filter
-then
-    :
-else
-    echo "Test 5 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite5.filter
+    then
+	:
+    else
+	echo "Test 5 failed: $type"
+	exit 1
+    fi
 
-dd if="/dev/zero" bs=8192 count=2 2>/dev/null | tr '\0' '\012' >>testsuite.msg
+    dd if="/dev/zero" bs=8192 count=2 2>/dev/null | tr '\0' '\012' >>testsuite.msg
 
-type="large message"
+    type="large message $1"
 
-# Large file
-if ./maildrop ./testsuite1.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 1 failed: $type"
-    exit 1
-fi
+    # Large file
+    if ./maildrop ./testsuite1.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 1 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite2.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 2 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite2.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 2 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite3.filter <testsuite.msg
-then
-    echo "Test 3 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite3.filter <testsuite.msg
+    then
+	echo "Test 3 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite4.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 4 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite4.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 4 failed: $type"
+	exit 1
+    fi
 
-if ./maildrop ./testsuite5.filter <testsuite.msg
-then
-    :
-else
-    echo "Test 5 failed: $type"
-    exit 1
-fi
+    if ./maildrop ./testsuite5.filter <testsuite.msg
+    then
+	:
+    else
+	echo "Test 5 failed: $type"
+	exit 1
+    fi
 
-type="large pipe"
-if cat testsuite.msg | ./maildrop ./testsuite1.filter
-then
-    :
-else
-    echo "Test 1 failed: $type"
-    exit 1
-fi
+    type="large pipe"
+    if cat testsuite.msg | ./maildrop ./testsuite1.filter
+    then
+	:
+    else
+	echo "Test 1 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite2.filter
-then
-    :
-else
-    echo "Test 2 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite2.filter
+    then
+	:
+    else
+	echo "Test 2 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite3.filter
-then
-    echo "Test 3 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite3.filter
+    then
+	echo "Test 3 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite4.filter
-then
-    :
-else
-    echo "Test 4 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite4.filter
+    then
+	:
+    else
+	echo "Test 4 failed: $type"
+	exit 1
+    fi
 
-if cat testsuite.msg | ./maildrop ./testsuite5.filter
-then
-    :
-else
-    echo "Test 5 failed: $type"
-    exit 1
-fi
+    if cat testsuite.msg | ./maildrop ./testsuite5.filter
+    then
+	:
+    else
+	echo "Test 5 failed: $type"
+	exit 1
+    fi
+}
 
+runtest ""
+
+for f in testsuite?.filter
+do
+    echo 'xfilter "cat"' >t
+    cat $f >>t
+    chmod 600 t
+    mv -f t $f
+done
+
+runtest " with xfilter"
 rm -f testsuite?.filter testsuite.msg
