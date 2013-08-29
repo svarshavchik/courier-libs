@@ -66,8 +66,8 @@ maildirmake_LDADD=libmaildir.la ../unicode/libunicode.la \
 maildirmake_LDFLAGS=-static
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
-testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
-testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la @LIBPCRE@
+testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la ../unicode/libunicode.la
+testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la ../unicode/libunicode.la @LIBPCRE@
 testmaildirfilter_LDFLAGS=-static
 
 maildirkwtest_SOURCES=maildirkwtest.c

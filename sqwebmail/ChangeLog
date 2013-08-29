@@ -1,3 +1,8 @@
+2013-08-28  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* sqwebmail: update the maildrop rule generator to support UTF-8-able
+	maildrop.
+
 5.6.1
 
 2013-02-20  Sam Varshavchik  <mrsam@courier-mta.com>

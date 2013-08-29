@@ -31,5 +31,6 @@ rm -f testrules
 ./testmaildirfilter "rule12" "-islargerthan" "" "100000" "*bounce"
 ./testmaildirfilter "ruleauto1" "islargerthan" "" 0 "+dummy dsn=1 days=7"
 ./testmaildirfilter "ruleauto2" "islargerthan" "" 0 "+dummy2"
+CHARSET=iso-8859-1 ./testmaildirfilter "`echo -n utf8rule | tr 'e' '\351'`" "contains" "`echo -n subject | tr 'e' '\351'`" "`echo -n test | tr 'e' '\351'`" "INBOX"
 cat testrules | sed 's:/.*mailbot:mailbot:'
 rm -f testrules

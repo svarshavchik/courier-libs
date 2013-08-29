@@ -22,6 +22,7 @@
 
 extern void list_folder(const char *);
 extern void output_attrencoded(const char *);
+extern const char *sqwebmail_content_charset;
 
 static const char *internal_err=0;
 
@@ -67,9 +68,15 @@ unsigned cnt;
 
 	for (cnt=0, r=mf.first; r; r=r->next, ++cnt)
 	{
+		char *p=libmail_u_convert_fromutf8(r->rulename_utf8,
+						   sqwebmail_content_charset,
+						   NULL);
+
 		printf("<option value=\"%u\">", cnt);
-		output_attrencoded(r->rulename);
+		output_attrencoded(p ? p:r->rulename_utf8);
 		printf("</option>");
+		if (p)
+			free(p);
 	}
 	maildir_filter_freerules(&mf);
 }
@@ -200,25 +207,28 @@ struct maildirfilterrule *r;
 				r->flags & MFR_DOESNOT ? "notcontains":"contains":"");
 
 		if (namebuf)	free(namebuf);
-		p=r->rulename ? r->rulename:"";
-		namebuf=malloc(strlen(p)+1);
+		p=r->rulename_utf8 ? r->rulename_utf8:"";
+
+		namebuf=libmail_u_convert_fromutf8(p, sqwebmail_content_charset,
+						   NULL);
+
 		if (!namebuf)	enomem();
-		strcpy(namebuf, p);
 		cgi_put("rulename", namebuf);
 
-		p=r->fieldname ? r->fieldname:"";
+		p=r->fieldname_utf8 ? r->fieldname_utf8:"";
 		if (r->type != startswith &&
 			r->type != endswith &&
 			r->type != contains)	p="";
 		if (r->flags & MFR_BODY)	p="";
 
 		if (headernamebuf)	free(headernamebuf);
-		headernamebuf=malloc(strlen(p)+1);
+		headernamebuf=libmail_u_convert_fromutf8(p,
+							 sqwebmail_content_charset,
+							 NULL);
 		if (!headernamebuf)	enomem();
-		strcpy(headernamebuf, p);
 		cgi_put("headername", headernamebuf);
 
-		p=r->fieldvalue ? r->fieldvalue:"";
+		p=r->fieldvalue_utf8 ? r->fieldvalue_utf8:"";
 		if (r->type != startswith &&
 			r->type != endswith &&
 			r->type != contains &&
@@ -231,11 +241,11 @@ struct maildirfilterrule *r;
 
 		if (headervaluebuf)	free(headervaluebuf);
 
-
-
-		headervaluebuf=malloc(strlen(p)+1);
+		headervaluebuf=
+			libmail_u_convert_fromutf8(p,
+						   sqwebmail_content_charset,
+						   NULL);
 		if (!headervaluebuf)	enomem();
-		strcpy(headervaluebuf, p);
 
 		cgi_put("hasrecipientaddr", "");
 		cgi_put("headervalue", "");
@@ -583,9 +593,9 @@ const char *autoreply_from="";
 
 	if (!r)
 		r=maildir_filter_appendrule(&mf, rulename, type, flags, fieldname_cpy,
-			fieldvalue, tofolder, autoreply_from, &err_num);
+					    fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset, &err_num);
 	else if (maildir_filter_ruleupdate(&mf, r, rulename, type, flags, fieldname_cpy,
-			fieldvalue, tofolder, autoreply_from, &err_num))
+					   fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset, &err_num))
 		r=0;
 	free(tofolder);
 	if (fieldname_cpy)
