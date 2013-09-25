@@ -1,8 +1,8 @@
 dnl
-dnl Copyright 1998 - 2012 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 2013 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(maildrop, 2.6.0, [courier-users@lists.sourceforge.net])
+AC_INIT(maildrop, 2.7.0, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
