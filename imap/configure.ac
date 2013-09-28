@@ -1,10 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl
 dnl
-dnl Copyright 1998 - 2012 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 2013 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(courier-imap, 4.12.0, [courier-users@lists.sourceforge.net])
+AC_INIT(courier-imap, 4.14.0, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
