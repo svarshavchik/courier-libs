@@ -491,6 +491,8 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	const char *peer_cert_file=NULL;
 	int n;
 	struct tls_info *info_copy;
+	const SSL_METHOD *method=NULL;
+	long options;
 
 	if (!*ssl_cipher_list)
 		ssl_cipher_list=NULL;
@@ -548,14 +550,33 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	info_copy->isserver=isserver;
 	info_copy->certificate_verified=0;
 
-	if (!protocol || !*protocol)
-		protocol="SSL23";
+	options=SSL_OP_ALL;
 
-	ctx=SSL_CTX_new(protocol && strcmp(protocol, "SSL3") == 0
+	method=((!protocol || !*protocol)
+		? NULL:
+		strcmp(protocol, "SSL3") == 0
 			? SSLv3_method():
-			protocol && strcmp(protocol, "SSL23") == 0
+		strcmp(protocol, "SSL23") == 0
 			? SSLv23_method():
-			TLSv1_method());
+		strcmp(protocol, "TLSv1") == 0
+		? TLSv1_method():
+#ifdef HAVE_TLSV1_1_METHOD
+		strcmp(protocol, "TLSv1.1") == 0
+		? TLSv1_1_method():
+#endif
+#ifdef HAVE_TLSV1_2_METHOD
+		strcmp(protocol, "TLSv1.2") == 0
+		? TLSv1_2_method():
+#endif
+		NULL);
+
+	if (!method)
+	{
+		method=SSLv23_method();
+		options|=SSL_OP_NO_SSLv2;
+	}
+
+	ctx=SSL_CTX_new(method);
 
 	if (!ctx)
 	{
@@ -564,7 +585,7 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 		return (0);
 	}
 	SSL_CTX_set_app_data(ctx, info_copy);
-	SSL_CTX_set_options(ctx, SSL_OP_ALL);
+	SSL_CTX_set_options(ctx, options);
 
 	if (!ssl_cipher_list)
 		ssl_cipher_list="SSLv3:TLSv1:HIGH:!LOW:!MEDIUM:!EXP:!NULL:!aNULL@STRENGTH";

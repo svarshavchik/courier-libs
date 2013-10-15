@@ -506,9 +506,9 @@ RAND_pseudo_bytes(dummy, 1);
    AC_MSG_RESULT(no)
 ]
 )
-
+		LIBS="-lssl $LIBS"
+		AC_CHECK_FUNCS(TLSv1_1_method TLSv1_2_method)
 		LIBS="$save_LIBS"
-
 
 		TLSLIBRARY="$LIBCOURIERTLSOPENSSL"
 		STARTTLS=couriertls$EXEEXT
