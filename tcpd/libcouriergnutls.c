@@ -127,7 +127,7 @@ struct ssl_context_t {
 	const char *priority_list;
 
 	char *certfile;
-	int certfiledh;
+	char *dhfile;
 
 	char *trustcerts;
 
@@ -142,6 +142,7 @@ struct ssl_handle_t {
 	gnutls_anon_server_credentials_t anonservercred;
 	gnutls_certificate_credentials_t xcred;
 	gnutls_dh_params_t dhparams;
+	int dhparams_initialized;
 	gnutls_session_t session;
 
 	gnutls_x509_privkey_t x509_key;
@@ -185,7 +186,7 @@ ssl_context tls_create(int isserver, const struct tls_info *info)
 	static int first=1;
 
 	ssl_context p=malloc(sizeof(struct ssl_context_t));
-	char *certfile=NULL, *dhcertfile=NULL;
+	char *certfile=NULL;
 	char debug_flag;
 
 	if (!p)
@@ -241,36 +242,34 @@ ssl_context tls_create(int isserver, const struct tls_info *info)
 				     "NORMAL:-CTYPE-OPENPGP");
 
 	if ((certfile=strdup(safe_getenv(p, "TLS_CERTFILE", ""))) == NULL ||
-	    (dhcertfile=strdup(safe_getenv(p, "TLS_DHCERTFILE", "")))
-	    == NULL ||
 	    (p->trustcerts=strdup(safe_getenv(p, "TLS_TRUSTCERTS", "")))
 	    == NULL)
 	{
 		if (certfile)
 			free(certfile);
-		if (dhcertfile)
-			free(dhcertfile);
 		tls_destroy(p);
 		return NULL;
 	}
 
-	if (*dhcertfile)
-	{
-		p->certfile=dhcertfile;
-		p->certfiledh=1;
-		dhcertfile=NULL;
-	}
-	else if (*certfile)
+	if (*certfile)
 	{
 		p->certfile=certfile;
-		p->certfiledh=0;
 		certfile=NULL;
 	}
 
 	if (certfile)
 		free(certfile);
-	if (dhcertfile)
-		free(dhcertfile);
+
+	if ((certfile=strdup(safe_getenv(p, "TLS_DHPARAMS", ""))) != NULL &&
+	    *certfile)
+	{
+		p->dhfile=certfile;
+	}
+	else
+	{
+		if (certfile)
+			free(certfile);
+	}
 
 	switch (*safe_getenv(p, "TLS_VERIFYPEER", "P")) {
 	case 'n':
@@ -325,7 +324,8 @@ void tls_destroy(ssl_context p)
 {
 	if (p->certfile)
 		free(p->certfile);
-
+	if (p->dhfile)
+		free(p->dhfile);
 	if (p->trustcerts)
 		free(p->trustcerts);
 
@@ -1202,21 +1202,28 @@ static int get_client_cert(gnutls_session_t session,
 }
 
 static int read_dh_params(gnutls_dh_params_t dhparams,
-			  const char *filename)
+			  const char *filename,
+			  int *dhparams_initialized)
 {
 	int rc;
-
 	gnutls_datum_t filebuf;
+
+	if (*dhparams_initialized)
+		return 0;
+
+	if (!filename)
+		return 0;
 
 	rc=read_file(filename, &filebuf);
 
 	if (rc == 0)
 	{
-		rc=gnutls_dh_params_import_pkcs3(dhparams, &filebuf,
-						 GNUTLS_X509_FMT_PEM);
+		if (gnutls_dh_params_import_pkcs3(dhparams, &filebuf,
+						  GNUTLS_X509_FMT_PEM) == 0)
+			*dhparams_initialized=1;
 		release_file(&filebuf);
 	}
-	return rc;
+	return 0;
 }
 
 static int db_store_func(void *dummy, gnutls_datum_t key,
@@ -1444,16 +1451,15 @@ RT |
                                             0);
 
         gnutls_certificate_set_verify_limits(ssl->xcred, 16384, 10);
+	ssl->dhparams_initialized=0;
 
 	if (gnutls_priority_set_direct(ssl->session, ctx->priority_list,
 				       NULL) < 0 ||
-	    (ctx->certfiledh && read_dh_params(ssl->dhparams,
-					       ctx->certfile) < 0) ||
+	    read_dh_params(ssl->dhparams, ctx->dhfile,
+			   &ssl->dhparams_initialized) < 0 ||
+	    read_dh_params(ssl->dhparams, ctx->certfile,
+			   &ssl->dhparams_initialized) < 0 ||
 	    add_certificates(ssl->xcred, ctx->trustcerts) < 0 ||
-#if 0
-	    add_certificates(ssl->xcred, ctx->certfile) < 0 ||
-	    add_certificates(ssl->xcred, ctx->dhcertfile) < 0 ||
-#endif
 	    gnutls_credentials_set(ssl->session, GNUTLS_CRD_ANON,
 				   ctx->isserver
 				   ? (void *)ssl->anonservercred
@@ -1473,7 +1479,7 @@ RT |
 		return NULL;
 	}
 
-	if (ctx->certfiledh)
+	if (ssl->dhparams_initialized)
 	{
 		gnutls_certificate_set_dh_params(ssl->xcred, ssl->dhparams);
 

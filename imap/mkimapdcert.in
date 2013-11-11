@@ -24,6 +24,9 @@ then
 fi
 
 umask 077
+set -e
+
+BITS="$BITS"
 
 cleanup() {
 	rm -f @certsdir@/imapd.pem
@@ -44,20 +47,26 @@ then
 	dd if=@RANDOMV@ of=@certsdir@/imapd.rand count=1 2>/dev/null
 	@OPENSSL@ req -new -x509 -days 365 -nodes \
 		  -config @sysconfdir@/imapd.cnf -out @certsdir@/imapd.pem -keyout @certsdir@/imapd.pem || cleanup
-	@OPENSSL@ gendh -rand @certsdir@/imapd.rand 512 >>@certsdir@/imapd.pem || cleanup
 	@OPENSSL@ x509 -subject -dates -fingerprint -noout -in @certsdir@/imapd.pem || cleanup
 	rm -f @certsdir@/imapd.rand
 else
+	if test "$BITS" = ""
+	then
+		BITS="high"
+	fi
 	cp /dev/null @certsdir@/imapd.key
 	chmod 600 @certsdir@/imapd.key
 	cp /dev/null @certsdir@/imapd.cert
 	chmod 600 @certsdir@/imapd.cert
 	cp /dev/null @certsdir@/imapd.pem
 	chmod 600 @certsdir@/imapd.pem
+	chown @mailuser@ @certsdir@/imapd.pem
+	cp /dev/null @certsdir@/imapd.pem
+	cp /dev/null @certsdir@/imapd.cert
+	cp /dev/null @certsdir@/imapd.key
 
-	@CERTTOOL@ --generate-privkey --outfile imapd.key
+	@CERTTOOL@ --generate-privkey --sec-param=$BITS --outfile imapd.key
 	@CERTTOOL@ --generate-self-signed --load-privkey imapd.key --outfile imapd.cert --template @sysconfdir@/imapd.cnf
-	@CERTTOOL@ --generate-dh-params >>imapd.cert
 	cat imapd.key imapd.cert >imapd.pem
 	rm -f imapd.key imapd.cert
 fi

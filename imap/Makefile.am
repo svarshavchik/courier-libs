@@ -8,22 +8,25 @@ BUILT_SOURCES=README.proxy
 
 DISTCLEANFILES=imapd.pam pop3d.pam imapd.cnf pop3d.cnf
 CLEANFILES=imapd.8 imapd.html mkimapdcert.html mkimapdcert.8 \
+	mkdhparams.html mkdhparams.8 \
 	courierpop3d.html courierpop3d.8 mkpop3dcert.html mkpop3dcert.8
 
 EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
 	BUGS BUGS.html README README.html imapd.authpam \
 	pop3d.authpam system-auth.authpam system-auth2.authpam\
 	imapd.html.in imapd.8.in \
+	mkdhparams.html.in mkdhparams.8.in \
 	mkimapdcert.html.in mkimapdcert.8.in \
 	mkpop3dcert.html.in mkpop3dcert.8.in \
 	courierpop3d.html.in courierpop3d.8.in \
 	README.proxy README.proxy.html \
 	imapd.cnf.gnutls pop3d.cnf.gnutls
 
-noinst_SCRIPTS=mkimapdcert mkpop3dcert
+noinst_SCRIPTS=mkimapdcert mkpop3dcert mkdhparams
 noinst_PROGRAMS=imaplogin imapd pop3login pop3d
 
 noinst_DATA=imapd.8 imapd.html imapd.cnf pop3d.cnf \
+	mkdhparams.html mkdhparams.8 \
 	mkimapdcert.html mkimapdcert.8 \
 	mkpop3dcert.html mkpop3dcert.8 \
 	courierpop3d.html courierpop3d.8
@@ -102,6 +105,12 @@ imapd.html: imapd.html.in
 imapd.8: imapd.8.in
 	./config.status --file=imapd.8
 
+mkdhparams.html: mkdhparams.html.in
+	./config.status --file=mkdhparams.html
+
+mkdhparams.8: mkdhparams.8.in
+	./config.status --file=mkdhparams.8
+
 mkimapdcert.html: mkimapdcert.html.in
 	./config.status --file=mkimapdcert.html
 
@@ -127,6 +136,13 @@ imapd.html.in: imapd.sgml ../docbook/sgml2html
 imapd.8.in: imapd.sgml ../docbook/sgml2man
 	../docbook/sgml2man imapd.sgml imapd.8.in
 	mv imapd.8 imapd.8.in
+
+mkdhparams.html.in: mkdhparams.sgml ../docbook/sgml2html
+	../docbook/sgml2html mkdhparams.sgml mkdhparams.html.in
+
+mkdhparams.8.in: mkdhparams.sgml ../docbook/sgml2man
+	../docbook/sgml2man mkdhparams.sgml mkdhparams.8.in
+	mv mkdhparams.8 mkdhparams.8.in
 
 mkimapdcert.html.in: mkimapdcert.sgml ../docbook/sgml2html
 	../docbook/sgml2html mkimapdcert.sgml mkimapdcert.html.in

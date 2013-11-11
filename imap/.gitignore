@@ -17,6 +17,11 @@
 /imapd.html.in
 /imapd.pam
 /imaplogin
+/mkdhparams
+/mkdhparams.8
+/mkdhparams.8.in
+/mkdhparams.html
+/mkdhparams.html.in
 /mkimapdcert
 /mkimapdcert.8
 /mkimapdcert.8.in

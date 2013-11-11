@@ -1,0 +1,81 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2013 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>mkdhparams</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>mkdhparams</refname>
+    <refpurpose>create DH parameter file</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command>@sbindir@/mkdhparams</command>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+      This script creates new DH parameters and saves them in
+      <filename>@certsdir@/dhparams.pem</filename>. If this file already exists
+      and it's less than 25 days old, the script returns immediately.
+      If this file is over 25 days old, new DH parameters get generated and
+      the file gets replaced.
+    </para>
+
+    <para>
+      This script is intended to be execute when the system boots, or from
+      a monthly cron job.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>FILES</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>@certsdir@/dhparams.pem</term>
+	<listitem>
+	  <simpara>
+	    DH Parameter file.
+	  </simpara>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>ENVIRONMENT VARIABLES</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>BITS</term>
+	<listitem>
+	  <simpara>
+	    Customize the DH parameter bit size. The default value depends on
+	    whether this script uses OpenSSL or GnuTLS libraries. For OpenSSL
+	    the default number of bits is 768. GnuTLS uses a security level
+	    setting, rather than the number of bits, and the default
+	    security level is "high".
+	  </simpara>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>
+      <ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink></para>
+  </refsect1>
+</refentry>

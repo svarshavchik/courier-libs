@@ -1,0 +1,44 @@
+#! @SHELL@
+#
+# Copyright 2013 Double Precision, Inc.  See COPYING for
+# distribution information.
+#
+# Run this script monthly to generate DH parameters.
+
+if test -f @certsdir@/dhparams.pem
+then
+    if test "`find @certsdir@/dhparams.pem -mtime +25 -print `" = ""
+    then
+	# Less than 25 days old
+	exit 0
+    fi
+fi
+
+set -e
+
+cp /dev/null @certsdir@/dhparams.pem.tmp
+chmod 600 @certsdir@/dhparams.pem.tmp
+chown @mailuser@ @certsdir@/dhparams.pem.tmp
+
+BITS="$DH_BITS"
+if test "@ssllib@" = "openssl"
+then
+    if test "$BITS" = ""
+    then
+	BITS=768
+    fi
+
+    dd if=@RANDOMV@ of=@certsdir@/dhparams.rand.tmp count=1 2>/dev/null
+    @OPENSSL@ dhparam -rand @certsdir@/dhparams.rand.tmp -outform PEM $BITS >@certsdir@/dhparams.pem.tmp
+    rm -f @certsdir@/dhparams.rand.tmp
+    mv -f @certsdir@/dhparams.pem.tmp @certsdir@/dhparams.pem
+else
+    if test "$BITS" = ""
+    then
+	BITS=high
+    fi
+
+    @CERTTOOL@ --generate-dh-params --sec-param $BITS >@certsdir@/dhparams.pem.tmp
+    mv -f @certsdir@/dhparams.pem.tmp @certsdir@/dhparams.pem
+fi
+

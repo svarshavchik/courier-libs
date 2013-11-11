@@ -367,5 +367,5 @@ int main()
 AC_SUBST(cacerts)
 
 AC_OUTPUT(Makefile imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
-	testsuitefix.pl mkimapdcert mkpop3dcert
+	testsuitefix.pl mkimapdcert mkpop3dcert mkdhparams
 	imapd.cnf.openssl pop3d.cnf.openssl)

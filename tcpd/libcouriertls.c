@@ -215,15 +215,6 @@ static int verifypeer(const struct tls_info *info, SSL *ssl)
 	return (0);
 }
 
-#ifndef NO_RSA
-
-static RSA *rsa_callback(SSL *s, int export, int keylength)
-{
-	return (RSA_generate_key(keylength,RSA_F4,NULL,NULL));
-}
-
-#endif
-
 static void nonsslerror(const struct tls_info *info, const char *pfix)
 {
 	char errmsg[256];
@@ -269,51 +260,23 @@ static void sslerror(const struct tls_info *info, const char *pfix, int rc)
 
 static void init_session_cache(struct tls_info *, SSL_CTX *);
 
-static int process_rsacertfile(SSL_CTX *ctx, const char *filename)
+static void load_dh_params(SSL_CTX *ctx, const char *filename,
+			   int *cert_file_flags)
 {
-#ifndef	NO_RSA
-
 	const struct tls_info *info=SSL_CTX_get_app_data(ctx);
 
-	SSL_CTX_set_tmp_rsa_callback(ctx, rsa_callback);
-
-	if(!SSL_CTX_use_certificate_chain_file(ctx, filename))
-	{
-		sslerror(info, filename, -1);
-		return (0);
-	}
-
-	if(!SSL_CTX_use_RSAPrivateKey_file(ctx, filename, SSL_FILETYPE_PEM))
-	{
-		sslerror(info, filename, -1);
-		return (0);
-	}
-#endif
-	return (1);
-}
-
-
-static int process_dhcertfile(SSL_CTX *ctx, const char *filename)
-{
-#ifndef	NO_DH
-
-	const struct tls_info *info=SSL_CTX_get_app_data(ctx);
 	BIO	*bio;
 	DH	*dh;
-	int	cert_done=0;
 
-	if(!SSL_CTX_use_certificate_chain_file(ctx, filename))
-	{
-		sslerror(info, filename, -1);
-		return (0);
-	}
+	if (*cert_file_flags)
+		return;
 
 	if ((bio=BIO_new_file(filename, "r")) != 0)
 	{
 		if ((dh=PEM_read_bio_DHparams(bio, NULL, NULL, NULL)) != 0)
 		{
 			SSL_CTX_set_tmp_dh(ctx, dh);
-			cert_done=1;
+			*cert_file_flags = 1;
 			DH_free(dh);
 		}
 		else
@@ -322,33 +285,40 @@ static int process_dhcertfile(SSL_CTX *ctx, const char *filename)
 	}
 	else
 		sslerror(info, filename, -1);
+}
 
-	if (!cert_done)
+static int read_certfile(SSL_CTX *ctx, const char *filename,
+			      int *cert_file_flags)
+{
+	const struct tls_info *info=SSL_CTX_get_app_data(ctx);
+
+	if(!SSL_CTX_use_certificate_chain_file(ctx, filename))
 	{
-		(*info->tls_err_msg)("couriertls: DH init failed!",
-				     info->app_data);
-
+		sslerror(info, filename, -1);
 		return (0);
 	}
+
+	load_dh_params(ctx, filename, cert_file_flags);
 
 	if(!SSL_CTX_use_PrivateKey_file(ctx, filename, SSL_FILETYPE_PEM))
 	{
 		sslerror(info, filename, -1);
 		return (0);
 	}
-#endif
 	return (1);
 }
 
 static int process_certfile(SSL_CTX *ctx, const char *certfile, const char *ip,
-			    int (*func)(SSL_CTX *, const char *))
+			    int (*func)(SSL_CTX *, const char *,
+					int *),
+			    int *cert_file_flags)
 {
 	if (ip && *ip)
 	{
 		char *test_file;
 
 		if (strncmp(ip, "::ffff:", 7) == 0 && strchr(ip, '.'))
-			return (process_certfile(ctx, certfile, ip+7, func));
+			return (process_certfile(ctx, certfile, ip+7, func, cert_file_flags));
 
 		test_file= malloc(strlen(certfile)+strlen(ip)+2);
 
@@ -358,7 +328,8 @@ static int process_certfile(SSL_CTX *ctx, const char *certfile, const char *ip,
 
 		if (access(test_file, R_OK) == 0)
 		{
-			int rc= (*func)(ctx, test_file);
+			int rc= (*func)(ctx, test_file,
+					cert_file_flags);
 
 			free(test_file);
 			return rc;
@@ -366,7 +337,7 @@ static int process_certfile(SSL_CTX *ctx, const char *certfile, const char *ip,
 		free(test_file);
 	}
 
-	return (*func)(ctx, certfile);
+	return (*func)(ctx, certfile, cert_file_flags);
 }
 
 static int client_cert_cb(ssl_handle ssl, X509 **x509, EVP_PKEY **pkey)
@@ -483,7 +454,7 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	const char *protocol=safe_getenv(info, "TLS_PROTOCOL");
 	const char *ssl_cipher_list=safe_getenv(info, "TLS_CIPHER_LIST");
 	int session_timeout=atoi(safe_getenv(info, "TLS_TIMEOUT"));
-	const char *dhcertfile=safe_getenv(info, "TLS_DHCERTFILE");
+	const char *dhparamsfile=safe_getenv(info, "TLS_DHPARAMS");
 	const char *certfile=safe_getenv(info, "TLS_CERTFILE");
 	const char *s;
 	struct stat stat_buf;
@@ -493,15 +464,16 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	struct tls_info *info_copy;
 	const SSL_METHOD *method=NULL;
 	long options;
+	int cert_file_flags;
 
 	if (!*ssl_cipher_list)
 		ssl_cipher_list=NULL;
 
-	if (!*dhcertfile)
-		dhcertfile=NULL;
-
 	if (!*certfile)
 		certfile=NULL;
+
+	if (!*dhparamsfile)
+		dhparamsfile=NULL;
 
 	s=safe_getenv(info, "TLS_TRUSTCERTS");
 	if (s && stat(s, &stat_buf) == 0)
@@ -599,15 +571,14 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 
 	s = safe_getenv(info, "TCPLOCALIP");
 
-	if (certfile && !process_certfile(ctx, certfile, s,
-					  process_rsacertfile))
-	{
-		tls_destroy(ctx);
-		return (NULL);
-	}
+	cert_file_flags=0;
 
-	if (dhcertfile && !process_certfile(ctx, dhcertfile, s,
-					    process_dhcertfile))
+	if (dhparamsfile)
+		load_dh_params(ctx, dhparamsfile, &cert_file_flags);
+
+	if (certfile && !process_certfile(ctx, certfile, s,
+					  read_certfile,
+					  &cert_file_flags))
 	{
 		tls_destroy(ctx);
 		return (NULL);
