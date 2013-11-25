@@ -17,6 +17,6 @@ extern "C"
 
 #endif
 
-	void	setgroupid(gid_t grpid);
+int	setgroupid(gid_t grpid);
 
 #endif

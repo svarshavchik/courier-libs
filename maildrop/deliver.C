@@ -280,8 +280,12 @@ int	n;
 	for (n=0; n<NSIG; n++)
 		signal(n, SIG_DFL);
 
-	setgroupid(getgid());	// Just in case.
-	setuid(getuid());
+	if (setgroupid(getgid()) < 0 ||
+	    setuid(getuid()) < 0)
+	{
+		perror("setuid/setgid");
+		_exit(100);
+	}
 	ExitTrap::onfork();
 	execle(shell, q, "-c", cmd, (const char *)0, env);
 	if (write (2, "Unable to execute ", 18) < 0 ||

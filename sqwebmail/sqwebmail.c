@@ -2190,7 +2190,7 @@ int main(int argc, char **argv)
 
 static int setuidgid(uid_t u, gid_t g, const char *dir, void *dummy)
 {
-	if (setgid(g) || setuid(u))
+	if (setgid(g) < 0 || setuid(u) < 0)
 	{
 		fprintf(stderr,
 			"CRIT: Cache - can't setuid/setgid to %u/%u\n",
@@ -2275,8 +2275,12 @@ time_t	timeouthard=get_timeouthard();
 		if (*pi_malloced == 0)
 		{
 			free(pi_malloced);
-			setgid(getgid());
-			setuid(getuid());
+			if (setgid(getgid()) < 0 ||
+			    setuid(getuid()) < 0)
+			{
+				perror("setuid/setgid");
+				exit(1);
+			}
 			output_form("printnocookie.html");
 			return;
 		}
@@ -2360,8 +2364,12 @@ time_t	timeouthard=get_timeouthard();
 
 			|| last_time + timeoutsoft < current_time)
 		{
-			setgid(getgid());
-			setuid(getuid());	/* Drop root prevs */
+			if (setgid(getgid()) < 0 ||
+			    setuid(getuid()) < 0)	/* Drop root prevs */
+			{
+				perror("setuid/setgid");
+				exit(1);
+			}
 			if (chdir("/") < 0)
 			{
 				output_form("expired.html");
@@ -2599,14 +2607,23 @@ time_t	timeouthard=get_timeouthard();
 			maildir_cache_cancel();
 
 			free(ubuf);
-			setgid(getgid());
-			setuid(getuid());
+			if (setgid(getgid()) < 0 ||
+			    setuid(getuid()) < 0)	/* Drop root prevs */
+			{
+				perror("setuid/setgid");
+				exit(1);
+			}
 			output_form("invalid.html");	/* Invalid login */
 			return;
 		}
 
-		setgid(getgid());
-		setuid(getuid());
+		if (setgid(getgid()) < 0 ||
+		    setuid(getuid()) < 0)	/* Drop root prevs */
+		{
+			perror("setuid/setgid");
+			exit(1);
+		}
+
 		if ( *(u=cgi("redirect")))
 			/* Redirection request to hide the referral tag */
 		{

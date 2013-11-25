@@ -259,7 +259,11 @@ static int callback_authlib(struct authinfo *auth,
 		     << b << "\n";
 	}
 
-	setgroupid(auth->sysgroupid);
+	if (setgroupid(auth->sysgroupid) < 0)
+	{
+		perror("setgid");
+		exit(1);
+	}
 
 	uid_t u;
 	if (auth->sysusername)
@@ -291,9 +295,8 @@ static int callback_authlib(struct authinfo *auth,
 		     << b << "\n";
 	}
 
-	setuid(u);
-
-	if ( getuid() != u)
+	if (setuid(u) < 0 ||
+	    getuid() != u)
 		nochangeuidgid();
 
 	if (VerboseLevel() > 1)
@@ -479,12 +482,17 @@ const	char *numuidgid=0;
 				my_pw=getpwnam(deliverymode);
 				if (!my_pw)
 					nouser();
+				if (
 #if	RESET_GID
-				setgroupid(my_pw->pw_gid);
+				    setgroupid(my_pw->pw_gid) < 0
 #else
-				setgroupid(getegid());
+				    setgroupid(getegid()) < 0
 #endif
-				setuid(my_pw->pw_uid);
+				     ||
+				    setuid(my_pw->pw_uid) < 0)
+				{
+					nochangeuidgid();
+				}
 				if (getuid() != my_pw->pw_uid)
 					nochangeuidgid(); // Security violation.
 
@@ -560,8 +568,12 @@ const	char *numuidgid=0;
 				throw "Invalid -D option.";
 			}
 		}
-		setgroupid(gn);
-		setuid(un);
+		if (setgroupid(gn) < 0 ||
+		    setuid(un) < 0)
+		{
+			perror("setuid/setgid");
+			exit(1);
+		}
 		deliverymode="";
 		orig_uid=un;	/* See below for another Courier hook */
 	}
@@ -570,12 +582,20 @@ const	char *numuidgid=0;
 
 
 #if	RESET_GID
-	setgroupid(getgid());
+	if (setgroupid(getgid()) < 0)
+	{
+		perror("setgid");
+		exit(1);
+	}
 #endif
 
 uid_t	my_u=getuid();
 
-	setuid(my_u);	// Drop any setuid privileges.
+	if (setuid(my_u) < 0)	// Drop any setuid privileges.
+	{
+		perror("setuid");
+		exit(1);
+	}
 
 	if (!found)
 	{

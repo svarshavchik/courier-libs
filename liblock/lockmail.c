@@ -159,8 +159,12 @@ int main(int argc, char **argv)
 
 		if (pid == 0)
 		{
-			setgid(getgid());
-			setuid(getuid());
+			if (setgid(getgid()) < 0 ||
+			    setuid(getuid()) < 0)
+			{
+				perror("setuid/setgid");
+				exit(1);
+			}
 
 			(void)caught();
 			execvp(argvec[0], argvec);
