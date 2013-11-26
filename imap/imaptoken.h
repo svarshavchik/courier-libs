@@ -50,6 +50,7 @@ extern size_t doread(char *buf, size_t bufsiz);
 extern char *imap_readptr;
 extern size_t imap_readptrleft;
 extern void readfill();
+extern void readflush();
 
 #define	READ()	( imap_readptrleft ? \
 	(--imap_readptrleft, (int)(unsigned char)*imap_readptr++): \

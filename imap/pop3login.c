@@ -66,6 +66,7 @@ static int	starttls()
 
 	printf("+OK Begin SSL/TLS negotiation now.\r\n");
 	fflush(stdout);
+	fflush(stdin);
 
 	if (couriertls_start(argvec, &cinfo))
 	{

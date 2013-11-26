@@ -245,7 +245,7 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 	return(rc);
 }
 
-int do_imap_command(const char *tag)
+int do_imap_command(const char *tag, int *flushflag)
 {
 	struct	imaptoken *curtoken=nexttoken();
 	char authservice[40];
@@ -298,7 +298,7 @@ int do_imap_command(const char *tag)
 		putenv("IMAP_STARTTLS=NO");
 		putenv("IMAP_TLS_REQUIRED=0");
 		putenv("IMAP_TLS=1");
-
+		*flushflag=1;
 		return (0);
 	}
 

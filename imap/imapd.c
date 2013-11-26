@@ -4135,7 +4135,7 @@ static int validate_charset(const char *tag, char **charset)
 	return (0);
 }
 
-int do_imap_command(const char *tag)
+int do_imap_command(const char *tag, int *flushflag)
 {
 struct	imaptoken *curtoken=nexttoken();
 int	uid=0;
