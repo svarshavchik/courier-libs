@@ -165,8 +165,12 @@ courierpop3d.8.in: courierpop3d.sgml ../docbook/sgml2man
 	../docbook/sgml2man courierpop3d.sgml courierpop3d.8.in
 	mv courierpop3d.8 courierpop3d.8.in
 
-README.proxy.html: README.proxy.sgml ../docbook/sgml2html
-	../docbook/sgml2html README.proxy.sgml README.proxy.html
+README.proxy.html: README.proxy.sgml
+	rm -rf html.tmp
+	xsltproc -o html.tmp/ --nonet http://docbook.sourceforge.net/release/xsl/current/xhtml/onechunk.xsl README.proxy.sgml
+	xsltproc ../docbook/fixhtml.xsl html.tmp/* >README.proxy.html.tmp
+	mv -f README.proxy.html.tmp README.proxy.html
+	rm -rf html.tmp
 
 README.proxy: README.proxy.html
 	$(HTML2TXT) README.proxy.html >README.proxy
