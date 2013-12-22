@@ -9,7 +9,7 @@ CLEANFILES=sysconfdir.h uids.h calendardir.h uids
 
 DISTCLEANFILES=pcp.libs
 
-SUBDIRS=intl po
+SUBDIRS=po
 
 noinst_LTLIBRARIES=libpcp.la
 

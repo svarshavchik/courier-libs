@@ -203,4 +203,4 @@ fi
 
 CPPFLAGS="-Iintl/ -I${srcdir}/intl $CPPFLAGS"
 MKINSTALLDIRS="$mkdir_p"
-AC_OUTPUT(Makefile po/Makefile.in  intl/Makefile)
+AC_OUTPUT(Makefile po/Makefile.in   )
