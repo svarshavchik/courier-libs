@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2013 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -3119,7 +3119,7 @@ static void do_folderlist(const char *inbox_pfix,
 	const char	*folders_img;
 	const char	*unread_label;
 	const char	*acl_img;
-	char acl_buf[2];
+	char acl_buf[4];
 	char	**folders;
 	size_t	i;
 	unsigned nnew, nother;
@@ -3307,7 +3307,7 @@ static void do_folderlist(const char *inbox_pfix,
 		{
 			/* List INBOX at the top level */
 
-			strcpy(acl_buf, ACL_LOOKUP);
+			strcpy(acl_buf, ACL_LOOKUP ACL_ADMINISTER);
 			acl_computeRightsOnFolder(shortname, acl_buf);
 			if (acl_buf[0] == 0)
 				continue;
@@ -3318,6 +3318,7 @@ static void do_folderlist(const char *inbox_pfix,
 			    strncmp(shortname, SHARED ".", sizeof(SHARED)) == 0)
 			{
 				shortname += sizeof(SHARED);
+				strcpy(acl_buf, ACL_LOOKUP);
 			}
 			else
 			{
@@ -3327,7 +3328,7 @@ static void do_folderlist(const char *inbox_pfix,
 					continue;
 				}
 
-				strcpy(acl_buf, ACL_LOOKUP);
+				strcpy(acl_buf, ACL_LOOKUP ACL_ADMINISTER);
 				acl_computeRightsOnFolder(shortname, acl_buf);
 				if (acl_buf[0] == 0)
 					continue;
@@ -3349,7 +3350,7 @@ static void do_folderlist(const char *inbox_pfix,
 				s[p-folders[i]]=0;
 
 				printf("<tr class=\"foldersubdir\"><td align=\"left\">");
-				if (acl_img)
+				if (acl_img && strchr(acl_buf, ACL_ADMINISTER[0]))
 				{
 					printf("<a href=\"");
 					output_scriptptrget();
@@ -3357,13 +3358,16 @@ static void do_folderlist(const char *inbox_pfix,
 					output_urlencoded(s);
 					printf("\">%s</a>&nbsp;", acl_img);
 				}
-				printf("%s%s&nbsp;<a href=\"",
-				       folders_img, pfix);
 
-				output_scriptptrget();
-				printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
-				output_urlencoded(s);
-				printf("\">");
+				printf("%s%s&nbsp;", folders_img, pfix);
+				if (acl_buf[0])
+				{
+					printf("<a href=\"");
+					output_scriptptrget();
+					printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
+					output_urlencoded(s);
+					printf("\">");
+				}
 				free(s);
 
 				t=malloc(p-shortname+1);
@@ -3377,7 +3381,10 @@ static void do_folderlist(const char *inbox_pfix,
 						  name_sent,
 						  name_trash);
 				free(t);
-				printf("</a>");
+				if (strchr(acl_buf, ACL_LOOKUP[0]))
+				{
+					printf("</a>");
+				}
 
 				tot_nnew=0;
 				tot_nother=0;
@@ -3386,12 +3393,14 @@ static void do_folderlist(const char *inbox_pfix,
 				while (folders[j] && memcmp(folders[j], folders[i],
 							    p-folders[i]+1) == 0)
 				{
-					strcpy(acl_buf, ACL_LOOKUP);
+					strcpy(acl_buf, ACL_LOOKUP ACL_READ);
 					acl_computeRightsOnFolder(folders[j],
 								  acl_buf);
 					if (acl_buf[0] == 0)
+					{
+						++j;
 						continue;
-
+					}
 					maildir_count(folders[j], &nnew, &nother);
 					++j;
 					tot_nnew += nnew;
@@ -3413,13 +3422,16 @@ static void do_folderlist(const char *inbox_pfix,
 		nnew=0;
 		nother=0;
 
+		if (strchr(acl_buf, ACL_LOOKUP[0]) == NULL)
+			isunsubscribed=1;
+
 		if (!isunsubscribed)
 			maildir_count(folders[i], &nnew, &nother);
 
 		printf("<tr%s><td align=\"left\" valign=\"top\">",
 			isunsubscribed ? " class=\"folderunsubscribed\"":"");
 
-		if (acl_img)
+		if (acl_img && strchr(acl_buf, ACL_ADMINISTER[0]))
 		{
 			printf("<a href=\"");
 			output_scriptptrget();
