@@ -16,6 +16,8 @@ static void testsuite()
 	std::string buf;
 	int linenum=0;
 
+	int flag=0;
+
 	std::ifstream fp("LineBreakTest.txt");
 
 	if (!fp.is_open())
@@ -124,8 +126,13 @@ static void testsuite()
 		{
 			std::cerr << "Regression, line " << linenum
 				  << ": " << buf << std::endl;
-			exit(1);
+			flag=1;
 		}
+	}
+
+	if (flag)
+	{
+		exit(1);
 	}
 }
 

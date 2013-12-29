@@ -60,6 +60,8 @@ while (defined($_=<F>))
 
     next if $t eq "XX";
 
+    $t="NS" if $t eq "CJ";
+
     if ($t eq "SA")
     {
 	while ($f <= $l)

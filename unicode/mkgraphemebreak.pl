@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 #
-# Compile GraphemeBreak.txt into C array declarations.
+# Compile GraphemeBreakProperty.txt into C array declarations.
 #
 # The array's structure is [firstchar, lastchar, class], giving the
 # linebreaking "class" for unicode character range firstchar-lastchar.

@@ -22,6 +22,7 @@
 #define UNICODE_GRAPHEMEBREAK_T			0x09
 #define UNICODE_GRAPHEMEBREAK_LV		0x0A
 #define UNICODE_GRAPHEMEBREAK_LVT		0x0B
+#define UNICODE_GRAPHEMEBREAK_Regional_Indicator 0x0C
 
 #include "graphemebreaktab.h"
 
@@ -81,6 +82,10 @@ int unicode_grapheme_break(unicode_char a, unicode_char b)
 	     ac == UNICODE_GRAPHEMEBREAK_T) &&
 	    bc == UNICODE_GRAPHEMEBREAK_T)
 		return 0; /* GB8 */
+
+	if (ac == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&
+	    bc == UNICODE_GRAPHEMEBREAK_Regional_Indicator)
+		return 0; /* GB8a */
 
 	if (bc == UNICODE_GRAPHEMEBREAK_Extend)
 		return 0; /* GB9 */

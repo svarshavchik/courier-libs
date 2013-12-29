@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Double Precision, Inc.
+** Copyright 2011-2013 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -28,6 +28,7 @@ struct unicode_lb_info {
 	uint8_t savedclass;
 	size_t savedcmcnt;
 
+	uint8_t prevclass_min1;
 	uint8_t prevclass;
 	uint8_t prevclass_nsp;
 
@@ -50,7 +51,7 @@ static int next_lb25_seennuclcp(unicode_lb_info_t, uint8_t);
 
 static void unicode_lb_reset(unicode_lb_info_t i)
 {
-	i->prevclass=i->prevclass_nsp=UNICODE_LB_SOT;
+	i->prevclass_min1=i->prevclass=i->prevclass_nsp=UNICODE_LB_SOT;
 	i->next_handler=next_def;
 	i->end_handler=end_def;
 }
@@ -147,10 +148,15 @@ static int next_def_nolb25(unicode_lb_info_t i,
 
 	/* Retrieve the previous unicode character's linebreak class. */
 
+	uint8_t prevclass_min1=i->prevclass_min1;
 	uint8_t prevclass=i->prevclass;
 	uint8_t prevclass_nsp=i->prevclass_nsp;
 
+#define RESTORE (i->prevclass_min1=prevclass_min1,			\
+		 i->prevclass=prevclass,				\
+		 i->prevclass_nsp=prevclass_nsp)			\
 	/* Save this unicode char's linebreak class, for the next goaround */
+	i->prevclass_min1=i->prevclass;
 	i->prevclass=uclass;
 
 	if (uclass != UNICODE_LB_SP)
@@ -216,8 +222,7 @@ static int next_def_nolb25(unicode_lb_info_t i,
 
 	if (uclass == UNICODE_LB_CM)
 	{
-		i->prevclass=prevclass;
-		i->prevclass_nsp=prevclass_nsp;
+		RESTORE;
 		return RESULT(UNICODE_LB_NONE); /* LB9 */
 	}
 
@@ -295,9 +300,15 @@ static int next_def_nolb25(unicode_lb_info_t i,
 	if (prevclass == UNICODE_LB_BB)
 		return RESULT(UNICODE_LB_NONE);
 
+	/* LB21a: */
+	if (prevclass_min1 == UNICODE_LB_HL &&
+	    (prevclass == UNICODE_LB_HY || prevclass == UNICODE_LB_BA))
+		return RESULT(UNICODE_LB_NONE);
+
 	if (uclass == UNICODE_LB_IN)
 		switch (prevclass) {
 		case UNICODE_LB_AL:
+		case UNICODE_LB_HL:
 		case UNICODE_LB_ID:
 		case UNICODE_LB_IN:
 		case UNICODE_LB_NU:
@@ -311,8 +322,12 @@ static int next_def_nolb25(unicode_lb_info_t i,
 		return RESULT(UNICODE_LB_NONE); /* LB23 */
 	if (prevclass == UNICODE_LB_AL && uclass == UNICODE_LB_NU)
 		return RESULT(UNICODE_LB_NONE); /* LB23 */
+	if (prevclass == UNICODE_LB_HL && uclass == UNICODE_LB_NU)
+		return RESULT(UNICODE_LB_NONE); /* LB23 */
 
 	if (prevclass == UNICODE_LB_NU && uclass == UNICODE_LB_AL)
+		return RESULT(UNICODE_LB_NONE); /* LB23 */
+	if (prevclass == UNICODE_LB_NU && uclass == UNICODE_LB_HL)
 		return RESULT(UNICODE_LB_NONE); /* LB23 */
 
 
@@ -320,7 +335,11 @@ static int next_def_nolb25(unicode_lb_info_t i,
 		return RESULT(UNICODE_LB_NONE); /* LB24 */
 	if (prevclass == UNICODE_LB_PR && uclass == UNICODE_LB_AL)
 		return RESULT(UNICODE_LB_NONE); /* LB24 */
+	if (prevclass == UNICODE_LB_PR && uclass == UNICODE_LB_HL)
+		return RESULT(UNICODE_LB_NONE); /* LB24 */
 	if (prevclass == UNICODE_LB_PO && uclass == UNICODE_LB_AL)
+		return RESULT(UNICODE_LB_NONE); /* LB24 */
+	if (prevclass == UNICODE_LB_PO && uclass == UNICODE_LB_HL)
 		return RESULT(UNICODE_LB_NONE); /* LB24 */
 
 	if ((i->opts & UNICODE_LB_OPT_PRBREAK) && uclass == UNICODE_LB_PR)
@@ -339,8 +358,7 @@ static int next_def_nolb25(unicode_lb_info_t i,
 
 		if (uclass == UNICODE_LB_OP || uclass == UNICODE_LB_HY)
 		{
-			i->prevclass=prevclass;
-			i->prevclass_nsp=prevclass_nsp;
+			RESTORE;
 
 			i->savedclass=uclass;
 			i->savedcmcnt=0;
@@ -403,19 +421,26 @@ static int next_def_nolb25(unicode_lb_info_t i,
 		break;
 	}
 
-	if (prevclass == UNICODE_LB_AL && uclass == UNICODE_LB_AL)
+	if ((prevclass == UNICODE_LB_AL || prevclass == UNICODE_LB_HL)
+	    && (uclass == UNICODE_LB_AL || uclass == UNICODE_LB_HL))
 		return RESULT(UNICODE_LB_NONE); /* LB28 */
 
-	if (prevclass == UNICODE_LB_IS && uclass == UNICODE_LB_AL)
+	if (prevclass == UNICODE_LB_IS &&
+	    (uclass == UNICODE_LB_AL || uclass == UNICODE_LB_HL))
 		return RESULT(UNICODE_LB_NONE); /* LB29 */
 
-	if ((prevclass == UNICODE_LB_AL || prevclass == UNICODE_LB_NU) &&
+	if ((prevclass == UNICODE_LB_AL || prevclass == UNICODE_LB_HL
+	     || prevclass == UNICODE_LB_NU) &&
 	    uclass == UNICODE_LB_OP)
 		return RESULT(UNICODE_LB_NONE); /* LB30 */
 
-	if ((uclass == UNICODE_LB_AL || uclass == UNICODE_LB_NU) &&
+	if ((uclass == UNICODE_LB_AL || uclass == UNICODE_LB_HL
+	     || uclass == UNICODE_LB_NU) &&
 	    prevclass == UNICODE_LB_CP)
 		return RESULT(UNICODE_LB_NONE); /* LB30 */
+
+	if (uclass == UNICODE_LB_RI && prevclass == UNICODE_LB_RI)
+		return RESULT(UNICODE_LB_NONE); /* LB30a */
 
 	return RESULT(UNICODE_LB_ALLOWED); /* LB31 */
 }

@@ -21,5 +21,9 @@
 #define UNICODE_WB_Format	0x0A
 #define UNICODE_WB_Katakana	0x0B
 
+#define UNICODE_WB_Single_Quote	0x0C
+#define UNICODE_WB_Double_Quote	0x0D
+#define UNICODE_WB_Hebrew_Letter 0x0E
+#define UNICODE_WB_Regional_Indicator 0x0F
 #define UNICODE_WB_OTHER	0xFF
 #endif

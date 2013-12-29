@@ -5,3 +5,14 @@
 /unicode_config.h.in
 /unicodetest
 /wordbreaktest
+/EastAsianWidth.txt
+/GraphemeBreakProperty.txt
+/LineBreak.txt
+/LineBreakTest.txt
+/UnicodeData.txt
+/Unihan.zip
+/WordBreakProperty.txt
+/WordBreakTest.txt
+/xhtml-lat1.ent
+/xhtml-special.ent
+/xhtml-symbol.ent

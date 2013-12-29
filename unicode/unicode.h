@@ -2,7 +2,7 @@
 #define	unicode_h
 
 /*
-** Copyright 2000-2011 Double Precision, Inc.
+** Copyright 2000-2013 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -93,7 +93,8 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 				  uint8_t uclass);
 
 /*
-** Implementation of grapheme cluster boundary rules, as per tr29,
+** Implementation of grapheme cluster boundary rules, as per
+** http://www.unicode.org/reports/tr29/tr29-23.html
 ** including  GB9a and GB9b.
 **
 ** Returns non-zero if there's a grapheme break between the two referenced
@@ -103,7 +104,8 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 int unicode_grapheme_break(unicode_char a, unicode_char b);
 
 /*
-** Implementation of line break rules, as per tr14.
+** Implementation of line break rules, as per
+** http://www.unicode.org/reports/tr14/tr14-32.html
 **
 ** Invoke unicode_lb_init() to initialize the linebreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -234,7 +236,8 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 
 
 /*
-** Tailored / breaking rules.
+** Tailored "/" breaking rules. This prevents breaking after the "/"
+** character. And provides an exception to the "x SY" rule in LB13.
 **
 ** Adds the following rule to LB13:
 **
@@ -257,7 +260,8 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 #define UNICODE_LB_OPT_DASHWJ 0x0004
 
 /*
-** Implemention of word break rules, as per tr29.
+** Implemention of word break rules, as per
+** http://www.unicode.org/reports/tr29/tr29-23.html
 **
 ** Invoke unicode_wb_init() to initialize the wordbreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two

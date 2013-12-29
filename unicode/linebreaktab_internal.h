@@ -38,11 +38,13 @@
 #define UNICODE_LB_AL	0x41
 #define UNICODE_LB_H2	0x42
 #define UNICODE_LB_H3	0x43
-#define UNICODE_LB_ID	0x44
-#define UNICODE_LB_JL	0x45
-#define UNICODE_LB_JV	0x46
-#define UNICODE_LB_JT	0x47
-#define UNICODE_LB_SA	0x48
+#define UNICODE_LB_HL	0x44
+#define UNICODE_LB_ID	0x45
+#define UNICODE_LB_JL	0x46
+#define UNICODE_LB_JV	0x47
+#define UNICODE_LB_JT	0x48
+#define UNICODE_LB_RI   0x49
+#define UNICODE_LB_SA	0x4A
 
 extern int unicode_lb_lookup(unicode_char ch);
 
