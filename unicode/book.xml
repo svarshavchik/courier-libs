@@ -70,7 +70,7 @@ See COPYING for distribution information.
   </section>
 
   <section id="INSTALL">
-    <title>Installation</title>
+    <title>Installation and usage</title>
 
     <para>
       Download the current version of the library from
@@ -78,6 +78,20 @@ See COPYING for distribution information.
       After unpacking the tarball, run the configure script, which takes
       the usual options, followed by <command>make</command>, then
       <command>make install</command>.
+    </para>
+
+    <para>
+      To use the library, <quote>#include &lt;unicode.h&gt;</quote> and link
+      with <literal>-lunicode</literal>.
+      The starting point is
+      <link linkend="courier-unicode">
+	<citerefentry>
+	  <refentrytitle>courier-unicode</refentrytitle>
+	  <manvolnum>7</manvolnum></citerefentry></link>.
+	  Refer to the included manual pages,
+	  and
+	  <ulink url="http://www.courier-mta.org/unicode/manpages.html"> the HTML
+	  version of the man pages</ulink> for more information.
     </para>
   </section>
 

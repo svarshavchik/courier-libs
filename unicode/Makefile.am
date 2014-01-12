@@ -180,6 +180,8 @@ docs:
 		--stringparam root.filename 'index' \
 		--stringparam generate.id.attributes 1 \
 		$(srcdir)/docbook/docbook.xsl $(srcdir)/book.xml
+	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; xsltproc --nonet $$HOME/www/www.courier-mta.org/xsl/unicode.xsl $$f.tmp | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f; rm -f $$f.tmp; done
+
 	mkdir -p html
 	rm -f html/*
 	mv html.tmp/* html
@@ -249,7 +251,7 @@ upload-dist:
 	test -z "$(SFPASSWD)" && exit 1; exit 0
 	rm -f @PACKAGE@-@VERSION@.tar.bz2.sig; gpg --detach-sign --default-key mrsam@courier-mta.com @PACKAGE@-@VERSION@.tar.bz2; test -f @PACKAGE@-@VERSION@.tar.bz2.sig || exit 1
 	set -e; v="@PACKAGE@/@VERSION@/`date +%Y%m%d%H%M%S`"; git tag -s $$v -m 'Tag version @VERSION@'
-	socksify ~/src/sftools/release.pl mrsam $(SFPASSWD) courier courier @VERSION@ @PACKAGE@-@VERSION@.tar.bz2 @PACKAGE@-@VERSION@.tar.bz2.sig
+	socksify ~/src/sftools/release.pl mrsam $(SFPASSWD) courier $(PACKAGE) @VERSION@ @PACKAGE@-@VERSION@.tar.bz2 @PACKAGE@-@VERSION@.tar.bz2.sig
 
 www:
 	rsync -a html/. $$HOME/www/www.courier-mta.org/unicode
