@@ -1,0 +1,155 @@
+/* stylesheet */
+
+.informaltable table {
+    border-collapse: collapse;
+}
+
+.informaltable table th, .informaltable table td {
+    border-width: 3px;
+    border-style: ridge;
+    border-color: #bbbbbb;
+    background-color: #eeeeee;
+    padding: .2em;
+}
+
+.tblfootnote {
+    font-size: 80%;
+}
+
+.informaltable .tblfootnote {
+    text-align: left;
+}
+
+blockquote.blockquote, code.computeroutput div.literallayout {
+    border-width: 2px;
+    border-style: ridge;
+    border-color: #bbbbbb;
+    background-color: #eeeeee;
+}
+
+.tblfootnote blockquote.blockquote {
+    border-width: 0px;
+}
+
+pre.programlisting, code.computeroutput div.literallayout {
+    padding-left: 1em;
+}
+
+code.computeroutput div.literallayout {
+    margin-left: 4em;
+}
+
+.application {
+    font-family: "liberation sans", arial, "sans serif";
+    font-weight: bold;
+}
+
+.command, .acronym {
+    font-family: "liberation mono", "courier new", monospace;
+}
+
+div.blockquote-title {
+    text-align:center;
+}
+
+#COPYING div.literallayout {
+    font-family: "liberation mono", "courier new", monospace;
+    height: 400px;
+    overflow-y: scroll;
+    padding-left: 1em;
+}
+
+blockquote.blockquote {
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
+#COPYING blockquote.blockquote {
+    padding-left: 0em;
+    padding-right: 0em;
+}
+
+code.varname {
+    color: #404000
+}
+
+code.classname {
+    color: #000080
+}
+
+code.methodname {
+    color: #004000
+}
+
+code.function {
+    color: #402000
+}
+
+div.note + div.note {
+    margin-top: 1em;
+}
+
+div.note {
+    border-radius: 10px;
+    border-width: thin;
+    border-style: solid;
+    border-color: #000000;
+    background-color: #dddddd;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
+div.note h3 {
+    border-bottom-width: thin;
+    border-bottom-style: dashed;
+    border-bottom-color: #bbbbbb;
+}
+
+a:link, a:visited {
+    color: blue;
+}
+
+#bodyindex {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+#index div.toc, #externallinks {
+    float: right;
+    border-width: thin;
+    border-color: #000000;
+    border-style: solid;
+    border-radius: 5px;
+    font-size: 80%;
+    background-color: #eeeeee;
+    margin-left: 1em;
+}
+
+#index div.toc {
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
+#externallinks {
+    margin-left: 1em;
+    padding-left: .5em;
+    padding-right: .5em;
+}
+
+#externallinks p {
+    margin-top: .1em;
+    margin-bottom: .1em;
+    margin-left: .1em;
+    margin-right: .1em;
+}
+
+#externallinks th {
+    text-align: left;
+}
+
+#externallinks th, #externallinks td {
+    border-width: 0px;
+}
+

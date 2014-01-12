@@ -634,6 +634,23 @@ void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts)
 {
 	unicode_lb_set_opts(i->handle, opts);
 }
+
+int unicode_lbc_next_cnt(unicode_lbc_info_t i,
+			 const unicode_char *chars,
+			 size_t cnt)
+{
+	while (cnt)
+	{
+		int n=unicode_lbc_next(i, *chars);
+
+		--cnt;
+		++chars;
+
+		if (n)
+			return n;
+	}
+	return 0;
+}
 	
 int unicode_lbc_next(unicode_lbc_info_t i, unicode_char ch)
 {

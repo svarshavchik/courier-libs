@@ -1,0 +1,3 @@
+2014-01-06  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Refactored as a standalone library, changed some symbol names.

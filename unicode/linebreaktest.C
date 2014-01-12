@@ -111,7 +111,7 @@ static void testsuite()
 		std::vector<int> computed_status;
 
 		typedef std::vector<unicode_char>::const_iterator ubuf_iter;
-		typedef mail::linebreak_iter<ubuf_iter> lb_iter;
+		typedef unicode::linebreak_iter<ubuf_iter> lb_iter;
 
 		std::copy(lb_iter(ubuf.begin(), ubuf.end()), lb_iter(),
 			  std::back_insert_iterator<std::vector<int> >
@@ -146,10 +146,10 @@ static void testlinebreakc()
 
 	linebreakvec_t linebreakvec;
 
-	std::copy(mail::linebreakc_iter<unicode_char *>(str,
+	std::copy(unicode::linebreakc_iter<unicode_char *>(str,
 							str + sizeof(str)
 							/sizeof(str[0])),
-		  mail::linebreakc_iter<unicode_char *>(),
+		  unicode::linebreakc_iter<unicode_char *>(),
 		  std::back_insert_iterator<linebreakvec_t>
 		  (linebreakvec));
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
 	std::vector<unicode_char> uc;
 
-	mail::iconvert::tou
+	unicode::iconvert::tou
 		::convert(convteststr, "utf-8", uc);
 
 	std::vector<unicode_char>::iterator e(uc.end()),
@@ -192,14 +192,14 @@ int main(int argc, char **argv)
 
 	if (b == e || *b++ != 0x30A2 || b != e)
 	{
-		std::cerr << "mail::iconvert::tou::convert failed"
+		std::cerr << "unicode::iconvert::tou::convert failed"
 			  << std::endl;
 		exit(1);
 	}
 
-	if (mail::iconvert::fromu::convert(uc, "utf-8") != convteststr)
+	if (unicode::iconvert::fromu::convert(uc, "utf-8") != convteststr)
 	{
-		std::cerr << "mail::iconvert::fromu::convert failed"
+		std::cerr << "unicode::iconvert::fromu::convert failed"
 			  << std::endl;
 		exit(1);
 	}

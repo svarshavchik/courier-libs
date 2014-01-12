@@ -2,7 +2,7 @@
 #define	unicode_h
 
 /*
-** Copyright 2000-2013 Double Precision, Inc.
+** Copyright 2000-2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -20,20 +20,9 @@ extern "C" {
 }
 #endif
 
-#include	"unicode/unicode_config.h"
-
 #include	<stdlib.h>
-
 #include	<stdio.h>
-#if HAVE_WCHAR_H
-#include	<wchar.h>
-#endif
-
-#if HAVE_STDDEF_H
-#include	<stddef.h>
-#endif
 #include	<stdint.h>
-
 #include	<sys/types.h>
 
 typedef uint32_t unicode_char;
@@ -94,7 +83,7 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 
 /*
 ** Implementation of grapheme cluster boundary rules, as per
-** http://www.unicode.org/reports/tr29/tr29-23.html
+** http://www.unicode.org/reports/tr29/tr29-23.html4
 ** including  GB9a and GB9b.
 **
 ** Returns non-zero if there's a grapheme break between the two referenced
@@ -209,6 +198,9 @@ extern unicode_lbc_info_t unicode_lbc_init(int (*cb_func)(int, unicode_char,
 							  void *),
 					   void *cb_arg);
 extern int unicode_lbc_next(unicode_lbc_info_t i, unicode_char ch);
+extern int unicode_lbc_next_cnt(unicode_lbc_info_t i,
+				const unicode_char *chars,
+				size_t cnt);
 extern int unicode_lbc_end(unicode_lbc_info_t i);
 
 /*
@@ -474,39 +466,39 @@ int unicode_buf_cmp_str(const struct unicode_buf *p,
 
 /*
 ** A wrapper for iconv(3). This wrapper provides a different API for iconv(3).
-** A handle gets created by libmail_u_convert_init().
-** libmail_u_convert_init() receives a pointer to the output function
+** A handle gets created by unicode_convert_init().
+** unicode_convert_init() receives a pointer to the output function
 ** which receives converted character text.
 **
 ** The output function receives a pointer to the converted character text, and
 ** the number of characters in the converted text.
 **
 ** The character text to convert gets passed, repeatedly, to
-** libmail_u_convert(). Each call to libmail_u_convert() results in
+** unicode_convert(). Each call to unicode_convert() results in
 ** the output function being invoked, zero or more times, with the converted
-** text. Finally, libmail_u_convert_deinit() stops the conversion and
+** text. Finally, unicode_convert_deinit() stops the conversion and
 ** deallocates the conversion handle.
 **
-** Internal buffering takes place. libmail_u_convert_deinit() may result
+** Internal buffering takes place. unicode_convert_deinit() may result
 ** in the output function being called one or more times, to receive the final
 ** part of the converted character stream.
 **
 ** The output function should return 0. A non-0 value causes
-** libmail_u_convert() and/or libmail_u_convert_deinit() returning
+** unicode_convert() and/or unicode_convert_deinit() returning
 ** non-0.
 */
 
-struct libmail_u_convert_hdr;
+struct unicode_convert_hdr;
 
-typedef struct libmail_u_convert_hdr *libmail_u_convert_handle_t;
+typedef struct unicode_convert_hdr *unicode_convert_handle_t;
 
 /*
-** libmail_u_convert_init() returns a non-NULL handle for the requested
+** unicode_convert_init() returns a non-NULL handle for the requested
 ** conversion, or NULL if the requested conversion is not available.
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_init(/* Convert from this chset */
+unicode_convert_handle_t
+unicode_convert_init(/* Convert from this chset */
 		       const char *src_chset,
 
 		       /* Convert to this chset */
@@ -520,14 +512,14 @@ libmail_u_convert_init(/* Convert from this chset */
 		       void *convert_arg);
 
 /*
-** Repeatedly pass the character text to convert to libmail_u_convert().
+** Repeatedly pass the character text to convert to unicode_convert().
 **
 ** Returns non-0 if the output function returned non-0, or 0 if all invocations
 ** of the output function returned 0.
 */
 
-int libmail_u_convert(/* The conversion handle */
-		      libmail_u_convert_handle_t handle,
+int unicode_convert(/* The conversion handle */
+		      unicode_convert_handle_t handle,
 
 		      /* Text to convert */
 		      const char *text,
@@ -541,7 +533,7 @@ int libmail_u_convert(/* The conversion handle */
 ** May still result in one or more invocations of the output function.
 ** Returns non-zero if any previous invocation of the output function returned
 ** non-zero (this includes any invocations of the output function resulting
-** from this call, or prior libmail_u_convert() calls), or 0 if all
+** from this call, or prior unicode_convert() calls), or 0 if all
 ** invocations of the output function returned 0.
 **
 ** If the errptr is not NULL, *errptr is set to non-zero if there were any
@@ -549,21 +541,21 @@ int libmail_u_convert(/* The conversion handle */
 ** the destination character text.
 */
 
-int libmail_u_convert_deinit(libmail_u_convert_handle_t handle,
+int unicode_convert_deinit(unicode_convert_handle_t handle,
 			     int *errptr);
 
 
 /*
 ** Specialization: save converted character text in a buffer.
 **
-** Implementation: call libmail_u_convert_tocbuf_init() instead of
-** libmail_u_convert_init(), then call libmail_u_convert() and
-** libmail_u_convert_deinit(), as usual.
+** Implementation: call unicode_convert_tocbuf_init() instead of
+** unicode_convert_init(), then call unicode_convert() and
+** unicode_convert_deinit(), as usual.
 **
-** If libmail_u_convert_deinit() returns 0, *cbufptr_ret gets initialized to a
+** If unicode_convert_deinit() returns 0, *cbufptr_ret gets initialized to a
 ** malloc()ed buffer, and the number of converted characters, the size of the
 ** malloc()ed buffer, are placed into *csize_ret arguments, that were passed
-** to libmail_u_convert_tou_init().
+** to unicode_convert_tou_init().
 **
 ** Note: if the converted string is an empty string, *cbufsize_ret is set to 0,
 ** but *cbufptr_ptr still gets initialized (to a dummy malloced buffer).
@@ -572,8 +564,8 @@ int libmail_u_convert_deinit(libmail_u_convert_handle_t handle,
 ** converted string (this is included in *cbufsize_ret).
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_init(/* Convert from this chset */
+unicode_convert_handle_t
+unicode_convert_tocbuf_init(/* Convert from this chset */
 			      const char *src_chset,
 
 			      /* Convert to this chset */
@@ -593,18 +585,18 @@ libmail_u_convert_tocbuf_init(/* Convert from this chset */
 /*
 ** Specialization: convert some character text to a unicode_char array.
 **
-** This is like libmail_u_convert_tocbuf_init(), but converts to a unicode_char
+** This is like unicode_convert_tocbuf_init(), but converts to a unicode_char
 ** array.
 **
 ** The returned *ucsize_ret is initialized with the number of unicode_chars,
 ** rather than the byte count.
 **
 ** In all other ways, this function behaves identically to
-** libmail_u_convert_tocbuf_init().
+** unicode_convert_tocbuf_init().
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_tou_init(/* Convert from this chset */
+unicode_convert_handle_t
+unicode_convert_tou_init(/* Convert from this chset */
 			   const char *src_chset,
 
 			   /* malloc()ed buffer pointer, on exit. */
@@ -620,13 +612,13 @@ libmail_u_convert_tou_init(/* Convert from this chset */
 /*
 ** Specialization: convert a unicode_char array to some character text.
 **
-** This is the opposite of libmail_u_convert_tou_init(). Call this to
-** initialize the conversion handle, then use libmail_u_convert_uc()
-** instead of libmail_u_convert.
+** This is the opposite of unicode_convert_tou_init(). Call this to
+** initialize the conversion handle, then use unicode_convert_uc()
+** instead of unicode_convert.
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_fromu_init(/* Convert to this chset */
+unicode_convert_handle_t
+unicode_convert_fromu_init(/* Convert to this chset */
 			     const char *dst_chset,
 
 			     /* malloc()ed buffer pointer, on exit. */
@@ -639,8 +631,8 @@ libmail_u_convert_fromu_init(/* Convert to this chset */
 			     int nullterminate
 			     );
 
-int libmail_u_convert_uc(/* The conversion handle */
-			 libmail_u_convert_handle_t handle,
+int unicode_convert_uc(/* The conversion handle */
+			 unicode_convert_handle_t handle,
 
 			 /* Text to convert */
 			 const unicode_char *text,
@@ -651,12 +643,12 @@ int libmail_u_convert_uc(/* The conversion handle */
 /*
 ** Initialize conversion to UTF-8.
 **
-** This is a wrapper for libmail_u_convert_tocbuf_init() that specifies the
+** This is a wrapper for unicode_convert_tocbuf_init() that specifies the
 ** destination charset as UTF-8.
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_toutf8_init(const char *src_chset,
+unicode_convert_handle_t
+unicode_convert_tocbuf_toutf8_init(const char *src_chset,
 				     char **cbufptr_ret,
 				     size_t *cbufsize_ret,
 				     int nullterminate);
@@ -664,12 +656,12 @@ libmail_u_convert_tocbuf_toutf8_init(const char *src_chset,
 /*
 ** Initialize conversion from UTF-8.
 **
-** This is a wrapper for libmail_u_convert_tocbuf_init() that specifies the
+** This is a wrapper for unicode_convert_tocbuf_init() that specifies the
 ** source charset as UTF-8.
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_fromutf8_init(const char *dst_chset,
+unicode_convert_handle_t
+unicode_convert_tocbuf_fromutf8_init(const char *dst_chset,
 				       char **cbufptr_ret,
 				       size_t *cbufsize_ret,
 				       int nullterminate);
@@ -680,7 +672,7 @@ libmail_u_convert_tocbuf_fromutf8_init(const char *dst_chset,
 ** Returns a malloc-ed buffer holding the UTF-8 string, or NULL if an
 ** error occured.
 */
-char *libmail_u_convert_toutf8(/* Text to convert to UTF-8 */
+char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 			       const char *text,
 
 			       /* Character set to convert to UTF-8 */
@@ -700,7 +692,7 @@ char *libmail_u_convert_toutf8(/* Text to convert to UTF-8 */
 ** character set, or NULL if an error occured.
 */
 
-char *libmail_u_convert_fromutf8(/* A UTF-8 string */
+char *unicode_convert_fromutf8(/* A UTF-8 string */
 				 const char *text,
 
 				 /*
@@ -725,7 +717,7 @@ char *libmail_u_convert_fromutf8(/* A UTF-8 string */
 ** character set, or NULL if an error occured.
 */
 
-char *libmail_u_convert_tobuf(/* A string to convert */
+char *unicode_convert_tobuf(/* A string to convert */
 			      const char *text,
 
 			      /*
@@ -747,15 +739,15 @@ char *libmail_u_convert_tobuf(/* A string to convert */
 			      int *error);
 
 /*
-** Convenience function: call libmail_u_convert_tou_init(), feed the
-** character string through libmail_u_convert(), then call
-** libmail_u_convert_deinit().
+** Convenience function: call unicode_convert_tou_init(), feed the
+** character string through unicode_convert(), then call
+** unicode_convert_deinit().
 **
 ** If this function returns 0, *uc and *ucsize is set to a malloced buffer+size
 ** holding the unicode char array.
 */
 
-int libmail_u_convert_tou_tobuf(/* Character text to convert */
+int unicode_convert_tou_tobuf(/* Character text to convert */
 				const char *text,
 
 				/* Number of characters */
@@ -785,15 +777,15 @@ int libmail_u_convert_tou_tobuf(/* Character text to convert */
 				int *err);
 
 /*
-** Convenience function: call libmail_u_convert_fromu_init(), feed the
-** unicode_array through libmail_u_convert_uc(), then call
-** libmail_u_convert_deinit().
+** Convenience function: call unicode_convert_fromu_init(), feed the
+** unicode_array through unicode_convert_uc(), then call
+** unicode_convert_deinit().
 **
 ** If this function returns 0, *uc and *ucsize is set to a malloced buffer+size
 ** holding the converted character string
 */
 
-int libmail_u_convert_fromu_tobuf(/* Unicode array to convert to a char str */
+int unicode_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 				  const unicode_char *utext,
 
 				  /*
@@ -809,7 +801,7 @@ int libmail_u_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 				  const char *charset,
 
 				  /*
-				  ** If libmail_u_convert_fromu_tobuf()
+				  ** If unicode_convert_fromu_tobuf()
 				  ** returns 0, this is initialized to a
 				  ** malloced buffer with a 0-terminated
 				  ** string is kept.
@@ -823,7 +815,7 @@ int libmail_u_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 				  size_t *csize,
 
 				  /*
-				  ** If libmail_u_convert_fromu_tobuf()
+				  ** If unicode_convert_fromu_tobuf()
 				  ** returns 0 and this is not NULL,
 				  ** *err is set to non-0 if there was a
 				  ** conversion error to the requested
@@ -835,14 +827,14 @@ int libmail_u_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 ** Convenience function: convert a string in a given character set
 ** to/from uppercase, lowercase, or something else.
 **
-** This is done by calling libmail_u_convert_tou_tobuf() first,
+** This is done by calling unicode_convert_tou_tobuf() first,
 ** applying the title_func and char_func, then using
-** libmail_u_convert_fromu_tobuf().
+** unicode_convert_fromu_tobuf().
 **
 ** A NULL return indicates that the requested conversion cannot be performed.
 */
 
-char *libmail_u_convert_tocase( /* String to convert */
+char *unicode_convert_tocase( /* String to convert */
 			       const char *str,
 
 			       /* String's character set */
@@ -867,11 +859,11 @@ char *libmail_u_convert_tocase( /* String to convert */
 
 /* Either UCS-4BE or UCS-4LE, matching the native unicode_char endianness */
 
-extern const char libmail_u_ucs4_native[];
+extern const char unicode_u_ucs4_native[];
 
 /* Either UCS-2BE or UCS-2LE, matching the native unicode_char endianness */
 
-extern const char libmail_u_ucs2_native[];
+extern const char unicode_u_ucs2_native[];
 
 /*
 ** Modified-UTF7 encoding used for IMAP folder names. Pass it for a charset
@@ -892,7 +884,7 @@ extern const char libmail_u_ucs2_native[];
 
 extern size_t unicode_wcwidth(const std::vector<unicode_char> &uc);
 
-namespace mail {
+namespace unicode {
 
 	/*
 	** Interface to iconv.
@@ -905,7 +897,7 @@ namespace mail {
 
 	class iconvert {
 
-		libmail_u_convert_handle_t handle;
+		unicode_convert_handle_t handle;
 
 	public:
 		iconvert();
@@ -1300,14 +1292,13 @@ namespace mail {
 			return *this;
 		}
 
-		linebreak_callback_base &operator<<(const
-						    std::vector<unicode_char>
-						    &vec)
+		template<typename container_type>
+			linebreak_callback_base &operator()(const container_type &vec)
 		{
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int operator()(int);
+		virtual int callback(int)=0;
 	};
 
 	class linebreak_callback_save_buf : public linebreak_callback_base {
@@ -1318,8 +1309,10 @@ namespace mail {
 		linebreak_callback_save_buf();
 		~linebreak_callback_save_buf();
 
+		using linebreak_callback_base::operator<<;
+		using linebreak_callback_base::operator();
 	private:
-		int operator()(int value);
+		int callback(int value);
 	};
 
 	/*
@@ -1485,7 +1478,7 @@ namespace mail {
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int operator()(int, unicode_char);
+		virtual int callback(int, unicode_char)=0;
 	};
 
 	class linebreakc_callback_save_buf : public linebreakc_callback_base {
@@ -1496,8 +1489,10 @@ namespace mail {
 		linebreakc_callback_save_buf();
 		~linebreakc_callback_save_buf();
 
+		using linebreakc_callback_base::operator<<;
+		using linebreakc_callback_base::operator();
 	private:
-		int operator()(int, unicode_char);
+		int callback(int, unicode_char);
 	};
 
 
@@ -1664,7 +1659,7 @@ namespace mail {
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int operator()(bool);
+		virtual int callback(bool)=0;
 	};
 
 	/*

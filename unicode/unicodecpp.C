@@ -11,26 +11,26 @@ extern "C" {
 
 	static int iconv_trampoline(const char *str, size_t cnt, void *arg)
 	{
-		return reinterpret_cast<mail::iconvert *>(arg)
+		return reinterpret_cast<unicode::iconvert *>(arg)
 			->converted(str, cnt);
 	}
 
-	int mail::linebreak_trampoline(int value, void *ptr)
+	int unicode::linebreak_trampoline(int value, void *ptr)
 	{
-		return (*reinterpret_cast<mail::linebreak_callback_base *>
-			(ptr))(value);
+		return (*reinterpret_cast<unicode::linebreak_callback_base *>
+			(ptr)).callback(value);
 	}
 
-	int mail::linebreakc_trampoline(int value, unicode_char ch, void *ptr)
+	int unicode::linebreakc_trampoline(int value, unicode_char ch, void *ptr)
 	{
-		return (*reinterpret_cast<mail::linebreakc_callback_base *>
-			(ptr))(value, ch);
+		return (*reinterpret_cast<unicode::linebreakc_callback_base *>
+			(ptr)).callback(value, ch);
 	}
 
-	int mail::wordbreak_trampoline(int value, void *ptr)
+	int unicode::wordbreak_trampoline(int value, void *ptr)
 	{
-		return (*reinterpret_cast<mail::wordbreak_callback_base *>
-			(ptr))(value != 0);
+		return (*reinterpret_cast<unicode::wordbreak_callback_base *>
+			(ptr)).callback(value != 0);
 	}
 
 }
@@ -45,26 +45,26 @@ size_t unicode_wcwidth(const std::vector<unicode_char> &uc)
 	return w;
 }
 
-mail::iconvert::iconvert() : handle(NULL)
+unicode::iconvert::iconvert() : handle(NULL)
 {
 }
 
-mail::iconvert::~iconvert()
+unicode::iconvert::~iconvert()
 {
 	end();
 }
 
-int mail::iconvert::converted(const char *, size_t)
+int unicode::iconvert::converted(const char *, size_t)
 {
 	return 0;
 }
 
-bool mail::iconvert::begin(const std::string &src_chset,
+bool unicode::iconvert::begin(const std::string &src_chset,
 			   const std::string &dst_chset)
 {
 	end();
 
-	if ((handle=libmail_u_convert_init(src_chset.c_str(),
+	if ((handle=unicode_convert_init(src_chset.c_str(),
 					   dst_chset.c_str(),
 					   &iconv_trampoline,
 					   this)) == NULL)
@@ -72,7 +72,7 @@ bool mail::iconvert::begin(const std::string &src_chset,
 	return true;
 }
 
-bool mail::iconvert::end(bool *errflag)
+bool unicode::iconvert::end(bool *errflag)
 {
 	int errptr;
 
@@ -81,7 +81,7 @@ bool mail::iconvert::end(bool *errflag)
 	if (!handle)
 		return true;
 
-	rc=libmail_u_convert_deinit(handle, &errptr);
+	rc=unicode_convert_deinit(handle, &errptr);
 	handle=NULL;
 
 	if (errflag)
@@ -89,23 +89,23 @@ bool mail::iconvert::end(bool *errflag)
 	return rc == 0;
 }
 
-bool mail::iconvert::operator()(const char *str, size_t cnt)
+bool unicode::iconvert::operator()(const char *str, size_t cnt)
 {
 	if (!handle)
 		return false;
 
-	return (libmail_u_convert(handle, str, cnt) == 0);
+	return (unicode_convert(handle, str, cnt) == 0);
 }
 
-bool mail::iconvert::operator()(const unicode_char *str, size_t cnt)
+bool unicode::iconvert::operator()(const unicode_char *str, size_t cnt)
 {
 	if (!handle)
 		return false;
 
-	return (libmail_u_convert_uc(handle, str, cnt) == 0);
+	return (unicode_convert_uc(handle, str, cnt) == 0);
 }
 
-std::string mail::iconvert::convert(const std::string &text,
+std::string unicode::iconvert::convert(const std::string &text,
 				    const std::string &charset,
 				    const std::string &dstcharset,
 				    bool &errflag)
@@ -113,7 +113,7 @@ std::string mail::iconvert::convert(const std::string &text,
 	std::string buf;
 	int errptr;
 
-	char *p=libmail_u_convert_tobuf(text.c_str(),
+	char *p=unicode_convert_tobuf(text.c_str(),
 					charset.c_str(),
 					dstcharset.c_str(),
 					&errptr);
@@ -132,7 +132,7 @@ std::string mail::iconvert::convert(const std::string &text,
 }
 
 
-std::string mail::iconvert::convert(const std::vector<unicode_char> &uc,
+std::string unicode::iconvert::convert(const std::vector<unicode_char> &uc,
 				    const std::string &dstcharset,
 				    bool &errflag)
 {
@@ -142,7 +142,7 @@ std::string mail::iconvert::convert(const std::vector<unicode_char> &uc,
 	size_t csize;
 	int err;
 
-	if (libmail_u_convert_fromu_tobuf(&uc[0], uc.size(),
+	if (unicode_convert_fromu_tobuf(&uc[0], uc.size(),
 					  dstcharset.c_str(), &c, &csize,
 					  &err))
 	{
@@ -167,7 +167,7 @@ std::string mail::iconvert::convert(const std::vector<unicode_char> &uc,
 	return buf;
 }
 
-bool mail::iconvert::convert(const std::string &text,
+bool unicode::iconvert::convert(const std::string &text,
 			     const std::string &charset,
 			     std::vector<unicode_char> &uc)
 {
@@ -176,7 +176,7 @@ bool mail::iconvert::convert(const std::string &text,
 	unicode_char *ucbuf;
 	size_t ucsize;
 
-	if (libmail_u_convert_tou_tobuf(text.c_str(),
+	if (unicode_convert_tou_tobuf(text.c_str(),
 					text.size(),
 					charset.c_str(),
 					&ucbuf,
@@ -198,35 +198,35 @@ bool mail::iconvert::convert(const std::string &text,
 	return err == 0;
 }
 
-int mail::iconvert::tou::converted(const unicode_char *, size_t)
+int unicode::iconvert::tou::converted(const unicode_char *, size_t)
 {
 	return 0;
 }
 
-bool mail::iconvert::tou::begin(const std::string &chset)
+bool unicode::iconvert::tou::begin(const std::string &chset)
 {
-	return iconvert::begin(chset, libmail_u_ucs4_native);
+	return iconvert::begin(chset, unicode_u_ucs4_native);
 }
 
-int mail::iconvert::tou::converted(const char *ptr, size_t cnt)
+int unicode::iconvert::tou::converted(const char *ptr, size_t cnt)
 {
 	return converted(reinterpret_cast<const unicode_char *>(ptr),
 			 cnt/sizeof(unicode_char));
 }
 
-void mail::iconvert::tou::convert(const std::string &str,
+void unicode::iconvert::tou::convert(const std::string &str,
 				  const std::string &chset,
 				  std::vector<unicode_char> &out_buf)
 {
 	convert(str.begin(), str.end(), chset, out_buf);
 }
 
-bool mail::iconvert::fromu::begin(const std::string &chset)
+bool unicode::iconvert::fromu::begin(const std::string &chset)
 {
-	return iconvert::begin(libmail_u_ucs4_native, chset);
+	return iconvert::begin(unicode_u_ucs4_native, chset);
 }
 
-std::string mail::iconvert::fromu::convert(const std::vector<unicode_char>
+std::string unicode::iconvert::fromu::convert(const std::vector<unicode_char>
 					   &ubuf,
 					   const std::string &chset)
 {
@@ -236,14 +236,14 @@ std::string mail::iconvert::fromu::convert(const std::vector<unicode_char>
 	return s;
 }
 
-void mail::iconvert::fromu::convert(const std::vector<unicode_char> &ubuf,
+void unicode::iconvert::fromu::convert(const std::vector<unicode_char> &ubuf,
 				    const std::string &chset,
 				    std::string &out_buf)
 {
 	convert(ubuf.begin(), ubuf.end(), chset, out_buf);
 }
 
-std::string mail::iconvert::convert_tocase(const std::string &text,
+std::string unicode::iconvert::convert_tocase(const std::string &text,
 					   const std::string &charset,
 					   bool &err,
 					   unicode_char (*first_char_func)(unicode_char),
@@ -252,7 +252,7 @@ std::string mail::iconvert::convert_tocase(const std::string &text,
 	err=false;
 	std::string s;
 
-	char *p=libmail_u_convert_tocase(text.c_str(),
+	char *p=unicode_convert_tocase(text.c_str(),
 					 charset.c_str(),
 					 first_char_func,
 					 char_func);
@@ -273,13 +273,13 @@ std::string mail::iconvert::convert_tocase(const std::string &text,
 	return s;
 }
 
-mail::linebreak_callback_base::linebreak_callback_base()
+unicode::linebreak_callback_base::linebreak_callback_base()
 	: handle(NULL), opts(0)
 {
 }
 
 
-void mail::linebreak_callback_base::set_opts(int optsArg)
+void unicode::linebreak_callback_base::set_opts(int optsArg)
 {
 	opts=optsArg;
 
@@ -287,18 +287,13 @@ void mail::linebreak_callback_base::set_opts(int optsArg)
 		unicode_lb_set_opts(handle, opts);
 }
 
-mail::linebreak_callback_base::~linebreak_callback_base()
+unicode::linebreak_callback_base::~linebreak_callback_base()
 {
 	finish();
 }
 
-int mail::linebreak_callback_base::operator()(int)
-{
-	return 0;
-}
-
-mail::linebreak_callback_base
-&mail::linebreak_callback_base::operator<<(unicode_char uc)
+unicode::linebreak_callback_base
+&unicode::linebreak_callback_base::operator<<(unicode_char uc)
 {
 	if (!handle)
 	{
@@ -315,7 +310,7 @@ mail::linebreak_callback_base
 	return *this;
 }
 
-void mail::linebreak_callback_base::finish()
+void unicode::linebreak_callback_base::finish()
 {
 	if (handle)
 		unicode_lb_end(handle);
@@ -323,36 +318,31 @@ void mail::linebreak_callback_base::finish()
 }
 
 
-mail::linebreak_callback_save_buf::linebreak_callback_save_buf()
+unicode::linebreak_callback_save_buf::linebreak_callback_save_buf()
 {
 }
 
-mail::linebreak_callback_save_buf::~linebreak_callback_save_buf()
+unicode::linebreak_callback_save_buf::~linebreak_callback_save_buf()
 {
 }
 
-int mail::linebreak_callback_save_buf::operator()(int value)
+int unicode::linebreak_callback_save_buf::callback(int value)
 {
 	lb_buf.push_back(value);
 	return 0;
 }
 
-mail::linebreakc_callback_base::linebreakc_callback_base()
+unicode::linebreakc_callback_base::linebreakc_callback_base()
 	: handle(NULL), opts(0)
 {
 }
 
-mail::linebreakc_callback_base::~linebreakc_callback_base()
+unicode::linebreakc_callback_base::~linebreakc_callback_base()
 {
 	finish();
 }
 
-int mail::linebreakc_callback_base::operator()(int, unicode_char)
-{
-	return 0;
-}
-
-void mail::linebreakc_callback_base::set_opts(int optsArg)
+void unicode::linebreakc_callback_base::set_opts(int optsArg)
 {
 	opts=optsArg;
 
@@ -360,8 +350,8 @@ void mail::linebreakc_callback_base::set_opts(int optsArg)
 		unicode_lbc_set_opts(handle, opts);
 }
 
-mail::linebreakc_callback_base
-&mail::linebreakc_callback_base::operator<<(unicode_char uc)
+unicode::linebreakc_callback_base
+&unicode::linebreakc_callback_base::operator<<(unicode_char uc)
 {
 	if (handle == NULL)
 	{
@@ -378,7 +368,7 @@ mail::linebreakc_callback_base
 	return *this;
 }
 
-void mail::linebreakc_callback_base::finish()
+void unicode::linebreakc_callback_base::finish()
 {
 	if (handle)
 		unicode_lbc_end(handle);
@@ -386,37 +376,32 @@ void mail::linebreakc_callback_base::finish()
 }
 
 
-mail::linebreakc_callback_save_buf::linebreakc_callback_save_buf()
+unicode::linebreakc_callback_save_buf::linebreakc_callback_save_buf()
 {
 }
 
-mail::linebreakc_callback_save_buf::~linebreakc_callback_save_buf()
+unicode::linebreakc_callback_save_buf::~linebreakc_callback_save_buf()
 {
 }
 
-int mail::linebreakc_callback_save_buf::operator()(int c, unicode_char ch)
+int unicode::linebreakc_callback_save_buf::callback(int c, unicode_char ch)
 {
 	lb_buf.push_back(std::make_pair(c, ch));
 	return 0;
 }
 
-mail::wordbreak_callback_base::wordbreak_callback_base()
+unicode::wordbreak_callback_base::wordbreak_callback_base()
 	: handle(NULL)
 {
 }
 
-mail::wordbreak_callback_base::~wordbreak_callback_base()
+unicode::wordbreak_callback_base::~wordbreak_callback_base()
 {
 	finish();
 }
 
-int mail::wordbreak_callback_base::operator()(bool)
-{
-	return 0;
-}
-
-mail::wordbreak_callback_base
-&mail::wordbreak_callback_base::operator<<(unicode_char uc)
+unicode::wordbreak_callback_base
+&unicode::wordbreak_callback_base::operator<<(unicode_char uc)
 {
 	if (!handle)
 	{
@@ -432,7 +417,7 @@ mail::wordbreak_callback_base
 	return *this;
 }
 
-void mail::wordbreak_callback_base::finish()
+void unicode::wordbreak_callback_base::finish()
 {
 	if (handle)
 		unicode_wb_end(handle);
@@ -441,16 +426,16 @@ void mail::wordbreak_callback_base::finish()
 
 /* -------------------------------------------- */
 
-mail::wordbreakscan::wordbreakscan() : handle(NULL)
+unicode::wordbreakscan::wordbreakscan() : handle(NULL)
 {
 }
 
-mail::wordbreakscan::~wordbreakscan()
+unicode::wordbreakscan::~wordbreakscan()
 {
 	finish();
 }
 
-bool mail::wordbreakscan::operator<<(unicode_char uc)
+bool unicode::wordbreakscan::operator<<(unicode_char uc)
 {
 	if (!handle)
 		handle=unicode_wbscan_init();
@@ -461,7 +446,7 @@ bool mail::wordbreakscan::operator<<(unicode_char uc)
 	return false;
 }
 
-size_t mail::wordbreakscan::finish()
+size_t unicode::wordbreakscan::finish()
 {
 	size_t n=0;
 

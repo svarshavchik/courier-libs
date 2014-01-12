@@ -40,25 +40,25 @@ static void test1()
 		0x00, 0x00, 0x00, 0x42};
 	char outputbuf[12];
 	struct collect_buf cb;
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 	int checkflag;
 
 	cb.ptr=outputbuf;
 	cb.cnt=0;
 	cb.size=sizeof(outputbuf);
 
-	if ((h=libmail_u_convert_init("UCS-4BE", "ISO-8859-1",
+	if ((h=unicode_convert_init("UCS-4BE", "ISO-8859-1",
 				      save_output, &cb)) == NULL)
 	{
-		perror("libmail_u_convert_init");
+		perror("unicode_convert_init");
 		exit(1);
 	}
 
-	libmail_u_convert(h, teststr, sizeof(teststr));
+	unicode_convert(h, teststr, sizeof(teststr));
 
-	if (libmail_u_convert_deinit(h, &checkflag))
+	if (unicode_convert_deinit(h, &checkflag))
 	{
-		perror("libmail_u_convert_deinit");
+		perror("unicode_convert_deinit");
 		exit(1);
 	}
 	if (cb.cnt != 2 || memcmp(cb.ptr, "AB", 2) || !checkflag)
@@ -72,8 +72,8 @@ static void test2()
 {
 	unicode_char *ucptr;
 	size_t ucsize;
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_tou_init("utf-8", &ucptr, &ucsize, 1);
+	unicode_convert_handle_t h=
+		unicode_convert_tou_init("utf-8", &ucptr, &ucsize, 1);
 	char *cptr;
 	size_t csize;
 
@@ -82,10 +82,10 @@ static void test2()
 		size_t i;
 
 		for (i=0; i<1024/32; ++i)
-			libmail_u_convert(h, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			unicode_convert(h, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					  32);
 
-		if (libmail_u_convert_deinit(h, NULL) == 0 &&
+		if (unicode_convert_deinit(h, NULL) == 0 &&
 		    ucsize == 1024+1)
 		{
 			for (i=0; i<1024; i++)
@@ -94,14 +94,14 @@ static void test2()
 
 			if (i == 1024)
 			{
-				h=libmail_u_convert_fromu_init("utf-8",
+				h=unicode_convert_fromu_init("utf-8",
 							       &cptr, &csize,
 							       1);
 
 				if (h)
 				{
-					libmail_u_convert_uc(h, ucptr, 1024);
-					if (libmail_u_convert_deinit(h, NULL)
+					unicode_convert_uc(h, ucptr, 1024);
+					if (unicode_convert_deinit(h, NULL)
 					    == 0 && csize == 1024+1)
 					{
 						for (i=0; i<1024; i++)
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 
 		if (argn < argc)
 		{
-			char *p=libmail_u_convert_tocase(argv[argn],
+			char *p=unicode_convert_tocase(argv[argn],
 							 "utf-8",
 							 unicode_tc,
 							 unicode_lc);
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 	if (argn < argc)
 	{
 		int errflag;
-		char *p=libmail_u_convert_tobuf(argv[argn],
+		char *p=unicode_convert_tobuf(argv[argn],
 						"utf-8",
 						chset,
 						&errflag);
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 		if (!p)
 		{
-			perror("libmail_u_convert");
+			perror("unicode_convert");
 			exit(1);
 		}
 
@@ -176,10 +176,10 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		q=libmail_u_convert_tobuf(p, chset, "utf-8", &errflag);
+		q=unicode_convert_tobuf(p, chset, "utf-8", &errflag);
 		if (!q)
 		{
-			perror("libmail_u_convert");
+			perror("unicode_convert");
 			exit(1);
 		}
 

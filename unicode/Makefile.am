@@ -1,5 +1,5 @@
 #
-# Copyright 2000-2011 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2014 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 
@@ -43,7 +43,9 @@ update-www-htmlent:
 	@SHELL@ $(srcdir)/update.sh xhtml-symbol.ent http://www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent
 	@SHELL@ $(srcdir)/update.sh xhtml-special.ent http://www.w3.org/TR/xhtml1/DTD/xhtml-special.ent
 
-noinst_LTLIBRARIES=libunicode.la
+lib_LTLIBRARIES=libunicode.la
+include_HEADERS=unicode.h
+man_MANS=man/courier-unicode.7 man/unicode[\:][\:]iconvert[\:][\:]convert.3 man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 man/unicode[\:][\:]iconvert[\:][\:]fromu.3 man/unicode[\:][\:]iconvert[\:][\:]tou.3 man/unicode[\:][\:]linebreak_callback_base.3 man/unicode[\:][\:]linebreak_callback_save_buf.3 man/unicode[\:][\:]linebreak_iter.3 man/unicode[\:][\:]linebreakc_callback_base.3 man/unicode[\:][\:]linebreakc_iter.3 man/unicode[\:][\:]wordbreak_callback_base.3 man/unicode_convert.3 man/unicode_convert_deinit.3 man/unicode_convert_fromu_init.3 man/unicode_convert_fromu_tobuf.3 man/unicode_convert_fromutf8.3 man/unicode_convert_init.3 man/unicode_convert_tobuf.3 man/unicode_convert_tocase.3 man/unicode_convert_tocbuf_fromutf8_init.3 man/unicode_convert_tocbuf_init.3 man/unicode_convert_tocbuf_toutf8_init.3 man/unicode_convert_tou_init.3 man/unicode_convert_tou_tobuf.3 man/unicode_convert_toutf8.3 man/unicode_convert_uc.3 man/unicode_default_chset.3 man/unicode_grapheme_break.3 man/unicode_html40ent_lookup.3 man/unicode_isspace.3 man/unicode_lb_end.3 man/unicode_lb_init.3 man/unicode_lb_next.3 man/unicode_lb_next_cnt.3 man/unicode_lb_set_opts.3 man/unicode_lbc_end.3 man/unicode_lbc_init.3 man/unicode_lbc_next.3 man/unicode_lbc_next_cnt.3 man/unicode_lbc_set_opts.3 man/unicode_lc.3 man/unicode_tc.3 man/unicode_u_ucs2_native.3 man/unicode_u_ucs4_native.3 man/unicode_uc.3 man/unicode_wb_end.3 man/unicode_wb_init.3 man/unicode_wb_next.3 man/unicode_wb_next_cnt.3 man/unicode_wbscan_end.3 man/unicode_wbscan_init.3 man/unicode_wbscan_next.3
 
 libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			unicodecpp.C \
@@ -57,8 +59,9 @@ libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			linebreaktab_internal.h \
 			unicode_wordbreak.c wordbreaktab.h \
 			wordbreaktab_internal.h
+libunicode_la_LDFLAGS=-version-info 0:0:0
 
-EXTRA_DIST=$(noinst_SCRIPTS)
+EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec
 
 if UPDATE_UNICODE
 
@@ -113,7 +116,8 @@ enttest_LDFLAGS=-static
 check-am: unicodetest
 	./unicodetest
 	./enttest
-	test -f ./LineBreakTest.txt || exit 0; ./linebreaktest
+	set -vx; test -f ./LineBreakTest.txt || exit 0; ./linebreaktest
+	set -vx; test -f ./WordBreakTest.txt || exit 0; ./wordbreaktest
 	test "`./unicodetest foo`" = "foo"
 	test "`./unicodetest 'foo&bar.~'`" = "foo&-bar.~"
 	test "`./unicodetest 'foobаr'`" = "foob&BDA-r"
@@ -167,4 +171,76 @@ check-am: unicodetest
 	exit 0; test "`./graphemetest 0xAABB 0x0041`" = "0" # GB9b N/A
 	test "`./graphemetest 0x0041 0x0041`" = "1"
 
+docs:
+	rm -rf html.tmp
+	mkdir html.tmp
+	xsltproc --nonet -o html.tmp/ --xinclude \
+		--stringparam use.id.as.filename 1 \
+		--stringparam html.stylesheet book.css \
+		--stringparam root.filename 'index' \
+		--stringparam generate.id.attributes 1 \
+		$(srcdir)/docbook/docbook.xsl $(srcdir)/book.xml
+	mkdir -p html
+	rm -f html/*
+	mv html.tmp/* html
+	cp -p docbook/frame.js docbook/icon.gif docbook/book.css html
+	rm -rf man.tmp
+	mkdir man.tmp
+	d=`cd $(srcdir); pwd`; cd man.tmp; xsltproc --nonet --xinclude \
+	http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl\
+		$$d/book.xml
+	mkdir -p man
+	rm -f man/*.[123456789]
+	mv man.tmp/* man
+	rm -rf html.tmp man.tmp
+	perl -p -i -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", glob("man/*.[123456789]"))@e' Makefile.am
 
+if HAVE_DOCS
+all-am: INSTALL README
+
+README: html/index.html
+	elinks -dump -no-numbering -no-references html/index.html >README.tmp
+	mv -f README.tmp README
+
+INSTALL: html/INSTALL.html
+	elinks -dump -no-numbering -no-references html/INSTALL.html >INSTALL.tmp
+	mv -f INSTALL.tmp INSTALL
+endif
+
+.PHONY: rpm
+
+rpm:
+	$(MAKE) bump.rpm.release
+	$(MAKE) dist
+	$(MAKE) dorpm
+	$$HOME/repos.sh
+
+dorpm:
+	rm -rf rpm/BUILD/*
+	rm -f rpm/RPMS/*/*
+	rm -f rpm/SOURCES/*
+	rm -f rpm/SPECS/*
+	rm -f rpm/SRPMS/*
+	rpmbuild -ta --clean \
+		--define "_topdir `pwd`/rpm" \
+		--define '_rpmdir %{_topdir}/RPMS' \
+		--define '_srcrpmdir %{_topdir}/SRPMS' \
+		--define '_sourcedir %{_topdir}/SOURCES' \
+		--define '_specdir %{_topdir}/SPECS' \
+		--define '_builddir %{_topdir}/BUILD' \
+		--define '_build_name_fmt %%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
+		--define '_tmppath %{_var}/tmp' \
+		--define '__spec_prep_pre %{___build_pre}' \
+		$(RPMFLAGS) @PACKAGE@-@VERSION@.tar.bz2
+
+bump.rpm.release: $(PACKAGE).spec
+	VERSION="x"; \
+	test -f $(srcdir)/rpm.release && . $(srcdir)/rpm.release; \
+	NEXT_RELEASE=0; \
+	test "$$VERSION" = "@VERSION@" && NEXT_RELEASE="$$RELEASE"; \
+	RELEASE=`expr $$NEXT_RELEASE + 1`; \
+	echo "VERSION=@VERSION@" >$(srcdir)/rpm.release; \
+	echo "RELEASE=$$RELEASE" >>$(srcdir)/rpm.release; \
+	sed 's/^Release: .*/Release: '$$RELEASE'%{?dist}%{?courier_release}/' \
+		<$(PACKAGE).spec >$(PACKAGE).spec.new; \
+	mv $(PACKAGE).spec.new $(PACKAGE).spec

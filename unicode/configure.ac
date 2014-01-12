@@ -1,16 +1,15 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(unicode, 0.10, [courier-maildrop@lists.sourceforge.net])
+AC_INIT([courier-unicode], [1.0], [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
 AC_CONFIG_SRCDIR(unicodecpp.C)
-AC_CONFIG_AUX_DIR(../..)
 
 LPATH="$PATH:/usr/local/bin"
 
 AM_CONFIG_HEADER(unicode_config.h)
-AM_INIT_AUTOMAKE([foreign no-define])
+AM_INIT_AUTOMAKE([foreign no-define dist-bzip2])
 dnl Checks for programs.
 
 AC_PROG_MAKE_SET
@@ -80,4 +79,6 @@ then
 fi
 CFLAGS="-I.. -I$srcdir/.. $CFLAGS"
 CXXFLAGS="-I.. -I$srcdir/.. $CXXFLAGS"
-AC_OUTPUT(Makefile)
+
+AM_CONDITIONAL(HAVE_DOCS,[test -f $srcdir/docbook/icon.gif])
+AC_OUTPUT(Makefile courier-unicode.spec)

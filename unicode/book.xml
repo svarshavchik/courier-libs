@@ -1,0 +1,2181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+ "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+
+]>
+
+<!--
+
+Copyright 2014 Double Precision, Inc.
+See COPYING for distribution information.
+
+-->
+
+<article id="index">
+  <title>Courier Unicode Library</title>
+
+  <para>
+    This library implements several algorithms related to the
+    <ulink url="http://www.unicode.org/standard/standard.html">Unicode
+    Standard</ulink>:
+  </para>
+
+  <itemizedlist>
+    <listitem>
+      <para>
+	Look up uppercase, lowercase, and titlecase equivalents of a unicode
+	character.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+	Implementation of
+	<ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">grapheme
+	and work breaking</ulink> rules.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+	Implementation of
+	<ulink url="http://www.unicode.org/reports/tr14/tr14-32.html">line
+	breaking</ulink> rules.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+	Several ancillary functions, like looking up
+	the unicode character that corresponds to some HTML 4.0
+	entity (such as <quote>&amp;amp;</quote>, for example), and
+	determining the normal width or a double-width status of a unicode
+	character. Also, an adaptation of the
+	<ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	<citerefentry><refentrytitle>iconv</refentrytitle>
+	<manvolnum>3</manvolnum></citerefentry></ulink>
+	API for this unicode library.
+      </para>
+    </listitem>
+  </itemizedlist>
+
+  <para>
+    This library also implements C++ bindings for these algorithms.
+  </para>
+
+  <section id="status">
+    <title>Current status</title>
+
+    <para>
+      The current release of the Courier Unicode library is based on the
+      Unicode 6.3.0 standard.
+    </para>
+  </section>
+
+  <section id="INSTALL">
+    <title>Installation</title>
+
+    <para>
+      Download the current version of the library from
+      <ulink url="/download.html#unicode">http://www.courier-mta.org/download.html#unicode</ulink>.
+      After unpacking the tarball, run the configure script, which takes
+      the usual options, followed by <command>make</command>, then
+      <command>make install</command>.
+    </para>
+  </section>
+
+  <section id="manpages">
+    <title>Manual pages</title>
+
+    <section id="manpagesc">
+      <title>C manual pages</title>
+      <refentry id="courier-unicode">
+
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>courier-unicode</refentrytitle>
+	  <manvolnum>7</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>courier-unicode</refname>
+	  <refpurpose>Courier Unicode Library</refpurpose>
+
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <programlisting>
+#include &lt;unicode.h&gt;</programlisting>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    This library implements several algorithms related to the
+	    <ulink url="http://www.unicode.org/standard/standard.html">Unicode
+	    Standard</ulink>.
+	    This library uses
+	    <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink> to convert
+	      text in a given character set to unicode. Any character set
+	      displayed by <command>iconv --list</command> can be specified
+	      for the corresponding character set parameter. Additionally,
+	      <filename>unicode.h</filename> defines a special character
+	      string <literal>unicode_x_imap_modutf7</literal> that specifies
+	      the pseudo-character set for the modified-UTF7
+	      encoding used in IMAP. This string can also be appended by
+	      a space, and up to fifteen additional US-ASCII characters.
+	      The resulting character set also encodes these additional
+	      characters, in addition to unicode characters, with
+	      modified-UTF7.
+	  </para>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <link linkend="unicode_convert">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_default_chset">
+	      <citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_html40ent_lookup">
+	      <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_isspace">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_grapheme_break">
+	      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_line_break">
+	      <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_uc</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert">
+	      <citerefentry><refentrytitle>unicode::iconvert::convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert_tocase">
+	      <citerefentry><refentrytitle>unicode::iconvert::convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__fromu">
+	      <citerefentry><refentrytitle>unicode::iconvert::fromu</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__tou">
+	      <citerefentry><refentrytitle>unicode::iconvert::tou</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__linebreak">
+	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__wordbreak">
+	      <citerefentry><refentrytitle>unicode::wordbreak</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_convert">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode_convert</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_u_ucs4_native</refname>
+	  <refname>unicode_u_ucs2_native</refname>
+	  <refname>unicode_convert_init</refname>
+	  <refname>unicode_convert</refname>
+	  <refname>unicode_convert_deinit</refname>
+
+          <refname>unicode_convert_tocbuf_init</refname>
+	  <refname>unicode_convert_tou_init</refname>
+	  <refname>unicode_convert_fromu_init</refname>
+	  <refname>unicode_convert_uc</refname>
+
+	  <refname>unicode_convert_tocbuf_toutf8_init</refname>
+	  <refname>unicode_convert_tocbuf_fromutf8_init</refname>
+
+	  <refname>unicode_convert_toutf8</refname>
+	  <refname>unicode_convert_fromutf8</refname>
+	  <refname>unicode_convert_tobuf</refname>
+	  <refname>unicode_convert_tou_tobuf</refname>
+	  <refname>unicode_convert_fromu_tobuf</refname>
+
+	  <refpurpose>unicode character set conversion</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;
+
+	    extern const char unicode_u_ucs4_native[];
+
+	    extern const char unicode_u_ucs2_native[];</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_init</function></funcdef>
+              <paramdef>const char *<parameter>src_chset</parameter></paramdef>
+              <paramdef>const char *<parameter>dst_chset</parameter></paramdef>
+              <paramdef>void *<parameter>cb_arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_convert</function></funcdef>
+              <paramdef>unicode_convert_handle_t <parameter>handle</parameter></paramdef>
+              <paramdef>const char *<parameter>text</parameter></paramdef>
+              <paramdef>size_t <parameter>cnt</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_convert_deinit</function></funcdef>
+              <paramdef>unicode_convert_handle_t <parameter>handle</parameter></paramdef>
+              <paramdef>int *<parameter>errptr</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_tocbuf_init</function></funcdef>
+              <paramdef>const char *<parameter>src_chset</parameter></paramdef>
+              <paramdef>const char *<parameter>dst_chset</parameter></paramdef>
+	      <paramdef>char **<parameter>cbufptr_ret</parameter></paramdef>
+	      <paramdef>size_t *<parameter>cbufsize_ret</parameter></paramdef>
+              <paramdef>int <parameter>nullterminate</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_tocbuf_toutf8_init</function></funcdef>
+              <paramdef>const char *<parameter>src_chset</parameter></paramdef>
+	      <paramdef>char **<parameter>cbufptr_ret</parameter></paramdef>
+	      <paramdef>size_t *<parameter>cbufsize_ret</parameter></paramdef>
+              <paramdef>int <parameter>nullterminate</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_tocbuf_fromutf8_init</function></funcdef>
+              <paramdef>const char *<parameter>dst_chset</parameter></paramdef>
+	      <paramdef>char **<parameter>cbufptr_ret</parameter></paramdef>
+	      <paramdef>size_t *<parameter>cbufsize_ret</parameter></paramdef>
+              <paramdef>int <parameter>nullterminate</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_tou_init</function></funcdef>
+              <paramdef>const char *<parameter>src_chset</parameter></paramdef>
+	      <paramdef>unicode_char **<parameter>ucptr_ret</parameter></paramdef>
+	      <paramdef>size_t *<parameter>ucsize_ret</parameter></paramdef>
+              <paramdef>int <parameter>nullterminate</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_convert_handle_t <function>unicode_convert_fromu_init</function></funcdef>
+              <paramdef>const char *<parameter>dst_chset</parameter></paramdef>
+	      <paramdef>char **<parameter>cbufptr_ret</parameter></paramdef>
+	      <paramdef>size_t *<parameter>cbufsize_ret</parameter></paramdef>
+              <paramdef>int <parameter>nullterminate</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_convert_uc</function></funcdef>
+              <paramdef>unicode_convert_handle_t <parameter>handle</parameter></paramdef>
+              <paramdef>const unicode_char *<parameter>text</parameter></paramdef>
+	      <paramdef>size_t <parameter>cnt</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>char *<function>unicode_convert_toutf8</function></funcdef>
+              <paramdef>const char *<parameter>text</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+	      <paramdef>int *<parameter>error</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>char *<function>unicode_convert_fromutf8</function></funcdef>
+              <paramdef>const char *<parameter>text</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+	      <paramdef>int *<parameter>error</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>char *<function>unicode_convert_tobuf</function></funcdef>
+              <paramdef>const char *<parameter>text</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+              <paramdef>const char *<parameter>dstcharset</parameter></paramdef>
+	      <paramdef>int *<parameter>error</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_convert_toubuf</function></funcdef>
+              <paramdef>const char *<parameter>text</parameter></paramdef>
+	      <paramdef>size_t <parameter>text_l</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+              <paramdef>unicode_char **<parameter>uc</parameter></paramdef>
+	      <paramdef>size_t *<parameter>ucsize</parameter></paramdef>
+	      <paramdef>int *<parameter>error</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_convert_fromu_tobuf</function></funcdef>
+              <paramdef>const unicode_char *<parameter>utext</parameter></paramdef>
+	      <paramdef>size_t <parameter>utext_l</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+              <paramdef>char **<parameter>c</parameter></paramdef>
+	      <paramdef>size_t *<parameter>csize</parameter></paramdef>
+	      <paramdef>int *<parameter>error</parameter></paramdef>
+	    </funcprototype>
+
+	  </funcsynopsis>
+
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <varname>unicode_u_ucs4_native</varname>[] contains the
+	    string <quote>UCS-4BE</quote> or <quote>UCS-4LE</quote>,
+	    matching the native <classname>unicode_char</classname> endianness.
+	  </para>
+
+	  <para>
+	    <varname>unicode_u_ucs2_native</varname>[] contains the
+	    string <quote>UCS-2BE</quote> or <quote>UCS-2LE</quote>,
+	    matching the native <classname>unicode_char</classname> endianness.
+	  </para>
+
+	  <para>
+	    <function>unicode_convert_init</function>(),
+	    <function>unicode_convert</function>(), and
+	    <function>unicode_convert_deinit</function>() are an adaption of th
+	    <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink> API that uses the same
+	      calling convention as the other algorithms in this unicode library,
+	      with some value-added features.
+	      These functions use
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry> to effect the actual
+	      character set conversion.
+	  </para>
+
+	  <para>
+	    <function>unicode_convert_init</function>() returns a non-NULL handle
+	    for the requested conversion, or NULL if the requested conversion is
+	    not available.
+
+	    <function>unicode_convert_init</function>() takes a pointer to
+	    the output function that receives receives converted character text.
+	    The output function receives a pointer to the converted character
+	    text, and the number of characters in the converted text.
+	    The output function gets repeatedly called, until it receives
+	    the entire converted text.
+	  </para>
+
+	  <para>
+	    The character text to convert gets passed, repeatedly, to
+	    <function>unicode_convert</function>().
+	    Each call to <function>unicode_convert</function>() results in
+	    the output function getting invoked, zero or more times, with each
+	    successive part of the
+	    converted text. Finally,
+	    <function>unicode_convert_deinit</function>() stops the conversion
+	    and deallocates the conversion handle.
+	  </para>
+
+	  <para>
+	    It's possible that a call to
+	    <function>unicode_convert_deinit</function>() results in some
+	    additional calls to the output function, passing the remaining,
+	    final parts, of the converted text, before
+	    <function>unicode_convert_deinit</function>() deallocates the
+	    handle, and returns.
+	  </para>
+
+	  <para>
+	    The output function should return 0 normally. A non-0 return
+	    indicates n error condition.
+	    <function>unicode_convert_deinit</function>() returns
+	    non-zero if any previous invocation of the output function returned
+	    non-zero (this includes any invocations of the output function
+	    resulting from this call, or prior
+	    <function>unicode_convert</function>() calls), or 0 if all
+	    invocations of the output function returned 0.
+	  </para>
+
+	  <para>
+	    If the <parameter>errptr</parameter> is not <literal>NULL</literal>,
+	    *<parameter>errptr</parameter> gets set to non-zero if there were
+	    any conversion errors -- if there was any text that could not be
+	    converted to the destination character text.
+	  </para>
+
+	  <para>
+	    <function>unicode_convert</function>() also returns non-zero if
+	    it calls the output function and it returns non-zero, however
+	    the conversion handle remains allocated, so
+	    <function>unicode_convert_deinit</function>() must still be called,
+	    to clean that up.
+	  </para>
+
+
+	  <refsect2>
+	    <title>Collecting converted text into a buffer</title>
+
+	    <para>
+	      Call
+	      <function>unicode_convert_tocbuf_init</function>()
+	      instead of
+	      <function>unicode_convert_init</function>(), then call
+	      <function>unicode_convert</function>()
+	      and
+	      <function>unicode_convert_deinit</function>() normally.
+
+	      The parameters to
+	      <function>unicode_convert_init</function>() specify the source
+	      and the destination character sets.
+
+	      <function>unicode_convert_tocbuf_toutf8_init</function>() is
+	      just an alias that specifies <literal>UTF-8</literal> as the
+	      destination character set.
+
+	      <function>unicode_convert_tocbuf_fromutf8_init</function>() is
+	      just an alias that specifies <literal>UTF-8</literal> as the
+	      source character st.
+
+	    </para>
+
+	    <para>
+	      These functions
+	      supply an output function that collects the converted text into
+	      a malloc()ed buffer.
+
+	      If <function>unicode_convert_deinit</function>() returns 0,
+	      *<parameter>cbufptr_ret</parameter> gets initialized to a
+	      malloc()ed buffer, and the number of converted characters,
+	      the size of the
+	      malloc()ed buffer, get placed into
+	      *<parameter>cbufsize_ret</parameter>.
+	    </para>
+
+	    <note>
+	      <para>
+		If the converted string is an empty string,
+		*<parameter>cbufsize_ret</parameter>
+		gets set to 0,
+		but
+		*<parameter>cbufptr_ret</parameter>
+		still gets initialized (to a dummy malloced buffer).
+	      </para>
+	    </note>
+
+	    <para>
+	      A non-zero <parameter>nullterminate</parameter> places a trailing \0
+	      character after the converted string (this is included in
+	      *<parameter>cbufsize_ret</parameter>).
+	    </para>
+	  </refsect2>
+
+	  <refsect2>
+	    <title>Converting between character sets and unicode</title>
+
+	    <para>
+	      <function>unicode_convert_tou_init</function>()
+	      converts character text into a <classname>unicode_char</classname>
+	      buffer.
+	      It works just like
+	      <function>unicode_convert_tocbuf_init</function>(), except
+	      that only the source character set gets specified and the output
+	      buffer is a <classname>unicode_char</classname> buffer.
+	      <parameter>nullterminate</parameter> terminates the converted
+	      unicode characters with a <literal>U+0000</literal>.
+	    </para>
+
+	    <para>
+	      <function>unicode_convert_fromu_init</function>()
+	      converts <classname>unicode_char</classname>s to the output
+	      character set, and also works like
+	      <function>unicode_convert_tocbuf_init</function>().
+	      Additionally, in this case,
+	      <function>unicode_convert_uc</function>() works just like
+	      <function>unicode_convert</function>() except that the
+	      input sequence is a
+	      <classname>unicode_char</classname> sequence, and the
+	      count parameter is th enumber of unicode characters.
+	    </para>
+	  </refsect2>
+
+	  <refsect2>
+	    <title>One-shot conversions</title>
+
+	    <para>
+	      <function>unicode_convert_toutf8</function>()
+	      converts the specified text in the specified text into a UTF-8
+	      string, returning a malloced buffer.
+	      If <parameter>error</parameter> is
+	      not <literal>NULL</literal>, even if
+	      <function>unicode_convert_toutf8</function>()
+	      returns a non <literal>NULL</literal> value
+	      *<parameter>error</parameter> gets set to a non-zero value if
+	      a character conversion error has occured, and some characters
+	      could not be converted.
+	    </para>
+
+	    <para>
+	      <function>unicode_convert_fromutf8</function>() does a similar
+	      conversion from UTF-8 <parameter>text</parameter> to the specified
+	      character set.
+	    </para>
+
+	    <para>
+	      <function>unicode_convert_tobuf</function>() does a similar
+	      conversion between two different character sets.
+	    </para>
+
+	    <para>
+	      <function>unicode_convert_tou_tobuf</function>() calls
+	      <function>unicode_convert_tou_init</function>(), feeds the
+	      character string through <function>unicode_convert</function>(),
+	      then calls <function>unicode_convert_deinit</function>().
+	      If this function returns 0,
+	      *<parameter>uc</parameter> and *<parameter>ucsize</parameter>
+	      are set to a malloced buffer+size holding the unicode char array.
+	    </para>
+
+	    <para>
+	      <function>unicode_convert_fromu_tobuf</function>() calls
+	      <function>unicode_convert_fromu_init</function>(), feeds the
+	      unicode array through <function>unicode_convert_uc</function>(),
+	      then calls unicode_convert_deinit().
+
+	      If this function returns 0,
+	      *<parameter>c</parameter> and *<parameter>csize</parameter>
+	      are set to a malloced buffer+size holding the char array.
+	    </para>
+	  </refsect2>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <link linkend="unicode_default_chset">
+		<citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_default_chset">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode_default_chset</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_default_chset</refname>
+	  <refpurpose>return the system character set name</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>const char *<function>unicode_default_chset</function></funcdef>
+	      <void />
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_default_chset</function>() returns the name of the
+	    system environment character set (usually
+	    <quote>nl_langinfo(CODESET)</quote>, or from some suitable environment
+	    variable).
+	  </para>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_html40ent_lookup">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode_html40ent_lookup</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_html40ent_lookup</refname>
+	  <refpurpose>look up unicode character for an HTML 4.0 entity</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_char <function>unicode_html40ent_lookup</function></funcdef>
+              <paramdef>const char *<parameter>entity</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_html40ent_lookup</function>() returns the
+	    unicode character represented by an HTML 4.0 entity. The
+	    <parameter>entity</parameter> is a string, such as
+	    <quote>quot</quote>, in which case
+	    <function>unicode_html40ent_lookup</function>() returns 34.
+	  </para>
+
+	  <para>
+	    <function>unicode_html40ent_lookup</function>() returns 0 if the
+	    <parameter>entity</parameter> is not a known entity that represents
+	    a single unicode character.
+	  </para>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_isspace">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode_isspace</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_isspace</refname>
+	  <refpurpose>unicode character classification</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>int <function>unicode_isspace</function></funcdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_isspace</function>() returns non-zero
+	    if the unicode character <parameter>c</parameter>'s line breaking
+	    class is
+	    <literal>BK</literal>,
+	    <literal>CR</literal>,
+	    <literal>LF</literal>,
+	    <literal>NL</literal>, or
+	    <literal>SP</literal>; and zero for all other characters.
+	    Those line breaking classes include the traditional ASCII control
+	    characters, and several additional unicode characters.
+	  </para>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_grapheme_break">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>unicode_grapheme_break</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_grapheme_break</refname>
+	  <refpurpose>unicode grapheme cluster boundary rules</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>int <function>unicode_grapheme_break</function></funcdef>
+              <paramdef>unicode_char <parameter>a</parameter></paramdef>
+              <paramdef>unicode_char <parameter>b</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_grapheme_break</function>() returns non-zero
+	    if there is a grapheme break between the two unicode characters
+	    <parameter>a</parameter> and
+	    <parameter>b</parameter>.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">TR-29</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <link linkend="unicode_line_break">
+		<citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>,
+		<link linkend="unicode_word_break">
+		  <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_line_break">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>unicode_line_break</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_lb_init</refname>
+	  <refname>unicode_lb_set_opts</refname>
+	  <refname>unicode_lb_next</refname>
+	  <refname>unicode_lb_next_cnt</refname>
+	  <refname>unicode_lb_end</refname>
+
+	  <refname>unicode_lbc_init</refname>
+	  <refname>unicode_lbc_set_opts</refname>
+	  <refname>unicode_lbc_next</refname>
+	  <refname>unicode_lbc_next_cnt</refname>
+	  <refname>unicode_lbc_end</refname>
+	  <refpurpose>calculate mandatory or allowed line breaks</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_lb_info_t <function>unicode_lb_init</function></funcdef>
+              <paramdef>int (*<parameter>cb_func</parameter>)(int, void *)</paramdef>
+              <paramdef>void *<parameter>cb_arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode_lb_set_opts</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>int <parameter>opts</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lb_next</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lb_next_cnt</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>size_t <parameter>cnt</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lb_end</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>unicode_lbc_info_t <function>unicode_lbc_init</function></funcdef>
+              <paramdef>int (*<parameter>cb_func</parameter>)(int, unicode_char, void *)</paramdef>
+              <paramdef>void *<parameter>cb_arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode_lbc_set_opts</function></funcdef>
+              <paramdef>unicode_lbc_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>int <parameter>opts</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lbc_next</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lbc_next_cnt</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>size_t <parameter>cnt</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_lbc_end</function></funcdef>
+              <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    These functions implement the unicode line breaking algorithm.
+	    Invoke <function>unicode_lb_init</function>() to initialize the
+	    line breaking algorithm. The
+	    first parameter is a callback function.
+	    The second parameter is an opaque pointer.
+	    The callback function gets invoked with two parameters. The first
+	    parameter is one of three values:
+	    <literal>UNICODE_LB_MANDATORY</literal>,
+	    <literal>UNICODE_LB_NONE</literal>, or
+	    <literal>UNICODE_LB_ALLOWED</literal>, as described below.
+	    The second parameter is
+	    the opaque pointer that was passed to
+	    <function>unicode_lb_init</function>(); the opaque pointer
+	    is not subject to any further interpretation by these functions.
+	  </para>
+
+	  <para>
+	    <function>unicode_lb_init</function>() returns an opaque handle.
+	    Repeated invocations of <function>unicode_lb_next</function>(),
+	    passing the handle and one unicode character at a time,
+	    defines a sequence
+	    of unicode characters over which the line breaking algorithm
+	    calculation takes place.
+	    <function>unicode_lb_next_cnt</function>() is a shortcut
+	    for invoking <function>unicode_lb_next</function>()
+	    repeatedly over an array
+	    <literal>cptr</literal> containing
+	    <literal>cnt</literal> unicode characters.
+	  </para>
+
+	  <para>
+	    <function>unicode_lb_end</function>() denotes the end of the
+	    unicode character sequence. After the call to
+	    <function>unicode_lb_end</function>() the line breaking
+	    <classname>unicode_lb_info_t</classname> handle is no longer valid.
+	  </para>
+
+	  <para>
+	    Between the call to
+	    <function>unicode_lb_init</function>() and
+	    <function>unicode_lb_end</function>(), the callback function
+	    gets invoked exactly once for each unicode character given to
+	    <function>unicode_lb_next</function>() or
+	    <function>unicode_lb_next_cnt</function>().
+	    Usually each call to
+	    <function>unicode_lb_next</function>() results in the callback
+	    function getting invoked immediately, but it does not have to be.
+	    It's possible that a call to <function>unicode_lb_next</function>()
+	    returns without invoking the callback function, and some subsequent
+	    call to <function>unicode_lb_next</function>() (or
+	    <function>unicode_lb_end</function>()) invokes the callback function
+	    more than once, to catch up.
+	    The contract is that before <function>unicode_lb_end</function>()
+	    returns, the callback function gets invoked the exact number of times
+	    as the number of characters in the unicode sequence defined by
+	    the intervening calls to <function>unicode_lb_next</function>() and
+	    <function>unicode_lb_next_cnt</function>(), unless an error
+	    occurs.
+	  </para>
+
+	  <para>
+	    Each call to the callback function reports the calculated
+	    line breaking status of the corresponding character in the unicode
+	    character sequence:
+	  </para>
+
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>UNICODE_LB_MANDATORY</literal></term>
+	      <listitem>
+		<para>
+		  A line break is MANDATORY
+		  <emphasis>before</emphasis> the corresponding character.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><literal>UNICODE_LB_NONE</literal></term>
+	      <listitem>
+		<para>
+		  A line break is PROHIBITED
+		  <emphasis>before</emphasis> the corresponding character.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><literal>UNICODE_LB_ALLOWED</literal></term>
+	      <listitem>
+		<para>
+		  A line break is OPTIONAL
+		  <emphasis>before</emphasis> the corresponding character.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+
+	  <para>
+	    The callback function should return 0. A non-zero value
+	    indicates to the line breaking algorithm that an error has
+	    occured.
+	    <function>unicode_lb_next</function>() and
+	    <function>unicode_lb_next_cnt</function>() return zero either if
+	    they never invoked the callback function, or if each call to the
+	    callback function returned zero.
+	    A non zero return from the callback function results in
+	    <function>unicode_lb_next</function>() and
+	    <function>unicode_lb_next_cnt</function>() immediately returning
+	    the same value.
+	  </para>
+
+	  <para>
+	    <function>unicode_lb_end</function>() must be invoked to destroy
+	    the line breaking handle even if
+	    <function>unicode_lb_next</function>() and
+	    <function>unicode_lb_next_cnt</function>() returned an error
+	    indication. It's also possible that, under normal circumstances,
+	    <function>unicode_lb_end</function>() invokes the callback function
+	    one or more times. The return value from 
+	    <function>unicode_lb_end</function>() has the same meaning as
+	    from <function>unicode_lb_next</function>() and
+	    <function>unicode_lb_next_cnt</function>(); however in all cases
+	    after <function>unicode_lb_end</function>() returns the
+	    line breaking handle is no longer valid.
+	  </para>
+
+	  <refsect2>
+	    <title>Alternative callback function</title>
+
+	    <para>
+	      <function>unicode_lbc_init</function>(),
+	      <function>unicode_lbc_next</function>(),
+	      <function>unicode_lbc_next_cnt</function>(),
+	      <function>unicode_lbc_end</function>() are alternative functions
+	      that implement the same algorithm. The only difference is that
+	      the callback function receives an extra parameter, the unicode
+	      character value to which the line breaking status applies to,
+	      passed through from the input unicode character sequence.
+	    </para>
+	  </refsect2>
+
+	  <refsect2>
+	    <title>Options</title>
+
+	    <para>
+	      <function>unicode_lb_set_opts</function>() and
+	      <function>unicode_lbc_set_opts</function>() enable non-default
+	      options for the line breaking algorithm. These functions must be
+	      called immediately after
+	      <function>unicode_lb_init</function>() or
+	      <function>unicode_lbc_init</function>(), and before any other
+	      function.
+	      <parameter>opts</parameter> is a bitmask that can contain
+	      the following values:
+	    </para>
+
+	    <variablelist>
+	      <varlistentry>
+		<term><literal>UNICODE_LB_OPT_PRBREAK</literal></term>
+		<listitem>
+		  <para>
+		    Enables a modified <literal>LB24</literal> rule.
+		    This prevents
+		    plus signs, as in <quote>C++</quote> from breaking. This
+		    flag adds the following rules to the LB24 rule:
+		  </para>
+
+		  <blockquote>
+		    <informalexample>
+		      <programlisting>
+			PR x PR
+
+			AL x PR
+
+		        ID x PR</programlisting>
+		    </informalexample>
+		  </blockquote>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term><literal>UNICODE_LB_OPT_SYBREAK</literal></term>
+		<listitem>
+		  <para>
+		    Tailored breaking rules for the <quote>/</quote> character.
+		    This prevents breaking after the <quote>/</quote> character
+		    (think URLs); including an exception to the
+		    <quote>x SY</quote> rule in <literal>LB13</literal>.
+		    This flag adds the following rules to the LB24 rule:
+		  </para>
+		  <blockquote>
+		    <informalexample>
+		      <programlisting>
+			SY x EX
+
+			SY x AL
+
+			SY x ID
+
+		        SP ÷ SY, which takes precedence over "x SY".</programlisting>
+		    </informalexample>
+		  </blockquote>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term><literal>UNICODE_LB_OPT_DASHWJ</literal></term>
+		<listitem>
+		  <para>
+		    This flag reclassifies <literal>U+2013</literal> and
+		    <literal>U+2014</literal> as class <literal>WJ</literal>,
+		    prohibiting breaks before and after the m-dash and the
+		    n-dash unicode characters.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	    </variablelist>
+	  </refsect2>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_line_break">
+	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <ulink url="http://www.unicode.org/reports/tr14/tr14-32.html">TR-14</ulink>
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_word_break">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>unicode_word_break</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_wb_init</refname>
+	  <refname>unicode_wb_next</refname>
+	  <refname>unicode_wb_next_cnt</refname>
+	  <refname>unicode_wb_end</refname>
+
+	  <refname>unicode_wbscan_init</refname>
+	  <refname>unicode_wbscan_next</refname>
+	  <refname>unicode_wbscan_end</refname>
+	  
+	  <refpurpose>calculate word breaks</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_wb_info_t <function>unicode_wb_init</function></funcdef>
+              <paramdef>int (*<parameter>cb_func</parameter>)(int, void *)</paramdef>
+              <paramdef>void *<parameter>cb_arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_wb_next</function></funcdef>
+              <paramdef>unicode_wb_info_t <parameter>wb</parameter></paramdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_wb_next_cnt</function></funcdef>
+              <paramdef>unicode_wb_info_t <parameter>wb</parameter></paramdef>
+              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>size_t <parameter>cnt</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_wb_end</function></funcdef>
+              <paramdef>unicode_wb_info_t <parameter>wb</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>unicode_wbscan_info_t <function>unicode_wbscan_init</function></funcdef>
+	      <void />
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_wbscan_next</function></funcdef>
+              <paramdef>unicode_wbscan_info_t <parameter>wbs</parameter></paramdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>size_t <function>unicode_wbscan_end</function></funcdef>
+              <paramdef>unicode_wbscan_info_t <parameter>wbs</parameter></paramdef>
+	    </funcprototype>
+
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    These functions implement the unicode word breaking algorithm.
+	    Invoke <function>unicode_wb_init</function>() to initialize the
+	    word breaking algorithm. The
+	    first parameter is a callback function.
+	    The second parameter is an opaque pointer.
+	    The callback function gets invoked with two parameters.
+	    The second parameter is
+	    the opaque pointer that was given to
+	    <function>unicode_wb_init</function>(); and the opaque pointer
+	    is not subject to any further interpretation by these functions.
+	  </para>
+
+	  <para>
+	    <function>unicode_wb_init</function>() returns an opaque handle.
+	    Repeated invocations of <function>unicode_wb_next</function>(),
+	    passing the handle, and one unicode character defines a sequence
+	    of unicode characters over which the word breaking algorithm
+	    calculation takes place.
+	    <function>unicode_wb_next_cnt</function>() is a shortcut
+	    for invoking <function>unicode_wb_next</function>()
+	    repeatedly over an array
+	    <literal>cptr</literal> containing
+	    <literal>cnt</literal> unicode characters.
+	  </para>
+
+	  <para>
+	    <function>unicode_wb_end</function>() denotes the end of the
+	    unicode character sequence. After the call to
+	    <function>unicode_wb_end</function>() the word breaking
+	    <classname>unicode_wb_info_t</classname> handle is no longer valid.
+	  </para>
+
+	  <para>
+	    Between the call to
+	    <function>unicode_wb_init</function>() and
+	    <function>unicode_wb_end</function>(), the callback function
+	    gets invoked exactly once for each unicode character given to
+	    <function>unicode_wb_next</function>() or
+	    <function>unicode_wb_next_cnt</function>().
+	    Usually each call to
+	    <function>unicode_wb_next</function>() results in the callback
+	    function getting invoked immediately, but it does not have to be.
+	    It's possible that a call to <function>unicode_wb_next</function>()
+	    returns without invoking the callback function, and some subsequent
+	    call to <function>unicode_wb_next</function>() (or
+	    <function>unicode_wb_end</function>()) invokes the callback function
+	    more than once, to catch things up.
+	    The contract is that before <function>unicode_wb_end</function>()
+	    returns, the callback function gets invoked the exact number of times
+	    as the number of characters in the unicode sequence defined by
+	    the intervening calls to <function>unicode_wb_next</function>() and
+	    <function>unicode_wb_next_cnt</function>(), unless an error
+	    occurs.
+	  </para>
+
+	  <para>
+	    Each call to the callback function reports the calculated
+	    wordbreaking status of the corresponding character in the unicode
+	    character sequence. If the parameter to the callback function
+	    is non zero, a word break is permitted <emphasis>before</emphasis>
+	    the corresponding character. A zero value indicates that a word
+	    break is prohibited <emphasis>before</emphasis> the corresponding
+	    character.
+	  </para>
+
+	  <para>
+	    The callback function should return 0. A non-zero value
+	    indicates to the word breaking algorithm that an error has
+	    occured.
+	    <function>unicode_wb_next</function>() and
+	    <function>unicode_wb_next_cnt</function>() return zero either if
+	    they never invoked the callback function, or if each call to the
+	    callback function returned zero.
+	    A non zero return from the callback function results in
+	    <function>unicode_wb_next</function>() and
+	    <function>unicode_wb_next_cnt</function>() immediately returning
+	    the same value.
+	  </para>
+
+	  <para>
+	    <function>unicode_wb_end</function>() must be invoked to destroy
+	    the word breaking handle even if
+	    <function>unicode_wb_next</function>() and
+	    <function>unicode_wb_next_cnt</function>() returned an error
+	    indication. It's also possible that, under normal circumstances,
+	    <function>unicode_wb_end</function>() invokes the callback function
+	    one or more times. The return value from 
+	    <function>unicode_wb_end</function>() has the same meaning as
+	    from <function>unicode_wb_next</function>() and
+	    <function>unicode_wb_next_cnt</function>(); however in all cases
+	    after <function>unicode_wb_end</function>() returns the
+	    line breaking handle is no longer valid.
+	  </para>
+
+	  <refsect2>
+	    <title>Word scan</title>
+
+	    <para>
+	      <function>unicode_wbscan_init</function>(),
+              <function>unicode_wbscan_next</function>() and
+              <function>unicode_wbscan_end</function>
+	      scan for the next word boundary in a unicode character sequence.
+
+	      <function>unicode_wbscan_init</function>() obtains a handle,
+	      then
+              <function>unicode_wbscan_next</function>() gets repeatedly invoked
+	      to define the unicode character sequence.
+	      <function>unicode_wbscan_end</function>() deallocates the handle
+	      and returns the number of leading characters in the unicode character
+	      sequence up to the first word break.
+	    </para>
+
+	    <para>
+	      A non-0 return value from
+              <function>unicode_wbscan_next</function>() indicates that the
+	      word boundary is already known, and any further calls to
+              <function>unicode_wbscan_next</function>() will be ignored.
+	      <function>unicode_wbscan_end</function>() must still be called,
+	      to obtain the unicode character count.
+	    </para>
+	  </refsect2>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">TR-29</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode::wordbreak</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <link linkend="unicode_uc">
+		<citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>,
+		<link linkend="unicode_line_break">
+		  <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>,
+		  <link linkend="unicode_grapheme_break">
+		    <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
+		    <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_uc">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>unicode_uc</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_uc</refname>
+	  <refname>unicode_lc</refname>
+	  <refname>unicode_tc</refname>
+	  <refname>unicode_convert_tocase</refname>
+	  <refpurpose>unicode uppercase, lowercase, and titlecase character lookup</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_char <function>unicode_uc</function></funcdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>unicode_char <function>unicode_lc</function></funcdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>unicode_char <function>unicode_tc</function></funcdef>
+              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>char *<function>unicode_convert_tocase</function></funcdef>
+              <paramdef>const char *<parameter>str</parameter></paramdef>
+              <paramdef>const char *<parameter>charset</parameter></paramdef>
+              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(uncode_char)</paramdef>
+              <paramdef>unicode_char (*<parameter>char_func</parameter>)(uncode_char)</paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_uc</function>(),
+	    <function>unicode_lc</function>(),
+	    <function>unicode_tc</function>()
+	    return the uppercase, lowercase, or the titlecase
+	    equivalent of the unicode character <parameter>c</parameter>.
+	    If this character does not have an uppercase, lowercase, or a titlecase
+	    equivalent, these functions return <parameter>c</parameter>, the
+	    same character.
+	  </para>
+
+	  <para>
+	    <function>unicode_convert_tocase</function>()
+	    takes the string <parameter>str</parameter> in the
+	    character set <parameter>charset</parameter>.
+	    <parameter>first_char_func</parameter> and
+	    <parameter>char_func</parameter>, each, should be
+	    <function>unicode_uc</function>,
+	    <function>unicode_lc</function>, or
+	    <function>unicode_tc</function>.
+	    <function>unicode_convert_tocase</function>() returns a malloc()ed
+	    buffer. The first unicode character in
+	    <parameter>str</parameter> gets processed by
+	    <parameter>first_char_func</parameter>, and all other characters by
+	    <parameter>char_func</parameter>.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_convert">
+	      <citerefentry>
+		<refentrytitle>unicode_convert</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>,
+	      <link linkend="unicode_default_chset">
+		<citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>,
+		<link linkend="unicode_html40ent_lookup">
+		  <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>,
+		  <link linkend="unicode_isspace">
+		    <citerefentry><refentrytitle>unicode_isspace</refentrytitle>
+		    <manvolnum>3</manvolnum></citerefentry></link>,
+		    <link linkend="unicode_grapheme_break">
+		      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
+		      <manvolnum>3</manvolnum></citerefentry></link>,
+		      <link linkend="unicode_word_break">
+			<citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+			<manvolnum>3</manvolnum></citerefentry></link>,
+			<link linkend="unicode_line_break">
+			  <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+			  <manvolnum>3</manvolnum></citerefentry></link>.
+
+	  </para>
+	</refsect1>
+      </refentry>
+    </section>
+
+    <section id="manpagescpp">
+      <title>C++ manual pages</title>
+
+      <refentry id="unicode__iconvert__convert">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::iconvert::convert</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::iconvert::convert</refname>
+
+	  <refpurpose>unicode character set conversion</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>srccharset</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>srccharset</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
+              <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
+              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
+              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
+              <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>bool <function>unicode::iconvert::convert</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    The overloaded
+	    <function>unicode::convert::convert</function>() functions
+	    convert:
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		A text string between two different character sets, returning
+		the new string.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		A vector of unicode characters (not null-terminated) to
+		a character string in a supported character set.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Initialize a vector of unicode characters, passed by
+		reference, by converting a text string in a given character
+		set to unicode.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+
+	  <para>
+	    These functions use
+	    <citerefentry><refentrytitle>iconv</refentrytitle>
+	    <manvolnum>3</manvolnum></citerefentry>, and can use any
+	    character set that's supported by
+	    <citerefentry><refentrytitle>iconv</refentrytitle>
+	    <manvolnum>3</manvolnum></citerefentry>.
+	    The overloaded versions that pass a reference to a
+	    <classname>bool</classname> set the flag to <literal>true</literal>
+	    if some characters could not be converted.
+	    The overloaded version that initializes a unicode vector returns
+	    the <classname>bool</classname> flag, instead.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert_tocase">
+	      <citerefentry><refentrytitle>unicode::convert::convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_convert">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__iconvert__convert_tocase">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::iconvert::convert_tocase</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::iconvert::convert_tocase</refname>
+
+	  <refpurpose>unicode uppercase, lowercase, and titlecase conversion</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert_tocase</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(unicode_char)</paramdef>
+              <paramdef>unicode_char (*<parameter>char_func</parameter>)(unicode_char)</paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::convert_tocase</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>bool &amp;<parameter>err</parameter></paramdef>
+              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(unicode_char)</paramdef>
+              <paramdef>unicode_char (*<parameter>char_func</parameter>)(unicode_char)</paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    The overloaded
+	    <function>unicode::convert::convert_tocase</function>() function
+	    converts the <parameter>text</parameter> parameter, in the
+	    <parameter>charset</parameter> characters to lowercase, uppercase,
+	    and titlecase. <parameter>text</parameter> gets converted,
+	    internally, into unicode.
+            <parameter>first_char_func</parameter> and
+            <parameter>char_func</parameter> are either:
+	    <function>unicode_lc</function>,
+	    <function>unicode_uc</function>, or
+	    <function>unicode_tc</function>. If the converted text string is
+	    not empty, <parameter>first_char_func</parameter> converts the
+	    first unicode character in the text string, and
+            <parameter>char_func</parameter> converts any remaining characters.
+	    <function>unicode_lc</function> converts its character to lowercase,
+	    <function>unicode_uc</function> to uppercase, and
+	    <function>unicode_tc</function> to titlecase. Finally, the
+	    unicode string gets converted back to
+	    <parameter>charset</parameter>, which gets returned.
+	  </para>
+
+	  <para>
+	    The optional <parameter>err</parameter> parameter gets set to true if
+	    an error was encounted converting the text string to or from
+	    unicode.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert">
+	      <citerefentry><refentrytitle>unicode::convert::convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_convert">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__iconvert__fromu">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::iconvert::fromu</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::iconvert::fromu</refname>
+
+	  <refpurpose>template for converting text sequence from unicode</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+
+	    <funcprototype>
+              <funcdef>output_iter_t <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
+              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
+              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>std::string &amp;<parameter>out_buf</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>std::string &amp;<parameter>out_buf</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These template functions convert unicode characters to
+	    text in the given character set.
+	    <parameter>beg_iter</parameter> and
+	    <parameter>end_iter</parameter> define an input sequence of
+	    <classname>unicode_char</classname>s.
+	    They get converted to unicode characters.
+	    <parameter>output_iter</parameter> is an output iterator that
+	    <function>convert</function>()
+	    iterates over <classname>char</classname>s in the specified
+	    character set.
+	    <function>convert</function>() returns the value of the output
+	    iterator after iterating over the converted character sequence.
+	  </para>
+
+	  <para>
+	    An overloaded <function>convert</function>() puts the text string
+	    into a <classname>std::string</classname>, instead of using
+	    an output iterator.
+	    Finally, a single
+	    <classname>std::vector&lt;unicode_char&gt;</classname>
+	    specifies the character string, instead of a beginning and an
+	    ending iterator.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert">
+	      <citerefentry><refentrytitle>unicode::convert::convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_convert">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__iconvert__tou">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::iconvert::tou</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::iconvert::tou</refname>
+
+	  <refpurpose>template for converting text sequence to unicode</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+
+	    <funcprototype>
+              <funcdef>output_iter_t <function>convert</function></funcdef>
+              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
+              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>convert</function></funcdef>
+              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
+              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>out_buf</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>convert</function></funcdef>
+              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>out_buf</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These template functions convert text in a given character set
+	    to unicode characters.
+	    <parameter>beg_iter</parameter> and
+	    <parameter>end_iter</parameter> define an input sequence of
+	    <classname>char</classname>s in the <parameter>charset</parameter>
+	    character set. They get converted to unicode characters.
+	    <parameter>output_iter</parameter> is an output iterator that
+	    <function>convert</function>()
+	    iterates over <classname>unicode_char</classname>s.
+	    <function>convert</function>() returns the value of the output
+	    iterator after iterating over the converted character sequence.
+	  </para>
+
+	  <para>
+	    An overloaded <function>convert</function>() puts the unicode
+	    character sequence into a vector of
+	    <classname>unicode_char</classname>s, instead of an output
+	    sequence. Finally, a single <classname>std::string</classname>
+	    specifies the character string, instead of a beginning and an
+	    ending iterator.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__iconvert__convert">
+	      <citerefentry><refentrytitle>unicode::convert::convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_convert">
+	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <citerefentry><refentrytitle>iconv</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__linebreak">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::linebreak</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::linebreak_callback_base</refname>
+	  <refname>unicode::linebreak_callback_save_buf</refname>
+	  <refname>unicode::linebreakc_callback_base</refname>
+	  <refname>unicode::linebreak_iter</refname>
+	  <refname>unicode::linebreakc_iter</refname>
+
+	  <refpurpose>unicode line-breaking rules</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <programlisting>
+#include &lt;unicode.h&gt;
+
+class linebreak : public unicode::linebreak_callback_base {
+
+public:
+
+    using unicode::linebreak_callback_base::operator&lt;&lt;;
+    using unicode::linebreak_callback_base::operator();
+    int callback(int linebreak_code)
+    {
+        // ...
+    }
+};
+
+unicode_char c;
+std::vector&lt;unicode_char&gt; buf;
+
+linebreak compute_linebreak;
+
+compute_linebreak.set_opts(UNICODE_LB_OPT_SYBREAK);
+compute_linebreak &lt;&lt; c;
+
+compute_linebreak(buf);
+compute_linebreak(buf.begin(), buf.end());
+
+compute_linebreak.finish();
+
+// ...
+
+unicode::linebreak_callback_save_buf linebreaks;
+
+std::list&lt;int&gt; lb=linebreaks.lb_buf;
+
+class linebreakc : public unicode::linebreakc_callback_base {
+
+public:
+
+    using unicode::linebreak_callback_base::operator&lt;&lt;;
+    using unicode::linebreak_callback_base::operator();
+    int callback(int linebreak_code, unicode_char ch)
+    {
+        // ...
+    }
+};
+
+// ...
+
+std::vector&lt;unicode_char&gt; buf;
+
+typedef unicode::linebreak_iter&lt;std::vector&lt;unicode_char&gt;::const_iterator&gt; iter_t;
+
+iter_t beg_iter(buf.begin(), buf.end()), end_iter;
+
+beg_iter.set_opts(UNICODE_LB_OPT_SYBREAK);
+
+std::vector&lt;int&gt; linebreaks;
+
+std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt;&gt;(linebreaks));
+
+// ...
+
+typedef unicode::linebreakc_iter&lt;std::vector&lt;unicode_char&gt;::const_iterator&gt; iter_t;
+
+iter_t beg_iter(buf.begin(), buf.end()), end_iter;
+
+beg_iter.set_opts(UNICODE_LB_OPT_SYBREAK);
+
+std::vector&lt;std::pair&lt;int, unicode_char&gt;&gt; linebreaks;
+
+std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt;&gt;(linebreaks));</programlisting>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <classname>unicode::linebreak_callback_base</classname> is a C++
+	    binding for the unicode line-breaking rule implementation described
+	    in
+	    <link linkend="unicode_line_break">
+	      <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+
+	  <para>
+	    Subclass <classname>unicode::linebreak_callback_base</classname>
+	    and implement <methodname>callback</methodname>() that's virtually
+	    inherited from
+	    <classname>unicode::linebreak_callback_base</classname>.
+	    The
+	    <methodname>callback</methodname>() callback function receives the
+	    output values from the line-breaking algorithm, the
+	    <literal>UNICODE_LB_MANDATORY</literal>,
+	    <literal>UNICODE_LB_NONE</literal>, or the
+	    <literal>UNICODE_LB_ALLOWED</literal> value, for each unicode
+	    character.
+	  </para>
+
+	  <para>
+	    <methodname>callback</methodname>() should return 0. A non-zero
+	    return reports an error, that stops the line-breaking algorithm.
+	    See
+	    <link linkend="unicode_line_break">
+	      <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link> for more
+	      information.
+	  </para>
+
+	  <para>
+	    The alternate
+	    <classname>unicode::linebreakc_callback_base</classname>
+	    interface uses a virtually inherited
+	    <methodname>callback</methodname>() that receives two parameters,
+	    the line-break code value, and the corresponding unicode character.
+	  </para>
+ 	  <para>
+	    The input unicode characters for the line-breaking
+	    algorithm are provided by the <literal>&lt;&lt;</literal>
+	    operator, one unicode character at a time; or by the
+	    <literal>()</literal> operator, passing either a container, or
+	    a beginning and an ending iterator value for an input sequence
+	    of unicode characters. <methodname>finish</methodname>() indicates
+	    the end of the unicode character sequence.
+	  </para>
+
+	  <para>
+	    <methodname>set_opts</methodname> sets line-breaking options
+	    (see <methodname>unicode_lb_set_opts</methodname>() for more
+	    information).
+	  </para>
+	  <para>
+	    <classname>unicode::linebreak_callback_save_buf</classname> is a
+	    subclass that implements <methodname>callback</methodname>() by
+	    saving the linebreaks codes into a <classname>std::list</classname>.
+	  </para>
+
+	  <para>
+	    The <classname>linebreak_iter</classname> template implements an
+	    input iterator over <classname>int</classname>s. 
+	    The template parameter is an input iterator over
+	    <classname>unicode</classname> chars. The constructor's parameters
+	    are a beginning and an ending iterator value for a sequence of
+	    <classname>unicode_char</classname>. This constructs the beginning
+	    iterator value for a sequence of <classname>int</classname>s
+	    consisting of line-break values
+	    (<literal>UNICODE_LB_MANDATORY</literal>,
+	    <literal>UNICODE_LB_NONE</literal>, or
+	    <literal>UNICODE_LB_ALLOWED</literal>) corresponding to each
+	    <classname>unicode_char</classname> in the underlying sequence.
+	    The default constructor creates the ending iterator value for the
+	    sequence.
+	  </para>
+
+	  <para>
+	    The iterator implements a <methodname>set_opts</methodname>()
+	    methods that sets the options for the line-breaking algorithm.
+	  </para>
+
+	  <para>
+	    The <classname>linebreakc_iter</classname> template implements a
+	    similar input iterator, with the difference that it ends up iterating
+	    over a <classname>std::pair</classname> of line-breaking values and
+	    the corresponding <classname>unicode_char</classname> from the
+	    underlying input sequence.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_line_break">
+	      <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__wordbreak">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::wordbreak</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::wordbreak_callback_base</refname>
+	  <refname>unicode::wordbreak_callback_base</refname>
+	  <refpurpose>unicode word-breaking rules</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <programlisting>
+#include &lt;unicode.h&gt;
+
+class wordbreak : public unicode::wordbreak_callback_base {
+
+public:
+
+    using unicode::wordbreak_callback_base::operator&lt;&lt;;
+    using unicode::wordbreak_callback_base::operator();
+    int callback(bool flag)
+    {
+        // ...
+    }
+};
+
+unicode_char c;
+std::vector&lt;unicode_char&gt; buf;
+
+wordbreak compute_wordbreak;
+
+compute_wordbreak &lt;&lt; c;
+
+compute_wordbreak(buf);
+compute_wordbreak(buf.begin(), buf.end());
+
+compute_wordbreak.finish();
+
+// ...
+
+unicode_wordbreakscan scan;
+
+scan &lt;&lt; c;
+
+size_t nchars=scan.finish();
+
+</programlisting>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <classname>unicode::wordbreak_callback_base</classname> is a C++
+	    binding for the unicode word-breaking rule implementation described
+	    in
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+
+	  <para>
+	    Subclass <classname>unicode::wordbreak_callback_base</classname>
+	    and implement <methodname>callback</methodname>() that's virtually
+	    inherited from
+	    <classname>unicode::wordbreak_callback_base</classname>.
+	    The
+	    <methodname>callback</methodname>() callback function receives the
+	    output values from the word-breaking algorithm, namely a
+	    <classname>bool</classname> indicating whether a word break
+	    exists before the unicode character in the underlying input sequence.
+	  </para>
+
+	  <para>
+	    <methodname>callback</methodname>() should return 0. A non-zero
+	    return reports an error, that stops the word-breaking algorithm.
+	    See
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link> for more
+	      information.
+	  </para>
+
+ 	  <para>
+	    The input unicode characters for the word-breaking
+	    algorithm are provided by the <literal>&lt;&lt;</literal>
+	    operator, one unicode character at a time; or by the
+	    <literal>()</literal> operator, passing either a container, or
+	    a beginning and an ending iterator value for an input sequence
+	    of unicode characters. <methodname>finish</methodname>() indicates
+	    the end of the unicode character sequence.
+	  </para>
+
+	  <para>
+	    <classname>unicode::wordbreakscan</classname> is a C++
+	    binding for the 
+	    <function>unicode_wbscan_init</function>(),
+            <function>unicode_wbscan_next</function>() and
+            <function>unicode_wbscan_end</function>
+	    methods described in
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	      Its <methodname>&lt;&lt;</methodname> iterates over the
+	      unicode characters, and <methodname>finish</methodname>()
+	      indicates the number of characters before the first unicode
+	      word break. The <methodname>&lt;&lt;</methodname> iterator
+	      returns a <classname>bool</classname> indicating when the first
+	      word break has already been found, so further calls are not
+	      necessary.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+    </section>
+  </section>
+  <section id="COPYING">
+    <title>COPYING</title>
+
+    <para role="COPYING">
+      The Courier Unicode Library is free software, distributed under the
+      terms of the GPL, version 3:
+    </para>
+    <blockquote>
+      <literallayout><xi:include href="COPYING" parse="text" xmlns:xi="http://www.w3.org/2001/XInclude" /></literallayout>
+    </blockquote>
+  </section>
+</article>

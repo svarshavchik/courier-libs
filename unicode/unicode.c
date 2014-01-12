@@ -6,7 +6,6 @@
 
 #include	"unicode_config.h"
 #include	"unicode.h"
-#include	"../rfc822/rfc822hdr.h"
 #include	<string.h>
 #include	<ctype.h>
 #include	<stdlib.h>
@@ -118,7 +117,7 @@ const char *unicode_default_chset()
 
 /*****************************************************************************/
 
-const char libmail_u_ucs4_native[]=
+const char unicode_u_ucs4_native[]=
 #if WORDS_BIGENDIAN
 	"UCS-4BE"
 #else
@@ -126,7 +125,7 @@ const char libmail_u_ucs4_native[]=
 #endif
 	;
 
-const char libmail_u_ucs2_native[]=
+const char unicode_u_ucs2_native[]=
 #if WORDS_BIGENDIAN
 	"UCS-2BE"
 #else
@@ -136,14 +135,14 @@ const char libmail_u_ucs2_native[]=
 
 /* A stack of conversion modules */
 
-struct libmail_u_convert_hdr {
+struct unicode_convert_hdr {
 
 	int (*convert_handler)(void *ptr,
 			       const char *text, size_t cnt);
 	int (*deinit_handler)(void *ptr, int *errptr);
 	void *ptr;
 
-	struct libmail_u_convert_hdr *next;
+	struct unicode_convert_hdr *next;
 };
 
 /* Decoding table for modified UTF7-encoding as used in imap */
@@ -178,7 +177,7 @@ static const char mbase64[]=
 ** init_nottoimaputf7() returns an opaque stack for converting to ucs2.
 */
 
-static libmail_u_convert_handle_t
+static unicode_convert_handle_t
 init_nottoimaputf7(const char *src_chset,
 		   const char *dst_chset,
 		   int (*output_func)(const char *, size_t, void *),
@@ -188,9 +187,9 @@ init_nottoimaputf7(const char *src_chset,
 ** The to modified UTF7 module
 */
 
-struct libmail_u_convert_toimaputf7 {
+struct unicode_convert_toimaputf7 {
 
-	struct libmail_u_convert_hdr hdr;
+	struct unicode_convert_hdr hdr;
 
 	/* Accumulated output buffer */
 
@@ -233,7 +232,7 @@ struct libmail_u_convert_toimaputf7 {
 		(p)->utf7encodebuf_cnt=0;				\
 	} while (0)
 
-static int toimaputf7_encode_flushfinal(struct libmail_u_convert_toimaputf7 *p)
+static int toimaputf7_encode_flushfinal(struct unicode_convert_toimaputf7 *p)
 {
 	if (p->utf7encodebuf_cnt > 0)
 		toimaputf7_encode_flush(p);
@@ -258,14 +257,14 @@ static int convert_utf7_handler(void *ptr, const char *text, size_t cnt);
 ** Create a conversion module stack
 */
 
-libmail_u_convert_handle_t
-libmail_u_convert_init(const char *src_chset,
+unicode_convert_handle_t
+unicode_convert_init(const char *src_chset,
 		       const char *dst_chset,
 		       int (*output_func)(const char *, size_t, void *),
 		       void *convert_arg)
 {
-	struct libmail_u_convert_toimaputf7 *toutf7;
-	libmail_u_convert_handle_t h;
+	struct unicode_convert_toimaputf7 *toutf7;
+	unicode_convert_handle_t h;
 	const char *smapmunge;
 	size_t l=strlen(unicode_x_imap_modutf7);
 
@@ -282,14 +281,14 @@ libmail_u_convert_init(const char *src_chset,
 					     output_func,
 					     convert_arg);
 
-	toutf7=malloc(sizeof(struct libmail_u_convert_toimaputf7));
+	toutf7=malloc(sizeof(struct unicode_convert_toimaputf7));
 
 	if (!toutf7)
 		return NULL;
 
 	memset(toutf7, 0, sizeof(*toutf7));
 
-	h=init_nottoimaputf7(src_chset, libmail_u_ucs2_native,
+	h=init_nottoimaputf7(src_chset, unicode_u_ucs2_native,
 			     do_convert_toutf7, toutf7);
 	if (!h)
 	{
@@ -313,14 +312,14 @@ libmail_u_convert_init(const char *src_chset,
 
 static int convert_utf7_handler(void *ptr, const char *text, size_t cnt)
 {
-	struct libmail_u_convert_toimaputf7 *toutf7=
-		(struct libmail_u_convert_toimaputf7 *)ptr;
+	struct unicode_convert_toimaputf7 *toutf7=
+		(struct unicode_convert_toimaputf7 *)ptr;
 
 	return (*toutf7->hdr.next->convert_handler)(toutf7->hdr.next->ptr,
 						    text, cnt);
 }
 
-static int utf7off(struct libmail_u_convert_toimaputf7 *toutf7)
+static int utf7off(struct unicode_convert_toimaputf7 *toutf7)
 {
 	if (!toutf7->utfmode)
 		return 0;
@@ -338,8 +337,8 @@ static int utf7off(struct libmail_u_convert_toimaputf7 *toutf7)
 
 static int do_convert_toutf7(const char *text, size_t cnt, void *arg)
 {
-	struct libmail_u_convert_toimaputf7 *toutf7=
-		(struct libmail_u_convert_toimaputf7 *)arg;
+	struct unicode_convert_toimaputf7 *toutf7=
+		(struct unicode_convert_toimaputf7 *)arg;
 
 	/* We better be getting UCS-2 here! */
 
@@ -415,8 +414,8 @@ static int deinit_toimaputf7(void *ptr, int *errptr)
 {
 	int rc;
 
-	struct libmail_u_convert_toimaputf7 *toutf7=
-		(struct libmail_u_convert_toimaputf7 *)ptr;
+	struct unicode_convert_toimaputf7 *toutf7=
+		(struct unicode_convert_toimaputf7 *)ptr;
 
 	/* Flush out the downstream stack */
 	rc=(*toutf7->hdr.next->deinit_handler)(toutf7->hdr.next->ptr, errptr);
@@ -442,15 +441,15 @@ static int deinit_toimaputf7(void *ptr, int *errptr)
 ** converts UCS-2 to the requested charset.
 */
 
-static libmail_u_convert_handle_t
+static unicode_convert_handle_t
 init_notfromimaputf7(const char *src_chset,
 		     const char *dst_chset,
 		     int (*output_func)(const char *, size_t, void *),
 		     void *convert_arg);
 
-struct libmail_u_convert_fromimaputf7 {
+struct unicode_convert_fromimaputf7 {
 
-	struct libmail_u_convert_hdr hdr;
+	struct unicode_convert_hdr hdr;
 
 	/* Accumulated UCS-2 stream */
 	uint16_t convbuf[512];
@@ -498,14 +497,14 @@ static int convert_fromutf7(void *ptr,
 			    const char *text, size_t cnt);
 static int deinit_fromutf7(void *ptr, int *errptr);
 
-static libmail_u_convert_handle_t
+static unicode_convert_handle_t
 init_nottoimaputf7(const char *src_chset,
 		   const char *dst_chset,
 		   int (*output_func)(const char *, size_t, void *),
 		   void *convert_arg)
 {
-	struct libmail_u_convert_fromimaputf7 *fromutf7;
-	libmail_u_convert_handle_t h;
+	struct unicode_convert_fromimaputf7 *fromutf7;
+	unicode_convert_handle_t h;
 	size_t l=strlen(unicode_x_imap_modutf7);
 
 	if (strncmp(src_chset, unicode_x_imap_modutf7, l) == 0 &&
@@ -516,8 +515,8 @@ init_nottoimaputf7(const char *src_chset,
 					    output_func,
 					    convert_arg);
 
-	fromutf7=(struct libmail_u_convert_fromimaputf7 *)
-		malloc(sizeof(struct libmail_u_convert_fromimaputf7));
+	fromutf7=(struct unicode_convert_fromimaputf7 *)
+		malloc(sizeof(struct unicode_convert_fromimaputf7));
 
 	if (!fromutf7)
 		return NULL;
@@ -526,7 +525,7 @@ init_nottoimaputf7(const char *src_chset,
 
 	/* Create a stack for converting UCS-2 to the dest charset */
 
-	h=init_notfromimaputf7(libmail_u_ucs2_native, dst_chset,
+	h=init_notfromimaputf7(unicode_u_ucs2_native, dst_chset,
 			       output_func, convert_arg);
 
 	if (!h)
@@ -545,8 +544,8 @@ init_nottoimaputf7(const char *src_chset,
 static int convert_fromutf7(void *ptr,
 			    const char *text, size_t cnt)
 {
-	struct libmail_u_convert_fromimaputf7 *fromutf7=
-		(struct libmail_u_convert_fromimaputf7 *)ptr;
+	struct unicode_convert_fromimaputf7 *fromutf7=
+		(struct unicode_convert_fromimaputf7 *)ptr;
 	int bits;
 
 	while (cnt)
@@ -634,8 +633,8 @@ static int convert_fromutf7(void *ptr,
 
 static int deinit_fromutf7(void *ptr, int *errptr)
 {
-	struct libmail_u_convert_fromimaputf7 *fromutf7=
-		(struct libmail_u_convert_fromimaputf7 *)ptr;
+	struct unicode_convert_fromimaputf7 *fromutf7=
+		(struct unicode_convert_fromimaputf7 *)ptr;
 	int rc;
 
 	if (fromutf7->seenamp || fromutf7->inmod)
@@ -666,9 +665,9 @@ static int deinit_fromutf7(void *ptr, int *errptr)
 
 /* A real conversion module, via iconv */
 
-struct libmail_u_convert_iconv {
+struct unicode_convert_iconv {
 
-	struct libmail_u_convert_hdr hdr;
+	struct unicode_convert_hdr hdr;
 
 	iconv_t h;
 	int errflag; /* Accumulated errors */
@@ -683,13 +682,13 @@ struct libmail_u_convert_iconv {
 	char converr; /* Flag - an EILSEQ was encountered */
 } ;
 
-static int init_iconv(struct libmail_u_convert_iconv *h,
+static int init_iconv(struct unicode_convert_iconv *h,
 		      const char *src_chset,
 		      const char *dst_chset,
 		      int (*output_func)(const char *, size_t, void *),
 		      void *convert_arg);
 
-static libmail_u_convert_handle_t
+static unicode_convert_handle_t
 init_notfromimaputf7(const char *src_chset,
 		     const char *dst_chset,
 		     int (*output_func)(const char *, size_t, void *),
@@ -697,8 +696,8 @@ init_notfromimaputf7(const char *src_chset,
 {
 
 
-	struct libmail_u_convert_iconv *h=
-		malloc(sizeof(struct libmail_u_convert_iconv));
+	struct unicode_convert_iconv *h=
+		malloc(sizeof(struct unicode_convert_iconv));
 
 	if (!h)
 		return NULL;
@@ -715,7 +714,7 @@ init_notfromimaputf7(const char *src_chset,
 
 /* Run the stack */
 
-int libmail_u_convert(libmail_u_convert_handle_t h,
+int unicode_convert(unicode_convert_handle_t h,
 		      const char *text, size_t cnt)
 {
 	return (*h->convert_handler)(h->ptr, text, cnt);
@@ -723,7 +722,7 @@ int libmail_u_convert(libmail_u_convert_handle_t h,
 
 /* Destroy the stack */
 
-int libmail_u_convert_deinit(libmail_u_convert_handle_t h, int *errptr)
+int unicode_convert_deinit(unicode_convert_handle_t h, int *errptr)
 {
 	return (*h->deinit_handler)(h, errptr);
 }
@@ -734,7 +733,7 @@ static int convert_iconv(void *ptr,
 
 /* Initialize a single conversion module, in the stack */
 
-static int init_iconv(struct libmail_u_convert_iconv *h,
+static int init_iconv(struct unicode_convert_iconv *h,
 		      const char *src_chset,
 		      const char *dst_chset,
 		      int (*output_func)(const char *, size_t, void *),
@@ -798,8 +797,8 @@ static int init_iconv(struct libmail_u_convert_iconv *h,
 	return 0;
 }
 
-static void convert_flush(struct libmail_u_convert_iconv *);
-static void convert_flush_iconv(struct libmail_u_convert_iconv *, const char **,
+static void convert_flush(struct unicode_convert_iconv *);
+static void convert_flush_iconv(struct unicode_convert_iconv *, const char **,
 				size_t *);
 
 /*
@@ -810,7 +809,7 @@ static void convert_flush_iconv(struct libmail_u_convert_iconv *, const char **,
 static int convert_iconv(void *ptr,
 			 const char *text, size_t cnt)
 {
-	struct libmail_u_convert_iconv *h=(struct libmail_u_convert_iconv *)ptr;
+	struct unicode_convert_iconv *h=(struct unicode_convert_iconv *)ptr;
 
 	while (cnt && h->errflag == 0)
 	{
@@ -839,8 +838,8 @@ static int deinit_iconv(void *ptr, int *errptr)
 {
 	int rc;
 	int converr;
-	struct libmail_u_convert_iconv *h=(struct libmail_u_convert_iconv *)ptr;
-	libmail_u_convert_handle_t next;
+	struct unicode_convert_iconv *h=(struct unicode_convert_iconv *)ptr;
+	unicode_convert_handle_t next;
 
 	if (h->errflag == 0)
 		convert_flush(h);
@@ -864,7 +863,7 @@ static int deinit_iconv(void *ptr, int *errptr)
 	if (next)
 	{
 		int converrnext;
-		int rcnext=libmail_u_convert_deinit(next, &converrnext);
+		int rcnext=unicode_convert_deinit(next, &converrnext);
 
 		if (converrnext && errptr && *errptr == 0)
 			*errptr=converr;
@@ -881,7 +880,7 @@ static int deinit_iconv(void *ptr, int *errptr)
 ** buffer.
 */
 
-static void convert_flush(struct libmail_u_convert_iconv *h)
+static void convert_flush(struct unicode_convert_iconv *h)
 {
 	const char *p;
 	size_t n;
@@ -916,7 +915,7 @@ static void convert_flush(struct libmail_u_convert_iconv *h)
 ** Convert text via iconv.
 */
 
-static void convert_flush_iconv(struct libmail_u_convert_iconv *h,
+static void convert_flush_iconv(struct unicode_convert_iconv *h,
 				const char **inbuf, size_t *inbytesleft)
 {
 	int save_errno;
@@ -1053,23 +1052,23 @@ static void convert_flush_iconv(struct libmail_u_convert_iconv *h,
 /*****************************************************************************/
 
 /*
-** A wrapper for libmail_u_convert() that collects the converted character
+** A wrapper for unicode_convert() that collects the converted character
 ** text into a buffer. This is done by passing an output function to
-** libmail_u_convert() that saves converted text in a linked-list
+** unicode_convert() that saves converted text in a linked-list
 ** of buffers.
 **
 ** Then, in the deinitialization function, the buffers get concatenated into
 ** the final character buffer.
 */
 
-struct libmail_u_convert_cbuf {
-	struct libmail_u_convert_cbuf *next;
+struct unicode_convert_cbuf {
+	struct unicode_convert_cbuf *next;
 	char *fragment;
 	size_t fragment_size;
 };
 
-struct libmail_u_convert_tocbuf {
-	struct libmail_u_convert_hdr hdr;
+struct unicode_convert_tocbuf {
+	struct unicode_convert_hdr hdr;
 
 	char **cbufptr_ret;
 	size_t *cbufsize_ret;
@@ -1077,7 +1076,7 @@ struct libmail_u_convert_tocbuf {
 	size_t tot_size;
 	int nullterminate;
 
-	struct libmail_u_convert_cbuf *first, **last;
+	struct unicode_convert_cbuf *first, **last;
 };
 
 static int save_tocbuf(const char *, size_t, void *);
@@ -1085,24 +1084,24 @@ static int convert_tocbuf(void *ptr,
 			  const char *text, size_t cnt);
 static int deinit_tocbuf(void *ptr, int *errptr);
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_init(const char *src_chset,
+unicode_convert_handle_t
+unicode_convert_tocbuf_init(const char *src_chset,
 			      const char *dst_chset,
 			      char **cbufptr_ret,
 			      size_t *cbufsize_ret,
 			      int nullterminate
 			      )
 {
-	struct libmail_u_convert_tocbuf *p=
-		malloc(sizeof(struct libmail_u_convert_tocbuf));
-	libmail_u_convert_handle_t h;
+	struct unicode_convert_tocbuf *p=
+		malloc(sizeof(struct unicode_convert_tocbuf));
+	unicode_convert_handle_t h;
 
 	if (!p)
 		return NULL;
 
 	memset(p, 0, sizeof(*p));
 
-	h=libmail_u_convert_init(src_chset, dst_chset, save_tocbuf, p);
+	h=unicode_convert_init(src_chset, dst_chset, save_tocbuf, p);
 
 	if (!h)
 	{
@@ -1125,10 +1124,10 @@ libmail_u_convert_tocbuf_init(const char *src_chset,
 
 static int save_tocbuf(const char *text, size_t cnt, void *ptr)
 {
-	struct libmail_u_convert_tocbuf *p=
-		(struct libmail_u_convert_tocbuf *)ptr;
-	struct libmail_u_convert_cbuf *fragment=
-		malloc(sizeof(struct libmail_u_convert_cbuf)+cnt);
+	struct unicode_convert_tocbuf *p=
+		(struct unicode_convert_tocbuf *)ptr;
+	struct unicode_convert_cbuf *fragment=
+		malloc(sizeof(struct unicode_convert_cbuf)+cnt);
 	size_t tot_size;
 
 	if (!fragment)
@@ -1160,10 +1159,10 @@ static int save_tocbuf(const char *text, size_t cnt, void *ptr)
 
 static int convert_tocbuf(void *ptr, const char *text, size_t cnt)
 {
-	struct libmail_u_convert_tocbuf *p=
-		(struct libmail_u_convert_tocbuf *)ptr;
+	struct unicode_convert_tocbuf *p=
+		(struct unicode_convert_tocbuf *)ptr;
 
-	return libmail_u_convert(p->hdr.next, text, cnt);
+	return unicode_convert(p->hdr.next, text, cnt);
 }
 
 /*
@@ -1173,10 +1172,10 @@ static int convert_tocbuf(void *ptr, const char *text, size_t cnt)
 
 static int deinit_tocbuf(void *ptr, int *errptr)
 {
-	struct libmail_u_convert_tocbuf *p=
-		(struct libmail_u_convert_tocbuf *)ptr;
-	int rc=libmail_u_convert_deinit(p->hdr.next, errptr);
-	struct libmail_u_convert_cbuf *bufptr;
+	struct unicode_convert_tocbuf *p=
+		(struct unicode_convert_tocbuf *)ptr;
+	int rc=unicode_convert_deinit(p->hdr.next, errptr);
+	struct unicode_convert_cbuf *bufptr;
 
 	if (rc == 0 && p->nullterminate)
 	{
@@ -1210,7 +1209,7 @@ static int deinit_tocbuf(void *ptr, int *errptr)
 
 	for (bufptr=p->first; bufptr; )
 	{
-		struct libmail_u_convert_cbuf *b=bufptr;
+		struct unicode_convert_cbuf *b=bufptr;
 
 		bufptr=bufptr->next;
 
@@ -1221,83 +1220,83 @@ static int deinit_tocbuf(void *ptr, int *errptr)
 	return rc;
 }
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_toutf8_init(const char *src_chset,
+unicode_convert_handle_t
+unicode_convert_tocbuf_toutf8_init(const char *src_chset,
 				     char **cbufptr_ret,
 				     size_t *cbufsize_ret,
 				     int nullterminate
 				     )
 {
-	return libmail_u_convert_tocbuf_init(src_chset, "utf-8",
+	return unicode_convert_tocbuf_init(src_chset, "utf-8",
 					     cbufptr_ret, cbufsize_ret,
 					     nullterminate);
 }
 
-libmail_u_convert_handle_t
-libmail_u_convert_tocbuf_fromutf8_init(const char *dst_chset,
+unicode_convert_handle_t
+unicode_convert_tocbuf_fromutf8_init(const char *dst_chset,
 				       char **cbufptr_ret,
 				       size_t *cbufsize_ret,
 				       int nullterminate
 				       )
 {
-	return libmail_u_convert_tocbuf_init("utf-8", dst_chset,
+	return unicode_convert_tocbuf_init("utf-8", dst_chset,
 					     cbufptr_ret, cbufsize_ret,
 					     nullterminate);
 }
 
-char *libmail_u_convert_toutf8(const char *text,
+char *unicode_convert_toutf8(const char *text,
 			       const char *charset,
 			       int *error)
 {
 	char *cbufptr;
 	size_t cbufsize;
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_tocbuf_toutf8_init(charset,
+	unicode_convert_handle_t h=
+		unicode_convert_tocbuf_toutf8_init(charset,
 						     &cbufptr,
 						     &cbufsize, 1);
 
 	if (!h)
 		return NULL;
 
-	libmail_u_convert(h, text, strlen(text));
+	unicode_convert(h, text, strlen(text));
 
-	if (libmail_u_convert_deinit(h, error) == 0)
+	if (unicode_convert_deinit(h, error) == 0)
 		return cbufptr;
 
 	return NULL;
 }
 
-char *libmail_u_convert_fromutf8(const char *text,
+char *unicode_convert_fromutf8(const char *text,
 				 const char *charset,
 				 int *error)
 {
 	char *cbufptr;
 	size_t cbufsize;
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_tocbuf_fromutf8_init(charset,
+	unicode_convert_handle_t h=
+		unicode_convert_tocbuf_fromutf8_init(charset,
 						       &cbufptr,
 						       &cbufsize, 1);
 
 	if (!h)
 		return NULL;
 
-	libmail_u_convert(h, text, strlen(text));
+	unicode_convert(h, text, strlen(text));
 
-	if (libmail_u_convert_deinit(h, error) == 0)
+	if (unicode_convert_deinit(h, error) == 0)
 		return cbufptr;
 
 	return NULL;
 }
 
-char *libmail_u_convert_tobuf(const char *text,
+char *unicode_convert_tobuf(const char *text,
 			      const char *charset,
 			      const char *dstcharset,
 			      int *error)
 {
 	char *cbufptr;
 	size_t cbufsize;
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_tocbuf_init(charset,
+	unicode_convert_handle_t h=
+		unicode_convert_tocbuf_init(charset,
 					      dstcharset,
 					      &cbufptr,
 					      &cbufsize, 1);
@@ -1305,9 +1304,9 @@ char *libmail_u_convert_tobuf(const char *text,
 	if (!h)
 		return NULL;
 
-	libmail_u_convert(h, text, strlen(text));
+	unicode_convert(h, text, strlen(text));
 
-	if (libmail_u_convert_deinit(h, error) == 0)
+	if (unicode_convert_deinit(h, error) == 0)
 		return cbufptr;
 
 	return NULL;
@@ -1317,20 +1316,20 @@ char *libmail_u_convert_tobuf(const char *text,
 
 /*
 ** Convert text to unicode_chars. Same basic approach as
-** libmail_u_convert_tocbuf_init(). The output character set gets specified
+** unicode_convert_tocbuf_init(). The output character set gets specified
 ** as UCS-4, the final output size is divided by 4, and the output buffer gets
 ** typed as a unicode_char array.
 */
 
-struct libmail_u_convert_buf {
-	struct libmail_u_convert_buf *next;
+struct unicode_convert_buf {
+	struct unicode_convert_buf *next;
 	unicode_char *fragment;
 	size_t fragment_size;
 	size_t max_fragment_size;
 };
 
-struct libmail_u_convert_tou {
-	struct libmail_u_convert_hdr hdr;
+struct unicode_convert_tou {
+	struct unicode_convert_hdr hdr;
 
 	unicode_char **ucptr_ret;
 	size_t *ucsize_ret;
@@ -1338,7 +1337,7 @@ struct libmail_u_convert_tou {
 	size_t tot_size;
 	int nullterminate;
 
-	struct libmail_u_convert_buf *first, *tail, **last;
+	struct unicode_convert_buf *first, *tail, **last;
 };
 
 static int save_unicode(const char *, size_t, void *);
@@ -1346,23 +1345,23 @@ static int convert_tounicode(void *ptr,
 			 const char *text, size_t cnt);
 static int deinit_tounicode(void *ptr, int *errptr);
 
-libmail_u_convert_handle_t
-libmail_u_convert_tou_init(const char *src_chset,
+unicode_convert_handle_t
+unicode_convert_tou_init(const char *src_chset,
 			   unicode_char **ucptr_ret,
 			   size_t *ucsize_ret,
 			   int nullterminate
 			   )
 {
-	struct libmail_u_convert_tou *p=
-		malloc(sizeof(struct libmail_u_convert_tou));
-	libmail_u_convert_handle_t h;
+	struct unicode_convert_tou *p=
+		malloc(sizeof(struct unicode_convert_tou));
+	unicode_convert_handle_t h;
 
 	if (!p)
 		return NULL;
 
 	memset(p, 0, sizeof(*p));
 
-	h=libmail_u_convert_init(src_chset, libmail_u_ucs4_native,
+	h=unicode_convert_init(src_chset, unicode_u_ucs4_native,
 				 save_unicode, p);
 
 	if (!h)
@@ -1382,25 +1381,25 @@ libmail_u_convert_tou_init(const char *src_chset,
 	return &p->hdr;
 }
 
-libmail_u_convert_handle_t
-libmail_u_convert_fromu_init(const char *dst_chset,
+unicode_convert_handle_t
+unicode_convert_fromu_init(const char *dst_chset,
 			     char **cbufptr_ret,
 			     size_t *csize_ret,
 			     int nullterminate
 			     )
 {
-	return libmail_u_convert_tocbuf_init(libmail_u_ucs4_native,
+	return unicode_convert_tocbuf_init(unicode_u_ucs4_native,
 					     dst_chset,
 					     cbufptr_ret,
 					     csize_ret,
 					     nullterminate);
 }
 
-int libmail_u_convert_uc(libmail_u_convert_handle_t handle,
+int unicode_convert_uc(unicode_convert_handle_t handle,
 			 const unicode_char *text,
 			 size_t cnt)
 {
-	return libmail_u_convert(handle, (const char *)text,
+	return unicode_convert(handle, (const char *)text,
 				 cnt * sizeof(*text));
 }
 
@@ -1408,9 +1407,9 @@ int libmail_u_convert_uc(libmail_u_convert_handle_t handle,
 
 static int save_unicode(const char *text, size_t cnt, void *ptr)
 {
-	struct libmail_u_convert_tou *p=
-		(struct libmail_u_convert_tou *)ptr;
-	struct libmail_u_convert_buf *fragment;
+	struct unicode_convert_tou *p=
+		(struct unicode_convert_tou *)ptr;
+	struct unicode_convert_buf *fragment;
 	size_t tot_size;
 
 	cnt /= sizeof(unicode_char);
@@ -1443,7 +1442,7 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 		if (cnt_alloc < 16)
 			cnt_alloc=16;
 
-		if ((fragment=malloc(sizeof(struct libmail_u_convert_buf)
+		if ((fragment=malloc(sizeof(struct unicode_convert_buf)
 				     +cnt_alloc*sizeof(unicode_char)))
 		    == NULL)
 		{
@@ -1476,10 +1475,10 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 static int convert_tounicode(void *ptr,
 			     const char *text, size_t cnt)
 {
-	struct libmail_u_convert_tou *p=
-		(struct libmail_u_convert_tou *)ptr;
+	struct unicode_convert_tou *p=
+		(struct unicode_convert_tou *)ptr;
 
-	return libmail_u_convert(p->hdr.next, text, cnt);
+	return unicode_convert(p->hdr.next, text, cnt);
 }
 
 /*
@@ -1489,10 +1488,10 @@ static int convert_tounicode(void *ptr,
 
 static int deinit_tounicode(void *ptr, int *errptr)
 {
-	struct libmail_u_convert_tou *p=
-		(struct libmail_u_convert_tou *)ptr;
-	int rc=libmail_u_convert_deinit(p->hdr.next, errptr);
-	struct libmail_u_convert_buf *bufptr;
+	struct unicode_convert_tou *p=
+		(struct unicode_convert_tou *)ptr;
+	int rc=unicode_convert_deinit(p->hdr.next, errptr);
+	struct unicode_convert_buf *bufptr;
 
 	if (rc == 0 && p->nullterminate)
 	{
@@ -1528,7 +1527,7 @@ static int deinit_tounicode(void *ptr, int *errptr)
 
 	for (bufptr=p->first; bufptr; )
 	{
-		struct libmail_u_convert_buf *b=bufptr;
+		struct unicode_convert_buf *b=bufptr;
 
 		bufptr=bufptr->next;
 
@@ -1539,38 +1538,38 @@ static int deinit_tounicode(void *ptr, int *errptr)
 	return rc;
 }
 
-int libmail_u_convert_tou_tobuf(const char *text,
+int unicode_convert_tou_tobuf(const char *text,
 				size_t text_l,
 				const char *charset,
 				unicode_char **uc,
 				size_t *ucsize,
 				int *err)
 {
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 
-	if ((h=libmail_u_convert_tou_init(charset, uc, ucsize, 0)) == NULL)
+	if ((h=unicode_convert_tou_init(charset, uc, ucsize, 0)) == NULL)
 		return -1;
 
-	if (libmail_u_convert(h, text, text_l) < 0)
+	if (unicode_convert(h, text, text_l) < 0)
 	{
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert_deinit(h, NULL);
 		return -1;
 	}
 
-	if (libmail_u_convert_deinit(h, err))
+	if (unicode_convert_deinit(h, err))
 		return -1;
 
 	return 0;
 }
 
-int libmail_u_convert_fromu_tobuf(const unicode_char *utext,
+int unicode_convert_fromu_tobuf(const unicode_char *utext,
 				  size_t utext_l,
 				  const char *charset,
 				  char **c,
 				  size_t *csize,
 				  int *err)
 {
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 
 	if (utext_l == (size_t)-1)
 	{
@@ -1578,22 +1577,22 @@ int libmail_u_convert_fromu_tobuf(const unicode_char *utext,
 		     ;
 	}
 
-	if ((h=libmail_u_convert_fromu_init(charset, c, csize, 1)) == NULL)
+	if ((h=unicode_convert_fromu_init(charset, c, csize, 1)) == NULL)
 		return -1;
 
-	if (libmail_u_convert_uc(h, utext, utext_l) < 0)
+	if (unicode_convert_uc(h, utext, utext_l) < 0)
 	{
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert_deinit(h, NULL);
 		return -1;
 	}
 
-	if (libmail_u_convert_deinit(h, err))
+	if (unicode_convert_deinit(h, err))
 		return -1;
 
 	return 0;
 }
 
-char *libmail_u_convert_tocase(const char *str,
+char *unicode_convert_tocase(const char *str,
 			       const char *charset,
 			       unicode_char (*first_char_func)(unicode_char),
 			       unicode_char (*char_func)(unicode_char))
@@ -1605,7 +1604,7 @@ char *libmail_u_convert_tocase(const char *str,
 	char *c;
 	size_t csize;
 
-	if (libmail_u_convert_tou_tobuf(str, strlen(str),
+	if (unicode_convert_tou_tobuf(str, strlen(str),
 					charset, &uc, &ucsize, &err))
 		return NULL;
 
@@ -1623,7 +1622,7 @@ char *libmail_u_convert_tocase(const char *str,
 			first_char_func=char_func;
 	}
 
-	if (libmail_u_convert_fromu_tobuf(uc, ucsize,
+	if (unicode_convert_fromu_tobuf(uc, ucsize,
 					  charset,
 					  &c, &csize, &err))
 	{

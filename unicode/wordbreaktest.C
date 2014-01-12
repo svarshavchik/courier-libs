@@ -11,7 +11,7 @@
 #include	<list>
 #include	<vector>
 
-class collect_wordbreakflags : public mail::wordbreak_callback_base {
+class collect_wordbreakflags : public unicode::wordbreak_callback_base {
 
 public:
 
@@ -19,13 +19,13 @@ public:
 
 	template<typename iter_type> void operator()(iter_type b, iter_type e)
 	{
-		mail::wordbreak_callback_base::operator()(b, e);
+		unicode::wordbreak_callback_base::operator()(b, e);
 	}
 	
-	using mail::wordbreak_callback_base::operator<<;
+	using unicode::wordbreak_callback_base::operator<<;
 
 private:
-	int operator()(bool flag)
+	int callback(bool flag)
 	{
 		flags.push_back(flag);
 		return 0;
