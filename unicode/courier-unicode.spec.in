@@ -2,7 +2,7 @@ Summary: Courier Unicode Library
 Name: courier-unicode
 Version: @VERSION@
 Release: 1%{?dist}%{?courier_release}
-License: GPL3
+License: GPLv3
 Group: System Environment/Libraries
 URL: http://www.courier-mta.org/unicode/
 Source: http://download.sourceforge.net/courier/courier-unicode-@VERSION@.tar.bz2
@@ -17,8 +17,8 @@ Requires: %{name} = 0:%{version}-%{release}
 This library implements several algorithms related to the Unicode
 Standard.
 
-This package installs only the runtime libraries needed by applications that
-use this library. Install the courier-unicode-devel package if you want
+This package installs only the run-time libraries needed by applications that
+use this library. Install the "courier-unicode-devel" package if you want
 to develop new applications using this library.
 
 %description devel
@@ -56,6 +56,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/*.a
 
 %changelog
-* Sun Jan 12 2014 Sam Varshavchik <mrsam@octopus.email-scan.com>
+* Sun Jan 12 2014 Sam Varshavchik <mrsam@octopus.email-scan.com> - 1.0
 - Initial build.
 

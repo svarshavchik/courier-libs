@@ -45,7 +45,7 @@ update-www-htmlent:
 
 lib_LTLIBRARIES=libunicode.la
 include_HEADERS=unicode.h
-man_MANS=man/courier-unicode.7 man/unicode[\:][\:]iconvert[\:][\:]convert.3 man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 man/unicode[\:][\:]iconvert[\:][\:]fromu.3 man/unicode[\:][\:]iconvert[\:][\:]tou.3 man/unicode[\:][\:]linebreak_callback_base.3 man/unicode[\:][\:]linebreak_callback_save_buf.3 man/unicode[\:][\:]linebreak_iter.3 man/unicode[\:][\:]linebreakc_callback_base.3 man/unicode[\:][\:]linebreakc_iter.3 man/unicode[\:][\:]wordbreak_callback_base.3 man/unicode_convert.3 man/unicode_convert_deinit.3 man/unicode_convert_fromu_init.3 man/unicode_convert_fromu_tobuf.3 man/unicode_convert_fromutf8.3 man/unicode_convert_init.3 man/unicode_convert_tobuf.3 man/unicode_convert_tocase.3 man/unicode_convert_tocbuf_fromutf8_init.3 man/unicode_convert_tocbuf_init.3 man/unicode_convert_tocbuf_toutf8_init.3 man/unicode_convert_tou_init.3 man/unicode_convert_tou_tobuf.3 man/unicode_convert_toutf8.3 man/unicode_convert_uc.3 man/unicode_default_chset.3 man/unicode_grapheme_break.3 man/unicode_html40ent_lookup.3 man/unicode_isspace.3 man/unicode_lb_end.3 man/unicode_lb_init.3 man/unicode_lb_next.3 man/unicode_lb_next_cnt.3 man/unicode_lb_set_opts.3 man/unicode_lbc_end.3 man/unicode_lbc_init.3 man/unicode_lbc_next.3 man/unicode_lbc_next_cnt.3 man/unicode_lbc_set_opts.3 man/unicode_lc.3 man/unicode_tc.3 man/unicode_u_ucs2_native.3 man/unicode_u_ucs4_native.3 man/unicode_uc.3 man/unicode_wb_end.3 man/unicode_wb_init.3 man/unicode_wb_next.3 man/unicode_wb_next_cnt.3 man/unicode_wbscan_end.3 man/unicode_wbscan_init.3 man/unicode_wbscan_next.3
+man_MANS=$(srcdir)/man/courier-unicode.7 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 $(srcdir)/man/unicode_convert.3 $(srcdir)/man/unicode_convert_deinit.3 $(srcdir)/man/unicode_convert_fromu_init.3 $(srcdir)/man/unicode_convert_fromu_tobuf.3 $(srcdir)/man/unicode_convert_fromutf8.3 $(srcdir)/man/unicode_convert_init.3 $(srcdir)/man/unicode_convert_tobuf.3 $(srcdir)/man/unicode_convert_tocase.3 $(srcdir)/man/unicode_convert_tocbuf_fromutf8_init.3 $(srcdir)/man/unicode_convert_tocbuf_init.3 $(srcdir)/man/unicode_convert_tocbuf_toutf8_init.3 $(srcdir)/man/unicode_convert_tou_init.3 $(srcdir)/man/unicode_convert_tou_tobuf.3 $(srcdir)/man/unicode_convert_toutf8.3 $(srcdir)/man/unicode_convert_uc.3 $(srcdir)/man/unicode_default_chset.3 $(srcdir)/man/unicode_grapheme_break.3 $(srcdir)/man/unicode_html40ent_lookup.3 $(srcdir)/man/unicode_isspace.3 $(srcdir)/man/unicode_lb_end.3 $(srcdir)/man/unicode_lb_init.3 $(srcdir)/man/unicode_lb_next.3 $(srcdir)/man/unicode_lb_next_cnt.3 $(srcdir)/man/unicode_lb_set_opts.3 $(srcdir)/man/unicode_lbc_end.3 $(srcdir)/man/unicode_lbc_init.3 $(srcdir)/man/unicode_lbc_next.3 $(srcdir)/man/unicode_lbc_next_cnt.3 $(srcdir)/man/unicode_lbc_set_opts.3 $(srcdir)/man/unicode_lc.3 $(srcdir)/man/unicode_tc.3 $(srcdir)/man/unicode_u_ucs2_native.3 $(srcdir)/man/unicode_u_ucs4_native.3 $(srcdir)/man/unicode_uc.3 $(srcdir)/man/unicode_wb_end.3 $(srcdir)/man/unicode_wb_init.3 $(srcdir)/man/unicode_wb_next.3 $(srcdir)/man/unicode_wb_next_cnt.3 $(srcdir)/man/unicode_wbscan_end.3 $(srcdir)/man/unicode_wbscan_init.3 $(srcdir)/man/unicode_wbscan_next.3
 
 libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			unicodecpp.C \
@@ -193,7 +193,7 @@ docs:
 	rm -f man/*.[123456789]
 	mv man.tmp/* man
 	rm -rf html.tmp man.tmp
-	perl -p -i -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", glob("man/*.[123456789]"))@e' Makefile.am
+	perl -p -i -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", map { "\$$(srcdir)/$$_" } glob("man/*.[123456789]"))@e' Makefile.am
 
 if HAVE_DOCS
 all-am: INSTALL README
@@ -244,3 +244,12 @@ bump.rpm.release: $(PACKAGE).spec
 	sed 's/^Release: .*/Release: '$$RELEASE'%{?dist}%{?courier_release}/' \
 		<$(PACKAGE).spec >$(PACKAGE).spec.new; \
 	mv $(PACKAGE).spec.new $(PACKAGE).spec
+
+upload-dist:
+	test -z "$(SFPASSWD)" && exit 1; exit 0
+	rm -f @PACKAGE@-@VERSION@.tar.bz2.sig; gpg --detach-sign --default-key mrsam@courier-mta.com @PACKAGE@-@VERSION@.tar.bz2; test -f @PACKAGE@-@VERSION@.tar.bz2.sig || exit 1
+	set -e; v="@PACKAGE@/@VERSION@/`date +%Y%m%d%H%M%S`"; git tag -s $$v -m 'Tag version @VERSION@'; cd libs; git tag -s $$v -m 'Tag version @VERSION@'
+	socksify ~/src/sftools/release.pl mrsam $(SFPASSWD) courier courier @VERSION@ @PACKAGE@-@VERSION@.tar.bz2 @PACKAGE@-@VERSION@.tar.bz2.sig
+
+www:
+	rsync -a html/. $$HOME/www/www.courier-mta.org/unicode
