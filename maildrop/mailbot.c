@@ -7,7 +7,7 @@
 #include "dbobj.h"
 #include "liblock/config.h"
 #include "liblock/liblock.h"
-#include "unicode/unicode.h"
+#include <unicode.h>
 #include "numlib/numlib.h"
 #include <string.h>
 #include <stdlib.h>
@@ -606,9 +606,9 @@ int main(int argc, char **argv)
 
 			if (optarg && *optarg)
 			{
-				char *p=libmail_u_convert_tobuf("",
+				char *p=unicode_convert_tobuf("",
 								optarg,
-								libmail_u_ucs4_native,
+								unicode_u_ucs4_native,
 								NULL);
 
 				if (!p)
@@ -887,9 +887,9 @@ int main(int argc, char **argv)
 				char *p=NULL;
 
 				if (charset)
-					p=libmail_u_convert_tobuf("",
+					p=unicode_convert_tobuf("",
 								  charset,
-								  libmail_u_ucs4_native,
+								  unicode_u_ucs4_native,
 								  NULL);
 
 				if (!p)

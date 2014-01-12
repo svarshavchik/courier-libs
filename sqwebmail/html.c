@@ -8,7 +8,7 @@
 
 #include "html.h"
 
-#include "unicode/unicode.h"
+#include <unicode.h>
 #include "rfc2045/rfc2045.h"
 #include <stdlib.h>
 #include <string.h>
@@ -1290,15 +1290,15 @@ static char *resolve_url(struct htmlfilter_info *p)
 	size_t size;
 	char *cp;
 
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_fromu_init("utf-8", &buf, &size, 1);
+	unicode_convert_handle_t h=
+		unicode_convert_fromu_init("utf-8", &buf, &size, 1);
 
 	if (h)
 	{
-		libmail_u_convert_uc(h, unicode_buf_ptr(&p->value),
+		unicode_convert_uc(h, unicode_buf_ptr(&p->value),
 				     unicode_buf_len(&p->value));
 
-		if (libmail_u_convert_deinit(h, NULL))
+		if (unicode_convert_deinit(h, NULL))
 			buf=NULL;
 	}
 	else

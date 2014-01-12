@@ -85,7 +85,7 @@
 #include	"maildir/maildirinfo.h"
 #include	"maildir/loginexec.h"
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"maildir/maildirkeywords.h"
 #include	"courierauth.h"
 
@@ -4115,14 +4115,14 @@ int folder_rename(struct maildir_info *mi1,
 
 static int validate_charset(const char *tag, char **charset)
 {
-	libmail_u_convert_handle_t conv;
+	unicode_convert_handle_t conv;
 	unicode_char *ucptr;
 	size_t ucsize;
 
 	if (*charset == NULL)
 		*charset=my_strdup("ISO-8859-1");
 
-	conv=libmail_u_convert_tou_init(*charset, &ucptr, &ucsize, 1);
+	conv=unicode_convert_tou_init(*charset, &ucptr, &ucsize, 1);
 
 	if (!conv)
 	{
@@ -4130,7 +4130,7 @@ static int validate_charset(const char *tag, char **charset)
 		writes(" NO [BADCHARSET] The requested character set is not supported.\r\n");
 		return (-1);
 	}
-	if (libmail_u_convert_deinit(conv, NULL) == 0)
+	if (unicode_convert_deinit(conv, NULL) == 0)
 		free(ucptr);
 	return (0);
 }

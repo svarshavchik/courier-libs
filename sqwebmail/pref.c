@@ -355,7 +355,7 @@ void pref_setprefs()
 		if ((fp=fopen(SIGNATURE, "w")) != NULL)
 		{
 			char *sig_utf8=
-				libmail_u_convert_toutf8(cgi("signature"),
+				unicode_convert_toutf8(cgi("signature"),
 							 sqwebmail_content_charset,
 							 NULL);
 
@@ -557,7 +557,7 @@ char *pref_getfile(FILE *fp)
 	utf8_buf[st.st_size]=0;
 	fclose(fp);
 
-	sig_buf=libmail_u_convert_fromutf8(utf8_buf,
+	sig_buf=unicode_convert_fromutf8(utf8_buf,
 					   sqwebmail_content_charset,
 					   NULL);
 	free(utf8_buf);

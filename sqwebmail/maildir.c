@@ -38,7 +38,6 @@
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-#include	"unicode/unicode.h"
 
 #if	HAVE_DIRENT_H
 #include	<dirent.h>
@@ -63,7 +62,7 @@
 #include	<utime.h>
 #endif
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 #include	"strftime.h"
 
@@ -2085,7 +2084,7 @@ static void execute_maildir_search(const char *dirname,
 
 	if (pos >= all_cnt) return;
 
-	utf8str=libmail_u_convert_toutf8(searchtxt, charset, NULL);
+	utf8str=unicode_convert_toutf8(searchtxt, charset, NULL);
 
 	if (!utf8str)
 		return;
@@ -2118,19 +2117,19 @@ static void execute_maildir_search(const char *dirname,
 		int rc=-1;
 		unicode_char *ustr;
 		size_t ustr_size;
-		libmail_u_convert_handle_t h;
+		unicode_convert_handle_t h;
 
 		maildir_search_init(&se);
 
-		h=libmail_u_convert_tou_init("utf-8",
+		h=unicode_convert_tou_init("utf-8",
 					     &ustr,
 					     &ustr_size,
 					     1);
 
 		if (h)
 		{
-			libmail_u_convert(h, utf8str, strlen(utf8str));
-			if (libmail_u_convert_deinit(h, NULL) == 0)
+			unicode_convert(h, utf8str, strlen(utf8str));
+			if (unicode_convert_deinit(h, NULL) == 0)
 			{
 				size_t n;
 
@@ -2321,7 +2320,7 @@ static int do_search_utf8(struct searchresults *res)
 {
 	unicode_char *uc=NULL;
 	size_t n;
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 
 	if (res->utf8buf_cnt == 0)
 		return 0;
@@ -2332,15 +2331,15 @@ static int do_search_utf8(struct searchresults *res)
 	res->utf8buf[res->utf8buf_cnt]=0;
 	res->utf8buf_cnt=0;
 
-	h=libmail_u_convert_tou_init("utf-8",
+	h=unicode_convert_tou_init("utf-8",
 				     &uc,
 				     &n,
 				     1);
 
 	if (h)
 	{
-		libmail_u_convert(h, res->utf8buf, strlen(res->utf8buf));
-		if (libmail_u_convert_deinit(h, NULL) == 0)
+		unicode_convert(h, res->utf8buf, strlen(res->utf8buf));
+		if (unicode_convert_deinit(h, NULL) == 0)
 			;
 		else
 			uc=NULL;
@@ -2524,18 +2523,18 @@ static char *match_conv(const unicode_char *uc)
 {
 	char *cbuf;
 	size_t csize;
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 	size_t i;
 
-	if ((h=libmail_u_convert_fromu_init("utf-8", &cbuf, &csize, 1)) == NULL)
+	if ((h=unicode_convert_fromu_init("utf-8", &cbuf, &csize, 1)) == NULL)
 		return NULL;
 
 	for (i=0; uc[i]; ++i)
 		;
 
-	libmail_u_convert_uc(h, uc, i);
+	unicode_convert_uc(h, uc, i);
 
-	if (libmail_u_convert_deinit(h, NULL))
+	if (unicode_convert_deinit(h, NULL))
 		return NULL;
 	return cbuf;
 }
@@ -3913,7 +3912,7 @@ char *folder_toutf7(const char *foldername)
 	char *p;
 	int converr;
 
-	p=libmail_u_convert_tobuf(foldername, sqwebmail_content_charset,
+	p=unicode_convert_tobuf(foldername, sqwebmail_content_charset,
 				  unicode_x_imap_modutf7, &converr);
 
 	if (p && converr)
@@ -3936,7 +3935,7 @@ char *folder_fromutf7(const char *foldername)
 	char *p;
 	int converr;
 
-	p=libmail_u_convert_tobuf(foldername,
+	p=unicode_convert_tobuf(foldername,
 				  unicode_x_imap_modutf7,
 				  sqwebmail_content_charset,
 				  &converr);

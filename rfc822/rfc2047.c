@@ -9,10 +9,10 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<errno.h>
+#include	<unicode.h>
 
 #include	"rfc822hdr.h"
 #include	"rfc2047.h"
-#include	"../unicode/unicode.h"
 #if LIBIDN
 #include <idna.h>
 #include <stringprep.h>
@@ -97,7 +97,7 @@ static char *rfc822_encode_domain_int(const char *pfix,
 char *rfc822_encode_domain(const char *address,
 			   const char *charset)
 {
-	char *p=libmail_u_convert_tobuf(address, charset, "utf-8", NULL);
+	char *p=unicode_convert_tobuf(address, charset, "utf-8", NULL);
 	char *cp, *q;
 
 	if (!p)
@@ -506,7 +506,7 @@ static int do_encode_words_method(const unicode_char *uc,
 				}
 		}
 
-		if ((rc=libmail_u_convert_fromu_tobuf(uc, j, charset,
+		if ((rc=unicode_convert_fromu_tobuf(uc, j, charset,
 						      &p, &psize,
 						      NULL)) != 0)
 			return rc;
@@ -555,7 +555,7 @@ static int do_encode_words(const unicode_char *uc,
 	** Convert from unicode
 	*/
 
-	if ((rc=libmail_u_convert_fromu_tobuf(uc, ucsize, charset,
+	if ((rc=unicode_convert_fromu_tobuf(uc, ucsize, charset,
 					      &p, &psize,
 					      NULL)) != 0)
 		return rc;
@@ -675,7 +675,7 @@ char *rfc2047_encode_str(const char *str, const char *charset,
 
 	/* Convert string to unicode */
 
-	if (libmail_u_convert_tou_tobuf(str, strlen(str), charset,
+	if (unicode_convert_tou_tobuf(str, strlen(str), charset,
 					&uc, &ucsize, &err))
 		return NULL;
 

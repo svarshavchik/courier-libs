@@ -3,7 +3,7 @@
 #ifndef	html_h
 #define	html_h
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 /*
 ** Copyright 2011 Double Precision, Inc.  See COPYING for

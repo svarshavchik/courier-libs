@@ -29,9 +29,8 @@ libmdcommon_la_SOURCES=alarm.C alarm.h alarmsleep.C alarmsleep.h alarmtimer.C \
 libmdcommon_la_LIBADD=../maildir/libmaildir.la \
 	../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la \
-	../unicode/libunicode.la \
 	../numlib/libnumlib.la ../liblock/liblock.la \
-	$(DBLIB)
+	$(DBLIB) -lunicode
 libmdcommon_la_LDFLAGS=-static
 
 
@@ -60,10 +59,10 @@ noinst_PROGRAMS=maildrop reformail mailbot
 mailbot_SOURCES=mailbot.c
 mailbot_DEPENDENCIES=../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
-	../numlib/libnumlib.la ../unicode/libunicode.la $(DBLIB)
+	../numlib/libnumlib.la $(DBLIB)
 mailbot_LDADD=../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
-	../numlib/libnumlib.la ../unicode/libunicode.la $(DBLIB)
+	../numlib/libnumlib.la $(DBLIB) -lunicode
 mailbot_LDFLAGS = -static
 
 if HAVE_LIBIDN

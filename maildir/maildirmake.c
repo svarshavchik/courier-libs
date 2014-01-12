@@ -27,7 +27,7 @@
 #include	"maildirmisc.h"
 #include	"maildirsharedrc.h"
 #include	"maildirquota.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 static void usage()
 {
@@ -226,7 +226,7 @@ char	*tmp=0;
 			if (*p == 0 && argn+1 < argc)
 				p=argv[++argn];
 
-			folder=libmail_u_convert_tobuf(p,
+			folder=unicode_convert_tobuf(p,
 						       unicode_default_chset(),
 						       unicode_x_imap_modutf7,
 						       &converr);

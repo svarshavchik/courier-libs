@@ -8,7 +8,7 @@
 #include	"config.h"
 #include	"gpglib.h"
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"numlib/numlib.h"
 
 #include	<stdio.h>

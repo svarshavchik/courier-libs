@@ -13,25 +13,25 @@ static int testmaildirsearch(const char *chset, const char *needle,
 	unicode_char *ucptr;
 	size_t ucsize;
 	size_t i;
-	libmail_u_convert_handle_t h=libmail_u_convert_tou_init(chset, &ucptr,
+	unicode_convert_handle_t h=unicode_convert_tou_init(chset, &ucptr,
 								&ucsize, 1);
 
 	if (h == NULL)
 	{
-		perror("libmail_u_convert_tou_init");
+		perror("unicode_convert_tou_init");
 		return 1;
 	}
 
-	if (libmail_u_convert(h, haystack, strlen(haystack)))
+	if (unicode_convert(h, haystack, strlen(haystack)))
 	{
-		libmail_u_convert_deinit(h, NULL);
-		perror("libmail_u_convert_tou");
+		unicode_convert_deinit(h, NULL);
+		perror("unicode_convert_tou");
 		return 1;
 	}
 
-	if (libmail_u_convert_deinit(h, NULL))
+	if (unicode_convert_deinit(h, NULL))
 	{
-		perror("libmail_u_convert_deinit");
+		perror("unicode_convert_deinit");
 		return 1;
 	}
 

@@ -46,7 +46,7 @@ int Curses::getColorCount()
 
 
 CursesScreen::KeyReader::KeyReader()
-	: h(iconv_open(libmail_u_ucs4_native, unicode_default_chset())),
+	: h(iconv_open(unicode_u_ucs4_native, unicode_default_chset())),
 	  winput_cnt(0)
 {
 	if (h == (iconv_t)-1)

@@ -392,7 +392,7 @@ static void show_part(const char *ptr, size_t cnt)
 	size_t ucsize;
 	int conv_err;
 
-	if (libmail_u_convert_tou_tobuf(ptr, cnt,
+	if (unicode_convert_tou_tobuf(ptr, cnt,
 					sqwebmail_content_charset,
 					&uc,
 					&ucsize,

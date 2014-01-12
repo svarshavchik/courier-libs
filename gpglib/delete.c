@@ -12,11 +12,10 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/time.h>
-
+#include	<unicode.h>
 #include	"gpg.h"
 #include	"gpglib.h"
 
-#include	"unicode/unicode.h"
 #include	"numlib/numlib.h"
 
 extern int libmail_gpg_stdin, libmail_gpg_stdout, libmail_gpg_stderr;

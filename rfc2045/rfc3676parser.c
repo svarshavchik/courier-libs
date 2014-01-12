@@ -50,7 +50,7 @@ static int nonflowed_line_process(int linebreak_opportunity,
 struct rfc3676_parser_struct {
 
 	struct rfc3676_parser_info info;
-	libmail_u_convert_handle_t uhandle;
+	unicode_convert_handle_t uhandle;
 
 	int errflag;
 
@@ -172,8 +172,8 @@ rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
 		return NULL;
 
 	handle->info=*info;
-	if ((handle->uhandle=libmail_u_convert_init(info->charset,
-						    libmail_u_ucs4_native,
+	if ((handle->uhandle=unicode_convert_init(info->charset,
+						    unicode_u_ucs4_native,
 						    parse_unicode,
 						    handle)) == NULL)
 	{
@@ -214,7 +214,7 @@ int rfc3676parser(rfc3676_parser_t handle,
 
 	/* Convert to unicode and invoke parse_unicode() */
 
-	return libmail_u_convert(handle->uhandle, txt, txt_cnt);
+	return unicode_convert(handle->uhandle, txt, txt_cnt);
 }
 
 /*
@@ -268,7 +268,7 @@ int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
 {
 	/* Finish unicode conversion */
 
-	int rc=libmail_u_convert_deinit(handle->uhandle, errptr);
+	int rc=unicode_convert_deinit(handle->uhandle, errptr);
 
 	if (rc == 0)
 		rc=handle->errflag;

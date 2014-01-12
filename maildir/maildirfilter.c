@@ -11,7 +11,7 @@
 
 #include	"autoresponse.h"
 #include	"numlib/numlib.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	<stdlib.h>
 #include	<string.h>
 #include	<stdio.h>
@@ -105,7 +105,7 @@ int maildir_filter_ruleupdate(struct maildirfilter *r,
 	char *value_utf8;
 	int rc;
 
-	name_utf8=libmail_u_convert_toutf8(name ? name:"", charset, NULL);
+	name_utf8=unicode_convert_toutf8(name ? name:"", charset, NULL);
 
 	if (!name_utf8)
 	{
@@ -113,7 +113,7 @@ int maildir_filter_ruleupdate(struct maildirfilter *r,
 		return -1;
 	}
 
-	header_utf8=libmail_u_convert_toutf8(header ? header:"", charset, NULL);
+	header_utf8=unicode_convert_toutf8(header ? header:"", charset, NULL);
 
 	if (!header_utf8)
 	{
@@ -122,7 +122,7 @@ int maildir_filter_ruleupdate(struct maildirfilter *r,
 		return -1;
 	}
 
-	value_utf8=libmail_u_convert_toutf8(value ? value:"", charset, NULL);
+	value_utf8=unicode_convert_toutf8(value ? value:"", charset, NULL);
 
 	if (!value_utf8)
 	{

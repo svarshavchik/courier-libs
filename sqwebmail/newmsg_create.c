@@ -28,7 +28,7 @@
 #include	"gpglib/gpglib.h"
 #include	"http11/http11.h"
 #include	"htmllibdir.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"courierauth.h"
 
 #include	<stdlib.h>
@@ -306,8 +306,8 @@ static void do_save_u_line(struct wrap_info *uw,
 	char *cbuf;
 	size_t csize;
 
-	libmail_u_convert_handle_t h=
-		libmail_u_convert_fromu_init(uw->output_chset,
+	unicode_convert_handle_t h=
+		unicode_convert_fromu_init(uw->output_chset,
 					     &cbuf,
 					     &csize,
 					     0);
@@ -317,23 +317,23 @@ static void do_save_u_line(struct wrap_info *uw,
 		if (ucsize)
 		{
 			if (uc[0] == ' ')
-				libmail_u_convert_uc(h, uc, 1);
+				unicode_convert_uc(h, uc, 1);
 			/* Space stuff */
 
-			libmail_u_convert_uc(h, uc, ucsize);
+			unicode_convert_uc(h, uc, ucsize);
 		}
 		if (flowed)
 		{
 			unicode_char spc=' ';
-			libmail_u_convert_uc(h, &spc, 1);
+			unicode_convert_uc(h, &spc, 1);
 		}
 
 		{
 			unicode_char nl='\n';
-			libmail_u_convert_uc(h, &nl, 1);
+			unicode_convert_uc(h, &nl, 1);
 		}
 
-		if (libmail_u_convert_deinit(h, NULL))
+		if (unicode_convert_deinit(h, NULL))
 			cbuf=NULL;
 	}
 	else
@@ -437,21 +437,21 @@ void wrap_text(struct wrap_info *uw,
 	{
 		unicode_char *uc;
 		size_t ucsize;
-		libmail_u_convert_handle_t h;
+		unicode_convert_handle_t h;
 
 		j=i;
 
 		while (i<newmsg_size && newmsg[i] != '\n')
 			++i;
 
-		h=libmail_u_convert_tou_init(sqwebmail_content_charset,
+		h=unicode_convert_tou_init(sqwebmail_content_charset,
 					     &uc, &ucsize, 0);
 
 		if (h)
 		{
-			libmail_u_convert(h, newmsg+j, i-j);
+			unicode_convert(h, newmsg+j, i-j);
 
-			if (libmail_u_convert_deinit(h, NULL))
+			if (unicode_convert_deinit(h, NULL))
 				uc=NULL;
 		}
 		else

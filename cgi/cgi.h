@@ -6,7 +6,7 @@
 #if	HAVE_CONFIG_H
 #include	"cgi/cgi_config.h"
 #endif
-#include "../unicode/unicode.h"
+#include <unicode.h>
 
 #ifdef __cplusplus
 

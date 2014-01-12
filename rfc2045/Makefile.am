@@ -31,23 +31,23 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045src.h \
 
 reformime_SOURCES=reformime.c
 reformime_LDADD = librfc2045.la ../rfc822/libencode.la ../rfc822/librfc822.la \
-		../unicode/libunicode.la ../numlib/libnumlib.la
+		../numlib/libnumlib.la -lunicode
 reformime_DEPENDENCIES = $(reformime_LDADD)
 reformime_LDFLAGS=-static
 
 makemime_SOURCES=makemime.c
-makemime_LDADD = ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../unicode/libunicode.la ../numlib/libnumlib.la ../unicode/libunicode.la
+makemime_LDADD = ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la -lunicode
 makemime_DEPENDENCIES=$(makemime_LDADD)
 makemime_LDFLAGS=-static
 
 headercheck_SOURCES=headercheck.c
 headercheck_LDADD=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la \
-		../unicode/libunicode.la
+		-lunicode
 headercheck_DEPENDENCIES=$(headercheck_LDADD)
 headercheck_LDFLAGS=-static
 
 testrfc3676parser_SOURCES=testrfc3676parser.c
-testrfc3676parser_LDADD=librfc2045.la ../unicode/libunicode.la
+testrfc3676parser_LDADD=librfc2045.la -lunicode
 testrfc3676parser_DEPENDENCIES=$(testrfc3676parser_LDADD)
 
 if HAVE_SGML

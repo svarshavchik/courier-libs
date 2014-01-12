@@ -16,11 +16,10 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/time.h>
-
+#include	<unicode.h>
 #include	"gpg.h"
 #include	"gpglib.h"
 
-#include	"unicode/unicode.h"
 #include	"numlib/numlib.h"
 
 extern int libmail_gpg_stdin, libmail_gpg_stdout, libmail_gpg_stderr;
@@ -389,7 +388,7 @@ static int dolist_callback(char *line, void *vp1,
 			return (-1);
 	}
 
-	userid=libmail_u_convert_fromutf8(userid, vp->charset, NULL);
+	userid=unicode_convert_fromutf8(userid, vp->charset, NULL);
 	if (!userid)
 		return (-1);
 
@@ -541,7 +540,7 @@ int libmail_gpg_listgroups(const char *gpgdir,
 		if (*p == 0)
 			continue;
 
-		q=libmail_u_convert_fromutf8(p, voidarg->charset, NULL);
+		q=unicode_convert_fromutf8(p, voidarg->charset, NULL);
 
 		if (!q)
 			continue;

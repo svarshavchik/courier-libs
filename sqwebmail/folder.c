@@ -68,7 +68,7 @@
 #endif
 #include	<errno.h>
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 #include	<unistd.h>
 #if HAVE_WCHAR_H
@@ -190,7 +190,7 @@ int in_utf8;
 		printf("%s", lab);
 
 		origff=ff=in_utf8 ?
-			libmail_u_convert_fromutf8(f,
+			unicode_convert_fromutf8(f,
 						   sqwebmail_content_charset,
 						   NULL)
 			: folder_fromutf7(f);
@@ -721,7 +721,7 @@ static void show_msg_match_str(const char *prefix,
 {
 	char *p;
 
-	p=libmail_u_convert_fromutf8(utf8match, sqwebmail_content_charset,
+	p=unicode_convert_fromutf8(utf8match, sqwebmail_content_charset,
 				     NULL);
 
 	if (p)
@@ -3719,18 +3719,18 @@ static char *truncate_at(const char *str,
 	size_t n;
 	size_t cols, tp=0;
 	char *retbuf;
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 	int chopped=0;
 
 	if (!str)
 		return NULL;
 
-	h=libmail_u_convert_tou_init("utf-8", &uc, &n, 1);
+	h=unicode_convert_tou_init("utf-8", &uc, &n, 1);
 
 	if (h)
 	{
-		libmail_u_convert(h, str, strlen(str));
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert(h, str, strlen(str));
+		unicode_convert_deinit(h, NULL);
 	}
 	else
 	{
@@ -3764,12 +3764,12 @@ static char *truncate_at(const char *str,
 		tp += 3;
 	}
 
-	h=libmail_u_convert_fromu_init(charset, &retbuf, &cols, 1);
+	h=unicode_convert_fromu_init(charset, &retbuf, &cols, 1);
 
 	if (h)
 	{
-		libmail_u_convert_uc(h, uc, tp);
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert_uc(h, uc, tp);
+		unicode_convert_deinit(h, NULL);
 	}
 	else
 	{

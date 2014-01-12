@@ -68,7 +68,7 @@ unsigned cnt;
 
 	for (cnt=0, r=mf.first; r; r=r->next, ++cnt)
 	{
-		char *p=libmail_u_convert_fromutf8(r->rulename_utf8,
+		char *p=unicode_convert_fromutf8(r->rulename_utf8,
 						   sqwebmail_content_charset,
 						   NULL);
 
@@ -209,7 +209,7 @@ struct maildirfilterrule *r;
 		if (namebuf)	free(namebuf);
 		p=r->rulename_utf8 ? r->rulename_utf8:"";
 
-		namebuf=libmail_u_convert_fromutf8(p, sqwebmail_content_charset,
+		namebuf=unicode_convert_fromutf8(p, sqwebmail_content_charset,
 						   NULL);
 
 		if (!namebuf)	enomem();
@@ -222,7 +222,7 @@ struct maildirfilterrule *r;
 		if (r->flags & MFR_BODY)	p="";
 
 		if (headernamebuf)	free(headernamebuf);
-		headernamebuf=libmail_u_convert_fromutf8(p,
+		headernamebuf=unicode_convert_fromutf8(p,
 							 sqwebmail_content_charset,
 							 NULL);
 		if (!headernamebuf)	enomem();
@@ -242,7 +242,7 @@ struct maildirfilterrule *r;
 		if (headervaluebuf)	free(headervaluebuf);
 
 		headervaluebuf=
-			libmail_u_convert_fromutf8(p,
+			unicode_convert_fromutf8(p,
 						   sqwebmail_content_charset,
 						   NULL);
 		if (!headervaluebuf)	enomem();

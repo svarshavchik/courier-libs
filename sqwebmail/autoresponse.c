@@ -10,7 +10,7 @@
 #include	"autoresponse.h"
 #include	"maildir/autoresponse.h"
 #include	"mailfilter.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"sqwebmail.h"
 #include	"htmllibdir.h"
 #include	"maildir.h"
@@ -146,11 +146,11 @@ const char	*autoresp_text2=getarg("TEXT2");
 		else
 		{
 			struct show_textarea_info info;
-			libmail_u_convert_handle_t h;
+			unicode_convert_handle_t h;
 
 			show_textarea_init(&info, 0);
 
-			h=libmail_u_convert_init("utf-8",
+			h=unicode_convert_init("utf-8",
 						 sqwebmail_content_charset,
 						 show_autoresponse_trampoline,
 						 &info);
@@ -162,9 +162,9 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 				while ((i=fread(buf, 1, sizeof(buf), fp)) > 0)
 				{
-					libmail_u_convert(h, buf, i);
+					unicode_convert(h, buf, i);
 				}
-				libmail_u_convert_deinit(h, NULL);
+				unicode_convert_deinit(h, NULL);
 			}
 		}
 

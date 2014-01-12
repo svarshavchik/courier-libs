@@ -53,7 +53,7 @@ libimapd_la_SOURCES=mainloop.c imaptoken.c imaptoken.h imapwrite.c \
 	imapwrite.h capability.c externalauth.c smap.c smapsnapshot.c
 libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la ../numlib/libnumlib.la \
-	../unicode/libunicode.la
+	-lunicode
 libimapd_la_LDFLAGS=-static
 
 imaplogin_SOURCES=imaplogin.c authenticate_auth.c proxy.c proxy.h

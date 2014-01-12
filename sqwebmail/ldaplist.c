@@ -35,7 +35,7 @@ extern void output_attrencoded_oknl_fp(const char *, FILE *);
 
 extern const char *sqwebmail_content_charset;
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 void	ldaplist()
 {
@@ -157,7 +157,7 @@ static char *getfilter()
 	if (!*p)
 		return NULL;
 
-	return libmail_u_convert_toutf8(p, sqwebmail_content_charset, NULL);
+	return unicode_convert_toutf8(p, sqwebmail_content_charset, NULL);
 }
 
 struct search_info {
@@ -198,7 +198,7 @@ static int parsesearch(const char *cn, const char *mail,
 
 	char *cn_native;
 
-	cn_native=libmail_u_convert_fromutf8(cn, sqwebmail_content_charset,
+	cn_native=unicode_convert_fromutf8(cn, sqwebmail_content_charset,
 					     NULL);
 
 	if (cn_native)

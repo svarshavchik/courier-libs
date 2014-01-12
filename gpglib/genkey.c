@@ -14,11 +14,10 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/time.h>
-
+#include	<unicode.h>
 #include	"gpg.h"
 #include	"gpglib.h"
 
-#include	"unicode/unicode.h"
 #include	"numlib/numlib.h"
 
 extern int libmail_gpg_stdin, libmail_gpg_stdout, libmail_gpg_stderr;
@@ -57,19 +56,19 @@ int libmail_gpg_genkey(const char *gpgdir,
 	char *argvec[4];
 	int rc;
 
-	name_u=libmail_u_convert_toutf8(name, charset, NULL);
+	name_u=unicode_convert_toutf8(name, charset, NULL);
 
 	if (!name_u)
 		return (-1);
 
-	addr_u=libmail_u_convert_toutf8(addr, charset, NULL);
+	addr_u=unicode_convert_toutf8(addr, charset, NULL);
 	if (!addr_u)
 	{
 		free(name_u);
 		return (-1);
 	}
 
-	comment_u=libmail_u_convert_toutf8(comment, charset, NULL);
+	comment_u=unicode_convert_toutf8(comment, charset, NULL);
 	if (!comment_u)
 		return (-1);
 

@@ -10,7 +10,7 @@
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045charset.h"
 #include	"rfc822/rfc822.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	<stdio.h>
 #include	<unistd.h>
 #include	<stdlib.h>
@@ -241,7 +241,7 @@ struct replyinfostruct {
 	int start_line;
 	int isflowed;
 	size_t trailing_spaces;
-	libmail_u_convert_handle_t u_handle;
+	unicode_convert_handle_t u_handle;
 
 };
 
@@ -283,7 +283,7 @@ static int reply_begin(size_t quote_level,
 	*/
 	s->quote_level=quote_level+s->quote_level_adjust;
 
-	s->u_handle=libmail_u_convert_init(libmail_u_ucs4_native,
+	s->u_handle=unicode_convert_init(unicode_u_ucs4_native,
 					   s->ri->charset,
 					   output_reply,
 					   s);
@@ -300,7 +300,7 @@ static int reply_begin(size_t quote_level,
 
 		for (i=0; i<s->quote_level; i++)
 		{
-			libmail_u_convert_uc(s->u_handle, &quoteChar, 1);
+			unicode_convert_uc(s->u_handle, &quoteChar, 1);
 		}
 	}
 	return 0;
@@ -337,14 +337,14 @@ static int reply_contents(const unicode_char *txt,
 			*/
 
 			if ((s->quote_level > 0 && *txt != '>') || *txt == ' ')
-				libmail_u_convert_uc(s->u_handle,
+				unicode_convert_uc(s->u_handle,
 						     &spaceChar, 1);
 
 		}
 		else
 		{
 			if (s->quote_level > 0 || *txt == ' ' || *txt == '>')
-				libmail_u_convert_uc(s->u_handle,
+				unicode_convert_uc(s->u_handle,
 						     &spaceChar, 1);
 		}
 		s->start_line=0;
@@ -367,11 +367,11 @@ static int reply_contents(const unicode_char *txt,
 	{
 		while (s->trailing_spaces)
 		{
-			libmail_u_convert_uc(s->u_handle, &spaceChar, 1);
+			unicode_convert_uc(s->u_handle, &spaceChar, 1);
 			--s->trailing_spaces;
 		}
 
-		libmail_u_convert_uc(s->u_handle, txt, nonspc_cnt);
+		unicode_convert_uc(s->u_handle, txt, nonspc_cnt);
 	}
 
 	s->trailing_spaces += txt_size - nonspc_cnt;
@@ -383,9 +383,9 @@ static int reply_end(void *arg)
 	unicode_char newLine='\n';
 	struct replyinfostruct *s=(struct replyinfostruct *)arg;
 
-	libmail_u_convert_uc(s->u_handle, &newLine, 1);
+	unicode_convert_uc(s->u_handle, &newLine, 1);
 
-	libmail_u_convert_deinit(s->u_handle, NULL);
+	unicode_convert_deinit(s->u_handle, NULL);
 	return 0;
 }
 
@@ -403,11 +403,11 @@ static int reply_wrap(void *arg)
 
 	while (s->trailing_spaces)
 	{
-		libmail_u_convert_uc(s->u_handle, &spaceChar, 1);
+		unicode_convert_uc(s->u_handle, &spaceChar, 1);
 		--s->trailing_spaces;
 	}
 
-	libmail_u_convert_uc(s->u_handle, &spaceChar, 1);
+	unicode_convert_uc(s->u_handle, &spaceChar, 1);
 	reply_end(s);
 	reply_begin(s->quote_level-s->quote_level_adjust, s);
 	/* Undo the adjustment in reply_begin() */

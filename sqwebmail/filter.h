@@ -39,10 +39,10 @@
 
 #include	<stdlib.h>
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 struct filter_info {
-	libmail_u_convert_handle_t handle;
+	unicode_convert_handle_t handle;
 
 	int conversion_error;
 

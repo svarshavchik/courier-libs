@@ -27,7 +27,6 @@
 #include	"maildir/maildirmisc.h"
 #include	"maildir/maildircreate.h"
 #include	"maildir/maildirwatch.h"
-#include	"unicode/unicode.h"
 #include	"htmllibdir.h"
 
 #if	HAVE_UNISTD_H
@@ -57,7 +56,7 @@
 #include	<utime.h>
 #endif
 
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 #include	"strftime.h"
 
@@ -417,7 +416,7 @@ static void doupdate()
 		if (entity)
 		{
 			char *val=
-				libmail_u_convert_toutf8(entity,
+				unicode_convert_toutf8(entity,
 							 sqwebmail_content_charset,
 							 NULL);
 
@@ -476,7 +475,7 @@ static void doupdate()
 
 static void p_ident_name(const char *identifier)
 {
-	char *val=libmail_u_convert_fromutf8(identifier,
+	char *val=unicode_convert_fromutf8(identifier,
 					     sqwebmail_content_charset,
 					     NULL);
 

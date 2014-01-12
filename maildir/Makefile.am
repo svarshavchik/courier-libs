@@ -57,17 +57,17 @@ deliverquota_LDADD=libmaildir.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 deliverquota_LDFLAGS=-static
 
 maildirmake_SOURCES=maildirmake.c
-maildirmake_DEPENDENCIES=libmaildir.la ../unicode/libunicode.la \
+maildirmake_DEPENDENCIES=libmaildir.la \
 			../numlib/libnumlib.la \
 			../rfc822/librfc822.la
-maildirmake_LDADD=libmaildir.la ../unicode/libunicode.la \
+maildirmake_LDADD=libmaildir.la \
 			../numlib/libnumlib.la \
-			../rfc822/librfc822.la
+			../rfc822/librfc822.la -lunicode
 maildirmake_LDFLAGS=-static
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
-testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la ../unicode/libunicode.la
-testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la ../unicode/libunicode.la @LIBPCRE@
+testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
+testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lunicode @LIBPCRE@
 testmaildirfilter_LDFLAGS=-static
 
 maildirkwtest_SOURCES=maildirkwtest.c
@@ -97,8 +97,8 @@ maildiraclttest_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 maildiraclttest_LDFLAGS=-static
 
 testmaildirsearch_SOURCES=testmaildirsearch.c
-testmaildirsearch_LDADD=libmaildir.la ../unicode/libunicode.la
-testmaildirsearch_DEPENDENCIES=libmaildir.la ../unicode/libunicode.la
+testmaildirsearch_LDADD=libmaildir.la -lunicode
+testmaildirsearch_DEPENDENCIES=libmaildir.la
 
 EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	README.imapkeywords.html \

@@ -42,7 +42,7 @@
 #endif
 #include	<errno.h>
 #include	"htmllibdir.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 extern const char *sqwebmail_content_charset;
 extern int spell_start(const char *);

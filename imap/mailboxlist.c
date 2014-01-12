@@ -64,7 +64,7 @@
 #include	"maildir/maildiraclt.h"
 #include	"maildir/maildirnewshared.h"
 #include	"maildir/maildirinfo.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"courierauth.h"
 
 

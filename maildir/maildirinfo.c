@@ -37,7 +37,7 @@
 
 #include	"maildirmisc.h"
 #include	"maildirnewshared.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 void maildir_info_destroy(struct maildir_info *info)
 {
@@ -351,7 +351,7 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 			*/
 
 			owner_utf8=
-				libmail_u_convert_tobuf(info->owner,
+				unicode_convert_tobuf(info->owner,
 							unicode_x_imap_modutf7,
 							"utf-8", NULL);
 
@@ -438,7 +438,7 @@ static char *smaptoUtf7(char **ptr)
 
 	while ((n=*ptr++) != NULL && *n)
 	{
-		char *p=libmail_u_convert_tobuf(n, "utf-8",
+		char *p=unicode_convert_tobuf(n, "utf-8",
 						unicode_x_imap_modutf7 " ./~:",
 						NULL);
 
@@ -512,7 +512,7 @@ char **maildir_smapfn_fromutf7(const char *modutf7)
 				break;
 			}
 
-		fn[n]=libmail_u_convert_tobuf(q,
+		fn[n]=unicode_convert_tobuf(q,
 					      unicode_x_imap_modutf7 " ./~:",
 					      "utf-8", NULL);
 		q += i;
@@ -861,7 +861,7 @@ static size_t munge_complex(const char *, char *);
 
 char *maildir_info_imapmunge(const char *name)
 {
-	char *n=libmail_u_convert_tobuf(name, "utf8",
+	char *n=unicode_convert_tobuf(name, "utf8",
 					unicode_x_imap_modutf7, NULL);
 	char *p;
 	size_t cnt;

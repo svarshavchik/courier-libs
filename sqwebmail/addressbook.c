@@ -21,7 +21,7 @@
 #define	ADDRESSBOOK	"sqwebmail-addressbook"
 
 #define TOUTF8(what)	\
-	libmail_u_convert_toutf8((what), sqwebmail_content_charset, NULL)
+	unicode_convert_toutf8((what), sqwebmail_content_charset, NULL)
 
 extern const char *sqwebmail_content_charset;
 
@@ -453,7 +453,7 @@ void ab_listselect_fp(FILE *w)
 
 		for (i=0; i<acnt; i++)
 		{
-			char *p=libmail_u_convert_fromutf8(aa[i]->name,
+			char *p=unicode_convert_fromutf8(aa[i]->name,
 							   sqwebmail_content_charset,
 							   NULL);
 
@@ -579,7 +579,7 @@ static int ab_addrselect_cb(const char *a, const char *n, void *vp)
 static void ab_show_utf8(const char *p)
 {
 	int err;
-	char *p_s=libmail_u_convert_fromutf8(p, sqwebmail_content_charset,
+	char *p_s=unicode_convert_fromutf8(p, sqwebmail_content_charset,
 					     &err);
 
 	if (!p_s)
@@ -992,7 +992,7 @@ int	replace_index=0;
 		{
 			int err;
 			char *edit_name_native=
-				libmail_u_convert_fromutf8(edit_name,
+				unicode_convert_fromutf8(edit_name,
 							   sqwebmail_content_charset,
 							   &err);
 
@@ -1014,7 +1014,7 @@ int	replace_index=0;
 		{
 			int err;
 			char *edit_addr_native=
-				libmail_u_convert_fromutf8(edit_addr,
+				unicode_convert_fromutf8(edit_addr,
 							   sqwebmail_content_charset,
 							   &err);
 

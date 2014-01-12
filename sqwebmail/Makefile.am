@@ -36,11 +36,10 @@ COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../http11/libhttp11.la ../cgi/libcgi.la \
 	../ldapaddressbook/libaddressbook.la \
 	../gpglib/libgpg.la \
-	../unicode/libunicode.la \
 	../random128/librandom128.la ../md5/libmd5.la \
 	../numlib/libnumlib.la \
 	@dblibrary@
-COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs`
+COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` -lunicode
 
 noinst_LTLIBRARIES=libwebmail.la
 

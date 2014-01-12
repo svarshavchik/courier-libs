@@ -15,7 +15,7 @@
 #include	<ctype.h>
 #include	"rfc2045.h"
 #include	"rfc822/rfc822.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 /*
 ** Deallocate a link list of rfc2231param structures.
@@ -316,7 +316,7 @@ static int conv_unicode(char **text, const char *fromChset,
 	if (!fromChset || !*fromChset)
 		return 0;
 
-	p=libmail_u_convert_tobuf(*text, fromChset, toChset, &err);
+	p=unicode_convert_tobuf(*text, fromChset, toChset, &err);
 
 	if (p && err)
 	{

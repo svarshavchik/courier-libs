@@ -22,7 +22,7 @@
 #include	"rfc822/rfc822hdr.h"
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045/rfc2045.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 #include	"numlib/numlib.h"
 #include	"searchinfo.h"
 #include	"imapwrite.h"
@@ -883,7 +883,7 @@ static int fill_search_header_done(const char *name, void *arg)
 	struct searchinfo *sip;
 	int issubject=rfc822hdr_namecmp(name, "subject");
 	size_t j;
-	libmail_u_convert_handle_t conv;
+	unicode_convert_handle_t conv;
 	unicode_char *ucptr;
 	size_t ucsize;
 	int rc;
@@ -929,16 +929,16 @@ static int fill_search_header_done(const char *name, void *arg)
 
 			maildir_search_reset(&sip->sei);
 
-			conv=libmail_u_convert_tou_init("utf-8", &ucptr,
+			conv=unicode_convert_tou_init("utf-8", &ucptr,
 							&ucsize, 0);
 
 			if (!conv)
 				break;
 
-			rc=libmail_u_convert(conv, decodeinfo->utf8buf,
+			rc=unicode_convert(conv, decodeinfo->utf8buf,
 					     decodeinfo->utf8buflen-1);
 
-			if (libmail_u_convert_deinit(conv, NULL))
+			if (unicode_convert_deinit(conv, NULL))
 				break;
 
 			if (rc)
@@ -972,7 +972,7 @@ static int fill_search_header_done(const char *name, void *arg)
 struct fill_search_body_info {
 
 	struct searchinfo *si;
-	libmail_u_convert_handle_t toucs4_handle;
+	unicode_convert_handle_t toucs4_handle;
 
 };
 
@@ -1003,12 +1003,12 @@ static void fill_search_body(struct searchinfo *si,
 	decodeinfo.si=si;
 
 	if ((decodeinfo.toucs4_handle=
-	     libmail_u_convert_init("utf-8",
-				    libmail_u_ucs4_native,
+	     unicode_convert_init("utf-8",
+				    unicode_u_ucs4_native,
 				    fill_search_body_ucs4,
 				    &decodeinfo)) == NULL)
 	{
-		write_error_exit("libmail_u_convert_init");
+		write_error_exit("unicode_convert_init");
 	}
 
 	for (sip=decodeinfo.si; sip; sip=sip->next)
@@ -1019,7 +1019,7 @@ static void fill_search_body(struct searchinfo *si,
 			break;
 		}
 
-	libmail_u_convert_deinit(decodeinfo.toucs4_handle, NULL);
+	unicode_convert_deinit(decodeinfo.toucs4_handle, NULL);
 
 	rfc2045src_deinit(src);
 }
@@ -1029,7 +1029,7 @@ static int fill_search_body_utf8(const char *str, size_t n, void *arg)
 	struct fill_search_body_info *decodeinfo=
 		(struct fill_search_body_info *)arg;
 
-	return libmail_u_convert(decodeinfo->toucs4_handle, str, n);
+	return unicode_convert(decodeinfo->toucs4_handle, str, n);
 }
 
 static int fill_search_body_ucs4(const char *str, size_t n, void *arg)

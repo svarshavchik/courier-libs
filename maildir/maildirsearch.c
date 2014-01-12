@@ -77,7 +77,7 @@ int maildir_search_start_str_chset(struct maildir_searchengine *engine,
 
 	unicode_char *ucptr;
 	size_t ucsize;
-	libmail_u_convert_handle_t h=libmail_u_convert_tou_init(chset, &ucptr,
+	unicode_convert_handle_t h=unicode_convert_tou_init(chset, &ucptr,
 								&ucsize, 1);
 	size_t i, j;
 	int rc;
@@ -85,13 +85,13 @@ int maildir_search_start_str_chset(struct maildir_searchengine *engine,
 	if (h == NULL)
 		return -1;
 
-	if (libmail_u_convert(h, string, strlen(string)))
+	if (unicode_convert(h, string, strlen(string)))
 	{
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert_deinit(h, NULL);
 		return -1;
 	}
 
-	if (libmail_u_convert_deinit(h, NULL))
+	if (unicode_convert_deinit(h, NULL))
 		return -1;
 
 	for (i=j=0; ucptr[i]; )

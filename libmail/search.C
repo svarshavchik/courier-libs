@@ -352,7 +352,7 @@ mail::searchOneMessage::~searchOneMessage()
 
 void mail::searchOneMessage::go()
 {
-	char *c=libmail_u_convert_tocase(searchInfo.param2.c_str(),
+	char *c=unicode_convert_tocase(searchInfo.param2.c_str(),
 					 searchInfo.charset.c_str(),
 					 unicode_uc,
 					 NULL);
@@ -372,7 +372,7 @@ void mail::searchOneMessage::go()
 		LIBMAIL_THROW(LIBMAIL_THROW_EMPTY);
 	}
 
-	c=libmail_u_convert_tocase(searchInfo.param1.c_str(),
+	c=unicode_convert_tocase(searchInfo.param1.c_str(),
 				   "iso-8859-1",
 				   unicode_uc,
 				   NULL);
@@ -611,7 +611,7 @@ void mail::searchOneMessage::checkNextHeader()
 	}
 
 	searchEngine.begin(bodyCharset.c_str(),
-			   libmail_u_ucs4_native);
+			   unicode_u_ucs4_native);
 
 	switch (searchInfo.criteria) {
 	case searchParams::header:
@@ -893,7 +893,7 @@ void mail::searchOneMessage::search(string text)
 			unicode_char *uc;
 			size_t ucsize;
 
-			if (libmail_u_convert_tou_tobuf(value,
+			if (unicode_convert_tou_tobuf(value,
 							strlen(value),
 							"utf-8",
 							&uc,

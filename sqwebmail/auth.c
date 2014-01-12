@@ -39,7 +39,7 @@
 extern int check_sqwebpass(const char *);
 
 extern char *sqwebmail_content_charset, *sqwebmail_system_charset;
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 const char *myhostname()
 {
@@ -278,7 +278,7 @@ static char *uhdrbuf=0;
 
 	if (authcharset[0]
 	    && sqwebmail_content_charset && *sqwebmail_content_charset
-	    && (ufullname=libmail_u_convert_toutf8(fullname, authcharset,NULL)))
+	    && (ufullname=unicode_convert_toutf8(fullname, authcharset,NULL)))
 		fullname = ufullname;
 
 	l=sizeof("\"\" <>")+strlen(address)+strlen(fullname);
@@ -316,7 +316,7 @@ static char *uhdrbuf=0;
 
 	if (ufullname)	free(ufullname);
 	if (uhdrbuf)	free(uhdrbuf);
-	if ((uhdrbuf=libmail_u_convert_fromutf8(hdrbuf,
+	if ((uhdrbuf=unicode_convert_fromutf8(hdrbuf,
 						sqwebmail_content_charset,
 						NULL)) != NULL)
 		return (uhdrbuf);

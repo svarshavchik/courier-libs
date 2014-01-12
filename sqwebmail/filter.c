@@ -29,7 +29,7 @@ void	filter_start(struct filter_info *info,
 		     void *arg)
 {
 	info->conversion_error=0;
-	info->handle=libmail_u_convert_init(libmail_u_ucs4_native,
+	info->handle=unicode_convert_init(unicode_u_ucs4_native,
 					    charset,
 					    converted_text, info);
 
@@ -79,12 +79,12 @@ void	filter(struct filter_info *info,
 					unicode_char nl='\n';
 
 					if (prev < i)
-						libmail_u_convert_uc
+						unicode_convert_uc
 							(info->handle,
 							 ptr+prev, i-prev);
 					prev=i;
 
-					libmail_u_convert_uc(info->handle,
+					unicode_convert_uc(info->handle,
 							     &nl, 1);
 					info->u_w=0;
 				}
@@ -112,7 +112,7 @@ void	filter(struct filter_info *info,
 		}
 
 		if (prev < i)
-			libmail_u_convert_uc(info->handle, ptr+prev, i-prev);
+			unicode_convert_uc(info->handle, ptr+prev, i-prev);
 		prev=++i;
 
 		if (!p)
@@ -122,7 +122,7 @@ void	filter(struct filter_info *info,
 		{
 			unicode_char uc= *p++;
 
-			libmail_u_convert_uc(info->handle, &uc, 1);
+			unicode_convert_uc(info->handle, &uc, 1);
 		}
 	}
 }
@@ -130,14 +130,14 @@ void	filter(struct filter_info *info,
 void	filter_passthru(struct filter_info *info,
 			const unicode_char *ptr, size_t cnt)
 {
-	libmail_u_convert_uc(info->handle, ptr, cnt);
+	unicode_convert_uc(info->handle, ptr, cnt);
 }
 
 void	filter_end(struct filter_info *info)
 {
 	if (info->handle)
 	{
-		libmail_u_convert_deinit(info->handle,
+		unicode_convert_deinit(info->handle,
 					 &info->conversion_error);
 		info->handle=NULL;
 	}

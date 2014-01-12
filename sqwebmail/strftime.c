@@ -4,7 +4,7 @@
 #include	<string.h>
 #include	<time.h>
 #include	"sqwebmail.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 extern const char *sqwebmail_system_charset;
 extern const char *sqwebmail_content_charset;
@@ -24,7 +24,7 @@ size_t strftime_unicode(char *s, size_t max, const char *fmt,
 	    && strcasecmp(sqwebmail_system_charset, "ASCII"))
 	{
 		int err;
-		char *sfmt=libmail_u_convert_tobuf(fmt,
+		char *sfmt=unicode_convert_tobuf(fmt,
 						   sqwebmail_content_charset,
 						   sqwebmail_system_charset,
 						   &err);
@@ -41,7 +41,7 @@ size_t strftime_unicode(char *s, size_t max, const char *fmt,
 			sbuf[sizeof(sbuf)-1] = 0;
 			free(sfmt);
 
-			buf=libmail_u_convert_tobuf(sbuf,
+			buf=unicode_convert_tobuf(sbuf,
 						    sqwebmail_system_charset,
 						    sqwebmail_content_charset,
 						    &err);

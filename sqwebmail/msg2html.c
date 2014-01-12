@@ -9,7 +9,7 @@
 
 #include "msg2html.h"
 #include "buf.h"
-#include "unicode/unicode.h"
+#include <unicode.h>
 #include "numlib/numlib.h"
 #include "gpglib/gpglib.h"
 #include "cgi/cgi.h"
@@ -477,7 +477,7 @@ static int showmsgrfc822_header(const char *output_chset,
 
 	int conv_err;
 
-	if (libmail_u_convert_tou_tobuf(p, strlen(p), chset,
+	if (unicode_convert_tou_tobuf(p, strlen(p), chset,
 					&uc, &ucsize,
 					&conv_err))
 	{
@@ -927,7 +927,7 @@ static int text_to_stdout(const char *p, size_t n, void *dummy)
 static void convert_unicode(const unicode_char *uc,
 			    size_t n, void *dummy)
 {
-	libmail_u_convert_uc(*(libmail_u_convert_handle_t *)dummy, uc, n);
+	unicode_convert_uc(*(unicode_convert_handle_t *)dummy, uc, n);
 }
 
 static int htmlfilter_stub(const char *ptr, size_t cnt, void *voidptr)
@@ -1130,7 +1130,7 @@ static void showtexthtml(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
 	const char *mime_charset, *dummy_s;
 
 	struct htmlfilter_info *hf_info;
-	libmail_u_convert_handle_t h;
+	unicode_convert_handle_t h;
 
 	id=id;
 
@@ -1142,7 +1142,7 @@ static void showtexthtml(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
 
 	rfc2045_mimeinfo(rfc, &dummy_s, &dummy_s, &mime_charset);
 
-	h=libmail_u_convert_init(libmail_u_ucs4_native,
+	h=unicode_convert_init(unicode_u_ucs4_native,
 				 info->output_character_set,
 				 text_to_stdout, NULL);
 
@@ -1191,7 +1191,7 @@ static void showtexthtml(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
 			int conv_err;
 
 			rfc2045_decodetextmimesection(src, rfc,
-						      libmail_u_ucs4_native,
+						      unicode_u_ucs4_native,
 						      &conv_err,
 						      &htmlfilter_stub,
 						      hf_info);
@@ -1203,7 +1203,7 @@ static void showtexthtml(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
 		}
 
 		htmlfilter_free(hf_info);
-		libmail_u_convert_deinit(h, NULL);
+		unicode_convert_deinit(h, NULL);
 		printf("</td></tr>");
 	}
 

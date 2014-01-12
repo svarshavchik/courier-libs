@@ -9,10 +9,10 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<errno.h>
+#include	<unicode.h>
 
 #include	"rfc822hdr.h"
 #include	"rfc2047.h"
-#include	"../unicode/unicode.h"
 
 #if LIBIDN
 #include <idna.h>
@@ -93,7 +93,7 @@ static void rfc822_display_addr_cb(const char *chset,
 	memcpy(buf, content, cnt);
 	buf[cnt]=0;
 
-	ptr=libmail_u_convert_tobuf(buf, chset, s->chset, NULL);
+	ptr=unicode_convert_tobuf(buf, chset, s->chset, NULL);
 	free(buf);
 
 	if (ptr)
@@ -356,7 +356,7 @@ int rfc822_display_addr_str(const char *tok,
 			(*print_func)(p, strlen(p), ptr);
 		else
 		{
-			char *q=libmail_u_convert_tobuf(utf8_ptr,
+			char *q=unicode_convert_tobuf(utf8_ptr,
 							"utf-8",
 							chset, NULL);
 			if (q)
@@ -474,7 +474,7 @@ int rfc2047_print_unicodeaddr(const struct rfc822a *a,
 			if (strchr(RFC822_SPECIALS, nbuf.bufptr[i]))
 				break;
 
-		cpbuf=libmail_u_convert_tobuf(nbuf.bufptr, "utf-8", charset,
+		cpbuf=unicode_convert_tobuf(nbuf.bufptr, "utf-8", charset,
 					      NULL);
 
 		if (!cpbuf)

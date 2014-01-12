@@ -31,7 +31,7 @@
 #include	"rfc822/rfc822.h"
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045charset.h"
-#include	"unicode/unicode.h"
+#include	<unicode.h>
 
 #if HAVE_UNISTD_H
 #include	<unistd.h>
@@ -978,9 +978,9 @@ int rc=0;
 				optarg=argv[argn++];
 			if (optarg && *optarg)
 			{
-				char *p=libmail_u_convert_tobuf("",
+				char *p=unicode_convert_tobuf("",
 								optarg,
-								libmail_u_ucs4_native,
+								unicode_u_ucs4_native,
 								NULL);
 
 				if (!p)

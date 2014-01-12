@@ -5,7 +5,7 @@
 
 #include "rfc2045_config.h"
 #include	"rfc2045.h"
-#include	"../unicode/unicode.h"
+#include	<unicode.h>
 #include	<stdio.h>
 #include	<unistd.h>
 #include	<iconv.h>
@@ -32,7 +32,7 @@ int rfc2045_decodetextmimesection(struct rfc2045src *src,
 	const char *dummy;
 	const char *src_chset;
 
-	libmail_u_convert_handle_t ci;
+	unicode_convert_handle_t ci;
 	int rc;
 	int dummy_flag;
 
@@ -43,7 +43,7 @@ int rfc2045_decodetextmimesection(struct rfc2045src *src,
 
 	*conv_err=0;
 
-	if ((ci=libmail_u_convert_init(src_chset, mychset, handler, voidarg))
+	if ((ci=unicode_convert_init(src_chset, mychset, handler, voidarg))
 	    == NULL)
 	{
 		*conv_err=1;
@@ -53,7 +53,7 @@ int rfc2045_decodetextmimesection(struct rfc2045src *src,
 	rc=rfc2045_decodemimesection(src, rfc, &myhandler, &ci);
 
 	dummy_flag=0;
-	if (libmail_u_convert_deinit(ci, &dummy_flag))
+	if (unicode_convert_deinit(ci, &dummy_flag))
 		rc= -1;
 
 	if (dummy_flag)
@@ -63,6 +63,6 @@ int rfc2045_decodetextmimesection(struct rfc2045src *src,
 
 static int myhandler(const char *cp, size_t cnt, void *voidarg)
 {
-	return libmail_u_convert(*(libmail_u_convert_handle_t *)
+	return unicode_convert(*(unicode_convert_handle_t *)
 				 voidarg, cp, cnt);
 }
