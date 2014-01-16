@@ -238,7 +238,14 @@ int Search::search_cb(const char *ptr, size_t cnt)
 			Buffer	msg;
 
 				msg="Matching /";
-				msg.append(search_expr);
+
+				{
+					Buffer cpy;
+
+					cpy += search_expr;
+					cpy += '\0';
+					msg.append(cpy);
+				}
 				msg.append("/ against ");
 				msg += current_line;
 				msg.pop();	// Trailing null byte.
