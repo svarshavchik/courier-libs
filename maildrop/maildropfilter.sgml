@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 1998 - 2014 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry>
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -601,48 +601,79 @@ form in the <systemitem class="resource">filter file</systemitem>:</para>
 	</blockquote>
 
       <para>
-<replaceable>pattern</replaceable> specifies the text to look for in the
-message, in the <literal>UTF-8</literal> codeset.
-<replaceable>pattern</replaceable> must not begin with a space,
-otherwise the leading slash will then be
-interpreted as a division sign. If you must search for text that starts
-with a space, use something like <literal>"/[ ] ... /"</literal>.</para>
+	<replaceable>pattern</replaceable> specifies the text to look for in the
+	message, in the <literal>UTF-8</literal> codeset.
+	<replaceable>pattern</replaceable> must not begin with a space,
+	otherwise the leading slash will then be
+	interpreted as a division sign. If you must search for text that starts
+	with a space, use something like <literal>"/[ ] ... /"</literal>.
+      </para>
 
       <para>
-The general syntax of <command>maildrop</command>'s patterns is described
-in the <citerefentry>
+	The general syntax of <command>maildrop</command>'s patterns is
+	described in the <citerefentry>
 	  <refentrytitle>pcrepattern</refentrytitle>
 	  <manvolnum>3</manvolnum></citerefentry>
-manual page, with certain exceptions
-noted below.
-<command>maildrop</command> uses the
-<ulink url="http://www.pcre.org">PCRE</ulink>
-library to implement pattern matching.
-Not all features in <acronym>PCRE</acronym> are available in
-<command>maildrop</command>, and
-the <quote>options</quote> part, which follows the pattern specification,
-changes the pattern matching further.
-Consult the
-<citerefentry>
+	manual page, with certain exceptions
+	noted below.
+	<command>maildrop</command> uses the
+	<ulink url="http://www.pcre.org">PCRE</ulink>
+	library to implement pattern matching.
+	Not all features in <acronym>PCRE</acronym> are available in
+	<command>maildrop</command>, and
+	the <quote>options</quote> part, which follows the pattern
+	specification, changes the pattern matching further.
+	Consult the
+	<citerefentry>
 	  <refentrytitle>pcrepattern</refentrytitle>
 	  <manvolnum>3</manvolnum></citerefentry>
-manual page for more information, but note the following exceptions:</para>
+	manual page for more information, but note the following
+	exceptions:
+      </para>
 
       <itemizedlist>
 	<listitem>
 	  <para>
-Internal options settings are not supported (but see the <quote>D</quote>
-maildrop option, below).
-Do not include option settings in the <replaceable>pattern</replaceable>,
-doing so will lead to undefined results.</para>
+	    Internal options settings are not supported (but see the
+	    <quote>D</quote> maildrop option, below).
+	    Do not include option settings in the
+	    <replaceable>pattern</replaceable>,
+	    doing so will lead to undefined results.</para>
 	</listitem>
 
 	<listitem>
 	  <para>
-Named subpatterns are not implemented.
-Numbered subpatterns are implemented, see
-<quote><link linkend="patmatch">Pattern Match Results</link></quote>,
-below.</para>
+	    Named subpatterns are not implemented.
+	    Numbered subpatterns are implemented, see
+	    <quote><link linkend="patmatch">Pattern Match Results</link></quote>,
+	    below.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    The search pattern gets executed not against the raw message text,
+	    but the message transcoded into a canonical UTF-8-based format.
+	    This process involves transcoding any non-UTF-8 message content
+	    into UTF-8. Additionally, message headers get converted into a
+	    canonical format before the search pattern gets executed.
+	  </para>
+
+	  <para>
+	    For structured headers with email addresses, the process involves
+	    removing extraneous punctuation, or adding missing ones (in
+	    situations where a missing punctuation character can be deduced).
+	    Additionally certain pre-RFC822 obsolete header formats get
+	    converted to canonical form.
+	  </para>
+
+	  <para>
+	    This means that header search patterns that include punctuation
+	    character may appear not to work against obviously-matching
+	    message text. Use <quote>reformime -u &lt;message.txt</quote>,
+	    with <filename>message.txt</filename> containing the sample message,
+	    to see exactly the actual text that gets searched by patterns.
+	  </para>
 	</listitem>
       </itemizedlist>
     </refsect2>
