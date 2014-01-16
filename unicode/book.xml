@@ -156,7 +156,7 @@ See COPYING for distribution information.
 	      <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_isspace">
-	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
+	      <citerefentry><refentrytitle>unicode_isspace</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_grapheme_break">
 	      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
@@ -1107,7 +1107,7 @@ See COPYING for distribution information.
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
 		<manvolnum>7</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_line_break">
+	    <link linkend="unicode__linebreak">
 	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <ulink url="http://www.unicode.org/reports/tr14/tr14-32.html">TR-14</ulink>
@@ -1779,11 +1779,12 @@ See COPYING for distribution information.
               <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
               <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	      <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
               <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>void <function>convert</function></funcdef>
+              <funcdef>bool <function>convert</function></funcdef>
               <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
               <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
@@ -1791,10 +1792,9 @@ See COPYING for distribution information.
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>void <function>convert</function></funcdef>
+              <funcdef>std::pair&lt;std::vector&lt;unicode_char&gt;, bool&gt; <function>convert</function></funcdef>
               <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>out_buf</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1814,15 +1814,23 @@ See COPYING for distribution information.
 	    iterates over <classname>unicode_char</classname>s.
 	    <function>convert</function>() returns the value of the output
 	    iterator after iterating over the converted character sequence.
+	    <parameter>errflag</parameter>, passed by reference, gets set to
+	    <literal>true</literal> if some character could not be converted
+	    to unicode, from the specified character set, and
+	    <literal>false</literal> if the conversion completed without
+	    errors.
 	  </para>
 
 	  <para>
 	    An overloaded <function>convert</function>() puts the unicode
 	    character sequence into a vector of
 	    <classname>unicode_char</classname>s, instead of an output
-	    sequence. Finally, a single <classname>std::string</classname>
+	    sequence, and returned the error flag.
+	    Finally, a single <classname>std::string</classname>
 	    specifies the character string, instead of a beginning and an
-	    ending iterator.
+	    ending iterator, and returns a
+	    <classname>std::pair</classname> with the converted unicode
+	    text in a vector, and the error flag.
 	  </para>
 	</refsect1>
 

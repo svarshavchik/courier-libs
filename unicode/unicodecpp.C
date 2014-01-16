@@ -214,11 +214,14 @@ int unicode::iconvert::tou::converted(const char *ptr, size_t cnt)
 			 cnt/sizeof(unicode_char));
 }
 
-void unicode::iconvert::tou::convert(const std::string &str,
-				  const std::string &chset,
-				  std::vector<unicode_char> &out_buf)
+std::pair<std::vector<unicode_char>, bool>
+unicode::iconvert::tou::convert(const std::string &str,
+				const std::string &chset)
 {
-	convert(str.begin(), str.end(), chset, out_buf);
+	std::pair<std::vector<unicode_char>, bool> ret;
+
+	ret.second=convert(str.begin(), str.end(), chset, ret.first);
+	return ret;
 }
 
 bool unicode::iconvert::fromu::begin(const std::string &chset)

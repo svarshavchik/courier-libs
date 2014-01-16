@@ -179,13 +179,18 @@ int main(int argc, char **argv)
 
 	std::string convteststr="0000000000000000000000000000000\xe3\x82\xa2";
 
-	std::vector<unicode_char> uc;
+	std::pair<std::vector<unicode_char>, bool> uc;
 
-	unicode::iconvert::tou
-		::convert(convteststr, "utf-8", uc);
+	uc=unicode::iconvert::tou::convert(convteststr, "utf-8");
 
-	std::vector<unicode_char>::iterator e(uc.end()),
-		b(std::find_if(uc.begin(), e,
+	if (uc.second)
+	{
+		std::cerr << "Valid UTF-8 string is invalid" << std::endl;
+		exit(1);
+	}
+
+	std::vector<unicode_char>::iterator e(uc.first.end()),
+		b(std::find_if(uc.first.begin(), e,
 			       std::not1(std::bind2nd(std::equal_to<unicode_char>
 						      (),
 						      unicode_char('0')))));
@@ -197,12 +202,19 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (unicode::iconvert::fromu::convert(uc, "utf-8") != convteststr)
+	if (unicode::iconvert::fromu::convert(uc.first, "utf-8") != convteststr)
 	{
 		std::cerr << "unicode::iconvert::fromu::convert failed"
 			  << std::endl;
 		exit(1);
 	}
 
+	uc=unicode::iconvert::tou::convert("\xE3", "utf-8");
+
+	if (!uc.second)
+	{
+		std::cerr << "Invalid UTF-8 string is valid" << std::endl;
+		exit(1);
+	}
 	return 0;
 }

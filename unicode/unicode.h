@@ -1058,24 +1058,29 @@ namespace unicode {
 			static output_iter_t convert(input_iter_t from_iter,
 						     input_iter_t to_iter,
 						     const std::string &chset,
+						     bool &flag,
 						     output_iter_t out_iter);
 
 		template<typename input_iter_t>
-			static void convert(input_iter_t from_iter,
+			static bool convert(input_iter_t from_iter,
 					    input_iter_t to_iter,
 					    const std::string &chset,
 					    std::vector<unicode_char> &out_buf)
 		{
+			bool flag;
+
 			out_buf.clear();
 			std::back_insert_iterator<std::vector<unicode_char> >
 				insert_iter(out_buf);
 
-			convert(from_iter, to_iter, chset, insert_iter);
+			convert(from_iter, to_iter, chset, flag, insert_iter);
+
+			return flag;
 		}
 
-		static void convert(const std::string &str,
-				    const std::string &chset,
-				    std::vector<unicode_char> &out_buf);
+		static std::pair<std::vector<unicode_char>, bool>
+			convert(const std::string &str,
+				const std::string &chset);
 	};
 
 	/* Helper class that saves unicode output into an output iterator */
@@ -1113,6 +1118,7 @@ namespace unicode {
 		output_iter_t iconvert::tou::convert(input_iter_t from_iter,
 						     input_iter_t to_iter,
 						     const std::string &chset,
+						     bool &flag,
 						     output_iter_t out_iter)
 		{
 			class to_iter_class<output_iter_t> out(out_iter);
@@ -1136,7 +1142,7 @@ namespace unicode {
 			if (string.size() > 0)
 				out(&string[0], string.size());
 
-			out.end();
+			out.end(flag);
 			return out;
 		}
 		
