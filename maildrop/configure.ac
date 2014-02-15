@@ -12,7 +12,7 @@ LPATH="$PATH:/usr/local/bin"
 AM_INIT_AUTOMAKE([foreign no-define])
 
 AC_PROG_MAKE_SET
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS

@@ -10,7 +10,7 @@ AC_INIT(libsha1, 1.21, courier-users@lists.sourceforge.net)
 
 AC_CONFIG_SRCDIR([hmac.c])
 AC_CONFIG_AUX_DIR(../..)
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign no-define])
 
 AM_CONDITIONAL(HMACC, test -d ${srcdir}/../libhmac)

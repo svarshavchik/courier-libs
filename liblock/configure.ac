@@ -9,7 +9,7 @@ AC_INIT(liblock, 0.60, courier-users@lists.sourceforge.net)
 
 AC_CONFIG_SRCDIR([liblock.h])
 AC_CONFIG_AUX_DIR(../..)
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign no-define])
 
 CFLAGS="-I.. -I${srcdir}/.. $CFLAGS"

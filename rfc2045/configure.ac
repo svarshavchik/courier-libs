@@ -8,7 +8,7 @@ AC_INIT(rfc2045lib, 0.20, [courier-maildrop@lists.sourceforge.net])
 AC_CONFIG_SRCDIR(rfc2045.c)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
-AM_CONFIG_HEADER(rfc2045_config.h)
+AC_CONFIG_HEADERS(rfc2045_config.h)
 
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS

@@ -11,7 +11,7 @@ AC_CONFIG_SRCDIR(cgi.c)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
 
-AM_CONFIG_HEADER(cgi_config.h)
+AC_CONFIG_HEADERS(cgi_config.h)
 
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS

@@ -12,7 +12,7 @@ AC_CONFIG_AUX_DIR(../..)
 LPATH="$PATH:/usr/local/bin"
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE([foreign no-define])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Checks for programs.
 AC_PROG_AWK

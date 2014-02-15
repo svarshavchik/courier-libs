@@ -10,7 +10,7 @@ AC_INIT(numlib, 0.10, courier-users@lists.sourceforge.net)
 
 AC_CONFIG_SRCDIR([atotimet.c])
 AC_CONFIG_AUX_DIR(../..)
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign no-define])
  
 dnl Checks for programs.

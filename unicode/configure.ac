@@ -8,7 +8,7 @@ AC_CONFIG_SRCDIR(unicodecpp.C)
 
 LPATH="$PATH:/usr/local/bin"
 
-AM_CONFIG_HEADER(unicode_config.h)
+AC_CONFIG_HEADERS(unicode_config.h)
 AM_INIT_AUTOMAKE([foreign no-define dist-bzip2])
 dnl Checks for programs.
 

@@ -11,7 +11,7 @@ AC_CONFIG_SRCDIR(soxwrap.h)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
 
-AM_CONFIG_HEADER(soxwrap_config.h)
+AC_CONFIG_HEADERS(soxwrap_config.h)
 
 >confdefs.h  # Nuke PACKAGE_ macros.
 

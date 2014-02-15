@@ -11,7 +11,7 @@ AC_CONFIG_SRCDIR(Makefile.am)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
 LPATH="$PATH:/usr/local/bin"
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS

@@ -14,7 +14,7 @@ LPATH="$PATH:/usr/local/bin"
 
 
 dnl Checks for programs.
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_LN_S
