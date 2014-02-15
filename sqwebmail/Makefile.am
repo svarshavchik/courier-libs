@@ -140,7 +140,7 @@ htmllibdir.h: config.status
 	echo '#define SOCKDIR "$(localstatedir)"' >>htmllibdir.h
 	echo '#define SHAREDINDEXFILE "$(sysconfdir)/shared/index"' >>htmllibdir.h
 	echo '#define SQWEBPASSWD "$(pkglibexecdir)/sqwebpasswd"' >>htmllibdir.h
-	if test -d $(srcdir)/../courier \
+	if test -d $(srcdir)/../../courier \
 		; then \
 		echo '#define HOSTNAMEFILE "$(sysconfdir)/defaultdomain"' >>htmllibdir.h \
 		; echo '#define MAKEMIME "$(bindir)/makemime"' >>htmllibdir.h \
@@ -188,7 +188,7 @@ cache-reminder:
 	@echo '-----------------------------------------------------------' >>sqwebmail.msg
 	@echo 'You must now add the following command to your system startup script:' >>sqwebmail.msg
 	@echo '' >>sqwebmail.msg
-	@if test -d $(srcdir)/../courier \
+	@if test -d $(srcdir)/../../courier \
 		; then \
 	echo '$(sbindir)/webmaild start' >>sqwebmail.msg ; else \
 	echo '$(libexecdir)/sqwebmaild.rc start' >>sqwebmail.msg ; fi

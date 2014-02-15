@@ -1,3 +1,7 @@
+2014-02-15  "Alexei Batyr'" <lehel@pcmag.ru>
+
+	* Fix wrong path in Makefile.
+
 2014-01-12  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Factored out the unicode library into a separate package.
