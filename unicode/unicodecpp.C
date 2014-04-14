@@ -295,6 +295,11 @@ unicode::linebreak_callback_base::~linebreak_callback_base()
 	finish();
 }
 
+int unicode::linebreak_callback_base::callback(int ignore)
+{
+	return 0;
+}
+
 unicode::linebreak_callback_base
 &unicode::linebreak_callback_base::operator<<(unicode_char uc)
 {
@@ -343,6 +348,11 @@ unicode::linebreakc_callback_base::linebreakc_callback_base()
 unicode::linebreakc_callback_base::~linebreakc_callback_base()
 {
 	finish();
+}
+
+int unicode::linebreakc_callback_base::callback(int dummy1, unicode_char dummy2)
+{
+	return 0;
 }
 
 void unicode::linebreakc_callback_base::set_opts(int optsArg)
@@ -401,6 +411,11 @@ unicode::wordbreak_callback_base::wordbreak_callback_base()
 unicode::wordbreak_callback_base::~wordbreak_callback_base()
 {
 	finish();
+}
+
+int unicode::wordbreak_callback_base::callback(bool ignore)
+{
+	return 0;
 }
 
 unicode::wordbreak_callback_base

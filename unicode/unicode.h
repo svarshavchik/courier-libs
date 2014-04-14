@@ -1270,13 +1270,20 @@ namespace unicode {
 
 		int opts;
 
+#if __cplusplus >= 201103L
+	public:
+		linebreak_callback_base(const linebreak_callback_base &)=delete;
+		linebreak_callback_base &operator=(const
+						   linebreak_callback_base &)=delete;
+	private:
+#else
 		linebreak_callback_base(const linebreak_callback_base &);
 		/* NOT IMPLEMENTED */
 
-		linebreak_callback_base &operator==(const
-						    linebreak_callback_base &);
+		linebreak_callback_base &operator=(const
+						   linebreak_callback_base &);
 		/* NOT IMPLEMENTED */
-
+#endif
 	public:
 		linebreak_callback_base();
 		virtual ~linebreak_callback_base();
@@ -1304,7 +1311,7 @@ namespace unicode {
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int callback(int)=0;
+		virtual int callback(int);
 	};
 
 	class linebreak_callback_save_buf : public linebreak_callback_base {
@@ -1447,14 +1454,24 @@ namespace unicode {
 
 		int opts;
 
+#if __cplusplus >= 201103L
+	public:
+		linebreakc_callback_base(const linebreakc_callback_base &)
+			=delete;
+
+		linebreakc_callback_base &operator=(const
+						     linebreakc_callback_base
+						     &)=delete;
+	private:
+#else
 		linebreakc_callback_base(const linebreakc_callback_base &);
 		/* NOT IMPLEMENTED */
 
-		linebreakc_callback_base &operator==(const
+		linebreakc_callback_base &operator=(const
 						     linebreakc_callback_base
 						     &);
 		/* NOT IMPLEMENTED */
-
+#endif
 
 	public:
 		linebreakc_callback_base();
@@ -1484,7 +1501,7 @@ namespace unicode {
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int callback(int, unicode_char)=0;
+		virtual int callback(int, unicode_char);
 	};
 
 	class linebreakc_callback_save_buf : public linebreakc_callback_base {
@@ -1632,13 +1649,22 @@ namespace unicode {
 
 		unicode_wb_info_t handle;
 
+#if __cplusplus >= 201103L
+	public:
+		wordbreak_callback_base(const wordbreak_callback_base &)=delete;
+
+		wordbreak_callback_base &operator=(const
+						   wordbreak_callback_base &)
+			=delete;
+	private:
+#else
 		wordbreak_callback_base(const wordbreak_callback_base &);
 		/* NOT IMPLEMENTED */
 
-		wordbreak_callback_base &operator==(const
-						    wordbreak_callback_base &);
+		wordbreak_callback_base &operator=(const
+						   wordbreak_callback_base &);
 		/* NOT IMPLEMENTED */
-
+#endif
 	public:
 		wordbreak_callback_base();
 		virtual ~wordbreak_callback_base();
@@ -1665,7 +1691,7 @@ namespace unicode {
 			return operator()(vec.begin(), vec.end());
 		}
 	private:
-		virtual int callback(bool)=0;
+		virtual int callback(bool);
 	};
 
 	/*
@@ -1676,11 +1702,18 @@ namespace unicode {
 
 		unicode_wbscan_info_t handle;
 
+#if __cplusplus >= 201103L
+	public:
+		wordbreakscan(const wordbreakscan &)=delete;
+		wordbreakscan &operator=(const wordbreakscan &)=delete;
+	private:
+#else
 		wordbreakscan(const wordbreakscan &);
 		/* NOT IMPLEMENTED */
 
-		wordbreakscan &operator==(const wordbreakscan &);
+		wordbreakscan &operator=(const wordbreakscan &);
 		/* NOT IMPLEMENTED */
+#endif
 	public:
 
 		wordbreakscan();

@@ -59,7 +59,7 @@ libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			linebreaktab_internal.h \
 			unicode_wordbreak.c wordbreaktab.h \
 			wordbreaktab_internal.h
-libunicode_la_LDFLAGS=-version-info 0:0:0
+libunicode_la_LDFLAGS=-version-info 1:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec
 
