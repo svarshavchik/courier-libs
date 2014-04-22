@@ -1453,13 +1453,22 @@ See COPYING for distribution information.
 
 	<refnamediv>
 	  <refname>unicode::iconvert::convert</refname>
+	  <refname>unicode::ucs_4</refname>
+	  <refname>unicode::ucs_2</refname>
+	  <refname>unicode::utf_8</refname>
+	  <refname>unicode::iso_8859_1</refname>
 
 	  <refpurpose>unicode character set conversion</refpurpose>
 	</refnamediv>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;
+
+extern const char unicode::ucs_4[];
+extern const char unicode::ucs_2[];
+extern const char unicode::utf_8[];
+extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
@@ -1538,6 +1547,16 @@ See COPYING for distribution information.
 	    character set that's supported by
 	    <citerefentry><refentrytitle>iconv</refentrytitle>
 	    <manvolnum>3</manvolnum></citerefentry>.
+
+	    Use
+	    <varname>unicode::ucs_2</varname> and
+	    <varname>unicode::ucs_4</varname> to specify the 16 and the 32 bit
+	    unicode octet in native byte order.
+	    Use
+	    <varname>unicode::utf_8</varname> and
+	    <varname>unicode::iso_8859_1</varname> to specify these two
+	    standard character sets.
+
 	    The overloaded versions that pass a reference to a
 	    <classname>bool</classname> set the flag to <literal>true</literal>
 	    if some characters could not be converted.

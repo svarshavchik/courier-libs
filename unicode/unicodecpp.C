@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Double Precision, Inc.
+** Copyright 2011-2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -34,6 +34,26 @@ extern "C" {
 	}
 
 }
+
+const char unicode::ucs_4[]=
+#if WORDS_BIGENDIAN
+	"UCS-4BE"
+#else
+	"UCS-4LE"
+#endif
+	;
+
+const char unicode::ucs_2[]=
+#if WORDS_BIGENDIAN
+	"UCS-2BE"
+#else
+	"UCS-2LE"
+#endif
+	;
+
+const char unicode::utf_8[]="utf-8";
+
+const char unicode::iso_8859_1[]="iso-8859-1";
 
 size_t unicode_wcwidth(const std::vector<unicode_char> &uc)
 {

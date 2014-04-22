@@ -887,6 +887,11 @@ extern size_t unicode_wcwidth(const std::vector<unicode_char> &uc);
 namespace unicode {
 
 	/*
+	** Various character sets
+	*/
+	extern const char ucs_4[], ucs_2[], utf_8[], iso_8859_1[];
+
+	/*
 	** Interface to iconv.
 	**
 	** Subclass converted(). Invoke begin(), then operator(), repeatedly,
