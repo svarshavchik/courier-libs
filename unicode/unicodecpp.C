@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Double Precision, Inc.
+** Copyright 2011-2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -34,6 +34,26 @@ extern "C" {
 	}
 
 }
+
+const char unicode::ucs_4[]=
+#if WORDS_BIGENDIAN
+	"UCS-4BE"
+#else
+	"UCS-4LE"
+#endif
+	;
+
+const char unicode::ucs_2[]=
+#if WORDS_BIGENDIAN
+	"UCS-2BE"
+#else
+	"UCS-2LE"
+#endif
+	;
+
+const char unicode::utf_8[]="utf-8";
+
+const char unicode::iso_8859_1[]="iso-8859-1";
 
 size_t unicode_wcwidth(const std::vector<unicode_char> &uc)
 {
@@ -295,6 +315,11 @@ unicode::linebreak_callback_base::~linebreak_callback_base()
 	finish();
 }
 
+int unicode::linebreak_callback_base::callback(int ignore)
+{
+	return 0;
+}
+
 unicode::linebreak_callback_base
 &unicode::linebreak_callback_base::operator<<(unicode_char uc)
 {
@@ -343,6 +368,11 @@ unicode::linebreakc_callback_base::linebreakc_callback_base()
 unicode::linebreakc_callback_base::~linebreakc_callback_base()
 {
 	finish();
+}
+
+int unicode::linebreakc_callback_base::callback(int dummy1, unicode_char dummy2)
+{
+	return 0;
 }
 
 void unicode::linebreakc_callback_base::set_opts(int optsArg)
@@ -401,6 +431,11 @@ unicode::wordbreak_callback_base::wordbreak_callback_base()
 unicode::wordbreak_callback_base::~wordbreak_callback_base()
 {
 	finish();
+}
+
+int unicode::wordbreak_callback_base::callback(bool ignore)
+{
+	return 0;
 }
 
 unicode::wordbreak_callback_base

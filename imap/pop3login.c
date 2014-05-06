@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2008 Double Precision, Inc.
+** Copyright 1998 - 2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -37,6 +37,14 @@ extern const char *pop3_externalauth();
 
 static const char *pop3d;
 static const char *defaultmaildir;
+
+static const char *safe_getenv(const char *p)
+{
+	p=getenv(p);
+
+	if (!p) p="";
+	return p;
+}
 
 static int	starttls()
 {
@@ -180,6 +188,11 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 			if (fd > 0)
 			{
 				alarm(0);
+				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s",
+					ainfo->address, safe_getenv("TCPREMOTEIP"),
+					safe_getenv("TCPREMOTEPORT"),
+					safe_getenv("PROTOCOL"));
+
 				proxyloop(fd);
 				exit(0);
 			}
