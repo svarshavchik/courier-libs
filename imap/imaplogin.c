@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.
+** Copyright 1998 - 2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -140,6 +140,14 @@ struct imapproxyinfo {
 
 static int login_imap(int, const char *, void *);
 
+static const char *safe_getenv(const char *p)
+{
+	p=getenv(p);
+
+	if (!p) p="";
+	return p;
+}
+
 int login_callback(struct authinfo *ainfo, void *dummy)
 {
 	int rc;
@@ -196,6 +204,12 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 			if (fd > 0)
 			{
 				alarm(0);
+
+				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s",
+					ainfo->address, safe_getenv("TCPREMOTEIP"),
+					safe_getenv("TCPREMOTEPORT"),
+					safe_getenv("PROTOCOL"));
+
 				proxyloop(fd);
 				exit(0);
 			}
