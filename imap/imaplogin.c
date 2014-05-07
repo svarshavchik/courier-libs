@@ -205,7 +205,7 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 			{
 				alarm(0);
 
-				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s",
+				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s\n",
 					ainfo->address, safe_getenv("TCPREMOTEIP"),
 					safe_getenv("TCPREMOTEPORT"),
 					safe_getenv("PROTOCOL"));
