@@ -202,12 +202,37 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (unicode::iconvert::fromu::convert(uc.first, "utf-8") != convteststr)
+	std::pair<std::string, bool>
+		ret=unicode::iconvert::fromu::convert(uc.first, "utf-8");
+
+	if (ret.first != convteststr || ret.second)
 	{
-		std::cerr << "unicode::iconvert::fromu::convert failed"
+		std::cerr << "unicode::iconvert::fromu::convert failed (1)"
 			  << std::endl;
 		exit(1);
 	}
+
+	uc.first.clear();
+	uc.first.push_back(0x30A2);
+
+	if (!unicode::iconvert::fromu::convert(uc.first, "iso-8859-1")
+	    .second)
+	{
+		std::cerr << "unicode::iconvert::fromu::convert failed (2)"
+			  << std::endl;
+		exit(1);
+	}
+
+	uc.first[0]=160;
+
+	if (unicode::iconvert::fromu::convert(uc.first, "iso-8859-1")
+	    .second)
+	{
+		std::cerr << "unicode::iconvert::fromu::convert failed (3)"
+			  << std::endl;
+		exit(1);
+	}
+
 
 	uc=unicode::iconvert::tou::convert("\xE3", "utf-8");
 

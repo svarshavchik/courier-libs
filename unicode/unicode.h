@@ -1167,28 +1167,27 @@ namespace unicode {
 			static output_iter_t convert(input_iter_t from_iter,
 						     input_iter_t to_iter,
 						     const std::string &chset,
-						     output_iter_t out_iter);
+						     output_iter_t out_iter,
+						     bool &errflag);
 
 		template<typename input_iter_t>
 			static void convert(input_iter_t from_iter,
 					    input_iter_t to_iter,
 					    const std::string &chset,
-					    std::string &out_buf)
+					    std::string &out_buf,
+					    bool &errflag)
 		{
 			out_buf="";
 			std::back_insert_iterator<std::string>
 				insert_iter(out_buf);
 
-			convert(from_iter, to_iter, chset, insert_iter);
+			convert(from_iter, to_iter, chset, insert_iter,
+				errflag);
 		}
 
-		static void convert(const std::vector<unicode_char> &ubuf,
-				    const std::string &chset,
-				    std::string &out_buf);
-
-		static std::string convert(const std::vector<unicode_char>
-					   &ubuf,
-					   const std::string &chset);
+		static std::pair<std::string, bool>
+			convert(const std::vector<unicode_char> &ubuf,
+				const std::string &chset);
 	};
 
 	/* Helper class that saves unicode output into an output iterator */
@@ -1226,8 +1225,11 @@ namespace unicode {
 		output_iter_t iconvert::fromu::convert(input_iter_t from_iter,
 						       input_iter_t to_iter,
 						       const std::string &chset,
-						       output_iter_t out_iter)
+						       output_iter_t out_iter,
+						       bool &errflag)
 		{
+			errflag=true;
+
 			class to_iter_class<output_iter_t> out(out_iter);
 
 			if (!out.begin(chset))
@@ -1249,7 +1251,7 @@ namespace unicode {
 			if (string.size() > 0)
 				out(&string[0], string.size());
 
-			out.end();
+			out.end(errflag);
 			return out;
 		}
 

@@ -249,21 +249,16 @@ bool unicode::iconvert::fromu::begin(const std::string &chset)
 	return iconvert::begin(unicode_u_ucs4_native, chset);
 }
 
-std::string unicode::iconvert::fromu::convert(const std::vector<unicode_char>
-					   &ubuf,
-					   const std::string &chset)
+std::pair<std::string, bool>
+unicode::iconvert::fromu::convert(const std::vector<unicode_char> &ubuf,
+				  const std::string &chset)
 {
-	std::string s;
+	std::pair<std::string, bool> ret;
 
-	convert(ubuf, chset, s);
-	return s;
-}
+	convert(ubuf.begin(), ubuf.end(), chset,
+		ret.first, ret.second);
 
-void unicode::iconvert::fromu::convert(const std::vector<unicode_char> &ubuf,
-				    const std::string &chset,
-				    std::string &out_buf)
-{
-	convert(ubuf.begin(), ubuf.end(), chset, out_buf);
+	return ret;
 }
 
 std::string unicode::iconvert::convert_tocase(const std::string &text,

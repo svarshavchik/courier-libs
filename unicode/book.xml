@@ -1700,6 +1700,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
               <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
+              <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -1708,17 +1709,11 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
               <paramdef>std::string &amp;<parameter>out_buf</parameter></paramdef>
+              <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>void <function>unicode::iconvert::fromu::convert</function></funcdef>
-              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
-              <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>std::string &amp;<parameter>out_buf</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>std::string <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <funcdef>std::pair&lt;std::string, bool&gt; <function>unicode::iconvert::fromu::convert</function></funcdef>
               <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	    </funcprototype>
@@ -1741,6 +1736,9 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    character set.
 	    <function>convert</function>() returns the value of the output
 	    iterator after iterating over the converted character sequence.
+	    <parameter>err_flag</parameter> gets set to <literal>true</literal>
+	    if unicode text could not be converted to the requested character
+	    set, or <literal>false</literal> for a successful conversion.
 	  </para>
 
 	  <para>

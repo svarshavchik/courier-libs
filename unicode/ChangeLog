@@ -1,3 +1,19 @@
+2014-06-02  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* unicode.h: Add convenience definitions for several standard character
+	sets in the C++ unicode:: namespace.
+
+	* unicode.h: change iconvert::fromu::convert() to return an additional
+	bool flag, an error indication.
+
+	* unicode.h: declare "deleted" when compiling at C++11 level, or higher,
+	and fix some existing C++03-style private declaration stubs.
+
+	* unicode.h: fix pure virtual function call abort.
+
+	* linebreaktest.C (main): Make fromu::convert return an indication
+	of a failed conversion.
+
 1.0
 
 2014-01-06  Sam Varshavchik  <mrsam@courier-mta.com>
