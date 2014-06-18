@@ -486,7 +486,7 @@ const	char *numuidgid=0;
 #if	RESET_GID
 				    setgroupid(my_pw->pw_gid) < 0
 #else
-				    setgroupid(getegid()) < 0
+				    (geteuid() == 0 && setgroupid(getegid()) < 0)
 #endif
 				     ||
 				    setuid(my_pw->pw_uid) < 0)
