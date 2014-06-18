@@ -57,10 +57,10 @@ reformail_DEPENDENCIES = $(reformail_LDADD)
 noinst_PROGRAMS=maildrop reformail mailbot
 
 mailbot_SOURCES=mailbot.c
-mailbot_DEPENDENCIES=../rfc2045/librfc2045.la \
+mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
 	../numlib/libnumlib.la $(DBLIB)
-mailbot_LDADD=../rfc2045/librfc2045.la \
+mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
 	../numlib/libnumlib.la $(DBLIB) -lunicode
 mailbot_LDFLAGS = -static

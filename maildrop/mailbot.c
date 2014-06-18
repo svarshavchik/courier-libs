@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2010 Double Precision, Inc.
+** Copyright 2001-2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -7,6 +7,7 @@
 #include "dbobj.h"
 #include "liblock/config.h"
 #include "liblock/liblock.h"
+#include "maildir/maildirmisc.h"
 #include <unicode.h>
 #include "numlib/numlib.h"
 #include <string.h>
@@ -27,6 +28,9 @@
 #include "rfc2045/rfc2045.h"
 #include "rfc2045/rfc2045charset.h"
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 #include "mywait.h"
 #include <signal.h>
 #if HAVE_SYSEXITS_H
@@ -74,7 +78,7 @@ static void usage()
 		"    -e                 - Prefer replies to Errors-To: or Return-Path: instead\n"
 		"                         of From:\n"
 		"    -T type            - \"type\": reply, replyall, replydsn, replyfeedback,\n"
-		"                         forward, forwardatt\n"
+		"                         replydraft, forward, forwardatt\n"
 		"    -N                 - Omit contents of the original message from replies\n"
 		"    -F \"separator\"     - Set the forwarding separator\n"
 		"    -S \"salutation\"    - Set salutation for replies\n"
@@ -92,6 +96,8 @@ static void usage()
 		"    -n                 - only show the resulting message, do not send it\n"
 		"    -a                 - Attach entire message for replydsn, feedback, and\n"
 		"                         replyfeedback, instead of only the headers.\n"
+		"    -l                 - maildir to read a draft message with the reply\n"
+		"                         (required by -T replydraft).\n"
 );
 
 	fprintf(stderr,
@@ -524,6 +530,137 @@ static void copy_body(void *ptr)
 	}
 }
 
+static void copy_draft(void *ptr)
+{
+	struct mimeautoreply_s *p=(struct mimeautoreply_s *)ptr;
+	char buf[BUFSIZ];
+	int copying_this_header=0;
+	int continuing=0;
+
+	while (1)
+	{
+		if (!fgets(buf, sizeof(buf), p->contentf))
+			return;
+
+		if (!continuing)
+		{
+			if (*buf == '\n')
+				break;
+
+			if (!isspace(*buf))
+			{
+				/* Copy MIME headers only */
+				copying_this_header=
+					strncasecmp(buf, "content-", 8) == 0;
+			}
+		}
+
+		continuing=strchr(buf, '\n') == NULL;
+
+		if (copying_this_header)
+			mimeautoreply_write_func(buf, strlen(buf), ptr);
+	}
+
+	do
+	{
+		mimeautoreply_write_func(buf, strlen(buf), ptr);
+	} while (fgets(buf, sizeof(buf), p->contentf));
+}
+
+FILE *find_draft(const char *maildirfolder)
+{
+	char *draftfile=0;
+	struct stat draft_stat;
+
+	FILE *fp=NULL;
+	static const char * const newcur[2]={"new", "cur"};
+	int i;
+
+	for (i=0; i<2; ++i)
+	{
+		char *dirbuf=malloc(strlen(maildirfolder)+10);
+		DIR *dirp;
+		struct dirent *de;
+
+		if (!dirbuf)
+		{
+			perror("malloc");
+			exit(1);
+		}
+
+		strcat(strcat(strcpy(dirbuf, maildirfolder), "/"),
+		       newcur[i]);
+
+		dirp=opendir(dirbuf);
+		if (!dirp)
+		{
+			free(dirbuf);
+			continue;
+		}
+
+		while ((de=readdir(dirp)) != NULL)
+		{
+			const char *filename=de->d_name;
+			char *filenamebuf;
+			FILE *new_file;
+			struct stat new_stat;
+
+			if (*filename == '.')
+				continue;
+			if (MAILDIR_DELETED(filename))
+				continue;
+
+			/*
+			** 1st maildir filename component should be creation
+			** time_t, take advantage of that.
+			*/
+
+			if (draftfile && atol(draftfile) > atol(filename))
+				continue;
+
+			filenamebuf=malloc(strlen(dirbuf)+strlen(filename)+2);
+			if (!filenamebuf)
+			{
+				perror("malloc");
+				exit(1);
+			}
+			strcat(strcat(strcpy(filenamebuf, dirbuf), "/"),
+			       filename);
+			new_file=fopen(filenamebuf, "r");
+			free(filenamebuf);
+			if (!new_file)
+				continue;
+
+			if (fstat(fileno(new_file), &new_stat) < 0)
+				continue;
+
+			if (draftfile)
+			{
+				if (new_stat.st_mtime < draft_stat.st_mtime)
+					continue;
+
+				if (new_stat.st_mtime == draft_stat.st_mtime
+				    && strcmp(filename, draftfile) > 0)
+					continue;
+
+				free(draftfile);
+				fclose(fp);
+			}
+
+			if ((draftfile=strdup(filename)) == NULL)
+			{
+				perror("strdup");
+				exit(1);
+			}
+			fp=new_file;
+			draft_stat=new_stat;
+		}
+		free(dirbuf);
+		closedir(dirp);
+	}
+	return fp;
+}
+
 struct fb {
 	struct fb *next;
 	const char *n;
@@ -538,6 +675,7 @@ int main(int argc, char **argv)
 	struct mimeautoreply_s replyinfo;
 	const char *subj=0;
 	const char *txtfile=0, *mimefile=0;
+	FILE *draftfile=0;
 	const char *mimedsn=0;
 	int nosend=0;
 	const char *replymode="reply";
@@ -546,6 +684,7 @@ int main(int argc, char **argv)
 	int fullmsg=0;
 	const char *forwardsep="--- Forwarded message ---";
 	const char *replysalut="%F writes:";
+	const char *maildirfolder=0;
 	struct rfc2045src *src;
 
 	const char *feedback_type=0;
@@ -739,6 +878,11 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			continue;
+		case 'l':
+			if (!optarg && argn+1 < argc)
+				optarg=argv[++argn];
+			maildirfolder=optarg;
+			continue;
 		case 'n':
 			nosend=1;
 			continue;
@@ -747,12 +891,22 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!txtfile && !mimefile)
-		usage();
+	if (strcmp(replymode, "replydraft") == 0)
+	{
+		if (!maildirfolder)
+			usage();
+		draftfile=find_draft(maildirfolder);
+		if (!draftfile)
+			exit(0);
+	}
+	else
+	{
+		if (!txtfile && !mimefile)
+			usage();
 
-	if (txtfile && mimefile)
-		usage();
-
+		if (txtfile && mimefile)
+			usage();
+	}
 	tmpfp=tmpfile();
 
 	if (!tmpfp)
@@ -914,6 +1068,11 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 		replyinfo.info.content_specify=copy_body;
+	}
+	else if (draftfile)
+	{
+		replyinfo.contentf=draftfile;
+		replyinfo.info.content_specify=copy_draft;
 	}
 
 	if (replyinfo.contentf)

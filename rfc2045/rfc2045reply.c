@@ -908,6 +908,8 @@ static char *mlcheck(struct rfc2045_mkreplyinfo *ri, const char *);
 
 static int replydsn(struct rfc2045_mkreplyinfo *);
 static int replyfeedback(struct rfc2045_mkreplyinfo *);
+static int replydraft(struct rfc2045_mkreplyinfo *);
+static void copyheaders(struct rfc2045_mkreplyinfo *);
 
 static int mkreply(struct rfc2045_mkreplyinfo *ri)
 {
@@ -1364,6 +1366,15 @@ static int mkreply(struct rfc2045_mkreplyinfo *ri)
 		free(subject);
 	}
 
+	if (strcmp(ri->replymode, "replydraft") == 0)
+	{
+		writes(ri, "\n");
+		if (whowrote)
+			free(whowrote);
+		whowrote=0;
+		return replydraft(ri);
+	}
+
 	writes(ri, "\nMime-Version: 1.0\n");
 
 	boundary=NULL;
@@ -1422,6 +1433,7 @@ static int mkreply(struct rfc2045_mkreplyinfo *ri)
 		{
 			writes(ri, whowrote);
 			free(whowrote);
+			whowrote=0;
 			writes(ri, "\n\n");
 		}
 		if (SRC_SEEK(ri->src, start_body) == (off_t)-1)
@@ -1442,9 +1454,6 @@ static int mkreply(struct rfc2045_mkreplyinfo *ri)
 	if (boundary)
 	{
 		/* replydsn or replyfeedback */
-
-		char	*header, *value;
-		struct rfc2045headerinfo *hi;
 
 		writes(ri, "\n--");
 		writes(ri, boundary);
@@ -1488,27 +1497,7 @@ static int mkreply(struct rfc2045_mkreplyinfo *ri)
 		}
 		else
 		{
-			writes(ri, "\nContent-Type: text/rfc822-headers; charset=\"iso-8859-1\"\n"
-			       "Content-Disposition: attachment\n"
-			       "Content-Transfer-Encoding: 8bit\n\n"
-			       );
-
-			hi=rfc2045header_start(ri->src, ri->rfc2045partp);
-
-			while (hi)
-			{
-				if (rfc2045header_get(hi, &header, &value,
-						      RFC2045H_NOLC) || !header)
-				{
-					rfc2045header_end(hi);
-					break;
-				}
-
-				writes(ri, header);
-				writes(ri, ": ");
-				writes(ri, value);
-				writes(ri, "\n");
-			}
+			copyheaders(ri);
 		}
 		writes(ri, "\n--");
 		writes(ri, boundary);
@@ -1528,6 +1517,62 @@ static void dsn_arrival_date(struct rfc2045_mkreplyinfo *ri)
 
 	writes(ri, rfc822_mkdate(now));
 	writes(ri, "\n");
+}
+
+static void copyheaders(struct rfc2045_mkreplyinfo *ri)
+{
+	struct rfc2045headerinfo *hi;
+	char	*header, *value;
+
+
+	writes(ri, "\nContent-Type: text/rfc822-headers; charset=\"iso-8859-1\"\n"
+	       "Content-Disposition: attachment\n"
+	       "Content-Transfer-Encoding: 8bit\n\n"
+	       );
+
+	hi=rfc2045header_start(ri->src, ri->rfc2045partp);
+
+	while (hi)
+	{
+		if (rfc2045header_get(hi, &header, &value,
+				      RFC2045H_NOLC) || !header)
+		{
+			rfc2045header_end(hi);
+			break;
+		}
+
+		writes(ri, header);
+		writes(ri, ": ");
+		writes(ri, value);
+		writes(ri, "\n");
+	}
+}
+
+static int replydraft(struct rfc2045_mkreplyinfo *ri)
+{
+	char *boundary=rfc2045_mk_boundary(ri->rfc2045partp, ri->src);
+	if (!boundary)
+		return (-1);
+
+	writes(ri, "Content-Type: multipart/mixed; boundary=\"");
+	writes(ri, boundary);
+	writes(ri, "\"\n\n");
+	writes(ri, RFC2045MIMEMSG);
+	writes(ri, "\n--");
+	writes(ri, boundary);
+	writes(ri, "\n");
+
+	if (ri->content_specify)
+		(*ri->content_specify)(ri->voidarg);
+
+	writes(ri, "\n--");
+	writes(ri, boundary);
+	copyheaders(ri);
+	writes(ri, "\n--");
+	writes(ri, boundary);
+	writes(ri, "--\n");
+	free(boundary);
+	return 0;
 }
 
 static int replydsn(struct rfc2045_mkreplyinfo *ri)

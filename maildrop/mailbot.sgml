@@ -17,14 +17,14 @@
 
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
-      <command moreinfo="none">mailbot</command>
+      <command>mailbot</command>
       <arg choice="opt" rep="norepeat">options</arg>
       <arg choice="req" rep="norepeat"><replaceable>program</replaceable></arg>
       <arg rep="repeat" choice="opt">arg</arg>
     </cmdsynopsis>
 
     <informalexample>
-      <para>In <filename moreinfo="none">.mailfilter:</filename></para>
+      <para>In <filename>.mailfilter:</filename></para>
       <programlisting format="linespecific">
 if (/^Subject: *info/)
 {
@@ -39,21 +39,21 @@ if (/^Subject: *info/)
     <title>DESCRIPTION</title>
 
 
-    <para><command moreinfo="none">mailbot</command> reads an E-mail message on standard input
+    <para><command>mailbot</command> reads an E-mail message on standard input
 and creates an E-mail message replying to the original message's sender.
 A
-<command moreinfo="none">program</command> is specified as an argument to
-<command moreinfo="none">mailbot</command> after all of <command moreinfo="none">mailbot</command> options.
-<command moreinfo="none">program</command> is expected to read the
+<command>program</command> is specified as an argument to
+<command>mailbot</command> after all of <command>mailbot</command> options.
+<command>program</command> is expected to read the
 created autoreply on its standard input, and mail it.
-If <command moreinfo="none">program</command> is not specified,
-<command moreinfo="none">mailbot</command> runs '<literal moreinfo="none">sendmail -f ""</literal>'.</para>
+If <command>program</command> is not specified,
+<command>mailbot</command> runs '<literal>sendmail -f ""</literal>'.</para>
 
     <para>
-<command moreinfo="none">mailbot</command> has several options for suppressing duplicate
+<command>mailbot</command> has several options for suppressing duplicate
 autoresponse messages.
-If <command moreinfo="none">mailbot</command> chooses not to send an autoresponse, it quietly
-terminates without running <command moreinfo="none">program</command>.
+If <command>mailbot</command> chooses not to send an autoresponse, it quietly
+terminates without running <command>program</command>.
 The autoresponse is optionally
 formatted as a MIME delivery status notification.</para>
 
@@ -61,13 +61,16 @@ formatted as a MIME delivery status notification.</para>
 The text of the autoresponse is specified by the <option>-t</option> or
 the <option>-m</option> argument. Either one is required.
 Everything else is optional.
+The only exception is the <option>-T replydraft</option> option, which requires
+the <option>-l</option> option instead of either <option>-t</option> or
+<option>-m</option>.
 The default behavior is to send an autoresponse unless the original message
-has the "<literal moreinfo="none">Precedence: junk</literal>" or the
-"<literal moreinfo="none">Precedence: bulk</literal>" header, or the
-"<literal moreinfo="none">Precedence: list</literal>" header, or the
-"<literal moreinfo="none">List-ID:</literal>" header,
+has the "<literal>Precedence: junk</literal>" or the
+"<literal>Precedence: bulk</literal>" header, or the
+"<literal>Precedence: list</literal>" header, or the
+"<literal>List-ID:</literal>" header,
 or if
-its MIME content type is "<literal moreinfo="none">multipart/report</literal>"
+its MIME content type is "<literal>multipart/report</literal>"
 (this is the MIME content type for delivery status notifications).
 The <option>-M</option> option formats the
 the autoresponse itself as a MIME delivery status notification.</para>
@@ -97,9 +100,9 @@ Address the autoresponse to <replaceable>address</replaceable>, which must
 be an
 <ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
 address.
-By default <command moreinfo="none">mailbot</command> takes the autoresponse
+By default <command>mailbot</command> takes the autoresponse
 address from the
-<literal moreinfo="none">From:</literal> (or the <literal moreinfo="none">Reply-To:</literal>) header
+<literal>From:</literal> (or the <literal>Reply-To:</literal>) header
 in the original message.
 <option>-f</option>, if present, overrides and explicitly sets the
 autoresponse address.
@@ -152,7 +155,7 @@ using their original width.</para>
 	  <para>
 Set the autoresponse's MIME character set to
 <replaceable>charset</replaceable>.
-Run <command moreinfo="none">mailbot</command> without any arguments to see the
+Run <command>mailbot</command> without any arguments to see the
 default character set.</para>
 	</listitem>
       </varlistentry>
@@ -160,7 +163,7 @@ default character set.</para>
 	<term>-m <replaceable>filename</replaceable></term>
 	<listitem>
 	  <para>
-	    Read a MIME autoresponse from <filename moreinfo="none">filename</filename>.
+	    Read a MIME autoresponse from <filename>filename</filename>.
 	    This is similar to the <option>-t</option> option,
 	    except that <replaceable>filename</replaceable> contains MIME headers,
 	    followed by a blank line, and the corresponding
@@ -178,7 +181,7 @@ default character set.</para>
 	    If the specified file has a <quote>Content-Transfer-Encoding</quote>
 	    header it must be either <quote>7bit</quote> or <quote>8bit</quote>,
 	    it may not be <quote>quoted-printable</quote>.
-	    <command moreinfo="none">mailbot</command> always drops any
+	    <command>mailbot</command> always drops any
 	    existing <quote>Content-Transfer-Encoding</quote> header and
 	    always adds the
 	    <quote>Content-Transfer-Encoding: 8bit</quote> header, even with
@@ -202,7 +205,7 @@ The lamb was sure to go.</programlisting>
 	  <note>
 	    <para>
 When the <option>-m</option> option is specified
-<command moreinfo="none">mailbot</command> ignores the locale's character
+<command>mailbot</command> ignores the locale's character
 set and formats the autoreply according to the character set read from the
 <quote>Content-Type</quote> header.</para>
 	  </note>
@@ -220,10 +223,10 @@ set and formats the autoreply according to the character set read from the
 	    E-mail address that generates the DSN.
 	    Note that the <option>-A</option> option should still be used in 
 	    addition to <option>-M</option> in order to set the
-	    <literal moreinfo="none">From:</literal> header on the autoresponse.
+	    <literal>From:</literal> header on the autoresponse.
 	    <option>-M</option> sets the DSN address only.
 	    The <option>-M</option> option automatically sets
-	    <option>-T <literal moreinfo="none">replydsn</literal></option>
+	    <option>-T <literal>replydsn</literal></option>
 	  </para>
 	</listitem>
       </varlistentry>
@@ -270,6 +273,14 @@ set and formats the autoreply according to the character set read from the
 	      <para>
 		<quote>replydsn</quote> - like <quote>reply</quote>, except
 		the message is formatted as a delivery status notification.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<quote>replydraft</quote> - like <quote>reply</quote>, with
+		the text of the autoresponse coming from a maildir specified
+		by the <option>-l</option> option. See <quote>Autoreplies
+		  from a maildir folder</quote>, below.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -381,62 +392,62 @@ set and formats the autoreply according to the character set read from the
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%%</literal> - an explicit <literal moreinfo="none">%</literal>
+		<literal>%%</literal> - an explicit <literal>%</literal>
 		character.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%n</literal> - a newline character.
+		<literal>%n</literal> - a newline character.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%C</literal> - the
+		<literal>%C</literal> - the
 		<quote>X-Newsgroup:</quote> header from the original message.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%N</literal> - the <quote>Newsgroups:</quote>
+		<literal>%N</literal> - the <quote>Newsgroups:</quote>
 		header from the original message.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%i</literal> - the <quote>Message-ID:</quote>
+		<literal>%i</literal> - the <quote>Message-ID:</quote>
 		header from the original message.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%f</literal> - the original message's sender's address.
+		<literal>%f</literal> - the original message's sender's address.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%F</literal> - the original message's sender's name.
+		<literal>%F</literal> - the original message's sender's name.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%S</literal> - the
+		<literal>%S</literal> - the
 		<quote>Subject:</quote> header from the original message
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%d</literal> - the original message's date, in the
+		<literal>%d</literal> - the original message's date, in the
 		local timezone.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		<literal moreinfo="none">%{<replaceable>...</replaceable>}d</literal>
-		- use <function moreinfo="none">strftime</function>() to format the original
+		<literal>%{<replaceable>...</replaceable>}d</literal>
+		- use <function>strftime</function>() to format the original
 		message's date.
-	        A plain <literal moreinfo="none">%d</literal> is equivalent to
-		<literal moreinfo="none">%{%a, %d %b %Y %H:%M:%S %z}d</literal>.
+	        A plain <literal>%d</literal> is equivalent to
+		<literal>%{%a, %d %b %Y %H:%M:%S %z}d</literal>.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -452,7 +463,7 @@ set and formats the autoreply according to the character set read from the
 
 	<listitem>
 	  <para>
-	    When generating a <literal moreinfo="none">forward</literal>, use the
+	    When generating a <literal>forward</literal>, use the
 	    <replaceable>marker</replaceable> to separate the forwarded
 	    message from the autoreply text, instead of the default
 	    <quote>--- Forwarded message ---</quote>
@@ -467,9 +478,9 @@ set and formats the autoreply according to the character set read from the
 <replaceable>addrlist</replaceable> is a comma-separated list of
 <ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
 E-mail addresses.
-<command moreinfo="none">mailbot</command> sends an autoresponse only if
+<command>mailbot</command> sends an autoresponse only if
 the original message has at least one of the specified addresses in any
-<literal moreinfo="none">To:</literal> or <literal moreinfo="none">Cc:</literal> header.</para>
+<literal>To:</literal> or <literal>Cc:</literal> header.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -482,7 +493,7 @@ and prevent duplicate autoresponses going to the same address
 (suppress autoresponses going back to the same senders, for subsequent
 received messages).
 The <option>-d</option> option is only available if
-<command moreinfo="none">maildrop</command> has GDBM/DB extensions enabled.</para>
+<command>maildrop</command> has GDBM/DB extensions enabled.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -502,7 +513,7 @@ the <option>-D</option> option has elapsed.</para>
 	<term>-s "<replaceable>subject</replaceable>"</term>
 	<listitem>
 	  <para>
-Set the <literal moreinfo="none">Subject:</literal> header on the autoresponse to
+Set the <literal>Subject:</literal> header on the autoresponse to
 <replaceable>subject</replaceable>.</para>
 	</listitem>
       </varlistentry>
@@ -544,9 +555,65 @@ Set the <literal moreinfo="none">Subject:</literal> header on the autoresponse t
 	  </para>
 	</listitem>
       </varlistentry>
-    </variablelist>
-  </refsect1>
+      <varlistentry>
+	<term>-l <replaceable>maildir</replaceable></term>
 
+	<listitem>
+	  <para>
+	    Specifies the maildir for the <quote>-T replydraft</quote>
+	    option. See <quote>Autoreplies
+	      from a maildir folder</quote>, below.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+
+    <refsect2>
+      <title>Autoreplies from a maildir folder</title>
+
+      <para>In <filename>.mailfilter:</filename></para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+cc "| mailbot -T replydraft -l './Maildir/.Vacation' \
+        -d autoresponsedb \
+        -A 'From: info@domain.com' /usr/bin/sendmail -f ''"
+to "./Maildir"</programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	The <option>-T replydraft</option> reply format takes the content of
+	the autoresponse from the most recent message in a maildir.
+	The <option>-l</option> option specifies the maildir. The above
+	example takes the message from <literal>$HOME/Maildir/.Drafts</literal>
+	which should be a maildir (with the usual <filename>cur</filename>,
+	<filename>new</filename>, and <filename>tmp</filename> subdirectories).
+	It would typically get created by Courier-IMAP as a folder named
+	<quote>Vacation</quote>.
+      </para>
+
+      <para>
+	This makes it possible to install autoreplies via an IMAP client by
+	creating a folder named <quote>Vacation</quote>, and copying a message
+	into it. The contents of the message become the autoresponse.
+      </para>
+
+      <para>
+	If the named maildir does not exist, or is empty,
+	<command>mailbot</command> does nothing. If the named maildir has
+	more than one message, the most recent message gets used.
+      </para>
+
+      <para>
+	The above example uses additional <command>mailbot</command> options
+	to suppress duplicate autoresponses, and to set the <quote>From:</quote>
+	header on the autoresponse.
+      </para>
+    </refsect2>
+
+  </refsect1>
 
   <refsect1>
     <title>SEE ALSO</title>
