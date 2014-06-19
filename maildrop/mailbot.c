@@ -610,14 +610,6 @@ FILE *find_draft(const char *maildirfolder)
 			if (MAILDIR_DELETED(filename))
 				continue;
 
-			/*
-			** 1st maildir filename component should be creation
-			** time_t, take advantage of that.
-			*/
-
-			if (draftfile && atol(draftfile) > atol(filename))
-				continue;
-
 			filenamebuf=malloc(strlen(dirbuf)+strlen(filename)+2);
 			if (!filenamebuf)
 			{
