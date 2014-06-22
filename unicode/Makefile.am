@@ -253,5 +253,14 @@ upload-dist:
 	set -e; v="@PACKAGE@/@VERSION@/`date +%Y%m%d%H%M%S`"; git tag -s $$v -m 'Tag version @VERSION@'
 	socksify ~/src/sftools/release.pl mrsam $(SFPASSWD) courier $(PACKAGE) @VERSION@ @PACKAGE@-@VERSION@.tar.bz2 @PACKAGE@-@VERSION@.tar.bz2.sig
 
+distrelease:
+	$(MAKE) distcheck
+	$(MAKE) rpm
+	$(MAKE) -$(MAKEFLAGS)
+	$(MAKE) -$(MAKEFLAGS)
+	rm -f courier-unicode.spec
+	$(MAKE) courier-unicode.spec
+	$(MAKE) dist
+
 www:
 	rsync -a html/. $$HOME/www/www.courier-mta.org/unicode
