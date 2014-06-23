@@ -1,5 +1,5 @@
 /*
-** Copyright 2010-2011 Double Precision, Inc.  See COPYING for
+** Copyright 2010-2014 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -161,7 +161,8 @@ int rfc2045_decodemsgtoutf8(struct rfc2045src *src,
 		rfc2045_mimeinfo(p, &content_type, &transfer_encoding,
 				 &charset);
 
-		if (strncmp(content_type, "text/", 5) == 0 &&
+		if ((strncmp(content_type, "text/", 5) == 0 ||
+		     strncmp(content_type, "message/", 8) == 0) &&
 		    (callback->flags & RFC2045_DECODEMSG_NOBODY) == 0 &&
 		    (rc=rfc2045_decodetextmimesection(src, p, "utf-8", NULL,
 						      decode_handler,
