@@ -1,9 +1,7 @@
 /*
-** Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2014 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
-
-/* $Id */
 
 #include	"liblock.h"
 #if	USE_FCNTL
@@ -17,19 +15,41 @@
 #endif
 #include	<signal.h>
 #include	<stdlib.h>
+#include	<string.h>
+#include	<stdio.h>
 
 int main()
 {
+#define FILENAME	"courier-imap.locktest.XXXXXXXXXX"
 int	fd[2];
 pid_t	p;
 int	s;
 int	f;
+
+	char *name;
+	const char *tmpdir;
+	if ((tmpdir = (char *)getenv("TMPDIR")) == NULL || !*tmpdir)
+		tmpdir = "/tmp";
+
+	if ((name=malloc(strlen(tmpdir)+sizeof(FILENAME)+1)) == NULL)
+	{
+		perror("get filename");
+		exit(1);
+	}
+
+	(void)sprintf(name, "%s/%s", tmpdir, FILENAME);
 
 	signal(SIGCHLD, SIG_DFL);
 	if (pipe(fd))
 	{
 		perror("pipe");
 		return (1);
+	}
+
+	if ((f=mkstemp(name)) < 0)
+	{
+		perror("open");
+		exit(1);
 	}
 
 	if ((p=fork()) == (pid_t)-1)
@@ -46,7 +66,7 @@ int	f;
 		read(fd[0], &c, 1);
 		close(fd[0]);
 
-		if ((f=open("conftest.lock", O_RDWR|O_CREAT, 0644)) < 0)
+		if ((f=open(name, O_RDWR)) < 0)
 		{
 			perror("open");
 			exit(1);
@@ -56,15 +76,10 @@ int	f;
 		if (ll_lockfd(f, ll_writelock, 0, 0))
 		{
 			close(f);
+			unlink(name);
 			exit(0);
 		}
 		close(f);
-		exit(1);
-	}
-	
-	if ((f=open("conftest.lock", O_RDWR|O_CREAT, 0644)) < 0)
-	{
-		perror("open");
 		exit(1);
 	}
 
@@ -72,6 +87,7 @@ int	f;
 	{
 		perror("lock");
 		close(f);
+		unlink(name);
 		exit(1);
 	}
 	close(fd[1]);

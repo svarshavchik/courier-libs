@@ -806,7 +806,7 @@ static int get_func(void *rec, size_t recsize,
 	time_t timeout;
 	size_t session_id_len;
 
-	unsigned char *sess;
+	const unsigned char *sess;
 
 	if (recsize < sizeof(timeout)+sizeof(session_id_len))
 		return (0);
