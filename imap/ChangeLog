@@ -1,3 +1,8 @@
+2014-07-13  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* liblock, couriertls: fix compilation for OpenBSD -- based on a
+	patch from Giovanni Bechis <giovanni@paclan.it>.
+
 2014-05-06  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* pop3login.c (login_callback): Log logins when running in proxy mode.
