@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2014 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 noinst_LTLIBRARIES=librfc2045.la
@@ -31,24 +31,24 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045src.h \
 
 reformime_SOURCES=reformime.c
 reformime_LDADD = librfc2045.la ../rfc822/libencode.la ../rfc822/librfc822.la \
-		../numlib/libnumlib.la -lunicode
+		../numlib/libnumlib.la
 reformime_DEPENDENCIES = $(reformime_LDADD)
-reformime_LDFLAGS=-static
+reformime_LDFLAGS=-static -lunicode
 
 makemime_SOURCES=makemime.c
-makemime_LDADD = ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la -lunicode
+makemime_LDADD = ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la
 makemime_DEPENDENCIES=$(makemime_LDADD)
-makemime_LDFLAGS=-static
+makemime_LDFLAGS=-static -lunicode
 
 headercheck_SOURCES=headercheck.c
-headercheck_LDADD=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la \
-		-lunicode
+headercheck_LDADD=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 headercheck_DEPENDENCIES=$(headercheck_LDADD)
-headercheck_LDFLAGS=-static
+headercheck_LDFLAGS=-static -lunicode
 
 testrfc3676parser_SOURCES=testrfc3676parser.c
-testrfc3676parser_LDADD=librfc2045.la -lunicode
+testrfc3676parser_LDADD=librfc2045.la
 testrfc3676parser_DEPENDENCIES=$(testrfc3676parser_LDADD)
+testrfc3676parser_LDFLAGS=-lunicode
 
 if HAVE_SGML
 reformime.html: reformime.sgml ../docbook/sgml2html
