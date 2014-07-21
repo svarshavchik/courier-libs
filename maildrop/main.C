@@ -752,9 +752,8 @@ Buffer	value;
 Buffer	msg;
 
 	maildrop.global_timer.Set(GLOBAL_TIMEOUT);
-	maildrop.msgptr->Init(0);	// Read message from standard input.
+	maildrop.msgptr->Init(0, extra_headers); // Read message from standard input.
 	maildrop.msginfo.info( *maildrop.msgptr );
-	maildrop.msgptr->ExtraHeaders(extra_headers);
 	maildrop.msgptr->setmsgsize();
 
 

@@ -61,7 +61,8 @@ class Message {
 public:
 	Message();
 	~Message();
-	void Init(int);		// Initialize from file descriptor
+	void Init(int, const Buffer &extra_headers);
+	// Initialize from file descriptor
 
 	void Init();		// Begin initializing externally
 	void Init(const void *, unsigned);	// From existing contents.

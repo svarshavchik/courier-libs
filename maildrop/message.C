@@ -73,9 +73,11 @@ void Message::Init()
 	rfc2045p=rfc2045_alloc();
 }
 
-void Message::Init(int fd)
+void Message::Init(int fd, const Buffer &extra_headers)
 {
 	Init();
+	ExtraHeaders(extra_headers);
+
 	// If the file descriptor is seekable, and the message is big
 	// keep message in the file.
 	if ( mseek(fd, 0, SEEK_END) >= 0 &&
@@ -192,6 +194,8 @@ void Message::Init(const void *data, unsigned cnt)
 
 void Message::ExtraHeaders(const Buffer &buf)
 {
+	rfc2045_parse(rfc2045p, (const char *)buf, buf.Length());
+
 	if ( extra_headers )
 	{
 		delete[] extra_headers;
