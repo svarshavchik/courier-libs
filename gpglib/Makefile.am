@@ -1,5 +1,5 @@
 #
-# Copyright 2001-2007 Double Precision, Inc.  See COPYING for
+# Copyright 2001-2014 Double Precision, Inc.  See COPYING for
 # distribution information.
 #
 
@@ -17,17 +17,16 @@ libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.c gpglib.h\
 	sign.c tempname.c tempname.h
 
 testgpg_SOURCES=testgpg.c
-testgpg_LDADD=libgpg.la ../numlib/libnumlib.la -lunicode
+testgpg_LDADD=libgpg.la ../numlib/libnumlib.la
 testgpg_DEPENDENCIES=$(testgpg_LDADD)
-testgpg_LDFLAGS=-static
+testgpg_LDFLAGS=-static -lunicode
 
 mimegpg_SOURCES=mimegpg.c
 mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 		../rfc822/libencode.la ../numlib/libnumlib.la \
 		-lunicode
 mimegpg_DEPENDENCIES=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la\
-		../rfc822/libencode.la ../numlib/libnumlib.la \
-		-lunicode
+		../rfc822/libencode.la ../numlib/libnumlib.la
 BUILT_SOURCES=gpg.h mimegpg.html mimegpg.1
 EXTRA_DIST=mimegpg.html mimegpg.1 README.html
 
