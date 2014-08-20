@@ -502,7 +502,7 @@ static void get_domain_pfix(struct rfc1035_spf_info *info,
 
 	if (*start == 0 || *start == '/')
 	{
-		*domain_ptr=strdup(strrchr(info->mailfrom, '@')+1);
+		*domain_ptr=strdup(info->current_domain);
 
 		if (*start == '/')
 			*pfix_ptr=get_dual_cidr_length(start);
@@ -523,8 +523,7 @@ static void get_domain_pfix(struct rfc1035_spf_info *info,
 		if (*domain_ptr == 0)
 		{
 			free(*domain_ptr);
-			*domain_ptr=strdup(strrchr(info->mailfrom,
-						   '@')+1);
+			*domain_ptr=strdup(info->current_domain);
 		}
 	}
 
