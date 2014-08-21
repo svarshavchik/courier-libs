@@ -14,7 +14,21 @@ fi
 
 rm -rf $dstfile.tmpdir
 mkdir -p $dstfile.tmpdir
-xsltproc --nonet -o $dstfile.tmpdir/ /usr/share/sgml/docbook/xsl-stylesheets/manpages/docbook.xsl $srcfile
+
+DOCBOOK_XSL=""
+# sgml/docbook/xsl-stylesheets used by Fedora, xml/docbook/stylesheet by Debian/Ubuntu
+for xslfile in /usr/share/sgml/docbook/xsl-stylesheets/manpages/docbook.xsl /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl; do
+ if [ -f "$xslfile" ]; then
+   DOCBOOK_XSL="$xslfile"
+   break
+ fi
+done
+if [ -z "$DOCBOOK_XSL" ]; then
+ echo >&2 docbook.xsl stylesheet not found. Please edit docbook/sgml2man
+ exit 1
+fi
+
+xsltproc --nonet -o $dstfile.tmpdir/ "$DOCBOOK_XSL" $srcfile
 
 for f in $dstfile.tmpdir/*
 do
