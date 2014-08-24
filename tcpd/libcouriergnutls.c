@@ -999,6 +999,12 @@ static int get_server_cert(gnutls_session_t session,
 					    vhost_idx) == GNUTLS_E_SUCCESS;
 	     ++vhost_idx)
 	{
+		char *p;
+
+		for (p=vhost_buf; *p; p++)
+			if (*p == '/')
+				*p='.';
+
 		if (ssl->ctx->certfile)
 			certfilename=check_cert(ssl->ctx->certfile,
 						st->cert_type,
