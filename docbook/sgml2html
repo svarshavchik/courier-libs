@@ -14,21 +14,6 @@ fi
 
 rm -rf $dstfile.tmp
 mkdir $dstfile.tmp
-
-ONECHUNK=""
-# sgml/docbook/xsl-stylesheets used by Fedora, xml/docbook/stylesheet by Debian/Ubuntu
-for xslfile in /usr/share/sgml/docbook/xsl-stylesheets/xhtml/onechunk.xsl /usr/share/xml/docbook/stylesheet/docbook-xsl/xhtml/onechunk.xsl; do
- if [ -f "$xslfile" ]; then
-   ONECHUNK="$xslfile"
-   break
- fi
-done
-if [ -z "$ONECHUNK" ]; then
- echo >&2 onechunk.xsl stylesheet not found. Please edit docbook/sgml2html
- exit 1
-fi
-
-sed 's|^\(<xsl:include href="\)[^"]*/onechunk.xsl\("/>\)|'"\1$ONECHUNK\2|" `dirname $0`/manpages.in > `dirname $0`/manpages.xsl
 xsltproc -o $dstfile.tmp/ `dirname $0`/manpages.xsl $srcfile || exit 1
 xsltproc `dirname $0`/fixhtml.xsl $dstfile.tmp/* >$dstfile.tmp2 || exit 1
 rm -rf $dstfile.tmp

@@ -1,8 +1,8 @@
 <?xml version='1.0'?>
-<xsl:stylesheet
+<xsl:stylesheet  
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 
-<xsl:include href="/usr/share/sgml/docbook/xsl-stylesheets/xhtml/onechunk.xsl"/>
+<xsl:include href="http://docbook.sourceforge.net/release/xsl/current/xhtml/onechunk.xsl"/>
 
 <xsl:param name="html.stylesheet" select="'style.css'"/>
 <xsl:param name="admon.graphics" select="0"/>
@@ -52,3 +52,4 @@ information.
 </xsl:template>
 
 </xsl:stylesheet>
+
