@@ -85,9 +85,9 @@ static int harvest_records(struct rfc1035_res *res,
 #define	HARVEST_NODUPE		2
 
 static int add_arecords(struct rfc1035_res *res, struct rfc1035_mxlist **list,
-	struct rfc1035_reply *mxreply,
-	int mxpreference,
-	char *mxname, int port)
+			struct rfc1035_reply *mxreply,
+			int mxpreference,
+			char *mxname, int port, int opts)
 {
 #if	RFC1035_IPV6
 struct in6_addr	in;
@@ -123,7 +123,7 @@ records, then query for A records.  Query for AAAA records only if A
 records weren't found.
 
 */
-	if (mxreply)
+	if (mxreply && !(opts & RFC1035_MX_QUERYALL))
 	{
 		if ((rc=harvest_records(res, list, mxreply, mxpreference,
 			mxname, RFC1035_TYPE_AAAA, &found, 0, port))
@@ -133,21 +133,22 @@ records weren't found.
 		if ((rc=harvest_records(res, list, mxreply, mxpreference,
 			mxname, RFC1035_TYPE_A, &found, HARVEST_NODUPE,
 				port))
-						!= RFC1035_MX_OK)
+		    != RFC1035_MX_OK)
 			return (rc);
 		if (found)	return (RFC1035_MX_OK);
 	}
 
 	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
-		RFC1035_TYPE_A, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE, port))
-						!= RFC1035_MX_OK)
-		return (rc);
-	if (found)	return (RFC1035_MX_OK);
-
-	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
 		RFC1035_TYPE_AAAA, &found, HARVEST_AUTOQUERY, port))
 			!= RFC1035_MX_OK)
 		return (rc);
+
+	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
+		RFC1035_TYPE_A, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE, port))
+						!= RFC1035_MX_OK)
+		return (rc);
+
+	if (found)	return (RFC1035_MX_OK);
 
 #else
 	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
@@ -318,7 +319,7 @@ int seen_good=0;
 
 			if (opts & RFC1035_MX_AFALLBACK)
 				return (add_arecords(res, list, 0, -1,
-						     namebuf, port));
+						     namebuf, port, opts));
 			return RFC1035_MX_HARDERR;
 		}
 
@@ -342,8 +343,9 @@ int seen_good=0;
 			continue;
 
 		switch (add_arecords(res, list, replyp,
-			replyp->allrrs[index]->rr.mx.preference, mxname,
-			port)) {
+				     replyp->allrrs[index]->rr.mx.preference,
+				     mxname,
+				     port, opts)) {
 		case	RFC1035_MX_SOFTERR:
 			seen_softerr=1;
 			continue;

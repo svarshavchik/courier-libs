@@ -856,7 +856,7 @@ static char mechanism(const char *name,
 		}
 
 		rc=rfc1035_mxlist_create_x(&info->res,
-					   domain_spec, 0,
+					   domain_spec, RFC1035_MX_QUERYALL,
 					   &mxlist);
 		free(domain_spec);
 		if (rc)

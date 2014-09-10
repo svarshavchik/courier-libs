@@ -49,6 +49,7 @@ int rfc1035_mxlist_create_x(struct rfc1035_res *,
 			    struct rfc1035_mxlist **);
 #define RFC1035_MX_AFALLBACK 1
 #define RFC1035_MX_IGNORESOFTERR 2
+#define RFC1035_MX_QUERYALL 4
 
 #ifdef  __cplusplus
 }
