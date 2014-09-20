@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <signal.h>
+#include <sys/signal.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -20,6 +22,15 @@
 
 #if HAVE_FAM
 static struct maildirwatch_fam *maildirwatch_currentfam;
+
+static void alarm_handler(int signum)
+{
+	static const char msg[]=
+		"Timeout initializing the FAM library. Your FAM library is broken.\n";
+
+	write(2, msg, sizeof(msg)-1);
+	kill(getpid(), SIGKILL);
+}
 #endif
 
 struct maildirwatch *maildirwatch_alloc(const char *maildir)
@@ -58,6 +69,7 @@ struct maildirwatch *maildirwatch_alloc(const char *maildir)
 			maildirwatch_currentfam->broken=0;
 			maildirwatch_currentfam->refcnt=0;
 
+			signal(SIGALRM, alarm_handler);
 			alarm(15);
 			if (FAMOpen(&maildirwatch_currentfam->fc) < 0)
 			{
@@ -66,6 +78,7 @@ struct maildirwatch *maildirwatch_alloc(const char *maildir)
 				maildirwatch_currentfam=NULL;
 			}
 			alarm(0);
+			signal(SIGALRM, SIG_DFL);
 		}
 	}
 

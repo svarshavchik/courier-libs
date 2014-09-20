@@ -63,7 +63,7 @@
 	  <simpara>
 	    Customize the DH parameter bit size. The default value depends on
 	    whether this script uses OpenSSL or GnuTLS libraries. For OpenSSL
-	    the default number of bits is 768. GnuTLS uses a security level
+	    the default number of bits is 2048. GnuTLS uses a security level
 	    setting, rather than the number of bits, and the default
 	    security level is "high".
 	  </simpara>
@@ -71,6 +71,13 @@
       </varlistentry>
     </variablelist>
   </refsect1>
+
+  <note>
+    <para>
+      It make take several minutes to generate new DH parameters with the
+      default strength.
+    </para>
+  </note>
 
   <refsect1>
     <title>SEE ALSO</title>
