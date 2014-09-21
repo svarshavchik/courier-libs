@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2009 Double Precision, Inc.
+** Copyright 2000-2014 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 #include	"config.h"
@@ -565,6 +565,20 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	SSL_CTX_set_cipher_list(ctx, ssl_cipher_list);
 	SSL_CTX_set_timeout(ctx, session_timeout);
 
+#ifndef OPENSSL_NO_ECDH
+#ifdef SSL_CTX_set_ecdh_auto
+	SSL_CTX_set_ecdh_auto(ctx, 1);
+#else
+#ifdef NID_X9_62_prime256v1
+	{
+		EC_KEY *key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+
+		SSL_CTX_set_tmp_ecdh(ctx, key);
+		EC_KEY_free(key);
+	}
+#endif
+#endif
+#endif
 	info_copy->tlscache=NULL;
 	init_session_cache(info_copy, ctx);
 

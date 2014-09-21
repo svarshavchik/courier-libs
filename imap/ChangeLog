@@ -1,5 +1,8 @@
 2014-09-19  Sam Varshavchik  <mrsam@courier-mta.com>
 
+	* tcpd/libcouriertls.c (tls_create): Initialize temporary ecdh
+	parameters.
+
 	* imap: try to print a message on stderr if the alarm() call, that
 	detects FAM library breakage, goes off.
 
