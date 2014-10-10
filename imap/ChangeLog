@@ -1,3 +1,8 @@
+2014-10-09  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* libs/maildir/maildirinfo.c (maildir_info_imapmunge): Fix
+	UTF-8 charset name.
+
 2014-09-19  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* tcpd/libcouriertls.c (tls_create): Initialize temporary ecdh

@@ -861,7 +861,7 @@ static size_t munge_complex(const char *, char *);
 
 char *maildir_info_imapmunge(const char *name)
 {
-	char *n=unicode_convert_tobuf(name, "utf8",
+	char *n=unicode_convert_tobuf(name, "utf-8",
 					unicode_x_imap_modutf7, NULL);
 	char *p;
 	size_t cnt;
