@@ -5,9 +5,16 @@
 #
 # Run this script monthly to generate DH parameters.
 
-if test -f @certsdir@/dhparams.pem
+# Override from the environment
+
+if test "$TLS_DHPARAMS" = ""
 then
-    if test "`find @certsdir@/dhparams.pem -mtime +25 -print `" = ""
+	TLS_DHPARAMS="@certsdir@/dhparams.pem"
+fi
+
+if test -f $TLS_DHPARAMS
+then
+    if test "`find $TLS_DHPARAMS -mtime +25 -print `" = ""
     then
 	# Less than 25 days old
 	exit 0
@@ -16,9 +23,10 @@ fi
 
 set -e
 
-cp /dev/null @certsdir@/dhparams.pem.tmp
-chmod 600 @certsdir@/dhparams.pem.tmp
-chown @mailuser@ @certsdir@/dhparams.pem.tmp
+umask 077
+cp /dev/null $TLS_DHPARAMS.tmp
+umask 022
+chown @mailuser@ $TLS_DHPARAMS.tmp
 
 BITS="$DH_BITS"
 if test "@ssllib@" = "openssl"
@@ -28,17 +36,16 @@ then
 	BITS=2048
     fi
 
-    dd if=@RANDOMV@ of=@certsdir@/dhparams.rand.tmp count=1 2>/dev/null
-    @OPENSSL@ dhparam -rand @certsdir@/dhparams.rand.tmp -outform PEM $BITS >@certsdir@/dhparams.pem.tmp
-    rm -f @certsdir@/dhparams.rand.tmp
-    mv -f @certsdir@/dhparams.pem.tmp @certsdir@/dhparams.pem
+    dd if=@RANDOMV@ of=$TLS_DHPARAMS.rand.tmp count=1 2>/dev/null
+    @OPENSSL@ dhparam -rand $TLS_DHPARAMS.rand.tmp -outform PEM $BITS >$TLS_DHPARAMS.tmp
+    rm -f $TLS_DHPARAMS.rand.tmp
+    mv -f $TLS_DHPARAMS.tmp $TLS_DHPARAMS
 else
     if test "$BITS" = ""
     then
 	BITS=high
     fi
 
-    @CERTTOOL@ --generate-dh-params --sec-param $BITS >@certsdir@/dhparams.pem.tmp
-    mv -f @certsdir@/dhparams.pem.tmp @certsdir@/dhparams.pem
+    @CERTTOOL@ --generate-dh-params --sec-param $BITS >$TLS_DHPARAMS.tmp
+    mv -f $TLS_DHPARAMS.tmp $TLS_DHPARAMS
 fi
-

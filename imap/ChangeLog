@@ -1,3 +1,12 @@
+2014-10-11  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* mkdhparams: TLS_DHPARAMS environmnt variable overrides default
+	DH parameter file location.
+
+	* courier-imap.spec.in: generate the default DH parameter file and
+	package it into the rpm, instead of generating one on the first
+	start.
+
 2014-10-09  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* libs/maildir/maildirinfo.c (maildir_info_imapmunge): Fix
