@@ -545,7 +545,7 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	if (!method)
 	{
 		method=SSLv23_method();
-		options|=SSL_OP_NO_SSLv2;
+		options|=SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3;
 	}
 
 	ctx=SSL_CTX_new(method);
