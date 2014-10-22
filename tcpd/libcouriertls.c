@@ -55,6 +55,32 @@
 
 #include	<sys/time.h>
 
+struct proto_ops {
+    char *n;
+    const SSL_METHOD * (*m)();
+    int o;
+};
+struct proto_ops op_list[] =
+{
+#ifdef HAVE_TLSV1_2_METHOD
+    { "TLSv1.2+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1 },
+    { "TLSv1.2",   &TLSv1_2_method, SSL_OP_ALL },
+#endif
+#ifdef HAVE_TLSV1_1_METHOD
+    { "TLSv1.1+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1 },
+    { "TLSv1.1",   &TLSv1_1_method, SSL_OP_ALL },
+#endif
+    { "TLSv1+",    &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
+    { "TLSv1",     &TLSv1_method,   SSL_OP_ALL },
+    { "TLS1",      &TLSv1_method,   SSL_OP_ALL },
+    { "SSL3+",     &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2 },
+    { "SSL3",      &SSLv3_method,   SSL_OP_ALL },
+    { "SSL23",     &SSLv23_method,  SSL_OP_ALL },
+    { "",          &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
+    { NULL,        &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
+};
+
+
 /***** TODO *****/
 
 /* #define TLSCACHEDEBUG */
@@ -465,6 +491,7 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	const SSL_METHOD *method=NULL;
 	long options;
 	int cert_file_flags;
+	struct proto_ops *opp;
 
 	if (!*ssl_cipher_list)
 		ssl_cipher_list=NULL;
@@ -522,31 +549,13 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	info_copy->isserver=isserver;
 	info_copy->certificate_verified=0;
 
-	options=SSL_OP_ALL;
-
-	method=((!protocol || !*protocol)
-		? NULL:
-		strcmp(protocol, "SSL3") == 0
-			? SSLv3_method():
-		strcmp(protocol, "SSL23") == 0
-			? SSLv23_method():
-		strcmp(protocol, "TLSv1") == 0
-		? TLSv1_method():
-#ifdef HAVE_TLSV1_1_METHOD
-		strcmp(protocol, "TLSv1.1") == 0
-		? TLSv1_1_method():
-#endif
-#ifdef HAVE_TLSV1_2_METHOD
-		strcmp(protocol, "TLSv1.2") == 0
-		? TLSv1_2_method():
-#endif
-		NULL);
-
-	if (!method)
+	for (opp=&op_list[0];opp->n!=NULL;opp++)
 	{
-		method=SSLv23_method();
-		options|=SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3;
-	}
+	    if (strcmp(opp->n,protocol)==0)
+		break;
+	};
+	options=opp->o;
+	method=opp->m();
 
 	ctx=SSL_CTX_new(method);
 
