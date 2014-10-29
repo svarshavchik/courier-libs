@@ -42,7 +42,7 @@ maildrop_SOURCES=deliver.C deliverdotlock.C deliverdotlock.h \
 	recipe.C recipe.h recipenode.C recipenode.h recipeparse.C reeval.C \
 	reeval.h regexpnode.h rematch.C rematch.h rematchmsg.C rematchmsg.h \
 	rematchstr.C rematchstr.h search.C search.h token.C \
-	token.h varlist.C varlist.h
+	token.h varlist.C varlist.h dovecotauth.c dovecotauth.h
 
 maildrop_DEPENDENCIES = libmdcommon.la ../maildir/maildir.libdeps
 

@@ -486,7 +486,20 @@ The warning is repeated every 24 hours (at least), until the maildir drops
 below
 <replaceable>N</replaceable> percent full.</para>
         </listitem>
-      </varlistentry>      
+      </varlistentry>
+
+      <varlistentry>
+	<term>-t <replaceable>socket</replaceable></term>
+
+	<listitem>
+	  <para>
+	    This option is available if maildrop is compiled with optional
+	    Dovecot authentication support. <replaceable>socket</replaceable>
+	    specifies the location of Dovecot master authentication socket,
+	    for example <filename>/var/run/dovecot/auth-master</filename>.
+	  </para>
+	</listitem>
+      </varlistentry>
     </variablelist>
   </refsect1>
 

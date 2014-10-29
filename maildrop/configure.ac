@@ -717,6 +717,12 @@ AC_ARG_ENABLE(authlib-tempreject,
 	[  --enable-authlib-tempreject=(1|0) authlib errors are temprejects ],
 	[ AUTHLIB_TEMPREJECT="$enableval"], [ AUTHLIB_TEMPREJECT=1 ])
 AC_MSG_RESULT($AUTHLIB_TEMPREJECT)
+AC_ARG_ENABLE(dovecotauth,[],[
+	if test "$enableval" = "yes"
+	then
+		AC_DEFINE_UNQUOTED(DOVECOTAUTH,1,[ Dovecot authentication enabled ])
+	fi
+])
 AC_DEFINE_UNQUOTED(AUTHLIB_TEMPREJECT,$AUTHLIB_TEMPREJECT,
 	[ Whether authlib errors cause temporary rejects ])
 

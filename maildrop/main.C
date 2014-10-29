@@ -32,6 +32,15 @@
 #include	<pwd.h>
 #include	<grp.h>
 #include	"../dbobj.h"
+
+/*
+** This switch can later be moved to config.h file with appropriate 
+** configure option like --with-dovecotauth or something similar
+*/
+#if DOVECOTAUTH
+#include	"dovecotauth.h"
+#endif
+
 #if AUTHLIB
 #include	<courierauth.h>
 #endif
@@ -170,6 +179,14 @@ static const char msg[]="maildrop " VERSION " Copyright 1998-2005 Double Precisi
 #endif
 #ifdef DbObj
 	"GDBM/DB extensions enabled."
+#if CRLF_TERM
+	"\r\n"
+#else
+	"\n"
+#endif
+#endif
+#if DOVECOTAUTH
+	"Dovecot Authentication extension enabled."
 #if CRLF_TERM
 	"\r\n"
 #else
@@ -345,6 +362,98 @@ int find_in_authlib(Maildrop *maildrop, const char* user)
 }
 #endif
 
+#if DOVECOTAUTH
+static int callback_dovecotauth(struct dovecotauthinfo *auth,
+			    void *void_arg)
+{
+	Maildrop &maildrop=*(Maildrop *)void_arg;
+
+	if (VerboseLevel() > 1)
+	{
+		Buffer b;
+
+		b.set(auth->sysgroupid);
+		b.push(0);
+
+		merr << "maildrop: dovecotauth: groupid="
+		     << b << "\n";
+	}
+
+	setgroupid(auth->sysgroupid);
+
+	uid_t u;
+	if (auth->sysusername)
+	{
+		struct	passwd *q=getpwnam(auth->sysusername);
+
+		if (q == NULL)
+		{
+			merr << "Cannot find system user "
+			     << auth->sysusername
+			     << "\n";
+
+			nochangeuidgid();
+		}
+
+		u=q->pw_uid;
+	}
+	else
+		u=*auth->sysuserid;
+
+	if (VerboseLevel() > 1)
+	{
+		Buffer b;
+
+		b.set(u);
+		b.push(0);
+
+		merr << "maildrop: dovecotauth: userid="
+		     << b << "\n";
+	}
+
+	setuid(u);
+
+	if ( getuid() != u)
+		nochangeuidgid();
+
+	if (VerboseLevel() > 1)
+	{
+		merr << "maildrop: dovecotauth: logname="
+		     << auth->address
+		     << ", home="
+		     << auth->homedir
+		     << ", mail="
+		     << (auth->maildir ? auth->maildir:"(default)")
+		     << "\n";
+	}
+
+	maildrop.init_home=auth->homedir;
+	maildrop.init_logname=auth->address;
+	maildrop.init_shell="/bin/sh";
+	maildrop.init_default=auth->maildir ? auth->maildir:
+		GetDefaultMailbox(auth->address);
+
+	return 0;
+}
+
+int find_in_dovecotauth(const char *addr, Maildrop *maildrop, const char* user)
+{
+	int rc=dovecotauth_getuserinfo(addr,
+				user, callback_dovecotauth, maildrop);
+
+	if (rc == 0)
+		return 1;
+
+	if (rc > 0)
+	{
+		errexit=EX_TEMPFAIL;
+		throw "Temporary authentication failure.";
+	}
+
+	return 0;
+}
+#endif
+
 static void tempfail(const char *msg)
 {
 	errexit = EX_TEMPFAIL;
@@ -368,6 +477,9 @@ int	found;
 #if	RESTRICT_TRUSTED
 const	char *numuidgid=0;
 #endif
+#endif
+#if DOVECOTAUTH
+const	char *dovecotauth_addr=0;
 #endif
 
 
@@ -454,6 +566,18 @@ const	char *numuidgid=0;
 		case 'a':
 			maildrop.authlib_essential=1;
 			break;
+#if DOVECOTAUTH
+		case 't':
+			if (!*optarg && argn < argc)	optarg=argv[argn++];
+			if (!*optarg)
+			{
+				mout << "You didn't specify the location of Dovecot auth socket.\n";
+				return (EX_TEMPFAIL);
+			}
+			else
+				dovecotauth_addr=optarg;
+			break;
+#endif
 		case 'h':
 			help();
 			return (EX_TEMPFAIL);
@@ -475,7 +599,17 @@ const	char *numuidgid=0;
 
 		if (*deliverymode)
 		{
-			found = find_in_authlib(&maildrop, deliverymode);
+
+#if DOVECOTAUTH
+			if (dovecotauth_addr)
+			{
+				found = find_in_dovecotauth(dovecotauth_addr, &maildrop, deliverymode);
+			}
+			else
+#endif
+			{
+				found = find_in_authlib(&maildrop, deliverymode);
+			}
 
 			if ( !found )
 			{
