@@ -540,8 +540,8 @@ const char *rfc1035_fmttime(unsigned long, char *);
 char *rfc1035_dumprrdata(struct rfc1035_reply *, struct rfc1035_rr *);
 
 int rfc1035_rr_gettxt(struct rfc1035_rr *,
-	int,
-	char buf[256]);
+		      int,
+		      char buf[256]);
 
 /*
 ** I ignore any possible bugs in the resolver functions, and roll my own,

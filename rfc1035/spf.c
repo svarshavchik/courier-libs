@@ -149,7 +149,7 @@ char rfc1035_spf_lookup(const char *mailfrom,
 
 static int isspf1(struct rfc1035_reply *reply, int n)
 {
-	char	txtbuf[256];
+	char txtbuf[256];
 	const char *p;
 
 	rfc1035_rr_gettxt(reply->allrrs[n], 0, txtbuf);
@@ -166,15 +166,61 @@ static int isspf1(struct rfc1035_reply *reply, int n)
 	return 0;
 }
 
-char rfc1035_spf_gettxt_res(const char *current_domain,
-			    char *buf,
-			    struct rfc1035_res *res)
+struct rfc1035_exp_str {
+	struct rfc1035_exp_str *next;
+	const char *ptr;
+};
+
+static char *rfc1035_concat_strings(struct rfc1035_rr *rr,
+				    int startpos,
+				    struct rfc1035_exp_str *head,
+				    struct rfc1035_exp_str *tail)
+{
+	char buf[256];
+	struct rfc1035_exp_str node;
+	int ret=rfc1035_rr_gettxt(rr, startpos, buf);
+
+	node.next=NULL;
+	node.ptr=buf;
+	tail->next=&node;
+
+	if (ret < 0)
+	{
+		size_t s=1;
+		char *buf;
+		struct rfc1035_exp_str *p;
+
+		for (p=head; p; p=p->next)
+		{
+			s += strlen(p->ptr);
+		}
+
+		buf=malloc(s);
+		if (!buf)
+			return NULL;
+		*buf=0;
+
+		for (p=head; p; p=p->next)
+		{
+			strcat(buf, p->ptr);
+		}
+		return buf;
+	}
+
+	return rfc1035_concat_strings(rr, ret,
+				      head,
+				      &node);
+}
+
+static char rfc1035_spf_gettxt_res(const char *current_domain,
+				   char **buf,
+				   struct rfc1035_res *res)
 {
 	struct	rfc1035_reply *reply;
 	char	namebuf[RFC1035_MAXNAMESIZE+1];
 	int n, o;
 
-
+	*buf=0;
 	namebuf[0]=0;
 	strncat(namebuf, current_domain, RFC1035_MAXNAMESIZE);
 
@@ -213,6 +259,11 @@ char rfc1035_spf_gettxt_res(const char *current_domain,
 
 	if (n >= 0)
 	{
+		struct rfc1035_exp_str str;
+
+		str.next=NULL;
+		str.ptr="";
+
 		for (o=n; (o=rfc1035_replysearch_an(res, reply, namebuf,
 						    RFC1035_TYPE_TXT,
 						    RFC1035_CLASS_IN,
@@ -234,16 +285,20 @@ char rfc1035_spf_gettxt_res(const char *current_domain,
 			}
 		}
 
-		rfc1035_rr_gettxt(reply->allrrs[n], 0, buf);
+		*buf=rfc1035_concat_strings(reply->allrrs[n], 0, &str, &str);
 		rfc1035_replyfree(reply);
+
+		if (!*buf)
+			return SPF_UNKNOWN;
+
 		return SPF_PASS;
 	}
 	rfc1035_replyfree(reply);
 	return SPF_UNKNOWN;
 }
 
-char rfc1035_spf_gettxt(const char *current_domain,
-			char *buf)
+char rfc1035_spf_gettxt_n(const char *current_domain,
+			  char **buf)
 {
 	struct rfc1035_res res;
 	char c;
@@ -1009,7 +1064,7 @@ static void setexp(const char *exp,
 
 static char lookup(struct rfc1035_spf_info *info)
 {
-	char record[256];
+	char *record;
 	char c;
 
 	/*
@@ -1025,12 +1080,14 @@ static char lookup(struct rfc1035_spf_info *info)
 		return SPF_UNKNOWN;
 	}
 
-	c=rfc1035_spf_gettxt(info->current_domain, record);
+	c=rfc1035_spf_gettxt_n(info->current_domain, &record);
 
 	if (c != SPF_PASS)
 		return c;
 
-	return rfc1035_spf_compute(record, info);
+	c=rfc1035_spf_compute(record, info);
+	free(record);
+	return c;
 }
 
 /*

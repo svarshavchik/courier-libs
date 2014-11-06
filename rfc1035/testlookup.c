@@ -44,9 +44,9 @@ extern char rfc1035_spf_gettxt(const char *current_domain,
 
 static void spflookup(const char *current_domain)
 {
-	char buf[256];
+	char *buf;
 
-	switch (rfc1035_spf_gettxt(current_domain, buf)) {
+	switch (rfc1035_spf_gettxt_n(current_domain, &buf)) {
 	case SPF_NONE:
 		printf("none\n");
 		return;
