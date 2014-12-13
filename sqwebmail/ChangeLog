@@ -1,3 +1,11 @@
+5.8.0
+
+2014-12-13  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Update autotools
+
+5.7.3
+
 2014-07-21  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* gpglib, rfc2045: fix makefiles.
