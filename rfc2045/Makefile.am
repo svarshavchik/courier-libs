@@ -30,24 +30,24 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045src.h \
 		     base64.c base64.h
 
 reformime_SOURCES=reformime.c
-reformime_LDADD = librfc2045.la ../rfc822/libencode.la ../rfc822/librfc822.la \
-		../numlib/libnumlib.la -lunicode
-reformime_DEPENDENCIES = $(reformime_LDADD)
+reformime_DEPENDENCIES =  librfc2045.la ../rfc822/libencode.la ../rfc822/librfc822.la \
+		../numlib/libnumlib.la
+reformime_LDADD = $(reformime_DEPENDENCIES) -lunicode
 reformime_LDFLAGS=-static
 
 makemime_SOURCES=makemime.c
-makemime_LDADD = ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la -lunicode
-makemime_DEPENDENCIES=$(makemime_LDADD)
+makemime_DEPENDENCIES= ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la
+makemime_LDADD = $(makemime_DEPENDENCIES) -lunicode
 makemime_LDFLAGS=-static
 
 headercheck_SOURCES=headercheck.c
-headercheck_LDADD=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la -lunicode
-headercheck_DEPENDENCIES=$(headercheck_LDADD)
+headercheck_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
+headercheck_LDADD=$(headercheck_DEPENDENCIES) -lunicode
 headercheck_LDFLAGS=-static
 
 testrfc3676parser_SOURCES=testrfc3676parser.c
-testrfc3676parser_LDADD=librfc2045.la -lunicode
-testrfc3676parser_DEPENDENCIES=$(testrfc3676parser_LDADD)
+testrfc3676parser_DEPENDENCIES=librfc2045.la
+testrfc3676parser_LDADD=$(testrfc3676parser_DEPENDENCIES) -lunicode
 
 if HAVE_SGML
 reformime.html: reformime.sgml ../docbook/sgml2html

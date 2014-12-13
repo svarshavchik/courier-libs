@@ -59,7 +59,6 @@ void rfc2045_error(const char *errmsg)
 
 static void do_print_structure(struct rfc2045 *p, struct rfc2045id *id, void *ptr)
 {
-	p=p;
 	ptr=p;
 
 	while (id)
