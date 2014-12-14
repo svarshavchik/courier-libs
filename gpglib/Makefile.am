@@ -18,7 +18,7 @@ libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.c gpglib.h\
 
 testgpg_SOURCES=testgpg.c
 testgpg_DEPENDENCIES=libgpg.la ../numlib/libnumlib.la
-testgpg_LDADD= -lunicode $(testgpg_DEPENDENCIES)
+testgpg_LDADD=$(testgpg_DEPENDENCIES) -lunicode
 testgpg_LDFLAGS=-static
 
 mimegpg_SOURCES=mimegpg.c
