@@ -2,11 +2,14 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
  "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
+<!ENTITY tr14ver "33">
+<!ENTITY tr24ver "22">
+<!ENTITY tr29ver "25">
 ]>
 
 <!--
 
-Copyright 2014 Double Precision, Inc.
+Copyright 2014-2015 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -30,14 +33,14 @@ See COPYING for distribution information.
     <listitem>
       <para>
 	Implementation of
-	<ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">grapheme
+	<ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">grapheme
 	and work breaking</ulink> rules.
       </para>
     </listitem>
     <listitem>
       <para>
 	Implementation of
-	<ulink url="http://www.unicode.org/reports/tr14/tr14-32.html">line
+	<ulink url="http://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">line
 	breaking</ulink> rules.
       </para>
     </listitem>
@@ -54,6 +57,13 @@ See COPYING for distribution information.
 	API for this unicode library.
       </para>
     </listitem>
+    <listitem>
+      <para>
+	Look up
+	<ulink url="http://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">Unicode
+	script property</ulink>.
+      </para>
+    </listitem>
   </itemizedlist>
 
   <para>
@@ -65,7 +75,7 @@ See COPYING for distribution information.
 
     <para>
       The current release of the Courier Unicode library is based on the
-      Unicode 6.3.0 standard.
+      Unicode 7.0.0 standard.
     </para>
   </section>
 
@@ -163,6 +173,9 @@ See COPYING for distribution information.
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_line_break">
 	      <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_script">
+	      <citerefentry><refentrytitle>unicode_script</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_word_break">
 	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
@@ -771,7 +784,7 @@ See COPYING for distribution information.
 	  <title>SEE ALSO</title>
 
 	  <para>
-	    <ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">TR-29</ulink>,
+	    <ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
@@ -785,6 +798,51 @@ See COPYING for distribution information.
 		<link linkend="unicode_word_break">
 		  <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
 		  <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_script">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refmeta>
+	  <refentrytitle>unicode_script</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_script</refname>
+	  <refpurpose>unicode script property</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>const char *<function>unicode_script</function></funcdef>
+              <paramdef>unicode_char <parameter>ch</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_script</function>() looks up the
+	    <quote>script</quote> property of the specified unicode character,
+	    and returns it.
+	    <quote>Unknown</quote> gets returned for a unicode character
+	    with an unknown script property.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <ulink url="http://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">TR-24</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
 	  </para>
 	</refsect1>
       </refentry>
@@ -999,7 +1057,7 @@ See COPYING for distribution information.
 	    <function>unicode_lb_next_cnt</function>() returned an error
 	    indication. It's also possible that, under normal circumstances,
 	    <function>unicode_lb_end</function>() invokes the callback function
-	    one or more times. The return value from 
+	    one or more times. The return value from
 	    <function>unicode_lb_end</function>() has the same meaning as
 	    from <function>unicode_lb_next</function>() and
 	    <function>unicode_lb_next_cnt</function>(); however in all cases
@@ -1110,7 +1168,7 @@ See COPYING for distribution information.
 	    <link linkend="unicode__linebreak">
 	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	    <ulink url="http://www.unicode.org/reports/tr14/tr14-32.html">TR-14</ulink>
+	    <ulink url="http://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">TR-14</ulink>
 	  </para>
 	</refsect1>
       </refentry>
@@ -1131,7 +1189,7 @@ See COPYING for distribution information.
 	  <refname>unicode_wbscan_init</refname>
 	  <refname>unicode_wbscan_next</refname>
 	  <refname>unicode_wbscan_end</refname>
-	  
+
 	  <refpurpose>calculate word breaks</refpurpose>
 	</refnamediv>
 
@@ -1269,7 +1327,7 @@ See COPYING for distribution information.
 	    <function>unicode_wb_next_cnt</function>() returned an error
 	    indication. It's also possible that, under normal circumstances,
 	    <function>unicode_wb_end</function>() invokes the callback function
-	    one or more times. The return value from 
+	    one or more times. The return value from
 	    <function>unicode_wb_end</function>() has the same meaning as
 	    from <function>unicode_wb_next</function>() and
 	    <function>unicode_wb_next_cnt</function>(); however in all cases
@@ -1309,7 +1367,7 @@ See COPYING for distribution information.
 	<refsect1>
 	  <title>SEE ALSO</title>
 	  <para>
-	    <ulink url="http://www.unicode.org/reports/tr29/tr29-23.html">TR-29</ulink>,
+	    <ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
@@ -2030,7 +2088,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	  <para>
 	    The <classname>linebreak_iter</classname> template implements an
-	    input iterator over <classname>int</classname>s. 
+	    input iterator over <classname>int</classname>s.
 	    The template parameter is an input iterator over
 	    <classname>unicode</classname> chars. The constructor's parameters
 	    are a beginning and an ending iterator value for a sequence of
@@ -2172,7 +2230,7 @@ size_t nchars=scan.finish();
 
 	  <para>
 	    <classname>unicode::wordbreakscan</classname> is a C++
-	    binding for the 
+	    binding for the
 	    <function>unicode_wbscan_init</function>(),
             <function>unicode_wbscan_next</function>() and
             <function>unicode_wbscan_end</function>

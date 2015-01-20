@@ -2,7 +2,7 @@
 #define	unicode_h
 
 /*
-** Copyright 2000-2014 Double Precision, Inc.
+** Copyright 2000-2015 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -83,7 +83,7 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 
 /*
 ** Implementation of grapheme cluster boundary rules, as per
-** http://www.unicode.org/reports/tr29/tr29-23.html4
+** http://www.unicode.org/reports/tr29/tr29-25.html
 ** including  GB9a and GB9b.
 **
 ** Returns non-zero if there's a grapheme break between the two referenced
@@ -93,8 +93,15 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 int unicode_grapheme_break(unicode_char a, unicode_char b);
 
 /*
+** Look up the unicode script property, as per
+** http://www.unicode.org/reports/tr24/tr24-22.html
+*/
+
+const char *unicode_script(unicode_char a);
+
+/*
 ** Implementation of line break rules, as per
-** http://www.unicode.org/reports/tr14/tr14-32.html
+** http://www.unicode.org/reports/tr14/tr14-33.html
 **
 ** Invoke unicode_lb_init() to initialize the linebreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -253,7 +260,7 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 
 /*
 ** Implemention of word break rules, as per
-** http://www.unicode.org/reports/tr29/tr29-23.html
+** http://www.unicode.org/reports/tr29/tr29-25.html
 **
 ** Invoke unicode_wb_init() to initialize the wordbreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -1117,7 +1124,7 @@ namespace unicode {
 			return 0;
 		}
 	};
-		
+
 	template<typename input_iter_t,
 		typename output_iter_t>
 		output_iter_t iconvert::tou::convert(input_iter_t from_iter,
@@ -1150,7 +1157,7 @@ namespace unicode {
 			out.end(flag);
 			return out;
 		}
-		
+
 	/* Convert output of iconvert from unicode_chars. */
 
 	class iconvert::fromu : public iconvert {
@@ -1219,7 +1226,7 @@ namespace unicode {
 			return 0;
 		}
 	};
-		
+
 	template<typename input_iter_t,
 		typename output_iter_t>
 		output_iter_t iconvert::fromu::convert(input_iter_t from_iter,
@@ -1730,7 +1737,7 @@ namespace unicode {
 
 		size_t finish();
 	};
-		
+
 }
 #endif
 

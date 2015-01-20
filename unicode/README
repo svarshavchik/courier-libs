@@ -37,12 +37,14 @@ Courier Unicode Library
        a unicode character. Also, an adaptation of the iconv(3) API for this
        unicode library.
 
+     * Look up Unicode script property.
+
    This library also implements C++ bindings for these algorithms.
 
 Current status
 
    The current release of the Courier Unicode library is based on the Unicode
-   6.3.0 standard.
+   7.0.0 standard.
 
    --------------------------------------------------------------------------
 

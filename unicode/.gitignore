@@ -4,6 +4,7 @@
 /EastAsianWidth.txt
 /GraphemeBreakProperty.txt
 /INSTALL
+/Scripts.txt
 /LineBreak.txt
 /LineBreakTest.txt
 /UnicodeData.txt
@@ -25,6 +26,7 @@
 /missing
 /rpm
 /rpm.release
+/scripttest
 /unicode_config.h
 /unicode_config.h.in
 /unicodetest

@@ -10,7 +10,7 @@ noinst_SCRIPTS=update.sh \
 	mkhtmlent.pl
 
 noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
-	enttest
+	enttest scripttest
 
 update-www:
 	@$(MAKE) update-www-unicode
@@ -18,6 +18,7 @@ update-www:
 	@$(MAKE) update-www-grapheme
 	@$(MAKE) update-www-linebreak
 	@$(MAKE) update-www-wordbreak
+	@$(MAKE) update-www-scripts
 	@$(MAKE) update-www-htmlent
 
 update-www-unicode:
@@ -38,6 +39,9 @@ update-www-wordbreak:
 	@SHELL@ $(srcdir)/update.sh WordBreakProperty.txt http://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakProperty.txt
 	@SHELL@ $(srcdir)/update.sh WordBreakTest.txt http://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakTest.txt
 
+update-www-scripts:
+	@SHELL@ $(srcdir)/update.sh Scripts.txt http://unicode.org/Public/UNIDATA/Scripts.txt
+
 update-www-htmlent:
 	@SHELL@ $(srcdir)/update.sh xhtml-lat1.ent http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent
 	@SHELL@ $(srcdir)/update.sh xhtml-symbol.ent http://www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent
@@ -45,7 +49,7 @@ update-www-htmlent:
 
 lib_LTLIBRARIES=libunicode.la
 include_HEADERS=unicode.h
-man_MANS=$(srcdir)/man/courier-unicode.7 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 $(srcdir)/man/unicode[\:][\:]ucs_2.3 $(srcdir)/man/unicode[\:][\:]ucs_4.3 $(srcdir)/man/unicode[\:][\:]utf_8.3 $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 $(srcdir)/man/unicode_convert.3 $(srcdir)/man/unicode_convert_deinit.3 $(srcdir)/man/unicode_convert_fromu_init.3 $(srcdir)/man/unicode_convert_fromu_tobuf.3 $(srcdir)/man/unicode_convert_fromutf8.3 $(srcdir)/man/unicode_convert_init.3 $(srcdir)/man/unicode_convert_tobuf.3 $(srcdir)/man/unicode_convert_tocase.3 $(srcdir)/man/unicode_convert_tocbuf_fromutf8_init.3 $(srcdir)/man/unicode_convert_tocbuf_init.3 $(srcdir)/man/unicode_convert_tocbuf_toutf8_init.3 $(srcdir)/man/unicode_convert_tou_init.3 $(srcdir)/man/unicode_convert_tou_tobuf.3 $(srcdir)/man/unicode_convert_toutf8.3 $(srcdir)/man/unicode_convert_uc.3 $(srcdir)/man/unicode_default_chset.3 $(srcdir)/man/unicode_grapheme_break.3 $(srcdir)/man/unicode_html40ent_lookup.3 $(srcdir)/man/unicode_isspace.3 $(srcdir)/man/unicode_lb_end.3 $(srcdir)/man/unicode_lb_init.3 $(srcdir)/man/unicode_lb_next.3 $(srcdir)/man/unicode_lb_next_cnt.3 $(srcdir)/man/unicode_lb_set_opts.3 $(srcdir)/man/unicode_lbc_end.3 $(srcdir)/man/unicode_lbc_init.3 $(srcdir)/man/unicode_lbc_next.3 $(srcdir)/man/unicode_lbc_next_cnt.3 $(srcdir)/man/unicode_lbc_set_opts.3 $(srcdir)/man/unicode_lc.3 $(srcdir)/man/unicode_tc.3 $(srcdir)/man/unicode_u_ucs2_native.3 $(srcdir)/man/unicode_u_ucs4_native.3 $(srcdir)/man/unicode_uc.3 $(srcdir)/man/unicode_wb_end.3 $(srcdir)/man/unicode_wb_init.3 $(srcdir)/man/unicode_wb_next.3 $(srcdir)/man/unicode_wb_next_cnt.3 $(srcdir)/man/unicode_wbscan_end.3 $(srcdir)/man/unicode_wbscan_init.3 $(srcdir)/man/unicode_wbscan_next.3
+man_MANS=$(srcdir)/man/courier-unicode.7 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 $(srcdir)/man/unicode[\:][\:]ucs_2.3 $(srcdir)/man/unicode[\:][\:]ucs_4.3 $(srcdir)/man/unicode[\:][\:]utf_8.3 $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 $(srcdir)/man/unicode_convert.3 $(srcdir)/man/unicode_convert_deinit.3 $(srcdir)/man/unicode_convert_fromu_init.3 $(srcdir)/man/unicode_convert_fromu_tobuf.3 $(srcdir)/man/unicode_convert_fromutf8.3 $(srcdir)/man/unicode_convert_init.3 $(srcdir)/man/unicode_convert_tobuf.3 $(srcdir)/man/unicode_convert_tocase.3 $(srcdir)/man/unicode_convert_tocbuf_fromutf8_init.3 $(srcdir)/man/unicode_convert_tocbuf_init.3 $(srcdir)/man/unicode_convert_tocbuf_toutf8_init.3 $(srcdir)/man/unicode_convert_tou_init.3 $(srcdir)/man/unicode_convert_tou_tobuf.3 $(srcdir)/man/unicode_convert_toutf8.3 $(srcdir)/man/unicode_convert_uc.3 $(srcdir)/man/unicode_default_chset.3 $(srcdir)/man/unicode_grapheme_break.3 $(srcdir)/man/unicode_html40ent_lookup.3 $(srcdir)/man/unicode_isspace.3 $(srcdir)/man/unicode_lb_end.3 $(srcdir)/man/unicode_lb_init.3 $(srcdir)/man/unicode_lb_next.3 $(srcdir)/man/unicode_lb_next_cnt.3 $(srcdir)/man/unicode_lb_set_opts.3 $(srcdir)/man/unicode_lbc_end.3 $(srcdir)/man/unicode_lbc_init.3 $(srcdir)/man/unicode_lbc_next.3 $(srcdir)/man/unicode_lbc_next_cnt.3 $(srcdir)/man/unicode_lbc_set_opts.3 $(srcdir)/man/unicode_lc.3 $(srcdir)/man/unicode_script.3 $(srcdir)/man/unicode_tc.3 $(srcdir)/man/unicode_u_ucs2_native.3 $(srcdir)/man/unicode_u_ucs4_native.3 $(srcdir)/man/unicode_uc.3 $(srcdir)/man/unicode_wb_end.3 $(srcdir)/man/unicode_wb_init.3 $(srcdir)/man/unicode_wb_next.3 $(srcdir)/man/unicode_wb_next_cnt.3 $(srcdir)/man/unicode_wbscan_end.3 $(srcdir)/man/unicode_wbscan_init.3 $(srcdir)/man/unicode_wbscan_next.3
 
 libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			unicodecpp.C \
@@ -57,8 +61,9 @@ libunicode_la_SOURCES=unicode.h unicode.c unicodebuf.c \
 			unicode_linebreak.c linebreaktab.h \
 			unicode_htmlent.c unicode_htmlent.h \
 			linebreaktab_internal.h \
-			unicode_wordbreak.c wordbreaktab.h \
-			wordbreaktab_internal.h
+			unicode_wordbreak.c wordbreaktab.h scriptstab.h \
+			wordbreaktab_internal.h \
+			unicode_scripts.c
 libunicode_la_LDFLAGS=-version-info 1:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec
@@ -82,6 +87,10 @@ linebreaktab.h: LineBreak.txt UnicodeData.txt mklinebreak.pl mkcommon.pm
 wordbreaktab.h: WordBreakProperty.txt mkwordbreak.pl mkcommon.pm
 	@PERL@ $(srcdir)/mkwordbreak.pl >wordbreaktab.h.tmp
 	mv wordbreaktab.h.tmp wordbreaktab.h
+
+scriptstab.h: Scripts.txt mkscripts.pl mkcommon.pm
+	@PERL@ $(srcdir)/mkscripts.pl >scriptstab.h.tmp
+	mv scriptstab.h.tmp scriptstab.h
 
 unicode_htmlent.h: xhtml-lat1.ent xhtml-special.ent xhtml-symbol.ent mkhtmlent.pl
 	@PERL@ $(srcdir)/mkhtmlent.pl >unicode_htmlent.h.tmp
@@ -112,6 +121,11 @@ enttest_SOURCES=enttest.c
 enttest_DEPENDENCIES=libunicode.la
 enttest_LDADD=libunicode.la
 enttest_LDFLAGS=-static
+
+scripttest_SOURCES=scripttest.c
+scripttest_DEPENDENCIES=libunicode.la
+scripttest_LDADD=libunicode.la
+scripttest_LDFLAGS=-static
 
 check-am: unicodetest
 	./unicodetest
