@@ -818,7 +818,7 @@ See COPYING for distribution information.
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
-              <funcdef>const char *<function>unicode_script</function></funcdef>
+              <funcdef>unicode_script_t <function>unicode_script</function></funcdef>
               <paramdef>unicode_char <parameter>ch</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
@@ -828,9 +828,10 @@ See COPYING for distribution information.
 	  <para>
 	    <function>unicode_script</function>() looks up the
 	    <quote>script</quote> property of the specified unicode character,
-	    and returns it.
-	    <quote>Unknown</quote> gets returned for a unicode character
-	    with an unknown script property.
+	    and returns it. The <classname>unicode_script_t</classname>
+	    enumeration encodes possible unicode script values.
+	    <literal>unicode_script_unknown</literal> gets returned for a
+	    unicode character  with an unknown script property.
 	  </para>
 	</refsect1>
 

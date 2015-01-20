@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 {
 	if (argc >= 2)
 	{
-		printf("%s\n", unicode_script(strtol(argv[1], NULL, 0)));
+		printf("%d\n", (int)unicode_script(strtol(argv[1], NULL, 0)));
 	}
 	return (0);
 }

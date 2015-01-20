@@ -60,17 +60,34 @@ while (defined($_=<F>))
 
     $scriptnames{$s} //= ++$counter;
 
-    push @table, [$f, $l, $scriptnames{$s} . "-1"];
+    push @table, [$f, $l, "unicode_script_" . lc($s)];
 }
 
-print "static const char * const scripts[]={\n";
+open(F, "<unicode.h") or die;
 
-foreach (sort { $scriptnames{$a} <=> $scriptnames{$b}} keys %scriptnames)
-{
-    print "\t\"$_\",\n";
-}
+my @unicode_h=<F>;
+close(F);
 
-print "\t\"Unknown\"};\n";
+my ($f, $l) = grep { $unicode_h[$_] =~ /UNICODE_SCRIPT_T/ } (0..$#unicode_h);
+
+die unless $f && $l;
+
+my @repl = map {
+    "\tunicode_script_" . lc($_) . ",\n";
+} sort {
+    $scriptnames{$a} <=> $scriptnames{$b};
+} keys %scriptnames;
+
+unshift @repl, "\tunicode_script_unknown,\n";
+
+$repl[$#repl] =~ s/,//;
+
+splice @unicode_h, $f+1, $l-$f-2, @repl;
+
+open(F, ">unicode.h.tmp") or die;
+print F join("", @unicode_h);
+close(F) or die;
+rename("unicode.h.tmp", "unicode.h") or die;
 
 grep {
 
