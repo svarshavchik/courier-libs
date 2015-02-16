@@ -1531,7 +1531,7 @@ static int dump_hdrs(int fd, unsigned long n,
 
 	src=rfc2045src_init_fd(fd);
 	h=src ? rfc2045header_start(src, rfcp):NULL;
- 
+
 	while (h &&
 	       (rc=rfc2045header_get(h, &header, &value, get_flags)) == 0
 	       && header)
@@ -2300,7 +2300,7 @@ static void copieduid(unsigned long n, char *newname)
 
 	if ((q=strrchr(p, MDIRSEP[0])) != NULL)
 		*q=0;
-	
+
 	smapword_s(p);
 	writes("\"\n");
 }
@@ -3789,7 +3789,7 @@ void smap()
 			writes("* STATUS EXISTS=");
 			writen(infoptr->nmessages+infoptr->left_unseen);
 
-			n=infoptr->left_unseen, i;
+			n=infoptr->left_unseen;
 
 			for (i=0; i<infoptr->nmessages; i++)
 			{
