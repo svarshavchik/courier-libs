@@ -232,7 +232,8 @@ runtest ""
 
 for f in testsuite?.filter
 do
-    echo 'xfilter "cat"' >t
+    echo "SHELL=/bin/sh" > t
+    echo 'xfilter "cat"' >>t
     cat $f >>t
     chmod 600 t
     mv -f t $f

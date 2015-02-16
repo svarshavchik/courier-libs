@@ -41,6 +41,9 @@ char	*q=malloc(strlen(p)+1), *r;
 
 extern char rfc1035_spf_gettxt(const char *current_domain,
 			       char *buf);
+extern char rfc1035_spf_gettxt_n(const char *current_domain,
+			  char **buf);
+
 
 static void spflookup(const char *current_domain)
 {
