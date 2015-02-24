@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2000-2009 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2000-2015 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry>
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -221,6 +221,14 @@ sense to set limits on individual IP addresses.  If a C block of
 addresses is assigned to a dialup modem pool, it is certainly possible to
 have many IP addresses within the same C block have connections to the
 POP3 server at the same time.</para>
+
+	  <para>
+	    The <option>-maxperip</option> option can be overridden for
+	    a given IP address by setting the
+	    <envar>MAXCPERIP</envar> environment
+	    variable, see <quote><link linkend="envar">Setting environment
+	    variables</link></quote> for more information.
+	  </para>
 	</listitem>
       </varlistentry>
 
@@ -582,7 +590,7 @@ address space).</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="envar">
       <title>Setting environment variables</title>
 
       <para>
@@ -612,6 +620,21 @@ connections from this IP
 address. <command>couriertcpd</command> only reads one entry from the access
 file, the entry for the most specific IP address.</para>
 
+      <informalexample>
+	<programlisting format="linespecific">
+192.68.0.10&lt;tab&gt;allow,MAXCPERIP=100
+</programlisting>
+      </informalexample>
+
+      <para>
+	<command>couriertcpd</command> itself implements the
+	<envar>MAXCPERIP</envar> environment variable setting
+	in the access file, as an override
+	to the <option>-maxperip</option> parameter, which specifies the
+	maximum number of connections from the same IP address. If specified
+	in the access file for an IP address, or an IP address range, the
+	value given by <envar>MAXCPERIP</envar> overrides it.
+      </para>
     </refsect2>
 
     <refsect2>
