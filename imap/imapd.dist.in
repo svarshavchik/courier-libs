@@ -73,16 +73,22 @@ PIDFILE=@piddir@/imapd.pid
 
 TCPDOPTS="-nodnslookup -noidentlookup"
 
+##NAME: ACCESSFILE:0
+#
+# IMAP access file.
+
+IMAPACCESSFILE=@sysconfdir@/imapaccess
+
 ##NAME: LOGGEROPTS:0
 #
-# courierlogger(1) options.                                        
+# courierlogger(1) options.
 #
 
 LOGGEROPTS="-name=imapd"
 
 ##NAME: DEFDOMAIN:0
 #
-# Optional default domain. If the username does not contain the         
+# Optional default domain. If the username does not contain the
 # first character of DEFDOMAIN, then it is appended to the username.
 # If DEFDOMAIN and DOMAINSEP are both set, then DEFDOMAIN is appended
 # only if the username does not contain any character from DOMAINSEP.

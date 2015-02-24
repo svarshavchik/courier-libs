@@ -27,6 +27,10 @@
 /mkimapdcert.8.in
 /mkimapdcert.html
 /mkimapdcert.html.in
+/makeimapaccess.8
+/makeimapaccess.8.in
+/makeimapaccess.html
+/makeimapaccess.html.in
 /mkpop3dcert
 /mkpop3dcert.8
 /mkpop3dcert.8.in

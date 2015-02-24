@@ -459,7 +459,8 @@ considered to be experimental.</para>
     <para>
 The access file is a binary database file that's usually created by a
 script, such as
-<ulink url="makesmtpaccess.html"><citerefentry><refentrytitle>makesmtpaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
+<ulink url="makesmtpaccess.html"><citerefentry><refentrytitle>makesmtpaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>, or
+<ulink url="makeimapaccess.html"><citerefentry><refentrytitle>makeimapaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
 from one or more plain text
 files. Blank lines in the text file are ignored. Lines that start with the #
 character are also ignored.</para>

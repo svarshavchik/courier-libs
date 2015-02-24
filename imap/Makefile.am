@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 AM_CPPFLAGS=@CPPAUTH@
@@ -8,12 +8,14 @@ BUILT_SOURCES=README.proxy
 
 DISTCLEANFILES=imapd.pam pop3d.pam imapd.cnf pop3d.cnf
 CLEANFILES=imapd.8 imapd.html mkimapdcert.html mkimapdcert.8 \
+	makeimapaccess.html makeimapaccess.8 \
 	mkdhparams.html mkdhparams.8 \
 	courierpop3d.html courierpop3d.8 mkpop3dcert.html mkpop3dcert.8
 
 EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
 	BUGS BUGS.html README README.html imapd.authpam \
 	pop3d.authpam system-auth.authpam system-auth2.authpam\
+	makeimapaccess.8.in makeimapaccess.html.in \
 	imapd.html.in imapd.8.in \
 	mkdhparams.html.in mkdhparams.8.in \
 	mkimapdcert.html.in mkimapdcert.8.in \
@@ -26,6 +28,7 @@ noinst_SCRIPTS=mkimapdcert mkpop3dcert mkdhparams
 noinst_PROGRAMS=imaplogin imapd pop3login pop3d
 
 noinst_DATA=imapd.8 imapd.html imapd.cnf pop3d.cnf \
+	makeimapaccess.html makeimapaccess.8 \
 	mkdhparams.html mkdhparams.8 \
 	mkimapdcert.html mkimapdcert.8 \
 	mkpop3dcert.html mkpop3dcert.8 \
@@ -105,6 +108,12 @@ imapd.html: imapd.html.in
 imapd.8: imapd.8.in
 	./config.status --file=imapd.8
 
+makeimapaccess.html: makeimapaccess.html.in
+	./config.status --file=makeimapaccess.html
+
+makeimapaccess.8: makeimapaccess.8.in
+	./config.status --file=makeimapaccess.8
+
 mkdhparams.html: mkdhparams.html.in
 	./config.status --file=mkdhparams.html
 
@@ -136,6 +145,13 @@ imapd.html.in: imapd.sgml ../docbook/sgml2html
 imapd.8.in: imapd.sgml ../docbook/sgml2man
 	../docbook/sgml2man imapd.sgml imapd.8.in
 	mv imapd.8 imapd.8.in
+
+makeimapaccess.html.in: makeimapaccess.sgml ../docbook/sgml2html
+	../docbook/sgml2html makeimapaccess.sgml makeimapaccess.html.in
+
+makeimapaccess.8.in: makeimapaccess.sgml ../docbook/sgml2man
+	../docbook/sgml2man makeimapaccess.sgml makeimapaccess.8.in
+	mv makeimapaccess.8 makeimapaccess.8.in
 
 mkdhparams.html.in: mkdhparams.sgml ../docbook/sgml2html
 	../docbook/sgml2html mkdhparams.sgml mkdhparams.html.in

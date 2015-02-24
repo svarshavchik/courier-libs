@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl
 dnl
-dnl Copyright 1998 - 2013 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
 AC_INIT(courier-imap, 4.16.0, [courier-users@lists.sourceforge.net])
@@ -125,12 +125,12 @@ AC_SYS_LARGEFILE
 
 AC_CACHE_CHECK([for socklen_t],
 	sox_cv_hassocklen_t,
- 
+
 AC_COMPILE_IFELSE([
 AC_LANG_SOURCE( [
 #include <sys/types.h>
 #include <sys/socket.h>
- 
+
 socklen_t sl_t;
 ],[
 	accept(0, 0, &sl_t);
@@ -138,9 +138,9 @@ socklen_t sl_t;
 	sox_cv_hassocklen_t=yes,
 	sox_cv_hassocklen_t=no)
 )
- 
+
 socklen_t="int"
- 
+
 if test $sox_cv_hassocklen_t = yes
 then
 	:

@@ -1,0 +1,73 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry>
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>makeimapaccess</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>makeimapaccess</refname>
+    <refpurpose>Build IMAP server access file</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command>makeimapaccess</command>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+      <command>makeimapaccess</command> rebuilds the contents of the
+      <filename>@sysconfdir@/imapaccess.dat</filename> database from the
+      contents of the
+      files in the <filename>@sysconfdir@/imapaccess</filename> directory.
+      When the
+      <command>imapd</command> script starts <command>couriertcpd</command>,
+      the script specifies the
+      <filename>@sysconfdir@/imapaccess.dat</filename> file to control
+      access to
+      the <application>Courier</application> mail server's
+      IMAP daemon. The <command>makeimapaccess</command> script
+      must be
+      run before any changes in the <filename>@sysconfdir@/imapaccess</filename>
+      directory take effect.</para>
+
+    <para>
+      The
+      <ulink url="couriertcpd.html"><citerefentry><refentrytitle>couriertcpd</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> manual page
+      describes the general format of the access file.</para>
+
+
+    <refsect2>
+      <title>The <filename>imapaccess</filename> configuration file</title>
+
+      <para>
+	The
+	<ulink url="couriertcpd.html"><citerefentry><refentrytitle>couriertcpd</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> manual page
+	describes the generic format of the access file.
+	The access file specifies
+	what should be done with connections from defined IP address ranges.
+	The basic choices are to accept or reject the connection.
+	Also, the generic format of the access file allows arbitrary environment
+	variables to be set based on the connection's remote IP address,
+	however the IMAP server does not use any special environment variables
+	on its own.
+      </para>
+    </refsect2>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+    <para>
+      <ulink url="couriertcpd.html"><citerefentry><refentrytitle>couriertcpd</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>.
+    </para>
+  </refsect1>
+</refentry>
