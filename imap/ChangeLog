@@ -1,3 +1,7 @@
+2015-02-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Add the makeimapaccess script.
+
 4.16.0
 
 2014-10-21  Bernard Quatermass <bqcourier@quatermass.co.uk>
@@ -1138,7 +1142,7 @@
 2005-06-18  Mr. Sam  <mrsam@courier-mta.com>
 
 	* courier-imap.spec.in (License): Replaces obsolete Copyright: header.
-	* smap: SMAP EXPUNGE >100 msg ranges was broken. 
+	* smap: SMAP EXPUNGE >100 msg ranges was broken.
 
 2005-06-11  Mr. Sam  <mrsam@courier-mta.com>
 
@@ -1243,7 +1247,7 @@
 
 2004-11-03  Mr. Sam  <mrsam@courier-mta.com>
 
-	* Makefile.am (SUBDIRS): Ok, only build in bdbobj/gdbmobj according 
+	* Makefile.am (SUBDIRS): Ok, only build in bdbobj/gdbmobj according
 	to what autoconf finds.
 
 2004-10-30  Mr. Sam  <mrsam@courier-mta.com>
@@ -1464,7 +1468,7 @@
 	(rfc2047_encode_callback): New argument: qp_allow - function that
 	indicates acceptable characters in QP-encoded words.
 	(rfc2047_encode_str): Ditto.
-	(rfc2047_qp_allow_any, rfc2047_qp_allow_comment) 
+	(rfc2047_qp_allow_any, rfc2047_qp_allow_comment)
 	(rfc2047_qp_allow_word): Possible arguments to qp_allow for various
 	situations.
 
@@ -1600,19 +1604,19 @@
 2004-02-01  IKEDA Soji <nezumi@jca.apc.org>
 
 	* iso2022jp.pl / iso2022jp.h: JIS X 0208 mapping has been updated
-	based on latest regional standard (JIS X 0208:1997) and some vendor 
+	based on latest regional standard (JIS X 0208:1997) and some vendor
 	standards. Errorneous (lacking or false) mappings has been fixed.
 	Support for older JIS X 0208 (JIS C 6226:1978) mapping was added.
 	JIS X 0212:1990 mapping was added.
 
-	* iso2022jp.c: Converters became (upper-)compatible with ISO-2022-JP 
+	* iso2022jp.c: Converters became (upper-)compatible with ISO-2022-JP
 	(RFC1468 / JIS X 0208:1997 Annex 2) and ISO-2022-JP-1 (RFC2237).
-	Buffer overflow vulnerability (when Unicode character is out 
+	Buffer overflow vulnerability (when Unicode character is out
 	of BMP range) has been closed. Convert error handling was implemented.
 
-	* shiftjis.c: Broken SHIFT_JIS converters has been fixed and became 
+	* shiftjis.c: Broken SHIFT_JIS converters has been fixed and became
 	(upper-)compatible with Shifted Encoding Method (JIS X 0208:1997
-	Annex 1). Buffer overflow vulnerability (when Unicode character is out 
+	Annex 1). Buffer overflow vulnerability (when Unicode character is out
 	of BMP range) has been closed. Convert error handling was implemented.
 
 	* eucjp.c: New converters for EUC-JP.
@@ -1660,7 +1664,7 @@
 2004-01-13  Michael Bowe <mbowe@pipeline.com.au>
 
 	* authvchkpw update.
-	
+
 2004-01-12  Mr. Sam  <mrsam@courier-mta.com>
 
 	* mailboxlist.c (list_newshared_shortcut): Fix list #shared.%.%, for
@@ -1677,7 +1681,7 @@
 2004-01-10  Michael Bowe <mbowe@pipeline.com.au>
 
 	* authvchkpw update.
-	
+
 2004-01-10  Mr. Sam  <mrsam@courier-mta.com>
 
 	* imap: Implement virtual shared folders + ACL.
@@ -1793,7 +1797,7 @@
 
 	* authlib: Respect $(EXEEXT)
 
-	* libhmac: Respect $(EXEEXT) 
+	* libhmac: Respect $(EXEEXT)
 
 	* rfc2045/testsuite: Fix enable-mimecharset breaking make check.
 
@@ -2068,7 +2072,7 @@
 	* Added experimental SMAP protocol.
 
 	* rfc2045/rfc2045header.c: eat leading space when folding header lines.
-	
+
 
 2003-05-19  Mr. Sam  <mrsam@courier-mta.com>
 
@@ -2083,7 +2087,7 @@
 	an EISDIR, even though we should <sigh>...
 
 2003-05-14  Stefan Hornburg <racke@linuxia.de>
-	
+
 	* userdb/makeuserdb.sgml: Fix command names.
 
 2003-05-14  Mr. Sam  <mrsam@courier-mta.com>
@@ -2219,7 +2223,7 @@
 	newline.
 
 	* configure.in: Conditionally probe if SA_NOCLDWAIT could be used.
-	
+
 	* pcpd.c (start): Use SA_NOCLDWAIT, if blessed by configure.
 
 2003-02-28  Mr. Sam  <mrsam@courier-mta.com>
@@ -2387,7 +2391,7 @@
 
 	* imap: move hier_rename into libmaildir.a, for recycling.
 
-	* testsuite: Use 'touch -t' 
+	* testsuite: Use 'touch -t'
 
 2002-12-11   Brian Candler <B.Candler@pobox.com>
 
@@ -2440,7 +2444,7 @@
 	* courier.spec.in (BuildPreReq): Fix build prereqs.
 
 1.6
-	
+
 2002-10-25  Mr. Sam  <mrsam@courier-mta.com>
 
 	* pop3dcapa.c (pop3dcapa): It's STLS.
@@ -2457,7 +2461,7 @@
 	DEBUG_LOGIN_ENV is not set.
 
 2002-10-14  Olivier Girondel <olivier.girondel@cw.com>
-	
+
 	* authlib/authldaplib.c (authldap_read_config): LDAP_FILTER fix.
 
 2002-10-13  Mr. Sam  <mrsam@courier-mta.com>
@@ -2500,7 +2504,7 @@
 	* imapd.c (do_imap_command): Handle IDLE in authenticated state as,
 	essentially, a NOOP.  Enable IDLE in the default CAPABILITIES
 	string (but keep the same version string, so sysconftool will not
-	touch an existing CAPABILITIES setting on an upgrade).	
+	touch an existing CAPABILITIES setting on an upgrade).
 
 2002-09-21  Mr. Sam  <mrsam@courier-mta.com>
 
@@ -2757,7 +2761,7 @@
 
 2002-05-07  Keith T. Garner <kgarner@kgarner.com>
 
-	* authlib: Additional LDAP authentication filter. 
+	* authlib: Additional LDAP authentication filter.
 
 2002-05-07  John Morrissey <jwm@horde.net>
 
@@ -2792,7 +2796,7 @@
 
 2002-03-22  Mr. Sam  <mrsam@courier-mta.com>
 
-	* courier/doc/FAQ.html: Added Tru64 gmake check failure. 
+	* courier/doc/FAQ.html: Added Tru64 gmake check failure.
 
 2002-03-21  Mr. Sam  <mrsam@courier-mta.com>
 
@@ -2899,7 +2903,7 @@
 	that adds the option to create hand-crafted SQL queries.
 
 1.4.1
-	
+
 2001-12-28  Iustin Pop <iusty@intensit.de>
 
 	* authldap: if LDAP_TLS and LDAP_AUTHBIND were enabled, use TLS for
@@ -3047,7 +3051,7 @@
 	another message/rfc822.
 
 2001-08-29  James Knight <jknight@fuhm.net>
-	
+
 	* search.c (search_evaluate): Speed up searches by correcting an
 	inefficient evaluation search order.
 
@@ -3219,7 +3223,7 @@
 
 1.3.8
 
-2001-04-24  "Roland Hänel" <rh@ginko.net>  
+2001-04-24  "Roland Hänel" <rh@ginko.net>
 
 	* authlib/authmysql: applied patch to replace the remaining
 	hardcoded mysql table field names with configurable values from
@@ -3422,7 +3426,7 @@
 	RPM spec script, using --define 'xflags [flags]' option.
 
 1.3.2
-	
+
 2001-01-25  Mr. Sam  <mrsam@courier-mta.com>
 
 	* Fix big5/gb2312 conversion logic.
@@ -3436,7 +3440,7 @@
 	* Update INSTALL to reflect new upgrade instructions.
 
 1.3.1
-	
+
 2001-01-14  Mr. Sam  <mrsam@courier-mta.com>
 
 	* imaprefs.c: updates for thread-06.txt
@@ -3467,7 +3471,7 @@
 	when quota is about to be exceeded.
 
 1.3.0
-	
+
 2000-12-22  Mr. Sam  <mrsam@courier-mta.com>
 
 	* reftest.c: fix dependency on qsort order.
@@ -3644,7 +3648,7 @@
      a subject header.
 
      Fixed a typo in IMAP_CAPABILITY -- should be THREAD= not THREAD-, oops.
-	
+
 0.99 SSL related bug fixes.
 
      Option to use IMAP STARTTLS instead of IMAP over SSL.
@@ -3703,7 +3707,7 @@
      Added a FAQ.
      Found and fixed a potential crash caused by messages with corrupted
      MIME headers.
-	
+
 0.29-30 mysql patch applied.  Fixed irrelevant typo in maildir_folderdir().
      authldap failed init bug fix.
 
@@ -3773,7 +3777,7 @@
      of framework to support additional SASL forms of authentication.
      Completed implementation of FETCH parameters that were left in a TO DO
      state.  Gave up, and made LIST=LSUB, for all intents and purposes.
-	
+
 0.19 Added CRAM-MD5 support.  Changed location of some installed files, in
      order to better comply with common GNU standards.  Take care when
      upgrading:

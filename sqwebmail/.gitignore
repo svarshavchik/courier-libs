@@ -3,12 +3,14 @@
 /TIMEZONELIST
 /TODO
 /cleancache.pl
+/cron.cmd
 /htmllibdir.h
 /ldapaddressbook.dist
 /ldapsearch
 /sendit.sh
 /showmsg2html
 /sqwebmail
+/sqwebmail.msg
 /sqwebmaild
 /sqwebmaild.dist
 /sqwebpasswd

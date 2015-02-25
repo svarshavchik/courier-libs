@@ -43,7 +43,7 @@
     <para>
       The
       <ulink url="couriertcpd.html"><citerefentry><refentrytitle>couriertcpd</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> manual page
-      describes the general format of the access file.</para>
+      describes the general format of access files.</para>
 
 
     <refsect2>
