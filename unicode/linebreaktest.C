@@ -1,5 +1,5 @@
 #include	"unicode_config.h"
-#include	"unicode.h"
+#include	"courier-unicode.h"
 
 #include	<iostream>
 #include	<fstream>
@@ -29,7 +29,7 @@ static void testsuite()
 
 		if (std::getline(fp, buf).eof() && buf.empty())
 			break;
-	       
+
 		++linenum;
 
 		buf.erase(std::find(buf.begin(), buf.end(), '#'), buf.end());
