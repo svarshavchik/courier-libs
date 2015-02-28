@@ -14,7 +14,7 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/time.h>
-#include	<unicode.h>
+#include	<courier-unicode.h>
 #include	"gpg.h"
 #include	"gpglib.h"
 

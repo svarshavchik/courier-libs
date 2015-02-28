@@ -10,7 +10,7 @@
 #include "structure.H"
 #include "rfcaddr.H"
 #include "rfc2047decode.H"
-#include "unicode/unicode.h"
+#include "unicode/courier-unicode.h"
 
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc822hdr.h"

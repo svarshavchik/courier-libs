@@ -18,13 +18,13 @@ libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.c gpglib.h\
 
 testgpg_SOURCES=testgpg.c
 testgpg_DEPENDENCIES=libgpg.la ../numlib/libnumlib.la
-testgpg_LDADD=$(testgpg_DEPENDENCIES) -lunicode
+testgpg_LDADD=$(testgpg_DEPENDENCIES) -lcourier-unicode
 testgpg_LDFLAGS=-static
 
 mimegpg_SOURCES=mimegpg.c
 mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 		../rfc822/libencode.la ../numlib/libnumlib.la \
-		-lunicode
+		-lcourier-unicode
 mimegpg_DEPENDENCIES=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la\
 		../rfc822/libencode.la ../numlib/libnumlib.la
 BUILT_SOURCES=gpg.h mimegpg.html mimegpg.1

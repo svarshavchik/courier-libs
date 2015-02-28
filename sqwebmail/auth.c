@@ -39,7 +39,7 @@
 extern int check_sqwebpass(const char *);
 
 extern char *sqwebmail_content_charset, *sqwebmail_system_charset;
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 const char *myhostname()
 {

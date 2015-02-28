@@ -15,7 +15,7 @@
 #include	<ctype.h>
 #include	"rfc2045.h"
 #include	"rfc822/rfc822.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 /*
 ** Deallocate a link list of rfc2231param structures.

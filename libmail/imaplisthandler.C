@@ -8,7 +8,7 @@
 #include "imapfolders.H"
 #include "smaplist.H"
 #include "misc.H"
-#include "unicode/unicode.h"
+#include "unicode/courier-unicode.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

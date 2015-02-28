@@ -39,7 +39,7 @@
 
 #include	<stdlib.h>
 
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 struct filter_info {
 	unicode_convert_handle_t handle;

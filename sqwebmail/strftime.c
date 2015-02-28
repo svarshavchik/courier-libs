@@ -4,7 +4,7 @@
 #include	<string.h>
 #include	<time.h>
 #include	"sqwebmail.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 extern const char *sqwebmail_system_charset;
 extern const char *sqwebmail_content_charset;

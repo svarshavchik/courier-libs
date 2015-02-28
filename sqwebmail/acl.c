@@ -56,7 +56,7 @@
 #include	<utime.h>
 #endif
 
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 #include	"strftime.h"
 

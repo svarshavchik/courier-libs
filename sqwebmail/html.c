@@ -8,7 +8,7 @@
 
 #include "html.h"
 
-#include <unicode.h>
+#include <courier-unicode.h>
 #include "rfc2045/rfc2045.h"
 #include <stdlib.h>
 #include <string.h>

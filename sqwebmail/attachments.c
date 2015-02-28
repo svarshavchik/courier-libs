@@ -45,7 +45,7 @@
 #include	"maildir/maildirmisc.h"
 
 #include	"htmllibdir.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 extern char *newmsg_alladdrs(FILE *);
 extern void newmsg_copy_content_headers(FILE *fp);

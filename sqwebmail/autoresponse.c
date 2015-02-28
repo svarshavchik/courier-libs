@@ -10,7 +10,7 @@
 #include	"autoresponse.h"
 #include	"maildir/autoresponse.h"
 #include	"mailfilter.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 #include	"sqwebmail.h"
 #include	"htmllibdir.h"
 #include	"maildir.h"

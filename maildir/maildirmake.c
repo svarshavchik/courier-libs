@@ -27,7 +27,7 @@
 #include	"maildirmisc.h"
 #include	"maildirsharedrc.h"
 #include	"maildirquota.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 static void usage()
 {

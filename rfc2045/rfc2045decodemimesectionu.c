@@ -5,7 +5,7 @@
 
 #include "rfc2045_config.h"
 #include	"rfc2045.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 #include	<stdio.h>
 #include	<unistd.h>
 #include	<iconv.h>

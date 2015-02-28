@@ -9,7 +9,7 @@
 
 #include "msg2html.h"
 #include "buf.h"
-#include <unicode.h>
+#include <courier-unicode.h>
 #include "numlib/numlib.h"
 #include "gpglib/gpglib.h"
 #include "cgi/cgi.h"

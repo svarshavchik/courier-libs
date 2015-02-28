@@ -8,7 +8,7 @@
 #undef	VERSION
 #include	"config.h"
 #endif
-#include	<unicode.h>
+#include	<courier-unicode.h>
 /*
 ** Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
 ** distribution information.

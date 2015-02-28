@@ -1,3 +1,7 @@
+2015-02-28  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Update to courier-unicode 1.2.
+
 2013-02-20  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* rfc2047.c, rfc2047u.c: workaround for invalid utf-8 input making
@@ -173,7 +177,7 @@
 	(rfc2047_encode_callback): New argument: qp_allow - function that
 	indicates acceptable characters in QP-encoded words.
 	(rfc2047_encode_str): Ditto.
-	(rfc2047_qp_allow_any, rfc2047_qp_allow_comment) 
+	(rfc2047_qp_allow_any, rfc2047_qp_allow_comment)
 	(rfc2047_qp_allow_word): Possible arguments to qp_allow for various
 	situations.
 

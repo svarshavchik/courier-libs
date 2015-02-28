@@ -8,7 +8,7 @@
 #include	"encode.h"
 #include	<string.h>
 #include	<stdlib.h>
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 static const char *libmail_encode_autodetect(int use7bit,
 					     int (*func)(void *), void *arg,

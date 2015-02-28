@@ -28,7 +28,7 @@
 #include	"gpglib/gpglib.h"
 #include	"http11/http11.h"
 #include	"htmllibdir.h"
-#include	<unicode.h>
+#include	<courier-unicode.h>
 #include	"courierauth.h"
 
 #include	<stdlib.h>

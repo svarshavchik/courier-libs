@@ -8,7 +8,7 @@
 #include "liblock/config.h"
 #include "liblock/liblock.h"
 #include "maildir/maildirmisc.h"
-#include <unicode.h>
+#include <courier-unicode.h>
 #include "numlib/numlib.h"
 #include <string.h>
 #include <stdlib.h>

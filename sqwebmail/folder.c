@@ -68,7 +68,7 @@
 #endif
 #include	<errno.h>
 
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 #include	<unistd.h>
 #if HAVE_WCHAR_H

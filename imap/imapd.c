@@ -85,7 +85,7 @@
 #include	"maildir/maildirinfo.h"
 #include	"maildir/loginexec.h"
 
-#include	<unicode.h>
+#include	<courier-unicode.h>
 #include	"maildir/maildirkeywords.h"
 #include	"courierauth.h"
 

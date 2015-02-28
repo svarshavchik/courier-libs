@@ -35,7 +35,7 @@ extern void output_attrencoded_oknl_fp(const char *, FILE *);
 
 extern const char *sqwebmail_content_charset;
 
-#include	<unicode.h>
+#include	<courier-unicode.h>
 
 void	ldaplist()
 {

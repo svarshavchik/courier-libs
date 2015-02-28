@@ -30,7 +30,7 @@ libmdcommon_la_LIBADD=../maildir/libmaildir.la \
 	../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la \
 	../numlib/libnumlib.la ../liblock/liblock.la \
-	$(DBLIB) -lunicode
+	$(DBLIB) -lcourier-unicode
 libmdcommon_la_LDFLAGS=-static
 
 
@@ -62,7 +62,7 @@ mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB)
 mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
-	../numlib/libnumlib.la $(DBLIB) -lunicode
+	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode
 mailbot_LDFLAGS = -static
 
 if HAVE_LIBIDN

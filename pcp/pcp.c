@@ -29,7 +29,7 @@
 #include <rfc822/rfc822hdr.h>
 #include <rfc2045/rfc2045.h>
 #include <rfc2045/rfc2045charset.h>
-#include <unicode.h>
+#include <courier-unicode.h>
 #include <numlib/numlib.h>
 
 #define PCP_ERRMSG(s) gettext(s)

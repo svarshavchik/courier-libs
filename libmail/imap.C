@@ -17,7 +17,7 @@
 #include "misc.H"
 #include "genericdecode.H"
 
-#include <unicode/unicode.h>
+#include <unicode/courier-unicode.h>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>

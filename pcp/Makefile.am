@@ -28,7 +28,7 @@ pcp_SOURCES=pcp.c
 pcp_DEPENDENCIES=libpcp.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 	../numlib/libnumlib.la
 
-pcp_LDADD=$(pcp_DEPENDENCIES) -lunicode @LIBINTL@ @EFENCE@ @NETLIBS@
+pcp_LDADD=$(pcp_DEPENDENCIES) -lcourier-unicode @LIBINTL@ @EFENCE@ @NETLIBS@
 
 pcpd_SOURCES=pcpd.c pcpdauth.c pcpdauth.h pcpdauthme.c pcpdauthtoken.c \
 	pcpdauthtoken.h pcpdtimer.c pcpdtimer.h
@@ -41,7 +41,7 @@ COMMONLIBS=libpcp.la ../maildir/libmaildir.la \
 	../liblock/liblock.la
 
 pcpd_DEPENDENCIES=$(COMMONLIBS)
-pcpd_LDADD=$(COMMONLIBS) @LDAUTH@ -lunicode -lcourierauth @LIBINTL@ @EFENCE@ @NETLIBS@
+pcpd_LDADD=$(COMMONLIBS) @LDAUTH@ -lcourier-unicode -lcourierauth @LIBINTL@ @EFENCE@ @NETLIBS@
 
 calendardir.h: config.status
 	echo '#define CALENDARDIR "$(calendardir)"' >calendardir.h
