@@ -5,7 +5,7 @@
 */
 
 #include	"unicode_config.h"
-#include	"unicode.h"
+#include	"courier-unicode.h"
 #include "scriptstab.h"
 
 unicode_script_t unicode_script(unicode_char a)

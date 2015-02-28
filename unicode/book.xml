@@ -91,7 +91,7 @@ See COPYING for distribution information.
     </para>
 
     <para>
-      To use the library, <quote>#include &lt;unicode.h&gt;</quote> and link
+      To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link
       with <literal>-lunicode</literal>.
       The starting point is
       <link linkend="courier-unicode">
@@ -126,7 +126,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <programlisting>
-#include &lt;unicode.h&gt;</programlisting>
+#include &lt;courier-unicode.h&gt;</programlisting>
 	</refsynopsisdiv>
 	<refsect1>
 	  <title>DESCRIPTION</title>
@@ -142,7 +142,7 @@ See COPYING for distribution information.
 	      text in a given character set to unicode. Any character set
 	      displayed by <command>iconv --list</command> can be specified
 	      for the corresponding character set parameter. Additionally,
-	      <filename>unicode.h</filename> defines a special character
+	      <filename>courier-unicode.h</filename> defines a special character
 	      string <literal>unicode_x_imap_modutf7</literal> that specifies
 	      the pseudo-character set for the modified-UTF7
 	      encoding used in IMAP. This string can also be appended by
@@ -239,7 +239,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;
 
 	    extern const char unicode_u_ucs4_native[];
 
@@ -615,7 +615,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>const char *<function>unicode_default_chset</function></funcdef>
 	      <void />
@@ -660,7 +660,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_char <function>unicode_html40ent_lookup</function></funcdef>
               <paramdef>const char *<parameter>entity</parameter></paramdef>
@@ -712,7 +712,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>int <function>unicode_isspace</function></funcdef>
               <paramdef>unicode_char <parameter>c</parameter></paramdef>
@@ -762,7 +762,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>int <function>unicode_grapheme_break</function></funcdef>
               <paramdef>unicode_char <parameter>a</parameter></paramdef>
@@ -816,7 +816,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_script_t <function>unicode_script</function></funcdef>
               <paramdef>unicode_char <parameter>ch</parameter></paramdef>
@@ -872,7 +872,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_lb_info_t <function>unicode_lb_init</function></funcdef>
               <paramdef>int (*<parameter>cb_func</parameter>)(int, void *)</paramdef>
@@ -1196,7 +1196,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_wb_info_t <function>unicode_wb_init</function></funcdef>
               <paramdef>int (*<parameter>cb_func</parameter>)(int, void *)</paramdef>
@@ -1406,7 +1406,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_char <function>unicode_uc</function></funcdef>
               <paramdef>unicode_char <parameter>c</parameter></paramdef>
@@ -1522,7 +1522,7 @@ See COPYING for distribution information.
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;
 
 extern const char unicode::ucs_4[];
 extern const char unicode::ucs_2[];
@@ -1661,7 +1661,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert_tocase</function></funcdef>
@@ -1751,7 +1751,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>output_iter_t <function>unicode::iconvert::fromu::convert</function></funcdef>
@@ -1848,7 +1848,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>output_iter_t <function>convert</function></funcdef>
@@ -1951,7 +1951,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	<refsynopsisdiv>
 	  <programlisting>
-#include &lt;unicode.h&gt;
+#include &lt;courier-unicode.h&gt;
 
 class linebreak : public unicode::linebreak_callback_base {
 
@@ -2148,7 +2148,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	<refsynopsisdiv>
 	  <programlisting>
-#include &lt;unicode.h&gt;
+#include &lt;courier-unicode.h&gt;
 
 class wordbreak : public unicode::wordbreak_callback_base {
 

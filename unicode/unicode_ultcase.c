@@ -5,7 +5,7 @@
 */
 
 #include "unicode_config.h"
-#include "unicode.h"
+#include "courier-unicode.h"
 
 extern const unsigned unicode_case_hash;
 extern const unicode_char unicode_case_tab[][4];

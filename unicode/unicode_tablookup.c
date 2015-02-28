@@ -5,7 +5,7 @@
 */
 
 #include	"unicode_config.h"
-#include	"unicode.h"
+#include	"courier-unicode.h"
 
 #define BLOCK_SIZE	256
 

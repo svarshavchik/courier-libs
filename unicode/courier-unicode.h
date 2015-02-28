@@ -1,5 +1,5 @@
-#ifndef	unicode_h
-#define	unicode_h
+#ifndef	courier_unicode_h
+#define	courier_unicode_h
 
 /*
 ** Copyright 2000-2015 Double Precision, Inc.

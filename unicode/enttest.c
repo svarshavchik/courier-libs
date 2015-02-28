@@ -1,5 +1,5 @@
 #include	"unicode_config.h"
-#include	"unicode.h"
+#include	"courier-unicode.h"
 
 #include	<string.h>
 #include	<stdio.h>

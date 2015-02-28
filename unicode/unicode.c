@@ -5,7 +5,7 @@
 */
 
 #include	"unicode_config.h"
-#include	"unicode.h"
+#include	"courier-unicode.h"
 #include	<string.h>
 #include	<ctype.h>
 #include	<stdlib.h>

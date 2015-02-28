@@ -1,3 +1,8 @@
+2015-02-27  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* courier-unicode: Rename unicode.h, library name, to avoid name
+	clashing with some old, forgotten, Gnome library.
+
 2015-01-19  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* all: rebased against Unicode 7. Added unicode_script(), tr24

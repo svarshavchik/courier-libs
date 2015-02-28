@@ -4,7 +4,7 @@
 **
 */
 
-#include "unicode.h"
+#include "courier-unicode.h"
 
 const unsigned unicode_case_hash=2048;
 /* unicode_case_maxbucket=5*/
