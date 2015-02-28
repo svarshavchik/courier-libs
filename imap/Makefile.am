@@ -138,6 +138,7 @@ courierpop3d.html: courierpop3d.html.in
 courierpop3d.8: courierpop3d.8.in
 	./config.status --file=courierpop3d.8
 
+BUILT_SOURCES += imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
 if HAVE_SGML
 
 GITFILES=imapd.dist.in imapd-ssl.dist.in pop3d.dist.in pop3d-ssl.dist.in
