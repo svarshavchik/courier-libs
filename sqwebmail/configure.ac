@@ -350,7 +350,7 @@ AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE,
 
 AC_ARG_ENABLE(bannerprog,
 	[  --enable-bannerprog=prog   Program which will generate a banner.],
-	[ 
+	[
 		AC_DEFINE_UNQUOTED(BANNERPROG, "$enableval",
 		[ External banner generating program ])
 		 ])
@@ -455,6 +455,20 @@ AC_ARG_WITH(minpasslen,
 AC_SUBST(MINPASSLEN)
 AC_DEFINE_UNQUOTED(MINPASSLEN, $MINPASSLEN,
 			     [ Minimum length of a password ])
+
+
+AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
+
+# This gets built by the make rule, and is not in the git repo
+
+for f in sqwebmaild.dist.in
+do
+    if test ! -f "$srcdir/$f"
+    then
+	cp -p "$srcdir/$f.git" "$srcdir/$f"
+	touch "$srcdir/$f.git"
+    fi
+done
 
 AC_OUTPUT(Makefile sendit.sh cleancache.pl sqwebmaild.dist)
 

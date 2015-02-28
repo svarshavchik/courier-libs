@@ -1,0 +1,15 @@
+##VERSION: $Id:$
+#
+# ldapaddressbook created from ldapaddressbook.dist by sysconftool
+#
+# Do not alter lines that begin with ##, they are used when upgrading
+# this configuration.
+#
+# This is a list of some public LDAP address books.  This is a global
+# list -- all clients will have this list by default.
+#
+# Example:
+#
+# YourOrganizationName<tab>ldap.example.com<tab>ou=member_directory,o=example.com<tab>ou=people,o=example.com
+#
+##NAME: ldapaddressbook:0

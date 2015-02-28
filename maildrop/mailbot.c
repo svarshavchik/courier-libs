@@ -576,6 +576,8 @@ FILE *find_draft(const char *maildirfolder)
 	static const char * const newcur[2]={"new", "cur"};
 	int i;
 
+	draft_stat.st_mtime=0;
+
 	for (i=0; i<2; ++i)
 	{
 		char *dirbuf=malloc(strlen(maildirfolder)+10);
@@ -713,7 +715,7 @@ int main(int argc, char **argv)
 				perror("malloc");
 				exit(1);
 			}
-			
+
 			f->n=argv[argn-1]+11;
 			f->v=argv[argn];
 

@@ -82,6 +82,8 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_SYS_LARGEFILE
 
+AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
+
 dnl Checks for library functions.
 
 AC_OUTPUT(Makefile)

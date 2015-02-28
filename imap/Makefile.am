@@ -139,6 +139,15 @@ courierpop3d.8: courierpop3d.8.in
 	./config.status --file=courierpop3d.8
 
 if HAVE_SGML
+
+GITFILES=imapd.dist.in imapd-ssl.dist.in pop3d.dist.in pop3d-ssl.dist.in
+
+BUILT_SOURCES += $(GITFILES)
+
+$(GITFILES): %: %.git
+	perl -p -e 's/\$$Id:[^\$$]*/\$$Id: '"`git log --pretty=format:\"%H\" -n 1 -- $<`-`date +%Y%m%d%H%M%S`/" <$< >$@.tmp
+	mv -f $@.tmp $@
+
 imapd.html.in: imapd.sgml ../docbook/sgml2html
 	../docbook/sgml2html imapd.sgml imapd.html.in
 

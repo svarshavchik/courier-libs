@@ -52,7 +52,7 @@ SSLPIDFILE=@piddir@/pop3d-ssl.pid
 
 ##NAME: SSLLOGGEROPTS:0
 #
-# courierlogger(1) options.                                        
+# courierlogger(1) options.
 #
 
 SSLLOGGEROPTS="-name=pop3d-ssl"
@@ -116,7 +116,7 @@ COURIERTLS=@bindir@/couriertls
 # documentation.
 
 ##NAME: TLS_PROTOCOL:0
-# 
+#
 # TLS_PROTOCOL sets the protocol version.  The possible versions are:
 #
 # OpenSSL:

@@ -118,6 +118,7 @@ cthreadinfo_t	*i= c->myinfo;
 		if (PTHREAD_CHK(pthread_cond_signal( &i->newtask_cond )))
 			perror("pthread_cond_signal");
 	}
+	return 0;
 }
 
 static int initcondmutex(pthread_cond_t *c, pthread_mutex_t *m)
@@ -258,7 +259,7 @@ cthreadinfo_t *cit;
 		--i;
 		if (PTHREAD_CHK(pthread_cancel(cit->threads[i].pt)))
 			perror("pthread_cancel");
-		
+
 		if (PTHREAD_CHK(pthread_join(cit->threads[i].pt, NULL)))
 			perror("pthread_join");
 

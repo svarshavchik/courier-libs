@@ -313,6 +313,17 @@ fi
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
+# This gets built by the make rule, and is not in the git repo
+
+for f in imapd.dist.in imapd-ssl.dist.in pop3d.dist.in pop3d-ssl.dist.in
+do
+    if test ! -f "$srcdir/$f"
+    then
+	cp -p "$srcdir/$f.git" "$srcdir/$f"
+	touch "$srcdir/$f.git"
+    fi
+done
+
 AC_SUBST(target_cpu)
 AC_SUBST(target_vendor)
 AC_SUBST(target_os)

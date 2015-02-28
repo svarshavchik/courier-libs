@@ -56,6 +56,16 @@ showmsg2html_LDFLAGS=-static
 ISPELLSOURCES=sqispell.c ispell.c ispell.h
 
 BUILT_SOURCES=htmllibdir.h
+if HAVE_SGML
+
+GITFILES=sqwebmaild.dist.in
+
+BUILT_SOURCES += $(GITFILES)
+
+$(GITFILES): %: %.git
+	perl -p -e 's/\$$Id:[^\$$]*/\$$Id: '"`git log --pretty=format:\"%H\" -n 1 -- $<`-`date +%Y%m%d%H%M%S`/" <$< >$@.tmp
+	mv -f $@.tmp $@
+endif
 
 EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	 sqwebmail-system-auth2.pamconf\
