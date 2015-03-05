@@ -62,7 +62,7 @@ static const char * const zonenames[] = {
 	"MST","MDT",
 	"PST","PDT",
 	"Z",
-	"A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", 
+	"A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M",
 	"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y",
 	NULL};
 
@@ -122,13 +122,15 @@ static int parsetime(const char **t)
 	return (h * 60 * 60 + m * 60 + s);
 }
 
-time_t rfc822_parsedt(const char *rfcdt)
+int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
 {
-unsigned day=0, mon=0, year;
-int secs;
-int offset;
-time_t t;
-unsigned y;
+	unsigned day=0, mon=0, year;
+	int secs;
+	int offset;
+	time_t t;
+	unsigned y;
+
+	*tret=0;
 
 	/* Ignore day of the week.  Tolerate "Tue, 25 Feb 1997 ... "
 	** without the comma.  Tolerate "Feb 25 1997 ...".
@@ -136,10 +138,10 @@ unsigned y;
 
 	while (!day || !mon)
 	{
-		if (!*rfcdt)	return (0);
+		if (!*rfcdt)	return (-1);
 		if (my_isalpha(*rfcdt))
 		{
-			if (mon)	return (0);
+			if (mon)	return (-1);
 			mon=parsekey(&rfcdt, mnames);
 			if (!mon)
 				while (*rfcdt && my_isalpha(*rfcdt))
@@ -149,9 +151,9 @@ unsigned y;
 
 		if (my_isdigit(*rfcdt))
 		{
-			if (day)	return (0);
+			if (day)	return (-1);
 			day=parsedig(&rfcdt);
-			if (!day)	return (0);
+			if (!day)	return (-1);
 			continue;
 		}
 		++rfcdt;
@@ -159,7 +161,7 @@ unsigned y;
 
 	while (*rfcdt && my_isspace(*rfcdt))
 		++rfcdt;
-	if (!my_isdigit(*rfcdt))	return (0);
+	if (!my_isdigit(*rfcdt))	return (-1);
 	year=parsedig(&rfcdt);
 	if (year < 70)	year += 2000;
 	if (year < 100)	year += 1900;
@@ -168,10 +170,10 @@ unsigned y;
 		++rfcdt;
 
 	if (day == 0 || mon == 0 || mon > 12 || day > mdays(mon,year))
-		return (0);
+		return (-1);
 
 	secs=parsetime(&rfcdt);
-	if (secs < 0)	return (0);
+	if (secs < 0)	return (-1);
 
 	offset=0;
 
@@ -210,8 +212,8 @@ unsigned y;
 		}
 	}
 
-	if (year < 1970)	return (0);
-	if (year > 9999)	return (0);
+	if (year < 1970)	return (-1);
+	if (year > 9999)	return (-1);
 
 	t=0;
 	for (y=1970; y<year; y++)
@@ -232,7 +234,8 @@ unsigned y;
 	for (y=1; y < mon; y++)
 		t += mdays(y, year) * 24 * 60 * 60;
 
-	return ( t + (day-1) * 24 * 60 * 60 + secs - offset );
+	*tret = ( t + (day-1) * 24 * 60 * 60 + secs - offset );
+	return 0;
 }
 
 const char *rfc822_mkdt(time_t t)

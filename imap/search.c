@@ -215,12 +215,12 @@ int	rc;
 		{
 			/* No, search the headers then */
                         /* struct        rfc2045 *rfcp=rfc2045_fromfp(fp); */
-                        struct        rfc2045 *rfcp=rfc2045header_fromfp(fp); 
+                        struct        rfc2045 *rfcp=rfc2045header_fromfp(fp);
 
 			fill_search_header(sihead, charset, rfcp, fp,
 					   current_maildir_info.msgs+i);
 			rc=search_evaluate(si);
-                        rfc2045_free(rfcp); 
+                        rfc2045_free(rfcp);
 
 			if (rc < 0)
 			{
@@ -302,16 +302,16 @@ unsigned long i, j;
 ** Use convenient RFC822 functions for that purpose.
 */
 
-static time_t decode_date(char *p)
+static int decode_date(char *p, time_t *tret)
 {
-char	*s=malloc(strlen(p)+sizeof(" 00:00:00"));
-unsigned        i;
-time_t	t;
+	char	*s=malloc(strlen(p)+sizeof(" 00:00:00"));
+	unsigned        i;
+	int ret;
 
 	if (!s)	write_error_exit(0);
 
         /* Convert to format rfc822_parsedt likes */
- 
+
         for (i=1; p[i] != ' '; i++)
         {
                 if (!p[i])	break;
@@ -324,9 +324,9 @@ time_t	t;
 			s[i]=' ';
 	}
 
-	t=rfc822_parsedt(s);
+	ret=rfc822_parsedate_chk(s, tret);
 	free(s);
-	return (t);
+	return (ret);
 }
 
 /* Given a time_t that falls on, say, 3-Aug-1999 9:50:43 local time,
@@ -345,7 +345,10 @@ char	buf1[60], buf2[80];
 	strcat(buf2, " ");
 	strcat(buf2, strtok(0, " "));
 	strcat(buf2, " 00:00:00");
-	return (rfc822_parsedt(buf2));
+
+	rfc822_parsedate_chk(buf2, &t);
+
+	return t;
 }
 
 static char *timestamp_for_sorting(time_t t)
@@ -474,27 +477,30 @@ static void fill_search_quick(struct searchinfo *p,
 	case search_before:
 		p->value=0;
 		{
-		time_t t=decode_date(p->as);
+			time_t t;
 
-			if (t && timestamp_to_day(stat_buf->st_mtime) < t)
+			if (decode_date(p->as, &t) == 0 &&
+			    timestamp_to_day(stat_buf->st_mtime) < t)
 				p->value=1;
 		}
 		break;
 	case search_since:
 		p->value=0;
 		{
-		time_t t=decode_date(p->as);
+			time_t t;
 
-			if (t && timestamp_to_day(stat_buf->st_mtime) >= t)
+			if (decode_date(p->as, &t) == 0 &&
+			    timestamp_to_day(stat_buf->st_mtime) >= t)
 				p->value=1;
 		}
 		break;
 	case search_on:
 		p->value=0;
 		{
-		time_t t=decode_date(p->as);
+			time_t t;
 
-			if (t && timestamp_to_day(stat_buf->st_mtime) == t)
+			if (decode_date(p->as, &t) == 0 &&
+			    timestamp_to_day(stat_buf->st_mtime) == t)
 				p->value=1;
 		}
 		break;
@@ -787,8 +793,9 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 			if (isdate == 0 && sip->as == 0)
 			{
-				time_t msg_time=rfc822_parsedt(value);
+				time_t msg_time;
 
+				rfc822_parsedate_chk(value, &msg_time);
 				sip->as=timestamp_for_sorting(msg_time);
 			}
 			break;
@@ -802,10 +809,11 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 			if (isdate == 0)
 			{
-				time_t given_time=decode_date(sip->as);
-				time_t msg_time=rfc822_parsedt(value);
+				time_t given_time;
+				time_t msg_time;
 
-				if (given_time == 0 || msg_time == 0)
+				if (decode_date(sip->as, &given_time)
+				    || rfc822_parsedate_chk(value, &msg_time))
 					break;
 
 				msg_time=timestamp_to_day(msg_time);

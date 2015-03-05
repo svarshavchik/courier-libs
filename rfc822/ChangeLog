@@ -1,3 +1,8 @@
+2015-03-03  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Replace rfc822_parsedt with rfc822_parsedate_chk(), returning
+	0 for ok, -1 for an error parsing the date string.
+
 2015-02-28  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Update to courier-unicode 1.2.

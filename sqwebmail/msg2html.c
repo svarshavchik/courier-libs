@@ -215,7 +215,7 @@ static void show_email_header(const char *h)
 }
 
 static void print_header_uc(struct msg2html_info *info, char *h)
-{	
+{
 	header_uc(h);
 
 	printf("<tr valign=\"baseline\"><th align=\"right\" class=\"message-rfc822-header-name\">");
@@ -588,9 +588,12 @@ off_t	pos;
 
 	if (save_date)
 	{
-		time_t	t=rfc822_parsedt(save_date);
-		struct tm *tmp=t ? localtime(&t):0;
+		time_t	t;
+		struct tm *tmp=0;
 		char	date_buf[256];
+
+		if (rfc822_parsedate_chk(save_date, &t) == 0)
+			tmp=localtime(&t);
 
 		if (tmp)
 		{
@@ -780,7 +783,7 @@ int gpg_status;
 		{
 			if (q->isdummy)	continue;
 
-			
+
 			if (nextpart.idnum == 1)
 			{
 				printf("<blockquote class=\"%s\">",
@@ -2796,7 +2799,7 @@ msg2html_textplain_start(const char *message_charset,
 {
 	struct msg2html_textplain_info *tinfo=
 		malloc(sizeof(struct msg2html_textplain_info));
-			      
+
 	memset(tinfo, 0, sizeof(*tinfo));
 
 	tinfo->flowed=isflowed;
@@ -3018,7 +3021,7 @@ static int download_func(const char *, size_t, void *);
 
 static void disposition_attachment(FILE *fp, const char *p, int attachment)
 {
-	fprintf(fp, "Content-Disposition: %s; filename=\"", 
+	fprintf(fp, "Content-Disposition: %s; filename=\"",
 		attachment ? "attachment":"inline");
 	while (*p)
 	{

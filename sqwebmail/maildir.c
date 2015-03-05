@@ -325,7 +325,7 @@ static char	datebuf[40];
 const char *date_yfmt;
 const char *date_wfmt;
 
-                      
+
 	date_yfmt = getarg ("DSPFMT_YDATE");
 	if (*date_yfmt == 0)
 		date_yfmt = "%d %b %Y";
@@ -1224,7 +1224,7 @@ static void maildir_checknew(const char *folder, const char *dir)
 				/* Does The Right Thing if this is a shared
 				** folder
 				*/
-				
+
 			free(p);
 		}
 	}
@@ -1303,7 +1303,7 @@ void maildir_autopurge()
 		unlink(filename);
 		free(filename);
 
-		filename=alloc_filename(dire->d_name, "", 
+		filename=alloc_filename(dire->d_name, "",
 					MAILDIRCURCACHE "." DBNAME);
 		if (!filename)	enomem();
 		unlink(filename);
@@ -2391,7 +2391,7 @@ static int do_search_utf8(struct searchresults *res)
 	if (res->finished)
 		return 1;
 
-	return 0;		
+	return 0;
 }
 
 static int do_search(const char *str, size_t n, void *arg)
@@ -2695,7 +2695,7 @@ static void dodirscan(const char *folder,
 
 	fprintf(fp, "%s", cntbuf);
 	fclose(fp);
-	
+
 	if (rename(createInfo.tmpname, cntfilename) < 0 ||
 	    stat(cntfilename, &c_stat) < 0)
 	{
@@ -2975,9 +2975,9 @@ int	fd;
 
 		if (strcmp(hdr, "date") == 0 && mi->date_s == 0)
 		{
-		time_t	t=rfc822_parsedt(val);
+			time_t t;
 
-			if (t)
+			if (rfc822_parsedate_chk(val, &t) == 0)
 			{
 				mi->date_n=t;
 				mi->date_s=strdup(displaydate(mi->date_n));
@@ -3784,7 +3784,7 @@ int	maildir_closemsg(int n,	/* File descriptor */
 	char	*newname;
 	struct	stat	stat_buf;
 
- 
+
 	writeflush(n);	/* If there's still anything in the buffer */
 	if (fstat(n, &stat_buf))
 	{
@@ -3849,7 +3849,7 @@ int	maildir_closemsg(int n,	/* File descriptor */
 
 	if (isok)
 		rename(oldname, newname);
-		
+
 	unlink(oldname);
 
 	if (isok)

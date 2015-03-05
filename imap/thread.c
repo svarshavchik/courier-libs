@@ -198,11 +198,18 @@ static void thread_os_callback(struct searchinfo *si,
 			       void *voidarg)
 {
 	if (sihead->type == search_orderedsubj)
+	{
 		/* SHOULD BE ALWAYS TRUE */
+		time_t t=0;
+
+		if (sihead->bs)
+			rfc822_parsedate_chk(sihead->bs, &t);
+
 		os_add( (struct os_struct *)voidarg,
 			isuid ? current_maildir_info.msgs[i].uid:i+1,
 			sihead->as ? sihead->as:"",
-			sihead->bs ? rfc822_parsedt(sihead->bs):0);
+			t);
+	}
 }
 
 static void printthread(struct imap_refmsg *, int);

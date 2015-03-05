@@ -523,7 +523,9 @@ static struct imap_refmsg *threadmsg_common(struct imap_refmsg *m,
 		return (0);	/* Cleanup in rfc822_threadfree() */
 
 	if (dateheader)
-		dateheader_tm=rfc822_parsedt(dateheader);
+	{
+		rfc822_parsedate_chk(dateheader, &dateheader_tm);
+	}
 
 	m->timestamp=dateheader_tm;
 
@@ -567,7 +569,7 @@ struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt)
 }
 
 /*
-** 
+**
 **       (3) Prune dummy messages from the thread tree.  Traverse each
 **        thread under the root, and for each message:
 */

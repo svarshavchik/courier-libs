@@ -84,6 +84,7 @@
 #include	"maildir/maildirkeywords.h"
 #include	"maildir/maildirinfo.h"
 #include	"maildir/loginexec.h"
+#include	"rfc822/rfc822.h"
 
 #include	<courier-unicode.h>
 #include	"maildir/maildirkeywords.h"
@@ -92,7 +93,6 @@
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
-extern time_t rfc822_parsedt(const char *);
 extern void fetchflags(unsigned long);
 extern unsigned long header_count, body_count;
 extern time_t start_time;
@@ -175,7 +175,7 @@ void quotainfo_out(const char* qroot)
 	char    quotabuf[QUOTABUFSIZE];
 	char	qresult[200]="";
 	char	qbuf[200];
-	
+
 	if ((maildir_getquota(".", quotabuf) == 0) && (strcmp(qroot,"ROOT") == 0))
 	{
 		struct maildirsize quotainfo;
@@ -186,7 +186,7 @@ void quotainfo_out(const char* qroot)
 			quotainfo.quota.nbytes=quotainfo.size.nbytes=
 				quotainfo.quota.nmessages=
 				quotainfo.size.nmessages=0;
-			
+
 		if (quotainfo.quota.nbytes > 0)
 		{
 			sprintf(qbuf,"STORAGE %ld %ld",
@@ -403,7 +403,7 @@ char *decode_valid_mailbox(const char *p, int autosubscribe)
 	return (NULL);
 }
 
-static time_t decode_date_time(char *p)
+static int decode_date_time(char *p, time_t *tret)
 {
 unsigned	i;
 
@@ -414,7 +414,7 @@ unsigned	i;
 		if (!p[i])	return (0);
 		if (p[i] == '-')	p[i]=' ';
 	}
-	return (rfc822_parsedt(p));
+	return (rfc822_parsedate_chk(p, tret));
 }
 
 int get_flagname(const char *p, struct imapflags *flags)
@@ -716,7 +716,7 @@ int     rb;
 		nbytes -= n;
 		if (p[n-1] == '\n') lastnl = 1;
 		else lastnl = 0;
-		
+
 		while (n)
 		{
 			e = memchr(p, '\r', n);
@@ -729,7 +729,7 @@ int     rb;
 				rb = fwrite(p, 1, e-p, fp);
 			}
 			else
-			{	
+			{
 				rb = fwrite(p, 1, n, fp);
 			}
 			n -= rb;
@@ -759,7 +759,7 @@ int     rb;
 	nbytes=ftell(fp);
 	if (nbytes == (unsigned long)-1 ||
 		(p=maildir_requota(newname, nbytes)) == 0)
-		
+
 	{
 		fclose(fp);
 		unlink(tmpname);
@@ -1162,7 +1162,7 @@ void doNoop(int real_noop)
 #endif
 	struct noopKeywordUpdateInfo kui;
 
-	imapscan_init(&new_maildir_info); 
+	imapscan_init(&new_maildir_info);
 
 	if (imapscan_maildir(&new_maildir_info, current_mailbox, 0,
 			     current_mailbox_ro, NULL))
@@ -1484,7 +1484,7 @@ static int doId()
 				writes("\" \"os-version\" \"");
 				writeqs(uts.release);
 			}
-			
+
 		}
 	}
 #endif
@@ -2782,7 +2782,7 @@ static void writeacl(const char *aclstr)
 	writeqs(p);
 	free(p);
 }
-	
+
 static int list_acl_cb(const char *ident,
 		       const maildir_aclt *acl,
 		       void *cb_arg)
@@ -3273,7 +3273,7 @@ void aclminimum(const char *identifier)
 
 	writes(*identifier == '-' ? "\"\"":ACL_ADMINISTER ACL_LOOKUP);
 	writes(" " ACL_CREATE
-	       " " ACL_EXPUNGE 
+	       " " ACL_EXPUNGE
 	       " " ACL_INSERT
 	       " " ACL_POST
 	       " " ACL_READ
@@ -3886,8 +3886,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 
 	if (curtoken->tokentype == IT_QUOTED_STRING)
 	{
-		timestamp=decode_date_time(curtoken->tokenbuf);
-		if (timestamp == 0)
+		if (decode_date_time(curtoken->tokenbuf, &timestamp))
 		{
 			libmail_kwmDestroy(keywords);
 			return (-1);
@@ -4270,7 +4269,7 @@ int	uid=0;
 		rc=mailbox_scan(reference, name,
 				list_flags,
 				list_callback, cmdbuf);
- 
+
 		free(reference);
 		free(name);
 		if (rc == 0)
@@ -4324,7 +4323,7 @@ int	uid=0;
 					     ACL_INSERT);
 				return 0;
 			}
-			
+
 			rc=append(tag, tok->tokenbuf, p);
 			free(p);
 			maildir_info_destroy(&mi);
@@ -6122,7 +6121,7 @@ int	uid=0;
 				      append_rights,
 				      ACL_INSERT ACL_DELETEMSGS
 				      ACL_SEEN ACL_WRITE);
-			
+
 			if (strchr(append_rights, ACL_INSERT[0]) == NULL)
 			{
 				writes(tag);
@@ -6334,7 +6333,7 @@ char	*p, *q;
 		*p=0;
 		p=strrchr(q, '/');
 	}
-	
+
 	if (p)
 		p[1]=0;
 	else	*q=0;
@@ -6568,14 +6567,14 @@ int main(int argc, char **argv)
 	if (!p)
 		dogethostname();
 
-	if ((p=getenv("IMAP_TRASHFOLDERNAME")) != 0 && *p) 
+	if ((p=getenv("IMAP_TRASHFOLDERNAME")) != 0 && *p)
 	{
 		trash = strdup(p);
 		dot_trash = malloc(strlen(trash) + 2);
 		dot_trash[0] = '.';
-		strcpy(&dot_trash[1], trash); 
+		strcpy(&dot_trash[1], trash);
 	}
-	
+
 #if 0
 	mdcreate("." DRAFTS);
 #endif

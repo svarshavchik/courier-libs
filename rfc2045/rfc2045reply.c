@@ -38,7 +38,7 @@ static void mksalutation_datefmt(const char *fmt_start,
 		fmt_end=fmt_start + strlen(fmt_start);
 	}
 
-	if ((t=rfc822_parsedt(date)))
+	if (rfc822_parsedate_chk(date, &t) == 0)
 	{
 		struct tm tmbuf;
 
@@ -710,7 +710,7 @@ static int mkforward(struct rfc2045_mkreplyinfo *ri)
 	if (textplain_content)
 	{
 		/* Copy original headers. */
-		
+
 		hi=rfc2045header_start(ri->src, ri->rfc2045partp);
 		for (;;)
 		{
@@ -795,7 +795,7 @@ static int mkforward(struct rfc2045_mkreplyinfo *ri)
 			rfc2045_mimepos(first_attachment, &start_pos, &end_pos,
 					&start_body,
 					&dummy, &dummy);
-			
+
 			if (SRC_SEEK(ri->src, start_pos) == (off_t)-1)
 			{
 				if (subject) free(subject);
@@ -819,7 +819,7 @@ static int mkforward(struct rfc2045_mkreplyinfo *ri)
 						&end_pos,
 						&start_body,
 						&dummy, &dummy);
-			
+
 				if (SRC_SEEK(ri->src, start_pos) == (off_t)-1)
 				{
 					if (subject) free(subject);

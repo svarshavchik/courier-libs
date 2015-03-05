@@ -136,7 +136,8 @@ char *rfc822_getaddrs_wrap(const struct rfc822a *, int);
 
 void rfc822_mkdate_buf(time_t, char *);
 const char *rfc822_mkdate(time_t);
-time_t rfc822_parsedt(const char *);
+
+int rfc822_parsedate_chk(const char *, time_t *);
 
 #define CORESUBJ_RE 1
 #define CORESUBJ_FWD 2

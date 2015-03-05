@@ -3376,9 +3376,9 @@ void smap()
 
 				if (strcmp(p, "INTERNALDATE") == 0 && q)
 				{
-					add_internaldate=rfc822_parsedt(q);
-
-					if (add_internaldate)
+					if (rfc822_parsedate_chk(q,
+								 &add_internaldate)
+					    == 0)
 						okmsg="INTERNALDATE set";
 				}
 
@@ -4359,9 +4359,8 @@ void smap()
 
 					up(p);
 
-					t=rfc822_parsedt(p+13);
-
-					if (t &&
+					if (rfc822_parsedate_chk(p+13, &t)
+					    == 0 &&
 					    (dummy=applymsgset(&setdate, &t))
 					    != 0)
 						break;
