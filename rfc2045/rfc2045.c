@@ -997,6 +997,7 @@ static void save_content_type_parameter(const char *name,
 	{
 		free(p);
 		rfc2045_enomem();
+		return;
 	}
 
 	free(p);
@@ -1076,6 +1077,7 @@ static void save_content_disposition_parameter(const char *name,
 	{
 		free(p);
 		rfc2045_enomem();
+		return;
 	}
 	free(p);
 }

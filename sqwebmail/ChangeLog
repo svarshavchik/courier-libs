@@ -1,3 +1,7 @@
+2015-04-24  Giovanni Bechis <giovanni@openbsd.org>
+
+	* maildircache.c: fix use after free.
+
 2015-03-03  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Recognize 01-Jan-1970 as a valid RFC 822 date.

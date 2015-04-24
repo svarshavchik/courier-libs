@@ -249,17 +249,18 @@ FILE	*fp;
 			exit(1);
 		}
 	}
-	free(f);
 
 	if ( fwrite(data, strlen(data), 1, fp) != 1 || fflush(fp)
 	     || ferror(fp))
 	{
 		fclose(fp);
 		unlink(f);	/* Problems */
+		free(f);
 		fprintf(stderr, "CRIT: maildircache: Cache create failure - write error.\n");
 		exit(1);
 	}
 	else	fclose(fp);
+	free(f);
 	exit(0);
 }
 
