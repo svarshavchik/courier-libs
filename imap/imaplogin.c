@@ -468,7 +468,7 @@ int main(int argc, char **argv)
 	writes("* OK [CAPABILITY ");
 	imapcapability();
 	writes("] Courier-IMAP ready. "
-	       "Copyright 1998-2011 Double Precision, Inc.  "
+	       "Copyright 1998-2015 Double Precision, Inc.  "
 	       "See COPYING for distribution information.\r\n");
 	fprintf(stderr, "DEBUG: Connection, ip=[%s]\n", ip);
 	writeflush();
@@ -705,4 +705,3 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 
 	return 0;
 }
-
