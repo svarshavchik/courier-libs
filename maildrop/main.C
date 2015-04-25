@@ -34,7 +34,7 @@
 #include	"../dbobj.h"
 
 /*
-** This switch can later be moved to config.h file with appropriate 
+** This switch can later be moved to config.h file with appropriate
 ** configure option like --with-dovecotauth or something similar
 */
 #if DOVECOTAUTH
@@ -170,7 +170,7 @@ char    hostname[256];
 
 static void copyright()
 {
-static const char msg[]="maildrop " VERSION " Copyright 1998-2005 Double Precision, Inc."
+static const char msg[]="maildrop " VERSION " Copyright 1998-2015 Double Precision, Inc."
 
 #if CRLF_TERM
 	"\r\n"
@@ -219,7 +219,7 @@ static const char msg[]="maildrop " VERSION " Copyright 1998-2005 Double Precisi
 #else
 	"\n"
 #endif
- 
+
 		;
 
 	mout << msg;

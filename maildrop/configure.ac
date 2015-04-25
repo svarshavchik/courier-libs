@@ -1,8 +1,8 @@
 dnl
-dnl Copyright 1998 - 2014 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(maildrop, 2.8.1, [courier-users@lists.sourceforge.net])
+AC_INIT(maildrop, 2.8.2, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -519,7 +519,7 @@ AC_ARG_ENABLE(trusted-groups, [  --enable-trusted-groups='...' specify groups al
     [TRUSTED_GROUPS=$enableval], [TRUSTED_GROUPS=""])
 AC_DEFINE_UNQUOTED(TRUSTED_GROUPS,"$TRUSTED_GROUPS",
 	[ List of groupnames who are allowed to use the -d option ])
-	
+
 AC_MSG_CHECKING(for UID of maildrop)
 AC_ARG_ENABLE(maildrop-uid, [  --enable-maildrop-uid=root   UID of maildrop],
     [MAILDROPUID=$enableval], [MAILDROPUID=root])
