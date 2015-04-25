@@ -1,8 +1,8 @@
 dnl
-dnl Copyright 1998 - 2013 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(sqwebmail, 5.8.1, [courier-sqwebmail@lists.sourceforge.net])
+AC_INIT(sqwebmail, 5.8.2, [courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 

@@ -1,3 +1,5 @@
+5.8.2
+
 2015-04-24  Giovanni Bechis <giovanni@openbsd.org>
 
 	* maildircache.c: fix use after free.
