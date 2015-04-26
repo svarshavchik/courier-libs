@@ -1,8 +1,10 @@
 5.8.2
 
-2015-04-24  Giovanni Bechis <giovanni@openbsd.org>
+2015-04-25  Giovanni Bechis <giovanni@openbsd.org>
 
 	* maildircache.c: fix use after free.
+
+	* mkdhparams: make compatible with libressl
 
 2015-03-03  Sam Varshavchik  <mrsam@courier-mta.com>
 

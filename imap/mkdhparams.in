@@ -7,6 +7,12 @@
 
 # Override from the environment
 
+@OPENSSL@ version | grep LibreSSL 1>/dev/null
+if test $? = 0
+then
+	LIBRESSL=1
+fi
+
 if test "$TLS_DHPARAMS" = ""
 then
 	TLS_DHPARAMS="@certsdir@/dhparams.pem"
@@ -36,9 +42,14 @@ then
 	BITS=2048
     fi
 
-    dd if=@RANDOMV@ of=$TLS_DHPARAMS.rand.tmp count=1 2>/dev/null
-    @OPENSSL@ dhparam -rand $TLS_DHPARAMS.rand.tmp -outform PEM $BITS >$TLS_DHPARAMS.tmp
-    rm -f $TLS_DHPARAMS.rand.tmp
+    if test "$LIBRESSL" = 0
+    then
+        dd if=@RANDOMV@ of=$TLS_DHPARAMS.rand.tmp count=1 2>/dev/null
+        @OPENSSL@ dhparam -rand $TLS_DHPARAMS.rand.tmp -outform PEM $BITS >$TLS_DHPARAMS.tmp
+        rm -f $TLS_DHPARAMS.rand.tmp
+    else
+        @OPENSSL@ dhparam -outform PEM $BITS >$TLS_DHPARAMS.tmp
+    fi
     mv -f $TLS_DHPARAMS.tmp $TLS_DHPARAMS
 else
     if test "$BITS" = ""
