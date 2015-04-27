@@ -7,10 +7,15 @@
 
 # Override from the environment
 
-@OPENSSL@ version | grep LibreSSL 1>/dev/null
-if test $? = 0
+if test "@ssllib@" = "openssl"
 then
-	LIBRESSL=1
+	LIBRESSL=0
+
+	@OPENSSL@ version | grep LibreSSL 1>/dev/null
+	if test $? = 0
+	then
+		LIBRESSL=1
+	fi
 fi
 
 if test "$TLS_DHPARAMS" = ""
