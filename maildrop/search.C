@@ -337,7 +337,7 @@ void Search::init_match_vars(const char *str, int nranges, int *offsets,
 			}
 		}
 
-		if (foreachp)
+		if (cnt == 0 && foreachp)
 		{
 			*foreachp += v;
 			*foreachp += '\0';
