@@ -1097,7 +1097,7 @@ static void do_output_form_loop(FILE *f)
 				c=strchr(c, '.');
 				if (c)
 				{
-					printf(sep);
+					printf("%s", sep);
 					print_safe(c+1);
 				}
 			}

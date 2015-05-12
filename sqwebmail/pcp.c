@@ -1518,7 +1518,7 @@ static void show_conflict_error(struct PCP *pcp)
 			printf("</span></td><td width=\"30\">&nbsp;</td><td width=\"100%%\"><span class=\"tt\">");
 			if (p->address && strcmp(p->address, "@"))
 			{
-				printf(getarg("CONFLICTERR2"));
+				printf("%s", getarg("CONFLICTERR2"));
 				print_safe(p->address);
 			}
 			else
