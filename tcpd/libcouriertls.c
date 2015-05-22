@@ -173,7 +173,7 @@ static int verifypeer(const struct tls_info *info, SSL *ssl)
 		}
 	}
 
-	
+
 	nentries=0;
 	if (subj)
 		nentries=X509_NAME_entry_count(subj);
@@ -569,7 +569,7 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	SSL_CTX_set_options(ctx, options);
 
 	if (!ssl_cipher_list)
-		ssl_cipher_list="SSLv3:TLSv1:HIGH:!LOW:!MEDIUM:!EXP:!NULL:!aNULL@STRENGTH";
+		ssl_cipher_list="TLSv1:HIGH:!LOW:!MEDIUM:!EXP:!NULL:!aNULL@STRENGTH";
 
 	SSL_CTX_set_cipher_list(ctx, ssl_cipher_list);
 	SSL_CTX_set_timeout(ctx, session_timeout);
@@ -1313,13 +1313,13 @@ static void dump_x509(X509 *x509,
 
 		dlen=ASN1_STRING_length(d);
 		ddata=ASN1_STRING_data(d);
-	
+
 		(*dump_func)("   ", -1, dump_arg);
 		(*dump_func)(obj_name, -1, dump_arg);
 		(*dump_func)("=", 1, dump_arg);
 		(*dump_func)((const char *)ddata, dlen, dump_arg);
 		(*dump_func)("\n", 1, dump_arg);
-		
+
 	}
 	(*dump_func)("\n", 1, dump_arg);
 

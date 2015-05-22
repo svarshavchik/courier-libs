@@ -1,3 +1,7 @@
+2015-05-22  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Drop SSLv3 from TLS_CIPHER_LIST.
+
 4.16.1
 
 2015-04-25  Giovanni Bechis <giovanni@openbsd.org>
