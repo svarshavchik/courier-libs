@@ -49,6 +49,16 @@ MAILDIRPATH=Maildir
 # initial contents copied from AUTH_MKHOMEDIR_SKEL which must be a directory,
 # typically /etc/skel.
 #
+# Note that this must be a complete home directory structure, including
+# the maildir. Typically:
+#
+# mkdir /etc/skel
+# chmod 700 /etc/skel
+# maildirmak /etc/skel/Maildir
+#
+# This directory gets copied as is, preserving each file/subdirectory's
+# permissions, with only userid/groupid changed to match the account's.
+#
 # AUTH_MKHOMEDIR_SKEL=/etc/skel
 
 ##NAME: LOGGEROPTS:0
