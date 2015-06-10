@@ -5,7 +5,7 @@
 # Do not alter lines that begin with ##, they are used when upgrading
 # this configuration.
 #
-#  Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for
+#  Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 #  distribution information.
 #
 #  This configuration file sets various options for the Courier-IMAP server
@@ -352,6 +352,16 @@ IMAP_MOVE_EXPUNGE_TO_TRASH=0
 # Set IMAP_LOG_DELETIONS to log all message deletions to syslog.
 #
 # IMAP_LOG_DELETIONS=1
+
+##NAME: AUTH_MKHOMEDIR_SKEL:0
+#
+# Uncomment this setting to automatically create a home directory on first
+# login. if the AUTH_MKHOMEDIR_SKEL environment variable is set, and the
+# home directory does not exist, the home directory gets created, with its
+# initial contents copied from AUTH_MKHOMEDIR_SKEL which must be a directory,
+# typically /etc/skel.
+#
+# AUTH_MKHOMEDIR_SKEL=/etc/skel
 
 ##NAME: IMAPDEBUGFILE:0
 #
