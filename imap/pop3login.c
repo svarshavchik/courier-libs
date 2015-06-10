@@ -201,7 +201,7 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 		}
 	}
 
-	rc=auth_callback_default(ainfo);
+	rc=auth_callback_default_autocreate(ainfo);
 
 	if (rc == 0)
 	{
@@ -404,7 +404,7 @@ char *q ;
 					    printf("-ERR Temporary problem, please try again later\r\n");
 					    fflush(stdout);
 					    exit(1);
-					}					
+					}
 					else
 					{
 					    sleep(5);

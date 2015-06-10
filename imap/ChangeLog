@@ -1,3 +1,7 @@
+2015-06-09  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* imap, pop3: Added AUTH_MKHOMEDIR_SKEL setting.
+
 4.16.1
 
 2015-04-25  Giovanni Bechis <giovanni@openbsd.org>

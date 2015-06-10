@@ -155,6 +155,15 @@ POP3DSTART=NO
 #
 # POP3_LOG_DELETIONS=1
 
+##NAME: AUTH_MKHOMEDIR_SKEL:0
+#
+# Uncomment this setting to automatically create a home directory on first
+# login. if the AUTH_MKHOMEDIR_SKEL environment variable is set, and the
+# home directory does not exist, the home directory gets created, with its
+# initial contents copied from AUTH_MKHOMEDIR_SKEL which must be a directory,
+# typically /etc/skel.
+#
+# AUTH_MKHOMEDIR_SKEL=/etc/skel
 
 ##NAME: MAILDIRPATH:0
 #

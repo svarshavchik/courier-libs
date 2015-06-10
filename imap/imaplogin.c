@@ -218,7 +218,7 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 		}
 	}
 
-	rc=auth_callback_default(ainfo);
+	rc=auth_callback_default_autocreate(ainfo);
 
 	if (rc == 0)
 	{
