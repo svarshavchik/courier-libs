@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2006 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2015 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -102,7 +102,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 	if (p && atoi(p))
 		return -1;
 
-	if ((rc = auth_callback_default(a)) != 0)
+	if ((rc = auth_callback_default_autocreate(a)) != 0)
 	{
 		if (rc > 0)
 			perror("ERR: authentication error");
@@ -223,7 +223,7 @@ const char *login_returnaddr()
 {
 	static char *addrbuf=0;
 	const char *p, *domain="";
-	
+
 	if ((p=getenv("AUTHENTICATED")) == NULL || *p == 0)
 		p=getenv("AUTHADDR");
 	if (!p)	p="";
@@ -323,4 +323,3 @@ static char *uhdrbuf=0;
 
 	return (hdrbuf);
 }
-

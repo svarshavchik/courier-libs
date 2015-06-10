@@ -41,6 +41,16 @@ MAILDIRPATH=Maildir
 
 # SQWEBMAIL_PREFORK=5
 
+##NAME: AUTH_MKHOMEDIR_SKEL:0
+#
+# Uncomment this setting to automatically create a home directory on first
+# login. if the AUTH_MKHOMEDIR_SKEL environment variable is set, and the
+# home directory does not exist, the home directory gets created, with its
+# initial contents copied from AUTH_MKHOMEDIR_SKEL which must be a directory,
+# typically /etc/skel.
+#
+# AUTH_MKHOMEDIR_SKEL=/etc/skel
+
 ##NAME: LOGGEROPTS:0
 #
 # courierlogger(1) options, e.g. to set syslog facility
