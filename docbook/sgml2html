@@ -5,6 +5,7 @@
 
 srcfile="$1"
 dstfile="$2"
+options="$3"
 
 if test ! -f $srcfile
 then
@@ -14,7 +15,7 @@ fi
 
 rm -rf $dstfile.tmp
 mkdir $dstfile.tmp
-xsltproc -o $dstfile.tmp/ `dirname $0`/manpages.xsl $srcfile || exit 1
+xsltproc --nonet -o $dstfile.tmp/ $options `dirname $0`/manpages.xsl $srcfile || exit 1
 xsltproc `dirname $0`/fixhtml.xsl $dstfile.tmp/* >$dstfile.tmp2 || exit 1
 rm -rf $dstfile.tmp
 mv $dstfile.tmp2 $dstfile || exit 1
