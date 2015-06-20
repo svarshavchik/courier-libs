@@ -265,6 +265,12 @@ static int callback_authlib(struct authinfo *auth,
 {
 	Maildrop &maildrop=*(Maildrop *)void_arg;
 
+	if (auth_mkhomedir(auth))
+	{
+		perror(auth->homedir);
+		exit(1);
+	}
+
 	if (VerboseLevel() > 1)
 	{
 		Buffer b;
