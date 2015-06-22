@@ -10,7 +10,7 @@ print '/*
 **
 */
 
-#include "unicode.h"
+#include "courier-unicode.h"
 
 ';
 

@@ -305,9 +305,14 @@ static int next_def_nolb25(unicode_lb_info_t i,
 	    (prevclass == UNICODE_LB_HY || prevclass == UNICODE_LB_BA))
 		return RESULT(UNICODE_LB_NONE);
 
+	/* LB21b: */
+	if (prevclass == UNICODE_LB_SY && uclass == UNICODE_LB_HL)
+		return RESULT(UNICODE_LB_NONE);
+
 	if (uclass == UNICODE_LB_IN)
 		switch (prevclass) {
 		case UNICODE_LB_AL:
+		case UNICODE_LB_EX:
 		case UNICODE_LB_HL:
 		case UNICODE_LB_ID:
 		case UNICODE_LB_IN:
@@ -349,7 +354,7 @@ static int next_def_nolb25(unicode_lb_info_t i,
 		case UNICODE_LB_ID:
 			return RESULT(UNICODE_LB_NONE);
 		}
-		
+
 	if (!nolb25 &&
 	    (prevclass == UNICODE_LB_PR || prevclass == UNICODE_LB_PO))
 	{
@@ -651,7 +656,7 @@ int unicode_lbc_next_cnt(unicode_lbc_info_t i,
 	}
 	return 0;
 }
-	
+
 int unicode_lbc_next(unicode_lbc_info_t i, unicode_char ch)
 {
 	if (i->buf_ptr >= unicode_buf_len(&i->buf))

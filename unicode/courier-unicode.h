@@ -83,7 +83,7 @@ extern uint8_t unicode_tab_lookup(unicode_char ch,
 
 /*
 ** Implementation of grapheme cluster boundary rules, as per
-** http://www.unicode.org/reports/tr29/tr29-25.html
+** http://www.unicode.org/reports/tr29/tr29-27.html
 ** including  GB9a and GB9b.
 **
 ** Returns non-zero if there's a grapheme break between the two referenced
@@ -219,21 +219,27 @@ typedef enum {
 	unicode_script_siddham,
 	unicode_script_khudawadi,
 	unicode_script_tirhuta,
-	unicode_script_warang_citi
+	unicode_script_warang_citi,
+	unicode_script_ahom,
+	unicode_script_anatolian_hieroglyphs,
+	unicode_script_hatran,
+	unicode_script_multani,
+	unicode_script_old_hungarian,
+	unicode_script_signwriting
 
 	/* UNICODE_SCRIPT_T */
 } unicode_script_t;
 
 /*
 ** Look up the unicode script property, as per
-** http://www.unicode.org/reports/tr24/tr24-22.html
+** http://www.unicode.org/reports/tr24/tr24-24.html
 */
 
 unicode_script_t unicode_script(unicode_char a);
 
 /*
 ** Implementation of line break rules, as per
-** http://www.unicode.org/reports/tr14/tr14-33.html
+** http://www.unicode.org/reports/tr14/tr14-35.html
 **
 ** Invoke unicode_lb_init() to initialize the linebreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -392,7 +398,7 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 
 /*
 ** Implemention of word break rules, as per
-** http://www.unicode.org/reports/tr29/tr29-25.html
+** http://www.unicode.org/reports/tr29/tr29-27.html
 **
 ** Invoke unicode_wb_init() to initialize the wordbreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two

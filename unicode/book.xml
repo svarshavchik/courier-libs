@@ -2,9 +2,9 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
  "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
-<!ENTITY tr14ver "33">
-<!ENTITY tr24ver "22">
-<!ENTITY tr29ver "25">
+<!ENTITY tr14ver "35">
+<!ENTITY tr24ver "24">
+<!ENTITY tr29ver "27">
 ]>
 
 <!--
@@ -75,7 +75,7 @@ See COPYING for distribution information.
 
     <para>
       The current release of the Courier Unicode library is based on the
-      Unicode 7.0.0 standard.
+      Unicode 8.0.0 standard.
     </para>
   </section>
 

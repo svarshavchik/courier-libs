@@ -63,7 +63,7 @@ while (defined($_=<F>))
     push @table, [$f, $l, "unicode_script_" . lc($s)];
 }
 
-open(F, "<unicode.h") or die;
+open(F, "<courier-unicode.h") or die;
 
 my @unicode_h=<F>;
 close(F);
@@ -84,10 +84,10 @@ $repl[$#repl] =~ s/,//;
 
 splice @unicode_h, $f+1, $l-$f-2, @repl;
 
-open(F, ">unicode.h.tmp") or die;
+open(F, ">courier-unicode.h.tmp") or die;
 print F join("", @unicode_h);
 close(F) or die;
-rename("unicode.h.tmp", "unicode.h") or die;
+rename("courier-unicode.h.tmp", "courier-unicode.h") or die;
 
 grep {
 
