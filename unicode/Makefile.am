@@ -64,7 +64,7 @@ libcourier_unicode_la_SOURCES=courier-unicode.h unicode.c unicodebuf.c \
 			unicode_wordbreak.c wordbreaktab.h scriptstab.h \
 			wordbreaktab_internal.h \
 			unicode_scripts.c
-libcourier_unicode_la_LDFLAGS=-version-info 1:0:0
+libcourier_unicode_la_LDFLAGS=-version-info 2:0:1
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec
 
