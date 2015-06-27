@@ -115,7 +115,7 @@ mailbot.html: mailbot.sgml ../docbook/sgml2html
 mailbot.1: mailbot.sgml ../docbook/sgml2html
 	../docbook/sgml2man mailbot.sgml mailbot.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 
-reformail.html: reformail.sgml ../docbook/sgml2html "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
+reformail.html: reformail.sgml ../docbook/sgml2html
 	../docbook/sgml2html reformail.sgml reformail.html "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 
 reformail.1: reformail.sgml ../docbook/sgml2html
