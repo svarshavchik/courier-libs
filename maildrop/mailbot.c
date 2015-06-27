@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2014 Double Precision, Inc.
+** Copyright 2001-2015 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -977,7 +977,7 @@ int main(int argc, char **argv)
 			const char **strp;
 
 			replyinfo.info.feedbackheaders=
-				strp=malloc(sizeof(char *) * 2 * fb_cnt+1);
+				strp=malloc(sizeof(char *) * ( 2 * fb_cnt+1 ));
 
 			for (i=0, p=fb_list; p; p=p->next)
 			{

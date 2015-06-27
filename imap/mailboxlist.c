@@ -965,7 +965,7 @@ int callback_rc=0;
 
 			if (isnullname)
 				found_hier=mb_flags;
-			else 
+			else
 			{
 				strcat(strcat(strcpy(hiersepbuf, "\""),
 					      hierchs), "\"");
@@ -1018,7 +1018,7 @@ static void match_mailbox_prep(char *name)
 
 	/* ... except that "shared" should be lowercase ... */
 
-	if (memcmp(name, "SHARED", 6) == 0)
+	if (strncmp(name, "SHARED", 6) == 0)
 		memcpy(name, "shared", 6);
 }
 

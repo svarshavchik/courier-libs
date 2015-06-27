@@ -154,7 +154,7 @@ int	recursion_count=10;
 			namebuf, qtype, qclass)) == 0)
 		return (-1);
 
-	if (x_flags && RFC1035_X_RANDOMIZE &&
+	if ((x_flags & RFC1035_X_RANDOMIZE) &&
 	    (*ptr)->rcode == RFC1035_RCODE_NOERROR)
 		rfc1035_rr_rand(*ptr);
 

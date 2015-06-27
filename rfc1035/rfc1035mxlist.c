@@ -90,12 +90,15 @@ static int add_arecords(struct rfc1035_res *res, struct rfc1035_mxlist **list,
 			char *mxname, int port, int opts)
 {
 #if	RFC1035_IPV6
-struct in6_addr	in;
+	struct in6_addr	in;
+	int first_a=RFC1035_TYPE_A;
+	int second_a=RFC1035_TYPE_AAAA;
+	const char *prefer_ipv6=getenv("ESMTP_PREFER_IPV6_MX");
 #else
-struct in_addr	in;
+	struct in_addr	in;
 #endif
-int	found=0;
-int	rc;
+	int	found=0;
+	int	rc;
 
 	if (rfc1035_aton(mxname, &in) == 0)
 	{	/* Broken MX record */
@@ -123,29 +126,36 @@ records, then query for A records.  Query for AAAA records only if A
 records weren't found.
 
 */
+	if (prefer_ipv6 && *prefer_ipv6 && *prefer_ipv6 != '0')
+	{
+		first_a=RFC1035_TYPE_AAAA;
+		second_a=RFC1035_TYPE_A;
+	}
+
 	if (mxreply && !(opts & RFC1035_MX_QUERYALL))
 	{
 		if ((rc=harvest_records(res, list, mxreply, mxpreference,
-			mxname, RFC1035_TYPE_AAAA, &found, 0, port))
-				!= RFC1035_MX_OK)
-			return (rc);
-
-		if ((rc=harvest_records(res, list, mxreply, mxpreference,
-			mxname, RFC1035_TYPE_A, &found, HARVEST_NODUPE,
+			mxname, second_a, &found, HARVEST_NODUPE,
 				port))
 		    != RFC1035_MX_OK)
 			return (rc);
+
+		if ((rc=harvest_records(res, list, mxreply, mxpreference,
+			mxname, first_a, &found, 0, port))
+				!= RFC1035_MX_OK)
+			return (rc);
+
 		if (found)	return (RFC1035_MX_OK);
 	}
 
 	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
-		RFC1035_TYPE_AAAA, &found, HARVEST_AUTOQUERY, port))
-			!= RFC1035_MX_OK)
+		second_a, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE, port))
+						!= RFC1035_MX_OK)
 		return (rc);
 
 	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
-		RFC1035_TYPE_A, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE, port))
-						!= RFC1035_MX_OK)
+		first_a, &found, HARVEST_AUTOQUERY, port))
+			!= RFC1035_MX_OK)
 		return (rc);
 
 	if (found)	return (RFC1035_MX_OK);

@@ -1,3 +1,10 @@
+4.16.2
+
+2015-06-27  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* imap/mailboxlist.c (match_mailbox_prep): Use strncmp instead of
+	memcmp, to pacify overzealous static analysis checkers.
+
 2015-05-22  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Drop SSLv3 from TLS_CIPHER_LIST.
