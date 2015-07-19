@@ -240,4 +240,24 @@ do
 done
 
 runtest " with xfilter"
+
+cat >testsuite.msg <<EOF
+X-Spam-Flag: yes
+EOF
+cat >testsuite1.filter <<EOF
+EXITCODE=0
+if (/^X-Spam-Flag/)
+{
+    EXITCODE=1
+}
+EOF
+
+chmod 600 testsuite1.filter
+
+if ./maildrop ./testsuite1.filter <testsuite.msg
+then
+    echo "bodyless message test failed"
+    exit 1
+fi
+
 rm -f testsuite?.filter testsuite.msg

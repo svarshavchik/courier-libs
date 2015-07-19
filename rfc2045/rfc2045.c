@@ -652,6 +652,12 @@ int	bit8=0;
 
 	update_counts(p, p->endpos + cnt, p->endpos+n, 1);
 
+	/*
+	** Until we see an official start of message body, the body starts
+	** right after what we just read.
+	*/
+	p->startbody=p->endbody;
+
 	/* If this header line starts with a space, append one space
 	** to the saved contents of the previous line, and append this
 	** line to it.
