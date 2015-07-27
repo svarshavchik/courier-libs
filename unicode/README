@@ -39,6 +39,8 @@ Courier Unicode Library
 
      * Look up Unicode script property.
 
+     * Look up the category property.
+
    This library also implements C++ bindings for these algorithms.
 
 Current status

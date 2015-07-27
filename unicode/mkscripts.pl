@@ -63,15 +63,6 @@ while (defined($_=<F>))
     push @table, [$f, $l, "unicode_script_" . lc($s)];
 }
 
-open(F, "<courier-unicode.h") or die;
-
-my @unicode_h=<F>;
-close(F);
-
-my ($f, $l) = grep { $unicode_h[$_] =~ /UNICODE_SCRIPT_T/ } (0..$#unicode_h);
-
-die unless $f && $l;
-
 my @repl = map {
     "\tunicode_script_" . lc($_) . ",\n";
 } sort {
@@ -82,12 +73,10 @@ unshift @repl, "\tunicode_script_unknown,\n";
 
 $repl[$#repl] =~ s/,//;
 
-splice @unicode_h, $f+1, $l-$f-2, @repl;
-
-open(F, ">courier-unicode.h.tmp") or die;
-print F join("", @unicode_h);
+open(F, ">courier-unicode-script-tab.h.tmp") or die;
+print F join("", @repl);
 close(F) or die;
-rename("courier-unicode.h.tmp", "courier-unicode.h") or die;
+rename("courier-unicode-script-tab.h.tmp", "courier-unicode-script-tab.h") or die;
 
 grep {
 

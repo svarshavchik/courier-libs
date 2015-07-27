@@ -1,6 +1,7 @@
 /*.bz2
 /*.gz
 /*.sig
+/Categories.txt
 /EastAsianWidth.txt
 /GraphemeBreakProperty.txt
 /INSTALL
