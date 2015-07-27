@@ -44,10 +44,36 @@ static int compar(const void *key, const void *obj)
 
 unicode_char unicode_html40ent_lookup(const char *n)
 {
-	const struct i *ptr=
-		(const struct i *)bsearch(n, ii,
-					  sizeof(ii)/sizeof(ii[0]),
-					  sizeof(ii[0]), compar);
+	const struct i *ptr;
+
+	if (*n == '#')
+	{
+		const char *p=n;
+		unicode_char uc;
+		char *endptr;
+
+		++p;
+
+		if (*p == 'x' || *p == 'X')
+		{
+			if (*++p)
+			{
+				uc=strtoull(p, &endptr, 16);
+
+				if (*endptr == 0)
+					return uc;
+			}
+		}
+
+		uc=strtoull(p, &endptr, 10);
+
+		if (*endptr == 0)
+			return uc;
+	}
+
+	ptr=(const struct i *)bsearch(n, ii,
+				      sizeof(ii)/sizeof(ii[0]),
+				      sizeof(ii[0]), compar);
 
 	if (ptr)
 		return ptr->v;

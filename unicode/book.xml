@@ -59,7 +59,7 @@ See COPYING for distribution information.
     </listitem>
     <listitem>
       <para>
-	Look up
+	Look up the
 	<ulink url="http://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">Unicode
 	script property</ulink>.
       </para>
@@ -99,7 +99,7 @@ See COPYING for distribution information.
 
     <para>
       To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link
-      with <literal>-lunicode</literal>.
+      with <literal>-lcourier-unicode</literal>.
       The starting point is
       <link linkend="courier-unicode">
 	<citerefentry>
@@ -682,6 +682,14 @@ See COPYING for distribution information.
 	    <parameter>entity</parameter> is a string, such as
 	    <quote>quot</quote>, in which case
 	    <function>unicode_html40ent_lookup</function>() returns 34.
+	  </para>
+
+	  <para>
+	    Additionally,
+	    <function>unicode_html40ent_lookup</function>() parses
+	    a numerical entity given as
+	    <quote>#<replaceable>decimal</replaceable></quote> or
+	    <quote>#x<replaceable>hex</replaceable></quote>.
 	  </para>
 
 	  <para>

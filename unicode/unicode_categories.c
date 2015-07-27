@@ -59,7 +59,7 @@ int unicode_isdigit(unicode_char ch)
 
 int unicode_isalnum(unicode_char ch)
 {
-	return unicode_is_alpha(ch) || unicode_is_digit(ch);
+	return unicode_isalpha(ch) || unicode_isdigit(ch);
 }
 
 int unicode_isgraph(unicode_char ch)
