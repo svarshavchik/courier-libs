@@ -7,6 +7,8 @@
 #include	"unicode_config.h"
 #include	"courier-unicode.h"
 
+#include <algorithm>
+
 extern "C" {
 
 	static int iconv_trampoline(const char *str, size_t cnt, void *arg)
@@ -489,4 +491,38 @@ size_t unicode::wordbreakscan::finish()
 		handle=NULL;
 	}
 	return n;
+}
+
+std::string unicode::tolower(const std::string &string)
+{
+	return tolower(string, unicode_default_chset());
+}
+
+std::string unicode::tolower(const std::string &string,
+			     const std::string &charset)
+{
+	std::vector<unicode_char> uc;
+
+	unicode::iconvert::convert(string, charset, uc);
+
+	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_lc);
+
+	return unicode::iconvert::convert(uc, charset);
+}
+
+std::string unicode::toupper(const std::string &string)
+{
+	return toupper(string, unicode_default_chset());
+}
+
+std::string unicode::toupper(const std::string &string,
+			     const std::string &charset)
+{
+	std::vector<unicode_char> uc;
+
+	unicode::iconvert::convert(string, charset, uc);
+
+	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_uc);
+
+	return unicode::iconvert::convert(uc, charset);
 }

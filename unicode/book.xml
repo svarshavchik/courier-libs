@@ -202,6 +202,9 @@ See COPYING for distribution information.
 	    <link linkend="unicode__iconvert__tou">
 	      <citerefentry><refentrytitle>unicode::iconvert::tou</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__tolower">
+	      <citerefentry><refentrytitle>unicode::tolower</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__linebreak">
 	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
@@ -2328,6 +2331,96 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	  </para>
 	</refsect1>
       </refentry>
+
+      <refentry id="unicode__tolower">
+	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+
+	<refmeta>
+	  <refentrytitle>unicode::tolower</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::tolower</refname>
+	  <refname>unicode::toupper</refname>
+	  <refpurpose>unicode version of
+	  <citerefentry><refentrytitle>tolower</refentrytitle>
+	  <manvolnum>3</manvolnum></citerefentry>
+	  and
+	  <citerefentry><refentrytitle>toupper</refentrytitle>
+	  <manvolnum>3</manvolnum></citerefentry>
+	  </refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::tolower</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::tolower</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::toupper</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::toupper</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These functions convert the <replaceable>string</replaceable>
+	    parameter, in <replaceable>charset</replaceable> or
+	    <link linkend="unicode_default_chset">
+	      <citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      to unicode, replace each character with
+	      <link linkend="unicode_uc">
+		<citerefentry><refentrytitle>unicode_lc</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link> or
+	      <link linkend="unicode_uc">
+		<citerefentry><refentrytitle>unicode_uc</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>,
+		then convert it back to the same character set, returning
+		the resulting string.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+
+
+
+
+
+
+
+
+
+
 
       <refentry id="unicode__wordbreak">
 	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
