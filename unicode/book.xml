@@ -620,6 +620,7 @@ See COPYING for distribution information.
 
 	<refnamediv>
 	  <refname>unicode_default_chset</refname>
+	  <refname>unicode_locale_chset</refname>
 	  <refpurpose>return the system character set name</refpurpose>
 	</refnamediv>
 
@@ -628,6 +629,11 @@ See COPYING for distribution information.
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>const char *<function>unicode_default_chset</function></funcdef>
+	      <void />
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>const char *<function>unicode_locale_chset</function></funcdef>
 	      <void />
 	    </funcprototype>
 	  </funcsynopsis>
@@ -639,6 +645,8 @@ See COPYING for distribution information.
 	    system environment character set (usually
 	    <quote>nl_langinfo(CODESET)</quote>, or from some suitable environment
 	    variable).
+	    <function>unicode_locale_chset</function>() returns the name of the
+	    current application locale's character set.
 	  </para>
 	</refsect1>
 	<refsect1>
@@ -2367,6 +2375,16 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    </funcprototype>
 
 	    <funcprototype>
+              <funcdef>std::vector&lt;unicode_char&gt; <function>unicode::tolower</function></funcdef>
+	      <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::tolower</function></funcdef>
+	      <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
               <funcdef>std::string <function>unicode::toupper</function></funcdef>
 	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
 	    </funcprototype>
@@ -2375,6 +2393,16 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
               <funcdef>std::string <function>unicode::toupper</function></funcdef>
 	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::vector&lt;unicode_char&gt; <function>unicode::toupper</function></funcdef>
+	      <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::toupper</function></funcdef>
+	      <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -2397,6 +2425,14 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 		<manvolnum>3</manvolnum></citerefentry></link>,
 		then convert it back to the same character set, returning
 		the resulting string.
+	  </para>
+
+	  <para>
+	    An alternative is to pass a
+	    <classname>std::vector&lt;unicode_char&gt; &amp;</classname>
+	    that gets converted in-place, or a
+	    <classname>const std::vector&lt;unicode_char&gt; &amp;</classname>
+	    that gets converted, and returned.
 	  </para>
 	</refsect1>
 

@@ -29,13 +29,11 @@ dnl Checks for libraries.
 
 dnl Checks for header files.
 
-AC_CHECK_HEADERS(stddef.h wchar.h locale.h)
+AC_CHECK_HEADERS(stddef.h wchar.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-
-AC_CHECK_FUNCS(setlocale)
 
 AM_CONDITIONAL(UPDATE_UNICODE, test -f ${srcdir}/UnicodeData.txt)
 
@@ -58,8 +56,6 @@ if test "$unicode_with_libcharset" = "yes"; then
   fi
   AC_DEFINE_UNQUOTED(UNICODE_USE_LIBCHARSET, 1,
 	[ Set this to 1 to use libcharset library. ])
-else
-  AM_LANGINFO_CODESET
 fi
 
 save_LIBS="$LIBS"

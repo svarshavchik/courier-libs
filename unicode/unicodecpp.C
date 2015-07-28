@@ -57,6 +57,21 @@ const char unicode::utf_8[]="utf-8";
 
 const char unicode::iso_8859_1[]="iso-8859-1";
 
+// Initialize unicode_default_chset() at thread startup.
+
+namespace unicode {
+
+	class init_chset {
+	public:
+		init_chset();
+	};
+};
+
+unicode::init_chset::init_chset()
+{
+	unicode_default_chset();
+}
+
 size_t unicode_wcwidth(const std::vector<unicode_char> &uc)
 {
 	size_t w=0;
@@ -505,9 +520,22 @@ std::string unicode::tolower(const std::string &string,
 
 	unicode::iconvert::convert(string, charset, uc);
 
-	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_lc);
+	tolower(uc);
 
 	return unicode::iconvert::convert(uc, charset);
+}
+
+std::vector<unicode_char> unicode::tolower(const std::vector<unicode_char> &u)
+{
+	std::vector<unicode_char> copy=u;
+
+	tolower(copy);
+	return copy;
+}
+
+void unicode::tolower(std::vector<unicode_char> &uc)
+{
+	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_lc);
 }
 
 std::string unicode::toupper(const std::string &string)
@@ -522,7 +550,20 @@ std::string unicode::toupper(const std::string &string,
 
 	unicode::iconvert::convert(string, charset, uc);
 
-	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_uc);
+	toupper(uc);
 
 	return unicode::iconvert::convert(uc, charset);
+}
+
+std::vector<unicode_char> unicode::toupper(const std::vector<unicode_char> &u)
+{
+	std::vector<unicode_char> copy=u;
+
+	toupper(copy);
+	return copy;
+}
+
+void unicode::toupper(std::vector<unicode_char> &uc)
+{
+	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_uc);
 }

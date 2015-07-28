@@ -11,8 +11,6 @@
 #include	<stdlib.h>
 #include	<iconv.h>
 #include	<errno.h>
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 #include	<locale.h>
 #if	USE_LIBCHARSET
 #if	HAVE_LOCALCHARSET_H
@@ -20,13 +18,20 @@
 #elif	HAVE_LIBCHARSET_H
 #include	<libcharset.h>
 #endif	/* HAVE_LOCALCHARSET_H */
-#elif	HAVE_LANGINFO_CODESET
+#else
 #include	<langinfo.h>
 #endif	/* USE_LIBCHARSET */
-#endif	/* HAVE_SETLOCALE */
-#endif	/* HAVE_LOCALE_H */
 
 static char default_chset_buf[32];
+
+const char *unicode_locale_charset()
+{
+#if	USE_LIBCHARSET
+	return locale_charset();
+#else
+	return nl_langinfo(CODESET);
+#endif
+}
 
 static void init_default_chset()
 {
@@ -42,17 +47,9 @@ static void init_default_chset()
 
 	if (chset == NULL)
 	{
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 		old_locale=setlocale(LC_ALL, "");
 		locale_cpy=old_locale ? strdup(old_locale):NULL;
-#if	USE_LIBCHARSET
-		chset = locale_charset();
-#elif	HAVE_LANGINFO_CODESET
-		chset=nl_langinfo(CODESET);
-#endif
-#endif
-#endif
+		chset=unicode_locale_charset();
 	}
 
 	memset(buf, 0, sizeof(buf));
@@ -94,16 +91,11 @@ static void init_default_chset()
 
 	memcpy(default_chset_buf, buf, sizeof(buf));
 
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 	if (locale_cpy)
 	{
 		setlocale(LC_ALL, locale_cpy);
 		free(locale_cpy);
 	}
-#endif
-#endif
-
 }
 
 const char *unicode_default_chset()
@@ -427,7 +419,7 @@ static int deinit_toimaputf7(void *ptr, int *errptr)
 
 	if (rc == 0 && toutf7->utf7encodebuf_cnt > 0)
 		rc=toimaputf7_encode_flushfinal(toutf7);
-			
+
 	free(toutf7);
 	return rc;
 }
@@ -793,7 +785,7 @@ static int init_iconv(struct unicode_convert_iconv *h,
 			}
 		}
 	}
-					
+
 	return 0;
 }
 

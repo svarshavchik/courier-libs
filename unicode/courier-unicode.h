@@ -33,6 +33,12 @@ typedef uint32_t unicode_char;
 
 extern const char *unicode_default_chset();
 
+/*
+** The current locale character set.
+*/
+
+extern const char *unicode_locale_charset();
+
 /* Unicode upper/lower/title case conversion functions */
 
 extern unicode_char unicode_uc(unicode_char);
@@ -1839,6 +1845,22 @@ std::string tolower(const std::string &string,
 
 std::string toupper(const std::string &string,
 		    const std::string &charset);
+
+//! Convert unicode to lowercase
+
+void tolower(std::vector<unicode_char> &u);
+
+//! Convert unicode to lowercase
+
+std::vector<unicode_char> tolower(const std::vector<unicode_char> &u);
+
+//! Convert unicode to uppercase
+
+void toupper(std::vector<unicode_char> &u);
+
+//! Convert unicode to uppercase
+
+std::vector<unicode_char> toupper(const std::vector<unicode_char> &u);
 
 #if 0
 {
