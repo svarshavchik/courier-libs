@@ -37,7 +37,7 @@ extern const char *unicode_default_chset();
 ** The current locale character set.
 */
 
-extern const char *unicode_locale_charset();
+extern const char *unicode_locale_chset();
 
 /* Unicode upper/lower/title case conversion functions */
 
@@ -1848,15 +1848,7 @@ std::string toupper(const std::string &string,
 
 //! Convert unicode to lowercase
 
-void tolower(std::vector<unicode_char> &u);
-
-//! Convert unicode to lowercase
-
 std::vector<unicode_char> tolower(const std::vector<unicode_char> &u);
-
-//! Convert unicode to uppercase
-
-void toupper(std::vector<unicode_char> &u);
 
 //! Convert unicode to uppercase
 

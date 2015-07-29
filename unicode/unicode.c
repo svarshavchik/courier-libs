@@ -24,13 +24,27 @@
 
 static char default_chset_buf[32];
 
-const char *unicode_locale_charset()
+const char *unicode_locale_chset()
 {
+	const char *c;
+
 #if	USE_LIBCHARSET
-	return locale_charset();
+	c=locale_charset();
 #else
-	return nl_langinfo(CODESET);
+	c=nl_langinfo(CODESET);
 #endif
+
+	if (!c)
+		c="US-ASCII";
+
+	if (c &&
+
+	    /* Map GNU libc iconv oddity to us-ascii */
+
+	    (strcmp(c, "ANSI_X3.4") == 0 ||
+	     strncmp(c, "ANSI_X3.4-", 10) == 0))
+		c="US-ASCII";
+	return c;
 }
 
 static void init_default_chset()
@@ -49,45 +63,12 @@ static void init_default_chset()
 	{
 		old_locale=setlocale(LC_ALL, "");
 		locale_cpy=old_locale ? strdup(old_locale):NULL;
-		chset=unicode_locale_charset();
+		chset=unicode_locale_chset();
 	}
 
 	memset(buf, 0, sizeof(buf));
 
-	if (chset &&
-
-	    /* Map GNU libc iconv oddity to us-ascii */
-
-	    (strcmp(chset, "ANSI_X3.4") == 0 ||
-	     strncmp(chset, "ANSI_X3.4-", 10) == 0))
-		chset="US-ASCII";
-
-	if (chset)
-	{
-		strncat(buf, chset, sizeof(buf)-1);
-	}
-	else
-	{
-		const char *p=getenv("LANG");
-
-		/* LANG is xx_yy.CHARSET@modifier */
-
-		if (p && *p && (p=strchr(p, '.')) != NULL)
-		{
-			const char *q=strchr(++p, '@');
-
-			if (!q)
-				q=p+strlen(p);
-
-			if (q-p >= sizeof(buf)-1)
-				q=p+sizeof(buf)-1;
-
-			memcpy(buf, p, q-p);
-			buf[q-p]=0;
-		}
-		else
-			strcpy(buf, "US-ASCII");
-	}
+	strncat(buf, chset, sizeof(buf)-1);
 
 	memcpy(default_chset_buf, buf, sizeof(buf));
 

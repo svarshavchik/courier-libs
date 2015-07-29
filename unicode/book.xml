@@ -2380,11 +2380,6 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>void <function>unicode::tolower</function></funcdef>
-	      <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
               <funcdef>std::string <function>unicode::toupper</function></funcdef>
 	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
 	    </funcprototype>
@@ -2398,11 +2393,6 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    <funcprototype>
               <funcdef>std::vector&lt;unicode_char&gt; <function>unicode::toupper</function></funcdef>
 	      <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>void <function>unicode::toupper</function></funcdef>
-	      <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -2428,11 +2418,10 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	  </para>
 
 	  <para>
-	    An alternative is to pass a
-	    <classname>std::vector&lt;unicode_char&gt; &amp;</classname>
-	    that gets converted in-place, or a
+	    Passing a
 	    <classname>const std::vector&lt;unicode_char&gt; &amp;</classname>
-	    that gets converted, and returned.
+	    directly also converts it accordingly, returning the converted
+	    unicode string.
 	  </para>
 	</refsect1>
 

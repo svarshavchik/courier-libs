@@ -529,13 +529,8 @@ std::vector<unicode_char> unicode::tolower(const std::vector<unicode_char> &u)
 {
 	std::vector<unicode_char> copy=u;
 
-	tolower(copy);
+	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_lc);
 	return copy;
-}
-
-void unicode::tolower(std::vector<unicode_char> &uc)
-{
-	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_lc);
 }
 
 std::string unicode::toupper(const std::string &string)
@@ -559,11 +554,7 @@ std::vector<unicode_char> unicode::toupper(const std::vector<unicode_char> &u)
 {
 	std::vector<unicode_char> copy=u;
 
-	toupper(copy);
-	return copy;
-}
+	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_uc);
 
-void unicode::toupper(std::vector<unicode_char> &uc)
-{
-	std::transform(uc.begin(), uc.end(), uc.begin(), unicode_uc);
+	return copy;
 }
