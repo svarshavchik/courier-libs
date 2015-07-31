@@ -7,6 +7,8 @@
 #include	"unicode_config.h"
 #include	"courier-unicode.h"
 
+#include <algorithm>
+
 extern "C" {
 
 	static int iconv_trampoline(const char *str, size_t cnt, void *arg)
@@ -54,6 +56,21 @@ const char unicode::ucs_2[]=
 const char unicode::utf_8[]="utf-8";
 
 const char unicode::iso_8859_1[]="iso-8859-1";
+
+// Initialize unicode_default_chset() at thread startup.
+
+namespace unicode {
+
+	class init_chset {
+	public:
+		init_chset();
+	};
+};
+
+unicode::init_chset::init_chset()
+{
+	unicode_default_chset();
+}
 
 size_t unicode_wcwidth(const std::vector<unicode_char> &uc)
 {
@@ -489,4 +506,55 @@ size_t unicode::wordbreakscan::finish()
 		handle=NULL;
 	}
 	return n;
+}
+
+std::string unicode::tolower(const std::string &string)
+{
+	return tolower(string, unicode_default_chset());
+}
+
+std::string unicode::tolower(const std::string &string,
+			     const std::string &charset)
+{
+	std::vector<unicode_char> uc;
+
+	unicode::iconvert::convert(string, charset, uc);
+
+	tolower(uc);
+
+	return unicode::iconvert::convert(uc, charset);
+}
+
+std::vector<unicode_char> unicode::tolower(const std::vector<unicode_char> &u)
+{
+	std::vector<unicode_char> copy=u;
+
+	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_lc);
+	return copy;
+}
+
+std::string unicode::toupper(const std::string &string)
+{
+	return toupper(string, unicode_default_chset());
+}
+
+std::string unicode::toupper(const std::string &string,
+			     const std::string &charset)
+{
+	std::vector<unicode_char> uc;
+
+	unicode::iconvert::convert(string, charset, uc);
+
+	toupper(uc);
+
+	return unicode::iconvert::convert(uc, charset);
+}
+
+std::vector<unicode_char> unicode::toupper(const std::vector<unicode_char> &u)
+{
+	std::vector<unicode_char> copy=u;
+
+	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_uc);
+
+	return copy;
 }

@@ -46,6 +46,22 @@ static void testsuite()
 			exit(1);
 		}
 	}
+
+	if (unicode_html40ent_lookup("#13") != 13 ||
+	    unicode_html40ent_lookup("#x100") != 256)
+	{
+		fprintf(stderr, "numeric lookup failed\n");
+		exit(1);
+	}
+
+	if (!unicode_isalpha('A') || !unicode_isupper('A') ||
+	    !unicode_islower('a') || !unicode_isdigit('0') ||
+	    !unicode_isspace(' ') || !unicode_isblank('\t') ||
+	    !unicode_ispunct('['))
+	{
+		fprintf(stderr, "category lookup failed\n");
+		exit(1);
+	}
 }
 
 int main(int argc, char **argv)

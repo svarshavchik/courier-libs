@@ -11,8 +11,6 @@
 #include	<stdlib.h>
 #include	<iconv.h>
 #include	<errno.h>
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 #include	<locale.h>
 #if	USE_LIBCHARSET
 #if	HAVE_LOCALCHARSET_H
@@ -20,13 +18,34 @@
 #elif	HAVE_LIBCHARSET_H
 #include	<libcharset.h>
 #endif	/* HAVE_LOCALCHARSET_H */
-#elif	HAVE_LANGINFO_CODESET
+#else
 #include	<langinfo.h>
 #endif	/* USE_LIBCHARSET */
-#endif	/* HAVE_SETLOCALE */
-#endif	/* HAVE_LOCALE_H */
 
 static char default_chset_buf[32];
+
+const char *unicode_locale_chset()
+{
+	const char *c;
+
+#if	USE_LIBCHARSET
+	c=locale_charset();
+#else
+	c=nl_langinfo(CODESET);
+#endif
+
+	if (!c)
+		c="US-ASCII";
+
+	if (c &&
+
+	    /* Map GNU libc iconv oddity to us-ascii */
+
+	    (strcmp(c, "ANSI_X3.4") == 0 ||
+	     strncmp(c, "ANSI_X3.4-", 10) == 0))
+		c="US-ASCII";
+	return c;
+}
 
 static void init_default_chset()
 {
@@ -42,68 +61,22 @@ static void init_default_chset()
 
 	if (chset == NULL)
 	{
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 		old_locale=setlocale(LC_ALL, "");
 		locale_cpy=old_locale ? strdup(old_locale):NULL;
-#if	USE_LIBCHARSET
-		chset = locale_charset();
-#elif	HAVE_LANGINFO_CODESET
-		chset=nl_langinfo(CODESET);
-#endif
-#endif
-#endif
+		chset=unicode_locale_chset();
 	}
 
 	memset(buf, 0, sizeof(buf));
 
-	if (chset &&
-
-	    /* Map GNU libc iconv oddity to us-ascii */
-
-	    (strcmp(chset, "ANSI_X3.4") == 0 ||
-	     strncmp(chset, "ANSI_X3.4-", 10) == 0))
-		chset="US-ASCII";
-
-	if (chset)
-	{
-		strncat(buf, chset, sizeof(buf)-1);
-	}
-	else
-	{
-		const char *p=getenv("LANG");
-
-		/* LANG is xx_yy.CHARSET@modifier */
-
-		if (p && *p && (p=strchr(p, '.')) != NULL)
-		{
-			const char *q=strchr(++p, '@');
-
-			if (!q)
-				q=p+strlen(p);
-
-			if (q-p >= sizeof(buf)-1)
-				q=p+sizeof(buf)-1;
-
-			memcpy(buf, p, q-p);
-			buf[q-p]=0;
-		}
-		else
-			strcpy(buf, "US-ASCII");
-	}
+	strncat(buf, chset, sizeof(buf)-1);
 
 	memcpy(default_chset_buf, buf, sizeof(buf));
 
-#if	HAVE_LOCALE_H
-#if	HAVE_SETLOCALE
 	if (locale_cpy)
 	{
 		setlocale(LC_ALL, locale_cpy);
 		free(locale_cpy);
 	}
-#endif
-#endif
-
 }
 
 const char *unicode_default_chset()
@@ -427,7 +400,7 @@ static int deinit_toimaputf7(void *ptr, int *errptr)
 
 	if (rc == 0 && toutf7->utf7encodebuf_cnt > 0)
 		rc=toimaputf7_encode_flushfinal(toutf7);
-			
+
 	free(toutf7);
 	return rc;
 }
@@ -793,7 +766,7 @@ static int init_iconv(struct unicode_convert_iconv *h,
 			}
 		}
 	}
-					
+
 	return 0;
 }
 

@@ -44,8 +44,9 @@ code.computeroutput div.literallayout {
     font-weight: bold;
 }
 
-.command, .acronym {
+.command, .acronym, .symbol {
     font-family: "liberation mono", "courier new", monospace;
+    background-color: #eeeeee;
 }
 
 div.blockquote-title {
@@ -152,4 +153,3 @@ a:link, a:visited {
 #externallinks th, #externallinks td {
     border-width: 0px;
 }
-
