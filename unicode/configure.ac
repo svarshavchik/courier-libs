@@ -34,7 +34,12 @@ AC_CHECK_HEADERS(stddef.h wchar.h)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-
+AC_CHECK_FUNC(nl_langinfo_l, [
+			     AC_DEFINE(HAVE_LANGINFO_L,1,[nl_langinfo_l implemented])
+			     AC_SUBST(LANGINFO_L,1)
+			     ], [
+			     AC_SUBST(LANGINFO_L,0)
+			     ])
 AM_CONDITIONAL(UPDATE_UNICODE, test -f ${srcdir}/UnicodeData.txt)
 
 AC_SYS_LARGEFILE
@@ -77,4 +82,4 @@ CFLAGS="-I.. -I$srcdir/.. $CFLAGS"
 CXXFLAGS="-I.. -I$srcdir/.. $CXXFLAGS"
 
 AM_CONDITIONAL(HAVE_DOCS,[test -f $srcdir/docbook/icon.gif])
-AC_OUTPUT(Makefile courier-unicode.spec)
+AC_OUTPUT(Makefile courier-unicode.spec courier-unicode.h)

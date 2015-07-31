@@ -24,6 +24,7 @@ extern "C" {
 #include	<stdio.h>
 #include	<stdint.h>
 #include	<sys/types.h>
+#include	<locale.h>
 
 typedef uint32_t unicode_char;
 
@@ -38,6 +39,10 @@ extern const char *unicode_default_chset();
 */
 
 extern const char *unicode_locale_chset();
+
+#if @LANGINFO_L@
+extern const char *unicode_locale_chset_l(locale_t l);
+#endif
 
 /* Unicode upper/lower/title case conversion functions */
 

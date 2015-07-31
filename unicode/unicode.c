@@ -23,6 +23,7 @@
 #endif	/* USE_LIBCHARSET */
 
 static char default_chset_buf[32];
+static const char *fix_charset(const char *);
 
 const char *unicode_locale_chset()
 {
@@ -33,7 +34,18 @@ const char *unicode_locale_chset()
 #else
 	c=nl_langinfo(CODESET);
 #endif
+	return fix_charset(c);
+}
 
+#if HAVE_LANGINFO_L
+const char *unicode_locale_chset_l(locale_t l)
+{
+	return fix_charset(nl_langinfo_l(CODESET, l));
+}
+#endif
+
+static const char *fix_charset(const char *c)
+{
 	if (!c)
 		c="US-ASCII";
 
