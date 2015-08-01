@@ -520,9 +520,7 @@ std::string unicode::tolower(const std::string &string,
 
 	unicode::iconvert::convert(string, charset, uc);
 
-	tolower(uc);
-
-	return unicode::iconvert::convert(uc, charset);
+	return unicode::iconvert::convert(tolower(uc), charset);
 }
 
 std::vector<unicode_char> unicode::tolower(const std::vector<unicode_char> &u)
@@ -545,9 +543,7 @@ std::string unicode::toupper(const std::string &string,
 
 	unicode::iconvert::convert(string, charset, uc);
 
-	toupper(uc);
-
-	return unicode::iconvert::convert(uc, charset);
+	return unicode::iconvert::convert(toupper(uc), charset);
 }
 
 std::vector<unicode_char> unicode::toupper(const std::vector<unicode_char> &u)
