@@ -1,0 +1,29 @@
+# New ports collection makefile for: courier-unicode
+# Date created:		September 3, 2015
+# Whom:                 Sam Varshavchik <mrsam@courier-mta.com>
+#
+# Beta-quality
+#
+# $FreeBSD$
+
+PORTNAME=		courier-unicode
+PORTVERSION=		@VERSION@
+CATEGORIES=		devel
+
+MAINTAINER=		mrsam@courier-mta.com
+COMMENT=		The Courier Unicode Library
+
+USE_GCC=4.9+
+
+USES=gmake
+
+USE_BINUTILS=yes
+
+USE_BZIP2=1
+
+GNU_CONFIGURE=1
+
+MAN3COMPRESSED=		yes
+MAN7COMPRESSED=		yes
+
+.include <bsd.port.mk>

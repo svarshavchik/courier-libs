@@ -79,7 +79,8 @@ libcourier_unicode_la_SOURCES=\
 
 libcourier_unicode_la_LDFLAGS=-version-info 2:0:1
 
-EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec
+EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
+	packaging/freebsd10/pkg-descr
 
 if UPDATE_UNICODE
 
