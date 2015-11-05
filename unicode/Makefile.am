@@ -77,7 +77,7 @@ libcourier_unicode_la_SOURCES=\
 			categoriestab.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 2:0:1
+libcourier_unicode_la_LDFLAGS=-version-info 3:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	packaging/freebsd10/pkg-descr
