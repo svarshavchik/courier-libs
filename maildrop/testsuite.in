@@ -56,11 +56,28 @@ EOF
 fi
 
 
+rm -rf testsuite.maildir
+../maildir/maildirmake ./testsuite.maildir
+
+cat <<EOF >testsuite.recipe
+
+FLAGS="S"
+to "$PWD/testsuite.maildir"
+EOF
+
+chmod go-rw testsuite.recipe
+
+echo "To: testsuite" | ./maildrop ./testsuite.recipe
+
+echo "2,S" >testsuite.chk
+
+ls testsuite.maildir/cur | sed 's/.*://' | diff -U 3 - testsuite.chk
+
 if test "@maildirquota@" = 1
 then
 	rm -rf testsuite.maildir
 	../maildir/maildirmake ./testsuite.maildir
-	
+
 	cat <<EOF >testsuite.recipe
 
 	MAILDIRQUOTA="1C"
@@ -530,3 +547,4 @@ rm -f testsuite.chk
 rm -f testmailbot.msg
 rm -f testmailbot.1
 rm -f testsuite.dat
+rm -rf testsuite.maildir

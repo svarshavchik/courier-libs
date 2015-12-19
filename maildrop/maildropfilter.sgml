@@ -18,10 +18,10 @@
   <refsynopsisdiv>
     <informalexample>
       <simpara>
-<filename>@withetcdir@/maildroprc</filename>,
-<filename>$HOME/.mailfilter</filename>,
-<filename>$HOME/.mailfilters/*</filename>, and friends...
-</simpara>
+	<filename>@withetcdir@/maildroprc</filename>,
+	<filename>$HOME/.mailfilter</filename>,
+	<filename>$HOME/.mailfilters/*</filename>, and friends...
+      </simpara>
     </informalexample>
   </refsynopsisdiv>
 
@@ -29,196 +29,196 @@
     <title>DESCRIPTION</title>
 
     <para>
-This manual page describes the language used by <command>maildrop</command>
-to filter E-mail messages.
-The mail filtering instructions are read from a file.
+      This manual page describes the language used by <command>maildrop</command>
+      to filter E-mail messages.
+      The mail filtering instructions are read from a file.
 
-The language is loosely structured, it is based on pattern
-matching. The language has a distinct lexical and syntactical structure,
-very similar to Perl's, but it is important to note that it is not Perl,
-and is very different from Perl, in certain cases.</para>
-
-    <para>
-If the filtering instructions do not exist,
-<command>maildrop</command> delivers the
-message to the default mailbox without doing any additional processing,
-making it indistinguishable from the usual mail delivery agent.</para>
+      The language is loosely structured, it is based on pattern
+      matching. The language has a distinct lexical and syntactical structure,
+      very similar to Perl's, but it is important to note that it is not Perl,
+      and is very different from Perl, in certain cases.</para>
 
     <para>
-It is important to note that <command>maildrop</command> reads and parses the
-<systemitem class="resource">filter file</systemitem> before doing anything. If there are any errors
-<command>maildrop</command> prints an error message, and terminates with the exit code
-set to <errorcode>EX_TEMPFAIL</errorcode>. A compliant mail transport agent
-should
-re-queue the message for a later delivery attempt. Hopefully, most simple
-syntax errors will not cause mail to be bounced back if the error is caught
-and fixed quickly.</para>
+      If the filtering instructions do not exist,
+      <command>maildrop</command> delivers the
+      message to the default mailbox without doing any additional processing,
+      making it indistinguishable from the usual mail delivery agent.</para>
+
+    <para>
+      It is important to note that <command>maildrop</command> reads and parses the
+      <systemitem class="resource">filter file</systemitem> before doing anything. If there are any errors
+      <command>maildrop</command> prints an error message, and terminates with the exit code
+      set to <errorcode>EX_TEMPFAIL</errorcode>. A compliant mail transport agent
+      should
+      re-queue the message for a later delivery attempt. Hopefully, most simple
+      syntax errors will not cause mail to be bounced back if the error is caught
+      and fixed quickly.</para>
 
     <refsect2>
       <title>Environment</title>
       <para>
-<anchor id="environment"/>
+	<anchor id="environment"/>
 
-<command>maildrop</command> uses variables to access and manipulate messages.
-Variables
-are arbitrary text accessed by referring to the name of the variable, such as
-<varname>HOME</varname>, or <varname>DEFAULT</varname>.
-Text is placed into a variable by
-using an assignment statement, such as:
-</para>
+	<command>maildrop</command> uses variables to access and manipulate messages.
+	Variables
+	are arbitrary text accessed by referring to the name of the variable, such as
+	<varname>HOME</varname>, or <varname>DEFAULT</varname>.
+	Text is placed into a variable by
+	using an assignment statement, such as:
+      </para>
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 FILE="IN.junk"
-</programlisting>
+	  </programlisting>
 	</informalexample>
       </blockquote>
 
       <para>
-This statement puts the text "IN.junk" (without the quotes) into a variable
-whose name is <varname>FILE</varname>.
-Later, the contents of a variable are accessed by using
-the $ symbol and the name for the variable. For example:</para>
-
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
-to $FILE
-</programlisting>
-	  </informalexample>
-	</blockquote>
-
-      <para>
-This will deliver the current message to the mailbox file (or a maildir
-directory) named "IN.junk".</para>
-
-      <para>
-<command>maildrop</command> initially creates variables from the environment
-variables
-of the operating system, UNLESS <command>maildrop</command> runs in delivery mode.
-Each
-operating system environment variable becomes a <command>maildrop</command>
-variable.
-When running in delivery mode, <command>maildrop</command> does not import the
-environment for security reasons,
-except for the environment variables that define the process locale
-(<varname>LANG</varname>,
-<varname>LANGUAGE</varname>, and
-<varname>LC_<replaceable>*</replaceable></varname>), which are still imported.
-      </para>
-      <para>
-In all cases <command>maildrop</command> resets the
-following variables to their default values: <varname>HOME</varname>,
-<varname>DEFAULT</varname>, <varname>SHELL</varname>,
-<varname>PATH</varname>, <varname>LOCKEXT</varname>,
-<varname>LOCKREFRESH</varname>, <varname>LOCKSLEEP</varname>,
-<varname>LOCKTIMEOUT</varname>, <varname>MAILDIRQUOTA</varname>,
-<varname>SENDMAIL</varname> and <varname>LOGNAME</varname>.</para>
-
-      <para>
-There's one exception to this rule which applies to the version of
-<command>maildrop</command> that comes with the
-<ulink url="http://www.courier-mta.org/"><application>Courier</application> mail server</ulink>.  The following
-does not apply to the standalone version of <command>maildrop</command>:
-when running in
-delivery mode, if the <option>-d</option> flag was not used, or if it specifies
-the same userid as the one that's running <command>maildrop</command>:
-the following
-variables are automatically imported from the environment: <varname>HOME</varname>, <varname>SHELL</varname>,
-<varname>LOGNAME</varname> and <varname>MAILDIRQUOTA</varname>.
-These environment variables are
-initialized by the <application>Courier</application>
-mail server prior to running <command>maildrop</command>.
-Additionally, the
-initial value for the <varname>DEFAULT</varname> maildrop variable is imported from
-the <varname>MAILDROPDEFAULT</varname> environment variable. This is because
-the <application>Courier</application> mail server overloads the
-DEFAULT environment variable to store the defaulted
-portion of the local mailbox address. See the <ulink url="dot-courier.html"><citerefentry><refentrytitle>dot-courier</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink> man page in the
-<application>Courier</application> mail server
-distribution. You can get the <application>Courier</application>
-mail server's <varname>DEFAULT</varname> value by
-using the
-<command>import</command> command.
-Note, however, that this will clobber the old
-contents of <varname>DEFAULT</varname>, which is probably not what you want.
-The right way to do this would be something like this:</para>
+	This statement puts the text "IN.junk" (without the quotes) into a variable
+	whose name is <varname>FILE</varname>.
+	Later, the contents of a variable are accessed by using
+	the $ symbol and the name for the variable. For example:</para>
 
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
+to $FILE
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	This will deliver the current message to the mailbox file (or a maildir
+	directory) named "IN.junk".</para>
+
+      <para>
+	<command>maildrop</command> initially creates variables from the environment
+	variables
+	of the operating system, UNLESS <command>maildrop</command> runs in delivery mode.
+	Each
+	operating system environment variable becomes a <command>maildrop</command>
+	variable.
+	When running in delivery mode, <command>maildrop</command> does not import the
+	environment for security reasons,
+	except for the environment variables that define the process locale
+	(<varname>LANG</varname>,
+	<varname>LANGUAGE</varname>, and
+	<varname>LC_<replaceable>*</replaceable></varname>), which are still imported.
+      </para>
+      <para>
+	In all cases <command>maildrop</command> resets the
+	following variables to their default values: <varname>HOME</varname>,
+	<varname>DEFAULT</varname>, <varname>SHELL</varname>,
+	<varname>PATH</varname>, <varname>LOCKEXT</varname>,
+	<varname>LOCKREFRESH</varname>, <varname>LOCKSLEEP</varname>,
+	<varname>LOCKTIMEOUT</varname>, <varname>MAILDIRQUOTA</varname>,
+	<varname>SENDMAIL</varname> and <varname>LOGNAME</varname>.</para>
+
+      <para>
+	There's one exception to this rule which applies to the version of
+	<command>maildrop</command> that comes with the
+	<ulink url="http://www.courier-mta.org/"><application>Courier</application> mail server</ulink>.  The following
+	does not apply to the standalone version of <command>maildrop</command>:
+	when running in
+	delivery mode, if the <option>-d</option> flag was not used, or if it specifies
+	the same userid as the one that's running <command>maildrop</command>:
+	the following
+	variables are automatically imported from the environment: <varname>HOME</varname>, <varname>SHELL</varname>,
+	<varname>LOGNAME</varname> and <varname>MAILDIRQUOTA</varname>.
+	These environment variables are
+	initialized by the <application>Courier</application>
+	mail server prior to running <command>maildrop</command>.
+	Additionally, the
+	initial value for the <varname>DEFAULT</varname> maildrop variable is imported from
+	the <varname>MAILDROPDEFAULT</varname> environment variable. This is because
+	the <application>Courier</application> mail server overloads the
+	DEFAULT environment variable to store the defaulted
+	portion of the local mailbox address. See the <ulink url="dot-courier.html"><citerefentry><refentrytitle>dot-courier</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink> man page in the
+	<application>Courier</application> mail server
+	distribution. You can get the <application>Courier</application>
+	mail server's <varname>DEFAULT</varname> value by
+	using the
+	<command>import</command> command.
+	Note, however, that this will clobber the old
+	contents of <varname>DEFAULT</varname>, which is probably not what you want.
+	The right way to do this would be something like this:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 SAVEDEFAULT=$DEFAULT
 import DEFAULT
 LOCALDEFAULT=$DEFAULT
 DEFAULT=$SAVEDEFAULT
-</programlisting>
+	  </programlisting>
 	</informalexample>
       </blockquote>
 
       <para>All internal variables are exported back as environment variables when
-<command>maildrop</command> runs an external command. Changes to internal variables, made
-by the <systemitem class="resource">filter file</systemitem>, are reflected in the exported environment.</para>
+	<command>maildrop</command> runs an external command. Changes to internal variables, made
+	by the <systemitem class="resource">filter file</systemitem>, are reflected in the exported environment.</para>
     </refsect2>
 
     <refsect2>
       <title>Lexical structure</title>
 
       <para>
-Most whitespace is generally ignored. The <token>#</token>
-character introduces a comment
-running to the end of the line, which is also ignored. Unlike other mail
-filters, <command>maildrop</command> parses the
-<systemitem class="resource">filter file</systemitem> before taking any action
-with the message.
-If there are syntax errors in the file, <command>maildrop</command> displays
-an error message, and returns <errorcode>EX_TEMPFAIL</errorcode>. That should
-cause the
-mail message to remain in the queue, and, hopefully allow the problem to be
-corrected, without bouncing any mail.</para>
+	Most whitespace is generally ignored. The <token>#</token>
+	character introduces a comment
+	running to the end of the line, which is also ignored. Unlike other mail
+	filters, <command>maildrop</command> parses the
+	<systemitem class="resource">filter file</systemitem> before taking any action
+	with the message.
+	If there are syntax errors in the file, <command>maildrop</command> displays
+	an error message, and returns <errorcode>EX_TEMPFAIL</errorcode>. That should
+	cause the
+	mail message to remain in the queue, and, hopefully allow the problem to be
+	corrected, without bouncing any mail.</para>
 
       <note>
 	<para>
-In <command>maildrop</command>, the end of line is a lexical token. In order to
-continue a long statement on the next line, terminate the line with a
-backslash character.</para></note>
+	  In <command>maildrop</command>, the end of line is a lexical token. In order to
+	  continue a long statement on the next line, terminate the line with a
+	  backslash character.</para></note>
     </refsect2>
 
     <refsect2>
       <title>Literal text</title>
       <para>
-Literal text in the <command>maildrop</command> filtering language is
-surrounded by
-either single or double quotes. In order to enter a single quote into a text
-literal surrounded by single quotes, or a double quote into a literal
-surrounded by double quotes, prefix it with a backslash character. Use two
-backslash characters characters to enter one backslash character in the text
-literal.</para>
+	Literal text in the <command>maildrop</command> filtering language is
+	surrounded by
+	either single or double quotes. In order to enter a single quote into a text
+	literal surrounded by single quotes, or a double quote into a literal
+	surrounded by double quotes, prefix it with a backslash character. Use two
+	backslash characters characters to enter one backslash character in the text
+	literal.</para>
 
       <note>
 	<para>A backslash followed by either a backslash, or a matching quote, is
-the only situation where the backslash character is actually removed, leaving
-only the following character in the actual text literal. If a backslash
-character is followed by any other character, the backslash is NOT
-removed.</para>
+	  the only situation where the backslash character is actually removed, leaving
+	  only the following character in the actual text literal. If a backslash
+	  character is followed by any other character, the backslash is NOT
+	  removed.</para>
       </note>
 
       <para>Multiple text literals in a row are automatically concatenated, even if
-they use different quotes. For example:</para>
+	they use different quotes. For example:</para>
 
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 FOOBAR="Foo"'bar'
 SAVEDEFAULT=$DEFAULT
 import DEFAULT
 LOCALDEFAULT=$DEFAULT
 DEFAULT=$SAVEDEFAULT
-</programlisting>
+	  </programlisting>
 	</informalexample>
       </blockquote>
       <para>
-This sets the variable <varname>FOOBAR</varname> to the text "Foobar".
-</para>
+	This sets the variable <varname>FOOBAR</varname> to the text "Foobar".
+      </para>
 
     </refsect2>
 
@@ -227,57 +227,57 @@ This sets the variable <varname>FOOBAR</varname> to the text "Foobar".
       <title>Variable substitution</title>
 
       <para>
-<anchor id="varsubst"/>
+	<anchor id="varsubst"/>
 
-Variable substitution is performed on text literals that's surrounded by
-double quotation marks. The "<token>$</token>" character, followed by a variable name,
-is replaced by that variable's contents.
-</para>
+	Variable substitution is performed on text literals that's surrounded by
+	double quotation marks. The "<token>$</token>" character, followed by a variable name,
+	is replaced by that variable's contents.
+      </para>
 
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 MAILBOX="$HOME/Mailbox"
-</programlisting>
+	  </programlisting>
 	</informalexample>
       </blockquote>
 
 
       <para>
-This sets the variable <varname>MAILBOX</varname> to the contents of the
-variable
-<varname>HOME</varname> followed by <literal>"/Mailbox"</literal>.
-Variable names must begin with an
-uppercase letter, a lowercase letter, or an underscore.
-Following that, all
-letters, digits, and underscores are taken as a variable name, and its
-contents replace the <token>$</token> sign, and the variable name. It is possible to access
-variables whose name includes other characters, by using braces as
-follows:</para>
+	This sets the variable <varname>MAILBOX</varname> to the contents of the
+	variable
+	<varname>HOME</varname> followed by <literal>"/Mailbox"</literal>.
+	Variable names must begin with an
+	uppercase letter, a lowercase letter, or an underscore.
+	Following that, all
+	letters, digits, and underscores are taken as a variable name, and its
+	contents replace the <token>$</token> sign, and the variable name. It is possible to access
+	variables whose name includes other characters, by using braces as
+	follows:</para>
 
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 MAILBOX="${HOME-WORD}/Mailbox"
-</programlisting>
+	  </programlisting>
 	</informalexample>
       </blockquote>
 
       <para>
-Inserts the contents of the <varname>HOME-WORD</varname> variable. If the
-variable
-does not exist, the empty text literal is used to replace the variable name.
-It is not possible to access variables whose names include the <token>}</token>
-character.</para>
+	Inserts the contents of the <varname>HOME-WORD</varname> variable. If the
+	variable
+	does not exist, the empty text literal is used to replace the variable name.
+	It is not possible to access variables whose names include the <token>}</token>
+	character.</para>
 
       <para>If the <token>$</token> character is not followed by a left brace, letter, or an
-underscore, the <token>$</token> character remains unmolested in the text literal. A
-backslash followed by the <token>$</token> character results in a <token>$</token> character in the text
-literal, without doing any variable substitution.</para>
+	underscore, the <token>$</token> character remains unmolested in the text literal. A
+	backslash followed by the <token>$</token> character results in a <token>$</token> character in the text
+	literal, without doing any variable substitution.</para>
 
       <para>
-Variable substitution is not done in text literals which are surrounded by
-single quotes (apostrophes).</para>
+	Variable substitution is not done in text literals which are surrounded by
+	single quotes (apostrophes).</para>
     </refsect2>
 
 
@@ -285,151 +285,151 @@ single quotes (apostrophes).</para>
       <title>Command line arguments</title>
 
       <para>
-<command>maildrop</command> initializes special variables:
-<varname>$1</varname>, <varname>$2</varname>, and so on, with
-additional parameters specified on the <command>maildrop</command>
-command line. A <systemitem class="resource">filter file</systemitem>
-may use those variables just like any other variables.</para>
+	<command>maildrop</command> initializes special variables:
+	<varname>$1</varname>, <varname>$2</varname>, and so on, with
+	additional parameters specified on the <command>maildrop</command>
+	command line. A <systemitem class="resource">filter file</systemitem>
+	may use those variables just like any other variables.</para>
     </refsect2>
 
     <refsect2>
       <title>Predefined variables</title>
       <anchor id="predefined"/>
       <para>
-The following variables are automatically defined by
-<command>maildrop</command>. The
-default values for the following variables may be changed by the system
-administrator. For security reasons, the values of the following variables
-are always reset to their default values, and are never imported from the
-environment:</para>
+	The following variables are automatically defined by
+	<command>maildrop</command>. The
+	default values for the following variables may be changed by the system
+	administrator. For security reasons, the values of the following variables
+	are always reset to their default values, and are never imported from the
+	environment:</para>
 
       <variablelist>
 
 	<varlistentry><term><varname>DEFAULT</varname></term><listitem><para>The default mailbox to deliver the message to.
-    If the <systemitem class="resource">filter file</systemitem> does not indicate a mailbox to deliver this message
-    to, the message is delivered to this mailbox. The default mailbox is
-    defined by the system administrator.
-    
-  </para></listitem></varlistentry>
-	<varlistentry><term><varname>FROM</varname></term><listitem><para>Message envelope sender. This is usually the same
-    address as what appears in the <literal>From:</literal> header, but may
-not be.
-    This information may or may not be available to <command>maildrop</command> on your
-    system. The message envelope sender is usually specified with the <option>-f</option>
-    option to <command>maildrop</command>. If the <option>-f</option> option is not given, <command>maildrop</command>
-    looks for the <literal>Return-Path:</literal> header in the message. As the last resort,
-    <literal>FROM</literal> defaults to <quote>MAILER-DAEMON</quote>.
-    Note that <varname>FROM</varname> may be empty - the message envelope sender is
-    empty for bounce messages.
-  </para></listitem></varlistentry>
-	<varlistentry><term><varname>HOME</varname></term><listitem><para>Home directory of the user running
-    <command>maildrop</command>.
-    
-  </para></listitem></varlistentry>
-	<varlistentry><term><varname>HOSTNAME</varname></term><listitem><para>Network name of the machine running maildrop.
-    Obtained from <citerefentry><refentrytitle>gethostname</refentrytitle><manvolnum>3</manvolnum></citerefentry>.
+	      If the <systemitem class="resource">filter file</systemitem> does not indicate a mailbox to deliver this message
+	      to, the message is delivered to this mailbox. The default mailbox is
+	      defined by the system administrator.
 
-  </para></listitem></varlistentry>
+	</para></listitem></varlistentry>
+	<varlistentry><term><varname>FROM</varname></term><listitem><para>Message envelope sender. This is usually the same
+	      address as what appears in the <literal>From:</literal> header, but may
+	      not be.
+	      This information may or may not be available to <command>maildrop</command> on your
+	      system. The message envelope sender is usually specified with the <option>-f</option>
+	      option to <command>maildrop</command>. If the <option>-f</option> option is not given, <command>maildrop</command>
+	      looks for the <literal>Return-Path:</literal> header in the message. As the last resort,
+	      <literal>FROM</literal> defaults to <quote>MAILER-DAEMON</quote>.
+	      Note that <varname>FROM</varname> may be empty - the message envelope sender is
+	      empty for bounce messages.
+	</para></listitem></varlistentry>
+	<varlistentry><term><varname>HOME</varname></term><listitem><para>Home directory of the user running
+	      <command>maildrop</command>.
+
+	</para></listitem></varlistentry>
+	<varlistentry><term><varname>HOSTNAME</varname></term><listitem><para>Network name of the machine running maildrop.
+	      Obtained from <citerefentry><refentrytitle>gethostname</refentrytitle><manvolnum>3</manvolnum></citerefentry>.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>LOCKEXT</varname></term><listitem><para>Extension for dot-lock files (default: <literal>.lock</literal>).
-    
-  </para></listitem></varlistentry>
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>LOCKREFRESH</varname></term><listitem><para>Refresh interval, in seconds, for dot-locks
-    (default: <literal>15</literal>). When <command>maildrop</command> dot-locks a mailbox, <command>maildrop</command>
-    tries to refresh the lock periodically in order to keep other programs
-    from removing a stale dot-lock. This is only required if a dot-lock
-    exists for a prolonged period of time, which should be discouraged
-    anyway.
-    
-  </para></listitem></varlistentry>
+	      (default: <literal>15</literal>). When <command>maildrop</command> dot-locks a mailbox, <command>maildrop</command>
+	      tries to refresh the lock periodically in order to keep other programs
+	      from removing a stale dot-lock. This is only required if a dot-lock
+	      exists for a prolonged period of time, which should be discouraged
+	      anyway.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>LOCKSLEEP</varname></term><listitem><para>Number of seconds to wait to try again to
-    create a dot-lock file, if one already exists (default: 5).
-    
-  </para></listitem></varlistentry>
+	      create a dot-lock file, if one already exists (default: 5).
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>LOCKTIMEOUT</varname></term><listitem><para>Number of seconds to wait before removing a
-    stale dot-lock file (default: <literal>60</literal>). If a dot-lock file still exists after
-    <varname>LOCKTIMEOUT</varname> seconds, <command>maildrop</command> assumes that the
-    process holding the lock no longer exists, and the dot-lock file can be
-    safely removed. After removing the dot-lock file, <command>maildrop</command> waits
-    <varname>LOCKSLEEP</varname> seconds before trying to create its own dot-lock
-    file, in order to avoid a race condition with another process which is
-    also trying to remove the same stale dot-lock, at the same time.
-    
-  </para></listitem></varlistentry>
+	      stale dot-lock file (default: <literal>60</literal>). If a dot-lock file still exists after
+	      <varname>LOCKTIMEOUT</varname> seconds, <command>maildrop</command> assumes that the
+	      process holding the lock no longer exists, and the dot-lock file can be
+	      safely removed. After removing the dot-lock file, <command>maildrop</command> waits
+	      <varname>LOCKSLEEP</varname> seconds before trying to create its own dot-lock
+	      file, in order to avoid a race condition with another process which is
+	      also trying to remove the same stale dot-lock, at the same time.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>LOGNAME</varname></term><listitem><para>Name of the user to who the message is being
-    delivered.
-    
-  </para></listitem></varlistentry>
+	      delivered.
+
+	</para></listitem></varlistentry>
 	<varlistentry>
 	  <term><varname>MAILDROP_OLD_REGEXP</varname></term>
 
 	  <listitem>
 	    <para>
-Revert to using the old legacy pattern matching engine.
-Versions of <command>maildrop</command> prior to version 2.0
-(included in the <application>Courier</application> mail server 0.51,
-and earlier), used a built-in pattern matching engine, instead of using the
-<acronym>PCRE</acronym>
-library (see the
-<quote><link linkend="patterns">Patterns</link></quote>
-section).
-<command>maildrop</command> 1.x used a different syntax for patterns, which
-is no longer described in this manual page.
-The old pattern matching engine is still available, by
-setting <varname>MAILDROP_OLD_REGEXP</varname> to <quote>1</quote>.
-Setting this variable will use the legacy pattern matching engine for the
-rest of the <command>maildrop</command> recipe file.</para>
+	      Revert to using the old legacy pattern matching engine.
+	      Versions of <command>maildrop</command> prior to version 2.0
+	      (included in the <application>Courier</application> mail server 0.51,
+	      and earlier), used a built-in pattern matching engine, instead of using the
+	      <acronym>PCRE</acronym>
+	      library (see the
+	      <quote><link linkend="patterns">Patterns</link></quote>
+	      section).
+	      <command>maildrop</command> 1.x used a different syntax for patterns, which
+	      is no longer described in this manual page.
+	      The old pattern matching engine is still available, by
+	      setting <varname>MAILDROP_OLD_REGEXP</varname> to <quote>1</quote>.
+	      Setting this variable will use the legacy pattern matching engine for the
+	      rest of the <command>maildrop</command> recipe file.</para>
 
 	    <para>
-The pattern matching engine will be removed completely in a future version
-of maildrop.
-This setting provides for a transitional period of converting old recipes.
-<varname>MAILDROP_OLD_REGEXP</varname> can be set to <quote>1</quote> in
-the global <filename>maildroprc</filename> file, then reset to <quote>0</quote>
-in each individual <command>maildrop</command> recipe file, after it gets
-converted to the new syntax.</para>
+	      The pattern matching engine will be removed completely in a future version
+	      of maildrop.
+	      This setting provides for a transitional period of converting old recipes.
+	      <varname>MAILDROP_OLD_REGEXP</varname> can be set to <quote>1</quote> in
+	      the global <filename>maildroprc</filename> file, then reset to <quote>0</quote>
+	      in each individual <command>maildrop</command> recipe file, after it gets
+	      converted to the new syntax.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry><term><varname>MAILFILTER</varname></term><listitem><para>This is the name of the original <systemitem class="resource">filter file</systemitem>
-    that was given to <command>maildrop</command> on the command line. This is mostly
-    useful to <literal>-default</literal> <systemitem class="resource">filter file</systemitem>s, it allows them to
-    obtain the <ulink url="maildrop.html#moption">value of the -M option</ulink>
-    specified on the command line.
-  </para></listitem></varlistentry>
+	      that was given to <command>maildrop</command> on the command line. This is mostly
+	      useful to <literal>-default</literal> <systemitem class="resource">filter file</systemitem>s, it allows them to
+	      obtain the <ulink url="maildrop.html#moption">value of the -M option</ulink>
+	      specified on the command line.
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>PATH</varname></term><listitem><para>Command execution path. <command>maildrop</command> resets PATH
-    to the system default (usually
-    <literal>/bin:/usr/bin:/usr/local/bin</literal>).
-    
-  </para></listitem></varlistentry>
+	      to the system default (usually
+	      <literal>/bin:/usr/bin:/usr/local/bin</literal>).
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>SENDMAIL</varname></term><listitem><para>The mail delivery agent.
-When <command>maildrop</command> is
-    instructed to deliver the message to a mailbox whose name begins with the
-    ! character, this is interpreted as a request to forward the message. The
-    <varname>SENDMAIL</varname> command is executed to forward the message.
-    
-  </para></listitem></varlistentry>
+	      When <command>maildrop</command> is
+	      instructed to deliver the message to a mailbox whose name begins with the
+	      ! character, this is interpreted as a request to forward the message. The
+	      <varname>SENDMAIL</varname> command is executed to forward the message.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>SHELL</varname></term><listitem><para>The login shell. The shell is used to execute all
-    commands invoked by <command>maildrop</command>.
-    
-  </para></listitem></varlistentry>
+	      commands invoked by <command>maildrop</command>.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>VERBOSE</varname></term><listitem><para>Current Debug level (default: <literal>0</literal>). Setting <varname>VERBOSE</varname> to
-    progressive higher values, between 1 and 9, produces debugging output on
-    standard error. <command>maildrop</command> ignores
-the <varname>VERBOSE</varname> variable in delivery
-    mode (in order not to confuse the mail transport agent).
-    
-  </para></listitem></varlistentry>
+	      progressive higher values, between 1 and 9, produces debugging output on
+	      standard error. <command>maildrop</command> ignores
+	      the <varname>VERBOSE</varname> variable in delivery
+	      mode (in order not to confuse the mail transport agent).
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>UMASK</varname></term><listitem><para>The file creation mode mask, in octal.  The
-    default setting of <literal>077</literal> creates mailboxes that are readable and writable
-    by the owner only.  Use <literal>007</literal> to create mailboxes that are
-    readable/writable by both owner and the group.  Use <literal>037</literal>
-    to create
-    mailboxes that are readable by both owner and group, but writable by
-    owner only.  Permissions on existing mailboxes are not changed, this
-    setting affects only new mailboxes.  When delivering to maildirs this
-    setting sets the permissions on new messages only.  Access permissions on
-    messages in maildirs are also affected by the permissions on the maildir
-    directories.
-</para></listitem></varlistentry>
+	      default setting of <literal>077</literal> creates mailboxes that are readable and writable
+	      by the owner only.  Use <literal>007</literal> to create mailboxes that are
+	      readable/writable by both owner and the group.  Use <literal>037</literal>
+	      to create
+	      mailboxes that are readable by both owner and group, but writable by
+	      owner only.  Permissions on existing mailboxes are not changed, this
+	      setting affects only new mailboxes.  When delivering to maildirs this
+	      setting sets the permissions on new messages only.  Access permissions on
+	      messages in maildirs are also affected by the permissions on the maildir
+	      directories.
+	</para></listitem></varlistentry>
       </variablelist>
     </refsect2>
 
@@ -437,69 +437,89 @@ the <varname>VERBOSE</varname> variable in delivery
 
       <title>Other special variables</title>
       <para>
-The following variables are automatically used by <command>maildrop</command> when the
-<systemitem class="resource">filter file</systemitem> is being processed:
-</para>
+	The following variables are automatically used by <command>maildrop</command> when the
+	<systemitem class="resource">filter file</systemitem> is being processed:
+      </para>
 
       <variablelist>
 	<varlistentry><term><varname>EXITCODE</varname></term>
 	  <listitem><para>Return code for <command>maildrop</command>. When
-<command>maildrop</command> successfully delivers a message, it terminates with this
-exit code, which defaults to 0. When the <command>to</command> or the
-    <command>cc</command> command is used to deliver the message to an external
-    process, via a pipe, <command>maildrop</command> will set this variable to the exit
-    code of the external process. Since <command>maildrop</command> immediately
-    terminates after completing the <command>to</command> command this means that
-    <command>maildrop</command>'s exit code will be the exit code of the external
-    process. If the <command>to</command> command does not deliver the message to a
-    process you must set <varname>EXITCODE</varname> before the <command>to</command>
-    command, since <command>maildrop</command> terminates immediately after finishing the
-    delivery.
-    
-  </para></listitem></varlistentry>
+	      <command>maildrop</command> successfully delivers a message, it terminates with this
+	      exit code, which defaults to 0. When the <command>to</command> or the
+	      <command>cc</command> command is used to deliver the message to an external
+	      process, via a pipe, <command>maildrop</command> will set this variable to the exit
+	      code of the external process. Since <command>maildrop</command> immediately
+	      terminates after completing the <command>to</command> command this means that
+	      <command>maildrop</command>'s exit code will be the exit code of the external
+	      process. If the <command>to</command> command does not deliver the message to a
+	      process you must set <varname>EXITCODE</varname> before the <command>to</command>
+	      command, since <command>maildrop</command> terminates immediately after finishing the
+	      delivery.
+
+	</para></listitem></varlistentry>
+	<varlistentry><term><varname>FLAGS</varname></term>
+	  <listitem>
+	    <para>
+	      The <varname>FLAGS</varname> variable is used only when delivering
+	      a message to a maildir, and may contain only the following
+	      letters: <quote>D</quote>, <quote>F</quote>,
+	      <quote>R</quote>, and <quote>S</quote>. They may appear in
+	      any order. When the message gets delivered to the maildir,
+	      the message will be marked with a draft, flag, replied, or seen,
+	      attribute, correspondingly.
+	    </para>
+	    <para>
+	      <varname>FLAGS</varname> must be set before the message is
+	      delivered to a maildir.
+	      The contents of <varname>FLAGS</varname> are ignored, when
+	      delivering on
+	      an mbox folder.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry><term><varname>KEYWORDS</varname></term>
 	  <listitem>
 	    <para>
-The <varname>KEYWORDS</varname> variable is used only when delivering a
-message to a maildir, and implements the optional IMAP keyword extension
-as implemented in the
-<ulink url="http://www.courier-mta.org/"><application>Courier</application> IMAP server</ulink>.
-It may be optionally initialized to contain a comma-separate list of keywords.
-The <link linkend="to"><command>to</command></link>, or the
-<link linkend="cc"><command>cc</command></link> command, delivers the message
-to the maildir normally, but also associated the list of keywords in
-<varname>KEYWORDS</varname> with the newly delivered message.</para>
+	      The <varname>KEYWORDS</varname> variable is used only when delivering a
+	      message to a maildir, and implements the optional IMAP keyword extension
+	      as implemented in the
+	      <ulink url="http://www.courier-mta.org/"><application>Courier</application> IMAP server</ulink>.
+	      It may be optionally initialized to contain a comma-separate list of keywords.
+	      The <link linkend="to"><command>to</command></link>, or the
+	      <link linkend="cc"><command>cc</command></link> command, delivers the message
+	      to the maildir normally, but also associated the list of keywords in
+	      <varname>KEYWORDS</varname> with the newly delivered message.</para>
 
 	    <para>
-<varname>KEYWORDS</varname> must be set before the message is delivered to
-a maildir.
-The contents of <varname>KEYWORDS</varname> are ignored, when delivering on
-an mbox folder.
-  </para></listitem></varlistentry>
+	      <varname>KEYWORDS</varname> must be set before the message is delivered to
+	      a maildir.
+	      The contents of <varname>KEYWORDS</varname> are ignored, when delivering on
+	      an mbox folder.
+	</para></listitem></varlistentry>
 
 	<varlistentry><term><varname>LINES</varname></term><listitem><para>Number of lines in the current message. Note that
-    this may be an approximation. It may or may not take into account the -A
-    option. Use this as criteria for filtering,
-    nothing more.
-    
-  </para></listitem></varlistentry>
+	      this may be an approximation. It may or may not take into account the -A
+	      option. Use this as criteria for filtering,
+	      nothing more.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>MAILDIRQUOTA</varname></term><listitem><para>Set this variable in order to manually
-    enforce a maximum size on ANY maildir where the message is delivered.
-    This is an optional feature that must be enabled by the system
-    administrator, see <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> for
-    more information.
-    
-  </para></listitem></varlistentry>
+	      enforce a maximum size on ANY maildir where the message is delivered.
+	      This is an optional feature that must be enabled by the system
+	      administrator, see <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> for
+	      more information.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>RETURNCODE</varname></term><listitem><para>This variable is set when <command>maildrop</command>
-    runs the <ulink url="#xfilter">xfilter</ulink> command, or a command that's
-    specified within a pair of backtick characters ( command substitution ).
-    The <varname>RETURNCODE</varname> variable will be set to the exit code of the
-    command, after it completes.
-    
-  </para></listitem></varlistentry>
+	      runs the <ulink url="#xfilter">xfilter</ulink> command, or a command that's
+	      specified within a pair of backtick characters ( command substitution ).
+	      The <varname>RETURNCODE</varname> variable will be set to the exit code of the
+	      command, after it completes.
+
+	</para></listitem></varlistentry>
 	<varlistentry><term><varname>SIZE</varname></term><listitem><para>Number of bytes in the message. This may or may not
-    include the -A option. Use this as a criteria
-    for filtering, nothing more.</para></listitem></varlistentry>
+	      include the -A option. Use this as a criteria
+	      for filtering, nothing more.</para></listitem></varlistentry>
       </variablelist>
     </refsect2>
 
@@ -508,50 +528,50 @@ an mbox folder.
       <title>Unquoted text</title>
 
       <para>
-All text strings in <systemitem class="resource">filter file</systemitem>s should be in single, or double quotes.
-However, for convenience sake, quotes can be omitted under certain
-circumstances.</para>
+	All text strings in <systemitem class="resource">filter file</systemitem>s should be in single, or double quotes.
+	However, for convenience sake, quotes can be omitted under certain
+	circumstances.</para>
 
       <para>
-Text that includes ONLY letters, digits, and the following characters:
-<literal>_-.:/${}@</literal> may appear without quotes. Note that this does not
-allow spaces, or backslashes to be entered, however the text is still
-variable-substituted, and the substituted text may contain other
-characters.</para>
+	Text that includes ONLY letters, digits, and the following characters:
+	<literal>_-.:/${}@</literal> may appear without quotes. Note that this does not
+	allow spaces, or backslashes to be entered, however the text is still
+	variable-substituted, and the substituted text may contain other
+	characters.</para>
 
       <para>
-Also, note that patterns (see below) begin with the slash character.
-Normally, anything that begins with the slash is interpreted as a pattern.
-However, text immediately after <quote>VARIABLE=</quote> is interpreted as a
-string even if it begins with a slash. This is why something like:</para>
+	Also, note that patterns (see below) begin with the slash character.
+	Normally, anything that begins with the slash is interpreted as a pattern.
+	However, text immediately after <quote>VARIABLE=</quote> is interpreted as a
+	string even if it begins with a slash. This is why something like:</para>
 
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 MAILDIR=/var/mail
-</programlisting>
-	  </informalexample>
-	</blockquote>
-<para>
-works as expected. Using quotes, though, is highly recommended. You must use
-quotes to set a variable to a lone slash, because an unquoted slash is
-interpreted as a division sign.</para>
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+      <para>
+	works as expected. Using quotes, though, is highly recommended. You must use
+	quotes to set a variable to a lone slash, because an unquoted slash is
+	interpreted as a division sign.</para>
 
       <para>
-Long double or singly-quoted text can be broken across multiple lines by
-ending the line with a lone backslash character, like this:</para>
+	Long double or singly-quoted text can be broken across multiple lines by
+	ending the line with a lone backslash character, like this:</para>
 
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 TEXT="This is a long \
- text string"
-</programlisting>
-	  </informalexample>
-	</blockquote>
-<para>
-The backslash, the newline, and all leading whitespace on the next line is
-removed, resulting in "This is a long text string".</para>
+   text string"
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+      <para>
+	The backslash, the newline, and all leading whitespace on the next line is
+	removed, resulting in "This is a long text string".</para>
 
     </refsect2>
     <refsect2>
@@ -559,26 +579,26 @@ removed, resulting in "This is a long text string".</para>
       <title>Command substitution</title>
 
       <para>
-Text enclosed in back-tick characters is interpreted as a shell command. The
-shell command is executed as a child process by <command>maildrop</command>.
-Its output is used in place of the command. For example:</para>
+	Text enclosed in back-tick characters is interpreted as a shell command. The
+	shell command is executed as a child process by <command>maildrop</command>.
+	Its output is used in place of the command. For example:</para>
 
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 DIR=`ls`
-</programlisting>
-	  </informalexample>
-	</blockquote>
-<para>
-places the names of the files in the current directory into the DIR
-variable.</para>
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+      <para>
+	places the names of the files in the current directory into the DIR
+	variable.</para>
 
       <para>
-The output of the command will have all newline characters replaced by
-spaces, and leading and trailing spaces will be stripped (multiple spaces are
-not removed, though). Also, the contents of the message being delivered is
-made available to the command on standard input.</para>
+	The output of the command will have all newline characters replaced by
+	spaces, and leading and trailing spaces will be stripped (multiple spaces are
+	not removed, though). Also, the contents of the message being delivered is
+	made available to the command on standard input.</para>
     </refsect2>
 
     <refsect2>
@@ -587,18 +607,18 @@ made available to the command on standard input.</para>
       <anchor id="patterns"/>
 
       <para>
-The pattern syntax in <command>maildrop</command> is similar to the
-<command>grep</command> command's syntax, with some minor differences.
-A pattern takes the following
-form in the <systemitem class="resource">filter file</systemitem>:</para>
+	The pattern syntax in <command>maildrop</command> is similar to the
+	<command>grep</command> command's syntax, with some minor differences.
+	A pattern takes the following
+	form in the <systemitem class="resource">filter file</systemitem>:</para>
 
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 /<replaceable>pattern</replaceable>/:<replaceable>options</replaceable>
-</programlisting>
-	  </informalexample>
-	</blockquote>
+	  </programlisting>
+	</informalexample>
+      </blockquote>
 
       <para>
 	<replaceable>pattern</replaceable> specifies the text to look for in the
@@ -684,40 +704,40 @@ form in the <systemitem class="resource">filter file</systemitem>:</para>
       <anchor id="options"/>
 
       <para>
-Following <literal>/<replaceable>pattern</replaceable>/,</literal>
-there may be an optional colon, followed by one. or
-more options. The following options may be specified in any order:</para>
+	Following <literal>/<replaceable>pattern</replaceable>/,</literal>
+	there may be an optional colon, followed by one. or
+	more options. The following options may be specified in any order:</para>
 
       <variablelist>
 	<varlistentry><term><literal>h</literal></term>
 	  <listitem>
 	    <para>Match this pattern against the message header.</para>
-	  </listitem></varlistentry>
+	</listitem></varlistentry>
 	<varlistentry><term><literal>b</literal></term>
 	  <listitem>
 	    <para>Match this pattern against the message body.</para>
-	  </listitem></varlistentry>
+	</listitem></varlistentry>
 	<varlistentry><term><literal>D</literal></term>
 	  <listitem>
 	    <para>This is a case sensitive match. Normally the patterns match either
-uppercase or lowercase text. <literal>/john/</literal> will match "John",
-"john", or "JOHN". Specify the D option for a case-sensitive search:
-lowercase letters in the pattern must match lowercase letters in the
-message; ditto for uppercase.</para>
-	  </listitem></varlistentry>
+	      uppercase or lowercase text. <literal>/john/</literal> will match "John",
+	      "john", or "JOHN". Specify the D option for a case-sensitive search:
+	      lowercase letters in the pattern must match lowercase letters in the
+	      message; ditto for uppercase.</para>
+	</listitem></varlistentry>
       </variablelist>
 
       <para>
-If neither 'h' or 'b' is specified, the pattern is matched against the
-header only. Specifying the 'b' option causes the pattern to be matched
-against the message body. Specifying both causes the pattern to be matched
-against the entire message.</para>
+	If neither 'h' or 'b' is specified, the pattern is matched against the
+	header only. Specifying the 'b' option causes the pattern to be matched
+	against the message body. Specifying both causes the pattern to be matched
+	against the entire message.</para>
 
       <para>
-Normally, each line in the message gets matched against the pattern
-individually. When applying patterns to a header, multi-line headers (headers
-split on several lines by beginning each continuation line with whitespace)
-are silently combined into a single line, before the pattern is applied.</para>
+	Normally, each line in the message gets matched against the pattern
+	individually. When applying patterns to a header, multi-line headers (headers
+	split on several lines by beginning each continuation line with whitespace)
+	are silently combined into a single line, before the pattern is applied.</para>
     </refsect2>
 
     <refsect2>
@@ -744,45 +764,45 @@ are silently combined into a single line, before the pattern is applied.</para>
       <title>Weighted scoring</title>
 
       <para>
-Patterns are evaluated by <command>maildrop</command> as any other numerical
-expression. If a pattern is found, <command>maildrop</command>'s filter
-interprets the
-results of the pattern match as number 1, or true, for filtering purposes. If
-a pattern is not found the results of the pattern search is zero. Once a
-pattern is found, the search stops. Second, and subsequent occurrences of the
-same pattern are NOT searched for.</para>
+	Patterns are evaluated by <command>maildrop</command> as any other numerical
+	expression. If a pattern is found, <command>maildrop</command>'s filter
+	interprets the
+	results of the pattern match as number 1, or true, for filtering purposes. If
+	a pattern is not found the results of the pattern search is zero. Once a
+	pattern is found, the search stops. Second, and subsequent occurrences of the
+	same pattern are NOT searched for.</para>
 
       <para>
-<command>maildrop</command> can also do weighted scoring. In weighted scoring,
-multiple occurrences of the same pattern are used to calculate a numerical
-score.</para>
+	<command>maildrop</command> can also do weighted scoring. In weighted scoring,
+	multiple occurrences of the same pattern are used to calculate a numerical
+	score.</para>
 
       <para>
-To use a weighted search, specify the pattern as follows:</para>
+	To use a weighted search, specify the pattern as follows:</para>
 
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
+      <blockquote>
+	<informalexample>
+	  <programlisting>
 /<replaceable>pattern</replaceable>/:<replaceable>options</replaceable>,<replaceable>xxx</replaceable>,<replaceable>yyy</replaceable>
-</programlisting>
-	  </informalexample>
-	</blockquote>
-<para>
-where <replaceable>xxx</replaceable> and <replaceable>yyy</replaceable> are
-two numbers. <replaceable>yyy</replaceable> is optional -- it will
-default to 1, if missing.</para>
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+      <para>
+	where <replaceable>xxx</replaceable> and <replaceable>yyy</replaceable> are
+	two numbers. <replaceable>yyy</replaceable> is optional -- it will
+	default to 1, if missing.</para>
 
       <para>The first occurrence of the pattern is evaluated as xxx. The second
-occurrence of the pattern is evaluated as xxx*yyy, the third as xxx*yyy*yyy,
-etc... All occurrences of the pattern are added up to calculate the final
-score.</para>
+	occurrence of the pattern is evaluated as xxx*yyy, the third as xxx*yyy*yyy,
+	etc... All occurrences of the pattern are added up to calculate the final
+	score.</para>
 
       <note>
 	<para>
-<command>maildrop</command> does not
-recognize multiple occurrences of the same pattern in the same line.
-Multiple occurences of the same pattern in one line count as one
-occurence.</para>
+	  <command>maildrop</command> does not
+	  recognize multiple occurrences of the same pattern in the same line.
+	  Multiple occurences of the same pattern in one line count as one
+	  occurence.</para>
       </note>
     </refsect2>
 
@@ -793,86 +813,89 @@ occurence.</para>
       <anchor id="patmatch"/>
 
       <para>
-After a pattern is successfully matched, the actual text that is matched
-is placed in the <varname>MATCH</varname> variable. For example:</para>
-
-<blockquote>
-	  <informalexample>
-	    <programlisting format="linespecific">
-/^From:.*/
-</programlisting>
-	  </informalexample>
-	</blockquote>
-<para>
-matches a line of the form:</para>
-
-<blockquote>
-	  <informalexample>
-From: postmaster@localhost
-	  </informalexample>
-	</blockquote>
-
-      <para>
-Here the variable <varname>MATCH</varname> will be set to "From:
-postmaster@localhost", which can be used in subsequent statements.</para>
-
-      <para>
-If the pattern contains subpatterns, the portions of the text that match
-the first subpattern is placed in the <varname>MATCH1</varname> variable.
-The second subpattern, if any, is placed in <varname>MATCH2</varname>, and
-so on:</para>
+	After a pattern is successfully matched, the actual text that is matched
+	is placed in the <varname>MATCH</varname> variable. For example:</para>
 
       <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
-/^From:\s+(.*)@(.*)/
-</programlisting>
+	  <programlisting>
+/^From:.*/
+	  </programlisting>
 	</informalexample>
       </blockquote>
       <para>
-matched against the same line will set <varname>MATCH</varname> to
-<quote>From: postmaster@localhost</quote>,
-<varname>MATCH1</varname> to <quote>postmaster</quote>, and
-<varname>MATCH2</varname> to <quote>localhost</quote>.
-Of course, in real world the <quote>From:</quote> header is usually much
-more complicated, and can't be handled that easily.
-This is just an illustrative example.</para>
+	matches a line of the form:
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+From: postmaster@localhost
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	Here the variable <varname>MATCH</varname> will be set to "From:
+	postmaster@localhost", which can be used in subsequent statements.</para>
+
+      <para>
+	If the pattern contains subpatterns, the portions of the text that match
+	the first subpattern is placed in the <varname>MATCH1</varname> variable.
+	The second subpattern, if any, is placed in <varname>MATCH2</varname>, and
+	so on:</para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+/^From:\s+(.*)@(.*)/
+	  </programlisting>
+	</informalexample>
+      </blockquote>
+      <para>
+	matched against the same line will set <varname>MATCH</varname> to
+	<quote>From: postmaster@localhost</quote>,
+	<varname>MATCH1</varname> to <quote>postmaster</quote>, and
+	<varname>MATCH2</varname> to <quote>localhost</quote>.
+	Of course, in real world the <quote>From:</quote> header is usually much
+	more complicated, and can't be handled that easily.
+	This is just an illustrative example.</para>
 
       <note>
 	<para>
-Subpatterns are not processed in the <literal>foreach</literal>
-statement.</para>
-</note>
+	  Subpatterns are not processed in the <literal>foreach</literal>
+	  statement.</para>
+      </note>
 
     </refsect2>
 
     <refsect2 id="conversion">
       <title>Conversion of <command>maildrop</command> 1.x patterns to 2.0</title>
       <para>
-Although the new <acronym>PCRE</acronym>-based pattern matching code in
-<command>maildrop</command> is completely different from the built-in
-pattern matching code in <command>maildrop</command> 1.x, very few changes
-will be required to convert recipes to the new syntax.
-The only major differences are:</para>
+	Although the new <acronym>PCRE</acronym>-based pattern matching code in
+	<command>maildrop</command> is completely different from the built-in
+	pattern matching code in <command>maildrop</command> 1.x, very few changes
+	will be required to convert recipes to the new syntax.
+	The only major differences are:</para>
 
       <itemizedlist>
 	<listitem>
 	  <para>
-The subexpression format has changed.
-Any pattern that uses subexpression needs to be converted.
-Additionally, references to <varname>MATCH2</varname> must be replaced
-with <varname>MATCH1</varname>, <varname>MATCH3</varname> to
-<varname>MATCH2</varname>, and so on.
-References to plain old <varname>MATCH</varname> will remain the
-same.</para>
+	    The subexpression format has changed.
+	    Any pattern that uses subexpression needs to be converted.
+	    Additionally, references to <varname>MATCH2</varname> must be replaced
+	    with <varname>MATCH1</varname>, <varname>MATCH3</varname> to
+	    <varname>MATCH2</varname>, and so on.
+	    References to plain old <varname>MATCH</varname> will remain the
+	    same.</para>
 	</listitem>
 
 	<listitem>
 	  <para>
-The <quote>w</quote> pattern option is no longer possible, with
-<acronym>PCRE</acronym>.
-The very few recipes that use this option, if any actually exist,
-will have to be rewritten in some other fashion.</para>
+	    The <quote>w</quote> pattern option is no longer possible, with
+	    <acronym>PCRE</acronym>.
+	    The very few recipes that use this option, if any actually exist,
+	    will have to be rewritten in some other fashion.</para>
 	</listitem>
       </itemizedlist>
     </refsect2>
@@ -882,22 +905,22 @@ will have to be rewritten in some other fashion.</para>
       <title>Expressions</title>
 
       <para>
-Although <command>maildrop</command> evaluates expressions numerically,
-results of
-expressions are stored as text literals. When necessary, text literals are
-converted to numbers, then the results of a mathematical operation is
-converted back into a text literal.</para>
+	Although <command>maildrop</command> evaluates expressions numerically,
+	results of
+	expressions are stored as text literals. When necessary, text literals are
+	converted to numbers, then the results of a mathematical operation is
+	converted back into a text literal.</para>
 
       <refsect3>
 	<title>Operators</title>
 
 	<para>
-The following operators carry their usual meaning, and are listed in order
-from lowest precedence, to the highest:</para>
+	  The following operators carry their usual meaning, and are listed in order
+	  from lowest precedence, to the highest:</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 
 ||
 &amp;&amp;
@@ -908,8 +931,7 @@ from lowest precedence, to the highest:</para>
 *  /
 =~ /<replaceable>pattern</replaceable>/
 /<replaceable>pattern</replaceable>/  !  ~  <replaceable>function()</replaceable>
-
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
       </refsect3>
@@ -921,24 +943,24 @@ from lowest precedence, to the highest:</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 VARIABLE=<replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-Assigns the result of the expression to <replaceable>VARIABLE</replaceable>
-(note no leading $ in front of variable).
-</para>
+	  Assigns the result of the expression to <replaceable>VARIABLE</replaceable>
+	  (note no leading $ in front of variable).
+	</para>
 
 	<note>
 	  <para>
-If <replaceable>VARIABLE</replaceable> is NOT surrounded by quotes, then it
-may contain only letters, numbers, underscores, dashes, and a selected few
-other characters. In order to initialize a variable whose name contains
-non-standard punctuation marks, surround the name of the variable with
-quotes.</para>
+	    If <replaceable>VARIABLE</replaceable> is NOT surrounded by quotes, then it
+	    may contain only letters, numbers, underscores, dashes, and a selected few
+	    other characters. In order to initialize a variable whose name contains
+	    non-standard punctuation marks, surround the name of the variable with
+	    quotes.</para>
 	</note>
 
       </refsect3>
@@ -950,33 +972,33 @@ quotes.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 cc <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <command>cc</command> statement is very similar to the
-<command>to</command> statement, except
-that after delivering the message <command>maildrop</command> continues
-to process the
-<systemitem class="resource">filter file</systemitem>,
-unlike the <command>to</command> statement which immediately
-terminates <command>maildrop</command> after the delivery is complete.
-Essentially, the
-message is carbon copied to the given mailbox, and may be delivered again to
-another mailbox by another <command>cc</command> or
-<command>to</command> statement.</para>
+	  The <command>cc</command> statement is very similar to the
+	  <command>to</command> statement, except
+	  that after delivering the message <command>maildrop</command> continues
+	  to process the
+	  <systemitem class="resource">filter file</systemitem>,
+	  unlike the <command>to</command> statement which immediately
+	  terminates <command>maildrop</command> after the delivery is complete.
+	  Essentially, the
+	  message is carbon copied to the given mailbox, and may be delivered again to
+	  another mailbox by another <command>cc</command> or
+	  <command>to</command> statement.</para>
 
 	<para>
-<ulink url="#to">See the <command>to</command> statement</ulink> for more
-details.
-When
-<command>cc</command> is used to deliver a message to a process
-<command>maildrop</command>
-will set the <varname>EXITCODE</varname> variable to the process's exit
-code.</para>
+	  <ulink url="#to">See the <command>to</command> statement</ulink> for more
+	  details.
+	  When
+	  <command>cc</command> is used to deliver a message to a process
+	  <command>maildrop</command>
+	  will set the <varname>EXITCODE</varname> variable to the process's exit
+	  code.</para>
       </refsect3>
 
       <refsect3>
@@ -986,50 +1008,50 @@ code.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 dotlock <replaceable>expression</replaceable> {
 
-      ...
+   ...
 
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-<command>maildrop</command> automatically creates a lock when a message is
-delivered to a
-mailbox. Depending upon your system configuration,
-<command>maildrop</command> will use
-either dot-locks, or the flock() system call.</para>
+	  <command>maildrop</command> automatically creates a lock when a message is
+	  delivered to a
+	  mailbox. Depending upon your system configuration,
+	  <command>maildrop</command> will use
+	  either dot-locks, or the flock() system call.</para>
 
 	<para>The <command>dotlock</command> statement creates an explicit dot-lock
-file. Use the <ulink url="#flock"><command>flock</command> statement</ulink> to create an
-explicit flock()
-lock.</para>
+	  file. Use the <ulink url="#flock"><command>flock</command> statement</ulink> to create an
+	  explicit flock()
+	  lock.</para>
 
 	<para>The <replaceable>expression</replaceable> is a filename that should be
-used as a lock file.
-<command>maildrop</command> creates the indicated dot-lock, executes the
-filtering
-instructions contained within the { ... } block, and removes the lock. The
-expression <emphasis>must</emphasis> be the name of the dot-lock file itself,
-<emphasis>NOT</emphasis>
-the name of the mailbox file you want to lock.</para>
+	  used as a lock file.
+	  <command>maildrop</command> creates the indicated dot-lock, executes the
+	  filtering
+	  instructions contained within the { ... } block, and removes the lock. The
+	  expression <emphasis>must</emphasis> be the name of the dot-lock file itself,
+	  <emphasis>NOT</emphasis>
+	  the name of the mailbox file you want to lock.</para>
 
 	<note>
 	  <para>
-With manual locking, it is possible to deadlock multiple
-<command>maildrop</command> processes (or any other processes that try to
-claim the same
-locks).</para>
+	    With manual locking, it is possible to deadlock multiple
+	    <command>maildrop</command> processes (or any other processes that try to
+	    claim the same
+	    locks).</para>
 
 	  <para>No deadlock detection is possible with dot-locks, and since
-<command>maildrop</command> automatically refreshes all of its dot-locks
-regularly, they
-will never go stale. You'll have <command>maildrop</command> processes
-hanging in limbo,
-until their watchdog timers go off, aborting the mail delivery.</para>
+	    <command>maildrop</command> automatically refreshes all of its dot-locks
+	    regularly, they
+	    will never go stale. You'll have <command>maildrop</command> processes
+	    hanging in limbo,
+	    until their watchdog timers go off, aborting the mail delivery.</para>
 	</note>
       </refsect3>
 
@@ -1040,19 +1062,19 @@ until their watchdog timers go off, aborting the mail delivery.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 echo <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-<command>maildrop</command> will print the given text. This is usually used
-when
-<command>maildrop</command> runs in embedded mode, but can be used for
-debugging
-purposes. Normally, a newline is printed after the text. If text is
-terminated with a \c, no newline will be printed.</para>
+	  <command>maildrop</command> will print the given text. This is usually used
+	  when
+	  <command>maildrop</command> runs in embedded mode, but can be used for
+	  debugging
+	  purposes. Normally, a newline is printed after the text. If text is
+	  terminated with a \c, no newline will be printed.</para>
       </refsect3>
 
       <refsect3>
@@ -1062,24 +1084,24 @@ terminated with a \c, no newline will be printed.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 exception {
 
    ...
 
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <command>exception</command> statement traps errors that would normally
-cause
-<command>maildrop</command> to terminate. If a fatal error is encountered
-anywhere within the
-block of statements enclosed by the <command>exception</command> clause,
-execution will
-resume immediately following the <command>exception</command> clause.</para>
+	  The <command>exception</command> statement traps errors that would normally
+	  cause
+	  <command>maildrop</command> to terminate. If a fatal error is encountered
+	  anywhere within the
+	  block of statements enclosed by the <command>exception</command> clause,
+	  execution will
+	  resume immediately following the <command>exception</command> clause.</para>
       </refsect3>
 
       <refsect3>
@@ -1090,23 +1112,23 @@ resume immediately following the <command>exception</command> clause.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 exit
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <command>exit</command> statement immediately terminates filtering.
-<command>maildrop</command>'s
-return code is set to the value of the <varname>EXITCODE</varname> variable.
-Normally, <command>maildrop</command> terminates immediately after <ulink url="#to">successfully delivering the message</ulink> to a mailbox. The
-<command>exit</command> statement causes <command>maildrop</command> to
-terminate without delivering the message anywhere.</para>
+	  The <command>exit</command> statement immediately terminates filtering.
+	  <command>maildrop</command>'s
+	  return code is set to the value of the <varname>EXITCODE</varname> variable.
+	  Normally, <command>maildrop</command> terminates immediately after <ulink url="#to">successfully delivering the message</ulink> to a mailbox. The
+	  <command>exit</command> statement causes <command>maildrop</command> to
+	  terminate without delivering the message anywhere.</para>
 
 	<para>The <command>exit</command> statement is usually used when
-<command>maildrop</command> runs in <ulink url="maildrop.html#embedded">embedded mode</ulink>, when message
-delivery instructions are not allowed.</para>
+	  <command>maildrop</command> runs in <ulink url="maildrop.html#embedded">embedded mode</ulink>, when message
+	  delivery instructions are not allowed.</para>
       </refsect3>
 
       <refsect3>
@@ -1116,44 +1138,44 @@ delivery instructions are not allowed.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 flock <replaceable>expression</replaceable> {
 
-      ...
+   ...
 
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-<command>maildrop</command> automatically creates a lock when a message is delivered to a
-mailbox. Depending upon your system configuration, <command>maildrop</command> will use
-either dot-locks, or the flock() system call.</para>
+	  <command>maildrop</command> automatically creates a lock when a message is delivered to a
+	  mailbox. Depending upon your system configuration, <command>maildrop</command> will use
+	  either dot-locks, or the flock() system call.</para>
 
 	<para>The <command>flock</command> statement creates a manual flock() lock.
-Use the <ulink url="#dotlock"><command>dotlock</command> statement</ulink>
-to create a manual dot-lock
-file.</para>
+	  Use the <ulink url="#dotlock"><command>dotlock</command> statement</ulink>
+	  to create a manual dot-lock
+	  file.</para>
 
 	<para>The <replaceable>expression</replaceable> is the name of the
-file that should be locked.
-<command>maildrop</command> creates the lock on the indicated file, executes
-the
-filtering instructions contained within the { ... } block, and removes the
-lock.</para>
+	  file that should be locked.
+	  <command>maildrop</command> creates the lock on the indicated file, executes
+	  the
+	  filtering instructions contained within the { ... } block, and removes the
+	  lock.</para>
 
 	<note>
 	  <para>
-With manual locking, it is possible to deadlock multiple
-<command>maildrop</command> processes (or any other
-processes that try to claim the same
-locks). The operating system will automatically break flock() deadlocks. When
-that happens, one of the <command>maildrop</command> processes will terminate
-immediately. Use the <command>exception</command> statement in order to trap
-this
-exception condition, and execute an alternative set of filtering
-instructions.</para>
+	    With manual locking, it is possible to deadlock multiple
+	    <command>maildrop</command> processes (or any other
+	    processes that try to claim the same
+	    locks). The operating system will automatically break flock() deadlocks. When
+	    that happens, one of the <command>maildrop</command> processes will terminate
+	    immediately. Use the <command>exception</command> statement in order to trap
+	    this
+	    exception condition, and execute an alternative set of filtering
+	    instructions.</para>
 	</note>
       </refsect3>
 
@@ -1161,46 +1183,46 @@ instructions.</para>
 	<title>foreach - iterate over text sections matched by a pattern</title>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 foreach /pattern/:options
 {
-    ...
+   ...
 }
 
 foreach (expression) =~ /pattern/:options
 {
-    ...
+   ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <command>foreach</command> statement executes a block of statements for
-each
-occurrence of the given pattern in the given message, or expression. On every
-iteration <varname>MATCH</varname> variable will be set to the matched string.
-All the usual options may be applied to the pattern match,
-EXCEPT the following:
-<variablelist>
+	  The <command>foreach</command> statement executes a block of statements for
+	  each
+	  occurrence of the given pattern in the given message, or expression. On every
+	  iteration <varname>MATCH</varname> variable will be set to the matched string.
+	  All the usual options may be applied to the pattern match,
+	  EXCEPT the following:
+	  <variablelist>
 	    <varlistentry>
 	      <term>,xxx,yyy</term>
 	      <listitem>
 		<para>
-Weighted scoring is meaningless, in this context.</para>
+		  Weighted scoring is meaningless, in this context.</para>
 	      </listitem>
 	    </varlistentry>
 	    <varlistentry>
 	      <term>( ... )</term>
 	      <listitem>
 		<para>
-Subpatterns are not processed.
-Only the <varname>MATCH</varname> variable will be set for each found
-pattern.</para>
+		  Subpatterns are not processed.
+		  Only the <varname>MATCH</varname> variable will be set for each found
+		  pattern.</para>
 	      </listitem>
 	    </varlistentry>
 	  </variablelist>
-</para>
+	</para>
       </refsect3>
 
       <refsect3>
@@ -1208,116 +1230,116 @@ pattern.</para>
 	<anchor id="if"/>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
 else
 {
-    ...
+   ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-Conditional execution. If <replaceable>expression</replaceable>
-evaluates to a logical true (note -
-parenthesis are required) then the first set of statements is executed.
-The <command>else</command> keyword, and the subsequent statements, are
-optional. If present,
-and the expression evaluates to a logical false, the
-<command>else</command> part is executed.</para>
+	  Conditional execution. If <replaceable>expression</replaceable>
+	  evaluates to a logical true (note -
+	  parenthesis are required) then the first set of statements is executed.
+	  The <command>else</command> keyword, and the subsequent statements, are
+	  optional. If present,
+	  and the expression evaluates to a logical false, the
+	  <command>else</command> part is executed.</para>
 
 	<para>
-<command>maildrop</command> evaluates all expression as text strings.
-In the context
-of a logical expression, an empty string, or the number 0 constitutes a
-logical false value, anything else is a logical true value.</para>
+	  <command>maildrop</command> evaluates all expression as text strings.
+	  In the context
+	  of a logical expression, an empty string, or the number 0 constitutes a
+	  logical false value, anything else is a logical true value.</para>
 
 	<para>If the <command>if</command> part, or the
-<command>else</command>
-part consists of only one
-statement, the braces may be omitted.</para>
+	  <command>else</command>
+	  part consists of only one
+	  statement, the braces may be omitted.</para>
 
 	<note>
 	  <para>
-The grammar of this <command>if</command> statement is stricter than
-usual.
-If
-you get baffling syntax errors from <command>maildrop</command>, make sure that the
-braces, and the if statement, appear on separate lines. Specifically: the
-closing parenthesis, the closing braces, and the else statement, must be at
-the end of the line (comments are allowed), and there may not be any blank
-lines in between (not even ones containing comments only).</para>
+	    The grammar of this <command>if</command> statement is stricter than
+	    usual.
+	    If
+	    you get baffling syntax errors from <command>maildrop</command>, make sure that the
+	    braces, and the if statement, appear on separate lines. Specifically: the
+	    closing parenthesis, the closing braces, and the else statement, must be at
+	    the end of the line (comments are allowed), and there may not be any blank
+	    lines in between (not even ones containing comments only).</para>
 	</note>
 	<para>
-If the <command>else</command> part contains a single <command>if</command>,
-and nothing else,
-this may be combined into an <command>elsif</command>:
-</para>
+	  If the <command>else</command> part contains a single <command>if</command>,
+	  and nothing else,
+	  this may be combined into an <command>elsif</command>:
+	</para>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
 elsif (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The above example is logically identical to:</para>
+	  The above example is logically identical to:</para>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
 else
 {
-    if (<replaceable>expression</replaceable>)
-    {
-        ...
-    }
+   if (<replaceable>expression</replaceable>)
+   {
+      ...
+   }
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-Consecutive <command>elsif</command> sequences are allowed:
-</para>
+	  Consecutive <command>elsif</command> sequences are allowed:
+	</para>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
 elsif (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
 elsif (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-Consecutive occurences of <command>elsif</command> commands eliminate a
-significant amount of indentation, and the resulting code is more readable.
-</para>
+	  Consecutive occurences of <command>elsif</command> commands eliminate a
+	  significant amount of indentation, and the resulting code is more readable.
+	</para>
       </refsect3>
 
       <refsect3>
@@ -1325,72 +1347,72 @@ significant amount of indentation, and the resulting code is more readable.
 	<anchor id="import"/>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 import <replaceable>variable</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 
 	<para>When <command>maildrop</command> starts,
-it normally imports the contents of the
-environment variables, and assigns them to internal <command>maildrop</command>
-variables. For example, if there was an environment variable
-<varname>FOO</varname>, the internal <command>maildrop</command> variable
-<varname>FOO</varname> will
-have the contents of the environment variable.
-From then on, <varname>FOO</varname>
-will be no different than any other variable,
-and when <command>maildrop</command> runs
-an external command, the contents of <command>maildrop</command>'s
-variables will be
-exported as the environment for the command.</para>
+	  it normally imports the contents of the
+	  environment variables, and assigns them to internal <command>maildrop</command>
+	  variables. For example, if there was an environment variable
+	  <varname>FOO</varname>, the internal <command>maildrop</command> variable
+	  <varname>FOO</varname> will
+	  have the contents of the environment variable.
+	  From then on, <varname>FOO</varname>
+	  will be no different than any other variable,
+	  and when <command>maildrop</command> runs
+	  an external command, the contents of <command>maildrop</command>'s
+	  variables will be
+	  exported as the environment for the command.</para>
 
 	<para>Certain variables, like <varname>HOME</varname> and
-<varname>PATH</varname>, are always reset to fixed defaults,
-for security reasons.
-Also, in delivery and embedded modes, the environment is not imported at all
-(with the exception of system locale environment variables),
-and <command>maildrop</command> starts with only the fixed default
-variables.</para>
+	  <varname>PATH</varname>, are always reset to fixed defaults,
+	  for security reasons.
+	  Also, in delivery and embedded modes, the environment is not imported at all
+	  (with the exception of system locale environment variables),
+	  and <command>maildrop</command> starts with only the fixed default
+	  variables.</para>
 
 	<para>
-The <command>import</command> statement initializes the specified
-variable with the contents of the original environment variable
-when <command>maildrop</command> started.  For example:</para>
+	  The <command>import</command> statement initializes the specified
+	  variable with the contents of the original environment variable
+	  when <command>maildrop</command> started.  For example:</para>
 
-<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	<blockquote>
+	  <informalexample>
+	    <programlisting>
 echo "PATH is $PATH"
 PATH="/bin"
 echo "PATH is $PATH"
 import PATH
 echo "PATH is $PATH"
 exit
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>This results in the following output:</para>
 
 	<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  <informalexample>
+	    <programlisting>
 PATH is /bin:/usr/bin:/usr/local/bin
 PATH is /bin
 PATH is /home/root/bin:/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>
-This shows that when <command>maildrop</command> starts
-<varname>PATH</varname> is set to the fixed default of
-<literal>/bin:/usr/bin:/usr/local/bin</literal>.
-However, the original contents of
-the <varname>PATH</varname> environment variable we different, and the
-<command>import</command> statement shows what it was.</para>
+	  This shows that when <command>maildrop</command> starts
+	  <varname>PATH</varname> is set to the fixed default of
+	  <literal>/bin:/usr/bin:/usr/local/bin</literal>.
+	  However, the original contents of
+	  the <varname>PATH</varname> environment variable we different, and the
+	  <command>import</command> statement shows what it was.</para>
       </refsect3>
 
       <refsect3>
@@ -1400,28 +1422,28 @@ the <varname>PATH</varname> environment variable we different, and the
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 include <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The include statement reads a file, and executes filtering instructions
-contained in that file. Note that the include statement is processed when the
-current <systemitem class="resource">filter file</systemitem> is being executed. When <command>maildrop</command> reads the initial
-<systemitem class="resource">filter file</systemitem>, any syntax errors in the filtering instructions are immediately
-reported, and <command>maildrop</command> will terminate with a return code of
-<errorcode>EX_TEMPFAIL</errorcode>. Any errors in files specified by
-<command>include</command>
-statements are NOT reported, because those files will not be read until the
-<command>include</command> statement is itself executed.</para>
+	  The include statement reads a file, and executes filtering instructions
+	  contained in that file. Note that the include statement is processed when the
+	  current <systemitem class="resource">filter file</systemitem> is being executed. When <command>maildrop</command> reads the initial
+	  <systemitem class="resource">filter file</systemitem>, any syntax errors in the filtering instructions are immediately
+	  reported, and <command>maildrop</command> will terminate with a return code of
+	  <errorcode>EX_TEMPFAIL</errorcode>. Any errors in files specified by
+	  <command>include</command>
+	  statements are NOT reported, because those files will not be read until the
+	  <command>include</command> statement is itself executed.</para>
 
 	<para>
-If the specified file does not exist, or if there are any syntax errors in
-the file, <command>maildrop</command> reports the error, and terminates with
-a return
-code of <errorcode>EX_TEMPFAIL</errorcode>.</para>
+	  If the specified file does not exist, or if there are any syntax errors in
+	  the file, <command>maildrop</command> reports the error, and terminates with
+	  a return
+	  code of <errorcode>EX_TEMPFAIL</errorcode>.</para>
       </refsect3>
 
       <refsect3>
@@ -1429,37 +1451,37 @@ code of <errorcode>EX_TEMPFAIL</errorcode>.</para>
 	<anchor id="log"/>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 logfile <replaceable>expression</replaceable>
 
 log <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-Logging in <command>maildrop</command> is normally turned off.
-The <command>logfile</command>
-statement specifies the file where
-<command>maildrop</command> will log how the message has been
-disposed of. The parameter is then name of the file. If the
-file exists <command>maildrop</command> appends to the file.</para>
+	  Logging in <command>maildrop</command> is normally turned off.
+	  The <command>logfile</command>
+	  statement specifies the file where
+	  <command>maildrop</command> will log how the message has been
+	  disposed of. The parameter is then name of the file. If the
+	  file exists <command>maildrop</command> appends to the file.</para>
 
 	<para>
-For each delivery (the <ulink url="#to"><command>to</command></ulink>
-and <ulink url="#cc"><command>cc</command></ulink>
-statements, and default deliveries)
-<command>maildrop</command> records the
-<literal>From:</literal> and the
-<literal>Subject:</literal> fields, together with
-the current time, in the log file.</para>
+	  For each delivery (the <ulink url="#to"><command>to</command></ulink>
+	  and <ulink url="#cc"><command>cc</command></ulink>
+	  statements, and default deliveries)
+	  <command>maildrop</command> records the
+	  <literal>From:</literal> and the
+	  <literal>Subject:</literal> fields, together with
+	  the current time, in the log file.</para>
 
 	<para>
-The <command>log</command> statement adds additional logging text to the
-log file. The <command>log</command> statement works exactly like
-the <command>echo</command>
-statement, except that the text is written to the logfile, instead of
-standard output.</para>
+	  The <command>log</command> statement adds additional logging text to the
+	  log file. The <command>log</command> statement works exactly like
+	  the <command>echo</command>
+	  statement, except that the text is written to the logfile, instead of
+	  standard output.</para>
       </refsect3>
 
       <refsect3>
@@ -1467,63 +1489,63 @@ standard output.</para>
 	<anchor id="to"/>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 to <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <command>to</command> statement delivers the message to a mailbox.
-<replaceable>expression</replaceable>
-must evaluate to a valid mailbox. A valid mailbox is either a mailbox file, a
-maildir, or an external program (which includes forwarding to another
-address).</para>
+	  The <command>to</command> statement delivers the message to a mailbox.
+	  <replaceable>expression</replaceable>
+	  must evaluate to a valid mailbox. A valid mailbox is either a mailbox file, a
+	  maildir, or an external program (which includes forwarding to another
+	  address).</para>
 
 	<para>
-The <command>to</command> statement is the final delivery statement.
-<command>maildrop</command>
-delivers message, then immediately terminates,
-with its return code set to
-the <varname>EXITCODE</varname> variable.
-If there was an error while
-delivering the message, <command>maildrop</command> terminates with the
-<errorcode>EX_TEMPFAIL</errorcode> exit code. A properly-written mail
-transport agent
-should re-queue the message, and re-attempt delivery at some later time.</para>
+	  The <command>to</command> statement is the final delivery statement.
+	  <command>maildrop</command>
+	  delivers message, then immediately terminates,
+	  with its return code set to
+	  the <varname>EXITCODE</varname> variable.
+	  If there was an error while
+	  delivering the message, <command>maildrop</command> terminates with the
+	  <errorcode>EX_TEMPFAIL</errorcode> exit code. A properly-written mail
+	  transport agent
+	  should re-queue the message, and re-attempt delivery at some later time.</para>
 
 	<para>
-An <replaceable>expression</replaceable> that begins with the
-"<token>|</token>" character
-specifies an external program to run to handle the actual
-delivery. The <varname>SHELL</varname> variable specifies the shell to
-execute the
-given command. The message is provided to the command on standard input.
-<command>maildrop</command>'s exit code will be the process's exit
-code.</para>
+	  An <replaceable>expression</replaceable> that begins with the
+	  "<token>|</token>" character
+	  specifies an external program to run to handle the actual
+	  delivery. The <varname>SHELL</varname> variable specifies the shell to
+	  execute the
+	  given command. The message is provided to the command on standard input.
+	  <command>maildrop</command>'s exit code will be the process's exit
+	  code.</para>
 
 	<para>
-An <replaceable>expression</replaceable> that begins
-with an exclamation mark, "<token>!</token>"
-specifies a whitespace-delimited
-list of E-mail addresses to forward the message
-to.
-The program
-specified by the <varname>SENDMAIL</varname> variable is run as an
-external program, with the list of E-mail addresses provided as parameters to
-the program.</para>
+	  An <replaceable>expression</replaceable> that begins
+	  with an exclamation mark, "<token>!</token>"
+	  specifies a whitespace-delimited
+	  list of E-mail addresses to forward the message
+	  to.
+	  The program
+	  specified by the <varname>SENDMAIL</varname> variable is run as an
+	  external program, with the list of E-mail addresses provided as parameters to
+	  the program.</para>
 
 	<para>
-Otherwise, <replaceable>expression</replaceable> names the mailbox
-where <command>maildrop</command> delivers the message.
-If <replaceable>expression</replaceable> is a directory,
-<command>maildrop</command> assumes
-that the directory is a maildir directory.
-Otherwise, <command>maildrop</command> will deliver
-the message to a file, formatted in traditional mailbox format.
-<command>maildrop</command> will use either dot-locking, or flock()-locking
-when
-delivering the message to the file.</para>
+	  Otherwise, <replaceable>expression</replaceable> names the mailbox
+	  where <command>maildrop</command> delivers the message.
+	  If <replaceable>expression</replaceable> is a directory,
+	  <command>maildrop</command> assumes
+	  that the directory is a maildir directory.
+	  Otherwise, <command>maildrop</command> will deliver
+	  the message to a file, formatted in traditional mailbox format.
+	  <command>maildrop</command> will use either dot-locking, or flock()-locking
+	  when
+	  delivering the message to the file.</para>
       </refsect3>
 
       <refsect3>
@@ -1531,22 +1553,22 @@ delivering the message to the file.</para>
 	<anchor id="while"/>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 while (<replaceable>expression</replaceable>)
 {
-    ...
+   ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <replaceable>expression</replaceable> is repeatedly evaluated.
-Each time it <ulink url="#if">evaluates to a logical true</ulink>,
-the statements inside the braces
-are executed.
-When <replaceable>expression</replaceable> evaluates to a logical false,
-the while loop is over. Take care to avoid infinite loops.</para>
+	  The <replaceable>expression</replaceable> is repeatedly evaluated.
+	  Each time it <ulink url="#if">evaluates to a logical true</ulink>,
+	  the statements inside the braces
+	  are executed.
+	  When <replaceable>expression</replaceable> evaluates to a logical false,
+	  the while loop is over. Take care to avoid infinite loops.</para>
       </refsect3>
 
       <refsect3>
@@ -1555,22 +1577,22 @@ the while loop is over. Take care to avoid infinite loops.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 xfilter <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-<replaceable>expression</replaceable> specifies an external program that
-<command>maildrop</command> runs to filter the current message.
-The current
-message will be piped to the filter program as standard input. The output of
-the filter program replaces the current message being delivered. The external
-program must terminate with an exit code of 0. If the external program does
-not terminate with an exit code of 0, or if it does not read the message from
-the standard input, <command>maildrop</command> terminates with an exit code of
-<errorcode>EX_TEMPFAIL</errorcode>.</para>
+	  <replaceable>expression</replaceable> specifies an external program that
+	  <command>maildrop</command> runs to filter the current message.
+	  The current
+	  message will be piped to the filter program as standard input. The output of
+	  the filter program replaces the current message being delivered. The external
+	  program must terminate with an exit code of 0. If the external program does
+	  not terminate with an exit code of 0, or if it does not read the message from
+	  the standard input, <command>maildrop</command> terminates with an exit code of
+	  <errorcode>EX_TEMPFAIL</errorcode>.</para>
       </refsect3>
 
       <refsect3>
@@ -1578,24 +1600,24 @@ the standard input, <command>maildrop</command> terminates with an exit code of
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>||</token> <replaceable>expression2</replaceable>
 
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-If <replaceable>expression1</replaceable> evaluates to a logical true,
-the result of the <token>||</token> is
-<replaceable>expression1</replaceable>, otherwise it's 
-<replaceable>expression2</replaceable>, which is evaluated.</para>
+	  If <replaceable>expression1</replaceable> evaluates to a logical true,
+	  the result of the <token>||</token> is
+	  <replaceable>expression1</replaceable>, otherwise it's
+	  <replaceable>expression2</replaceable>, which is evaluated.</para>
 
 	<para>
-<command>maildrop</command> uses the following concept of true/false:
-an empty text
-literal, or a text literal that consists of the single character "0" is a
-logical false value. Anything else is a logical true value.</para>
+	  <command>maildrop</command> uses the following concept of true/false:
+	  an empty text
+	  literal, or a text literal that consists of the single character "0" is a
+	  logical false value. Anything else is a logical true value.</para>
       </refsect3>
 
       <refsect3>
@@ -1603,24 +1625,24 @@ logical false value. Anything else is a logical true value.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>&amp;&amp;</token> <replaceable>expression2</replaceable>
 
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-If <replaceable>expression1</replaceable> evaluates to a logical false,
-the result of the <token>&amp;&amp;</token> is
-<replaceable>expression1</replaceable>, otherwise it's 
-<replaceable>expression2</replaceable>, which is evaluated.</para>
+	  If <replaceable>expression1</replaceable> evaluates to a logical false,
+	  the result of the <token>&amp;&amp;</token> is
+	  <replaceable>expression1</replaceable>, otherwise it's
+	  <replaceable>expression2</replaceable>, which is evaluated.</para>
 
 	<para>
-<command>maildrop</command> uses the following concept of true/false:
-an empty text
-literal, or a text literal that consists of the single character "0" is a
-logical false value. Anything else is a logical true value.</para>
+	  <command>maildrop</command> uses the following concept of true/false:
+	  an empty text
+	  literal, or a text literal that consists of the single character "0" is a
+	  logical false value. Anything else is a logical true value.</para>
 
       </refsect3>
 
@@ -1629,7 +1651,7 @@ logical false value. Anything else is a logical true value.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>&lt;</token> <replaceable>expression2</replaceable>
 
 <replaceable>expression1</replaceable> <token>&lt;=</token> <replaceable>expression2</replaceable>
@@ -1642,22 +1664,22 @@ logical false value. Anything else is a logical true value.</para>
 
 <replaceable>expression1</replaceable> <token>!=</token> <replaceable>expression2</replaceable>
 
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-These operators compare their left hand side expression against their right
-hand side. These operators compare the numerical values of each side, as
-floating point numbers. If the numbers compare as indicated, the result of
-the comparison is the text string "1", otherwise it is the text
-string 0.</para>
+	  These operators compare their left hand side expression against their right
+	  hand side. These operators compare the numerical values of each side, as
+	  floating point numbers. If the numbers compare as indicated, the result of
+	  the comparison is the text string "1", otherwise it is the text
+	  string 0.</para>
 
 	<note>
 	  <para>Ccomparisons are not associative:
-"<literal>a &lt; b &lt; c</literal>" is an error.
-If it is absolutely necessary, use
-"<literal>(a &lt; b) &lt; c</literal>".</para>
+	    "<literal>a &lt; b &lt; c</literal>" is an error.
+	    If it is absolutely necessary, use
+	    "<literal>(a &lt; b) &lt; c</literal>".</para>
 	</note>
       </refsect3>
 
@@ -1666,7 +1688,7 @@ If it is absolutely necessary, use
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>lt</token> <replaceable>expression2</replaceable>
 
 <replaceable>expression1</replaceable> <token>le</token> <replaceable>expression2</replaceable>
@@ -1679,23 +1701,23 @@ If it is absolutely necessary, use
 
 <replaceable>expression1</replaceable> <token>ne</token> <replaceable>expression2</replaceable>
 
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-These operators compare their left hand side expression against their right
-hand side. These operators compare each side as text strings (alphabetically,
-although the text may include anything). If the text strings compare as
-indicated, the result of the comparison is the text string "1", otherwise it
-is the text string 0.</para>
+	  These operators compare their left hand side expression against their right
+	  hand side. These operators compare each side as text strings (alphabetically,
+	  although the text may include anything). If the text strings compare as
+	  indicated, the result of the comparison is the text string "1", otherwise it
+	  is the text string 0.</para>
 
 	<note>
 	  <para>
-Comparisons are not associative: "<literal>a lt b lt c</literal>"
-is an error. If it is
-absolutely necessary, use "<literal>(a lt b) lt c</literal>".
-(But why would you?).</para>
+	    Comparisons are not associative: "<literal>a lt b lt c</literal>"
+	    is an error. If it is
+	    absolutely necessary, use "<literal>(a lt b) lt c</literal>".
+	    (But why would you?).</para>
 	</note>
       </refsect3>
 
@@ -1704,16 +1726,16 @@ absolutely necessary, use "<literal>(a lt b) lt c</literal>".
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>|</token> <replaceable>expression2</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-This is the bitwise or operator. Its result is a 32 bit
-integer, which is a bitwise-or combination of the left hand side and the
-right hand side.</para>
+	  This is the bitwise or operator. Its result is a 32 bit
+	  integer, which is a bitwise-or combination of the left hand side and the
+	  right hand side.</para>
       </refsect3>
 
       <refsect3>
@@ -1721,16 +1743,16 @@ right hand side.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>&amp;</token> <replaceable>expression2</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-This is the bitwise and operator. Its result is a 32 bit
-integer, which is a bitwise-and combination of the left hand side and the
-right hand side.</para>
+	  This is the bitwise and operator. Its result is a 32 bit
+	  integer, which is a bitwise-and combination of the left hand side and the
+	  right hand side.</para>
       </refsect3>
 
       <refsect3>
@@ -1738,7 +1760,7 @@ right hand side.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression1</replaceable> <token>+</token> <replaceable>expression2</replaceable>
 
 <replaceable>expression1</replaceable> <token>-</token> <replaceable>expression2</replaceable>
@@ -1747,12 +1769,12 @@ right hand side.</para>
 
 <replaceable>expression1</replaceable> <token>/</token> <replaceable>expression2</replaceable>
 
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-These are numerical, floating point, operators.</para>
+	  These are numerical, floating point, operators.</para>
 
       </refsect3>
 
@@ -1762,42 +1784,42 @@ These are numerical, floating point, operators.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <replaceable>expression</replaceable> <token>=~</token> /<replaceable>pattern</replaceable>/:<replaceable>option</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The left hand side of the <token>=~</token> operator can be any expression.
-The right hand
-side is always a pattern specification. The result of the operator is the
-weighted match of the pattern against
-<replaceable>expression</replaceable> (if the options do not
-specify weighted scoring, the result is simply 1 if the pattern was found,
-0 if not).</para>
+	  The left hand side of the <token>=~</token> operator can be any expression.
+	  The right hand
+	  side is always a pattern specification. The result of the operator is the
+	  weighted match of the pattern against
+	  <replaceable>expression</replaceable> (if the options do not
+	  specify weighted scoring, the result is simply 1 if the pattern was found,
+	  0 if not).</para>
 
 	<para>
-See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
+	  See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
       </refsect3>
       <refsect3>
 	<title>/pattern/:options - pattern match against message</title>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 /<replaceable>pattern</replaceable>/:<replaceable>option</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The result of this operator is the weighted match of the pattern against the
-current message (if the options do not specify weighted scoring, the result
-is simply 1 if the pattern was found, 0 if not).</para>
+	  The result of this operator is the weighted match of the pattern against the
+	  current message (if the options do not specify weighted scoring, the result
+	  is simply 1 if the pattern was found, 0 if not).</para>
 
 	<para>
-See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
+	  See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
       </refsect3>
 
       <refsect3>
@@ -1805,114 +1827,114 @@ See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <token>!</token> <replaceable>expression</replaceable>
 
 <token>~</token> <replaceable>expression</replaceable>
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The result of the <token>!</token>
-operator is a logical opposite of its right hand side
-expression. If the right hand side expression evaluated to a logical true,
-the result is a logical false. If it evaluated to a logical false, the result
-is a logical true.</para>
+	  The result of the <token>!</token>
+	  operator is a logical opposite of its right hand side
+	  expression. If the right hand side expression evaluated to a logical true,
+	  the result is a logical false. If it evaluated to a logical false, the result
+	  is a logical true.</para>
 
 	<para>
-<command>maildrop</command> uses the following concept of true/false:
-an empty text
-literal, or a text literal that consists of the single character "0" is a
-logical false value. Anything else is a logical true value.</para>
+	  <command>maildrop</command> uses the following concept of true/false:
+	  an empty text
+	  literal, or a text literal that consists of the single character "0" is a
+	  logical false value. Anything else is a logical true value.</para>
 
 	<para>
-The result of the <token>~</token>
-operator is a bitwise complement of its right hand
-side expression. The right hand side expression is evaluated as a 32 bit
-integer, and the result of this operator is a bitwise complement of the
-result.</para>
+	  The result of the <token>~</token>
+	  operator is a bitwise complement of its right hand
+	  side expression. The right hand side expression is evaluated as a 32 bit
+	  integer, and the result of this operator is a bitwise complement of the
+	  result.</para>
       </refsect3>
 
       <refsect3>
 	<title>escape(string) - escape special characters in a string.</title>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 <function>escape</function>(<replaceable>expression</replaceable>)
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <function>escape</function> function returns
-its sole argument with every occurrence of a
-special character prefixed by a backslash. A special character is any of the
-following characters:</para>
+	  The <function>escape</function> function returns
+	  its sole argument with every occurrence of a
+	  special character prefixed by a backslash. A special character is any of the
+	  following characters:</para>
 
 	<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  <informalexample>
+	    <programlisting>
 |!$()[]\+*?.&amp;;`'-~&lt;&gt;^{}&#34;
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>
-This can used when <ulink url="#patmatch">matching pattern sections</ulink>,
-and then taking one section and matching it again. For example:</para>
+	  This can used when <ulink url="#patmatch">matching pattern sections</ulink>,
+	  and then taking one section and matching it again. For example:</para>
 
 	<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  <informalexample>
+	    <programlisting>
 if ( /^From:\s*(.*)/ )
 {
-     MATCH1=escape($MATCH1)
-     if ( /^Subject:.*$MATCH1/ )
-     {
-        ...
-     }
+   MATCH1=escape($MATCH1)
+   if ( /^Subject:.*$MATCH1/ )
+   {
+      ...
+   }
 }
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>
-This example checks if the contents of the <literal>From:</literal>
-header can also be found in the <literal>Subject:</literal> header.
-If the <function>escape</function> function were not used, then any
-special characters in the <literal>From:</literal> header that are also used
-in regular
-expressions, such as <token>*</token>
-or <token>+</token>, would introduce unpredictable behavior, most
-likely a syntax error.</para>
+	  This example checks if the contents of the <literal>From:</literal>
+	  header can also be found in the <literal>Subject:</literal> header.
+	  If the <function>escape</function> function were not used, then any
+	  special characters in the <literal>From:</literal> header that are also used
+	  in regular
+	  expressions, such as <token>*</token>
+	  or <token>+</token>, would introduce unpredictable behavior, most
+	  likely a syntax error.</para>
 
 	<para>
-The reason why this list of special characters also includes characters
-not used in <command>maildrop</command>'s regular expressions is to allow
-<command>maildrop</command>'s variables to be used on the command line of a
-shell command
-executed by the <command>xfilter</command> command, backtick characters, or
-<command>to</command> or <command>cc</command> commands.</para>
+	  The reason why this list of special characters also includes characters
+	  not used in <command>maildrop</command>'s regular expressions is to allow
+	  <command>maildrop</command>'s variables to be used on the command line of a
+	  shell command
+	  executed by the <command>xfilter</command> command, backtick characters, or
+	  <command>to</command> or <command>cc</command> commands.</para>
 
 	<para>
-Although using data from an external data source is dangerous, and it may
-result in inadvertent exploits, using the escape function should hopefully
-result in fewer surprises.</para>
+	  Although using data from an external data source is dangerous, and it may
+	  result in inadvertent exploits, using the escape function should hopefully
+	  result in fewer surprises.</para>
       </refsect3>
 
       <refsect3>
 	<title>gdbmopen, gdbmclose, gdbmfetch, gdbmstore - GDBM support in
-<command>maildrop</command></title>
+	  <command>maildrop</command></title>
 	<para>
-These functions provide support for GDBM database files. See <ulink url="maildropgdbm.html"><citerefentry><refentrytitle>maildropgdbm</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>
-for more information.</para>
+	  These functions provide support for GDBM database files. See <ulink url="maildropgdbm.html"><citerefentry><refentrytitle>maildropgdbm</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>
+	  for more information.</para>
 
 	<note>
 	  <para>
-The system administrator can disable GDBM support in
-<command>maildrop</command>, so these commands may not be available to
-you.</para>
+	    The system administrator can disable GDBM support in
+	    <command>maildrop</command>, so these commands may not be available to
+	    you.</para>
 	</note>
       </refsect3>
 
@@ -1923,74 +1945,74 @@ you.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if ( /^From:\s*(.*)/ )
 {
-     ADDR=getaddr($MATCH1)
+   ADDR=getaddr($MATCH1)
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-This function is usually applied to a header that contains
-<ulink url="http://www.rfc-editor.org/rfc/rfc2822.txt">RFC 2822</ulink>
-addresses. It extracts the actual addresses from the
-header, without any comments or extraneous punctuation. Each address is
-followed by a newline character. For example,
-if <replaceable>string</replaceable> contains:</para>
-<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  This function is usually applied to a header that contains
+	  <ulink url="http://www.rfc-editor.org/rfc/rfc2822.txt">RFC 2822</ulink>
+	  addresses. It extracts the actual addresses from the
+	  header, without any comments or extraneous punctuation. Each address is
+	  followed by a newline character. For example,
+	  if <replaceable>string</replaceable> contains:</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting>
 joe@domain.com (Joe Brown), "Alex Smith" &lt;alex@domain.com&gt;, tom@domain.com
-</programlisting>
-	    </informalexample>
-	  </blockquote>
-<para>
-The result of the <function>getaddr</function> function is the
-following string:</para>
-<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
+	<para>
+	  The result of the <function>getaddr</function> function is the
+	  following string:</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting>
 joe@domain.com<token>&lt;NL&gt;</token>alex@domain.com<token>&lt;NL&gt;</token>tom@domain.com<token>&lt;NL&gt;</token>
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<note>
 	  <para>
-Because <function>getaddr</function>() interprets
-<ulink url="http://www.rfc-editor.org/rfc/rfc822.txt">RFC 2822</ulink>
-loosely, it is not
-necessary to
-strip off the "<literal>To:</literal>" or the "<literal>Cc:</literal>"
-header from the string, before feeding it to
-<function>getaddr()</function>. For example, the following snippet of code
-takes all
-addresses in the message, and concatenates them into a single string,
-separated by spaces:</para>
+	    Because <function>getaddr</function>() interprets
+	    <ulink url="http://www.rfc-editor.org/rfc/rfc822.txt">RFC 2822</ulink>
+	    loosely, it is not
+	    necessary to
+	    strip off the "<literal>To:</literal>" or the "<literal>Cc:</literal>"
+	    header from the string, before feeding it to
+	    <function>getaddr()</function>. For example, the following snippet of code
+	    takes all
+	    addresses in the message, and concatenates them into a single string,
+	    separated by spaces:</para>
 	  <blockquote>
-	      <informalexample>
-		<programlisting format="linespecific">
+	    <informalexample>
+	      <programlisting>
 ADDRLIST=""
 foreach /^(To|Cc): .*/
 {
     foreach (getaddr $MATCH) =~ /.+/
     {
-       ADDRLIST="$ADDRLIST $MATCH"
+        ADDRLIST="$ADDRLIST $MATCH"
     }
 }
-</programlisting>
-	      </informalexample>
-	    </blockquote>
+	      </programlisting>
+	    </informalexample>
+	  </blockquote>
 	</note>
 
 	<note>
 	  <para>
-In certain rare situations,
-<ulink url="http://www.rfc-editor.org/rfc/rfc822.txt">RFC 2822</ulink> allows
-spaces to be included in E-mail addresses, so this example is just
-educational.</para>
+	    In certain rare situations,
+	    <ulink url="http://www.rfc-editor.org/rfc/rfc822.txt">RFC 2822</ulink> allows
+	    spaces to be included in E-mail addresses, so this example is just
+	    educational.</para>
 	</note>
       </refsect3>
 
@@ -1998,51 +2020,51 @@ educational.</para>
 	<title>hasaddr(string) - Search for an address.</title>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if ( hasaddr(<replaceable>string</replaceable>) )
 {
    ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-"<replaceable>string</replaceable>" is of the form
-<literal>user@domain</literal>. The hasaddr
-function returns 1 if this address is included in any <literal>To:</literal>,
-<literal>Cc:</literal>,<literal> Resent-To:</literal>, or <literal>Resent-Cc:</literal>, header
-in the message, otherwise this function returns 0.</para>
+	  "<replaceable>string</replaceable>" is of the form
+	  <literal>user@domain</literal>. The hasaddr
+	  function returns 1 if this address is included in any <literal>To:</literal>,
+	  <literal>Cc:</literal>,<literal> Resent-To:</literal>, or <literal>Resent-Cc:</literal>, header
+	  in the message, otherwise this function returns 0.</para>
 
 	<para>
-This is more than just a simple text search. Each header is parsed
-according to <literal>RFC822</literal>. Addresses found in the header are
-extracted, ignoring all comments and names. The remaining addresses are
-checked, and if "<replaceable>string</replaceable>" is one of them,
-<function>hasaddr</function> returns 1,
-otherwise it returns 0.</para>
+	  This is more than just a simple text search. Each header is parsed
+	  according to <literal>RFC822</literal>. Addresses found in the header are
+	  extracted, ignoring all comments and names. The remaining addresses are
+	  checked, and if "<replaceable>string</replaceable>" is one of them,
+	  <function>hasaddr</function> returns 1,
+	  otherwise it returns 0.</para>
 
 	<para>The comparison is case-insensitive. This actually violates
-<literal>RFC822</literal> (and several others) a little bit, because the user part
-of the address may be (but is not required to be) case sensitive.</para>
+	  <literal>RFC822</literal> (and several others) a little bit, because the user part
+	  of the address may be (but is not required to be) case sensitive.</para>
       </refsect3>
 
       <refsect3>
 	<title>length (string) - length of a string</title>
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (length(<replaceable>string</replaceable>) &gt; 80)
 {
    ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <function>length</function> function returns the number of characters in
-<replaceable>string</replaceable>.</para>
+	  The <function>length</function> function returns the number of characters in
+	  <replaceable>string</replaceable>.</para>
       </refsect3>
 
       <refsect3>
@@ -2050,76 +2072,76 @@ The <function>length</function> function returns the number of characters in
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 if (lookup(<replaceable>expr</replaceable>, <filename>file</filename>, "<replaceable>option</replaceable>"))
 {
    ...
 }
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-<replaceable>expr</replaceable> is any expression.
-<filename>filename</filename> is a name of a file containing
-a list of patterns. Note that <filename>filename</filename> is relative to the
-current directory, which is the home directory of the user when
-<command>maildrop</command> runs in delivery mode, or embedded mode. <command>maildrop</command> then
-reads the file.
-Blank lines will be ignored, as well as any lines that begin
-with the # character (comments).</para>
+	  <replaceable>expr</replaceable> is any expression.
+	  <filename>filename</filename> is a name of a file containing
+	  a list of patterns. Note that <filename>filename</filename> is relative to the
+	  current directory, which is the home directory of the user when
+	  <command>maildrop</command> runs in delivery mode, or embedded mode. <command>maildrop</command> then
+	  reads the file.
+	  Blank lines will be ignored, as well as any lines that begin
+	  with the # character (comments).</para>
 
 	<para>Leading whitespace (but not trailing whitespace, take care) is removed,
-and the remaining contents of each line are interpreted as a pattern which is
-matched against <replaceable>expr</replaceable>.
-As soon as the match is found, <function>lookup</function>
-returns "1". If no match is found after reading the entire file,
-<function>lookup</function> returns "0". For example:</para>
+	  and the remaining contents of each line are interpreted as a pattern which is
+	  matched against <replaceable>expr</replaceable>.
+	  As soon as the match is found, <function>lookup</function>
+	  returns "1". If no match is found after reading the entire file,
+	  <function>lookup</function> returns "0". For example:</para>
 
 	<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  <informalexample>
+	    <programlisting>
 if ( /^To:\s*(.*)/ &amp;&amp; lookup( $MATCH1, "badto.dat" ))
 {
-   exit
+    exit
 }
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>
-The file badto.dat contains the following two lines:</para>
+	  The file badto.dat contains the following two lines:</para>
 
 	<blockquote>
-	    <informalexample>
-	      <programlisting format="linespecific">
+	  <informalexample>
+	    <programlisting>
 friend@public
 ^[^@]*$
-</programlisting>
-	    </informalexample>
-	  </blockquote>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
 
 	<para>
-If a message has a <literal>To:</literal>
-header that contains the text "<literal>friend@public</literal>", or does
-not contain at least one <token>@</token> character, then the message will
-be silently
-dropped on the floor ( <command>maildrop</command> will terminate without
-delivering the
-message anywhere).</para>
+	  If a message has a <literal>To:</literal>
+	  header that contains the text "<literal>friend@public</literal>", or does
+	  not contain at least one <token>@</token> character, then the message will
+	  be silently
+	  dropped on the floor ( <command>maildrop</command> will terminate without
+	  delivering the
+	  message anywhere).</para>
 
 	<para>
-<replaceable>options</replaceable> are the pattern matching options
-to use. The only supported
-option is "D" (the rest are meaningless, in this case).</para>
+	  <replaceable>options</replaceable> are the pattern matching options
+	  to use. The only supported
+	  option is "D" (the rest are meaningless, in this case).</para>
 
 	<note>
 	  <para>
-Be careful with discarding messages like that. Pattern matching can
-be tricky, and a slight miscalculation can cause mail to be unintentionally
-discarded. It is much desirable to first deliver message to a separate folder
-or mailbox, and once the filter is verified to work correctly, change it so
-the messages are discarded completely.</para>
+	    Be careful with discarding messages like that. Pattern matching can
+	    be tricky, and a slight miscalculation can cause mail to be unintentionally
+	    discarded. It is much desirable to first deliver message to a separate folder
+	    or mailbox, and once the filter is verified to work correctly, change it so
+	    the messages are discarded completely.</para>
 	</note>
       </refsect3>
 
@@ -2128,20 +2150,20 @@ the messages are discarded completely.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 foo=substr($foo, 1, 10)
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <function>substr</function> function
-extracts characters from <replaceable>string</replaceable>
-beginning with character #<replaceable>start</replaceable>.
-If <replaceable>count</replaceable> is
-specified, at most <replaceable>count</replaceable> characters
-starting at position <replaceable>start</replaceable> are kept, any excess is
-trimmed.</para>
+	  The <function>substr</function> function
+	  extracts characters from <replaceable>string</replaceable>
+	  beginning with character #<replaceable>start</replaceable>.
+	  If <replaceable>count</replaceable> is
+	  specified, at most <replaceable>count</replaceable> characters
+	  starting at position <replaceable>start</replaceable> are kept, any excess is
+	  trimmed.</para>
       </refsect3>
 
       <refsect3>
@@ -2149,17 +2171,17 @@ trimmed.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 foo=time
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-The <function>time</function> function returns the current time, in
-seconds, since
-January 1, 1970. This function is useful when using GDBM files. See <ulink url="maildropex.html"><citerefentry><refentrytitle>maildropex</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
-for an example of using the <function>time</function> function.</para>
+	  The <function>time</function> function returns the current time, in
+	  seconds, since
+	  January 1, 1970. This function is useful when using GDBM files. See <ulink url="maildropex.html"><citerefentry><refentrytitle>maildropex</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
+	  for an example of using the <function>time</function> function.</para>
       </refsect3>
 
       <refsect3>
@@ -2167,16 +2189,16 @@ for an example of using the <function>time</function> function.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 foo=tolower(<replaceable>string</replaceable>)
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-This function returns the <replaceable>string</replaceable>
-with all uppercase characters
-replaced by lowercase characters.</para>
+	  This function returns the <replaceable>string</replaceable>
+	  with all uppercase characters
+	  replaced by lowercase characters.</para>
       </refsect3>
 
       <refsect3>
@@ -2184,16 +2206,16 @@ replaced by lowercase characters.</para>
 
 	<blockquote>
 	  <informalexample>
-	    <programlisting format="linespecific">
+	    <programlisting>
 foo=toupper(<replaceable>string</replaceable>)
-</programlisting>
+	    </programlisting>
 	  </informalexample>
 	</blockquote>
 
 	<para>
-This function returns the <replaceable>string</replaceable>
-with all lowercase characters
-replaced by uppercase characters.</para>
+	  This function returns the <replaceable>string</replaceable>
+	  with all lowercase characters
+	  replaced by uppercase characters.</para>
       </refsect3>
     </refsect2>
 
@@ -2201,18 +2223,18 @@ replaced by uppercase characters.</para>
       <title>Statements</title>
 
       <para>
-The <systemitem class="resource">filter file</systemitem> is read by
-<command>maildrop</command>
-(<filename>$HOME/.mailfilter</filename> or another file), and it
-contains filtering
-statements, one per line. The filtering language used by
-<command>maildrop</command> has
-a loosely - defined grammatical structure.</para>
+	The <systemitem class="resource">filter file</systemitem> is read by
+	<command>maildrop</command>
+	(<filename>$HOME/.mailfilter</filename> or another file), and it
+	contains filtering
+	statements, one per line. The filtering language used by
+	<command>maildrop</command> has
+	a loosely - defined grammatical structure.</para>
 
       <para>Statements are listed one per line. Multiple statements may be listed on
-the same line by separating them with semicolons. To continue a long
-statement on the next line, terminate the line with a backslash
-character.</para>
+	the same line by separating them with semicolons. To continue a long
+	statement on the next line, terminate the line with a backslash
+	character.</para>
     </refsect2>
   </refsect1>
 
@@ -2220,27 +2242,27 @@ character.</para>
     <title>BUGS</title>
 
     <para>
-If <function>getaddr</function>() or <function>hasaddr</function>()
-functions are used on broken headers, the results
-are unpredictable.</para>
+      If <function>getaddr</function>() or <function>hasaddr</function>()
+      functions are used on broken headers, the results
+      are unpredictable.</para>
 
     <para><function>hasaddr</function>() is completely case insensitive. This
-actually violates a few
-RFCs, because the userid portion of the address could be case-sensitive, but
-it's not in too many cases, so there.</para>
+      actually violates a few
+      RFCs, because the userid portion of the address could be case-sensitive, but
+      it's not in too many cases, so there.</para>
   </refsect1>
 
   <refsect1>
     <title>SEE ALSO</title>
 
     <para>
-<ulink url="lockmail.html"><citerefentry><refentrytitle>lockmail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
-<ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
-<ulink url="maildropgdbm.html"><citerefentry><refentrytitle>maildropgdbm</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>,
-<ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
-<ulink url="reformail.html"><citerefentry><refentrytitle>reformail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
-<citerefentry><refentrytitle>egrep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
-<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
-</para>
+      <ulink url="lockmail.html"><citerefentry><refentrytitle>lockmail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+      <ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+      <ulink url="maildropgdbm.html"><citerefentry><refentrytitle>maildropgdbm</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>,
+      <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
+      <ulink url="reformail.html"><citerefentry><refentrytitle>reformail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+      <citerefentry><refentrytitle>egrep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
+      <citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
+    </para>
   </refsect1>
 </refentry>

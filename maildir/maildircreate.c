@@ -178,9 +178,25 @@ static int maildir_tmpcreate_fd_do(struct maildir_tmpcreate_info *info)
 
 	if (info->newname)
 		free(info->newname);
+	info->newname=NULL;
+
+	if (info->curname)
+		free(info->curname);
+	info->curname=NULL;
 
 	info->newname=malloc(strlen(info->tmpname)+strlen(ino_buf)+
 			     strlen(dev_buf)+3);
+
+	if (info->newname)
+	{
+		info->curname=malloc(strlen(info->tmpname)+strlen(ino_buf)+
+				     strlen(dev_buf)+3);
+		if (!info->curname)
+		{
+			free(info->newname);
+			info->newname=NULL;
+		}
+	}
 
 	if (!info->newname)
 	{
@@ -209,6 +225,9 @@ static int maildir_tmpcreate_fd_do(struct maildir_tmpcreate_info *info)
 	strcat(info->newname, hostname);
 	strcat(info->newname, len_buf);
 
+	strcpy(info->curname, info->newname);
+	memcpy(info->curname + strlen(maildir)+1, "cur", 3);
+
 	return fd;
 }
 
@@ -221,6 +240,10 @@ void maildir_tmpcreate_free(struct maildir_tmpcreate_info *info)
 	if (info->newname)
 		free(info->newname);
 	info->newname=NULL;
+
+	if (info->curname)
+		free(info->curname);
+	info->curname=NULL;
 }
 
 int maildir_movetmpnew(const char *tmpname, const char *newname)

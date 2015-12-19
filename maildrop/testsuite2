@@ -250,6 +250,7 @@ if (/^X-Spam-Flag/)
 {
     EXITCODE=1
 }
+exit
 EOF
 
 chmod 600 testsuite1.filter

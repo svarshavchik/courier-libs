@@ -28,6 +28,7 @@ struct maildir_tmpcreate_info {
 	int doordie;		/* Loop until we get it right. */
 	char *tmpname;	/* On exit, filename in tmp */
 	char *newname; /* On exit, filename in new */
+	char *curname; /* On exit, filename in cur */
 };
 
 #define maildir_tmpcreate_init(i) \

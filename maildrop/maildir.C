@@ -130,9 +130,43 @@ static long	counter=0;
 
 		if (f >= 0)
 		{
+			Buffer b;
+
+			b="FLAGS";
+
+			const char *flags=GetVarStr(b);
+
 			tmpname=createInfo.tmpname;
-			newname=createInfo.newname;
 			tmpname += '\0';
+
+			if (flags)
+			{
+				const char *p=flags;
+
+				while (*p)
+				{
+					if (strchr("DRSF", *p) == NULL)
+					{
+						f=0;
+						break;
+					}
+					++p;
+				}
+			}
+
+			if (flags && *flags)
+			{
+				newname=createInfo.curname;
+				newname += ':';
+				newname += '2';
+				newname += ',';
+				newname += flags;
+			}
+			else
+			{
+				newname=createInfo.newname;
+			}
+
 			newname += '\0';
 			maildir_tmpcreate_free(&createInfo);
 
