@@ -129,6 +129,7 @@ static int	starttls(const char *tag)
 		perror("fcntl");
 		exit(1);
 	}
+	fflush(stdin);
 	return (0);
 }
 
