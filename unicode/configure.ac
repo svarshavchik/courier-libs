@@ -34,12 +34,26 @@ AC_CHECK_HEADERS(stddef.h wchar.h)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNC(nl_langinfo_l, [
-			     AC_DEFINE(HAVE_LANGINFO_L,1,[nl_langinfo_l implemented])
-			     AC_SUBST(LANGINFO_L,1)
-			     ], [
-			     AC_SUBST(LANGINFO_L,0)
-			     ])
+
+have_langinfo_l=0
+
+AC_CHECK_FUNC(nl_langinfo_l,[
+    AC_TRY_COMPILE([
+#include <langinfo.h>
+],[
+    nl_langinfo_l(CODESET, (locale_t)0);
+],[
+   have_langinfo_l=1
+   ])])
+
+if test "$have_langinfo_l" != 0
+then
+     AC_DEFINE(HAVE_LANGINFO_L,1,[nl_langinfo_l implemented])
+     AC_SUBST(LANGINFO_L,1)
+else
+     AC_SUBST(LANGINFO_L,0)
+fi
+
 AM_CONDITIONAL(UPDATE_UNICODE, test -f ${srcdir}/UnicodeData.txt)
 
 AC_SYS_LARGEFILE
