@@ -134,12 +134,12 @@ AC_SYS_LARGEFILE
 
 AC_CACHE_CHECK([for socklen_t],
 	tcpd_cv_hassocklen_t,
- 
+
 AC_COMPILE_IFELSE([
 AC_LANG_SOURCE( [
 #include <sys/types.h>
 #include <sys/socket.h>
- 
+
 socklen_t sl_t;
 ],[
 	accept(0, 0, &sl_t);
@@ -147,9 +147,9 @@ socklen_t sl_t;
 	tcpd_cv_hassocklen_t=yes,
 	tcpd_cv_hassocklen_t=no)
 )
- 
+
 socklen_t="int"
- 
+
 if test $tcpd_cv_hassocklen_t = yes
 then
 	:
@@ -509,6 +509,15 @@ RAND_pseudo_bytes(dummy, 1);
 		LIBS="-lssl $LIBS"
 		AC_CHECK_FUNCS(TLSv1_1_method TLSv1_2_method)
 		LIBS="$save_LIBS"
+
+		AC_TRY_COMPILE( [
+#include <openssl/ssl.h>
+],
+[
+SSL_get_servername((SSL *)0, TLSEXT_NAMETYPE_host_name);
+], [
+                AC_DEFINE_UNQUOTED(HAVE_OPENSSL_SNI,1,[ When OpenSSL supports SNI ])
+		])
 
 		TLSLIBRARY="$LIBCOURIERTLSOPENSSL"
 		STARTTLS=couriertls$EXEEXT

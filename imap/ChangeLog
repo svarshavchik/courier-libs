@@ -1,3 +1,7 @@
+2016-03-03  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* libs/tcpd/libcouriertls.c: Add support for TLS SNI.
+
 2016-01-22  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* imaplogin.c (starttls): flush stdin after negotiating STARTTLS.

@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2014 Double Precision, Inc.
+** Copyright 2000-2016 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 #include	"config.h"
@@ -308,7 +308,24 @@ static void load_dh_params(SSL_CTX *ctx, const char *filename,
 			DH_free(dh);
 		}
 		else
-			sslerror(info, filename, -1);
+		{
+			/*
+			** If the certificate file does not have DH parameters,
+			** swallow the error.
+			*/
+
+			int err=ERR_peek_last_error();
+
+			if (ERR_GET_LIB(err) == ERR_LIB_PEM
+			    && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)
+			{
+				ERR_clear_error();
+			}
+			else
+			{
+				sslerror(info, filename, -1);
+			}
+		}
 		BIO_free(bio);
 	}
 	else
@@ -474,6 +491,47 @@ static int client_cert_cb(ssl_handle ssl, X509 **x509, EVP_PKEY **pkey)
 	ERR_clear_error();
 	(*info->releasepemclientcert4ca)(info->app_data);
 	return rc;
+}
+
+static int server_cert_cb(ssl_handle ssl, int *ad, void *arg)
+{
+#ifdef HAVE_OPENSSL_SNI
+	struct tls_info *info=(struct tls_info *)SSL_get_app_data(ssl);
+	const char *servername=SSL_get_servername(ssl,
+						  TLSEXT_NAMETYPE_host_name);
+	const char *certfile=safe_getenv(info, "TLS_CERTFILE");
+	int cert_file_flags=0;
+	char *buffer;
+	char *p;
+
+	if (!servername || !certfile)
+		return SSL_TLSEXT_ERR_OK;
+
+	buffer=malloc(strlen(certfile)+strlen(servername)+2);
+	if (!buffer)
+	{
+		nonsslerror(info, "malloc");
+		exit(1);
+	}
+
+	strcat(strcpy(buffer, certfile), ".");
+
+	p=buffer + strlen(buffer);
+
+	while ((*p=*servername) != 0)
+	{
+		if (*p == '/')
+			*p='.'; /* Script kiddie check */
+		++p;
+		++servername;
+	}
+
+	if (access(buffer, R_OK) == 0)
+		read_certfile(SSL_get_SSL_CTX(ssl), buffer, &cert_file_flags);
+
+	free(buffer);
+#endif
+	return SSL_TLSEXT_ERR_OK;
 }
 
 SSL_CTX *tls_create(int isserver, const struct tls_info *info)
@@ -691,8 +749,15 @@ SSL_CTX *tls_create(int isserver, const struct tls_info *info)
 	}
 	SSL_CTX_set_verify(ctx, get_peer_verify_level(info),
 			   ssl_verify_callback);
-	if (!isserver)
+
+	if (isserver)
+	{
+		SSL_CTX_set_tlsext_servername_callback(ctx, server_cert_cb);
+	}
+	else
+	{
 		SSL_CTX_set_client_cert_cb(ctx, client_cert_cb);
+	}
 	return (ctx);
 }
 
@@ -996,6 +1061,14 @@ SSL *tls_connect(SSL_CTX *ctx, int fd)
 	else
 	{
 		SSL_set_connect_state(ssl);
+
+#ifdef HAVE_OPENSSL_SNI
+		if (info->peer_verify_domain)
+		{
+			fprintf(stderr, "Requesting %s\n", info->peer_verify_domain);
+			SSL_set_tlsext_host_name(ssl, info->peer_verify_domain);
+		}
+#endif
 
 		if ((rc=SSL_connect(ssl)) > 0)
 		{

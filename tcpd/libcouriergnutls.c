@@ -718,7 +718,7 @@ static int verify_client(ssl_handle ssl, int fd)
 		    !gnutls_openpgp_key_check_hostname(cert,
 						       ssl->info_cpy
 						       .peer_verify_domain))
-						      
+
 		{
 			char *hostname;
 			size_t hostnamesiz=0;
@@ -784,7 +784,7 @@ static int dohandshake(ssl_handle ssl, int fd, fd_set *r, fd_set *w)
 	{
 		ssl->info_cpy.connect_interrupted=0;
 
-		
+
 		if (verify_client(ssl, fd))
 			return -1;
 
@@ -1003,7 +1003,7 @@ static int get_server_cert(gnutls_session_t session,
 
 		for (p=vhost_buf; *p; p++)
 			if (*p == '/')
-				*p='.';
+				*p='.'; /* Script kiddie check */
 
 		if (ssl->ctx->certfile)
 			certfilename=check_cert(ssl->ctx->certfile,
@@ -1273,7 +1273,7 @@ static int do_cache_remove(void *rec, size_t recsize, int *doupdate, void *arg)
 	}
 	return 0;
 }
-	
+
 static int db_remove_func(void *dummy, gnutls_datum_t key)
 {
 	tls_cache_walk(((ssl_handle)dummy)->info_cpy.tlscache,
@@ -1444,9 +1444,9 @@ ssl_handle tls_connect(ssl_context ctx, int fd)
 	gnutls_session_set_ptr(ssl->session, ssl);
 
         gnutls_handshake_set_private_extensions(ssl->session, 1);
-        gnutls_certificate_set_verify_flags(ssl->xcred, 
+        gnutls_certificate_set_verify_flags(ssl->xcred,
                                             GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT |
-                                            
+
                                             /*
                                             GNUTLS_VERIFY_DO_NOT_ALLOW_SAME |
                                             GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_C
@@ -1567,7 +1567,7 @@ int	tls_transfer(struct tls_transfer_info *t, ssl_handle ssl, int fd,
 			return 1;
 		}
 
-			
+
 		t->shutdown_interrupted=0;
 		t->shutdown= -1;
 		return -1;
@@ -1717,7 +1717,7 @@ static const char *dump_dn(gnutls_x509_crt_t cert,
 			free(oidname);
 			return gnutls_strerror(rc);
 		}
-	
+
 		vidx=0;
 
 		while (bufsiz=0,
@@ -1781,7 +1781,7 @@ static const char *dump_dn(gnutls_x509_crt_t cert,
 			++vidx;
 		}
 	}
-	
+
 	free(oidval);
 	free(oidname);
 	return NULL;
@@ -1870,7 +1870,7 @@ static void dump_cipher_name(gnutls_session_t session,
 		gnutls_compression_method_t comp;
 
 		(*dump_func)(gnutls_kx_get_name(kx_algo), -1, dump_arg);
-		
+
 		(*dump_func)("-", 1, dump_arg);
 		(*dump_func)(gnutls_certificate_type_get_name(gnutls_certificate_type_get(session)),
 			     -1, dump_arg);
