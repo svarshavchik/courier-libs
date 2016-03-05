@@ -1,5 +1,5 @@
 /*
-** Copyright 2004-2011 Double Precision, Inc.
+** Copyright 2004-2016 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -674,7 +674,7 @@ static char do_ptr(const char *name,
 	if (rfc1035_aton(info->tcpremoteip, &pinfo.addr) < 0)
 	{
 		set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-			    "Invalid tcpremoteip.\n");
+			    "Invalid tcpremoteip.");
 		return SPF_FAIL;
 	}
 
@@ -692,7 +692,7 @@ static char do_ptr(const char *name,
 	if (pinfo.error)
 	{
 		set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-			    "ptr lookup failed.\n");
+			    "ptr lookup failed.");
 		return SPF_UNKNOWN;
 	}
 	return SPF_FAIL;
@@ -717,7 +717,7 @@ static char do_ipcheck(const char *name, struct rfc1035_spf_info *info,
 	if (rfc1035_aton(info->tcpremoteip, &addr) < 0)
 	{
 		set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-			    "Invalid tcpremoteip.\n");
+			    "Invalid tcpremoteip.");
 		return SPF_FAIL;
 	}
 
@@ -845,7 +845,7 @@ static char mechanism(const char *name,
 		{
 			free(domain_spec);
 			set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-				    "Invalid tcpremoteip.\n");
+				    "Invalid tcpremoteip.");
 			return SPF_FAIL;
 		}
 
@@ -859,7 +859,7 @@ static char mechanism(const char *name,
 		if (rc != 0)
 		{
 			set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-				    "IP address lookup failed.\n");
+				    "IP address lookup failed.");
 			return SPF_UNKNOWN;
 		}
 
@@ -887,9 +887,9 @@ static char mechanism(const char *name,
 		/*
 		** This mechanism matches if the <sending-host> is one of the
 		** MX hosts for a domain name.
-   
+
 		** MX = "mx" [ ":" domain-spec ] [ dual-cidr-length ]
-    
+
 		** SPF clients first perform an MX lookup on the <target-name>.
 		** SPF clients then perform an A lookup on each MX name
 		** returned, in order of MX priority.  The <sending-host> is
@@ -906,7 +906,7 @@ static char mechanism(const char *name,
 		{
 			free(domain_spec);
 			set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-				    "Invalid tcpremoteip.\n");
+				    "Invalid tcpremoteip.");
 			return SPF_FAIL;
 		}
 
@@ -918,7 +918,7 @@ static char mechanism(const char *name,
 		{
 			rfc1035_mxlist_free(mxlist);
 			set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
-				    "DNS MX lookup failed.\n");
+				    "DNS MX lookup failed.");
 			return SPF_ERROR;
 		}
 
@@ -1068,7 +1068,7 @@ static char lookup(struct rfc1035_spf_info *info)
 	char c;
 
 	/*
-	** 
+	**
 	** If a loop is detected, or if more than 20 subqueries are triggered,
 	** an SPF client MAY abort the lookup and return the result "unknown".
 	*/
@@ -1442,7 +1442,7 @@ static unsigned tsplit(char *macro, char delimiter, char **wordptr)
 
 	}
 	return cnt;
-}		
+}
 
 static char *transform(char *macro,
 		       unsigned transformer_count,
