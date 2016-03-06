@@ -914,7 +914,8 @@ static char mechanism(const char *name,
 					   domain_spec, RFC1035_MX_QUERYALL,
 					   &mxlist);
 		free(domain_spec);
-		if (rc)
+
+		if (rc && rc != RFC1035_MX_HARDERR)
 		{
 			rfc1035_mxlist_free(mxlist);
 			set_err_msg(info->errmsg_buf, info->errmsg_buf_size,
