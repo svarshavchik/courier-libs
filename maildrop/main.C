@@ -177,6 +177,20 @@ static const char msg[]="maildrop " VERSION " Copyright 1998-2015 Double Precisi
 #else
 	"\n"
 #endif
+#if HAVE_COURIER
+	"Courier-specific maildrop build. This version of maildrop should only be used"
+#if CRLF_TERM
+	"\r\n"
+#else
+	"\n"
+#endif
+	"with Courier, and not any other mail server."
+#if CRLF_TERM
+	"\r\n"
+#else
+	"\n"
+#endif
+#endif
 #ifdef DbObj
 	"GDBM/DB extensions enabled."
 #if CRLF_TERM
