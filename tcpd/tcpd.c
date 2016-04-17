@@ -568,6 +568,18 @@ static int mksockets()
 	return (0);
 }
 
+static int dup_and_check(int orig)
+{
+	int fd=sox_dup(orig);
+
+	if (fd < 0)
+	{
+		perror("dup");
+		exit(1);
+	}
+	return fd;
+}
+
 static int init(int argc, char **argv)
 {
 int	argn;
@@ -578,7 +590,7 @@ gid_t	gid=0;
 const	char *servname;
 int	forced=0;
 int	lockfd=-1;
- 
+
 	argn=argparse(argc, argv, arginfo);
 
 	if ((stoparg || restartarg) && pidarg == 0)
@@ -746,16 +758,17 @@ int	lockfd=-1;
 		{
 			signal(SIGHUP, SIG_IGN);
 			sox_close(0);
-			sox_dup(pipefd[0]);
+			dup_and_check(pipefd[0]);
 			sox_close(pipefd[0]);
 			sox_close(pipefd[1]);
 			sox_close(1);
 			open("/dev/null", O_WRONLY);
 			sox_close(2);
-			sox_dup(1);
+			dup_and_check(1);
 			closeaccess();
 			while ((p=fork()) == -1)
 			{
+				perror("fork");
 				sleep(5);
 			}
 			if (p == 0)
@@ -776,7 +789,7 @@ int	lockfd=-1;
 			_exit(0);
 		}
 		sox_close(2);
-		sox_dup(pipefd[1]);
+		dup_and_check(pipefd[1]);
 		sox_close(pipefd[0]);
 		sox_close(pipefd[1]);
 		while (wait(&waitstat) != p)
@@ -792,7 +805,7 @@ int	lockfd=-1;
 			return (-1);
 		}
 		sox_close(2);
-		sox_dup(fd);
+		dup_and_check(fd);
 		sox_close(fd);
 	}
 
@@ -1149,7 +1162,7 @@ static int doit(int argn, int argc, char **argv)
 
 			if (pi->fd2 >= 0 && FD_ISSET(pi->fd2, &fdr) &&
 			    ((n=getfreeslot(&pidptr)),
-			     (sinl = sizeof(sin)), 
+			     (sinl = sizeof(sin)),
 			     (sockfd=sox_accept(pi->fd2,
 						(struct sockaddr *)&sin,
 						&sinl))) >= 0)
@@ -1259,7 +1272,7 @@ static void accepted(int n, int sockfd, RFC1035_NETADDR *sin, int sinl,
 		RFC1035_ADDR laddr;
 		int	lport;
 		socklen_t	i=sizeof(lsin);
-		
+
 			if (sox_getsockname(sockfd, (struct sockaddr *)&lsin, &i) == 0 &&
 				rfc1035_sockaddrip(&lsin, i, &laddr) == 0 &&
 				rfc1035_sockaddrport(&lsin, i, &lport) == 0 &&
@@ -1903,13 +1916,13 @@ const char *p;
 	check_drop(fd);
 	sox_close(0);
 	sox_close(1);
-	sox_dup(fd);
-	sox_dup(fd);
+	dup_and_check(fd);
+	dup_and_check(fd);
 	sox_close(fd);
 	if (stderrarg && strcmp(stderrarg, "socket") == 0)
 	{
 		sox_close(2);
-		sox_dup(1);
+		dup_and_check(1);
 	}
 	proxy();
 	signal(SIGPIPE, SIG_DFL);
@@ -2084,9 +2097,9 @@ struct proxybuf proxy_[3];
 		sox_close(1);
 		sox_close(2);
 		errno=EINVAL;
-		if (sox_dup(pipefd0[0]) != 0 ||
-			sox_dup(pipefd1[1]) != 1 ||
-			sox_dup(pipefd2[1]) != 2)
+		if (dup_and_check(pipefd0[0]) != 0 ||
+			dup_and_check(pipefd1[1]) != 1 ||
+			dup_and_check(pipefd2[1]) != 2)
 		{
 			perror("dup(app)");
 			exit(1);
