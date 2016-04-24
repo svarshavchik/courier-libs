@@ -136,13 +136,11 @@ COURIERTLS=@bindir@/couriertls
 #
 # OpenSSL:
 #
-# SSL3 - SSLv3
-# SSL23 - all protocols (including TLS 1.x protocols)
 # TLSv1 - TLS1
 # TLSv1.1 - TLS1.1
 # TLSv1.2 - TLS1.2
 #
-# SSL3+, TLSv1+, TLSv1.1+, and TLSv1.2+ - the corresponding protocol, and all
+# TLSv1+, TLSv1.1+, and TLSv1.2+ - the corresponding protocol, and all
 # higher protocols.
 #
 # The default value is TLSv1+
@@ -306,10 +304,6 @@ TLS_VERIFYPEER=NONE
 # that open multiple SSL sessions to the server.  TLS_CACHEFILE will be
 # automatically created, TLS_CACHESIZE bytes long, and used as a cache
 # buffer.
-#
-# This is an experimental feature and should be disabled if it causes
-# problems with SSL clients.  Disable SSL caching by commenting out the
-# following settings:
 
 TLS_CACHEFILE=@localstatedir@/couriersslcache
 TLS_CACHESIZE=524288
