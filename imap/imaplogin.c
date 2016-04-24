@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2014 Double Precision, Inc.
+** Copyright 1998 - 2016 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 	writes("* OK [CAPABILITY ");
 	imapcapability();
 	writes("] Courier-IMAP ready. "
-	       "Copyright 1998-2015 Double Precision, Inc.  "
+	       "Copyright 1998-2016 Double Precision, Inc.  "
 	       "See COPYING for distribution information.\r\n");
 	fprintf(stderr, "DEBUG: Connection, ip=[%s]\n", ip);
 	writeflush();
