@@ -1060,7 +1060,6 @@ SSL *tls_connect(SSL_CTX *ctx, int fd)
 #ifdef HAVE_OPENSSL_SNI
 		if (info->peer_verify_domain)
 		{
-			fprintf(stderr, "Requesting %s\n", info->peer_verify_domain);
 			SSL_set_tlsext_host_name(ssl, info->peer_verify_domain);
 		}
 #endif
