@@ -3767,7 +3767,7 @@ int do_folder_delete(char *mailbox_name)
 	if (acl_read_folder(&l, mi.homedir, mi.maildir) < 0)
 		return -1;
 
-	if (strcmp(mi.maildir, INBOX))
+	if (strcasecmp(mi.maildir, INBOX))
 	{
 		char *p=maildir_name2dir(mi.homedir, mi.maildir);
 
