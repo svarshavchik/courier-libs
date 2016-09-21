@@ -254,11 +254,11 @@ void	Maildir::MaildirSave()
 
 				if (libmail_kwmSetName(&kwh, kwm, n) < 0)
 				{
-					delete n;
+					delete [] n;
 					libmail_kwmDestroy(kwm);
 					throw strerror(errno);
 				}
-				delete n;
+				delete [] n;
 			}
 
 			char *tmpkname, *newkname;

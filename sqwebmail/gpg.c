@@ -36,7 +36,7 @@
 extern void output_scriptptrget();
 extern void print_attrencodedlen(const char *, size_t, int, FILE *);
 extern void print_safe(const char *);
-const char *sqwebmail_content_charset;
+extern const char *sqwebmail_content_charset;
 
 
 static char gpgerrbuf[1024];
