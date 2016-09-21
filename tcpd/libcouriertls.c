@@ -608,8 +608,10 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 		if (first)
 		{
 			first=0;
+#if OPENSSL_API_COMPAT < 0x10100000L
 			SSL_load_error_strings();
 			SSLeay_add_ssl_algorithms();
+#endif
 
 			while (RAND_status() != 1)
 			{
