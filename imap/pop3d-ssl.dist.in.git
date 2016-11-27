@@ -130,6 +130,15 @@ COURIERTLS=@bindir@/couriertls
 #
 # The default value is TLSv1+
 
+##NAME: TLS_STARTTLS_PROTOCOL:0
+#
+# TLS_STARTTLS_PROTOCOL is used instead of TLS_PROTOCOL for the POP3 STLS
+# extension, as opposed to POP3 over SSL on port 995.
+#
+# It takes the same values for OpenSSL as TLS_PROTOCOL
+
+TLS_STARTTLS_PROTOCOL="$TLS_PROTOCOL"
+
 ##NAME: TLS_CIPHER_LIST:0
 #
 # TLS_CIPHER_LIST optionally sets the list of ciphers to be used by the
