@@ -22,7 +22,21 @@ AC_PROG_CC
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 AC_PROG_LN_S
-AC_PATH_PROGS(GPG, gpg gpg2, /usr/bin/gpg, $LPATH)
+AC_ARG_WITH(gpg2,[ --with-gpg2       Use gpg2 instead of gpg ], [gpg2_option="$withval"], [gpg2_option=])
+
+case "$gpg2_option" in
+y*|Y*)
+    AC_PATH_PROGS(GPG, gpg2 gpg, /usr/bin/gpg2, $LPATH)
+    ;;
+*)
+    AC_PATH_PROGS(GPG, gpg gpg2, /usr/bin/gpg, $LPATH)
+    ;;
+esac
+if test ! -x "$GPG"
+then
+    AC_MSG_ERROR($GPG not found)
+    exit 1
+fi
 AC_PATH_PROGS(PERL, perl5 perl, perl, $LPATH)
 
 if test "$PERL" = "perl"
@@ -52,34 +66,6 @@ unset GNUPGHOME
 AC_DEFINE_UNQUOTED(GPG_CHARSET,"$ac_cv_gpg_charset",
 	[ Default gpg output character set ])
 
-VERSION="`$GPG --version | sed '2,$d;s/.* //'`"
-
-if test "$VERSION" = ""
-then
-	AC_MSG_WARN(Unable to determine gpg version)
-else
-	has_cert_check_level=1
-
-	case $VERSION in
-	1.0.4)
-		has_cert_check_level=0
-		;;
-	1.0.5)
-		has_cert_check_level=0
-		;;
-	1.0.6)
-		has_cert_check_level=0
-		;;
-	esac
-
-fi
-
-if test "$has_cert_check_level" = 1
-then
-	AC_DEFINE_UNQUOTED(GPG_HAS_CERT_CHECK_LEVEL,1,
-	[ Whether gpg --sign-key asks for certificate trust level ])
-fi
-
 rm -rf conftempdir
 mkdir conftempdir
 
@@ -91,6 +77,21 @@ fi
 
 rm -rf conftempdir
 
+AC_CACHE_CHECK( [for --pinentry-mode option], ac_cv_gpg_pinentry_mode, [
+
+if $GPG --list-keys --pinentry-mode loopback >/dev/null 2>&1
+then
+     ac_cv_gpg_pinentry_mode="yes"
+else
+     ac_cv_gpg_pinentry_mode="no"
+fi
+])
+
+if test "$ac_cv_gpg_pinentry_mode" = "yes"
+then
+    AC_DEFINE_UNQUOTED(GPG_REQUIRES_PINENTRY_MODE_OPTION,1,
+                   [ Whether --pinentry-mode flag is required for gpg ])
+fi
 dnl Checks for libraries.
 
 dnl Checks for header files.

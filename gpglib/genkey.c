@@ -139,6 +139,7 @@ static char *mkcmdbuf(const char *name, const char *addr, const char *comment,
 		      const char *passphrase)
 {
 	static const char genkey_cmd[]=
+		"%s"
 		"Key-Type: DSA\n"
 		"Key-Length: %s\n"
 		"Subkey-Type: ELG-E\n"
@@ -189,7 +190,9 @@ static char *mkcmdbuf(const char *name, const char *addr, const char *comment,
 	while (*comment == ' ' || *comment == '\t')
 		++comment;
 
-	sprintf(p, genkey_cmd, skl_buf, kl_buf,
+	sprintf(p, genkey_cmd,
+		*passphrase ? "":"%no-protection\n",
+		skl_buf, kl_buf,
 
 		*name ? namereal1:"",
 		name,

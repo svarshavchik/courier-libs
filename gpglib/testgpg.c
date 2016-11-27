@@ -82,7 +82,7 @@ static int delkey(const char *d, const char *f, int flag)
 
 static int signkey(const char *d, const char *signthis, const char *signwith)
 {
-	return (libmail_gpg_signkey(d, signthis, signwith, -1, dump_stdout, 0, NULL));
+	return (libmail_gpg_signkey(d, signthis, signwith, -1, dump_stdout, NULL));
 }
 
 static int checksign(const char *d, const char *stuff, const char *sig)

@@ -96,7 +96,7 @@ static int libmail_gpgmime_fork(const char *gpgdir,
 			close(pipes[n][1]);
 		}
 
-		newargv=malloc( (xargc + argc + 5) * sizeof(char *));
+		newargv=malloc( (xargc + argc + 7) * sizeof(char *));
 		if (!newargv)
 		{
 			perror("malloc");
@@ -107,17 +107,13 @@ static int libmail_gpgmime_fork(const char *gpgdir,
 		newargv[i++]="gpg";
 		if (passphrase_fd)
 		{
-			int n=atoi(passphrase_fd);
-
-			if (lseek(n, 0L, SEEK_SET) < 0)
-			{
-				perror("passphrase-fd: seek");
-				_exit(1);
-			}
-
 			newargv[i++]="--batch";
 			newargv[i++]="--passphrase-fd";
 			newargv[i++]=(char *)passphrase_fd;
+#if GPG_REQUIRES_PINENTRY_MODE_OPTION
+			newargv[i++]="--pinentry-mode";
+			newargv[i++]="loopback";
+#endif
 		}
 
 		for (n=0; n<xargc; n++)

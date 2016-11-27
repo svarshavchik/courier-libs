@@ -1,7 +1,7 @@
 #ifndef	gpglib_h
 #define	gpglib_h
 /*
-** Copyright 2001-2008 Double Precision, Inc.  See COPYING for
+** Copyright 2001-2016 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -150,8 +150,16 @@ int libmail_gpg_deletekey(const char *gpgdir, int secret, const char *fingerprin
 int libmail_gpg_signkey(const char *gpgdir, const char *signthis, const char *signwith,
 		int passphrase_fd,
 		int (*dump_func)(const char *, size_t, void *),
-		int trustlevel,
 		void *voidarg);
+
+int libmail_gpg_makepassphrasepipe(const char *passphrase,
+				   size_t passphrase_size);
+	/*
+	** Create a pipe and fork, the child process writes the passphrase
+	** to the pipe and exits.
+	**
+	** Returns the read end of the pipe.
+	*/
 
 int libmail_gpg_checksign(const char *gpgdir,
 		  const char *content,	/* Filename, for now */

@@ -13,6 +13,7 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/time.h>
+#include	<sys/wait.h>
 #if HAVE_FCNTL_H
 #include	<fcntl.h>
 #endif
@@ -36,10 +37,9 @@ static int dosignkey(int (*)(const char *, size_t, void *),
 int libmail_gpg_signkey(const char *gpgdir, const char *signthis, const char *signwith,
 		int passphrase_fd,
 		int (*dump_func)(const char *, size_t, void *),
-		int trust_level,
 		void *voidarg)
 {
-	char *argvec[12];
+	char *argvec[14];
 	int rc;
 	char passphrase_fd_buf[NUMBUFSIZE];
 	int i;
@@ -57,6 +57,10 @@ int libmail_gpg_signkey(const char *gpgdir, const char *signthis, const char *si
 	{
 		GPGARGV_PASSPHRASE_FD(argvec, i, passphrase_fd,
 				      passphrase_fd_buf);
+#if GPG_REQUIRES_PINENTRY_MODE_OPTION
+		argvec[i++]="--pinentry-mode";
+		argvec[i++]="loopback";
+#endif
 	}
 
 	argvec[i++]="--sign-key";
@@ -71,18 +75,7 @@ int libmail_gpg_signkey(const char *gpgdir, const char *signthis, const char *si
 
 		char cmdstr[10];
 
-#if GPG_HAS_CERT_CHECK_LEVEL
-
-		cmdstr[0]='0';
-
-		if (trust_level > 0 && trust_level <= 9)
-			cmdstr[0]='0' + trust_level;
-
-		strcpy(cmdstr+1, "\nY\n");
-
-#else
 		strcpy(cmdstr, "Y\n");
-#endif
 
 		rc=dosignkey(dump_func, cmdstr, voidarg);
 		rc2=libmail_gpg_cleanup();
@@ -106,4 +99,47 @@ static int dosignkey(int (*dump_func)(const char *, size_t, void *),
 	if (rc == 0)
 		rc=rc2;
 	return (rc);
+}
+
+int libmail_gpg_makepassphrasepipe(const char *passphrase,
+				   size_t passphrase_size)
+{
+	int pfd[2];
+	pid_t p;
+
+	if (pipe(pfd) < 0)
+		return -1;
+
+	p=fork();
+
+	if (p < 0)
+	{
+		close(pfd[0]);
+		close(pfd[1]);
+		return -1;
+	}
+
+	if (p == 0)
+	{
+		p=fork();
+
+		if (p)
+			_exit(0);
+
+		close(pfd[0]);
+
+		while (passphrase_size)
+		{
+			ssize_t n=write(pfd[1], passphrase, passphrase_size);
+
+			if (n < 0)
+				break;
+			passphrase += n;
+			passphrase_size -= n;
+		}
+		_exit(0);
+	}
+	waitpid(p, NULL, 0);
+	close(pfd[1]);
+	return(pfd[0]);
 }

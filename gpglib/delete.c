@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2003 Double Precision, Inc.  See COPYING for
+** Copyright 2001-2016 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -34,7 +34,7 @@ int libmail_gpg_deletekey(const char *gpgdir, int secret,
 			  int (*dump_func)(const char *, size_t, void *),
 			  void *voidarg)
 {
-	char *argvec[8];
+	char *argvec[9];
 	int rc;
 
 	argvec[0]="gpg";
@@ -43,8 +43,9 @@ int libmail_gpg_deletekey(const char *gpgdir, int secret,
 	argvec[3]= secret ? "--delete-secret-key":"--delete-key";
 	argvec[4]="-q";
 	argvec[5]="--no-tty";
-	argvec[6]=(char *)fingerprint;
-	argvec[7]=0;
+	argvec[6]="--yes";
+	argvec[7]=(char *)fingerprint;
+	argvec[8]=0;
 
 	if (libmail_gpg_fork(&libmail_gpg_stdin, &libmail_gpg_stdout, NULL,
 			     gpgdir, argvec) < 0)
