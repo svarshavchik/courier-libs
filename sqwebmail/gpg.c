@@ -425,16 +425,10 @@ static FILE *passphrasefp()
 	return (fp);
 }
 
-static void signkey(const char *signthis, const char *signwith,
-		    const char *trustlevel)
+static void signkey(const char *signthis, const char *signwith)
 {
 	int rc;
 	FILE *fp=NULL;
-
-	int n=atoi(trustlevel);
-
-	if (n < 0 || n > 9)
-		n=0;
 
 	if (gpgbadarg(signthis) || gpgbadarg(signwith))
 		return;
@@ -445,7 +439,7 @@ static void signkey(const char *signthis, const char *signwith,
 	fp=passphrasefp();
 
 	rc=libmail_gpg_signkey(GPGDIR, signthis, signwith,
-			       fp ? fileno(fp):-1, gpg_error, n, NULL);
+			       fp ? fileno(fp):-1, gpg_error, NULL);
 
 	if (fp)
 		fclose(fp);
@@ -473,8 +467,7 @@ void gpgdo()
 	else if (*cgi("delsec") && *cgi("really"))
 		delkey(cgi("seckeyname"), 1);
 	else if (*cgi("sign"))
-		signkey(cgi("pubkeyname"), cgi("seckeyname"),
-			cgi("signlevel"));
+		signkey(cgi("pubkeyname"), cgi("seckeyname"));
 	else if (*cgi("setdefault"))
 		setdefault(cgi("seckeyname"));
 }
@@ -743,4 +736,3 @@ int gpgexportkey(const char *fingerprint, int issecret,
 				      gpg_error,
 				      arg));
 }
-

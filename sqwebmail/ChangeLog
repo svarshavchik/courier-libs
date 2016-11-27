@@ -1,3 +1,7 @@
+2016-11-27  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Improve compatilibity with gnupg 2.
+
 2016-09-20  "Hanno Böck" <hanno@hboeck.de>
 
 	* gpg.c: Fix external linkage.
