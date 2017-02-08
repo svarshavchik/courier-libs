@@ -161,9 +161,9 @@ static int verifypeer(const struct tls_info *info, SSL *ssl)
 	{
 		STACK_OF(X509) *peer_cert_chain=SSL_get_peer_cert_chain(ssl);
 
-		if (peer_cert_chain && peer_cert_chain->stack.num > 0)
+		if (peer_cert_chain && sk_X509_num(peer_cert_chain) > 0)
 		{
-			X509 *xx=(X509 *)peer_cert_chain->stack.data[0];
+			X509 *xx=sk_X509_value(peer_cert_chain, 0);
 
 			if (xx)
 				subj=X509_get_subject_name(xx);
@@ -426,16 +426,16 @@ static int client_cert_cb(ssl_handle ssl, X509 **x509, EVP_PKEY **pkey)
 			continue;
 		}
 
-		for (i=0; client_cas && i<client_cas->stack.num; i++)
+		for (i=0; client_cas && i<sk_X509_NAME_num(client_cas); i++)
 		{
-			X509_NAME *cert=(X509_NAME *)client_cas->stack.data[i];
+			X509_NAME *cert=sk_X509_NAME_value(client_cas, i);
 
 			if (X509_NAME_cmp(cert,
 					  x->cert_info->issuer) == 0)
 				break;
 		}
 
-		if (!client_cas || i >= client_cas->stack.num)
+		if (!client_cas || i >= sk_X509_NAME_num(client_cas))
 		{
 			BIO_free(certbio);
 			continue;
@@ -854,9 +854,11 @@ static int cache_add(SSL *ssl, SSL_SESSION *sess)
 	unsigned char *ucp;
 	time_t timeout= (time_t)SSL_SESSION_get_time(sess)
 		+ SSL_SESSION_get_timeout(sess);
-	void *session_id=(void *)sess->session_id;
-	size_t session_id_len=sess->session_id_length;
+	unsigned int session_id_len;
+	void *session_id;
 	size_t sess_len=i2d_SSL_SESSION(sess, NULL);
+
+	session_id=(void *)SSL_SESSION_get_id(sess, &session_id_len);
 
 	if (sizeof(timeout) + sizeof(session_id_len) + session_id_len +
 	    sess_len > sizeof(buffer))
@@ -963,11 +965,14 @@ static void cache_del(SSL_CTX *ctx, SSL_SESSION *sess)
 {
 	const struct tls_info *info=SSL_CTX_get_app_data(ctx);
 	struct walk_info wi;
+	unsigned int session_id_len;
+	void *session_id;
 
 	wi.now=0;
 
-	wi.id=(unsigned char *)sess->session_id;
-	wi.id_len=sess->session_id_length;
+	session_id=(void *)SSL_SESSION_get_id(sess, &session_id_len);
+	wi.id=(unsigned char *)session_id;
+	wi.id_len=session_id_len;
 	if (tls_cache_walk(info->tlscache, del_func, &wi) < 0)
 		perror("ALERT: tls_cache_walk: ");
 }
@@ -1481,8 +1486,9 @@ void tls_dump_connection_info(ssl_handle ssl,
 			}
 		}
 
-		for (i=0; peer_cert_chain && i<peer_cert_chain->stack.num; i++)
-			dump_x509((X509 *)peer_cert_chain->stack.data[i],
+		for (i=0; peer_cert_chain && i<sk_X509_num(peer_cert_chain);
+		     i++)
+			dump_x509((X509 *)sk_X509_value(peer_cert_chain,0),
 				  dump_func, dump_arg);
 	}
 
