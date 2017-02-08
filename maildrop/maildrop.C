@@ -80,7 +80,7 @@ int	n;
 	{
 		merr << argv[0] << ": " << p << "\n";
 #if SYSLOG_LOGGING
-		syslog(LOG_INFO, p);
+		syslog(LOG_INFO, "%s", p);
 #endif
 		cleanup();
 		return (EX_TEMPFAIL);
@@ -90,7 +90,7 @@ int	n;
 	{
 		merr << argv[0] << ": " << p << "\n";
 #if SYSLOG_LOGGING
-		syslog(LOG_INFO, p);
+		syslog(LOG_INFO, "%s", p);
 #endif
 		cleanup();
 		return (EX_TEMPFAIL);
