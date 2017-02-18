@@ -430,8 +430,7 @@ static int client_cert_cb(ssl_handle ssl, X509 **x509, EVP_PKEY **pkey)
 		{
 			X509_NAME *cert=sk_X509_NAME_value(client_cas, i);
 
-			if (X509_NAME_cmp(cert,
-					  x->cert_info->issuer) == 0)
+			if (X509_NAME_cmp(cert, X509_get_issuer_name(x)) == 0)
 				break;
 		}
 
@@ -1666,7 +1665,8 @@ char *tls_cert_name(const char *buf, size_t buf_size)
 
 	if (x)
 	{
-		p=X509_NAME_oneline(x->cert_info->subject, NULL, 0);
+		X509_get_subject_name(x);
+		p=X509_NAME_oneline(X509_get_subject_name(x), NULL, 0);
 		X509_free(x);
 	}
 	ERR_clear_error();
