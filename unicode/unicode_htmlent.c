@@ -12,7 +12,7 @@
 struct i {
 	size_t n_start;
 	size_t n_size;
-	unicode_char v;
+	char32_t v;
 };
 
 #include "unicode_htmlent.h"
@@ -42,14 +42,14 @@ static int compar(const void *key, const void *obj)
 	return 0;
 }
 
-unicode_char unicode_html40ent_lookup(const char *n)
+char32_t unicode_html40ent_lookup(const char *n)
 {
 	const struct i *ptr;
 
 	if (*n == '#')
 	{
 		const char *p=n;
-		unicode_char uc;
+		char32_t uc;
 		char *endptr;
 
 		++p;

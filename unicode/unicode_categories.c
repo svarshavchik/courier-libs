@@ -9,7 +9,7 @@
 #include	"categoriestab.h"
 #include	"linebreaktab_internal.h"
 
-uint32_t unicode_category_lookup(unicode_char ch)
+uint32_t unicode_category_lookup(char32_t ch)
 {
 	return unicode_tab32_lookup(ch,
 				    unicode_indextab,
@@ -20,7 +20,7 @@ uint32_t unicode_category_lookup(unicode_char ch)
 				    0);
 }
 
-int unicode_isspace(unicode_char ch)
+int unicode_isspace(char32_t ch)
 {
 	switch (unicode_lb_lookup(ch)) {
 	case UNICODE_LB_BK:
@@ -34,7 +34,7 @@ int unicode_isspace(unicode_char ch)
 	return unicode_isblank(ch);
 }
 
-int unicode_isblank(unicode_char ch)
+int unicode_isblank(char32_t ch)
 {
 	if (ch == 9)
 		return 1;
@@ -45,40 +45,40 @@ int unicode_isblank(unicode_char ch)
 	return 0;
 }
 
-int unicode_isalpha(unicode_char ch)
+int unicode_isalpha(char32_t ch)
 {
 	return (unicode_category_lookup(ch) & UNICODE_CATEGORY_1) ==
 		UNICODE_CATEGORY_1_LETTER;
 }
 
-int unicode_isdigit(unicode_char ch)
+int unicode_isdigit(char32_t ch)
 {
 	return unicode_category_lookup(ch) ==
 		(UNICODE_CATEGORY_1_NUMBER | UNICODE_CATEGORY_2_DIGIT);
 }
 
-int unicode_isalnum(unicode_char ch)
+int unicode_isalnum(char32_t ch)
 {
 	return unicode_isalpha(ch) || unicode_isdigit(ch);
 }
 
-int unicode_isgraph(unicode_char ch)
+int unicode_isgraph(char32_t ch)
 {
 	return (ch >= ' ' && !unicode_isspace(ch));
 }
 
-int unicode_ispunct(unicode_char ch)
+int unicode_ispunct(char32_t ch)
 {
 	return (unicode_category_lookup(ch) & UNICODE_CATEGORY_1) ==
 		UNICODE_CATEGORY_1_PUNCTUATION;
 }
 
-int unicode_islower(unicode_char ch)
+int unicode_islower(char32_t ch)
 {
 	return unicode_isalpha(ch) && ch == unicode_lc(ch);
 }
 
-int unicode_isupper(unicode_char ch)
+int unicode_isupper(char32_t ch)
 {
 	return unicode_isalpha(ch) && ch == unicode_uc(ch);
 }

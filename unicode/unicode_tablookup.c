@@ -9,7 +9,7 @@
 
 #define BLOCK_SIZE	256
 
-uint8_t unicode_tab_lookup(unicode_char ch,
+uint8_t unicode_tab_lookup(char32_t ch,
 			   const size_t *unicode_indextab,
 			   size_t unicode_indextab_sizeof,
 			   const uint8_t (*unicode_rangetab)[2],
@@ -48,7 +48,7 @@ uint8_t unicode_tab_lookup(unicode_char ch,
 	return uclass;
 }
 
-uint32_t unicode_tab32_lookup(unicode_char ch,
+uint32_t unicode_tab32_lookup(char32_t ch,
 			      const size_t *unicode_indextab,
 			      size_t unicode_indextab_sizeof,
 			      const uint8_t (*unicode_rangetab)[2],

@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 
-int unicode_wcwidth(unicode_char c)
+int unicode_wcwidth(char32_t c)
 {
 	size_t b=0;
 	size_t e=sizeof(unicode_wcwidth_tab)/sizeof(unicode_wcwidth_tab[0]);
@@ -42,7 +42,7 @@ int unicode_wcwidth(unicode_char c)
 	return 1;
 }
 
-size_t unicode_wcwidth_str(const unicode_char *c)
+size_t unicode_wcwidth_str(const char32_t *c)
 {
 	size_t w=0;
 

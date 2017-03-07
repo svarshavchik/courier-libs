@@ -2,7 +2,7 @@
 #define	courier_unicode_h
 
 /*
-** Copyright 2000-2015 Double Precision, Inc.
+** Copyright 2000-2017 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -26,7 +26,19 @@ extern "C" {
 #include	<sys/types.h>
 #include	<locale.h>
 
-typedef uint32_t unicode_char;
+#ifdef __cplusplus
+
+#else
+
+#if @HAVE_UCHAR_H@
+
+#include	<uchar.h>
+
+#else
+
+typedef uint32_t char32_t;
+#endif
+#endif
 
 /*
 ** The system default character set, from the locale.
@@ -46,9 +58,9 @@ extern const char *unicode_locale_chset_l(locale_t l);
 
 /* Unicode upper/lower/title case conversion functions */
 
-extern unicode_char unicode_uc(unicode_char);
-extern unicode_char unicode_lc(unicode_char);
-extern unicode_char unicode_tc(unicode_char);
+extern char32_t unicode_uc(char32_t);
+extern char32_t unicode_lc(char32_t);
+extern char32_t unicode_tc(char32_t);
 
 /*
 ** Look up HTML 4.0/XHTML entity.
@@ -58,7 +70,7 @@ extern unicode_char unicode_tc(unicode_char);
 ** Returns the unicode entity value, or 0 if no such entity is defined.
 */
 
-unicode_char unicode_html40ent_lookup(const char *n);
+char32_t unicode_html40ent_lookup(const char *n);
 
 /*
 **
@@ -75,19 +87,19 @@ unicode_char unicode_html40ent_lookup(const char *n);
 ** shown on a text console.
 */
 
-extern int unicode_wcwidth(unicode_char c);
-extern size_t unicode_wcwidth_str(const unicode_char *c);
+extern int unicode_wcwidth(char32_t c);
+extern size_t unicode_wcwidth_str(const char32_t *c);
 
 /* Internal unicode table lookup functions */
 
-extern uint8_t unicode_tab_lookup(unicode_char ch,
+extern uint8_t unicode_tab_lookup(char32_t ch,
 				  const size_t *unicode_indextab,
 				  size_t unicode_indextab_sizeof,
 				  const uint8_t (*unicode_rangetab)[2],
 				  const uint8_t *unicode_classtab,
 				  uint8_t uclass);
 
-extern uint32_t unicode_tab32_lookup(unicode_char ch,
+extern uint32_t unicode_tab32_lookup(char32_t ch,
 				     const size_t *unicode_indextab,
 				     size_t unicode_indextab_sizeof,
 				     const uint8_t (*unicode_rangetab)[2],
@@ -108,63 +120,63 @@ extern uint32_t unicode_tab32_lookup(unicode_char ch,
 
 #include <courier-unicode-categories-tab.h>
 
-uint32_t unicode_category_lookup(unicode_char);
+uint32_t unicode_category_lookup(char32_t);
 
 /*
 ** Return non-0 for TAB, and all UNICODE_CATEGORY_2_SPACE.
 */
 
-extern int unicode_isblank(unicode_char ch);
+extern int unicode_isblank(char32_t ch);
 
 /*
 ** The unicode-ish isspace(). In addition to return non-0 for
 ** unicode_isblank(), this also returns non-0 for unicode characters
 ** with linebreaking properties of BK, CR, LF, NL, and SP.
 */
-extern int unicode_isspace(unicode_char ch);
+extern int unicode_isspace(char32_t ch);
 
 /*
 ** Return non-0 for all UNICODE_CATEGORY_1_LETTER
 */
 
-extern int unicode_isalpha(unicode_char ch);
+extern int unicode_isalpha(char32_t ch);
 
 /*
 ** Return non-0 for all UNICODE_CATEGORY_1_NUMBER | UNICODE_CATEGORY_2_DIGIT,
 ** only (no third categories).
 */
-extern int unicode_isdigit(unicode_char ch);
+extern int unicode_isdigit(char32_t ch);
 
 /*
 ** Return non-0 for all unicode_isalpha() or unicode_isdigit().
 */
 
-extern int unicode_isalnum(unicode_char ch);
+extern int unicode_isalnum(char32_t ch);
 
 /*
 ** Returns non-0 for all codepoints above SPACE which are not
 ** unicode_isspace().
 */
 
-extern int unicode_isgraph(unicode_char ch);
+extern int unicode_isgraph(char32_t ch);
 
 /*
 ** Return non-0 for all UNICODE_CATEGORY_1_PUNCTUATION.
 */
 
-extern int unicode_ispunct(unicode_char ch);
+extern int unicode_ispunct(char32_t ch);
 
 /*
 ** Return non-0 for all unicode_isalpha() for which the character is
 ** equal to unicode_lc() of itself.
 */
-extern int unicode_islower(unicode_char ch);
+extern int unicode_islower(char32_t ch);
 
 /*
 ** Return non-0 for all unicode_isalpha() for which the character is
 ** equal to unicode_uc() of itself.
 */
-extern int unicode_isupper(unicode_char ch);
+extern int unicode_isupper(char32_t ch);
 
 /*
 ** Implementation of grapheme cluster boundary rules, as per
@@ -175,7 +187,7 @@ extern int unicode_isupper(unicode_char ch);
 ** characters.
 */
 
-int unicode_grapheme_break(unicode_char a, unicode_char b);
+int unicode_grapheme_break(char32_t a, char32_t b);
 
 typedef enum {
 
@@ -188,7 +200,7 @@ typedef enum {
 ** http://www.unicode.org/reports/tr24/tr24-24.html
 */
 
-unicode_script_t unicode_script(unicode_char a);
+unicode_script_t unicode_script(char32_t a);
 
 /*
 ** Implementation of line break rules, as per
@@ -251,7 +263,7 @@ extern unicode_lb_info_t unicode_lb_init(int (*cb_func)(int, void *),
 ** it returned 0.
 */
 
-extern int unicode_lb_next(unicode_lb_info_t i, unicode_char ch);
+extern int unicode_lb_next(unicode_lb_info_t i, char32_t ch);
 
 /*
 ** Convenience function that invokes unicode_lb_next() with a list of
@@ -260,7 +272,7 @@ extern int unicode_lb_next(unicode_lb_info_t i, unicode_char ch);
 */
 
 extern int unicode_lb_next_cnt(unicode_lb_info_t i,
-			       const unicode_char *chars,
+			       const char32_t *chars,
 			       size_t cnt);
 
 /*
@@ -292,12 +304,12 @@ struct unicode_lbc_info;
 
 typedef struct unicode_lbc_info *unicode_lbc_info_t;
 
-extern unicode_lbc_info_t unicode_lbc_init(int (*cb_func)(int, unicode_char,
+extern unicode_lbc_info_t unicode_lbc_init(int (*cb_func)(int, char32_t,
 							  void *),
 					   void *cb_arg);
-extern int unicode_lbc_next(unicode_lbc_info_t i, unicode_char ch);
+extern int unicode_lbc_next(unicode_lbc_info_t i, char32_t ch);
 extern int unicode_lbc_next_cnt(unicode_lbc_info_t i,
-				const unicode_char *chars,
+				const char32_t *chars,
 				size_t cnt);
 extern int unicode_lbc_end(unicode_lbc_info_t i);
 
@@ -399,7 +411,7 @@ extern unicode_wb_info_t unicode_wb_init(int (*cb_func)(int, void *),
 ** it returned 0.
 */
 
-extern int unicode_wb_next(unicode_wb_info_t i, unicode_char ch);
+extern int unicode_wb_next(unicode_wb_info_t i, char32_t ch);
 
 /*
 ** Convenience function that invokes unicode_wb_next() with a list of
@@ -408,7 +420,7 @@ extern int unicode_wb_next(unicode_wb_info_t i, unicode_char ch);
 */
 
 extern int unicode_wb_next_cnt(unicode_wb_info_t i,
-			       const unicode_char *chars,
+			       const char32_t *chars,
 			       size_t cnt);
 
 /*
@@ -448,7 +460,7 @@ typedef struct unicode_wbscan_info *unicode_wbscan_info_t;
 
 unicode_wbscan_info_t unicode_wbscan_init();
 
-int unicode_wbscan_next(unicode_wbscan_info_t i, unicode_char ch);
+int unicode_wbscan_next(unicode_wbscan_info_t i, char32_t ch);
 
 size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 
@@ -457,7 +469,7 @@ size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 */
 
 struct unicode_buf {
-	unicode_char *ptr;	/* The unicode characters */
+	char32_t *ptr;	/* The unicode characters */
 	size_t size,		/* Buffer size */
 		len,		/* How many characters in ptr are initialized */
 		max;		/* Maximum size the buffer can grow to */
@@ -519,7 +531,7 @@ void unicode_buf_deinit(struct unicode_buf *p);
 */
 
 int unicode_buf_append(struct unicode_buf *p,	/* The buffer */
-		       const unicode_char *uc,	/* Characters to append */
+		       const char32_t *uc,	/* Characters to append */
 		       size_t l);		/* How many of them */
 
 /*
@@ -681,12 +693,12 @@ unicode_convert_tocbuf_init(/* Convert from this chset */
 
 
 /*
-** Specialization: convert some character text to a unicode_char array.
+** Specialization: convert some character text to a char32_t array.
 **
-** This is like unicode_convert_tocbuf_init(), but converts to a unicode_char
+** This is like unicode_convert_tocbuf_init(), but converts to a char32_t
 ** array.
 **
-** The returned *ucsize_ret is initialized with the number of unicode_chars,
+** The returned *ucsize_ret is initialized with the number of char32_ts,
 ** rather than the byte count.
 **
 ** In all other ways, this function behaves identically to
@@ -698,7 +710,7 @@ unicode_convert_tou_init(/* Convert from this chset */
 			   const char *src_chset,
 
 			   /* malloc()ed buffer pointer, on exit. */
-			   unicode_char **ucptr_ret,
+			   char32_t **ucptr_ret,
 
 			   /* size of the malloc()ed buffer, upon exit */
 			   size_t *ucsize_ret,
@@ -708,7 +720,7 @@ unicode_convert_tou_init(/* Convert from this chset */
 			   );
 
 /*
-** Specialization: convert a unicode_char array to some character text.
+** Specialization: convert a char32_t array to some character text.
 **
 ** This is the opposite of unicode_convert_tou_init(). Call this to
 ** initialize the conversion handle, then use unicode_convert_uc()
@@ -733,7 +745,7 @@ int unicode_convert_uc(/* The conversion handle */
 			 unicode_convert_handle_t handle,
 
 			 /* Text to convert */
-			 const unicode_char *text,
+			 const char32_t *text,
 
 			 /* Number of bytes to convert */
 			 size_t cnt);
@@ -858,7 +870,7 @@ int unicode_convert_tou_tobuf(/* Character text to convert */
 				** If this function returns 0, this gets
 				** initialized
 				*/
-				unicode_char **uc,
+				char32_t **uc,
 
 				/*
 				** Size of the allocated buffer
@@ -884,7 +896,7 @@ int unicode_convert_tou_tobuf(/* Character text to convert */
 */
 
 int unicode_convert_fromu_tobuf(/* Unicode array to convert to a char str */
-				  const unicode_char *utext,
+				  const char32_t *utext,
 
 				  /*
 				  ** Size of the unicode array.
@@ -944,22 +956,22 @@ char *unicode_convert_tocase( /* String to convert */
 			       ** str: unicode_uc, unicode_lc, or unicode_tc:
 			       */
 
-			       unicode_char (*first_char_func)(unicode_char),
+			       char32_t (*first_char_func)(char32_t),
 
 			       /*
 			       ** Conversion of the second and the remaining
 			       ** character in str. If NULL, same as
 			       ** first_char_func.
 			       */
-			       unicode_char (*char_func)(unicode_char));
+			       char32_t (*char_func)(char32_t));
 
 
 
-/* Either UCS-4BE or UCS-4LE, matching the native unicode_char endianness */
+/* Either UCS-4BE or UCS-4LE, matching the native char32_t endianness */
 
 extern const char unicode_u_ucs4_native[];
 
-/* Either UCS-2BE or UCS-2LE, matching the native unicode_char endianness */
+/* Either UCS-2BE or UCS-2LE, matching the native char32_t endianness */
 
 extern const char unicode_u_ucs2_native[];
 
@@ -980,7 +992,7 @@ extern const char unicode_u_ucs2_native[];
 #ifdef	__cplusplus
 }
 
-extern size_t unicode_wcwidth(const std::vector<unicode_char> &uc);
+extern size_t unicode_wcwidth(const std::u32string &uc);
 
 namespace unicode {
 
@@ -1025,7 +1037,7 @@ class iconvert {
 
 	bool operator()(const char *, size_t);
 
-	bool operator()(const unicode_char *, size_t);
+	bool operator()(const char32_t *, size_t);
 
 	/*
 	** Get the results here. If the subclass returns a non-0
@@ -1074,13 +1086,13 @@ class iconvert {
 
 	/* Convert from unicode to a charset */
 
-	static std::string convert(const std::vector<unicode_char> &uc,
+	static std::string convert(const std::u32string &uc,
 				   const std::string &dstcharset,
 				   bool &errflag);
 
 	/* Convert from unicode to a charset */
 
-	static std::string convert(const std::vector<unicode_char> &uc,
+	static std::string convert(const std::u32string &uc,
 				   const std::string &dstcharset)
 	{
 		bool dummy;
@@ -1092,7 +1104,7 @@ class iconvert {
 
 	static bool convert(const std::string &text,
 			    const std::string &charset,
-			    std::vector<unicode_char> &uc);
+			    std::u32string &uc);
 
 
 	/* Convert to upper/lower/title case */
@@ -1105,10 +1117,10 @@ class iconvert {
 			       const std::string &charset,
 
 			       /* First character: unicode_uc, unicode_lc, or unicode_tc */
-			       unicode_char (*first_char_func)(unicode_char),
+			       char32_t (*first_char_func)(char32_t),
 
 			       /* If not NULL, second and subsequent chars */
-			       unicode_char (*char_func)(unicode_char)
+			       char32_t (*char_func)(char32_t)
 			       =NULL)
 	{
 		bool dummy;
@@ -1131,10 +1143,10 @@ class iconvert {
 			       bool &err,
 
 			       /* First character: unicode_uc, unicode_lc, or unicode_tc */
-			       unicode_char (*first_char_func)(unicode_char),
+			       char32_t (*first_char_func)(char32_t),
 
 			       /* If not NULL, second and subsequent chars */
-			       unicode_char (*char_func)(unicode_char)
+			       char32_t (*char_func)(char32_t)
 			       =NULL);
  private:
 	bool end(bool *);
@@ -1144,14 +1156,14 @@ class iconvert {
 	class fromu;
 };
 
-/* Convert output of iconvert to unicode_chars. */
+/* Convert output of iconvert to char32_ts. */
 
 class iconvert::tou : public iconvert {
 
  public:
 	bool begin(const std::string &chset);
 
-	virtual int converted(const unicode_char *, size_t);
+	virtual int converted(const char32_t *, size_t);
 
 	using iconvert::operator();
  private:
@@ -1172,12 +1184,12 @@ class iconvert::tou : public iconvert {
 		static bool convert(input_iter_t from_iter,
 				    input_iter_t to_iter,
 				    const std::string &chset,
-				    std::vector<unicode_char> &out_buf)
+				    std::u32string &out_buf)
 	{
 		bool flag;
 
 		out_buf.clear();
-		std::back_insert_iterator<std::vector<unicode_char> >
+		std::back_insert_iterator<std::u32string >
 			insert_iter(out_buf);
 
 		convert(from_iter, to_iter, chset, flag, insert_iter);
@@ -1185,7 +1197,7 @@ class iconvert::tou : public iconvert {
 		return flag;
 	}
 
-	static std::pair<std::vector<unicode_char>, bool>
+	static std::pair<std::u32string, bool>
 		convert(const std::string &str,
 			const std::string &chset);
 };
@@ -1206,7 +1218,7 @@ class iconvert::tou::to_iter_class : public iconvert::tou {
 	operator iter_t() const { return iter; }
 
  private:
-	int converted(const unicode_char *ptr, size_t cnt)
+	int converted(const char32_t *ptr, size_t cnt)
 	{
 		while (cnt)
 		{
@@ -1253,7 +1265,7 @@ template<typename input_iter_t,
 	return out;
 }
 
-/* Convert output of iconvert from unicode_chars. */
+/* Convert output of iconvert from char32_ts. */
 
 class iconvert::fromu : public iconvert {
 
@@ -1288,7 +1300,7 @@ class iconvert::fromu : public iconvert {
 	}
 
 	static std::pair<std::string, bool>
-		convert(const std::vector<unicode_char> &ubuf,
+		convert(const std::u32string &ubuf,
 			const std::string &chset);
 };
 
@@ -1337,7 +1349,7 @@ template<typename input_iter_t,
 	if (!out.begin(chset))
 		return out;
 
-	std::vector<unicode_char> string;
+	std::u32string string;
 
 	while (from_iter != to_iter)
 	{
@@ -1362,14 +1374,14 @@ template<typename input_iter_t,
 */
 
 extern "C" int linebreak_trampoline(int value, void *ptr);
-extern "C" int linebreakc_trampoline(int value, unicode_char ch,
+extern "C" int linebreakc_trampoline(int value, char32_t ch,
 				     void *ptr);
 
 /*
 ** Subclass linebreak_callback_base, implement operator()(int).
 **
 ** Use operator<< or operator()(iterator, iterator) to feed
-** unicode_chars into the linebreaking algorithm. The subclass receives
+** char32_ts into the linebreaking algorithm. The subclass receives
 ** UNICODE_LB values, as they become available.
 */
 
@@ -1403,7 +1415,7 @@ class linebreak_callback_base {
 
 	friend int linebreak_trampoline(int, void *);
 
-	linebreak_callback_base &operator<<(unicode_char uc);
+	linebreak_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
 		linebreak_callback_base &operator()(iter_type beg_iter,
@@ -1438,7 +1450,7 @@ class linebreak_callback_save_buf : public linebreak_callback_base {
 };
 
 /*
-** Convert an input iterator sequence over unicode_chars into
+** Convert an input iterator sequence over char32_ts into
 ** an input iterator sequence over linebreak values.
 */
 
@@ -1590,9 +1602,9 @@ class linebreakc_callback_base {
 
 	void set_opts(int opts);
 
-	friend int linebreakc_trampoline(int, unicode_char, void *);
+	friend int linebreakc_trampoline(int, char32_t, void *);
 
-	linebreakc_callback_base &operator<<(unicode_char uc);
+	linebreakc_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
 		linebreakc_callback_base &operator()(iter_type beg_iter,
@@ -1604,19 +1616,19 @@ class linebreakc_callback_base {
 	}
 
 	linebreakc_callback_base &operator<<(const
-					     std::vector<unicode_char>
+					     std::u32string
 					     &vec)
 	{
 		return operator()(vec.begin(), vec.end());
 	}
  private:
-	virtual int callback(int, unicode_char);
+	virtual int callback(int, char32_t);
 };
 
 class linebreakc_callback_save_buf : public linebreakc_callback_base {
 
  public:
-	std::list<std::pair<int, unicode_char> > lb_buf;
+	std::list<std::pair<int, char32_t> > lb_buf;
 
 	linebreakc_callback_save_buf();
 	~linebreakc_callback_save_buf();
@@ -1624,20 +1636,20 @@ class linebreakc_callback_save_buf : public linebreakc_callback_base {
 	using linebreakc_callback_base::operator<<;
 	using linebreakc_callback_base::operator();
  private:
-	int callback(int, unicode_char);
+	int callback(int, char32_t);
 };
 
 
 /*
-** Convert an input iterator sequence over unicode_chars into
-** an input iterator sequence over std::pair<int, unicode_char>,
+** Convert an input iterator sequence over char32_ts into
+** an input iterator sequence over std::pair<int, char32_t>,
 ** the original unicode character, and the linebreaking value before
 ** the character.
 */
 
 template<typename input_t> class linebreakc_iter
 : public std::iterator<std::input_iterator_tag,
-	std::pair<int, unicode_char>, void>
+	std::pair<int, char32_t>, void>
 {
 	mutable input_t iter_value, end_iter_value;
 
@@ -1723,7 +1735,7 @@ template<typename input_t> class linebreakc_iter
 		fill();
 		return buf == NULL ?
 			std::make_pair(UNICODE_LB_MANDATORY,
-				       (unicode_char)0):
+				       (char32_t)0):
 			buf->lb_buf.front();
 	}
 
@@ -1748,7 +1760,7 @@ template<typename input_t> class linebreakc_iter
 ** Subclass wordbreak_callback_base, implement operator()(int).
 **
 ** Use operator<< or operator()(iterator, iterator) to feed
-** unicode_chars into the wordbreaking algorithm. The subclass receives
+** char32_ts into the wordbreaking algorithm. The subclass receives
 ** word flags, as they become available.
 */
 
@@ -1782,7 +1794,7 @@ class wordbreak_callback_base {
 
 	friend int wordbreak_trampoline(int, void *);
 
-	wordbreak_callback_base &operator<<(unicode_char uc);
+	wordbreak_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
 		wordbreak_callback_base &operator()(iter_type beg_iter,
@@ -1794,7 +1806,7 @@ class wordbreak_callback_base {
 	}
 
 	wordbreak_callback_base &operator<<(const
-					    std::vector<unicode_char>
+					    std::u32string
 					    &vec)
 	{
 		return operator()(vec.begin(), vec.end());
@@ -1828,7 +1840,7 @@ class wordbreakscan {
 	wordbreakscan();
 	~wordbreakscan();
 
-	bool operator<<(unicode_char uc);
+	bool operator<<(char32_t uc);
 
 	size_t finish();
 };
@@ -1853,11 +1865,11 @@ std::string toupper(const std::string &string,
 
 //! Convert unicode to lowercase
 
-std::vector<unicode_char> tolower(const std::vector<unicode_char> &u);
+std::u32string tolower(const std::u32string &u);
 
 //! Convert unicode to uppercase
 
-std::vector<unicode_char> toupper(const std::vector<unicode_char> &u);
+std::u32string toupper(const std::u32string &u);
 
 #if 0
 {

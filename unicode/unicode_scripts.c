@@ -8,7 +8,7 @@
 #include	"courier-unicode.h"
 #include "scriptstab.h"
 
-unicode_script_t unicode_script(unicode_char a)
+unicode_script_t unicode_script(char32_t a)
 {
 	return unicode_tab_lookup(a, unicode_indextab,
 				  sizeof(unicode_indextab)

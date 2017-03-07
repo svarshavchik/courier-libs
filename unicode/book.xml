@@ -100,6 +100,15 @@ See COPYING for distribution information.
     <para>
       To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link
       with <literal>-lcourier-unicode</literal>.
+      The C++ compiler must have C++11 support. Minimum usable version of
+      gcc appears to be gcc 4.4 with the <literal>-std=c++0x</literal> flag.
+      Current versions of gcc use C++11, or higher, by default and do not
+      require extra flags. Like with all C++ code, the same compiler, and flags,
+      must be used to build code that uses this library that was used to
+      build the library itself.
+    </para>
+
+    <para>
       The starting point is
       <link linkend="courier-unicode">
 	<citerefentry>
@@ -157,6 +166,16 @@ See COPYING for distribution information.
 	      The resulting character set also encodes these additional
 	      characters, in addition to unicode characters, with
 	      modified-UTF7.
+	  </para>
+
+	  <para>
+	    The C++ compiler must have C++11 support. Minimum usable version of
+	    gcc appears to be gcc 4.4 with the <literal>-std=c++0x</literal>
+	    flag. Current versions of gcc use C++11, or higher, by default and
+	    do not require extra flags. Consult the packaging documentation
+	    for the Courier Unicode Library for information on any
+	    compiler flags that are needed to build software that links
+	    with this library.
 	  </para>
 	</refsect1>
 	<refsect1>
@@ -302,7 +321,7 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>unicode_convert_handle_t <function>unicode_convert_tou_init</function></funcdef>
               <paramdef>const char *<parameter>src_chset</parameter></paramdef>
-	      <paramdef>unicode_char **<parameter>ucptr_ret</parameter></paramdef>
+	      <paramdef>char32_t **<parameter>ucptr_ret</parameter></paramdef>
 	      <paramdef>size_t *<parameter>ucsize_ret</parameter></paramdef>
               <paramdef>int <parameter>nullterminate</parameter></paramdef>
 	    </funcprototype>
@@ -318,7 +337,7 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>int <function>unicode_convert_uc</function></funcdef>
               <paramdef>unicode_convert_handle_t <parameter>handle</parameter></paramdef>
-              <paramdef>const unicode_char *<parameter>text</parameter></paramdef>
+              <paramdef>const char32_t *<parameter>text</parameter></paramdef>
 	      <paramdef>size_t <parameter>cnt</parameter></paramdef>
 	    </funcprototype>
 
@@ -349,14 +368,14 @@ See COPYING for distribution information.
               <paramdef>const char *<parameter>text</parameter></paramdef>
 	      <paramdef>size_t <parameter>text_l</parameter></paramdef>
               <paramdef>const char *<parameter>charset</parameter></paramdef>
-              <paramdef>unicode_char **<parameter>uc</parameter></paramdef>
+              <paramdef>char32_t **<parameter>uc</parameter></paramdef>
 	      <paramdef>size_t *<parameter>ucsize</parameter></paramdef>
 	      <paramdef>int *<parameter>error</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_convert_fromu_tobuf</function></funcdef>
-              <paramdef>const unicode_char *<parameter>utext</parameter></paramdef>
+              <paramdef>const char32_t *<parameter>utext</parameter></paramdef>
 	      <paramdef>size_t <parameter>utext_l</parameter></paramdef>
               <paramdef>const char *<parameter>charset</parameter></paramdef>
               <paramdef>char **<parameter>c</parameter></paramdef>
@@ -374,13 +393,13 @@ See COPYING for distribution information.
 	  <para>
 	    <varname>unicode_u_ucs4_native</varname>[] contains the
 	    string <quote>UCS-4BE</quote> or <quote>UCS-4LE</quote>,
-	    matching the native <classname>unicode_char</classname> endianness.
+	    matching the native <classname>char32_t</classname> endianness.
 	  </para>
 
 	  <para>
 	    <varname>unicode_u_ucs2_native</varname>[] contains the
 	    string <quote>UCS-2BE</quote> or <quote>UCS-2LE</quote>,
-	    matching the native <classname>unicode_char</classname> endianness.
+	    matching the native <classname>char32_t</classname> endianness.
 	  </para>
 
 	  <para>
@@ -520,26 +539,26 @@ See COPYING for distribution information.
 
 	    <para>
 	      <function>unicode_convert_tou_init</function>()
-	      converts character text into a <classname>unicode_char</classname>
+	      converts character text into a <classname>char32_t</classname>
 	      buffer.
 	      It works just like
 	      <function>unicode_convert_tocbuf_init</function>(), except
 	      that only the source character set gets specified and the output
-	      buffer is a <classname>unicode_char</classname> buffer.
+	      buffer is a <classname>char32_t</classname> buffer.
 	      <parameter>nullterminate</parameter> terminates the converted
 	      unicode characters with a <literal>U+0000</literal>.
 	    </para>
 
 	    <para>
 	      <function>unicode_convert_fromu_init</function>()
-	      converts <classname>unicode_char</classname>s to the output
+	      converts <classname>char32_t</classname>s to the output
 	      character set, and also works like
 	      <function>unicode_convert_tocbuf_init</function>().
 	      Additionally, in this case,
 	      <function>unicode_convert_uc</function>() works just like
 	      <function>unicode_convert</function>() except that the
 	      input sequence is a
-	      <classname>unicode_char</classname> sequence, and the
+	      <classname>char32_t</classname> sequence, and the
 	      count parameter is th enumber of unicode characters.
 	    </para>
 	  </refsect2>
@@ -680,7 +699,7 @@ See COPYING for distribution information.
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
-              <funcdef>unicode_char <function>unicode_html40ent_lookup</function></funcdef>
+              <funcdef>char32_t <function>unicode_html40ent_lookup</function></funcdef>
               <paramdef>const char *<parameter>entity</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
@@ -751,52 +770,52 @@ See COPYING for distribution information.
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
 	      <funcdef>uint32_t <function>unicode_category_lookup</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isalnum</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isalpha</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isblank</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isdigit</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isgraph</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_islower</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_ispunct</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isspace</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_isupper</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -973,8 +992,8 @@ See COPYING for distribution information.
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>int <function>unicode_grapheme_break</function></funcdef>
-              <paramdef>unicode_char <parameter>a</parameter></paramdef>
-              <paramdef>unicode_char <parameter>b</parameter></paramdef>
+              <paramdef>char32_t <parameter>a</parameter></paramdef>
+              <paramdef>char32_t <parameter>b</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1027,7 +1046,7 @@ See COPYING for distribution information.
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>unicode_script_t <function>unicode_script</function></funcdef>
-              <paramdef>unicode_char <parameter>ch</parameter></paramdef>
+              <paramdef>char32_t <parameter>ch</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1096,13 +1115,13 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>int <function>unicode_lb_next</function></funcdef>
               <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_lb_next_cnt</function></funcdef>
               <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
-              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>const char32_t *<parameter>cptr</parameter></paramdef>
               <paramdef>size_t <parameter>cnt</parameter></paramdef>
 	    </funcprototype>
 
@@ -1115,7 +1134,7 @@ See COPYING for distribution information.
 	  <funcsynopsis>
 	    <funcprototype>
               <funcdef>unicode_lbc_info_t <function>unicode_lbc_init</function></funcdef>
-              <paramdef>int (*<parameter>cb_func</parameter>)(int, unicode_char, void *)</paramdef>
+              <paramdef>int (*<parameter>cb_func</parameter>)(int, char32_t, void *)</paramdef>
               <paramdef>void *<parameter>cb_arg</parameter></paramdef>
 	    </funcprototype>
 
@@ -1128,13 +1147,13 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>int <function>unicode_lbc_next</function></funcdef>
               <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_lbc_next_cnt</function></funcdef>
               <paramdef>unicode_lb_info_t <parameter>lb</parameter></paramdef>
-              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>const char32_t *<parameter>cptr</parameter></paramdef>
               <paramdef>size_t <parameter>cnt</parameter></paramdef>
 	    </funcprototype>
 
@@ -1414,13 +1433,13 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>int <function>unicode_wb_next</function></funcdef>
               <paramdef>unicode_wb_info_t <parameter>wb</parameter></paramdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>int <function>unicode_wb_next_cnt</function></funcdef>
               <paramdef>unicode_wb_info_t <parameter>wb</parameter></paramdef>
-              <paramdef>const unicode_char *<parameter>cptr</parameter></paramdef>
+              <paramdef>const char32_t *<parameter>cptr</parameter></paramdef>
               <paramdef>size_t <parameter>cnt</parameter></paramdef>
 	    </funcprototype>
 
@@ -1437,7 +1456,7 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>int <function>unicode_wbscan_next</function></funcdef>
               <paramdef>unicode_wbscan_info_t <parameter>wbs</parameter></paramdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -1616,20 +1635,20 @@ See COPYING for distribution information.
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
-              <funcdef>unicode_char <function>unicode_uc</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <funcdef>char32_t <function>unicode_uc</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	  <funcsynopsis>
 	    <funcprototype>
-              <funcdef>unicode_char <function>unicode_lc</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <funcdef>char32_t <function>unicode_lc</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	  <funcsynopsis>
 	    <funcprototype>
-              <funcdef>unicode_char <function>unicode_tc</function></funcdef>
-              <paramdef>unicode_char <parameter>c</parameter></paramdef>
+              <funcdef>char32_t <function>unicode_tc</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	  <funcsynopsis>
@@ -1637,8 +1656,8 @@ See COPYING for distribution information.
               <funcdef>char *<function>unicode_convert_tocase</function></funcdef>
               <paramdef>const char *<parameter>str</parameter></paramdef>
               <paramdef>const char *<parameter>charset</parameter></paramdef>
-              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(uncode_char)</paramdef>
-              <paramdef>unicode_char (*<parameter>char_func</parameter>)(uncode_char)</paramdef>
+              <paramdef>char32_t (*<parameter>first_char_func</parameter>)(uncode_char)</paramdef>
+              <paramdef>char32_t (*<parameter>char_func</parameter>)(uncode_char)</paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1754,13 +1773,13 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
               <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
 	    </funcprototype>
@@ -1769,7 +1788,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <funcdef>bool <function>unicode::iconvert::convert</function></funcdef>
               <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1875,8 +1894,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <funcdef>std::string <function>unicode::iconvert::convert_tocase</function></funcdef>
               <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(unicode_char)</paramdef>
-              <paramdef>unicode_char (*<parameter>char_func</parameter>)(unicode_char)</paramdef>
+              <paramdef>char32_t (*<parameter>first_char_func</parameter>)(char32_t)</paramdef>
+              <paramdef>char32_t (*<parameter>char_func</parameter>)(char32_t)</paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -1884,8 +1903,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
               <paramdef>bool &amp;<parameter>err</parameter></paramdef>
-              <paramdef>unicode_char (*<parameter>first_char_func</parameter>)(unicode_char)</paramdef>
-              <paramdef>unicode_char (*<parameter>char_func</parameter>)(unicode_char)</paramdef>
+              <paramdef>char32_t (*<parameter>first_char_func</parameter>)(char32_t)</paramdef>
+              <paramdef>char32_t (*<parameter>char_func</parameter>)(char32_t)</paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1981,7 +2000,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::pair&lt;std::string, bool&gt; <function>unicode::iconvert::fromu::convert</function></funcdef>
-              <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::u32string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
@@ -1995,7 +2014,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    text in the given character set.
 	    <parameter>beg_iter</parameter> and
 	    <parameter>end_iter</parameter> define an input sequence of
-	    <classname>unicode_char</classname>s.
+	    <classname>char32_t</classname>s.
 	    They get converted to unicode characters.
 	    <parameter>output_iter</parameter> is an output iterator that
 	    <function>convert</function>()
@@ -2013,7 +2032,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    into a <classname>std::string</classname>, instead of using
 	    an output iterator.
 	    Finally, a single
-	    <classname>std::vector&lt;unicode_char&gt;</classname>
+	    <classname>std::u32string</classname>
 	    specifies the character string, instead of a beginning and an
 	    ending iterator.
 	  </para>
@@ -2072,11 +2091,11 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
               <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
               <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>std::vector&lt;unicode_char&gt; &amp;<parameter>out_buf</parameter></paramdef>
+              <paramdef>std::u32string &amp;<parameter>out_buf</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>std::pair&lt;std::vector&lt;unicode_char&gt;, bool&gt; <function>convert</function></funcdef>
+              <funcdef>std::pair&lt;std::u32string, bool&gt; <function>convert</function></funcdef>
               <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	    </funcprototype>
@@ -2095,7 +2114,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    character set. They get converted to unicode characters.
 	    <parameter>output_iter</parameter> is an output iterator that
 	    <function>convert</function>()
-	    iterates over <classname>unicode_char</classname>s.
+	    iterates over <classname>char32_t</classname>s.
 	    <function>convert</function>() returns the value of the output
 	    iterator after iterating over the converted character sequence.
 	    <parameter>errflag</parameter>, passed by reference, gets set to
@@ -2108,7 +2127,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  <para>
 	    An overloaded <function>convert</function>() puts the unicode
 	    character sequence into a vector of
-	    <classname>unicode_char</classname>s, instead of an output
+	    <classname>char32_t</classname>s, instead of an output
 	    sequence, and returned the error flag.
 	    Finally, a single <classname>std::string</classname>
 	    specifies the character string, instead of a beginning and an
@@ -2173,8 +2192,8 @@ public:
     }
 };
 
-unicode_char c;
-std::vector&lt;unicode_char&gt; buf;
+char32_t c;
+std::u32string buf;
 
 linebreak compute_linebreak;
 
@@ -2198,7 +2217,7 @@ public:
 
     using unicode::linebreak_callback_base::operator&lt;&lt;;
     using unicode::linebreak_callback_base::operator();
-    int callback(int linebreak_code, unicode_char ch)
+    int callback(int linebreak_code, char32_t ch)
     {
         // ...
     }
@@ -2206,9 +2225,9 @@ public:
 
 // ...
 
-std::vector&lt;unicode_char&gt; buf;
+std::u32string buf;
 
-typedef unicode::linebreak_iter&lt;std::vector&lt;unicode_char&gt;::const_iterator&gt; iter_t;
+typedef unicode::linebreak_iter&lt;std::u32string::const_iterator&gt; iter_t;
 
 iter_t beg_iter(buf.begin(), buf.end()), end_iter;
 
@@ -2220,13 +2239,13 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 // ...
 
-typedef unicode::linebreakc_iter&lt;std::vector&lt;unicode_char&gt;::const_iterator&gt; iter_t;
+typedef unicode::linebreakc_iter&lt;std::u32string::const_iterator&gt; iter_t;
 
 iter_t beg_iter(buf.begin(), buf.end()), end_iter;
 
 beg_iter.set_opts(UNICODE_LB_OPT_SYBREAK);
 
-std::vector&lt;std::pair&lt;int, unicode_char&gt;&gt; linebreaks;
+std::vector&lt;std::pair&lt;int, char32_t&gt;&gt; linebreaks;
 
 std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt;&gt;(linebreaks));</programlisting>
 	</refsynopsisdiv>
@@ -2301,13 +2320,13 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    The template parameter is an input iterator over
 	    <classname>unicode</classname> chars. The constructor's parameters
 	    are a beginning and an ending iterator value for a sequence of
-	    <classname>unicode_char</classname>. This constructs the beginning
+	    <classname>char32_t</classname>. This constructs the beginning
 	    iterator value for a sequence of <classname>int</classname>s
 	    consisting of line-break values
 	    (<literal>UNICODE_LB_MANDATORY</literal>,
 	    <literal>UNICODE_LB_NONE</literal>, or
 	    <literal>UNICODE_LB_ALLOWED</literal>) corresponding to each
-	    <classname>unicode_char</classname> in the underlying sequence.
+	    <classname>char32_t</classname> in the underlying sequence.
 	    The default constructor creates the ending iterator value for the
 	    sequence.
 	  </para>
@@ -2321,7 +2340,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    The <classname>linebreakc_iter</classname> template implements a
 	    similar input iterator, with the difference that it ends up iterating
 	    over a <classname>std::pair</classname> of line-breaking values and
-	    the corresponding <classname>unicode_char</classname> from the
+	    the corresponding <classname>char32_t</classname> from the
 	    underlying input sequence.
 	  </para>
 	</refsect1>
@@ -2375,8 +2394,8 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>std::vector&lt;unicode_char&gt; <function>unicode::tolower</function></funcdef>
-	      <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
+              <funcdef>std::u32string <function>unicode::tolower</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -2391,8 +2410,8 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>std::vector&lt;unicode_char&gt; <function>unicode::toupper</function></funcdef>
-	      <paramdef>const std::vector&lt;unicode_char&gt; &amp;<parameter>u</parameter></paramdef>
+              <funcdef>std::u32string <function>unicode::toupper</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -2419,7 +2438,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	  <para>
 	    Passing a
-	    <classname>const std::vector&lt;unicode_char&gt; &amp;</classname>
+	    <classname>const std::u32string &amp;</classname>
 	    directly also converts it accordingly, returning the converted
 	    unicode string.
 	  </para>
@@ -2477,8 +2496,8 @@ public:
     }
 };
 
-unicode_char c;
-std::vector&lt;unicode_char&gt; buf;
+char32_t c;
+std::u32string buf;
 
 wordbreak compute_wordbreak;
 

@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode], [1.5], [courier-users@lists.sourceforge.net])
+AC_INIT([courier-unicode], [1.5.20170306], [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -53,6 +53,21 @@ then
 else
      AC_SUBST(LANGINFO_L,0)
 fi
+
+
+AC_TRY_COMPILE([
+#include <uchar.h>
+],[
+char32_t c=0;
+],
+[
+HAVE_UCHAR_H=1
+],
+[
+HAVE_UCHAR_H=0
+])
+
+AC_SUBST(HAVE_UCHAR_H)
 
 AM_CONDITIONAL(UPDATE_UNICODE, test -f ${srcdir}/UnicodeData.txt)
 

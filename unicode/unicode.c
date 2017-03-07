@@ -1300,15 +1300,15 @@ char *unicode_convert_tobuf(const char *text,
 /*****************************************************************************/
 
 /*
-** Convert text to unicode_chars. Same basic approach as
+** Convert text to char32_ts. Same basic approach as
 ** unicode_convert_tocbuf_init(). The output character set gets specified
 ** as UCS-4, the final output size is divided by 4, and the output buffer gets
-** typed as a unicode_char array.
+** typed as a char32_t array.
 */
 
 struct unicode_convert_buf {
 	struct unicode_convert_buf *next;
-	unicode_char *fragment;
+	char32_t *fragment;
 	size_t fragment_size;
 	size_t max_fragment_size;
 };
@@ -1316,7 +1316,7 @@ struct unicode_convert_buf {
 struct unicode_convert_tou {
 	struct unicode_convert_hdr hdr;
 
-	unicode_char **ucptr_ret;
+	char32_t **ucptr_ret;
 	size_t *ucsize_ret;
 	int errflag;
 	size_t tot_size;
@@ -1332,7 +1332,7 @@ static int deinit_tounicode(void *ptr, int *errptr);
 
 unicode_convert_handle_t
 unicode_convert_tou_init(const char *src_chset,
-			   unicode_char **ucptr_ret,
+			   char32_t **ucptr_ret,
 			   size_t *ucsize_ret,
 			   int nullterminate
 			   )
@@ -1381,7 +1381,7 @@ unicode_convert_fromu_init(const char *dst_chset,
 }
 
 int unicode_convert_uc(unicode_convert_handle_t handle,
-			 const unicode_char *text,
+			 const char32_t *text,
 			 size_t cnt)
 {
 	return unicode_convert(handle, (const char *)text,
@@ -1397,9 +1397,9 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 	struct unicode_convert_buf *fragment;
 	size_t tot_size;
 
-	cnt /= sizeof(unicode_char);
+	cnt /= sizeof(char32_t);
 
-	tot_size=p->tot_size + cnt*sizeof(unicode_char);
+	tot_size=p->tot_size + cnt*sizeof(char32_t);
 	/* Keep track of the total size saved */
 
 	if (p->tail)
@@ -1412,10 +1412,10 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 		if (n)
 		{
 			memcpy(p->tail->fragment+p->tail->fragment_size,
-			       text, n*sizeof(unicode_char));
+			       text, n*sizeof(char32_t));
 
 			cnt -= n;
-			text += n*sizeof(unicode_char);
+			text += n*sizeof(char32_t);
 			p->tail->fragment_size += n;
 		}
 	}
@@ -1428,7 +1428,7 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 			cnt_alloc=16;
 
 		if ((fragment=malloc(sizeof(struct unicode_convert_buf)
-				     +cnt_alloc*sizeof(unicode_char)))
+				     +cnt_alloc*sizeof(char32_t)))
 		    == NULL)
 		{
 			p->errflag=1;
@@ -1436,10 +1436,10 @@ static int save_unicode(const char *text, size_t cnt, void *ptr)
 		}
 
 		fragment->next=NULL;
-		fragment->fragment=(unicode_char *)(fragment+1);
+		fragment->fragment=(char32_t *)(fragment+1);
 		fragment->max_fragment_size=cnt_alloc;
 		fragment->fragment_size=cnt;
-		memcpy(fragment->fragment, text, cnt*sizeof(unicode_char));
+		memcpy(fragment->fragment, text, cnt*sizeof(char32_t));
 
 		*(p->last)=fragment;
 		p->last=&fragment->next;
@@ -1480,7 +1480,7 @@ static int deinit_tounicode(void *ptr, int *errptr)
 
 	if (rc == 0 && p->nullterminate)
 	{
-		unicode_char zero=0;
+		char32_t zero=0;
 
 		rc=save_unicode( (const char *)&zero, sizeof(zero),
 				 p->hdr.ptr);
@@ -1526,7 +1526,7 @@ static int deinit_tounicode(void *ptr, int *errptr)
 int unicode_convert_tou_tobuf(const char *text,
 				size_t text_l,
 				const char *charset,
-				unicode_char **uc,
+				char32_t **uc,
 				size_t *ucsize,
 				int *err)
 {
@@ -1547,7 +1547,7 @@ int unicode_convert_tou_tobuf(const char *text,
 	return 0;
 }
 
-int unicode_convert_fromu_tobuf(const unicode_char *utext,
+int unicode_convert_fromu_tobuf(const char32_t *utext,
 				  size_t utext_l,
 				  const char *charset,
 				  char **c,
@@ -1579,10 +1579,10 @@ int unicode_convert_fromu_tobuf(const unicode_char *utext,
 
 char *unicode_convert_tocase(const char *str,
 			       const char *charset,
-			       unicode_char (*first_char_func)(unicode_char),
-			       unicode_char (*char_func)(unicode_char))
+			       char32_t (*first_char_func)(char32_t),
+			       char32_t (*char_func)(char32_t))
 {
-	unicode_char *uc;
+	char32_t *uc;
 	size_t ucsize;
 	size_t i;
 	int err;

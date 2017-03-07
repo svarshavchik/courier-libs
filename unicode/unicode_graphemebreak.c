@@ -26,7 +26,7 @@
 
 #include "graphemebreaktab.h"
 
-int unicode_grapheme_break(unicode_char a, unicode_char b)
+int unicode_grapheme_break(char32_t a, char32_t b)
 {
 	uint8_t ac=unicode_tab_lookup(a, unicode_indextab,
 			 sizeof(unicode_indextab)/sizeof(unicode_indextab[0]),

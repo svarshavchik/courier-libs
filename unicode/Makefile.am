@@ -1,5 +1,5 @@
 #
-# Copyright 2000-2014 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2017 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 
@@ -77,7 +77,7 @@ libcourier_unicode_la_SOURCES=\
 			categoriestab.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 3:0:0
+libcourier_unicode_la_LDFLAGS=-version-info 4:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	packaging/freebsd10/pkg-descr

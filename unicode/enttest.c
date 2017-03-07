@@ -8,7 +8,7 @@
 struct i {
 	size_t n_start;
 	size_t n_size;
-	unicode_char v;
+	char32_t v;
 };
 
 #include "unicode_htmlent.h"
