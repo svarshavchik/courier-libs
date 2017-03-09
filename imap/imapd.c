@@ -4115,7 +4115,7 @@ int folder_rename(struct maildir_info *mi1,
 static int validate_charset(const char *tag, char **charset)
 {
 	unicode_convert_handle_t conv;
-	unicode_char *ucptr;
+	char32_t *ucptr;
 	size_t ucsize;
 
 	if (*charset == NULL)

@@ -172,7 +172,7 @@ size_t	offset=strlen(name);
 		*outbuf=0;
 	++*outcnt;
 }
-			
+
 static void create_draftheader_do(const char *hdrname, const char *p,
 	int isrfc822addr)
 {
@@ -226,7 +226,7 @@ void newmsg_create_multipart(int newdraftfd, const char *charset,
 	maildir_writemsgstr(newdraftfd, multipart_boundary);
 	maildir_writemsgstr(newdraftfd, "\"; charset=\"");
 	maildir_writemsgstr(newdraftfd, charset);
-	maildir_writemsgstr(newdraftfd, 
+	maildir_writemsgstr(newdraftfd,
 					"\"\n\n");
 
 	maildir_writemsgstr(newdraftfd, mimemsg);
@@ -299,7 +299,7 @@ void wrap_text_init(struct wrap_info *uw,
 }
 
 static void do_save_u_line(struct wrap_info *uw,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t ucsize,
 			   int flowed)
 {
@@ -324,12 +324,12 @@ static void do_save_u_line(struct wrap_info *uw,
 		}
 		if (flowed)
 		{
-			unicode_char spc=' ';
+			char32_t spc=' ';
 			unicode_convert_uc(h, &spc, 1);
 		}
 
 		{
-			unicode_char nl='\n';
+			char32_t nl='\n';
 			unicode_convert_uc(h, &nl, 1);
 		}
 
@@ -394,7 +394,7 @@ static int do_save_u_process_lb(int type, void *arg)
 }
 
 static void do_wrap_u_line(struct wrap_info *uw,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t ucsize)
 {
 	unicode_lb_info_t lb;
@@ -435,7 +435,7 @@ void wrap_text(struct wrap_info *uw,
 
 	while (i < newmsg_size)
 	{
-		unicode_char *uc;
+		char32_t *uc;
 		size_t ucsize;
 		unicode_convert_handle_t h;
 
@@ -742,7 +742,7 @@ char *sig, *footer;
 
 		if ((sig && *sig) || (footer && *footer))
 		{
-			static const unicode_char sig_line[]={'-', '-', ' '};
+			static const char32_t sig_line[]={'-', '-', ' '};
 
 			do_save_u_line(&uw, sig_line, 0, 0);
 			do_save_u_line(&uw, sig_line, 3, 0);
@@ -919,7 +919,7 @@ static void sentmsg_copy(FILE *f, struct rfc2045 *p)
 
                 if ((n=fread(buf, 1, cnt, f)) <= 0)
                 {
-                        fclose(f);      
+                        fclose(f);
                         close(newdraftfd);
                         enomem();
                 }
@@ -1105,7 +1105,7 @@ struct	rfc2045 *rfcp;
 int	x;
 
 	*isgpgerr=0;
- 
+
 	if (!filename)	return (0);
 
 	fp=0;
@@ -1180,7 +1180,7 @@ int	x;
 		char buf[BUFSIZ];
 		int n;
 		off_t   dummy;
-		
+
 		rfc2045_mimepos(rfcp, &start_pos, &end_pos, &start_body,
 				&dummy, &dummy);
 
@@ -1200,7 +1200,7 @@ int	x;
 
 			if ((n=fread(buf, 1, cnt, fp)) <= 0)
 			{
-				fclose(fp);      
+				fclose(fp);
 				close(newdraftfd);
 				enomem();
 			}

@@ -156,7 +156,7 @@ void call_print_safe_to_stdout(const char *p, size_t cnt)
 {
 	print_safe_len(p, cnt, print_safe_to_stdout);
 }
-	
+
 void folder_contents_title()
 {
 const char *lab;
@@ -285,13 +285,13 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 	{
 		rc=group_movedel( dir, &groupdel );
 		maildir_savefoldermsgs(dir);
-	} 
-	else if (*cgi("cmdpurgeall")) 
+	}
+	else if (*cgi("cmdpurgeall"))
 	{
 	    char *deldir;
 	    struct maildir_info minfo;
 
-	    if (maildir_info_imap_find(&minfo, dir, login_returnaddr())<0) 
+	    if (maildir_info_imap_find(&minfo, dir, login_returnaddr())<0)
 		    return "othererror";
 
 	    if ((deldir=maildir_name2dir(minfo.homedir, minfo.maildir)) == NULL)
@@ -299,7 +299,7 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 		maildir_info_destroy(&minfo);
 		return "othererror";
 	    }
-	    
+
 	    cur = malloc(strlen(deldir)+5);
 	    strcpy(cur, deldir);
 	    strcat(cur, "/cur");
@@ -310,7 +310,7 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 	    maildir_info_destroy(&minfo);
 	    free(deldir);
 	    free(cur);
-	    
+
 	}
 	else if (*cgi("cmdmove"))
 	{
@@ -334,7 +334,7 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 void folder_delmsgs(const char *dir, size_t pos)
 {
 	const char *status=do_folder_delmsgs(dir, pos);
-	
+
 	if (*cgi("search"))
 		http_redirect_argsss("&error=%s&form=folder&pos=%s&search=1&"
 				     SEARCHRESFILENAME "=%s", status,
@@ -1358,7 +1358,7 @@ static void show_transfer_dest_real(const char *, const char *,
 				    const char *, const char *);
 static void show_transfer_dest_fake(const char *,
 				    struct maildir_shindex_cache *);
-			    
+
 static void show_transfer_dest(const char *cur_folder)
 {
 	parse_hierarchy(cur_folder, show_transfer_dest_real,
@@ -2830,7 +2830,7 @@ static void parse_hierarchy(const char *folderdir,
 
 	if (strchr(folderdir, '/'))
 		enomem();
-		
+
 	if (strncmp(folderdir, NEWSHAREDSP, sizeof(NEWSHAREDSP)-1) == 0)
 		switch (folderdir[sizeof(NEWSHAREDSP)-1]) {
 		case 0:
@@ -3643,7 +3643,7 @@ void folder_showtransfer()
 	}
 
 	if ((strcmp(sqwebmail_folder, INBOX "." TRASH) == 0) && (strlen(getarg("PURGEALL"))))
-	    printf("<input type=\"submit\" name=\"cmdpurgeall\" value=\"%s\" onclick=\"javascript: return deleteAll();\" />", 
+	    printf("<input type=\"submit\" name=\"cmdpurgeall\" value=\"%s\" onclick=\"javascript: return deleteAll();\" />",
 		getarg("PURGEALL"));
 	printf("<input type=\"submit\" name=\"cmddel\" value=\"%s\" />%s<select name=\"moveto\">",
 		strcmp(sqwebmail_folder, INBOX "." TRASH) == 0
@@ -3715,7 +3715,7 @@ static char *truncate_at(const char *str,
 			 const char *charset,
 			 size_t ncols)
 {
-	unicode_char *uc;
+	char32_t *uc;
 	size_t n;
 	size_t cols, tp=0;
 	char *retbuf;
@@ -3756,7 +3756,7 @@ static char *truncate_at(const char *str,
 
 	if (chopped)
 	{
-		uc = realloc(uc, sizeof(unicode_char) * (tp+4));
+		uc = realloc(uc, sizeof(char32_t) * (tp+4));
 		if (uc == 0) enomem();
 		uc[tp]='.';
 		uc[tp+1]='.';

@@ -46,7 +46,7 @@ struct filter_info {
 
 	int conversion_error;
 
-	unicode_char prevchar;
+	char32_t prevchar;
 
 	size_t u_w;
 
@@ -59,9 +59,9 @@ struct filter_info {
 void	filter_start(struct filter_info *, const char *,
 		     void (*)(const char *, size_t, void *), void *);
 void	filter(struct filter_info *,
-	       const unicode_char *, size_t);
+	       const char32_t *, size_t);
 void	filter_passthru(struct filter_info *info,
-			const unicode_char *ptr, size_t cnt);
+			const char32_t *ptr, size_t cnt);
 void	filter_end(struct filter_info *info);
 
 #endif

@@ -117,7 +117,7 @@ struct htmlfilter_info {
 
 	/* The output function receives the HTML-filtered stream */
 
-	void (*output_func)(const unicode_char *, size_t, void *);
+	void (*output_func)(const char32_t *, size_t, void *);
 	void *output_func_arg;
 
 	/* Content base for relative URLs */
@@ -136,7 +136,7 @@ struct htmlfilter_info {
 	/* Current handle for the input HTML stream */
 
 	size_t (*handler_func)(struct htmlfilter_info *,
-			       const unicode_char *,
+			       const char32_t *,
 			       size_t);
 
 	/*
@@ -161,7 +161,7 @@ struct htmlfilter_info {
 	** Quoting character
 	*/
 
-	unicode_char value_quote;
+	char32_t value_quote;
 
 	/* Current tag being processed */
 	const struct taginfo *tag;
@@ -203,79 +203,79 @@ static void free_attrs(struct htmlfilter_info *p)
 }
 
 static size_t handle_chars(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt);
 
 static size_t handle_entity(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt);
 
 static size_t seen_lt(struct htmlfilter_info *p,
-		      const unicode_char *uc,
+		      const char32_t *uc,
 		      size_t cnt);
 
 static size_t seen_ltexcl(struct htmlfilter_info *p,
-			  const unicode_char *uc,
+			  const char32_t *uc,
 			  size_t cnt);
 
 static size_t seen_sgentity(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt);
 
 static size_t seen_ltspace(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt);
 
 static size_t seen_pi(struct htmlfilter_info *p,
-		      const unicode_char *uc,
+		      const char32_t *uc,
 		      size_t cnt);
 
 static size_t seen_piq(struct htmlfilter_info *p,
-		       const unicode_char *uc,
+		       const char32_t *uc,
 		       size_t cnt);
 
 static size_t seen_comment(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt);
 
 static size_t seen_commentdash(struct htmlfilter_info *p,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt);
 
 static size_t seen_commentdashdash(struct htmlfilter_info *p,
-				   const unicode_char *uc,
+				   const char32_t *uc,
 				   size_t cnt);
 
 static size_t seen_closing_elem(struct htmlfilter_info *p,
-				const unicode_char *uc,
+				const char32_t *uc,
 				size_t cnt);
 
 static size_t seen_opening_elem(struct htmlfilter_info *p,
-				const unicode_char *uc,
+				const char32_t *uc,
 				size_t cnt);
 
 static size_t seen_attr(struct htmlfilter_info *p,
-			const unicode_char *uc,
+			const char32_t *uc,
 			size_t cnt);
 
 static size_t seen_attrname(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt);
 
 static size_t seen_attrvalue_1stchar(struct htmlfilter_info *p,
-				     const unicode_char *uc,
+				     const char32_t *uc,
 				     size_t cnt);
 
 static size_t seen_attrvalue(struct htmlfilter_info *p,
-			     const unicode_char *uc,
+			     const char32_t *uc,
 			     size_t cnt);
 
 static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
-				    const unicode_char *uc,
+				    const char32_t *uc,
 				    size_t cnt);
 
 struct htmlfilter_info *htmlfilter_alloc(void (*output_func)
-					 (const unicode_char *, size_t, void *),
+					 (const char32_t *, size_t, void *),
 					 void *output_func_arg)
 {
 	struct htmlfilter_info *p;
@@ -356,7 +356,7 @@ void htmlfilter_set_convertcid(struct htmlfilter_info *p,
 }
 
 void htmlfilter(struct htmlfilter_info *p,
-		const unicode_char *str, size_t cnt)
+		const char32_t *str, size_t cnt)
 {
 	while (cnt)
 	{
@@ -372,7 +372,7 @@ void htmlfilter(struct htmlfilter_info *p,
 */
 
 static void output(struct htmlfilter_info *p,
-		   const unicode_char *uc,
+		   const char32_t *uc,
 		   size_t cnt)
 {
 	if (cnt && !p->n_discarded)
@@ -386,7 +386,7 @@ static void output_chars(struct htmlfilter_info *p,
 			 const char *str,
 			 size_t cnt)
 {
-	unicode_char unicode_buf[256];
+	char32_t unicode_buf[256];
 
 	while (cnt)
 	{
@@ -409,7 +409,7 @@ static void output_chars(struct htmlfilter_info *p,
 */
 
 static size_t handle_chars(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt)
 {
 	size_t i;
@@ -443,7 +443,7 @@ static size_t handle_chars(struct htmlfilter_info *p,
 			if (i)
 				output(p, uc, i);
 			{
-				static const unicode_char gt[]=
+				static const char32_t gt[]=
 					{'&','g','t',';'};
 
 				output(p, gt, 4);
@@ -461,7 +461,7 @@ static size_t handle_chars(struct htmlfilter_info *p,
 ** Returns: non-zero US-ASCII lowercase value of passed character if the
 ** passed character is US-ASCII alphabetic or numeric, 0 otherwise.
 */
-static unicode_char isualnum(unicode_char c)
+static char32_t isualnum(char32_t c)
 {
 	if (c >= 'a' && c <= 'z')
 		return c;
@@ -480,7 +480,7 @@ static unicode_char isualnum(unicode_char c)
 */
 
 static size_t handle_entity(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt)
 {
 	size_t i;
@@ -493,7 +493,7 @@ static size_t handle_entity(struct htmlfilter_info *p,
 
 	for (i=0; i<cnt; ++i)
 	{
-		unicode_char c=isualnum(uc[i]);
+		char32_t c=isualnum(uc[i]);
 
 		if (c != 0)
 		{
@@ -523,7 +523,7 @@ static size_t handle_entity(struct htmlfilter_info *p,
 */
 
 static size_t seen_lt(struct htmlfilter_info *p,
-		      const unicode_char *uc,
+		      const char32_t *uc,
 		      size_t cnt)
 {
 	if (*uc == '?')
@@ -548,7 +548,7 @@ static size_t seen_lt(struct htmlfilter_info *p,
 */
 
 static size_t seen_ltexcl(struct htmlfilter_info *p,
-			  const unicode_char *uc,
+			  const char32_t *uc,
 			  size_t cnt)
 {
 	if (*uc == '-')
@@ -569,7 +569,7 @@ static size_t seen_ltexcl(struct htmlfilter_info *p,
 */
 
 static size_t seen_sgentity(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt)
 {
 	size_t i;
@@ -590,7 +590,7 @@ static size_t seen_sgentity(struct htmlfilter_info *p,
 */
 
 static size_t seen_ltspace(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt)
 {
 	if (SPACE(*uc))
@@ -619,7 +619,7 @@ static size_t seen_ltspace(struct htmlfilter_info *p,
 */
 
 static size_t seen_pi(struct htmlfilter_info *p,
-		      const unicode_char *uc,
+		      const char32_t *uc,
 		      size_t cnt)
 {
 	size_t i;
@@ -640,7 +640,7 @@ static size_t seen_pi(struct htmlfilter_info *p,
 */
 
 static size_t seen_piq(struct htmlfilter_info *p,
-		       const unicode_char *uc,
+		       const char32_t *uc,
 		       size_t cnt)
 {
 	p->handler_func=seen_pi;
@@ -661,7 +661,7 @@ static size_t seen_piq(struct htmlfilter_info *p,
 */
 
 static size_t seen_comment(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt)
 {
 	size_t i;
@@ -682,7 +682,7 @@ static size_t seen_comment(struct htmlfilter_info *p,
 */
 
 static size_t seen_commentdash(struct htmlfilter_info *p,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt)
 {
 	if (*uc == '-')
@@ -699,7 +699,7 @@ static size_t seen_commentdash(struct htmlfilter_info *p,
 */
 
 static size_t seen_commentdashdash(struct htmlfilter_info *p,
-				   const unicode_char *uc,
+				   const char32_t *uc,
 				   size_t cnt)
 {
 	if (*uc == '>')
@@ -720,14 +720,14 @@ static int search_tags(const void *key, const void *elem)
 {
 	size_t i;
 	const char *cp=((const struct taginfo *)elem)->tagname;
-	unicode_char c;
+	char32_t c;
 	const struct unicode_buf *ukey=(struct unicode_buf *)key;
-	const unicode_char *k=unicode_buf_ptr(ukey);
+	const char32_t *k=unicode_buf_ptr(ukey);
 	size_t kl=unicode_buf_len(ukey);
 
 	for (i=0; (c=i >= kl ? 0:k[i]) != 0 || cp[i] != 0; ++i)
 	{
-		unicode_char c2=(unsigned char)cp[i];
+		char32_t c2=(unsigned char)cp[i];
 
 		if (c < c2)
 			return -1;
@@ -758,7 +758,7 @@ static const struct taginfo *change_element(const struct taginfo *tag)
 */
 
 static void output_escaped(struct htmlfilter_info *p,
-			   const unicode_char *uc,
+			   const char32_t *uc,
 			   size_t cnt)
 {
 	while (cnt)
@@ -779,8 +779,8 @@ static void output_escaped(struct htmlfilter_info *p,
 
 		if (cnt)
 		{
-			unicode_char c;
-			char buf[sizeof(unicode_char)*2+4];
+			char32_t c;
+			char buf[sizeof(char32_t)*2+4];
 			char *cp;
 
 			c= *uc++;
@@ -1004,11 +1004,11 @@ static void close_elements_until(struct htmlfilter_info *p, size_t i)
 */
 
 static size_t seen_closing_elem(struct htmlfilter_info *p,
-				const unicode_char *uc,
+				const char32_t *uc,
 				size_t cnt)
 {
 	size_t i;
-	unicode_char c;
+	char32_t c;
 
 	for (i=0; i<cnt; ++i)
 	{
@@ -1064,14 +1064,14 @@ static size_t seen_closing_elem(struct htmlfilter_info *p,
 */
 
 static size_t seen_opening_elem(struct htmlfilter_info *p,
-				const unicode_char *uc,
+				const char32_t *uc,
 				size_t cnt)
 {
 	size_t i;
 
 	for (i=0; i<cnt; ++i)
 	{
-		unicode_char c;
+		char32_t c;
 
 		if ((c=uc[i]) == ':' || (c=isualnum(c)) != 0)
 		{
@@ -1110,7 +1110,7 @@ static void save_attr(struct htmlfilter_info *p);
 */
 
 static size_t seen_attr(struct htmlfilter_info *p,
-			const unicode_char *uc,
+			const char32_t *uc,
 			size_t cnt)
 {
 	if (SPACE(*uc))
@@ -1157,7 +1157,7 @@ static void append_orig_href(struct htmlfilter_info *p,
 
 		if (i == 0)
 		{
-			unicode_char b[3];
+			char32_t b[3];
 
 			b[0]='%';
 			b[1]=hex[ (url[0] >> 4) & 15];
@@ -1530,14 +1530,14 @@ static void save_attr(struct htmlfilter_info *p)
 */
 
 static size_t seen_attrname(struct htmlfilter_info *p,
-			    const unicode_char *uc,
+			    const char32_t *uc,
 			    size_t cnt)
 {
 	size_t i;
 
 	for (i=0; i<cnt; ++i)
 	{
-		unicode_char c;
+		char32_t c;
 
 		if ((c=uc[i]) == ':' || c == '-' || (c=isualnum(c)) != 0)
 		{
@@ -1566,7 +1566,7 @@ static size_t seen_attrname(struct htmlfilter_info *p,
 */
 
 static size_t seen_attrvalue_1stchar(struct htmlfilter_info *p,
-				     const unicode_char *uc,
+				     const char32_t *uc,
 				     size_t cnt)
 {
 	p->handler_func=seen_attrvalue;
@@ -1586,7 +1586,7 @@ static size_t seen_attrvalue_1stchar(struct htmlfilter_info *p,
 */
 
 static size_t seen_attrvalue(struct htmlfilter_info *p,
-			     const unicode_char *uc,
+			     const char32_t *uc,
 			     size_t cnt)
 {
 	size_t i;
@@ -1636,12 +1636,12 @@ static size_t seen_attrvalue(struct htmlfilter_info *p,
 
 static void append_entity(struct htmlfilter_info *p)
 {
-	unicode_char v=0;
+	char32_t v=0;
 
 	if (unicode_buf_len(&p->atom2) &&
 	    unicode_buf_ptr(&p->atom2)[0] == '#')
 	{
-		const unicode_char *u=unicode_buf_ptr(&p->atom2);
+		const char32_t *u=unicode_buf_ptr(&p->atom2);
 		size_t n=unicode_buf_len(&p->atom2);
 
 		++u;
@@ -1651,7 +1651,7 @@ static void append_entity(struct htmlfilter_info *p)
 		{
 			while (--n)
 			{
-				unicode_char c=*++u;
+				char32_t c=*++u;
 				const char *cp;
 
 				if (c >= 'a' && c <= 'f')
@@ -1672,7 +1672,7 @@ static void append_entity(struct htmlfilter_info *p)
 		{
 			while (n)
 			{
-				unicode_char c= *u++;
+				char32_t c= *u++;
 
 				--n;
 
@@ -1693,7 +1693,7 @@ static void append_entity(struct htmlfilter_info *p)
 
 		for (i=0; i<unicode_buf_len(&p->atom2); ++i)
 		{
-			unicode_char c=unicode_buf_ptr(&p->atom2)[i];
+			char32_t c=unicode_buf_ptr(&p->atom2)[i];
 
 			if ((unsigned char)c != c)
 				return;
@@ -1718,7 +1718,7 @@ static void append_entity(struct htmlfilter_info *p)
 */
 
 static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
-				    const unicode_char *uc,
+				    const char32_t *uc,
 				    size_t cnt)
 {
 	size_t i;
@@ -1731,7 +1731,7 @@ static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
 
 	for (i=0; i<cnt; ++i)
 	{
-		unicode_char c=isualnum(uc[i]);
+		char32_t c=isualnum(uc[i]);
 
 		if (c)
 		{
@@ -1750,7 +1750,7 @@ static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
 			/* Broken URL, most likely */
 
 			{
-				unicode_char amp='&';
+				char32_t amp='&';
 
 				unicode_buf_append(&p->value, &amp, 1);
 			}

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static void write_stdout(const unicode_char *uc, size_t n, void *dummy)
+static void write_stdout(const char32_t *uc, size_t n, void *dummy)
 {
 	while (n)
 	{
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
 	struct htmlfilter_info *p;
 	char buf[1024];
-	unicode_char ubuf[1024];
+	char32_t ubuf[1024];
 	size_t n;
 
 	p=htmlfilter_alloc(write_stdout, NULL);

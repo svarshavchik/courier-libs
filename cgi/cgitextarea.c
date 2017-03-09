@@ -12,7 +12,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 
-extern void cgi_output_unicode_escapes(const unicode_char *value,
+extern void cgi_output_unicode_escapes(const char32_t *value,
 				       const char *escapes,
 				       void (*output_func)(const char *,
 							   size_t,
@@ -22,7 +22,7 @@ extern void cgi_output_unicode_escapes(const unicode_char *value,
 static void do_cgi_textarea(const char *name,
 			    int rows,
 			    int cols,
-			    const unicode_char *value,
+			    const char32_t *value,
 			    const char *opts,
 			    const char *wrap,
 			    void (*output_func)(const char *, size_t,
@@ -95,7 +95,7 @@ static void save_bytes(const char *str, size_t cnt, void *arg)
 char *cgi_textarea(const char *name,
 		   int rows,
 		   int cols,
-		   const unicode_char *value,
+		   const char32_t *value,
 		   const char *wrap,
 		   const char *opts)
 {

@@ -472,7 +472,7 @@ static int showmsgrfc822_header(const char *output_chset,
 {
 	struct filter_info info;
 
-	unicode_char *uc;
+	char32_t *uc;
 	size_t ucsize;
 
 	int conv_err;
@@ -927,7 +927,7 @@ static int text_to_stdout(const char *p, size_t n, void *dummy)
 	return 0;
 }
 
-static void convert_unicode(const unicode_char *uc,
+static void convert_unicode(const char32_t *uc,
 			    size_t n, void *dummy)
 {
 	unicode_convert_uc(*(unicode_convert_handle_t *)dummy, uc, n);
@@ -936,7 +936,7 @@ static void convert_unicode(const unicode_char *uc,
 static int htmlfilter_stub(const char *ptr, size_t cnt, void *voidptr)
 {
 	htmlfilter((struct htmlfilter_info *)voidptr,
-		   (const unicode_char *)ptr, cnt/sizeof(unicode_char));
+		   (const char32_t *)ptr, cnt/sizeof(char32_t));
 	return (0);
 }
 
@@ -1373,7 +1373,7 @@ struct msg2html_textplain_info {
 
 	int text_decor_apostrophe_cnt; /* Apostrophe accumulator */
 
-	unicode_char text_decor_uline_prev;
+	char32_t text_decor_uline_prev;
 	/* Previous character, used when scanning for underline enable */
 
 	/*
@@ -1383,7 +1383,7 @@ struct msg2html_textplain_info {
 	** handle wikifmt codes.
 	*/
 
-	unicode_char lookahead_buf[64];
+	char32_t lookahead_buf[64];
 	size_t lookahead_saved;
 
 	/*
@@ -1402,7 +1402,7 @@ struct msg2html_textplain_info {
 	** highlights them.
 	*/
 	size_t (*text_url_handler)(struct msg2html_textplain_info *,
-				   const unicode_char *,
+				   const char32_t *,
 				   size_t);
 
 	/*
@@ -1438,7 +1438,7 @@ static void text_emit_passthru(struct msg2html_textplain_info *info,
 {
 	while (*str)
 	{
-		unicode_char ch=(unsigned char)*str++;
+		char32_t ch=(unsigned char)*str++;
 
 		filter_passthru(&info->info, &ch, 1);
 	}
@@ -1450,7 +1450,7 @@ static void text_close_paragraph(struct msg2html_textplain_info *info)
 {
 	if (info->paragraph_open)
 	{
-		unicode_char uc='\n';
+		char32_t uc='\n';
 
 		info->paragraph_open=0;
 		text_emit_passthru(info, info->paragraph_close);
@@ -1477,7 +1477,7 @@ static void text_close_li(struct msg2html_textplain_info *info)
 
 	if (info->li_open)
 	{
-		unicode_char uc='\n';
+		char32_t uc='\n';
 
 		info->li_open=0;
 		text_emit_passthru(info, "</li>");
@@ -1604,14 +1604,14 @@ static void text_process_decor_begin(struct msg2html_textplain_info *ptr);
 static void text_process_decor_end(struct msg2html_textplain_info *ptr);
 
 static size_t text_contents_notalpha(struct msg2html_textplain_info *ptr,
-				     const unicode_char *txt,
+				     const char32_t *txt,
 				     size_t txt_size);
 
-static void text_line_contents_with_lookahead(const unicode_char *txt,
+static void text_line_contents_with_lookahead(const char32_t *txt,
 					      size_t txt_size,
 					      struct msg2html_textplain_info
 					      *info);
-static void process_text(const unicode_char *txt,
+static void process_text(const char32_t *txt,
 			 size_t txt_size,
 			 struct msg2html_textplain_info *info);
 
@@ -1631,7 +1631,7 @@ static void process_text(const unicode_char *txt,
 ** at the beginning of the logical line.
 */
 
-static int do_text_line_contents(const unicode_char *txt,
+static int do_text_line_contents(const char32_t *txt,
 				 size_t txt_size,
 				 void *arg);
 
@@ -1671,7 +1671,7 @@ static int text_line_begin(size_t quote_level,
 ** Process the contents of a logical line.
 */
 
-static int text_line_contents(const unicode_char *txt,
+static int text_line_contents(const char32_t *txt,
 			      size_t txt_size,
 			      void *arg)
 {
@@ -1689,13 +1689,13 @@ static int text_line_contents(const unicode_char *txt,
 #endif
 }
 
-static int do_text_line_contents(const unicode_char *txt,
+static int do_text_line_contents(const char32_t *txt,
 				 size_t txt_size,
 				 void *arg)
 {
 	struct msg2html_textplain_info *info=
 		(struct msg2html_textplain_info *)arg;
-	unicode_char lookahead_cpy_buf[sizeof(info->lookahead_buf)
+	char32_t lookahead_cpy_buf[sizeof(info->lookahead_buf)
 				       /sizeof(info->lookahead_buf[0])];
 	size_t n;
 
@@ -1752,7 +1752,7 @@ static int do_text_line_contents(const unicode_char *txt,
 ** to this function, prepended to any new content.
 */
 
-static void text_line_contents_with_lookahead(const unicode_char *txt,
+static void text_line_contents_with_lookahead(const char32_t *txt,
 					      size_t txt_size,
 					      struct msg2html_textplain_info
 					      *info)
@@ -1895,7 +1895,7 @@ static void text_line_contents_with_lookahead(const unicode_char *txt,
 */
 static int text_line_flowed_notify(void *arg)
 {
-	unicode_char nl='\n';
+	char32_t nl='\n';
 	struct msg2html_textplain_info *info=
 		(struct msg2html_textplain_info *)arg;
 	filter(&info->info, &nl, 1);
@@ -1929,7 +1929,7 @@ static int text_line_end(void *arg)
 
 	if (info->flowed)
 	{
-		unicode_char uc='\n';
+		char32_t uc='\n';
 
 		if (info->start_of_line)
 		{
@@ -1976,7 +1976,7 @@ static int text_line_end(void *arg)
 
 
 	{
-		unicode_char uc='\n';
+		char32_t uc='\n';
 
 		filter(&info->info, &uc, 1);
 	}
@@ -1984,17 +1984,17 @@ static int text_line_end(void *arg)
 }
 
 static void process_text_wiki(char *paragraph_open,
-			      const unicode_char **txt_ret,
+			      const char32_t **txt_ret,
 			      size_t *txt_size_ret,
 			      struct msg2html_textplain_info *info);
 
-static void process_text(const unicode_char *txt,
+static void process_text(const char32_t *txt,
 			 size_t txt_size,
 			 struct msg2html_textplain_info *info)
 {
 	if (info->flowed && info->start_of_line)
 	{
-		unicode_char uc='\n';
+		char32_t uc='\n';
 
 		filter(&info->info, &uc, 1);
 
@@ -2056,7 +2056,7 @@ static void process_text(const unicode_char *txt,
 */
 
 static void process_text_wiki(char *paragraph_open,
-			      const unicode_char **txt,
+			      const char32_t **txt,
 			      size_t *txt_size,
 			      struct msg2html_textplain_info *info)
 {
@@ -2189,27 +2189,27 @@ static void process_text_wiki(char *paragraph_open,
 */
 
 static void text_process_decor(struct msg2html_textplain_info *info,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt);
 
 static void text_process_decor_uline(struct msg2html_textplain_info *info,
-				     const unicode_char *uc,
+				     const char32_t *uc,
 				     size_t cnt);
 
 static void text_process_plain(struct msg2html_textplain_info *info,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt);
 
 static void emit_char_buffer(struct msg2html_textplain_info *info,
 			     const char *uc,
 			     size_t cnt,
 			     void (*func)(struct msg2html_textplain_info *info,
-					  const unicode_char *uc,
+					  const char32_t *uc,
 					  size_t cnt));
 
 
 static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
-				     const unicode_char *txt,
+				     const char32_t *txt,
 				     size_t txt_size);
 /*
 ** Initial state of the URL collection layer -- processing non-alphabetic
@@ -2218,7 +2218,7 @@ static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
 */
 
 static size_t text_contents_notalpha(struct msg2html_textplain_info *info,
-				     const unicode_char *txt,
+				     const char32_t *txt,
 				     size_t txt_size)
 {
 	size_t i;
@@ -2247,17 +2247,17 @@ static size_t text_contents_notalpha(struct msg2html_textplain_info *info,
 }
 
 static size_t text_contents_nourl(struct msg2html_textplain_info *info,
-				  const unicode_char *txt,
+				  const char32_t *txt,
 				  size_t txt_size);
 
 static size_t text_contents_collecturl(struct msg2html_textplain_info *info,
-				       const unicode_char *txt,
+				       const char32_t *txt,
 				       size_t txt_size);
 /*
 ** Collecting what may be a URL method name.
 */
 static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
-				     const unicode_char *txt,
+				     const char32_t *txt,
 				     size_t txt_size)
 {
 	size_t i;
@@ -2339,7 +2339,7 @@ static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
 */
 
 static size_t text_contents_nourl(struct msg2html_textplain_info *info,
-				  const unicode_char *txt,
+				  const char32_t *txt,
 				  size_t txt_size)
 {
 	size_t i;
@@ -2425,7 +2425,7 @@ static void emiturl(struct msg2html_textplain_info *info)
 ** Ok, we have a URL, so collect it, then mark it up.
 */
 static size_t text_contents_collecturl(struct msg2html_textplain_info *info,
-				       const unicode_char *txt,
+				       const char32_t *txt,
 				       size_t txt_size)
 {
 	size_t i;
@@ -2460,10 +2460,10 @@ static void emit_char_buffer(struct msg2html_textplain_info *info,
 			     const char *uc,
 			     size_t cnt,
 			     void (*func)(struct msg2html_textplain_info *info,
-					  const unicode_char *uc,
+					  const char32_t *uc,
 					  size_t cnt))
 {
-	unicode_char buf[64];
+	char32_t buf[64];
 
 	while (cnt)
 	{
@@ -2549,7 +2549,7 @@ static void text_process_decor_begin(struct msg2html_textplain_info *info)
 
 static void text_process_decor_apostrophe(struct msg2html_textplain_info *info)
 {
-	unicode_char apos='\'';
+	char32_t apos='\'';
 	int n=info->text_decor_apostrophe_cnt;
 
 	info->text_decor_apostrophe_cnt=0;
@@ -2588,7 +2588,7 @@ static void text_process_decor_end(struct msg2html_textplain_info *info)
 ** Process text decorations.
 */
 static void text_process_decor(struct msg2html_textplain_info *info,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt)
 {
 	size_t i;
@@ -2635,11 +2635,11 @@ static void text_process_decor(struct msg2html_textplain_info *info,
 */
 
 static void text_process_decor_uline(struct msg2html_textplain_info *info,
-				     const unicode_char *uc,
+				     const char32_t *uc,
 				     size_t cnt)
 {
 	size_t i;
-	unicode_char space=' ';
+	char32_t space=' ';
 
 	while (cnt)
 	{
@@ -2740,7 +2740,7 @@ static void text_process_decor_uline(struct msg2html_textplain_info *info,
 */
 
 static void text_process_plain(struct msg2html_textplain_info *info,
-			       const unicode_char *uc,
+			       const char32_t *uc,
 			       size_t cnt)
 {
 	/* Set any requested text decorations that should be active now. */

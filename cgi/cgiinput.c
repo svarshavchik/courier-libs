@@ -12,7 +12,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 
-void cgi_output_unicode_escapes(const unicode_char *value,
+void cgi_output_unicode_escapes(const char32_t *value,
 				const char *escapes,
 				void (*output_func)(const char *, size_t,
 						    void *),
@@ -62,7 +62,7 @@ void cgi_output_unicode_escapes(const unicode_char *value,
 
 
 static void do_cgi_input(const char *name,
-			 const unicode_char *value,
+			 const char32_t *value,
 			 int size,
 			 int maxlength,
 			 const char *flags,
@@ -128,7 +128,7 @@ static void save_bytes(const char *str, size_t cnt, void *arg)
 }
 
 char *cgi_input(const char *name,
-		const unicode_char *value,
+		const char32_t *value,
 		int size,
 		int maxlength,
 		const char *flags)

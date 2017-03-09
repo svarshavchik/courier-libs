@@ -388,7 +388,7 @@ static void showfunc(const char *p, size_t n, void *dummy)
 
 static void show_part(const char *ptr, size_t cnt)
 {
-	unicode_char *uc;
+	char32_t *uc;
 	size_t ucsize;
 	int conv_err;
 

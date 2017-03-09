@@ -45,7 +45,7 @@ void	filter_start(struct filter_info *info,
 }
 
 void	filter(struct filter_info *info,
-	       const unicode_char *ptr, size_t cnt)
+	       const char32_t *ptr, size_t cnt)
 {
 	size_t i, prev;
 
@@ -57,7 +57,7 @@ void	filter(struct filter_info *info,
 	while (1)
 	{
 		const char *p=0;
-		unicode_char prevchar=info->prevchar;
+		char32_t prevchar=info->prevchar;
 
 		if (i < cnt)
 		{
@@ -76,7 +76,7 @@ void	filter(struct filter_info *info,
 				if (uc_w + info->u_w > info->linesize &&
 				    unicode_grapheme_break(prevchar, ptr[i]))
 				{
-					unicode_char nl='\n';
+					char32_t nl='\n';
 
 					if (prev < i)
 						unicode_convert_uc
@@ -120,7 +120,7 @@ void	filter(struct filter_info *info,
 
 		while (*p)
 		{
-			unicode_char uc= *p++;
+			char32_t uc= *p++;
 
 			unicode_convert_uc(info->handle, &uc, 1);
 		}
@@ -128,7 +128,7 @@ void	filter(struct filter_info *info,
 }
 
 void	filter_passthru(struct filter_info *info,
-			const unicode_char *ptr, size_t cnt)
+			const char32_t *ptr, size_t cnt)
 {
 	unicode_convert_uc(info->handle, ptr, cnt);
 }

@@ -2007,10 +2007,10 @@ static const char spaces[]=" \t\r\n";
 struct searchresults_match_context {
 	struct searchresults_match_context *next;
 
-	unicode_char *match_context_before;
-	unicode_char *match_context;
+	char32_t *match_context_before;
+	char32_t *match_context;
 
-	unicode_char *match_context_after;
+	char32_t *match_context_after;
 	size_t match_context_after_len;
 	size_t match_context_after_max_len;
 };
@@ -2025,7 +2025,7 @@ struct searchresults {
 	char utf8buf[512];
 	size_t utf8buf_cnt;
 
-	unicode_char *context_buf;
+	char32_t *context_buf;
 	size_t context_buf_len;
 
 	size_t context_buf_head;
@@ -2115,7 +2115,7 @@ static void execute_maildir_search(const char *dirname,
 	{
 		struct maildir_searchengine se;
 		int rc=-1;
-		unicode_char *ustr;
+		char32_t *ustr;
 		size_t ustr_size;
 		unicode_convert_handle_t h;
 
@@ -2200,7 +2200,7 @@ static int searchresults_init(struct searchresults *sr,
 	sr->utf8buf_cnt=0;
 
 	sr->context_buf_len=maildir_search_len(se)+SEARCH_MATCH_CONTEXT_LEN*2+1;
-	sr->context_buf=malloc(sr->context_buf_len * sizeof(unicode_char));
+	sr->context_buf=malloc(sr->context_buf_len * sizeof(char32_t));
 
 	if (sr->context_buf == NULL)
 		return -1;
@@ -2241,14 +2241,14 @@ static void search_found_save_context(struct searchresults *sr)
 		return;
 
 	if ((c->match_context_before=malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-					    * sizeof(unicode_char))) == NULL)
+					    * sizeof(char32_t))) == NULL)
 	{
 		free(c);
 		return;
 	}
 
 	if ((c->match_context=malloc((maildir_search_len(sr->se)+1)
-				     * sizeof(unicode_char))) == NULL)
+				     * sizeof(char32_t))) == NULL)
 	{
 		free(c->match_context_before);
 		free(c);
@@ -2256,7 +2256,7 @@ static void search_found_save_context(struct searchresults *sr)
 	}
 
 	if ((c->match_context_after=malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-					   * sizeof(unicode_char))) == NULL)
+					   * sizeof(char32_t))) == NULL)
 	{
 		free(c->match_context);
 		free(c->match_context_before);
@@ -2318,7 +2318,7 @@ static void search_found_save_context(struct searchresults *sr)
 
 static int do_search_utf8(struct searchresults *res)
 {
-	unicode_char *uc=NULL;
+	char32_t *uc=NULL;
 	size_t n;
 	unicode_convert_handle_t h;
 
@@ -2349,8 +2349,8 @@ static int do_search_utf8(struct searchresults *res)
 	{
 		struct searchresults_match_context *c;
 
-		unicode_char origch=uc[n];
-		unicode_char ch=unicode_lc(origch);
+		char32_t origch=uc[n];
+		char32_t ch=unicode_lc(origch);
 
 		maildir_search_step_unicode(res->se, ch);
 
@@ -2519,7 +2519,7 @@ static MATCHEDSTR *creatematches(struct searchresults *sr)
 	return retval;
 }
 
-static char *match_conv(const unicode_char *uc)
+static char *match_conv(const char32_t *uc)
 {
 	char *cbuf;
 	size_t csize;

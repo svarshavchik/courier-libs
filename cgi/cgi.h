@@ -111,7 +111,7 @@ extern char *cgi_checkbox(const char *name,
 			  const char *value,
 			  const char *flags);
 extern char *cgi_input(const char *name,
-		       const unicode_char *value,
+		       const char32_t *value,
 		       int size,
 		       int maxlength,
 		       const char *opts);
@@ -119,7 +119,7 @@ extern char *cgi_input(const char *name,
 extern char *cgi_textarea(const char *name,
 			  int rows,
 			  int cols,
-			  const unicode_char *value,
+			  const char32_t *value,
 			  const char *wrap,
 			  const char *opts);
 

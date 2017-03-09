@@ -30,7 +30,7 @@ struct wrap_info {
 	void (*output_func)(const char *p, size_t l, void *arg);
 	void *arg;
 
-	const unicode_char *uc;
+	const char32_t *uc;
 	size_t ucsize;
 
 	size_t cur_index;
