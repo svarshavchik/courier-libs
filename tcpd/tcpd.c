@@ -1682,8 +1682,7 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 				_exit(1);
 			}
 
-			buf[snprintf(buf, l, "Sender @ blacklisted by %s",
-				     p->zone)]=0;
+			buf[snprintf(buf, l, "Blacklisted by %s", p->zone)]=0;
 
 			/*
 			** Even though we did not find a TXT record, we're here

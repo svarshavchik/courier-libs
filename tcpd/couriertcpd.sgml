@@ -648,12 +648,6 @@ file, the entry for the most specific IP address.</para>
       </para>
 
       <para>
-	There is no provision to support IPv6-based lists, because none yet
-	exist. IPv6-based access list support will be added in the
-	future.
-      </para>
-
-      <para>
 	<command>couriertcpd</command>'s default configuration
 	does not automatically reject connections from banned IP address
 	unless the <option>-drop</option> option is present.
@@ -683,16 +677,22 @@ file, the entry for the most specific IP address.</para>
 	<command>couriertcpd</command> makes a DNS query for
 	<quote>d.c.b.a.dnswl.example.com</quote>, then, if necessary, for
 	<quote>d.c.b.a.dnsbl.example.com</quote>, for a connection from the
-	IP address <replaceable>a.b.c.d</replaceable>.
+	IPv4 address <replaceable>a.b.c.d</replaceable>.
+      </para>
+
+      <para>
+	For IPv6 addresses, the DNS query consists of individual hexadecimal
+	nybbles (in reverse order, like the IPv4 query).
       </para>
 
       <para>
 	If the DNS query succeeds (more details below),
 	<option>-allow</option> sets the environment variable to an empty
 	string, and <option>-block</option> sets the environment variable
-	from the <literal>TXT</literal> record in the DNS response, or to
-	<quote>Access denied.</quote> if the DNS access list did not return
-	a <literal>TXT</literal> record. It should be possible to use
+	from the <literal>TXT</literal> record in the DNS response, if one
+	was requested (see below), or to a default message for regular
+	DNS queries for <literal>A</literal> records.
+	It should be possible to use
 	<command>couriertcpd</command> with DNS access lists that use either
 	<literal>A</literal> or <literal>TXT</literal> records.
       </para>
@@ -754,12 +754,20 @@ file, the entry for the most specific IP address.</para>
       </blockquote>
 
       <para>
-	The last component specifies a custom message that overrides any
-	<literal>TXT</literal> record in the DNS access list.
+	The last component specifies a custom message that overrides the
+	default rejection message.
 	Note that this is a single parameter to
 	<application>couriertcpd</application>, so the parameter must be
 	quoted if it contains any spaces or special
 	shell metacharacters.
+	A message that's specified as <quote>*</quote> results in a
+	<literal>TXT</literal> query to the DNS access list instead of the
+	regular <literal>A</literal> query. This is for DNS access lists
+	that provide <literal>TXT</literal> records, that gets copied
+	into the <varname>BLOCK</varname> variable (or the custom
+	variable). The <quote>*</quote> must also be quoted, since it's
+	also a shell metacharacter, and it cannot be used together with
+	an explicit <literal>A</literal> address query, described above.
       </para>
 
       <para>
