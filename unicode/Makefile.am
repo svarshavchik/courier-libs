@@ -2,6 +2,9 @@
 # Copyright 2000-2017 Double Precision, Inc.  See COPYING for
 # distribution information.
 
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
+
+AM_CXXFLAGS= @COURIER_UNICODE_CXXFLAGS@
 
 noinst_SCRIPTS=update.sh \
 	mkultcase.pl unicodefilter.pl \
@@ -11,6 +14,9 @@ noinst_SCRIPTS=update.sh \
 
 noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
 	enttest scripttest
+
+aclocaldir=$(datadir)/aclocal
+aclocal_DATA=m4/courier-unicode.m4
 
 update-www:
 	@$(MAKE) update-www-unicode
@@ -80,6 +86,7 @@ libcourier_unicode_la_SOURCES=\
 libcourier_unicode_la_LDFLAGS=-version-info 4:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
+	m4/courier-unicode.m4 \
 	packaging/freebsd10/pkg-descr
 
 if UPDATE_UNICODE

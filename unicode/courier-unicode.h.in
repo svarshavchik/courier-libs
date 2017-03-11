@@ -40,6 +40,8 @@ typedef uint32_t char32_t;
 #endif
 #endif
 
+#define COURIER_UNICODE_VERSION 200
+
 /*
 ** The system default character set, from the locale.
 */

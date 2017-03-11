@@ -1,10 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode], [1.5.20170306], [courier-users@lists.sourceforge.net])
+AC_INIT([courier-unicode], [1.5.20170309], [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
 AC_CONFIG_SRCDIR(unicodecpp.C)
+
+AC_CONFIG_MACRO_DIR([m4])
 
 LPATH="$PATH:/usr/local/bin"
 
@@ -18,6 +20,9 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_CXX
+AX_COURIER_UNICODE_CFLAGS
+AC_SUBST(COURIER_UNICODE_CXXFLAGS)
+
 AC_PATH_PROGS(PERL, perl5 perl, perl, $LPATH)
 
 if test "$PERL" = "perl"

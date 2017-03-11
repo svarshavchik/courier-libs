@@ -9,7 +9,7 @@
 
 <!--
 
-Copyright 2014-2015 Double Precision, Inc.
+Copyright 2014-2017 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -109,7 +109,45 @@ See COPYING for distribution information.
     </para>
 
     <para>
-      The starting point is
+      The Courier Unicode library installs an
+      <application>autoconf</application> macro to probe for C++11 support.
+      In your <filename>configure.ac</filename>
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>
+	  AX_COURIER_UNICODE_VERSION
+	  AX_COURIER_UNICODE_CXXFLAGS
+
+	  AC_SUBST(COURIER_UNICODE_CXXFLAGS)
+	</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      Then, in <filename>Makefile.am</filename>:
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>
+	  AM_CXXFLAGS = @COURIER_UNICODE_CXXFLAGS@
+	</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      The <varname>AX_COURIER_UNICODE_VERSION</varname> macro
+      checks the minimum library version.
+      <varname>AX_COURIER_UNICODE_CXXFLAGS</varname> sets
+      <varname>COURIER_UNICODE_CXXFLAGS</varname> to the appropriate option
+      for older gcc compilers that require an option to enable C++11
+      support.
+    </para>
+
+    <para>
+      The starting point for the library documentation is
       <link linkend="courier-unicode">
 	<citerefentry>
 	  <refentrytitle>courier-unicode</refentrytitle>
