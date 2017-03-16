@@ -778,6 +778,7 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 				closedir(dirp);
                 }
 	}
+
 	SSL_CTX_set_verify(ctx, get_peer_verify_level(info),
 			   ssl_verify_callback);
 
@@ -1487,7 +1488,7 @@ void tls_dump_connection_info(ssl_handle ssl,
 
 		for (i=0; peer_cert_chain && i<sk_X509_num(peer_cert_chain);
 		     i++)
-			dump_x509((X509 *)sk_X509_value(peer_cert_chain,0),
+			dump_x509((X509 *)sk_X509_value(peer_cert_chain, i),
 				  dump_func, dump_arg);
 	}
 
