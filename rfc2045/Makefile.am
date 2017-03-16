@@ -5,6 +5,8 @@
 noinst_LTLIBRARIES=librfc2045.la
 noinst_PROGRAMS=reformime makemime headercheck testrfc3676parser
 
+AM_CXXFLAGS=@COURIER_UNICODE_CXXFLAGS@
+
 BUILT_SOURCES=reformime.html reformime.1 makemime.html makemime.1 \
 	rfc2045.html rfc2045.3
 
