@@ -454,6 +454,9 @@ static int docheckquota(struct maildirsize *info,
 	dirp=opendir(info->maildir);
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
+#ifdef _DIRENT_HAVE_D_TYPE
+		if (de->d_type == DT_LNK) continue;
+#endif
 		if (countsubdir(info->maildir, de->d_name,
 				&maxtime, &maildirsize_size,
 			&maildirsize_cnt))
@@ -520,6 +523,9 @@ static int docheckquota(struct maildirsize *info,
 	dirp=opendir(info->maildir);
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
+#ifdef _DIRENT_HAVE_D_TYPE
+		if (de->d_type == DT_LNK) continue;
+#endif
 		if (statsubdir(info->maildir, de->d_name, &tm))
 		{
 			errno=EIO;
