@@ -1,3 +1,5 @@
+4.18.0
+
 2017-06-17  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* libs/maildir/maildirquota.c (docheckquota): Skip DT_LNK.
