@@ -1,3 +1,5 @@
+2.0
+
 2017-03-06  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Migrate to C++11: remove unicode_char, use char32_t. Replace
