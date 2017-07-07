@@ -286,7 +286,8 @@ AC_MSG_RESULT($spipe)
 AC_CHECK_HEADER(openssl/ssl.h,have_ssl_h=yes,have_ssl_h=no)
 AC_CHECK_LIB(ssl, SSL_load_error_strings, have_ssl=yes, have_ssl=no,
 	-lcrypto)
-AC_CHECK_LIB(ssl, OPENSSL_cleanup,have_ssl=yes)
+AC_CHECK_LIB(ssl, SSL_library_init, have_ssl=yes)
+AC_CHECK_LIB(ssl, OPENSSL_init_ssl, have_ssl=yes)
 
 if test "$have_ssl" = "yes"
 then
