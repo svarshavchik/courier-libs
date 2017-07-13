@@ -62,6 +62,7 @@ struct proto_ops {
 };
 struct proto_ops op_list[] =
 {
+#ifndef HAVE_OPENSSL110
 #ifdef HAVE_TLSV1_2_METHOD
     { "TLSv1.2+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1 },
     { "TLSv1.2",   &TLSv1_2_method, SSL_OP_ALL },
@@ -70,9 +71,11 @@ struct proto_ops op_list[] =
     { "TLSv1.1+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1 },
     { "TLSv1.1",   &TLSv1_1_method, SSL_OP_ALL },
 #endif
-    { "TLSv1+",    &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
     { "TLSv1",     &TLSv1_method,   SSL_OP_ALL },
     { "TLS1",      &TLSv1_method,   SSL_OP_ALL },
+#endif
+
+    { "TLSv1+",    &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
     { "",          &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
     { NULL,        &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
 };
@@ -184,7 +187,7 @@ static int verifypeer(const struct tls_info *info, SSL *ssl)
 		ASN1_STRING *d;
 
 		int dlen;
-		unsigned char *ddata;
+		const unsigned char *ddata;
 
 		e=X509_NAME_get_entry(subj, j);
 		if (!e)
@@ -199,8 +202,11 @@ static int verifypeer(const struct tls_info *info, SSL *ssl)
 		obj_name=OBJ_nid2sn(OBJ_obj2nid(o));
 
 		dlen=ASN1_STRING_length(d);
+#ifdef HAVE_OPENSSL110
+		ddata=ASN1_STRING_get0_data(d);
+#else
 		ddata=ASN1_STRING_data(d);
-
+#endif
 		if (strcasecmp(obj_name, "CN") == 0)
 		{
 			if (dlen >= sizeof(domain)-1)
@@ -811,8 +817,14 @@ void tls_destroy(SSL_CTX *ctx)
 
 static int cache_add(SSL *ssl, SSL_SESSION *sess);
 
+#ifdef HAVE_OPENSSL110
+static SSL_SESSION *cache_get(SSL *ssl, const unsigned char *id, int id_len,
+			      int *copyflag);
+#else
 static SSL_SESSION *cache_get(SSL *ssl, unsigned char *id, int id_len,
 			      int *copyflag);
+#endif
+
 static void cache_del(SSL_CTX *ctx, SSL_SESSION *ssl);
 
 static void init_session_cache(struct tls_info *info, SSL_CTX *ctx)
@@ -889,7 +901,7 @@ static int cache_add(SSL *ssl, SSL_SESSION *sess)
 }
 
 struct walk_info {
-	unsigned char *id;
+	const unsigned char *id;
 	int id_len;
 	int *copyflag;
 	SSL_SESSION *ret;
@@ -899,8 +911,13 @@ struct walk_info {
 static int get_func(void *rec, size_t recsize,
 		    int *doupdate, void *arg);
 
+#ifdef HAVE_OPENSSL110
+static SSL_SESSION *cache_get(SSL *ssl, const unsigned char *id, int id_len,
+			      int *copyflag)
+#else
 static SSL_SESSION *cache_get(SSL *ssl, unsigned char *id, int id_len,
 			      int *copyflag)
+#endif
 {
 	const struct tls_info *info=SSL_get_app_data(ssl);
 	struct walk_info wi;
@@ -1143,7 +1160,10 @@ void tls_disconnect(SSL *ssl, int fd)
 	fcntl(fd, F_SETFL, 0);
 	SSL_set_shutdown(ssl, SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN);
 	SSL_free(ssl);
+#ifdef HAVE_OPENSSL110
+#else
 	ERR_remove_state(0);
+#endif
 }
 
 /* --------------------------------------- */
@@ -1408,7 +1428,7 @@ static void dump_x509(X509 *x509,
 		ASN1_STRING *d;
 
 		int dlen;
-		unsigned char *ddata;
+		const unsigned char *ddata;
 
 		e=X509_NAME_get_entry(subj, j);
 		if (!e)
@@ -1423,7 +1443,11 @@ static void dump_x509(X509 *x509,
 		obj_name=OBJ_nid2sn(OBJ_obj2nid(o));
 
 		dlen=ASN1_STRING_length(d);
+#ifdef HAVE_OPENSSL110
+		ddata=ASN1_STRING_get0_data(d);
+#else
 		ddata=ASN1_STRING_data(d);
+#endif
 
 		(*dump_func)("   ", -1, dump_arg);
 		(*dump_func)(obj_name, -1, dump_arg);
