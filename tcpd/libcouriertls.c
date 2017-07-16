@@ -60,26 +60,6 @@ struct proto_ops {
     const SSL_METHOD * (*m)();
     int o;
 };
-struct proto_ops op_list[] =
-{
-#ifndef HAVE_OPENSSL110
-#ifdef HAVE_TLSV1_2_METHOD
-    { "TLSv1.2+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1 },
-    { "TLSv1.2",   &TLSv1_2_method, SSL_OP_ALL },
-#endif
-#ifdef HAVE_TLSV1_1_METHOD
-    { "TLSv1.1+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1 },
-    { "TLSv1.1",   &TLSv1_1_method, SSL_OP_ALL },
-#endif
-    { "TLSv1",     &TLSv1_method,   SSL_OP_ALL },
-    { "TLS1",      &TLSv1_method,   SSL_OP_ALL },
-#endif
-
-    { "TLSv1+",    &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
-    { "",          &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
-    { NULL,        &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3 },
-};
-
 
 /***** TODO *****/
 
@@ -567,7 +547,6 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 			int internal)
 {
 	SSL_CTX *ctx;
-	const char *protocol=safe_getenv(info, "TLS_PROTOCOL");
 	const char *ssl_cipher_list=safe_getenv(info, "TLS_CIPHER_LIST");
 	int session_timeout=atoi(safe_getenv(info, "TLS_TIMEOUT"));
 	const char *dhparamsfile=safe_getenv(info, "TLS_DHPARAMS");
@@ -578,10 +557,7 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 	const char *peer_cert_file=NULL;
 	int n;
 	struct tls_info *info_copy;
-	const SSL_METHOD *method=NULL;
-	long options;
 	int cert_file_flags;
-	struct proto_ops *opp;
 
 	if (!*ssl_cipher_list)
 		ssl_cipher_list=NULL;
@@ -641,15 +617,7 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 	info_copy->isserver=isserver;
 	info_copy->certificate_verified=0;
 
-	for (opp=&op_list[0];opp->n!=NULL;opp++)
-	{
-	    if (strcmp(opp->n,protocol)==0)
-		break;
-	};
-	options=opp->o;
-	method=opp->m();
-
-	ctx=SSL_CTX_new(method);
+	ctx=SSL_CTX_new(SSLv23_method());
 
 	if (!ctx)
 	{
@@ -658,7 +626,7 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 		return (0);
 	}
 	SSL_CTX_set_app_data(ctx, info_copy);
-	SSL_CTX_set_options(ctx, options);
+	SSL_CTX_set_options(ctx, SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3);
 
 	if (!ssl_cipher_list)
 		ssl_cipher_list="TLSv1:HIGH:!LOW:!MEDIUM:!EXP:!NULL:!aNULL@STRENGTH";
