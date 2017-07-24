@@ -56,19 +56,19 @@ reformime.html: reformime.sgml ../docbook/sgml2html
 	../docbook/sgml2html reformime.sgml reformime.html
 
 reformime.1: reformime.sgml ../docbook/sgml2html
-	../docbook/sgml2man reformime.sgml reformime.1
+	../docbook/sgml2man reformime.sgml reformime.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 
 makemime.html: makemime.sgml ../docbook/sgml2html
 	../docbook/sgml2html makemime.sgml makemime.html
 
 makemime.1: makemime.sgml ../docbook/sgml2html
-	../docbook/sgml2man makemime.sgml makemime.1
+	../docbook/sgml2man makemime.sgml makemime.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 
 rfc2045.html: rfc2045.sgml ../docbook/sgml2html
 	../docbook/sgml2html rfc2045.sgml rfc2045.html
 
 rfc2045.3: rfc2045.sgml ../docbook/sgml2html
-	../docbook/sgml2man rfc2045.sgml rfc2045.3
+	../docbook/sgml2man rfc2045.sgml rfc2045.3 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 endif
 
 if HAVE_LIBIDN

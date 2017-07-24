@@ -15,7 +15,7 @@ fi
 
 rm -rf $dstfile.tmpdir
 mkdir -p $dstfile.tmpdir
-xsltproc --nonet -o $dstfile.tmpdir/ $options http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $srcfile
+xsltproc  --nonet -o $dstfile.tmpdir/ $options http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $srcfile
 
 for f in $dstfile.tmpdir/*
 do

@@ -19,5 +19,5 @@ courierlogger.html: courierlogger.sgml ../docbook/sgml2html
 	../docbook/sgml2html courierlogger.sgml courierlogger.html
 
 courierlogger.1: courierlogger.sgml ../docbook/sgml2html
-	../docbook/sgml2man courierlogger.sgml courierlogger.1
+	../docbook/sgml2man courierlogger.sgml courierlogger.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 endif

@@ -39,7 +39,7 @@ rfc822.html: rfc822.sgml ../docbook/sgml2html
 	../docbook/sgml2html rfc822.sgml rfc822.html
 
 rfc822.3: rfc822.sgml ../docbook/sgml2html
-	../docbook/sgml2man rfc822.sgml rfc822.3
+	../docbook/sgml2man rfc822.sgml rfc822.3 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 endif
 
 check-am:

@@ -36,7 +36,7 @@ mimegpg.html: mimegpg.sgml ../docbook/sgml2html
 	../docbook/sgml2html mimegpg.sgml mimegpg.html
 
 mimegpg.1: mimegpg.sgml ../docbook/sgml2man
-	../docbook/sgml2man mimegpg.sgml mimegpg.1
+	../docbook/sgml2man mimegpg.sgml mimegpg.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 
 endif
 

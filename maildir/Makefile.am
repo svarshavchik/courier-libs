@@ -153,40 +153,40 @@ deliverquota.html.in: deliverquota.sgml ../docbook/sgml2html
 	../docbook/sgml2html deliverquota.sgml deliverquota.html.in
 
 deliverquota.8.in: deliverquota.sgml ../docbook/sgml2html
-	../docbook/sgml2man deliverquota.sgml deliverquota.8.in
+	../docbook/sgml2man deliverquota.sgml deliverquota.8.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv deliverquota.8 deliverquota.8.in
 
 maildirmake.html.in: maildirmake.sgml ../docbook/sgml2html
 	../docbook/sgml2html maildirmake.sgml maildirmake.html.in
 
 maildirmake.1.in: maildirmake.sgml ../docbook/sgml2html
-	../docbook/sgml2man maildirmake.sgml maildirmake.1.in
+	../docbook/sgml2man maildirmake.sgml maildirmake.1.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv maildirmake.1 maildirmake.1.in
 
 maildiracl.html.in: maildiracl.sgml ../docbook/sgml2html
 	../docbook/sgml2html maildiracl.sgml maildiracl.html.in
 
 maildiracl.1.in: maildiracl.sgml ../docbook/sgml2html
-	../docbook/sgml2man maildiracl.sgml maildiracl.1.in
+	../docbook/sgml2man maildiracl.sgml maildiracl.1.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv maildiracl.1 maildiracl.1.in
 
 maildirquota.html: maildirquota.sgml ../docbook/sgml2html
 	../docbook/sgml2html maildirquota.sgml maildirquota.html
 
 maildirquota.7: maildirquota.sgml ../docbook/sgml2man
-	../docbook/sgml2man maildirquota.sgml maildirquota.7
+	../docbook/sgml2man maildirquota.sgml maildirquota.7 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 
 maildir.html: maildir.sgml ../docbook/sgml2html
 	../docbook/sgml2html maildir.sgml maildir.html
 
 maildir.5: maildir.sgml ../docbook/sgml2man
-	../docbook/sgml2man maildir.sgml maildir.5
+	../docbook/sgml2man maildir.sgml maildir.5 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 
 maildirkw.html: maildirkw.sgml ../docbook/sgml2html
 	../docbook/sgml2html maildirkw.sgml maildirkw.html
 
 maildirkw.1: maildirkw.sgml ../docbook/sgml2man
-	../docbook/sgml2man maildirkw.sgml maildirkw.1
+	../docbook/sgml2man maildirkw.sgml maildirkw.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 
 endif
 

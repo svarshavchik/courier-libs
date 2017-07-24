@@ -46,21 +46,21 @@ makeuserdb.html.in: makeuserdb.sgml ../docbook/sgml2html
 	../docbook/sgml2html makeuserdb.sgml makeuserdb.html.in
 
 makeuserdb.8.in: makeuserdb.sgml ../docbook/sgml2man
-	../docbook/sgml2man makeuserdb.sgml makeuserdb.8.in
+	../docbook/sgml2man makeuserdb.sgml makeuserdb.8.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv makeuserdb.8 makeuserdb.8.in
 
 userdb.html.in: userdb.sgml ../docbook/sgml2html
 	../docbook/sgml2html userdb.sgml userdb.html.in
 
 userdb.8.in: userdb.sgml ../docbook/sgml2man
-	../docbook/sgml2man userdb.sgml userdb.8.in
+	../docbook/sgml2man userdb.sgml userdb.8.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv userdb.8 userdb.8.in
 
 userdbpw.html.in: userdbpw.sgml ../docbook/sgml2html
 	../docbook/sgml2html userdbpw.sgml userdbpw.html.in
 
 userdbpw.8.in: userdbpw.sgml ../docbook/sgml2man
-	../docbook/sgml2man userdbpw.sgml userdbpw.8.in
+	../docbook/sgml2man userdbpw.sgml userdbpw.8.in "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
 	mv userdbpw.8 userdbpw.8.in
 
 endif
