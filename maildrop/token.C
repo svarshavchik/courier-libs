@@ -50,6 +50,7 @@ static const char *names[]={
 		"exception",
 		"echo",
 		"xfilter",
+		"system",
 		"dotlock",
 		"flock",
 		"logfile",

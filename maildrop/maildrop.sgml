@@ -620,6 +620,13 @@ The <command>logfile</command> command is not allowed in embedded mode.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><ulink url="maildropfilter.html#system">system</ulink></term>
+	  <listitem>
+<para>
+The <command>system</command> command is not allowed in embedded mode.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><ulink url="maildropfilter.html#to">to</ulink></term>
 	  <listitem>
 <para>
@@ -663,8 +670,10 @@ suspended for any additional filter files that are included from
 
       <para>
 This allows the system administrator to have a controlled environment for
-running external commands (via the backticks, or the
-<ulink url="maildropfilter.html#xfilter">xfilter</ulink> command).</para>
+running external commands (via the backticks, the
+<ulink url="maildropfilter.html#system">system</ulink>
+or the
+<ulink url="maildropfilter.html#xfilter">xfilter</ulink> commands).</para>
 
       <para>
 The name of the file may not contain any periods (so that a creative

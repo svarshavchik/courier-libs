@@ -65,6 +65,7 @@ public:
 		exception,
 		echo,
 		tokenxfilter,
+		tokensystem,
 		dotlock,
 		flock,
 		logfile,

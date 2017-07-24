@@ -496,7 +496,7 @@ RecipeNode	*c;
 				debug += '\0';
 				r.errmsg(*this, debug);
 			}
-	
+
 		long l=bb.Length();
 
 			if (n < 0 || n > l)	n=l;
@@ -620,6 +620,17 @@ RecipeNode	*c;
 				(const char *)b << "\n";
 		if (filter(b) < 0)
 			throw "Unable to filter message.";
+		b = "0";
+		break;
+	case system:
+		if (!firstChild)
+			throw "Internal error in system statement.";
+		firstChild->Evaluate(r,b);
+		b += '\0';
+		if (VerboseLevel() > 0)
+			merr << "maildrop: Executing system command " <<
+				(const char *)b << "\n";
+		executesystem(b);
 		b = "0";
 		break;
 	case exception:

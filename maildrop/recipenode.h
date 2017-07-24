@@ -97,6 +97,7 @@ public:
 		exception,
 		echo,
 		xfilter,
+		system,
 		dotlock,
 		flock,
 		logfile,

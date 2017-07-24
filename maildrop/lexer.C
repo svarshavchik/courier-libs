@@ -41,6 +41,7 @@ void	Lexer::token(Token &t)
 		case Token::tokencc:
 		case Token::btstring:
 		case Token::tokenxfilter:
+		case Token::tokensystem:
 		case Token::dotlock:
 		case Token::flock:
 		case Token::logfile:
@@ -346,6 +347,8 @@ missquote:
 			t.Type(Token::echo);
 		else if (pattern == "xfilter")
 			t.Type(Token::tokenxfilter);
+		else if (pattern == "system")
+			t.Type(Token::tokensystem);
 		else if (pattern == "dotlock")
 			t.Type(Token::dotlock);
 		else if (pattern == "flock")

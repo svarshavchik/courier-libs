@@ -173,6 +173,14 @@ RecipeNode *n, *o;
 			throw "Syntax error.";
 		lex->token(cur_tok);
 		return (n);
+	case Token::tokensystem:
+		lex->token(cur_tok);
+		n=alloc(RecipeNode::system);
+		n->AppendSibling( ParseExpr());
+		if (cur_tok.Type() != Token::semicolon)
+			throw "Syntax error.";
+		lex->token(cur_tok);
+		return (n);
 	case Token::dotlock:
 		lex->token(cur_tok);
 		n=alloc(RecipeNode::dotlock);

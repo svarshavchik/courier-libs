@@ -20,6 +20,7 @@ extern int verbose_level;
 const char *GetDefaultMailbox(const char *);
 int	delivery(const char *);
 int	filter(const char *);
+void	executesystem(const char *);
 void	subshell(const char *);
 const char *TempName();	// Return temporary filename
 const char *TempName(const char *, unsigned=0);	// ... with this prefix.

@@ -100,7 +100,7 @@ pid_t	pid=fork();
 		{
 			if (write(2, p, strlen(p)) < 0 ||
 			    write(2, "\n", 1) < 0)
-				; /* ignore */ 
+				; /* ignore */
 			_exit(100);
 		}
 #if NEED_NONCONST_EXCEPTIONS
@@ -272,4 +272,65 @@ int	wait_stat;
 	if (wait_stat)
 		return (-1);
 	return (0);
+}
+
+void executesystem(const char *cmd)
+{
+	int devnull=open("/dev/null", O_RDONLY);
+	pid_t	pid;
+
+	if (devnull < 0)
+		throw "Cannot open /dev/null";
+
+	pid=fork();
+	if (pid < 0)
+	{
+		close(devnull);
+		throw "Cannot fork.";
+	}
+
+	if (pid == 0)
+	{
+		try
+		{
+			dup2(devnull, 0);
+			close(devnull);
+			subshell(cmd);
+		}
+		catch (const char *p)
+		{
+			if (write(2, p, strlen(p)) < 0 ||
+			    write(2, "\n", 1) < 0)
+				; /* ignore */
+			_exit(100);
+		}
+#if NEED_NONCONST_EXCEPTIONS
+		catch (char *p)
+		{
+			if (write(2, p, strlen(p)) < 0 ||
+			    write(2, "\n", 1) < 0)
+				; /* ignore */
+			_exit(100);
+		}
+#endif
+		catch (...)
+		{
+			_exit(101);
+		}
+	}
+	close(devnull);
+
+int	wait_stat;
+
+	while (wait(&wait_stat) != pid)
+		;
+	wait_stat= WIFEXITED(wait_stat) ? WEXITSTATUS(wait_stat):-1;
+
+	{
+	Buffer	name, val;
+
+		val.append( (unsigned long)wait_stat);
+		name="RETURNCODE";
+		SetVar(name, val);
+	}
 }

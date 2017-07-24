@@ -511,7 +511,9 @@ MAILBOX="${HOME-WORD}/Mailbox"
 
 	</para></listitem></varlistentry>
 	<varlistentry><term><varname>RETURNCODE</varname></term><listitem><para>This variable is set when <command>maildrop</command>
-	      runs the <ulink url="#xfilter">xfilter</ulink> command, or a command that's
+	      runs the
+	      <ulink url="#system">system</ulink> command,
+	      <ulink url="#xfilter">xfilter</ulink> command, or a command that's
 	      specified within a pair of backtick characters ( command substitution ).
 	      The <varname>RETURNCODE</varname> variable will be set to the exit code of the
 	      command, after it completes.
@@ -1482,6 +1484,28 @@ log <replaceable>expression</replaceable>
 	  the <command>echo</command>
 	  statement, except that the text is written to the logfile, instead of
 	  standard output.</para>
+      </refsect3>
+
+      <refsect3>
+	<title>system - execute a system command</title>
+	<anchor id="system"/>
+
+	<blockquote>
+	  <informalexample>
+	    <programlisting>
+system <replaceable>expression</replaceable>
+	    </programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  <replaceable>expression</replaceable> specifies an external program
+	  that
+	  <command>maildrop</command> runs as a subprocess.
+	  The subprocess's standard input gets connected to
+	  <filename>/dev/null</filename>, and the subprocess inherits
+	  the standard output and error from
+	   <command>maildrop</command>.</para>
       </refsect3>
 
       <refsect3>
