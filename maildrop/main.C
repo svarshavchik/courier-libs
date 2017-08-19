@@ -170,7 +170,7 @@ char    hostname[256];
 
 static void copyright()
 {
-static const char msg[]="maildrop " VERSION " Copyright 1998-2015 Double Precision, Inc."
+static const char msg[]="maildrop " VERSION " Copyright 1998-2017 Double Precision, Inc."
 
 #if CRLF_TERM
 	"\r\n"
