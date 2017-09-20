@@ -35,10 +35,10 @@ static int poll_wait(void *dummy)
 
 static void genkey(const char *d)
 {
-	libmail_gpg_genkey(d, "iso-8859-1",
+	libmail_gpg_genkey(d, "utf-8",
 		   "John Smith",
 		   "john@example.com",
-		   "Dummy ISO-8859 Tëëst key",
+		   "Dummy UTF-8 Tëëst key",
 		   1024,
 		   2048,
 		   12,

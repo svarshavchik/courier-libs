@@ -39,7 +39,7 @@ static void definit(struct gpg_list_info *arg)
 
 #define DEFINIT(c, a) if (!(c)) (c)=(a)
 
-	DEFINIT(arg->charset, "iso-8859-1");
+	DEFINIT(arg->charset, "utf-8");
 	DEFINIT(arg->disabled_msg, "[ This key is disabled ]");
 	DEFINIT(arg->revoked_msg, "[ This key is revoked ]");
 	DEFINIT(arg->expired_msg, "[ This key is expired ]");

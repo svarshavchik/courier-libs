@@ -163,7 +163,7 @@ string mail::address::getCanonAddress() const
 	{
 		a=a.substr(0, n) +
 			mail::iconvert::convert_tocase(a.substr(n),
-						       "iso-8859-1",
+						       "utf-8",
 						       unicode_lc);
 	}
 
@@ -402,7 +402,7 @@ void mail::emailAddress::decode()
 
 	for (std::string::iterator b=addr.begin(), e=addr.end(); b != e; ++b)
 		ucaddr.push_back((unsigned char)*b);
-		
+
 #if LIBIDN
 	size_t at=std::find(ucaddr.begin(), ucaddr.end(), '@')
 		- ucaddr.begin();
@@ -439,4 +439,3 @@ void mail::emailAddress::decode()
 	decodedName=ucname;
 	decodedAddr=ucaddr;
 }
-

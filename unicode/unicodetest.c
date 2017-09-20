@@ -47,7 +47,7 @@ static void test1()
 	cb.cnt=0;
 	cb.size=sizeof(outputbuf);
 
-	if ((h=unicode_convert_init("UCS-4BE", "ISO-8859-1",
+	if ((h=unicode_convert_init("UCS-4BE", "UTF-8",
 				      save_output, &cb)) == NULL)
 	{
 		perror("unicode_convert_init");

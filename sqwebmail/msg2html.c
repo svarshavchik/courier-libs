@@ -548,7 +548,7 @@ off_t	pos;
 			else
 				showmsgrfc822_header(info->output_character_set,
 						     value,
-						     "iso-8859-1");
+						     "utf-8");
 			printf("</span></td></tr>\n");
 			free(header);
 			continue;

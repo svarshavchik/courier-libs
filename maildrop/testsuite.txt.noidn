@@ -611,7 +611,7 @@ Action: delivered
 Status: 2.0.0
 
 --
-Content-Type: text/rfc822-headers; charset="iso-8859-1"
+Content-Type: text/rfc822-headers; charset="utf-8"
 Content-Disposition: attachment
 Content-Transfer-Encoding: 8bit
 
@@ -652,7 +652,7 @@ Source-Ip: 127.0.0.1
 Incidents: 2
 
 --
-Content-Type: text/rfc822-headers; charset="iso-8859-1"
+Content-Type: text/rfc822-headers; charset="utf-8"
 Content-Disposition: attachment
 Content-Transfer-Encoding: 8bit
 
@@ -692,7 +692,7 @@ Source-Ip: 127.0.0.1
 Incidents: 2
 
 --
-Content-Type: text/rfc822-headers; charset="iso-8859-1"
+Content-Type: text/rfc822-headers; charset="utf-8"
 Content-Disposition: attachment
 Content-Transfer-Encoding: 8bit
 
