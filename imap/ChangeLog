@@ -1,3 +1,7 @@
+2017-09-19  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* courier: switch default header encoding to UTF-8.
+
 4.18.1
 
 2017-08-19  Sam Varshavchik  <mrsam@courier-mta.com>
