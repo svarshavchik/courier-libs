@@ -212,6 +212,8 @@ static Buffer	from_header;
 			strncmp(header, "errors-to:", 10) == 0 ||
 			strncmp(header, ">errors-to:", 11) == 0)
 		{
+			const char *p;
+
 			for (p=header; *p != ':'; p++)
 				;
 			return_path=p;
@@ -285,7 +287,7 @@ const char *add_from_filter_header()
 static Buffer buf;
 
 	buf.reset();
-	
+
 	if (*add_from_filter_buf_ptr == '\0')
 	{
 		from_filter= &add_from_filter_body;
