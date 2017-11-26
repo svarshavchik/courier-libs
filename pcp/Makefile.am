@@ -15,7 +15,7 @@ noinst_LTLIBRARIES=libpcp.la
 
 noinst_PROGRAMS=pcp pcpd
 
-EXTRA_DIST= ../../config.rpath m4/ChangeLog README.html $(srcdir)/m4/*.m4
+EXTRA_DIST= ../../config.rpath  ../../config.rpath m4/ChangeLog README.html $(srcdir)/m4/*.m4
 
 BUILT_SOURCES=calendardir.h sysconfdir.h uids.h
 
