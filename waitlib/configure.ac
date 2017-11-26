@@ -17,8 +17,8 @@ dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_PROG_RANLIB
 AC_PROG_CC
+AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
 
@@ -84,7 +84,7 @@ wait3)
 	else
 		use_wait3=no
 	fi
-	
+
 	if test "$waitlib_cv_SYS_WAITBROKEN$use_wait3" = "yesno"
 	then
 		AC_MSG_ERROR([I give up -- neither wait nor wait3 works properly])

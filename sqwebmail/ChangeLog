@@ -2,6 +2,10 @@
 
 2017-11-26  Sam Varshavchik  <mrsam@courier-mta.com>
 
+	* pcp.c (sqpcp_eventstart): Fix null pointer dereference.
+
+2017-11-26  Sam Varshavchik  <mrsam@courier-mta.com>
+
 	* Tweaks to the RPM spec file.
 
 	* libs/rfc2045/rfc2045reply.c (mkreply): Fix null pointer

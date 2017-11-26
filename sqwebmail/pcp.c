@@ -937,7 +937,7 @@ void sqpcp_eventstart()
 							       h.value,
 							       sqwebmail_content_charset,
 							       NULL, NULL);
-			if (!subj_buf)
+			if (subj_buf)
 				subj_buf=strdup(subj_buf);
 
 			if (subj_buf)
@@ -3146,7 +3146,7 @@ struct display_retr_participant_list {
 
 struct display_retr {
 	FILE *f;
-	
+
 	struct display_retr_time_list *time_list;
 	struct display_retr_participant_list *participant_list;
 
