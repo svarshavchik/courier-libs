@@ -4,6 +4,8 @@
 
 	* pcp.c (sqpcp_eventstart): Fix null pointer dereference.
 
+	* gettext update.
+
 2017-11-26  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Tweaks to the RPM spec file.
