@@ -17,7 +17,7 @@
 
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
-      <command moreinfo="none">reformime</command>
+      <command>reformime</command>
       <arg rep="repeat" choice="opt"><replaceable>options</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -25,17 +25,17 @@
   <refsect1>
     <title>DESCRIPTION</title>
     <para>
-<command moreinfo="none">reformime</command> is a utility for reformatting
+<command>reformime</command> is a utility for reformatting
 MIME messages.</para>
 
     <para>
-Generally, <command moreinfo="none">reformime</command> expects to see an
+Generally, <command>reformime</command> expects to see an
 <ulink url="http://www.rfc-editor.org/rfc/rfc2045.txt">RFC 2045</ulink>
 compliant message on standard input, except in few cases
 such as the <option>-m</option> option.</para>
 
     <para>
-If no options are given, <command moreinfo="none">reformime</command> prints the MIME
+If no options are given, <command>reformime</command> prints the MIME
 structure of the message. The output consists of so-called
 "MIME reference tags", one per line.
 For example:</para>
@@ -53,16 +53,16 @@ For example:</para>
 This shows that the message contains two different MIME sections. The
 first line of the MIME structure output will always contain "1", which refers
 to the entire message.
-In this case it happens to be a <literal moreinfo="none">multipart/mixed</literal>
+In this case it happens to be a <literal>multipart/mixed</literal>
 message. "1.1" refers to the first section of the multipart message, which
 happens to be a
-<literal moreinfo="none">text/plain</literal> section. "1.2" refers to the second
+<literal>text/plain</literal> section. "1.2" refers to the second
 section of the message, which happens to be an
-<literal moreinfo="none">application/octet-stream</literal> section.</para>
+<literal>application/octet-stream</literal> section.</para>
 
     <para>
 If the message is not a MIME message, or it does not contain any
-attachments, <command moreinfo="none">reformime</command> prints only "1", that refers
+attachments, <command>reformime</command> prints only "1", that refers
 to the entire message itself:</para>
 
 <blockquote>
@@ -75,8 +75,8 @@ to the entire message itself:</para>
 
     <para>
 Here's the output from
-<command moreinfo="none">reformime</command> when the first part of the message was itself a
-<literal moreinfo="none">multipart/alternative</literal> section:</para>
+<command>reformime</command> when the first part of the message was itself a
+<literal>multipart/alternative</literal> section:</para>
 <blockquote>
 	<informalexample>
 	  <programlisting format="linespecific">
@@ -102,19 +102,19 @@ Arbitrarily complex MIME constructs are possible.</para>
 	  <para>
 Parse a delivery status notification MIME message
 (<ulink url="http://www.rfc-editor.org/rfc/rfc1894.txt">RFC 1894</ulink>).
-<command moreinfo="none">reformime</command>
+<command>reformime</command>
 expects to see on standard input a MIME message that consists of
 a delivery status notification, as defined by RFC 1894.
-<command moreinfo="none">reformime</command>
+<command>reformime</command>
 reads
 the message and prints on standard output a list of addresses and their
 corresponding delivery status, as specified in the delivery status
 notification. Each line printed by
-<command moreinfo="none">reformime</command>
+<command>reformime</command>
 consists of a delivery
 status, a space, and the address.
-<command moreinfo="none">reformime</command> then terminates with a 0 exit status.
-<command moreinfo="none">reformime</command> produces no output and terminates with an exit
+<command>reformime</command> then terminates with a 0 exit status.
+<command>reformime</command> produces no output and terminates with an exit
 status of 1 if the standard input does not contain a delivery status
 notification.</para>
 	</listitem>
@@ -124,8 +124,8 @@ notification.</para>
 	<listitem>
 	  <para>
 Like the <option>-d</option> except that
-<command moreinfo="none">reformime</command> lists the address
-found in the <literal moreinfo="none">Original-Recipient:</literal> header,
+<command>reformime</command> lists the address
+found in the <literal>Original-Recipient:</literal> header,
 if it exists.</para>
 	</listitem>
       </varlistentry>
@@ -138,9 +138,9 @@ on standard output.
 The <option>-s</option> option is required when
 <option>-e</option> is specified. If the
 specified section or
-sections use either the <literal moreinfo="none">base64</literal> or
-<literal moreinfo="none">quoted-printable</literal> encoding method,
-<command moreinfo="none">reformime</command> automatically
+sections use either the <literal>base64</literal> or
+<literal>quoted-printable</literal> encoding method,
+<command>reformime</command> automatically
 decodes it. In this case you're better off redirecting the standard output
 into a file.</para>
 	</listitem>
@@ -149,11 +149,11 @@ into a file.</para>
 	<term>-i</term>
 	<listitem>
 	  <para>
-Display MIME information for each section. <command moreinfo="none">reformime</command>
+Display MIME information for each section. <command>reformime</command>
 displays the contents of the
-<literal moreinfo="none">Content-Type:</literal> header, any encoding used,
+<literal>Content-Type:</literal> header, any encoding used,
 and the character set.
-<command moreinfo="none">reformime</command> also displays the byte offset in the message
+<command>reformime</command> also displays the byte offset in the message
 where each section starts and ends (and where the
 actual contents of the section start, after skipping all the headers).</para>
 	</listitem>
@@ -162,7 +162,7 @@ actual contents of the section start, after skipping all the headers).</para>
 	<term>-m</term>
 	<listitem>
 	  <para>
-Create a <literal moreinfo="none">multipart/digest</literal> MIME message digest.</para>
+Create a <literal>multipart/digest</literal> MIME message digest.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -178,8 +178,8 @@ MIME headers.</para>
 	<term>-r7</term>
 	<listitem>
 	  <para>
-Like <option>-r</option> but also convert <literal moreinfo="none">8bit</literal>-encoded
-MIME sections to <literal moreinfo="none">quoted-printable</literal>.</para>
+Like <option>-r</option> but also convert <literal>8bit</literal>-encoded
+MIME sections to <literal>quoted-printable</literal>.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -187,8 +187,21 @@ MIME sections to <literal moreinfo="none">quoted-printable</literal>.</para>
 	<listitem>
 	  <para>
 Like <option>-r</option> but also convert
-<literal moreinfo="none">quoted-printable</literal>-encoded MIME sections to
-<literal moreinfo="none">8bit</literal>.</para>
+<literal>quoted-printable</literal>-encoded MIME sections to
+<literal>8bit</literal>, except in some situations, see below.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-rU</term>
+	<listitem>
+	  <para>
+Unconditionally convert
+<literal>quoted-printable</literal>-encoded MIME sections to
+<literal>8bit</literal>, even when the resulting message may not
+necessarily comply
+with Internet message formatting standards.
+See below for more information.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -235,7 +248,7 @@ to extract.  If the <option>-s</option> option is not specified,
 every MIME section in the message is extracted, one at a time.
 If <option>-s</option> lists multiple sections, each section gets
 extracted separately.
-<literal moreinfo="none">quoted-printable</literal> and <literal moreinfo="none">base64</literal> encoding are
+<literal>quoted-printable</literal> and <literal>base64</literal> encoding are
 automatically decoded.</para>
 
       <variablelist>
@@ -243,14 +256,14 @@ automatically decoded.</para>
 	  <term>-x</term>
 	  <listitem>
 	    <para>
-Interactive extraction. <command moreinfo="none">reformime</command> prints the MIME
+Interactive extraction. <command>reformime</command> prints the MIME
 content type of each section.  Answer with 'y' or 'Y' to extract the MIME
-section. Specify the filename at the next prompt. <command moreinfo="none">reformime</command>
+section. Specify the filename at the next prompt. <command>reformime</command>
 prompts with a default filename.
-<command moreinfo="none">reformime</command> tries to choose the default
+<command>reformime</command> tries to choose the default
 filename based on the MIME headers, if possible. If not, the default
-filename will be <literal moreinfo="none">attachment1.dat</literal> (if the -s option is not
-specified, the next filename will be <literal moreinfo="none">attachment2.dat</literal>,
+filename will be <literal>attachment1.dat</literal> (if the -s option is not
+specified, the next filename will be <literal>attachment2.dat</literal>,
 and so on).</para>
 	  </listitem>
 	</varlistentry>
@@ -258,7 +271,7 @@ and so on).</para>
 	  <term>-x<replaceable>PREFIX</replaceable></term>
 	  <listitem>
 	    <para>
-Automatic extraction. <command moreinfo="none">reformime</command> automatically
+Automatic extraction. <command>reformime</command> automatically
 extracts one or more MIME sections, and saves them to a file.
 The filename is formed by taking
 <replaceable>PREFIX</replaceable>, and appending the default filename to it.
@@ -272,11 +285,11 @@ reformime -xfiles-
 	    </blockquote>
 	    <para>
 This command saves MIME sections as
-<filename moreinfo="none">files-attachment1.dat</filename>, then
-<filename moreinfo="none">files-attachment2.dat</filename>, etc.
-<command moreinfo="none">reformime</command> tries to append the filename specified in the
+<filename>files-attachment1.dat</filename>, then
+<filename>files-attachment2.dat</filename>, etc.
+<command>reformime</command> tries to append the filename specified in the
 MIME headers for each section, where possible.
-<command moreinfo="none">reformime</command> replaces all suspect characters with the
+<command>reformime</command> replaces all suspect characters with the
 underscore character.</para>
 	  </listitem>
 	</varlistentry>
@@ -285,30 +298,30 @@ underscore character.</para>
 	  <listitem>
 	    <para>
 The <option>-X</option> option must be the last option to
-<command moreinfo="none">reformime</command>. <command moreinfo="none">reformime</command> runs an external
-program <command moreinfo="none">prog</command>, and pipes the contents of the MIME section to
-the program. <command moreinfo="none">reformime</command> sets the environment variable
+<command>reformime</command>. <command>reformime</command> runs an external
+program <command>prog</command>, and pipes the contents of the MIME section to
+the program. <command>reformime</command> sets the environment variable
 <envar>CONTENT_TYPE</envar> to the MIME content type.  The environment
 variable <envar>FILENAME</envar> gets set to the default filename of
-<command moreinfo="none">reformime</command>'s liking. If the <option>-s</option> option is
+<command>reformime</command>'s liking. If the <option>-s</option> option is
 not specified, the program runs once
 for every MIME section in the message.
-The external program, <command moreinfo="none">prog</command> must terminate with a zero
-exit status in order for <command moreinfo="none">reformime</command> to proceed to the
+The external program, <command>prog</command> must terminate with a zero
+exit status in order for <command>reformime</command> to proceed to the
 next MIME section in the message (or the next section specified by
 <option>-s</option>).
-In any case, if <command moreinfo="none">prog</command> terminates with a non-zero exit
-status, <command moreinfo="none">reformime</command> terminates with the exit status of
-20 plus <command moreinfo="none">prog</command>'s exit status.</para>
+In any case, if <command>prog</command> terminates with a non-zero exit
+status, <command>reformime</command> terminates with the exit status of
+20 plus <command>prog</command>'s exit status.</para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
 
       <note>
 	<para>
-<command moreinfo="none">reformime</command> extracts every MIME section in the message
+<command>reformime</command> extracts every MIME section in the message
 unless the <option>-s</option> option is specified.
-This includes even the <literal moreinfo="none">text/plain</literal> MIME
+This includes even the <literal>text/plain</literal> MIME
 content that usually precedes a binary attachment.</para>
       </note>
     </refsect2>
@@ -320,36 +333,46 @@ content that usually precedes a binary attachment.</para>
 The <option>-r</option> option performs the following actions:</para>
 
       <para>
-If there is no <literal moreinfo="none">Mime-Version:</literal>,
-<literal moreinfo="none">Content-Type:</literal>, or
-<literal moreinfo="none">Content-Transfer-Encoding:</literal> header,
-<command moreinfo="none">reformime</command> adds one.</para>
+If there is no <literal>Mime-Version:</literal>,
+<literal>Content-Type:</literal>, or
+<literal>Content-Transfer-Encoding:</literal> header,
+<command>reformime</command> adds one.</para>
 
       <para>
-If the <literal moreinfo="none">Content-Transfer-Encoding:</literal> header contains
-<literal moreinfo="none">8bit</literal> or <literal moreinfo="none">raw</literal>, but only seven-bit data is
-found, <command moreinfo="none">reformime</command> changes
-the <literal moreinfo="none">Content-Transfer-Encoding</literal> header to
-<literal moreinfo="none">7bit</literal>.</para>
+If the <literal>Content-Transfer-Encoding:</literal> header contains
+<literal>8bit</literal> or <literal>raw</literal>, but only seven-bit data is
+found, <command>reformime</command> changes
+the <literal>Content-Transfer-Encoding</literal> header to
+<literal>7bit</literal>.</para>
 
       <para><option>-r7</option> does the same thing, but also converts
-<literal moreinfo="none">8bit</literal>-encoded content that contains eight-bit characters to
-<literal moreinfo="none">quoted-printable</literal> encoding.</para>
+<literal>8bit</literal>-encoded content that contains eight-bit characters to
+<literal>quoted-printable</literal> encoding.</para>
 
       <para><option>-r8</option> does the same thing, but also converts
-<literal moreinfo="none">quoted-printable</literal>-encoded content to
-<literal moreinfo="none">8bit</literal>, except in some situations.</para>
+<literal>quoted-printable</literal>-encoded content to
+<literal>8bit</literal>, except in some situations. The content remains
+<literal>quoted-printable</literal> if converting it results in excessively
+long lines of text.
+      </para>
+
+      <para><option>-rU</option> always converts
+<literal>quoted-printable</literal>-encoded content to
+<literal>8bit</literal> potentially resulting in excessively
+long lines of text. The resulting message should not be resubmitted for
+mail delivery, as a delivery failure may occur.
+      </para>
     </refsect2>
 
     <refsect2>
-      <title>Creating <literal moreinfo="none">multipart/digest</literal> MIME digests</title>
+      <title>Creating <literal>multipart/digest</literal> MIME digests</title>
 
       <para>The <option>-m</option> option creates a MIME digest.
-<command moreinfo="none">reformime</command> reads a list of filenames on standard input.
+<command>reformime</command> reads a list of filenames on standard input.
 Each line read from standard input contains the name of a file that is
 presumed to contain an RFC 2822-formatted message.
-<command moreinfo="none">reformime</command> splices all files into a
-<command moreinfo="none">multipart/digest</command> MIME section,
+<command>reformime</command> splices all files into a
+<command>multipart/digest</command> MIME section,
 and writes it to standard output.</para>
     </refsect2>
 

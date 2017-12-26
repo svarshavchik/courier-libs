@@ -51,8 +51,12 @@ folders.</simpara>
     <variablelist>
       <varlistentry><term><literal>-q</literal> <replaceable>quota</replaceable></term>
         <listitem><simpara>install a quota on the maildir.
-See
-<ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>, below.</simpara>
+	    See
+	    <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
+	    for more information.
+	    The specified maildir gets automatically created if it does not
+	    exist; otherwise the existing maildir's quota gets updated.
+	  </simpara>
 	</listitem>
       </varlistentry>
     </variablelist>

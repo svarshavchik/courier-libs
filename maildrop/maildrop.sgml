@@ -113,8 +113,7 @@ A file containing filtering instructions -
 <replaceable>filename</replaceable>
 is specified as an argument to the <command>maildrop</command> command.
 <command>maildrop</command> reads this
-<replaceable>filename</replaceable> (after
-<filename>@withetcdir@/maildroprc</filename>)
+<replaceable>filename</replaceable>
 and follows the instructions in it.
 Unless the message is explicitly forwarded, bounced,
 deleted, or delivered to a specific mailbox, it will be delivered to the
