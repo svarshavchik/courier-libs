@@ -162,11 +162,7 @@ Buffer	b;
 		if ( deliver_maildir.MaildirOpen(mailbox, deliver_file,
 			maildrop.msgptr->MessageSize()) < 0)
 		{
-#if HAVE_COURIER
 			throw 75;
-#else
-			throw 77;
-#endif
 		}
 
 		format_mbox.Init(0);
