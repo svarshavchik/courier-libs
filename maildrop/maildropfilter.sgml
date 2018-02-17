@@ -711,10 +711,24 @@ DIR=`ls`
 	more options. The following options may be specified in any order:</para>
 
       <variablelist>
-	<varlistentry><term><literal>h</literal></term>
+	<varlistentry>
+	  <term><literal>h</literal></term>
 	  <listitem>
-	    <para>Match this pattern against the message header.</para>
-	</listitem></varlistentry>
+	    <para>
+	      Match this pattern in the message's header, and the
+	      header of any attachments in the message.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>H</literal></term>
+	  <listitem>
+	    <para>
+	      Match this pattern in the message's main header. Do not match
+	      this pattern in the headers of the message's attachments.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry><term><literal>b</literal></term>
 	  <listitem>
 	    <para>Match this pattern against the message body.</para>
@@ -730,10 +744,13 @@ DIR=`ls`
       </variablelist>
 
       <para>
-	If neither 'h' or 'b' is specified, the pattern is matched against the
-	header only. Specifying the 'b' option causes the pattern to be matched
-	against the message body. Specifying both causes the pattern to be matched
-	against the entire message.</para>
+	If neither 'h', 'H', or 'b' is specified, 'h' is the default,
+	matching the pattern in the message's header, and all attachments'
+	headers. Specifying the 'b' option causes the pattern to be matched
+	against the message body.
+	Specifying 'b' and 'h' causes the pattern to be matched
+	against the entire message.
+      </para>
 
       <para>
 	Normally, each line in the message gets matched against the pattern

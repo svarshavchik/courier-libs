@@ -32,18 +32,22 @@ void Search::cleanup()
 
 int	Search::init(const char *expr, const char *opts)
 {
-	match_header=0;
+	match_top_header=0;
+	match_other_headers=0;
 	match_body=0;
 	weight1=1;
 	weight2=1;
 	scoring_match=0;
 	score=0;
 
-	if (strchr(opts, 'h'))	match_header=1;
+	if (strchr(opts, 'h'))	match_top_header=match_other_headers=1;
+	if (strchr(opts, 'H'))	match_top_header=1;
+
 	if (strchr(opts, 'b'))	match_body=1;
-	if (!match_header && !match_body)
+	if (!match_top_header && !match_other_headers && !match_body)
 	{
-		match_header=1;
+		match_top_header=1;
+		match_other_headers=1;
 		if (strchr(opts, 'w'))	match_body=1;
 	}
 
@@ -203,8 +207,10 @@ int Search::findinline(Message &msg, const char *expr, Buffer *foreachp)
 
 	memset(&decode_cb, 0, sizeof(decode_cb));
 
-	if (!match_header)
+	if (!match_top_header && !match_other_headers)
 		decode_cb.flags |= RFC2045_DECODEMSG_NOHEADERS;
+	else if (match_top_header && !match_other_headers)
+		decode_cb.flags |= RFC2045_DECODEMSG_NOATTACHHEADERS;
 
 	if (!match_body)
 		decode_cb.flags |= RFC2045_DECODEMSG_NOBODY;

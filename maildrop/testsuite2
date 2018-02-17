@@ -261,4 +261,64 @@ then
     exit 1
 fi
 
+cat >testsuite.msg <<EOF
+Subject: mainpart
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="zz"
+
+--zzz
+Subject: attachmentpart
+
+body
+
+--zzz--
+EOF
+
+cat >testsuite1.filter <<EOF
+if (/body/)
+{
+     echo "Should not have found the body"
+     EXITCODE=1
+}
+
+if (!/body/:b)
+{
+     echo "Should have found the body"
+     EXITCODE=1
+}
+
+if (!(/^Subject: mainpart/ && /^Subject: mainpart/))
+{
+     echo "all header search 1 failed"
+     EXITCODE=1
+}
+
+if (!(/^Subject: mainpart/:h && /^Subject: mainpart/:h))
+{
+     echo "all header search 2 failed"
+     EXITCODE=1
+}
+
+if (!/^Subject: mainpart/:H)
+{
+     echo "mainpart search failed"
+     EXITCODE=1
+}
+
+if (/^Subject: attachmentpart/:H)
+{
+     echo "attachment search should have failed"
+     EXITCODE=1
+}
+exit
+EOF
+
+if ./maildrop ./testsuite1.filter <testsuite.msg
+then
+	:
+else
+	echo "header/body test failed"
+	exit 1
+fi
+
 rm -f testsuite?.filter testsuite.msg

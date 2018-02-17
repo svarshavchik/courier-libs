@@ -559,6 +559,13 @@ struct rfc2045_decodemsgtoutf8_cb {
 ** Do not prepend name: to converted header content.
 */
 
+
+#define RFC2045_DECODEMSG_NOATTACHHEADERS 0x08
+/*
+** Do not decode MIME headers of attachments. Decode only the message's
+** main headers.
+*/
+
 /*
 ** Convert a message into a utf8 bytestream. The output produced by this
 ** function is a catentation of decoded header and text content data, converted

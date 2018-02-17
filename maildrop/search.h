@@ -50,7 +50,7 @@ class Search {
 	Buffer	current_line;
 	Buffer	next_line;
 
-	int	match_header, match_body;
+	int	match_top_header, match_other_headers, match_body;
 	double	weight1, weight2;
 	int	scoring_match;
 
