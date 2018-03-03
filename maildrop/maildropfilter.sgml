@@ -209,10 +209,6 @@ DEFAULT=$SAVEDEFAULT
 	<informalexample>
 	  <programlisting>
 FOOBAR="Foo"'bar'
-SAVEDEFAULT=$DEFAULT
-import DEFAULT
-LOCALDEFAULT=$DEFAULT
-DEFAULT=$SAVEDEFAULT
 	  </programlisting>
 	</informalexample>
       </blockquote>
