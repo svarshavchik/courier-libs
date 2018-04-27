@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode], [2.0], [courier-users@lists.sourceforge.net])
+AC_INIT([courier-unicode], [2.0.20180427], [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 

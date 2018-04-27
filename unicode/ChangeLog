@@ -1,3 +1,7 @@
+2018-04-27  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* gcc 8 update, fix assertions. libtool and toolchain updates.
+
 2.0
 
 2017-03-06  Sam Varshavchik  <mrsam@courier-mta.com>
