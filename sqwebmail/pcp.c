@@ -1192,7 +1192,7 @@ void sqpcp_summary()
 		char date[256];
 		char date2[256];
 		struct tm *tm;
-		char yyyymmdd[9];
+		char yyyymmdd[100];
 
 		char time1[128];
 		char time2[128];

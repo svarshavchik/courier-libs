@@ -11,7 +11,7 @@
 **  - s_connect() function
 **  - opensock() function with modification to accept socket address
 **  - writeauth() function
-**  - readline() function with related support functions (with modification 
+**  - readline() function with related support functions (with modification
 **    to time-out after TIMEOUT_READ seconds)
 */
 
@@ -29,11 +29,9 @@
 #include	<sys/un.h>
 #include	<sys/select.h>
 
-static const char rcsid[]="$Id$";
-
 static int TIMEOUT_SOCK=10,
 	TIMEOUT_WRITE=10,
-	TIMEOUT_READ=30; 
+	TIMEOUT_READ=30;
 
 static int s_connect(int sockfd,
 		     const struct sockaddr *addr,
@@ -122,8 +120,9 @@ static int opensock(const char *addr)
 	int	s=socket(PF_UNIX, SOCK_STREAM, 0);
 	struct  sockaddr_un skun;
 
+	memset(&skun, 0, sizeof(skun));
 	skun.sun_family=AF_UNIX;
-	strncpy(skun.sun_path, addr, sizeof(skun.sun_path));
+	strncpy(skun.sun_path, addr, sizeof(skun.sun_path)-1);
 
 	if (s < 0)
 	{
@@ -402,10 +401,10 @@ int _dovecotauth_getuserinfo(int wrfd, int rdfd, const char *user,
 
 	/*
 	** Try to be helpful in case that user tries to connect to the wrong auth socket.
-	** There's a slight chance that this won't execute in case that the previously 
+	** There's a slight chance that this won't execute in case that the previously
 	** returned line ends exactly at the buffer end, but we won't handle that case,
 	** since this is just a hint to the user, and not really neccessary.
-	** Normally, if user tries to communicate with wrong auth socket, 
+	** Normally, if user tries to communicate with wrong auth socket,
 	** we would simply time-out, while waiting for information.
 	*/
 	if (eg.buf_left > 0 && readline(rdfd, &eg, linebuf, DOVECOTAUTH_LINEBUFSIZE) == 0)

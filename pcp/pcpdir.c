@@ -231,6 +231,7 @@ static void pcp_close_dir(struct PCPdir *pd)
 static void mkunique(struct PCPdir *pd)
 {
 	struct timeval tv;
+	char b[sizeof(pd->hostname_buf)];
 
 	gettimeofday(&tv, NULL);
 
@@ -240,7 +241,9 @@ static void mkunique(struct PCPdir *pd)
 		(unsigned long)getpid(),
 		++pd->uniq_cnt);
 
-	strncat(pd->unique_filename_buf, pd->hostname_buf,
+	strcpy(b, pd->hostname_buf);
+
+	strncat(pd->unique_filename_buf, b,
 		sizeof(pd->unique_filename_buf)-1
 		-strlen(pd->unique_filename_buf));
 }
@@ -779,7 +782,7 @@ static void destroyeventid(struct PCPdir *pd, struct PCPdir_new_eventid *p)
 
 	free(p->eventid.eventid);
 	free(p);
-}		
+}
 
 static int saveevent(struct PCPdir *pd, struct PCPdir_new_eventid *ne,
 		     struct PCP_save_event *si)
@@ -1448,7 +1451,7 @@ static int docommitevent(struct PCPdir *pd, struct PCPdir_new_eventid *ae,
 					/* Booked event disappeared */
 				}
 
-				if (rc == 0 && 
+				if (rc == 0 &&
 				    (fflush(nfp) < 0 || ferror(nfp)))
 					rc= -1;
 

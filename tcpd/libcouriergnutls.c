@@ -1756,8 +1756,6 @@ static void dump_cipher_name(gnutls_session_t session,
 		(*dump_func)(cipher_name, -1, dump_arg);
 	else
 	{
-		gnutls_compression_method_t comp;
-
 		(*dump_func)(gnutls_kx_get_name(kx_algo), -1, dump_arg);
 
 		(*dump_func)("-", 1, dump_arg);
@@ -1767,14 +1765,6 @@ static void dump_cipher_name(gnutls_session_t session,
 		(*dump_func)("-", 1, dump_arg);
 		(*dump_func)(gnutls_cipher_get_name(cipher_algo), -1,
 			     dump_arg);
-
-		if ((comp=gnutls_compression_get(session))
-		    != GNUTLS_COMP_NULL)
-		{
-			(*dump_func)("/", 1, dump_arg);
-			(*dump_func)(gnutls_compression_get_name(comp),
-				     -1, dump_arg);
-		}
 
 		(*dump_func)("-", 1, dump_arg);
 		(*dump_func)(gnutls_mac_get_name(gnutls_mac_get(session)),
