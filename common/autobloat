@@ -34,7 +34,7 @@ echo `pwd`:
 	    fi
 	fi
 	aclocal || exit 1
-	if grep -q AM_CONFIG_HEADER configure.ac
+	if grep -q [AM\|AC]_CONFIG_HEADER configure.ac
 	then
 		autoheader || exit 1
 	fi
@@ -42,6 +42,11 @@ echo `pwd`:
 	then
 		sysconftoolize || exit 1
 	fi
+	for gitfile in $(find . -maxdepth 1 -name "*.in.git" -type f)
+	do
+		gitfile_dist=$(basename $gitfile ".git")
+		cp $gitfile $gitfile_dist
+	done
 	if test -f AUTHORS -a -f NEWS -a -f README
 	then
 		automake --add-missing || exit 1
