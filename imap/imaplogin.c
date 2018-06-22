@@ -96,6 +96,7 @@ static int	starttls(const char *tag)
 
 	cmdsuccess(tag, "Begin SSL/TLS negotiation now.\r\n");
 	writeflush();
+	cinfo.username=MAILUSER;
 
 	if (couriertls_start(argvec, &cinfo))
 	{

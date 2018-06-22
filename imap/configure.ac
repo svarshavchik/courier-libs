@@ -99,6 +99,7 @@ AC_SUBST(RANDOMV)
 AC_ARG_WITH(mailuser, [], mailuser="$withval",
         AC_MSG_ERROR(--with-mailuser missing))
 AC_SUBST(mailuser)
+AC_DEFINE_UNQUOTED(MAILUSER, ["$mailuser"], [ Mail system user ])
 
 dnl Checks for libraries.
 
