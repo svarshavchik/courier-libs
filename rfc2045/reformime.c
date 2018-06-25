@@ -1179,11 +1179,12 @@ int rc=0;
 		dsn(p, dodsn == 2);
 	else if (do_extract)
 	{
-		mimesection = strtok(section,",");
+		mimesection = section ? strtok(section, ","):NULL;
 		do {
 			extract_section(p, mimesection, extract_filename,
 					argc-argn, argv+argn, do_extract);
-			mimesection = strtok(NULL,",");
+			if (mimesection)
+				mimesection = strtok(NULL,",");
 		} while (mimesection != NULL);
 	}
 	else if (dovalidate)
