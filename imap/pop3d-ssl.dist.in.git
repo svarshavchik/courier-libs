@@ -225,7 +225,7 @@ TLS_CERTFILE=@certsdir@/pop3d.pem
 
 ##NAME: TLS_PRIVATE_KEYFILE:0
 #
-# TLS_PRIVATE_KEYFILE - SSL/TLS private key for decrypting client data.
+# TLS_PRIVATE_KEYFILE - SSL/TLS private key for decrypting peer data.
 # This file must be owned by the "@mailuser@" user, and must not be world
 # readable.
 #

@@ -236,6 +236,16 @@ for SSL/TLS clients.
       </varlistentry>
 
       <varlistentry>
+	<term>TLS_PRIVATE_KEYFILE=<replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>
+SSL/TLS private key for decrypting client data.
+<envar>TLS_PRIVATE_KEY</envar> is optional because <term>TLS_CERTFILE</term> is generated including cert and private key both.
+<replaceable>filename</replaceable> must not be world-readable.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
 	<term>TLS_TRUSTCERTS=<replaceable>pathname</replaceable></term>
 	<listitem>
 	  <para>
