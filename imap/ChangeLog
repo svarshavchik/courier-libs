@@ -1,3 +1,8 @@
+2018-06-28  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* libs/tcpd/starttls.c (main): Add -user option. Additional fixes
+	to startup script to have couriertls drop root privileges.
+
 2018-06-21  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* libs/tcpd/tlsclient.h: add username option, used in couriertls_start
