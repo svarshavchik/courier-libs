@@ -1,3 +1,7 @@
+2018-07-08  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* waitlib/configure.ac: Fix typo.
+
 2018-06-28  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* libs/tcpd/starttls.c (main): Add -user option. Additional fixes

@@ -61,7 +61,7 @@ wait3)
 	then
 		has_xsig=yes
 	fi
-	if test "$has_sighold" = "yes"
+	if test "$ac_cv_func_sighold" = "yes"
 	then
 		has_xsig=yes
 	fi
