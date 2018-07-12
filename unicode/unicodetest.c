@@ -134,6 +134,12 @@ int main(int argc, char **argv)
 		++argn;
 	}
 
+	if (argn < argc && strcmp(argv[argn], "--smaputf8") == 0)
+	{
+		chset=unicode_x_smap_modutf8;
+		++argn;
+	}
+
 	if (argn < argc && strcmp(argv[argn], "--totitle") == 0)
 	{
 		++argn;
