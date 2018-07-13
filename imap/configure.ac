@@ -341,7 +341,8 @@ courier)
 	;;
 esac
 
-date=`date`
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-`date +%s`}"
+date=`date -u -d "@$SOURCE_DATE_EPOCH" "+%F %T" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+%F %T" 2>/dev/null || date -u "+%F %T"`
 AC_DEFINE_UNQUOTED(PROGRAMVERSION, "$package/${target_cpu}-${target_vendor}-${target_os}/$date",
 		       [ Source code version ])
 
