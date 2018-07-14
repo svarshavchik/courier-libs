@@ -459,8 +459,13 @@ then
 	CRYPTLIBS="$CRYPTLIBS -lgcrypt"
 ], [
 AC_MSG_RESULT(no)
+have_gcrypt="no"
 ])
 
+	if test "$have_gcrypt" = "no"
+	then
+		AC_MSG_ERROR(gcrypt header file is required for GNUTLS)
+	fi
 	AC_MSG_CHECKING([for libgpg-error])
 	LIBS="$LIBS -lgpg-error"
 	AC_TRY_LINK( [
