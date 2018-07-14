@@ -309,8 +309,8 @@ unicode_convert_init(const char *src_chset,
 
 	memset(toutf7, 0, sizeof(*toutf7));
 
-	h=init_nottoimaputf7(src_chset, unicode_u_ucs2_native,
-			     do_convert_toutf7, toutf7);
+	h=unicode_convert_init(src_chset, unicode_u_ucs2_native,
+			       do_convert_toutf7, toutf7);
 	if (!h)
 	{
 		free(toutf7);
@@ -482,9 +482,9 @@ init_nottoimaputf7(const char *src_chset,
 
 	memset(toutf8, 0, sizeof(*toutf8));
 
-	h=init_nottosmaputf8(src_chset, "utf-8",
-			     do_convert_tosmaputf8,
-			     toutf8);
+	h=unicode_convert_init(src_chset, "utf-8",
+			       do_convert_tosmaputf8,
+			       toutf8);
 	if (!h)
 	{
 		free(toutf8);
@@ -511,6 +511,9 @@ static int deinit_tosmaputf8(void *ptr, int *errptr)
 	/* Flush out the downstream stack */
 	rc=(*toutf8->hdr.next->deinit_handler)(toutf8->hdr.next->ptr, errptr);
 
+	if (toutf8->errflag && rc == 0)
+		rc=toutf8->errflag;
+
 	free(toutf8);
 	return rc;
 }
@@ -529,7 +532,8 @@ static int do_convert_tosmaputf8(const char *text, size_t cnt, void *arg)
 			return toutf8->errflag;
 
 		for (i=0; i<cnt; ++i)
-			if (strchr(" ./~:\\", text[i]))
+			if ((unsigned char)text[i] < ' ' ||
+			    strchr("./~:\\", text[i]))
 				break;
 		if (i)
 		{
@@ -669,7 +673,7 @@ init_nottosmaputf8(const char *src_chset,
 
 	/* Create a stack for converting UCS-2 to the dest charset */
 
-	h=init_notfromimaputf7(unicode_u_ucs2_native, dst_chset,
+	h=unicode_convert_init(unicode_u_ucs2_native, dst_chset,
 			       output_func, convert_arg);
 
 	if (!h)
@@ -863,7 +867,7 @@ init_notfromimaputf7(const char *src_chset,
 
 	/* Create a stack for converting UTF-8 to the dest charset */
 
-	h=init_notfromimaputf7("utf-8", dst_chset,
+	h=unicode_convert_init("utf-8", dst_chset,
 			       output_func, convert_arg);
 
 	if (!h)

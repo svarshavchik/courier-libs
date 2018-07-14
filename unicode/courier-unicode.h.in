@@ -993,7 +993,7 @@ extern const char unicode_u_ucs2_native[];
 ** However, to support SMAP we will still need to encode/decode some
 ** special characters.
 **
-** The characters U+0000-U+0020 (including space), and ./~:\
+** The characters U+0000-U+001F, and ./~:\
 **
 ** They are encoded as a backslash followed by three octal digits.
 */

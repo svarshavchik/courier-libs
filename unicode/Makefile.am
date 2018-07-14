@@ -167,7 +167,7 @@ check-am: unicodetest
 	test "`./unicodetest 'foobааааааr'`" = "foob&BDAEMAQwBDAEMAQw-r"
 	test "`./unicodetest 'foobаaаr'`" = "foob&BDA-a&BDA-r"
 	test "`./unicodetest 'foobааaааr'`" = "foob&BDAEMA-a&BDAEMA-r"
-	test "`./unicodetest --smaputf8 'hello world'`" = 'hello\040world'
+	test "`./unicodetest --smaputf8 'hello world'`" = 'hello world'
 	test "`./unicodetest --smaputf8 'hello\\\\world'`" = 'hello\134\134world'
 	test "`./unicodetest --smaputf8 ':hello:world:'`" = '\072hello\072world\072'
 	n="aaaaaaaa"; n="$$n$$n$$n$$n"; n="$$n$$n$$n$$n"; n="$$n$$n$$n$$n"; n="$$n$$n"; n="`echo $$n | cut -c1-1023`"; test "`./unicodetest $$n`" = "$$n"
