@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.
+** Copyright 1998 - 2018 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -139,6 +139,8 @@ char *current_mailbox_acl;
 
 dev_t homedir_dev;
 ino_t homedir_ino;
+
+int enabled_utf8=0;
 
 void rfc2045_error(const char *p)
 {
@@ -4405,6 +4407,34 @@ int	uid=0;
 		writes(tag);
 		writes(" NO SETQUOTA No permission.\r\n");
 		return(0);
+	}
+
+	if (strcmp(curtoken->tokenbuf, "ENABLE") == 0)
+	{
+		while (nexttoken()->tokentype != IT_EOL)
+		{
+			switch (curtoken->tokentype) {
+			case IT_NUMBER:
+			case IT_ATOM:
+			case IT_QUOTED_STRING:
+				if (strcmp(curtoken->tokenbuf, "UTF8=ACCEPT")
+				    == 0)
+				{
+					enabled_utf8=1;
+				}
+				continue;
+			default:
+				return -1;
+			}
+		}
+
+		writes("* ENABLED");
+		if (enabled_utf8)
+			writes(" UTF8=ACCEPT");
+		writes("\r\n");
+		writes(tag);
+		writes(" OK Options enabled\r\n");
+		return (0);
 	}
 
 	if (strcmp(curtoken->tokenbuf, "GETQUOTA") == 0)
