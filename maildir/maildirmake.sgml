@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry>
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -28,7 +28,7 @@
 
     <para>
 The <command>maildirmake</command> command creates maildirs, and
-maildir folders.
+maildir folders and performs some routine maintenance on them.
 This documentation
 describes the <command>maildirmake</command> command from the
 <application>Courier</application> mail server,
@@ -46,9 +46,7 @@ slightly different permissions which allows creation of publicly-shared
 folders.</simpara>
 	</listitem>
       </varlistentry>
-    </variablelist>
 
-    <variablelist>
       <varlistentry><term><literal>-q</literal> <replaceable>quota</replaceable></term>
         <listitem><simpara>install a quota on the maildir.
 	    See
@@ -59,17 +57,13 @@ folders.</simpara>
 	  </simpara>
 	</listitem>
       </varlistentry>
-    </variablelist>
 
-    <variablelist>
       <varlistentry><term><literal>-f</literal> <replaceable>folder</replaceable></term>
         <listitem><simpara>do not create a maildir, but create a folder in an
 existing maildir.</simpara>
 	</listitem>
       </varlistentry>
-    </variablelist>
 
-    <variablelist>
       <varlistentry><term><literal>-F</literal> <replaceable>folder</replaceable></term>
         <listitem><simpara>Like the <literal>-f</literal> option, except
 	    that the folder's name is given using the system locale's
@@ -80,9 +74,7 @@ existing maildir.</simpara>
 	    set..</simpara>
 	</listitem>
       </varlistentry>
-    </variablelist>
 
-    <variablelist>
       <varlistentry><term><literal>-s</literal> <replaceable>mode</replaceable></term>
         <listitem><simpara>create a publicly accessible folder in an
 existing sharable maildir.  First, use the <option>-S</option> option to
@@ -100,14 +92,35 @@ your own system group to access messages in this folder (instead of
 everyone).</simpara>
 	</listitem>
       </varlistentry>
-    </variablelist>
 
-    <variablelist>
       <varlistentry><term><literal>--add</literal> <replaceable>name</replaceable>=<replaceable>pathname</replaceable>,
 <literal>--del</literal> <replaceable>name</replaceable></term>
         <listitem><simpara>
 create or delete the directories and links needed to
 access shared folders.  See below for more information.</simpara>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal>--checkutf8</literal> <replaceable>maildir</replaceable> <replaceable>maildirfilter</replaceable></term>
+	<listitem>
+	  <simpara>
+	    Perform a sanity check to verify that a pre-unicode format
+	    maildir can be converted to a unicode-format maildir.
+	    See <quote>Converting pre-unicode format maildirs</quote>, below,
+	    for more information.
+	  </simpara>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><literal>--convutf8</literal> <replaceable>maildir</replaceable> <replaceable>maildirfilter</replaceable></term>
+	<listitem>
+	  <simpara>
+	    Convert a pre-unicode format
+	    maildir can be converted to a unicode-format maildir.
+	    See <quote>Converting pre-unicode format maildirs</quote>, below,
+	    for more information.
+	  </simpara>
 	</listitem>
       </varlistentry>
     </variablelist>
@@ -269,6 +282,288 @@ is actually created by you, can can delete any message, not just your
 own.</para>
     </refsect2>
 
+  </refsect1>
+
+  <refsect1>
+    <title>Converting pre-unicode format maildirs</title>
+
+    <para>
+      This section is relevant to:
+
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  Updating <application>Courier-IMAP</application> to version 5.0, and
+	  later, from prior versions of <application>Courier-IMAP</application>, or:
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Updating <application>SqWebmail</application> to version 6.0, and
+	  later, from prior versions of <application>SqWebmail</application>, or:
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Updating Courier to version 1.0, and
+	  later, from prior versions of Courier.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      These versions have been updated to implement native Unicode
+      support in several E-mail-related protocols. It is already expected
+      that updating Internet standards to use native Unicode-formatted
+      E-mail messages will not be 100% backwards-compatible, in terms of
+      E-mail client support.
+      Given that, this major update to Unicode will also introduce some
+      backwards-incompatible changes to the internal structure of maildirs,
+      as a long term major to simplify Unicode support going forward.
+      Might as well go through the pain of a major upgrade once.
+    </para>
+
+    <para>
+      <command>maildirmake</command>'s <option>--checkutf8</option> and
+      <option>--convutf8</option> options are tools to aid in conversion of
+      existing mailbox to the new Unicode-based naming standard.
+    </para>
+
+    <refsect2>
+      <title>Background</title>
+
+      <para>
+	Mail folders in a maildir are hidden subdirectories. For example:
+	a folder name <quote>Mailing list</quote> is a maildir subdirectory
+	named <filename>$HOME/Maildir/.Mailing list</filename> (with
+	<filename>$HOME/Maildir</filename> being the main mailbox).
+      </para>
+
+      <para>
+	Prior to the unicode update, non-English characters in folder names
+	were implemented using a convention that was derived from the
+	non-standard <quote>modified-UTF7</quote> encoding used by IMAP.
+	A folder named <quote>Résumé</quote> was in a maildir subdirectory
+	named <filename>$HOME/Maildir/.R&amp;AOk-sum&amp;AOk-</filename>.
+	The current versions of Courier, <application>Courier-IMAP</application>, and SqWebmail,
+	will simply create <filename>$HOME/Maildir/.Résumé</filename>
+	using the <acronym>UTF8</acronym> encoding, which will appear simply
+	as a <quote>.Résumé</quote> (hidden) subdirectory on modern
+	UTF8-based systems.
+      </para>
+
+      <para>
+	Consequently, any existing maildirs that have non-English folders
+	must be converted as part of updating to the current version of
+	Courier, <application>Courier-IMAP</application>, and SqWebmail from pre-unicode versions.
+	At this time
+	this does not occur as part of automatically updating to the current
+	version, and must be done manually given the wide variety of individual
+	mail server configurations that are possible.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>Unicode conversion overview</title>
+
+      <para>
+	Updating from pre-unicode versions involves:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    Renaming the actual maildir folders,
+	    <filename>$HOME/Maildir/.<replaceable>names</replaceable></filename>
+	    into unicode names (using <acronym>UTF8</acronym>).
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Updating the
+	    <filename>$HOME/Maildir/courierimapsubscribed</filename>,
+	    which is a list of subscribed IMAP folders, if it exists.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Updating any
+	    <application>maildrop</application>
+	    mail filtering recipe,
+	    <filename>$HOME/.mailfilter</filename>, if it exists, to reference
+	    the unicode maildir folders; or updating any custom site mail
+	    filtering engine that delivers to maildir folders, to reference
+	    the correct subdirectory names.
+	  </para>
+	</listitem>
+      </itemizedlist>
+    </refsect2>
+    <refsect2>
+      <title>Unicode conversion steps</title>
+
+      <para>
+	The <option>--checkutf8</option> and
+	<option>--convutf8</option> options to
+	<command>maildirmake</command> convert a single maildir to the new
+	unicode format:
+      </para>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting>
+$ ./maildirmake --checkutf8 ~/Maildir ~/.mailfilter
+Checking /home/mrsam/Maildir:
+Mail filter to INBOX.R&amp;AOk-sum&amp;AOk- updated to INBOX.Résumé
+Subscription to INBOX.R&amp;AOk-sum&amp;AOk- changed to INBOX.Résumé
+Rename INBOX.R&amp;AOk-sum&amp;AOk- to INBOX.Résumé
+Verified /home/mrsam/Maildir/courierimapsubscribed
+Verified /home/mrsam/.mailfilter
+$ ./maildirmake --convutf8 ~/Maildir ~/.mailfilter
+Checking /home/mrsam/Maildir:
+Mail filter to INBOX.R&amp;AOk-sum&amp;AOk- updated to INBOX.Résumé
+Subscription to INBOX.R&amp;AOk-sum&amp;AOk- changed to INBOX.Résumé
+Rename INBOX.R&amp;AOk-sum&amp;AOk- to INBOX.Résumé
+Updating /home/mrsam/Maildir/courierimapsubscribed
+Updating /home/mrsam/.mailfilter</programlisting>
+	  </informalexample>
+      </blockquote>
+
+      <para>
+	<option>--checkutf8</option> goes through the motions of converting
+	a single maildir to Unicode, but without making any actual changes.
+	<option>--convutf8</option> does the conversion for real.
+	The first required parameter is the maildir to convert. The
+	second parameter is optional, and specifies the corresponding
+	<command>maildrop</command> filtering recipe,
+	<emphasis>but only if <application>SqWebMail</application></emphasis>
+	generates the mail filtering recipes.
+	<application>SqWebMail</application>'s mail filtering recipes are
+	parsable, and can be automatically-converted.
+	Non-<application>SqWebMail</application>-generated
+	<filename>.mailfilter</filename>s cannot be converted automatically.
+	The second parameter must be omitted, and the mail filtering recipe
+	must be converted by hand.
+      </para>
+
+      <note>
+	<para>
+	  Any manual work is only needed if maildirs have folders with
+	  non-English names. Ignore everything you've just read if all
+	  folder names are English-only.
+	  <option>--checkutf8</option> and
+	  <option>--convutf8</option> will not do anything, and nothing
+	  needs to be done.
+	</para>
+      </note>
+
+      <para>
+	To convert all mailboxes to Unicode all at once:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    Write a shell script to run <option>--checkutf8</option> on
+	    all your mailboxes. It's ok to explicitly specify each mailbox's
+	    <filename>.mailfilter</filename>, when using
+	    <application>SqWebMail</application> even if a particular
+	    mailbox does not use it. It will be ignored.
+	  </para>
+
+	  <para>
+	    It is safe to run <option>--checkutf8</option> without shutting
+	    down your mail server. A non-zero exit from
+	    <option>--checkutf8</option> indicates a problem (see below)
+	    for a particular maildir.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Once <option>--checkutf8</option> does not find any problems
+	    with any mailbox, shut down the mail server, run
+	    <option>--checkutf8</option> one more time for all mailboxes,
+	    then if everything goes well, upgrade
+	    <application>Courier</application>,
+	    <application>Courier-IMAP</application>, or
+	    <application>SqWebMail</application> and
+	    run
+	    <option>--convutf8</option> on every mailbox before restarting
+	    the server.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <note>
+	<para>
+	  <option>--convutf8</option> is a one-shot deal. Do not run
+	  <option>--convutf8</option> a second time after it successfully
+	  converted a maildir. In nearly all cases nothing will happen,
+	  but there are rare edge cases where some folder names may
+	  get garbled, or it fails completely.
+	</para>
+      </note>
+    </refsect2>
+
+    <refsect2>
+      <title>Resolving unicode conversion problems</title>
+
+      <para>
+	The only likely problems that might be encountered is the fall-out
+	from buggy IMAP clients that did not follow the pre-Unicode naming
+	convention for non-Latin folder names. The customized IMAP
+	<quote>modified-UTF7</quote> encoding convention for non-Latin
+	folder names is mostly an IMAP client convention, and the
+	pre-Unicode version of <application>Courier-IMAP</application> did
+	not enforce it. The server just uses the name from the IMAP client,
+	as is.
+      </para>
+
+      <para>
+	Unicode conversion (<option>--checkutf8</option> or
+	<option>--convutf8</option>) fails if it finds a folder name that
+	does not correctly use IMAP's
+	<quote>modified-UTF7</quote> encoding. This can only be resolved
+	manually, by renaming the folder. This may also involve manually
+	editing <filename>courierimapsubscribed</filename> and
+	<filename>.mailfilter</filename> if they exist. The bad folder name
+	should be removed from
+	<filename>courierimapsubscribed</filename>. For
+	<filename>.mailfilter</filename> it is sufficient to remove only
+	the comments that precede the actual <command>maildrop</command> rule,
+	and <option>--convutf8</option> will remove the entire rule, by itself.
+	<option>--convutf8</option> actually reads only the machine-parsable
+	comments in <command>SqWebMail</command>-generated
+	<filename>.mailfilter</filename> (plus a few other things in the
+	file), and replaces the
+	<filename>.mailfilter</filename> with the Unicode version based
+	solely on the parsed data.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>After the Unicode conversion</title>
+
+      <para>
+	The current, Unicode version of <application>Courier-IMAP</application>
+	supports both Unicode and non-Unicode
+	IMAP clients; however unlike the pre-Unicode version,
+	<application>Courier-IMAP</application> rejects requests from
+	non-Unicode IMAP clients to use or create folders that are not
+	properly encoded.
+      </para>
+
+      <para>
+	Encountering a bad folder during conversion strongly suggests the
+	usage of an IMAP client that does not correctly encode non-English
+	folder names. Such an IMAP client will likely have problems after
+	the conversion.
+      </para>
+    </refsect2>
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
