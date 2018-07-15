@@ -85,6 +85,7 @@
 #include	"maildir/maildirinfo.h"
 #include	"maildir/loginexec.h"
 #include	"rfc822/rfc822.h"
+#include	"rfc2045/rfc2045.h"
 
 #include	<courier-unicode.h>
 #include	"maildir/maildirkeywords.h"
@@ -711,19 +712,23 @@ static int store_mailbox(const char *tag, const char *mailbox,
 			 struct	imapflags *flags,
 			 struct libmail_kwMessage *keywords,
 			 time_t	timestamp,
-			 unsigned long nbytes,
+			 struct imaptoken *curtoken,
 			 unsigned long *new_uidv,
 			 unsigned long *new_uid)
 {
-char	*tmpname;
-char	*newname;
-char	*p;
-char    *e;
-FILE	*fp;
-unsigned long n;
-static const char nowrite[]=" NO [ALERT] Cannot create message - no write permission or out of disk space.\r\n";
-int	lastnl;
-int     rb;
+	unsigned long nbytes=curtoken->tokennum;
+	char	*tmpname;
+	char	*newname;
+	char	*p;
+	char    *e;
+	FILE	*fp;
+	unsigned long n;
+	static const char nowrite[]=" NO [ALERT] Cannot create message - no write permission or out of disk space.\r\n";
+	int	lastnl;
+	int     rb;
+	int	errflag;
+	struct rfc2045 *rfc2045_parser;
+	const char *errmsg=nowrite;
 
 	fp=maildir_mkfilename(mailbox, flags, 0, &tmpname, &newname);
 
@@ -741,6 +746,8 @@ int     rb;
 	current_temp_fd=fileno(fp);
 	current_temp_fn=tmpname;
 
+	rfc2045_parser=rfc2045_alloc();
+
 	while (nbytes)
 	{
 		read_string(&p, &n, nbytes);
@@ -757,31 +764,53 @@ int     rb;
 			}
 			else if (e)
 			{
+				rfc2045_parse(rfc2045_parser, p, e-p);
 				rb = fwrite(p, 1, e-p, fp);
 			}
 			else
 			{
+				rfc2045_parse(rfc2045_parser, p, n);
 				rb = fwrite(p, 1, n, fp);
 			}
 			n -= rb;
 			p += rb;
 		}
 	}
-	if (!lastnl) putc('\n', fp);
+	if (!lastnl)
+	{
+		putc('\n', fp);
+		rfc2045_parse(rfc2045_parser, "\n", 1);
+	}
 
 	current_temp_fd=-1;
 	current_temp_fn=NULL;
+	errflag=0;
 
 	if (fflush(fp) || ferror(fp))
 	{
 		fprintf(stderr,
                         "ERR: error storing a message, user=%s, errno=%d\n",
                                 getenv("AUTHENTICATED"), errno);
+		errflag=1;
+	}
 
+	if ((rfc2045_parser->rfcviolation & RFC2045_ERR8BITHEADER) &&
+	    curtoken->tokentype != IT_LITERAL8_STRING_START)
+	{
+		errmsg=" NO [ALERT] Your IMAP client does not appear to "
+			"correctly implement Unicode messages, "
+			"see https://tools.ietf.org/html/rfc6855.html\r\n";
+		errflag=1;
+	}
+
+	rfc2045_free(rfc2045_parser);
+
+	if (errflag)
+	{
 		fclose(fp);
 		unlink(tmpname);
 		writes(tag);
-		writes(nowrite);
+		writes(errmsg);
 		free(tmpname);
 		free(newname);
 		return (-1);
@@ -3881,6 +3910,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	unsigned long new_uidv, new_uid;
 	char access_rights[8];
 	struct imaptoken *curtoken;
+	int need_rparen;
 
 	if (access(path, 0))
 	{
@@ -3960,9 +3990,35 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	else if (curtoken->tokentype == IT_NIL)
 		curtoken=nexttoken_noparseliteral();
 
-	if (curtoken->tokentype != IT_LITERAL_STRING_START)
+	need_rparen=0;
+
+	if (enabled_utf8 && curtoken->tokentype == IT_ATOM &&
+	    strcmp(curtoken->tokenbuf, "UTF8") == 0)
+	{
+		curtoken=nexttoken();
+		if (curtoken->tokentype != IT_LPAREN)
+		{
+			libmail_kwmDestroy(keywords);
+			return (-1);
+		}
+
+		curtoken=nexttoken_noparseliteral();
+		if (curtoken->tokentype != IT_LITERAL8_STRING_START)
+		{
+			libmail_kwmDestroy(keywords);
+
+			/* Don't break the protocol level */
+			convert_literal_tokens(curtoken);
+			return (-1);
+		}
+		need_rparen=1;
+	}
+	else if (curtoken->tokentype != IT_LITERAL_STRING_START)
 	{
 		libmail_kwmDestroy(keywords);
+
+		/* Don't break the protocol level */
+		convert_literal_tokens(curtoken);
 		return (-1);
 	}
 
@@ -3972,13 +4028,21 @@ static int append(const char *tag, const char *mailbox, const char *path)
 			  acl_flags_adjust(access_rights, &flags)
 			  ? NULL:keywords,
 			  timestamp,
-			  curtoken->tokennum, &new_uidv, &new_uid))
+			  curtoken, &new_uidv, &new_uid))
 	{
 		libmail_kwmDestroy(keywords);
 		unread('\n');
 		return (0);
 	}
 	libmail_kwmDestroy(keywords);
+
+	if (need_rparen)
+	{
+		if (nexttoken()->tokentype != IT_RPAREN)
+		{
+			return (-1);
+		}
+	}
 
 	if (nexttoken()->tokentype != IT_EOL)
 	{
@@ -4184,6 +4248,13 @@ static int validate_charset(const char *tag, char **charset)
 
 	if (*charset == NULL)
 		*charset=my_strdup("UTF-8");
+
+	if (enabled_utf8 && strcmp(*charset, "UTF-8"))
+	{
+		writes(tag);
+		writes(" BAD [BADCHARSET] Only UTF-8 charset is valid after enabling RFC 6855 support\r\n");
+		return (-1);
+	}
 
 	conv=unicode_convert_tou_init(*charset, &ucptr, &ucsize, 1);
 

@@ -229,7 +229,53 @@ static int ignore_output_func(const char *ptr, size_t cnt, void *ignore)
 	return 0;
 }
 
+static struct imaptoken *do_readtoken_nolog(int touc);
+
 static struct imaptoken *do_readtoken(int touc)
+{
+	struct imaptoken *tok=do_readtoken_nolog(touc);
+
+	if (debugfile)
+	{
+		char	*p=0;
+
+		fprintf(debugfile, "READ: ");
+		switch (tok->tokentype) {
+		case IT_ATOM:
+			p=curtoken.tokenbuf; fprintf(debugfile, "ATOM"); break;
+		case IT_NUMBER:
+			p=curtoken.tokenbuf; fprintf(debugfile, "NUMBER"); break;
+		case IT_QUOTED_STRING:
+			p=curtoken.tokenbuf; fprintf(debugfile, "QUOTED_STRING"); break;
+		case IT_LPAREN:
+			fprintf(debugfile, "LPAREN"); break;
+		case IT_RPAREN:
+			fprintf(debugfile, "RPAREN"); break;
+		case IT_NIL:
+			fprintf(debugfile, "NIL"); break;
+		case IT_ERROR:
+			fprintf(debugfile, "ERROR"); break;
+		case IT_EOL:
+			fprintf(debugfile, "EOL"); break;
+		case IT_LBRACKET:
+			fprintf(debugfile, "LBRACKET"); break;
+		case IT_RBRACKET:
+			fprintf(debugfile, "RBRACKET"); break;
+		case IT_LITERAL_STRING_START:
+			fprintf(debugfile, "{%lu}", tok->tokennum); break;
+		case IT_LITERAL8_STRING_START:
+			fprintf(debugfile, "~{%lu}", tok->tokennum); break;
+		}
+
+		if (p)
+			fprintf(debugfile, ": %s", p);
+		fprintf(debugfile, "\n");
+		fflush(debugfile);
+	}
+	return tok;
+}
+
+static struct imaptoken *do_readtoken_nolog(int touc)
 {
 int	c=0;
 unsigned l;
@@ -289,11 +335,9 @@ unsigned l;
 				curtoken.tokentype=IT_ERROR;
 				return (&curtoken);
 			}
-			if (l >= 8192)
+			if (l >= BUFSIZ)
 			{
-				fprintf(stderr, "ERR: Quoted string literal "
-					"overflow, ip=[%s]\n",
-					getenv("TCPREMOTEIP"));
+				writes("* NO [ALERT] IMAP command too long.\r\n");
 				curtoken.tokentype=IT_ERROR;
 			}
 			if (c & 0x80)
@@ -331,6 +375,22 @@ unsigned l;
 		return (&curtoken);
 	}
 
+	/*
+	** Parse LITERAL or LITERAL8
+	*/
+	curtoken.tokentype=IT_LITERAL_STRING_START;
+
+	if (c == '~')
+	{
+		c=READ();
+		if (c != '{')
+		{
+			curtoken.tokentype=IT_ERROR;
+			return (&curtoken);
+		}
+		curtoken.tokentype=IT_LITERAL8_STRING_START;
+	}
+
 	if (c == '{')
 	{
 		curtoken.tokennum=0;
@@ -354,7 +414,6 @@ unsigned l;
 			curtoken.tokentype=IT_ERROR;
 			return (&curtoken);
 		}
-		curtoken.tokentype=IT_LITERAL_STRING_START;
 		return (&curtoken);
 	}
 
@@ -383,6 +442,7 @@ unsigned l;
 	       && !isspace((int)(unsigned char)c)
 	       && (((unsigned char)c) & 0x80) == 0
 	       && c != '\\' && c != '"' && c != LPAREN_CHAR && c != RPAREN_CHAR
+	       && c != '~'
 	       && c != '{' && c != '}' && c != LBRACKET_CHAR && c != RBRACKET_CHAR)
 	{
 		curtoken.tokentype=IT_ATOM;
@@ -413,65 +473,52 @@ unsigned l;
 
 static struct imaptoken *readtoken(int touc)
 {
-struct imaptoken *tok=do_readtoken(touc);
+	struct imaptoken *tok=do_readtoken(touc);
 
-	if (tok->tokentype == IT_LITERAL_STRING_START)
+	convert_literal_tokens(tok);
+	return (tok);
+}
+
+/*
+** If a token is a LITERAL, read it and replace it with a QUOTED_STRING.
+*/
+
+void convert_literal_tokens(struct imaptoken *tok)
+{
+	unsigned long nbytes;
+
+	if (tok->tokentype != IT_LITERAL_STRING_START &&
+	    tok->tokentype != IT_LITERAL8_STRING_START)
+		return;
+
+	nbytes=curtoken.tokennum;
+
+	if (nbytes > BUFSIZ)
 	{
-	unsigned long nbytes=curtoken.tokennum;
-
-		if (nbytes > 8192)
-		{
-			writes("* NO [ALERT] IMAP command too long.\r\n");
-			tok->tokentype=IT_ERROR;
-		}
-		else
-		{
+		writes("* NO [ALERT] IMAP command too long.\r\n");
+		tok->tokentype=IT_ERROR;
+	}
+	else
+	{
 		unsigned long i;
 
-			writes("+ OK\r\n");
-			writeflush();
-			alloc_tokenbuf(nbytes+1);
-			for (i=0; i<nbytes; i++)
-				tok->tokenbuf[i]= READ();
-			tok->tokenbuf[i]=0;
-			tok->tokentype=IT_QUOTED_STRING;
-		}
+		/*
+
+		  RFC4466: In addition, the non-terminal "literal8" defined
+		  in [BINARY] got extended to allow for non-synchronizing
+		  literals if both [BINARY] and [LITERAL+] extensions are
+		  supported by the server.
+
+		*/
+
+		writes("+ OK\r\n");
+		writeflush();
+		alloc_tokenbuf(nbytes+1);
+		for (i=0; i<nbytes; i++)
+			tok->tokenbuf[i]= READ();
+		tok->tokenbuf[i]=0;
+		tok->tokentype=IT_QUOTED_STRING;
 	}
-
-	if (debugfile)
-	{
-	char	*p=0;
-
-		fprintf(debugfile, "READ: ");
-		switch (tok->tokentype) {
-		case IT_ATOM:
-			p=curtoken.tokenbuf; fprintf(debugfile, "ATOM"); break;
-		case IT_NUMBER:
-			p=curtoken.tokenbuf; fprintf(debugfile, "NUMBER"); break;
-		case IT_QUOTED_STRING:
-			p=curtoken.tokenbuf; fprintf(debugfile, "QUOTED_STRING"); break;
-		case IT_LPAREN:
-			fprintf(debugfile, "LPAREN"); break;
-		case IT_RPAREN:
-			fprintf(debugfile, "RPAREN"); break;
-		case IT_NIL:
-			fprintf(debugfile, "NIL"); break;
-		case IT_ERROR:
-			fprintf(debugfile, "ERROR"); break;
-		case IT_EOL:
-			fprintf(debugfile, "EOL"); break;
-		case IT_LBRACKET:
-			fprintf(debugfile, "LBRACKET"); break;
-		case IT_RBRACKET:
-			fprintf(debugfile, "RBRACKET"); break;
-		}
-
-		if (p)
-			fprintf(debugfile, ": %s", p);
-		fprintf(debugfile, "\n");
-		fflush(debugfile);
-	}
-	return (tok);
 }
 
 struct imaptoken *nexttoken(void)

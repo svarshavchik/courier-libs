@@ -60,6 +60,8 @@ struct rfc2045 {
 	unsigned rfcviolation;	/* Boo-boos */
 
 #define	RFC2045_ERR8BITHEADER	1	/* 8 bit characters in headers */
+	/* But this is now OK, in UTF8 mode */
+
 #define	RFC2045_ERR8BITCONTENT	2	/* 8 bit contents, but no 8bit
 					content-transfer-encoding */
 #define	RFC2045_ERR2COMPLEX	4	/* Too many nested contents */
