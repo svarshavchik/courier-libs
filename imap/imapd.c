@@ -149,6 +149,19 @@ void rfc2045_error(const char *p)
 	_exit(0);
 }
 
+void writemailbox(const char *mailbox)
+{
+	char *encoded=imap_filename_to_foldername(enabled_utf8, mailbox);
+
+	if (!encoded)
+	{
+		fprintf(stderr, "ERR: imap_filename_to_foldername(%s) failed\n",
+			mailbox);
+		exit(1);
+	}
+	writeqs(encoded);
+	free(encoded);
+}
 
 extern int maildirsize_read(const char *,int *,off_t *,unsigned *,unsigned *,struct stat *);
 
@@ -332,10 +345,10 @@ int is_reserved_name(const char *name)
 	return 0;
 }
 
-char *decode_valid_mailbox(const char *p, int autosubscribe)
+static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 {
 	struct maildir_info mi;
-	char *q, *r;
+	char *r;
 
 	if (maildir_info_imap_find(&mi, p, getenv("AUTHENTICATED")) < 0)
 	{
@@ -344,7 +357,7 @@ char *decode_valid_mailbox(const char *p, int autosubscribe)
 
 	if (mi.homedir && mi.maildir)
 	{
-		q=maildir_name2dir(mi.homedir, mi.maildir);
+		char *q=maildir_name2dir(mi.homedir, mi.maildir);
 
 		if (q)
 		{
@@ -403,6 +416,22 @@ char *decode_valid_mailbox(const char *p, int autosubscribe)
 	}
 	maildir_info_destroy(&mi);
 	return (NULL);
+}
+
+char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
+{
+	char *p=imap_foldername_to_filename(enabled_utf8, mailbox);
+	char *q;
+
+	if (!p)
+	{
+		errno=EINVAL;
+		return NULL;
+	}
+
+	q=decode_valid_mailbox_utf8(p, autosubscribe);
+	free(p);
+	return q;
 }
 
 static int decode_date_time(char *p, time_t *tret)
@@ -563,7 +592,7 @@ static char *parse_mailbox_error(const char *tag,
 				** a real folder (such as this one).
 				*/
 
-	int autosubscribe)	/* Really DUMP clients that do a LIST,
+	int autosubscribe)	/* Really DUMB clients that do a LIST,
 				** and don't bother to check if a folder is
 				** subscribed to, or not (Pine)
 				*/
@@ -2415,7 +2444,7 @@ static int list_callback(const char *hiersep,
 				   different order */
 
 				writes("* ACLFAILED \"");
-				writeqs(mailbox);
+				writemailbox(mailbox);
 				writes("\"");
 				accessdenied("LIST(MYRIGHTS)",
 					     mailbox,
@@ -2442,7 +2471,7 @@ static int list_callback(const char *hiersep,
 				   different order */
 
 				writes("* ACLFAILED \"");
-				writeqs(mailbox);
+				writemailbox(mailbox);
 				writes("\"");
 				accessdenied("LIST(ACL)",
 					     mailbox,
@@ -2482,7 +2511,7 @@ static int list_callback(const char *hiersep,
 	writes(") ");
 	writes(hiersep);
 	writes(" \"");
-	writeqs(mailbox);
+	writemailbox(mailbox);
 	writes("\"");
 
 	if (flags & (LIST_ACL|LIST_MYRIGHTS|LIST_POSTADDRESS))
@@ -2874,6 +2903,18 @@ char *get_myrightson(const char *mailbox)
 	return rights;
 }
 
+char *get_myrightson_folder(const char *folder)
+{
+	char *p=imap_foldername_to_filename(enabled_utf8, folder);
+	char *r;
+
+	if (!p)
+		return NULL;
+
+	r=get_myrightson(p);
+	free(p);
+	return r;
+}
 
 char *compute_myrights(maildir_aclt_list *l, const char *l_owner)
 {
@@ -3115,6 +3156,8 @@ static int aclcmd(const char *tag)
 	case IT_LPAREN:
 		while ((curtoken=nexttoken_nouc())->tokentype != IT_RPAREN)
 		{
+			char *p;
+
 			if (curtoken->tokentype != IT_QUOTED_STRING &&
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
@@ -3123,18 +3166,26 @@ static int aclcmd(const char *tag)
 				return -1;
 			}
 
+			p=imap_foldername_to_filename(enabled_utf8,
+						      curtoken->tokenbuf);
+			if (!p)
+			{
+				errno=EINVAL;
+				return -1;
+			}
 			mblist=NULL;
 
-			if (mailbox_scan("", curtoken->tokenbuf, 0,
+			if (mailbox_scan("", p, 0,
 					 aclmailbox_scan, &mblist) ||
 			    aclmailbox_merge(mblist, &mailboxlist))
 			{
+				free(p);
 				free_tempmailboxlist(mblist);
 				free_mailboxlist(mailboxlist);
 				return -1;
 
 			}
-
+			free(p);
 			free_tempmailboxlist(mblist);
 		}
 		break;
@@ -3143,16 +3194,22 @@ static int aclcmd(const char *tag)
 	case IT_NUMBER:
 
 		mblist=NULL;
-		if (mailbox_scan("", curtoken->tokenbuf, LIST_CHECK1FOLDER,
-				 aclmailbox_scan, &mblist) ||
-		    aclmailbox_merge(mblist, &mailboxlist))
-
 		{
+			char *p=imap_foldername_to_filename(enabled_utf8,
+							    curtoken->tokenbuf);
+
+			if (mailbox_scan("", p, LIST_CHECK1FOLDER,
+					 aclmailbox_scan, &mblist) ||
+			    aclmailbox_merge(mblist, &mailboxlist))
+			{
+				free(p);
+				free_tempmailboxlist(mblist);
+				free_mailboxlist(mailboxlist);
+				return -1;
+			}
+			free(p);
 			free_tempmailboxlist(mblist);
-			free_mailboxlist(mailboxlist);
-			return -1;
 		}
-		free_tempmailboxlist(mblist);
 		break;
 	}
 
@@ -3290,7 +3347,7 @@ static void aclfailed(const char *mailbox, const char *identifier)
 	if (!identifier)
 	{
 		writes("* ACLFAILED \"");
-		writeqs(mailbox);
+		writemailbox(mailbox);
 		writes("\" ");
 		writes(strerror(errno));
 		writes("\r\n");
@@ -3298,7 +3355,7 @@ static void aclfailed(const char *mailbox, const char *identifier)
 	}
 
 	writes("* RIGHTS-INFO \"");
-	writeqs(mailbox);
+	writemailbox(mailbox);
 	writes("\" \"");
 	writeqs(identifier);
 	writes("\" ");
@@ -3320,7 +3377,7 @@ static int acl_settable_folder(char *mailbox,
 	if (mi->homedir == NULL || mi->maildir == NULL)
 	{
 		writes("* ACLFAILED \"");
-		writeqs(mailbox);
+		writemailbox(mailbox);
 		writes("\" ACLs may not be modified for special mailbox\r\n");
 		maildir_info_destroy(mi);
 		*mailbox=0;
@@ -3483,7 +3540,7 @@ static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			if (acl_rights[0] == 0)
 			{
 				writes("* ACLFAILED \"");
-				writeqs(mailboxes[i].mailbox);
+				writemailbox(mailboxes[i].mailbox);
 				writes("\"");
 				accessdenied("ACL STORE",
 					     mailboxes[i].mailbox,
@@ -3587,7 +3644,7 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			{
 				maildir_info_destroy(&mi);
 				writes("* ACLFAILED \"");
-				writeqs(mailboxes[i].mailbox);
+				writemailbox(mailboxes[i].mailbox);
 				writes("\"");
 				accessdenied("ACL SET", mailboxes[i].mailbox,
 					     ACL_ADMINISTER);
@@ -3659,7 +3716,7 @@ static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			if (acl_rights[0] == 0)
 			{
 				writes("* ACLFAILED \"");
-				writeqs(mailboxes[i].mailbox);
+				writemailbox(mailboxes[i].mailbox);
 				writes("\"");
 				accessdenied("ACL DELETE",
 					     mailboxes[i].mailbox,
@@ -4249,7 +4306,10 @@ int	uid=0;
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
 				return (-1);
-			reference=my_strdup(curtoken->tokenbuf);
+			reference=imap_foldername_to_filename
+				(enabled_utf8, curtoken->tokenbuf);
+			if (!reference)
+				return -1;
 		}
 		curtoken=nexttoken_nouc();
 
@@ -4261,7 +4321,11 @@ int	uid=0;
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
 				return (-1);
-			name=my_strdup(curtoken->tokenbuf);
+			name=imap_foldername_to_filename(enabled_utf8,
+							 curtoken->tokenbuf);
+
+			if (!name)
+				return -1;
 		}
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 
@@ -4297,15 +4361,21 @@ int	uid=0;
 	{
 		struct	imaptoken *tok=nexttoken_nouc();
 		struct maildir_info mi;
+		char *mailbox;
 
 		if (tok->tokentype != IT_NUMBER &&
 			tok->tokentype != IT_ATOM &&
 			tok->tokentype != IT_QUOTED_STRING)
 			return (-1);
 
-		if (maildir_info_imap_find(&mi, tok->tokenbuf,
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    tok->tokenbuf);
+		if (!mailbox ||
+		    maildir_info_imap_find(&mi, mailbox,
 					   getenv("AUTHENTICATED")) < 0)
 		{
+			if (mailbox)
+				free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -4321,19 +4391,21 @@ int	uid=0;
 				maildir_info_destroy(&mi);
 				writes(tag);
 				accessdenied("APPEND",
-					     tok->tokenbuf,
+					     mailbox,
 					     ACL_INSERT);
+				free(mailbox);
 				return 0;
 			}
 
-			rc=append(tag, tok->tokenbuf, p);
+			rc=append(tag, mailbox, p);
 			free(p);
 			maildir_info_destroy(&mi);
+			free(mailbox);
 			return (rc);
 		}
 		else if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 		{
-			char *p=strchr(tok->tokenbuf, '.');
+			char *p=strchr(mailbox, '.');
 
 			if (p && (p=maildir_shareddir(".", p+1)) != NULL)
 			{
@@ -4344,13 +4416,14 @@ int	uid=0;
 
 				strcat(strcpy(q, p), "/shared");
 				free(p);
-				rc=append(tag, tok->tokenbuf, q);
+				rc=append(tag, mailbox, q);
 				free(q);
+				free(mailbox);
 				maildir_info_destroy(&mi);
 				return rc;
 			}
 		}
-
+		free(mailbox);
 		writes(tag);
 		accessdenied("APPEND", "folder", ACL_INSERT);
 		return (0);
@@ -4360,7 +4433,7 @@ int	uid=0;
 	{
 		char	qroot[20];
 		struct maildir_info minfo;
-
+		char *mailbox;
 		curtoken=nexttoken_nouc();
 
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -4368,9 +4441,15 @@ int	uid=0;
 			curtoken->tokentype != IT_QUOTED_STRING)
 			return (-1);
 
-		if (maildir_info_imap_find(&minfo, curtoken->tokenbuf,
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+
+		if (!mailbox ||
+		    maildir_info_imap_find(&minfo, mailbox,
 					   getenv("AUTHENTICATED")))
 		{
+			if (mailbox)
+				free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -4391,13 +4470,14 @@ int	uid=0;
 
 		writes("*");
 		writes(" QUOTAROOT \"");
-		writeqs(curtoken->tokenbuf);
+		writemailbox(mailbox);
 		writes("\" \"");
 		writes(qroot);
 		writes("\"\r\n");
 		quotainfo_out(qroot);
 		writes(tag);
 		writes(" OK GETQUOTAROOT Ok.\r\n");
+		free(mailbox);
 		return(0);
 	}
 
@@ -4472,7 +4552,14 @@ int	uid=0;
 		if ( mailbox == 0)
 			return (0);
 
-		orig_mailbox=my_strdup(curtoken->tokenbuf);
+		orig_mailbox=imap_foldername_to_filename(enabled_utf8,
+							 curtoken->tokenbuf);
+
+		if (!orig_mailbox)
+		{
+			free(mailbox);
+			return -1;
+		}
 		curtoken=nexttoken();
 
 		oneonly=0;
@@ -4551,7 +4638,7 @@ int	uid=0;
 
 		writes("*");
 		writes(" STATUS \"");
-		writeqs(orig_mailbox);
+		writemailbox(orig_mailbox);
 		writes("\" (");
 		p="";
 		if (get_messages)
@@ -4640,13 +4727,20 @@ int	uid=0;
 			isdummy=1;	/* Ignore hierarchy creation */
 		}
 
-		if (maildir_info_imap_find(&mi, curtoken->tokenbuf,
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+		if (!mailbox)
+			return -1;
+
+		if (maildir_info_imap_find(&mi, mailbox,
 					   getenv("AUTHENTICATED")))
 		{
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
+			free(mailbox);
 			return (0);
 		}
+		free(mailbox);
 
 		if (!mi.homedir || !mi.maildir)
 		{
@@ -4685,7 +4779,15 @@ int	uid=0;
 		}
 
 		if (isdummy)	*p=HIERCH;
-		orig_mailbox=my_strdup(curtoken->tokenbuf);
+		orig_mailbox=imap_foldername_to_filename(enabled_utf8,
+							 curtoken->tokenbuf);
+
+		if (!orig_mailbox)
+		{
+			free(mailbox);
+			maildir_info_destroy(&mi);
+			return (-1);
+		}
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
@@ -4741,7 +4843,7 @@ int	uid=0;
 		}
 		writes(tag);
 		writes(" OK \"");
-		writeqs(orig_mailbox);
+		writemailbox(orig_mailbox);
 		writes("\" created.\r\n");
 
 		/*
@@ -4787,14 +4889,18 @@ int	uid=0;
 			return (0);
 		}
 
-		mailbox_name=my_strdup(curtoken->tokenbuf);
 		mailbox=parse_mailbox_error(tag, curtoken, 1, 0);
 		if ( mailbox == 0)
-		{
-			free(mailbox_name);
-			return (0);
-		}
+			return 0;
 
+		mailbox_name=imap_foldername_to_filename(enabled_utf8,
+							 curtoken->tokenbuf);
+
+		if (!mailbox_name)
+		{
+			free(mailbox);
+			return (-1);
+		}
 		if (nexttoken()->tokentype != IT_EOL)
 		{
 			free(mailbox_name);
@@ -4811,10 +4917,10 @@ int	uid=0;
 			return (0);
 		}
 
-		if (strncmp(curtoken->tokenbuf, SHARED HIERCHS,
-			sizeof(SHARED HIERCHS)-1) == 0)
+		if (strncmp(mailbox_name, SHARED HIERCHS,
+			    sizeof(SHARED HIERCHS)-1) == 0)
 		{
-			maildir_shared_unsubscribe(0, curtoken->tokenbuf+
+			maildir_shared_unsubscribe(0, mailbox_name+
 						   sizeof(SHARED HIERCHS)-1);
 			free(mailbox_name);
 			free(mailbox);
@@ -4866,6 +4972,7 @@ int	uid=0;
 		char *p;
 		struct maildir_info mi1, mi2;
 		const char *errmsg;
+		char *mailbox;
 
 		curtoken=nexttoken_nouc();
 
@@ -4881,9 +4988,16 @@ int	uid=0;
 		if ((p=strrchr(curtoken->tokenbuf, HIERCH))  && p[1] == 0)
 			*p=0;
 
-		if (maildir_info_imap_find(&mi1, curtoken->tokenbuf,
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+
+		if (!mailbox)
+			return -1;
+
+		if (maildir_info_imap_find(&mi1, mailbox,
 					   getenv("AUTHENTICATED")) < 0)
 		{
+			free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -4891,6 +5005,7 @@ int	uid=0;
 
 		if (mi1.homedir == NULL || mi1.maildir == NULL)
 		{
+			free(mailbox);
 			maildir_info_destroy(&mi1);
 			writes(tag);
 			writes(" NO Invalid mailbox\r\n");
@@ -4898,11 +5013,12 @@ int	uid=0;
 		}
 
 		{
-			CHECK_RIGHTSM(curtoken->tokenbuf,
+			CHECK_RIGHTSM(mailbox,
 				      rename_rights, ACL_DELETEFOLDER);
 
 			if (rename_rights[0] == 0)
 			{
+				free(mailbox);
 				maildir_info_destroy(&mi1);
 				writes(tag);
 				accessdenied("RENAME", curtoken->tokenbuf,
@@ -4910,7 +5026,7 @@ int	uid=0;
 				return (0);
 			}
 		}
-
+		free(mailbox);
 
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -4926,22 +5042,33 @@ int	uid=0;
 			*p=0;
 		}
 
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
 
-		if (maildir_info_imap_find(&mi2, curtoken->tokenbuf,
+		if (!mailbox)
+		{
+			maildir_info_destroy(&mi1);
+			return -1;
+		}
+
+		if (maildir_info_imap_find(&mi2, mailbox,
 					   getenv("AUTHENTICATED")) < 0)
 		{
+			free(mailbox);
 			maildir_info_destroy(&mi1);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
 		}
 
-		if (check_parent_create(tag, "RENAME", curtoken->tokenbuf))
+		if (check_parent_create(tag, "RENAME", mailbox))
 		{
+			free(mailbox);
 			maildir_info_destroy(&mi1);
 			maildir_info_destroy(&mi2);
 			return 0;
 		}
+		free(mailbox);
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
@@ -5000,7 +5127,7 @@ int	uid=0;
 		if ( mailbox == 0)
 			return (0);
 
-		current_mailbox_acl=get_myrightson(curtoken->tokenbuf);
+		current_mailbox_acl=get_myrightson_folder(curtoken->tokenbuf);
 		if (current_mailbox_acl == NULL)
 		{
 			free(mailbox);
@@ -5091,7 +5218,10 @@ int	uid=0;
 			return (0);
 		}
 
-		mailbox=my_strdup(curtoken->tokenbuf);
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+		if (!mailbox)
+			return -1;
 		if (nexttoken()->tokentype != IT_EOL)
 			return (-1);
 
@@ -5168,7 +5298,12 @@ int	uid=0;
 			return (0);
 		}
 
-		mailbox=my_strdup(curtoken->tokenbuf);
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+
+		if (!mailbox)
+			return -1;
+
 		if (nexttoken()->tokentype != IT_EOL)
 			return (-1);
 
@@ -5271,7 +5406,10 @@ int	uid=0;
 			return 0;
 		free(mailbox);
 
-		mailbox=my_strdup(curtoken->tokenbuf);
+		mailbox=imap_foldername_to_filename(enabled_utf8,
+						    curtoken->tokenbuf);
+		if (!mailbox)
+			return -1;
 
 		if (maildir_info_imap_find(&mi, mailbox,
 					   getenv("AUTHENTICATED")) < 0)
@@ -5385,6 +5523,7 @@ int	uid=0;
 		maildir_aclt_list l;
 		char *mailbox_owner;
 		char *mb;
+		char *f;
 
 		curtoken=nexttoken_nouc();
 
@@ -5393,22 +5532,29 @@ int	uid=0;
 			return 0;
 		free(mb);
 
+		f=imap_foldername_to_filename(enabled_utf8, curtoken->tokenbuf);
+
+		if (!f)
+			return -1;
+
 		{
-			CHECK_RIGHTSM(curtoken->tokenbuf,
+			CHECK_RIGHTSM(f,
 				      acl_rights,
 				      ACL_ADMINISTER);
 			if (acl_rights[0] == 0)
 			{
 				writes(tag);
-				accessdenied("GETACL", curtoken->tokenbuf,
+				accessdenied("GETACL", f,
 					     ACL_ADMINISTER);
+				free(f);
 				return 0;
 			}
 		}
 
-		if (get_acllist(&l, curtoken->tokenbuf,
+		if (get_acllist(&l, f,
 				&mailbox_owner) < 0)
 		{
+			free(f);
 			writes(tag);
 			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
 			return 0;
@@ -5416,13 +5562,14 @@ int	uid=0;
 		free(mailbox_owner);
 
 		writes("* ACL \"");
-		writeqs(curtoken->tokenbuf);
+		writemailbox(f);
 		writes("\"");
 		maildir_aclt_list_enum(&l, getacl_cb, NULL);
 		writes("\r\n");
 		writes(tag);
 		writes(" OK GETACL completed.\r\n");
 		maildir_aclt_list_destroy(&l);
+		free(f);
 		return 0;
 	}
 
@@ -5438,9 +5585,14 @@ int	uid=0;
 		if (!mb)
 			return 0;
 		free(mb);
+		mb=imap_foldername_to_filename(enabled_utf8,
+					       curtoken->tokenbuf);
+
+		if (!mb)
+			return -1;
 
 		{
-			char *myrights=get_myrightson(curtoken->tokenbuf);
+			char *myrights=get_myrightson(mb);
 
 			if (!strchr(myrights, ACL_LOOKUP[0]) &&
 			    !strchr(myrights, ACL_READ[0]) &&
@@ -5452,22 +5604,22 @@ int	uid=0;
 			{
 				free(myrights);
 				writes(tag);
-				accessdenied("GETACL", curtoken->tokenbuf,
+				accessdenied("GETACL", mb,
 					     ACL_ADMINISTER);
+				free(mb);
 				return 0;
 			}
 			free(myrights);
 		}
 
-		if (get_acllist(&l, curtoken->tokenbuf,
+		if (get_acllist(&l, mb,
 				&mailbox_owner) < 0)
 		{
+			free(mb);
 			writes(tag);
 			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
 			return 0;
 		}
-
-		mb=my_strdup(curtoken->tokenbuf);
 
 		switch ((curtoken=nexttoken_nouc())->tokentype) {
 		case IT_QUOTED_STRING:
@@ -5482,7 +5634,7 @@ int	uid=0;
 		}
 
 		writes("* LISTRIGHTS \"");
-		writeqs(mb);
+		writemailbox(mb);
 		writes("\" \"");
 		writeqs(curtoken->tokenbuf);
 		writes("\"");
@@ -5540,6 +5692,7 @@ int	uid=0;
 	if (strcmp(curtoken->tokenbuf, "MYRIGHTS") == 0)
 	{
 		char *mb;
+		char *f;
 
 		curtoken=nexttoken_nouc();
 
@@ -5548,8 +5701,12 @@ int	uid=0;
 			return 0;
 		free(mb);
 
+		f=imap_foldername_to_filename(enabled_utf8, curtoken->tokenbuf);
+		if (!f)
+			return -1;
+
 		{
-			char *myrights=get_myrightson(curtoken->tokenbuf);
+			char *myrights=get_myrightson(f);
 
 			if (!strchr(myrights, ACL_LOOKUP[0]) &&
 			    !strchr(myrights, ACL_READ[0]) &&
@@ -5561,25 +5718,28 @@ int	uid=0;
 			{
 				free(myrights);
 				writes(tag);
-				accessdenied("GETACL", curtoken->tokenbuf,
+				accessdenied("GETACL", f,
 					     ACL_ADMINISTER);
+				free(f);
 				return 0;
 			}
 			free(myrights);
 		}
 
-		mb=get_myrightson(curtoken->tokenbuf);
+		mb=get_myrightson(f);
 
 		if (!mb)
 		{
+			free(f);
 			writes(tag);
 			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
 			return 0;
 		}
 
 		writes("* MYRIGHTS \"");
-		writeqs(curtoken->tokenbuf);
+		writemailbox(f);
 		writes("\" \"");
+		free(f);
 
 		writeacl1(mb);
 		free(mb);
@@ -6147,7 +6307,11 @@ int	uid=0;
 		}
 
 		{
-			CHECK_RIGHTSM(curtoken->tokenbuf,
+			char *f=imap_foldername_to_filename(enabled_utf8,
+							    curtoken->tokenbuf);
+			if (!f)
+				return -1;
+			CHECK_RIGHTSM(f,
 				      append_rights,
 				      ACL_INSERT ACL_DELETEMSGS
 				      ACL_SEEN ACL_WRITE);
@@ -6156,11 +6320,12 @@ int	uid=0;
 			{
 				writes(tag);
 				accessdenied("COPY",
-					     curtoken->tokenbuf,
+					     f,
 					     ACL_INSERT);
+				free(f);
 				return 0;
 			}
-
+			free(f);
 			strcpy(access_rights, append_rights);
 		}
 
