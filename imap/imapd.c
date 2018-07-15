@@ -603,17 +603,17 @@ char	*mailbox;
 		curtoken->tokentype != IT_ATOM &&
 		curtoken->tokentype != IT_QUOTED_STRING)
 	{
-		mailbox=0;
+		writes(tag);
+		writes(" BAD Invalid command\r\n");
+		return (0);
 	}
-	else
-	{
-		if (ok_hierarchy && (mailbox=strrchr(curtoken->tokenbuf,
-			HIERCH)) && mailbox[1] == 0)
-				*mailbox=0;
 
-		mailbox=decode_valid_mailbox(curtoken->tokenbuf,
-			autosubscribe);
-	}
+	if (ok_hierarchy && (mailbox=strrchr(curtoken->tokenbuf,
+					     HIERCH)) && mailbox[1] == 0)
+		*mailbox=0;
+
+	mailbox=decode_valid_mailbox(curtoken->tokenbuf,
+				     autosubscribe);
 
 	if ( mailbox == 0)
 	{
@@ -3162,8 +3162,9 @@ static int aclcmd(const char *tag)
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
 			{
-				errno=EINVAL;
-				return -1;
+				writes(tag);
+				writes(" BAD Invalid command\r\n");
+				return 0;
 			}
 
 			p=imap_foldername_to_filename(enabled_utf8,
@@ -3211,6 +3212,10 @@ static int aclcmd(const char *tag)
 			free_tempmailboxlist(mblist);
 		}
 		break;
+	case IT_ERROR:
+		writes(tag);
+		writes(" BAD Invalid command\r\n");
+		return 0;
 	}
 
 	rc=0;
@@ -4305,7 +4310,11 @@ int	uid=0;
 			if (curtoken->tokentype != IT_QUOTED_STRING &&
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
-				return (-1);
+			{
+				writes(tag);
+				writes(" BAD Invalid command\r\n");
+				return (0);
+			}
 			reference=imap_foldername_to_filename
 				(enabled_utf8, curtoken->tokenbuf);
 			if (!reference)
@@ -4320,12 +4329,20 @@ int	uid=0;
 			if (curtoken->tokentype != IT_QUOTED_STRING &&
 				curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_NUMBER)
-				return (-1);
+			{
+				free(reference);
+				writes(tag);
+				writes(" BAD Invalid command\r\n");
+				return(0);
+			}
 			name=imap_foldername_to_filename(enabled_utf8,
 							 curtoken->tokenbuf);
 
 			if (!name)
+			{
+				free(reference);
 				return -1;
+			}
 		}
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 
@@ -4366,7 +4383,11 @@ int	uid=0;
 		if (tok->tokentype != IT_NUMBER &&
 			tok->tokentype != IT_ATOM &&
 			tok->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
+		}
 
 		mailbox=imap_foldername_to_filename(enabled_utf8,
 						    tok->tokenbuf);
@@ -4439,7 +4460,11 @@ int	uid=0;
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
+		}
 
 		mailbox=imap_foldername_to_filename(enabled_utf8,
 						    curtoken->tokenbuf);
@@ -4716,7 +4741,11 @@ int	uid=0;
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return 0;
+		}
 
 		isdummy=0;
 
@@ -4877,7 +4906,11 @@ int	uid=0;
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
+		}
 
 		p=strrchr(curtoken->tokenbuf, HIERCH);
 		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
@@ -4981,7 +5014,7 @@ int	uid=0;
 		    curtoken->tokentype != IT_QUOTED_STRING)
 		{
 			writes(tag);
-			writes(" NO Invalid mailbox\r\n");
+			writes(" BAD Invalid command\r\n");
 			return (0);
 		}
 
@@ -5034,7 +5067,9 @@ int	uid=0;
 			curtoken->tokentype != IT_QUOTED_STRING)
 		{
 			maildir_info_destroy(&mi1);
-			return (-1);
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
 		}
 
 		if ((p=strrchr(curtoken->tokenbuf, HIERCH)) && p[1] == 0)
@@ -5206,7 +5241,11 @@ int	uid=0;
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
+		}
 
 		p=strrchr(curtoken->tokenbuf, HIERCH);
 		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
@@ -5286,7 +5325,11 @@ int	uid=0;
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
-			return (-1);
+		{
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
+		}
 
 		p=strrchr(curtoken->tokenbuf, HIERCH);
 		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
@@ -5930,6 +5973,14 @@ int	uid=0;
 		if (curtoken->tokentype == IT_ATOM &&
 			strcmp(curtoken->tokenbuf, "CHARSET") == 0)
 		{
+			if (enabled_utf8)
+			{
+				writes(tag);
+				writes(" NO CHARSET is not valid in UTF8 mode "
+				       "as per RFC 6855\r\n");
+				return (0);
+			}
+
 			curtoken=nexttoken();
 			if (curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_QUOTED_STRING)
@@ -6279,7 +6330,9 @@ int	uid=0;
 			curtoken->tokentype != IT_QUOTED_STRING)
 		{
 			free(msgset);
-			return (-1);
+			writes(tag);
+			writes(" BAD Invalid command\r\n");
+			return (0);
 		}
 
 		mailbox=decode_valid_mailbox(curtoken->tokenbuf, 1);

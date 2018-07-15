@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2005 Double Precision, Inc.
+** Copyright 1998 - 2018 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -16,6 +16,8 @@
 #include	<sys/types.h>
 #include	<sys/time.h>
 #include	"numlib/numlib.h"
+#include	"imapd.h"
+#include	<courier-unicode.h>
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
@@ -222,6 +224,11 @@ void smap_readline(char *buffer, size_t bufsize)
 
 #endif
 
+static int ignore_output_func(const char *ptr, size_t cnt, void *ignore)
+{
+	return 0;
+}
+
 static struct imaptoken *do_readtoken(int touc)
 {
 int	c=0;
@@ -269,6 +276,8 @@ unsigned l;
 
 	if (c == '"')
 	{
+		int bit8=0;
+
 		l=0;
 		while ((c=READ()) != '"')
 		{
@@ -280,13 +289,45 @@ unsigned l;
 				curtoken.tokentype=IT_ERROR;
 				return (&curtoken);
 			}
-			if (l < 8192)
+			if (l >= 8192)
 			{
-				appendch(c);
+				fprintf(stderr, "ERR: Quoted string literal "
+					"overflow, ip=[%s]\n",
+					getenv("TCPREMOTEIP"));
+				curtoken.tokentype=IT_ERROR;
 			}
+			if (c & 0x80)
+				bit8=1;
+			appendch(c);
 		}
 		appendch(0);
 		curtoken.tokentype=IT_QUOTED_STRING;
+
+		/*
+		** Strings must be valid UTF-8. Shortcut check.
+		*/
+
+		if (bit8)
+		{
+			int errptr=0;
+
+			unicode_convert_handle_t h=
+				unicode_convert_init("utf-8",
+						     unicode_u_ucs4_native,
+						     ignore_output_func,
+						     (void *)0);
+
+			if (unicode_convert(h, curtoken.tokenbuf,
+					    strlen(curtoken.tokenbuf)))
+			{
+				curtoken.tokentype=IT_ERROR;
+			}
+
+			if (unicode_convert_deinit(h, &errptr) || errptr)
+			{
+				curtoken.tokentype=IT_ERROR;
+			}
+		}
 		return (&curtoken);
 	}
 
@@ -339,9 +380,10 @@ unsigned l;
 	}
 
 	while (c != '\r' && c != '\n'
-		&& !isspace((int)(unsigned char)c)
-		&& c != '\\' && c != '"' && c != LPAREN_CHAR && c != RPAREN_CHAR
-		&& c != '{' && c != '}' && c != LBRACKET_CHAR && c != RBRACKET_CHAR)
+	       && !isspace((int)(unsigned char)c)
+	       && (((unsigned char)c) & 0x80) == 0
+	       && c != '\\' && c != '"' && c != LPAREN_CHAR && c != RPAREN_CHAR
+	       && c != '{' && c != '}' && c != LBRACKET_CHAR && c != RBRACKET_CHAR)
 	{
 		curtoken.tokentype=IT_ATOM;
 		if (l < IT_MAX_ATOM_SIZE)
@@ -352,7 +394,7 @@ unsigned l;
 		}
 		else
 		{
-			write_error_exit("max atom size too small");  
+			write_error_exit("max atom size too small");
 		}
 		c=READ();
 	}
@@ -564,4 +606,3 @@ int ismsgset_str(const char *p)
 	if (*p)	return (0);
 	return (1);
 }
-		
