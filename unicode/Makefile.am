@@ -182,6 +182,9 @@ check-am: unicodetest
 	test "`./unicodetest --smap 'foo&bar'`" = 'foo&-bar'
 	test "`./unicodetest --smap 'foo.bar'`" = 'foo&AC4-bar'
 	test "`./unicodetest --totitle 'tÄst'`" = 'Täst'
+	test "`./unicodetest --modutf7toutf8 'foo&bar'`" = '[error]'
+	test "`./unicodetest --modutf7toutf8 'foo&-bar'`" = 'foo&bar'
+	test "`./unicodetest --modutf7toutf8 'foo:bar'`" = 'foo\072bar'
 	test "`./graphemetest 0x0d 0x0a`" = "0" # GB3
 	test "`./graphemetest 0x0d 0x41`" = "1" # GB4
 	test "`./graphemetest 0x41 0x0d`" = "1" # GB5

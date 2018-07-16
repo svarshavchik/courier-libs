@@ -623,11 +623,15 @@ struct unicode_convert_fromimaputf7 {
 /* Flush the accumulated UCS-2 stream */
 
 #define convert_fromutf7_flush(p) do {					\
-		(p)->errflag=(*(p)->hdr.next->convert_handler)		\
+		int rc=(*(p)->hdr.next->convert_handler)		\
 			((p)->hdr.next->ptr,				\
 			 (const char *)(p)->convbuf,			\
 			 (p)->convbuf_cnt *				\
 			 sizeof((p)->convbuf[0]));			\
+									\
+		if (rc)							\
+			(p)->errflag=rc;				\
+									\
 		(p)->convbuf_cnt=0;					\
 	} while (0)
 
