@@ -61,13 +61,13 @@ AC_TRY_COMPILE([
 #define COURIER_UNICODE_VERSION 0
 #endif
 
-#if COURIER_UNICODE_VERSION < 200
-#error "courier-unicode 2.0 library is required"
+#if COURIER_UNICODE_VERSION < 210
+#error "courier-unicode 2.1 library is required"
 #endif
 
 ],[],[],
 AC_MSG_ERROR([
-ERROR: The Courier Unicode Library 2.0 header files appear not to be installed.
+ERROR: The Courier Unicode Library 2.1 header files appear not to be installed.
 You may need to upgrade the library or install a separate development
 subpackage in addition to the main package.])
 )

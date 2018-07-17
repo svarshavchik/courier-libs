@@ -83,7 +83,7 @@ libcourier_unicode_la_SOURCES=\
 			categoriestab.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 4:0:0
+libcourier_unicode_la_LDFLAGS=-version-info 5:0:1
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	m4/courier-unicode.m4 \
