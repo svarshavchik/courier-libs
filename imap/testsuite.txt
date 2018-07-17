@@ -1586,6 +1586,7 @@
 001360 * BYE Courier-IMAP server shutting down
 001361 TDONE OK LOGOUT completed
 001362 * PREAUTH Ready.
+001363 * ENABLED UTF8=ACCEPT
 001363 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
 001363 * LIST (\HasChildren) "." "#shared.b.use&-2"
 001363 * LIST (\HasChildren) "." "#shared.b.user 2"
@@ -1593,6 +1594,7 @@
 001363 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
 001363 * LIST (\HasNoChildren) "." "#shared.b.user 2.a"
 001363 T055 OK LIST completed
+001363 a OK Options enabled
 001364 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
 001364 * LIST (\HasChildren) "." "#shared.b.use&-2"
 001364 * LIST (\HasChildren) "." "#shared.b.user 2"
@@ -1604,6 +1606,7 @@
 001367 * BYE Courier-IMAP server shutting down
 001368 TDONE OK LOGOUT completed
 001369 * PREAUTH Ready.
+001370 * ENABLED UTF8=ACCEPT
 001370 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
 001370 * LIST (\HasChildren) "." "#shared.b.use&-2"
 001370 * LIST (\HasChildren) "." "#shared.b.user\\:2"
@@ -1611,6 +1614,7 @@
 001370 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
 001370 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
 001370 T055 OK LIST completed
+001370 a OK Options enabled
 001371 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
 001371 * LIST (\HasChildren) "." "#shared.b.use&-2"
 001371 * LIST (\HasChildren) "." "#shared.b.user\\:2"

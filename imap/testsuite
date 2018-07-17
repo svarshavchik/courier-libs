@@ -12,7 +12,7 @@ echo '* Sanity check in progress *' >&2
 echo '****************************' >&2
 #test ! -d confmdtest || find confmdtest -exec chmod u+rwx {} \;
 #test ! -d confmdtest2 || find confmdtest2 -exec chmod u+rwx {} \;
-test ! -d confmdtest || chmod -R u+rwx confmdtest 
+test ! -d confmdtest || chmod -R u+rwx confmdtest
 test ! -d confmdtest2 || chmod -R u+rwx confmdtest2
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
@@ -1033,6 +1033,7 @@ usér/3	1	1	`pwd`	confmdtest3
 EOF
 
 env AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+a ENABLE UTF8=ACCEPT
 T055 LIST "" "#shared.b.*"
 T056 LIST "" "#shared.b.%"
 T057 LIST "" "#shared.b.user 2.*"
@@ -1041,6 +1042,7 @@ TDONE LOGOUT
 EOF
 
 env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+a ENABLE UTF8=ACCEPT
 T055 LIST "" "#shared.b.*"
 T056 LIST "" "#shared.b.%"
 T057 LIST "" "#shared.b.user\\\\:2.*"
@@ -1081,4 +1083,3 @@ T085 GETACL INBOX
 T086 LIST(ACL) "" INBOX
 TDONE LOGOUT
 EOF
-
