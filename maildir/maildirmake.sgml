@@ -69,9 +69,9 @@ existing maildir.</simpara>
 	    that the folder's name is given using the system locale's
 	    character set. Non-Latin characters in the folder's name
 	    must be given to the <literal>-f</literal> option using IMAP's
-	    modified-UTF7 encoding. The <literal>-F</literal> option
+	    UTF8 encoding. The <literal>-F</literal> option
 	    takes the folder name specified using the console's character
-	    set..</simpara>
+	    set.</simpara>
 	</listitem>
       </varlistentry>
 

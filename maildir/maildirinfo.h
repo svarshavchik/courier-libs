@@ -64,7 +64,7 @@ extern int maildir_info_suppress(const char *maildir);
 int maildir_info_smap_find(struct maildir_info *info, char **folder,
 			   const char *myid);
 
-char **maildir_smapfn_fromutf7(const char *modutf7);
+char **maildir_smapfn_fromutf8(const char *modutf8);
 void maildir_smapfn_free(char **fn);
 
 /*
