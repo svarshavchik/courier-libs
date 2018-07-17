@@ -645,7 +645,7 @@ char	*tmp=0;
 
 			folder=unicode_convert_tobuf(p,
 						       unicode_default_chset(),
-						       unicode_x_imap_modutf7,
+						       unicode_x_smap_modutf8,
 						       &converr);
 
 			if (converr || !folder)
