@@ -99,11 +99,11 @@ extern unsigned maildir_countof(const char *);
 extern void maildir_savefoldermsgs(const char *);
 
 /*
-** Convert folder names to modified-UTF7.
+** Convert folder names to modified-UTF8.
 */
 
-extern char *folder_toutf7(const char *);
-extern char *folder_fromutf7(const char *);
+extern char *folder_toutf8(const char *);
+extern char *folder_fromutf8(const char *);
 
 /*
 ** Cache kept in the Maildir directory of the sorted contents of the cur

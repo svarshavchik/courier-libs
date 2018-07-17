@@ -3907,13 +3907,13 @@ void matches_free(MATCHEDSTR **p, unsigned n)
 ** Convert folder names to modified-UTF7 encoding.
 */
 
-char *folder_toutf7(const char *foldername)
+char *folder_toutf8(const char *foldername)
 {
 	char *p;
 	int converr;
 
 	p=unicode_convert_tobuf(foldername, sqwebmail_content_charset,
-				  unicode_x_imap_modutf7, &converr);
+				  unicode_x_smap_modutf8, &converr);
 
 	if (p && converr)
 	{
@@ -3930,13 +3930,13 @@ char *folder_toutf7(const char *foldername)
 	return (p);
 }
 
-char *folder_fromutf7(const char *foldername)
+char *folder_fromutf8(const char *foldername)
 {
 	char *p;
 	int converr;
 
 	p=unicode_convert_tobuf(foldername,
-				  unicode_x_imap_modutf7,
+				  unicode_x_smap_modutf8,
 				  sqwebmail_content_charset,
 				  &converr);
 

@@ -193,7 +193,7 @@ int in_utf8;
 			unicode_convert_fromutf8(f,
 						   sqwebmail_content_charset,
 						   NULL)
-			: folder_fromutf7(f);
+			: folder_fromutf8(f);
 
 		if (strcmp(ff, NEWSHAREDSP) == 0 ||
 		    strncmp(ff, NEWSHAREDSP ".", sizeof(NEWSHAREDSP)) == 0)
@@ -1322,7 +1322,7 @@ void folder_nextprev()
 
 void list_folder(const char *p)
 {
-	char *s=folder_fromutf7(p);
+	char *s=folder_fromutf8(p);
 	print_safe(s);
 	free(s);
 }
@@ -2630,8 +2630,8 @@ void folder_list()
 		if (!*folderdir)
 			folderdir=INBOX;
 
-		futf7=folder_toutf7(newfoldername);
-		dutf7=folder_toutf7(newdirname);;
+		futf7=folder_toutf8(newfoldername);
+		dutf7=folder_toutf8(newdirname);;
 
 		if (!*newfoldername ||
 		    strchr(futf7, '.') ||
@@ -2755,7 +2755,7 @@ void folder_list()
 		char	*s;
 		char	*rutf7;
 
-		rutf7=folder_toutf7(r);
+		rutf7=folder_toutf8(r);
 
 		s=malloc(strlen(qutf7)+strlen(rutf7)+1);
 

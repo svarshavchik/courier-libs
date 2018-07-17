@@ -99,12 +99,12 @@ struct maildirfilterrule *r;
 
 	if (*cgi("internalerr"))
 	{
-	const char *p=internal_err;
+		const char *p=internal_err;
 
-	if (*cgi("currentfilternum")) 
-		printf("<input name=\"currentfilternum\""
-			" type=\"hidden\""
-			" value=\"%s\" />", cgi("currentfilternum"));
+		if (*cgi("currentfilternum"))
+			printf("<input name=\"currentfilternum\""
+			       " type=\"hidden\""
+			       " value=\"%s\" />", cgi("currentfilternum"));
 		if (p)
 			printf("%s", getarg(p));
 	}
@@ -176,7 +176,7 @@ struct maildirfilterrule *r;
 			" value=\"%s\" />", p);
 
 		cgi_put("filtertype",
-			r->type == startswith || 
+			r->type == startswith ||
 			r->type == endswith ||
 			r->type == contains ?
 				r->flags & MFR_BODY ? "body":"header":
@@ -308,7 +308,7 @@ struct maildirfilterrule *r;
 			cgi_put("autoresponse_choose", autoresp_name_buf);
 			cgi_put("autoresponse_dsn",
 				mfai.dsnflag ? "1":"");
-			
+
 			cgi_put("autoresponse_dupe",
 				mfai.days > 0 ? "1":"");
 
@@ -345,8 +345,8 @@ struct maildirfilterrule *r;
 			" type=\"hidden\""
 			" value=\"%s\" />", p);
 	}
-	
-	
+
+
 
 	maildir_filter_freerules(&mf);
 }

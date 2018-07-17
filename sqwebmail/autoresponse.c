@@ -72,7 +72,7 @@ const char	*autoresp_text2=getarg("TEXT2");
 		char *p;
 		FILE *fp;
 
-		p=folder_toutf7(name);
+		p=folder_toutf8(name);
 
 		if (!p || maildir_autoresponse_validate(NULL, p))
 		{
@@ -107,7 +107,7 @@ const char	*autoresp_text2=getarg("TEXT2");
 	{
 		const char *autorespname=cgi("autoresponse_choose");
 		FILE *fp;
-		char *s=folder_fromutf7(autorespname);
+		char *s=folder_fromutf8(autorespname);
 		const char *pp;
 
 		if (!s)
@@ -282,7 +282,7 @@ void autoresponsedelete()
 
 		if (mailfilter_autoreplyused(autorespname))
 		{
-			char *s=folder_fromutf7(autorespname);
+			char *s=folder_fromutf8(autorespname);
 			printf(getarg("INUSE"), s ? s:"");
 			if (s)
 				free(s);
@@ -539,8 +539,8 @@ static int comp_autorespname(const void *a, const void *b)
 	const char *ca=*(const char **)a;
 	const char *cb=*(const char **)b;
 
-	char *sa=folder_fromutf7(ca);
-	char *sb=folder_fromutf7(cb);
+	char *sa=folder_fromutf8(ca);
+	char *sb=folder_fromutf8(cb);
 
 	int i=sa && sb ? strcoll(sa, sb):0;
 
@@ -573,7 +573,7 @@ void autoresponselist()
 		output_attrencoded(list[i]);
 		printf("\">");
 
-		s=folder_fromutf7(list[i]);
+		s=folder_fromutf8(list[i]);
 		output_attrencoded(s);
 		printf("</option>");
 		free(s);
@@ -608,7 +608,7 @@ void autoresponsepick()
 		output_attrencoded(list[i]);
 		printf("\">");
 
-		s=folder_fromutf7(list[i]);
+		s=folder_fromutf8(list[i]);
 		output_attrencoded(s);
 		printf("</option>");
 		free(s);

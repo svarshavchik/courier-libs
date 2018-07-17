@@ -1080,7 +1080,7 @@ static void do_output_form_loop(FILE *f)
 			char *origc, *c;
 			const char *sep="";
 
-			origc=c=folder_fromutf7(f);
+			origc=c=folder_fromutf8(f);
 
 			if (*c && strcmp(c, INBOX))
 			{
@@ -2096,7 +2096,7 @@ void rename_sent_folder(int really)
 	if (strftime (buf, sizeof(buf), "." SENT ".%Y.%m-%b", tm) == 0)
 		return;
 
-	pp=folder_toutf7(buf);
+	pp=folder_toutf8(buf);
 
 	if (really)
 		rename("." SENT, pp);
