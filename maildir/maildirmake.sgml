@@ -451,7 +451,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
 
       <note>
 	<para>
-	  Any manual work is only needed if maildirs have folders with
+	  All this work is only needed if maildirs have folders with
 	  non-English names. Ignore everything you've just read if all
 	  folder names are English-only.
 	  <option>--checkutf8</option> and
@@ -467,11 +467,22 @@ Updating /home/mrsam/.mailfilter</programlisting>
       <itemizedlist>
 	<listitem>
 	  <para>
-	    Write a shell script to run <option>--checkutf8</option> on
-	    all your mailboxes. It's ok to explicitly specify each mailbox's
+	    A shell script needs to run the <option>--checkutf8</option>
+	    option for every mailbox. A list of each account's maildir
+	    needs to be prepared in advance, together with the corresponding
+	    <filename>.mailfilter</filename> (where appropriate).
+	    courier-authlib's <command>authenumerate</command> command is usually
+	    a good starting point.
+	    It's ok to explicitly specify each mailbox's
 	    <filename>.mailfilter</filename>, when using
 	    <application>SqWebMail</application> even if a particular
 	    mailbox does not use it. It will be ignored.
+	    The list of all accounts' maildirs gets converted to a shell
+	    script that runs <command>maildirmake</command> with the
+	    <option>--checkutf8</option> option. The script should report
+	    any maildir whose <option>--checkutf8</option> option reports
+	    an error, and
+	    <command>maildirmake</command> exits with a non-zero status.
 	  </para>
 
 	  <para>
@@ -559,7 +570,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
 
       <para>
 	Encountering a bad folder during conversion strongly suggests the
-	usage of an IMAP client that does not correctly encode non-English
+	presence of an IMAP client that does not correctly encode non-English
 	folder names. Such an IMAP client will likely have problems after
 	the conversion.
       </para>
