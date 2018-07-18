@@ -3995,6 +3995,8 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	if (enabled_utf8 && curtoken->tokentype == IT_ATOM &&
 	    strcmp(curtoken->tokenbuf, "UTF8") == 0)
 	{
+		/* See also: https://bugs.python.org/issue34138 */
+
 		curtoken=nexttoken();
 		if (curtoken->tokentype != IT_LPAREN)
 		{
