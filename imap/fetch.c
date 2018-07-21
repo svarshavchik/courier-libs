@@ -287,8 +287,8 @@ int do_fetch(unsigned long n, int byuid, void *p)
 			open_err=1;
 			cannot_open_because=
 				" because it is a Unicode message and your"
-				" mail client did not enable Unicode support."
-				" Please use a mail client that supports"
+				" E-mail reader did not enable Unicode support."
+				" Please use an E-mail reader that supports"
 				" IMAP with UTF-8 (see"
 				" https://tools.ietf.org/html/rfc6855.html)";
 		}

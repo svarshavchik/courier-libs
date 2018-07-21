@@ -85,14 +85,16 @@ pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la
 pop3login_LDADD=../tcpd/libtlsclient.la ../tcpd/libspipe.la libpop3d.la ../tcpd/libspipe.la @LDAUTH@ -lcourierauth -lcourierauthsasl @NETLIBS@
 
 libpop3d_la_SOURCES=externalauth.c
-libpop3d_la_LIBADD=../maildir/libmaildir.la ../rfc822/librfc822.la \
+libpop3d_la_LIBADD=../maildir/libmaildir.la \
+	../rfc2045/librfc2045.la \
+	../rfc822/librfc822.la \
 	../numlib/libnumlib.la
 libpop3d_la_DEPENDENCIES=$(libpop3d_la_LIBADD)
 libpop3d_la_LDFLAGS=-static
 
 pop3d_SOURCES=pop3dserver.c pop3dcapa.c
 pop3d_DEPENDENCIES=libpop3d.la
-pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth
+pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 
 HTML2TXT=links -dump -no-numbering
 

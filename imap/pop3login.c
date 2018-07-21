@@ -37,6 +37,7 @@ extern const char *pop3_externalauth();
 
 static const char *pop3d;
 static const char *defaultmaildir;
+int utf8_enabled=0;
 
 static const char *safe_getenv(const char *p)
 {
@@ -223,6 +224,10 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 				       ainfo->address);
 				putenv(p);
 
+				if (utf8_enabled)
+					putenv("UTF8=1");
+				else
+					putenv("UTF8=0");
 				alarm(0);
 				execl(pop3d, pop3d,
 				      ainfo->maildir ?
@@ -304,6 +309,14 @@ char *q ;
 				printf("+OK Better luck next time.\r\n");
 				fflush(stdout);
 				break;
+			}
+
+			if ( strcmp(p, "UTF8") == 0)
+			{
+				printf("+OK UTF8 enabled\r\n");
+				fflush(stdout);
+				utf8_enabled=1;
+				continue;
 			}
 
 			if ( strcmp(p, "USER") == 0)

@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2008 Double Precision, Inc.
+** Copyright 1998 - 2018 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -78,10 +78,13 @@ void pop3dcapa()
 		printf("SASL %s%s%s\r\n", p, *p && *external ? " ":"",
 		       *external ? "EXTERNAL":"");
 	}
-		
+
 	if (have_starttls())
 		printf("STLS\r\n");
 
-	printf("TOP\r\nUSER\r\nLOGIN-DELAY 10\r\nPIPELINING\r\nUIDL\r\nIMPLEMENTATION Courier Mail Server\r\n.\r\n");
+	printf("TOP\r\nUSER\r\nLOGIN-DELAY 10\r\n"
+	       "PIPELINING\r\nUIDL\r\n"
+	       "UTF8 USER\r\n"
+	       "IMPLEMENTATION Courier Mail Server\r\n.\r\n");
 	fflush(stdout);
 }
