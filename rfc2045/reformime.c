@@ -856,17 +856,30 @@ char	**l;
 		l[pcnt++]=last->fn;
 
 	mimedigest1(pcnt, l);
+	free(l);
+	while(first)
+	{
+		last=first->next;
+		free(first->fn);
+		free(first);
+		first=last;
+	}
 }
 
 static void mimedigest1(int argc, char **argv)
 {
-time_t	t;
-char	boundarybuf[200];
-unsigned boundarycnt=0;
-int	i;
-FILE	*fp;
+	time_t	t;
+	char	boundarybuf[200];
+	unsigned boundarycnt=0;
+	int	i;
+	FILE	*fp;
+	int	*utf8;
+	if (argc == 0)
+		return;
 
 	time (&t);
+
+	utf8=malloc(sizeof(int)*argc);
 
 	/* Search for a suitable boundary */
 
@@ -874,15 +887,23 @@ FILE	*fp;
 	{
 	int	l;
 
-		sprintf(boundarybuf, "reformime_%lu_%u",
-			(unsigned long)t, ++boundarycnt);
+		sprintf(boundarybuf, "reformime_%lu_%lu_%u",
+			(unsigned long)t,
+			(unsigned long)getpid(),
+			++boundarycnt);
 
 		l=strlen(boundarybuf);
 
 		for (i=0; i<argc; i++)
 		{
-		int	err=0;
+			int	err=0;
+			struct rfc2045 *parser=rfc2045_alloc();
 
+			if (!parser)
+			{
+				perror(argv[i]);
+				exit(1);
+			}
 			if ((fp=fopen(argv[i], "r")) == 0)
 			{
 				perror(argv[i]);
@@ -891,6 +912,8 @@ FILE	*fp;
 
 			while (fgets(mimebuf, sizeof(mimebuf), fp))
 			{
+				rfc2045_parse(parser, mimebuf, strlen(mimebuf));
+
 				if (mimebuf[0] != '-' || mimebuf[1] != '-')
 					continue;
 
@@ -901,6 +924,9 @@ FILE	*fp;
 				}
 			}
 			fclose(fp);
+			utf8[i]=parser->rfcviolation & RFC2045_ERR8BITHEADER
+				? 1:0;
+			rfc2045_free(parser);
 			if (err)	break;
 		}
 	} while (i < argc);
@@ -917,14 +943,16 @@ FILE	*fp;
 			exit(1);
 		}
 
-		printf("\n--%s\nContent-Type: message/rfc822\n\n",
-			boundarybuf);
+		printf("\n--%s\nContent-Type: %s\n\n",
+		       boundarybuf,
+		       utf8[i] ? RFC2045_MIME_MESSAGE_GLOBAL:
+		       RFC2045_MIME_MESSAGE_RFC822);
 
 		while (fgets(mimebuf, sizeof(mimebuf), fp))
 			printf("%s", mimebuf);
 		fclose(fp);
 	}
-
+	free(utf8);
 	printf("\n--%s--\n", boundarybuf);
 }
 

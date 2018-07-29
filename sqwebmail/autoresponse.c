@@ -386,7 +386,7 @@ static void end_upload(void *vp)
 
 	mimetype=calc_mime_type(uai->filename);
 
-	if (strcasecmp(mimetype, "message/rfc822") == 0)
+	if (rfc2045_message_content_type(mimetype))
 	{
 		/* Magic */
 

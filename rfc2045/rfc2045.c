@@ -743,8 +743,8 @@ char	*p;
 
 int rfc2045_message_content_type(const char *content_type)
 {
-	return strcmp(content_type, RFC2045_MIME_MESSAGE_RFC822) == 0 ||
-		strcmp(content_type, RFC2045_MIME_MESSAGE_GLOBAL) == 0;
+	return strcasecmp(content_type, RFC2045_MIME_MESSAGE_RFC822) == 0 ||
+		strcasecmp(content_type, RFC2045_MIME_MESSAGE_GLOBAL) == 0;
 }
 
 /*
@@ -753,18 +753,18 @@ int rfc2045_message_content_type(const char *content_type)
 
 int rfc2045_delivery_status_content_type(const char *content_type)
 {
-	return strcmp(content_type,
+	return strcasecmp(content_type,
 		      RFC2045_MIME_MESSAGE_DELIVERY_STATUS) == 0 ||
-		strcmp(content_type,
+		strcasecmp(content_type,
 		       RFC2045_MIME_MESSAGE_GLOBAL_DELIVERY_STATUS) == 0;
 }
 
 int rfc2045_message_headers_content_type(const char *content_type)
 {
-	return strcmp(content_type,
-		      RFC2045_MIME_MESSAGE_HEADERS) == 0 ||
-		strcmp(content_type,
-		       RFC2045_MIME_MESSAGE_GLOBAL_HEADERS) == 0;
+	return strcasecmp(content_type,
+			  RFC2045_MIME_MESSAGE_HEADERS) == 0 ||
+		strcasecmp(content_type,
+			   RFC2045_MIME_MESSAGE_GLOBAL_HEADERS) == 0;
 }
 
 /* Various permutations of the above, including forcing the string to

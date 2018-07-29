@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2017 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(sqwebmail, 5.9.2, [courier-sqwebmail@lists.sourceforge.net])
+AC_INIT(sqwebmail, 5.9.3, [courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 

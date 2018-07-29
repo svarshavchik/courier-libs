@@ -105,7 +105,8 @@ int	x;
 			rfc2045_mimeinfo(rfc2045partp, &content_type,
 				&dummy, &dummy);
 
-			if (!content_type || strcmp(content_type, "message/rfc822"))
+			if (!content_type ||
+			    !rfc2045_message_content_type(content_type))
 				rfc2045partp=0;
 			else
 				rfc2045partp=rfc2045partp->firstpart;

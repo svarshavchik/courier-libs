@@ -29,7 +29,7 @@ extern "C" {
 #define RFC2045_MIME_MESSAGE_GLOBAL_DELIVERY_STATUS \
 	"message/global-delivery-status"
 
-#define RFC2045_MIME_MESSAGE_HEADERS "message/rfc822-headers"
+#define RFC2045_MIME_MESSAGE_HEADERS "text/rfc822-headers"
 #define RFC2045_MIME_MESSAGE_GLOBAL_HEADERS "message/global-headers"
 
 int rfc2045_message_content_type(const char *);
