@@ -193,11 +193,12 @@ default character set.</para>
 	  <blockquote>
 	    <informalexample>
 	      <programlisting>
-Content-Type: text/plain; format=flowed; delsp=yes; charset="iso-8859-1"
+Content-Type: text/plain; format=flowed; delsp=yes;
+              charset="iso-8859-1"
 
-Mary had a little lamb,  
-Its fleece was white as snow.  
-And everywhere Mary went,  
+Mary had a little lamb,&#32;&#32;
+Its fleece was white as snow.&#32;&#32;
+And everywhere Mary went,&#32;&#32;
 The lamb was sure to go.</programlisting>
 	    </informalexample>
 	  </blockquote>
@@ -221,7 +222,7 @@ set and formats the autoreply according to the character set read from the
 	    <replaceable>address</replaceable> is an
 	    <ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
 	    E-mail address that generates the DSN.
-	    Note that the <option>-A</option> option should still be used in 
+	    Note that the <option>-A</option> option should still be used in
 	    addition to <option>-M</option> in order to set the
 	    <literal>From:</literal> header on the autoresponse.
 	    <option>-M</option> sets the DSN address only.
@@ -552,6 +553,11 @@ Set the <literal>Subject:</literal> header on the autoresponse to
 	    <quote>--feedback-original-rcpt-to</quote> and
 	    <quote>--feedback-reported-domain</quote> may be specified more
 	    than once.
+	  </para>
+
+	  <para>
+	    Where appropriate, UTF-8 encoding should be used for non-ASCII
+	    characters.
 	  </para>
 	</listitem>
       </varlistentry>
