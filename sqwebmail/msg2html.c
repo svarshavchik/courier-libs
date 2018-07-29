@@ -1278,7 +1278,7 @@ off_t	dummy;
 		print_header_uc(info, header);
 		printf("<td><span class=\"message-rfc822-header-contents\">");
 		/* showmsgrfc822_addressheader(value); */
-		printf("%s", value);
+		html_escape(value, strlen(value));
 		printf("</span></td></tr>\n");
 		free(header);
 	}
