@@ -1277,8 +1277,9 @@ off_t	dummy;
 
 		print_header_uc(info, header);
 		printf("<td><span class=\"message-rfc822-header-contents\">");
+
 		/* showmsgrfc822_addressheader(value); */
-		printf("%s", value);
+		html_escape(value, strlen(value));
 		printf("</span></td></tr>\n");
 		free(header);
 	}
@@ -2989,14 +2990,14 @@ const char	*content_type, *dummy;
 		return (0);
 
 	if (strcmp(content_type, "text/plain") == 0 ||
-	    strcmp(content_type, "text/rfc822-headers") == 0 ||
+	    rfc2045_message_headers_content_type(content_type) ||
 	    strcmp(content_type, "text/x-gpg-output") == 0)
 		return ( &showtextplain );
-	if (strcmp(content_type, "message/delivery-status") == 0)
+	if (rfc2045_delivery_status_content_type(content_type))
 		return ( &showdsn);
 	if (info->showhtml && strcmp(content_type, "text/html") == 0)
 		return ( &showtexthtml );
-	if (strcmp(content_type, "message/rfc822") == 0)
+	if (rfc2045_message_content_type(content_type))
 		return ( &showmsgrfc822);
 
 	return (0);

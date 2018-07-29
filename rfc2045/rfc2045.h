@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -21,6 +21,20 @@ extern "C" {
 #if 0
 }
 #endif
+
+#define RFC2045_MIME_MESSAGE_RFC822 "message/rfc822"
+#define RFC2045_MIME_MESSAGE_GLOBAL "message/global"
+
+#define RFC2045_MIME_MESSAGE_DELIVERY_STATUS "message/delivery-status"
+#define RFC2045_MIME_MESSAGE_GLOBAL_DELIVERY_STATUS \
+	"message/global-delivery-status"
+
+#define RFC2045_MIME_MESSAGE_HEADERS "message/rfc822-headers"
+#define RFC2045_MIME_MESSAGE_GLOBAL_HEADERS "message/global-headers"
+
+int rfc2045_message_content_type(const char *);
+int rfc2045_delivery_status_content_type(const char *);
+int rfc2045_message_headers_content_type(const char *);
 
 #define	RFC2045_ISMIME1(p)	((p) && atoi(p) == 1)
 #define	RFC2045_ISMIME1DEF(p)	(!(p) || atoi(p) == 1)
