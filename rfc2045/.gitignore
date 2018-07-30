@@ -11,3 +11,4 @@
 /rfc2045_config.h.in
 /rfc2045charset.h
 /testrfc3676parser
+/testrfc6533parser

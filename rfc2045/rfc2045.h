@@ -683,6 +683,30 @@ void rfc2231_paramDecode(struct rfc2231param *paramList,
 			 int *langLen,
 			 int *textLen);
 
+/*
+** Encode an E-mail address as utf-8 address type specified in RFC 6533.
+** The e-mail address parameter must be encoded in UTF-8.
+**
+** The E-mail address is encoded as "rfc822" address type if it has only
+** ASCII characters, or if use_rfc822 is set to non0.
+**
+** A malloc-ed address gets returned.
+*/
+
+char *rfc6533_encode(const char *address, int use_rfc822);
+
+/*
+** Decode a utf-8 or an rfc-822 address type. Returns a malloc-ed buffer,
+** or NULL if the address cannot be decoded.
+**
+** Assumes valid UTF-8 coding, and does not verify it.
+**
+** Does verify, for both rfc-822 and utf-8 formats, that the returned address
+** does not contain control characters.
+*/
+
+char *rfc6533_decode(const char *address);
+
 #if 0
 {
 #endif
