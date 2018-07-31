@@ -65,18 +65,12 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode
 mailbot_LDFLAGS = -static
 
-if HAVE_LIBIDN
-TESTSUITE=testsuite.txt.idn
-else
-TESTSUITE=testsuite.txt.noidn
-endif
-
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
-	maildrop.lsm testsuite.txt.idn testsuite.txt.noidn testsuite2
+	maildrop.lsm testsuite.txt.idn testsuite2
 
 check-am:
 	@chmod +x testsuite
-	./testsuite | cmp -s - $(srcdir)/$(TESTSUITE)
+	./testsuite | cmp -s - $(srcdir)/testsuite.txt.idn
 	@SHELL@ $(srcdir)/testsuite2
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \

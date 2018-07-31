@@ -747,6 +747,4 @@ AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
 . ../rfc822/rfc822.config
 
-AM_CONDITIONAL(HAVE_LIBIDN, test "$libidn" = "yes")
-
 AC_OUTPUT(xconfig.h Makefile README.html testsuite)

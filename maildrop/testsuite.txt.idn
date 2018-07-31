@@ -642,8 +642,8 @@ DSN message text
 
 
 --
-Content-Type: message/feedback-report
-Content-Transfer-Encoding: 7bit
+Content-Type: message/feedback-report; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 
 Arrival-Date:
 
@@ -682,8 +682,8 @@ DSN message text
 
 
 --
-Content-Type: message/feedback-report
-Content-Transfer-Encoding: 7bit
+Content-Type: message/feedback-report; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 
 Arrival-Date:
 
