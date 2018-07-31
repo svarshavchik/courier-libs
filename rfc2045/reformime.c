@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -695,7 +695,8 @@ char *p, *q;
 	for (p=addr; *p && isspace((int)(unsigned char)*p); ++p)
 		;
 
-	if (strncasecmp(p, "rfc822;", 7))
+	if (strncasecmp(p, "rfc822;", 7) &&
+	    strncasecmp(p, "utf-8;", 6))
 	{
 		free(action);
 		free(addr);
@@ -703,7 +704,8 @@ char *p, *q;
 	}
 	for (q=action; *q && isspace((int)(unsigned char)*q); ++q)
 		;
-	p += 7;
+
+	p=strchr(p, ';')+1;
 	while (*p && isspace((int)(unsigned char)*p))
 		++p;
 	printf("%s %s\n", q, p);
@@ -738,7 +740,7 @@ char *orecip;
 	rfc2045_mimeinfo(p, &content_type_s, &content_transfer_encoding_s,
 		&charset_s);
 	rfc2045_mimepos(p, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-	if (strcasecmp(content_type_s, "message/delivery-status") ||
+	if (!rfc2045_delivery_status_content_type(content_type_s) ||
 		fseek(stdin, start_body, SEEK_SET) == -1)
 		_exit(1);
 
