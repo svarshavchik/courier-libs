@@ -1197,10 +1197,11 @@ int rc=0;
 	}
 	else if (dodecode)
 	{
-		mimesection = strtok(section,",");
+		mimesection = section ? strtok(section,","):NULL;
 		do {
 			print_decode(p, mimesection);
-			mimesection = strtok(NULL,",");
+			if (mimesection)
+				mimesection = strtok(NULL,",");
 		} while (mimesection != NULL);
 	}
 	else if (dorewrite)
