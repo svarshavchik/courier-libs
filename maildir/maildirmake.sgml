@@ -321,14 +321,14 @@ own.</para>
       E-mail client support.
       Given that, this major update to Unicode will also introduce some
       backwards-incompatible changes to the internal structure of maildirs,
-      as a long term major to simplify Unicode support going forward.
+      as a major upgrade to simplify Unicode support going forward.
       Might as well go through the pain of a major upgrade once.
     </para>
 
     <para>
       <command>maildirmake</command>'s <option>--checkutf8</option> and
       <option>--convutf8</option> options are tools to aid in conversion of
-      existing mailbox to the new Unicode-based naming standard.
+      existing mailboxes to the new Unicode-based naming standard.
     </para>
 
     <refsect2>
@@ -337,30 +337,31 @@ own.</para>
       <para>
 	Mail folders in a maildir are hidden subdirectories. For example:
 	a folder name <quote>Mailing list</quote> is a maildir subdirectory
-	named <filename>$HOME/Maildir/.Mailing list</filename> (with
-	<filename>$HOME/Maildir</filename> being the main mailbox).
+	named <filename>$HOME/Maildir/.Mailing list</filename>
+	(<filename>$HOME/Maildir</filename> is the main mailbox).
       </para>
 
       <para>
 	Prior to the unicode update, non-English characters in folder names
-	were implemented using a convention that was derived from the
+	used a convention based on the
 	non-standard <quote>modified-UTF7</quote> encoding used by IMAP.
-	A folder named <quote>Résumé</quote> was in a maildir subdirectory
+	A folder named <quote>Résumé</quote> is a maildir subdirectory
 	named <filename>$HOME/Maildir/.R&amp;AOk-sum&amp;AOk-</filename>.
-	The current versions of Courier, <application>Courier-IMAP</application>, and SqWebmail,
-	will simply create <filename>$HOME/Maildir/.Résumé</filename>
-	using the <acronym>UTF8</acronym> encoding, which will appear simply
-	as a <quote>.Résumé</quote> (hidden) subdirectory on modern
+	The current versions of Courier,
+	<application>Courier-IMAP</application>, and SqWebmail,
+	now creates <filename>$HOME/Maildir/.Résumé</filename>
+	using the <acronym>UTF8</acronym> encoding. This appears as plain
+	<quote>.Résumé</quote> (hidden) subdirectory on modern
 	UTF8-based systems.
       </para>
 
       <para>
-	Consequently, any existing maildirs that have non-English folders
+	Consequently, any existing maildirs with folders that use non-English
+	names
 	must be converted as part of updating to the current version of
 	Courier, <application>Courier-IMAP</application>, and SqWebmail from pre-unicode versions.
-	At this time
-	this does not occur as part of automatically updating to the current
-	version, and must be done manually given the wide variety of individual
+	This does not happen automatically when updating to the current
+	version. This must be done manually given the wide variety of individual
 	mail server configurations that are possible.
       </para>
     </refsect2>
@@ -384,7 +385,7 @@ own.</para>
 	<listitem>
 	  <para>
 	    Updating the
-	    <filename>$HOME/Maildir/courierimapsubscribed</filename>,
+	    <filename>$HOME/Maildir/courierimapsubscribed</filename> file,
 	    which is a list of subscribed IMAP folders, if it exists.
 	  </para>
 	</listitem>
@@ -393,7 +394,7 @@ own.</para>
 	  <para>
 	    Updating any
 	    <application>maildrop</application>
-	    mail filtering recipe,
+	    mail filtering recipes,
 	    <filename>$HOME/.mailfilter</filename>, if it exists, to reference
 	    the unicode maildir folders; or updating any custom site mail
 	    filtering engine that delivers to maildir folders, to reference
@@ -468,9 +469,9 @@ Updating /home/mrsam/.mailfilter</programlisting>
 	<listitem>
 	  <para>
 	    A shell script needs to run the <option>--checkutf8</option>
-	    option for every mailbox. A list of each account's maildir
+	    option for every mailbox. A list of all accounts' maildirs
 	    needs to be prepared in advance, together with the corresponding
-	    <filename>.mailfilter</filename> (where appropriate).
+	    <filename>.mailfilter</filename>s (where appropriate).
 	    courier-authlib's <command>authenumerate</command> command is usually
 	    a good starting point.
 	    It's ok to explicitly specify each mailbox's
@@ -530,7 +531,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
 	<quote>modified-UTF7</quote> encoding convention for non-Latin
 	folder names is mostly an IMAP client convention, and the
 	pre-Unicode version of <application>Courier-IMAP</application> did
-	not enforce it. The server just uses the name from the IMAP client,
+	not enforce it. The server took the name from the IMAP client,
 	as is.
       </para>
 

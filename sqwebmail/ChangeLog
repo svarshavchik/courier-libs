@@ -1,3 +1,5 @@
+6.0.0
+
 2018-07-17  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* courier-imap, sqwebmail: update Courier-IMAP to support UTF8 IMAP.

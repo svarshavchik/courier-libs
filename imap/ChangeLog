@@ -1,3 +1,5 @@
+5.0.0
+
 2018-07-21  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* pop3dserver.c: update Courier-IMAP to support UTF8 POP3. Update
