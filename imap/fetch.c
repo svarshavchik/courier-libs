@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2010 Double Precision, Inc.
+** Copyright 1998 - 2018 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -450,7 +450,41 @@ static int fetchitem(FILE **fp, int *open_err, struct fetchinfo *fi,
 
 	if (mimecorrectness && !enabled_utf8 &&
 	    ((*mimep)->rfcviolation & RFC2045_ERR8BITHEADER))
+	{
+#if HAVE_OPEN_MEMSTREAM
+		char *ptr;
+		size_t sizeloc;
+		FILE *memfp;
+
+		static const char canned_msg[]=
+			"From: Mail Delivery Subsystem <postmaster@localhost>\n"
+			"Subject: Message unavailable\n"
+			"\n"
+			"This is a Unicode message that cannot be correctly\n"
+			"opened by your E-mail program. Please upgrade to\n"
+			"an E-mail program that supports IMAP with UTF-8.\n";
+
+		if ((memfp=open_memstream(&ptr, &sizeloc)) != 0)
+		{
+			struct rfc2045 *rfcp;
+
+			fprintf(memfp, canned_msg);
+
+			if ((rfcp=rfc2045_alloc()) != NULL)
+			{
+				rfc2045_parse(rfcp, canned_msg,
+					      sizeof(canned_msg)-1);
+				(*fetchfunc)(memfp, fi, i, msgnum, rfcp);
+				rfc2045_free(rfcp);
+			}
+			fclose(memfp);
+			free(ptr);
+		}
+
+		/* Still return -1, in order to [ALERT] the client */
+#endif
 		return -1;
+	}
 
 	(*fetchfunc)(*fp, fi, i, msgnum, *mimep);
 	return (rc);
