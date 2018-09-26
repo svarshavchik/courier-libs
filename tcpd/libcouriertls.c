@@ -346,6 +346,7 @@ static char *get_servername_concated_readable_file(const char *filename,
 	char *p;
 
 	if (!filename || !servername) return NULL;
+	if (!*filename || !*servername) return NULL;
 
 	filename_buffer=malloc(strlen(filename)+strlen(servername)+2);
 	if (!filename_buffer)
@@ -376,10 +377,11 @@ static char *get_servername_concated_readable_file(const char *filename,
 
 static char *get_ip_concated_readable_file(SSL_CTX *ctx, const char *filename, const char *ip)
 {
-	if (!filename || !ip) return NULL;
-
 	char *test_file;
 	const struct tls_info *info=SSL_CTX_get_app_data(ctx);
+
+	if (!filename || !ip) return NULL;
+	if (!*filename || !*ip) return NULL;
 
 	test_file= malloc(strlen(filename)+strlen(ip)+2);
 	if (!test_file)
@@ -452,7 +454,6 @@ static int process_certfile(SSL_CTX *ctx, const char *certfile,
 
 			return rc;
 		}
-		free(test_file);
 		if (test_private_key_file) free(test_private_key_file);
 	}
 

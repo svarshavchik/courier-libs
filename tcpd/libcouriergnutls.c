@@ -1151,8 +1151,6 @@ static int get_client_cert(gnutls_session_t session,
 	{
 		rc=set_cert(ssl, session, st, certfilename, keyfilename);
 		free(certfilename);
-		if (keyfilename)
-			free(keyfilename);
 	}
 	else
 	{
@@ -1161,6 +1159,10 @@ static int get_client_cert(gnutls_session_t session,
 		if (rc > 0)
 			rc=0;
 	}
+
+	if (keyfilename)
+		free(keyfilename);
+
 	return rc;
 }
 
