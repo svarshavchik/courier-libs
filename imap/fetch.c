@@ -249,7 +249,7 @@ int do_fetch(unsigned long n, int byuid, void *p)
 	struct	rfc2045 *rfc2045p;
 	int	seen;
 	int	open_err;
-	const char *cannot_open_because="";
+	int	unicode_err=0;
 
 	fp=NULL;
 	open_err=0;
@@ -284,13 +284,8 @@ int do_fetch(unsigned long n, int byuid, void *p)
 			seen=1;
 		if (rc < 0)
 		{
-			open_err=1;
-			cannot_open_because=
-				" because it is a Unicode message and your"
-				" E-mail reader did not enable Unicode support."
-				" Please use an E-mail reader that supports"
-				" IMAP with UTF-8 (see"
-				" https://tools.ietf.org/html/rfc6855.html)";
+			rc=0;
+			unicode_err=1;
 		}
 		if ((fi=fi->next) != 0)	writes(" ");
 	}
@@ -300,11 +295,20 @@ int do_fetch(unsigned long n, int byuid, void *p)
 	{
 		writes("* NO [ALERT] Cannot open message ");
 		writen(n);
-		writes(cannot_open_because);
 		writes("\r\n");
 		return (0);
 	}
 
+	if (unicode_err)
+	{
+		writes("* OK [ALERT] Cannot open message ");
+		writen(n);
+		writes(" because it is a Unicode message and your"
+		       " E-mail reader did not enable Unicode support."
+		       " Please use an E-mail reader that supports"
+		       " IMAP with UTF-8 (see"
+		       " https://tools.ietf.org/html/rfc6855.html)\r\n");
+	}
 
 #if SMAP
 	if (!smapflag)
