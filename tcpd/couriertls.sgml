@@ -241,7 +241,7 @@ for SSL/TLS clients.
 	  <para>
 SSL/TLS private key for decrypting client data.
 <envar>TLS_PRIVATE_KEY</envar> is optional because <term>TLS_CERTFILE</term> is generated including cert and private key both.
-<replaceable>filename</replaceable> must not be world-readable.</para>
+<replaceable>filename</replaceable> must not be world-readable, and must be accessible without a pass-phrase, i.e. it must not be encrypted.</para>
 	</listitem>
       </varlistentry>
 
