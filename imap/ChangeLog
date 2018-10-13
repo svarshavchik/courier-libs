@@ -1,3 +1,5 @@
+5.0.1
+
 2018-09-26  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Provide an substitute message to IMAP clients that did not enable
