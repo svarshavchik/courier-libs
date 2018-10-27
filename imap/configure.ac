@@ -4,7 +4,7 @@ dnl
 dnl Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(courier-imap, 5.0.1, [courier-users@lists.sourceforge.net])
+AC_INIT(courier-imap, 5.0.2, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -151,7 +151,7 @@ fi
 
 dnl Checks for library functions.
 
-AC_CHECK_FUNCS(strerror utime utimes strcasecmp strncasecmp setlocale poll getaddrinfo open_memstream)
+AC_CHECK_FUNCS(strerror utime utimes strcasecmp strncasecmp setlocale poll getaddrinfo)
 
 AC_DEFINE_UNQUOTED(SOCKET_TIMEOUT,60,
 	[ Read/write timeout ])

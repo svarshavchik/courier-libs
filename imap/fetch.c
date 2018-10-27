@@ -301,9 +301,9 @@ int do_fetch(unsigned long n, int byuid, void *p)
 
 	if (unicode_err)
 	{
-		writes("* OK [ALERT] Cannot open message ");
+		writes("* OK [ALERT] Message ");
 		writen(n);
-		writes(" because it is a Unicode message and your"
+		writes(" appears to be a Unicode message and your"
 		       " E-mail reader did not enable Unicode support."
 		       " Please use an E-mail reader that supports"
 		       " IMAP with UTF-8 (see"
@@ -455,39 +455,8 @@ static int fetchitem(FILE **fp, int *open_err, struct fetchinfo *fi,
 	if (mimecorrectness && !enabled_utf8 &&
 	    ((*mimep)->rfcviolation & RFC2045_ERR8BITHEADER))
 	{
-#if HAVE_OPEN_MEMSTREAM
-		char *ptr;
-		size_t sizeloc;
-		FILE *memfp;
-
-		static const char canned_msg[]=
-			"From: Mail Delivery Subsystem <postmaster@localhost>\n"
-			"Subject: Message unavailable\n"
-			"\n"
-			"This is a Unicode message that cannot be correctly\n"
-			"opened by your E-mail program. Please upgrade to\n"
-			"an E-mail program that supports IMAP with UTF-8.\n";
-
-		if ((memfp=open_memstream(&ptr, &sizeloc)) != 0)
-		{
-			struct rfc2045 *rfcp;
-
-			fprintf(memfp, canned_msg);
-
-			if ((rfcp=rfc2045_alloc()) != NULL)
-			{
-				rfc2045_parse(rfcp, canned_msg,
-					      sizeof(canned_msg)-1);
-				(*fetchfunc)(memfp, fi, i, msgnum, rfcp);
-				rfc2045_free(rfcp);
-			}
-			fclose(memfp);
-			free(ptr);
-		}
-
 		/* Still return -1, in order to [ALERT] the client */
-#endif
-		return -1;
+		rc= -1;
 	}
 
 	(*fetchfunc)(*fp, fi, i, msgnum, *mimep);
