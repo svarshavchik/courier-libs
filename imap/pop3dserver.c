@@ -92,6 +92,7 @@ static unsigned msglist_cnt;
 static struct stat enomem_stat;
 static int enomem_1msg;
 int utf8_enabled;
+int savesizes=0;
 
 /*
 ** When a disk error occurs while saving an updated courierpop3dsizelist
@@ -178,7 +179,7 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 	struct msglist *list=NULL;
 	size_t mcnt=0;
 
-	char linebuf[1024];
+	char linebuf[2048];
 
 	FILE *fp=openpop3dlist();
 
@@ -191,11 +192,17 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 	    fgets(linebuf, sizeof(linebuf)-1, fp) == NULL ||
 	    linebuf[0] != '/' || sscanf(linebuf+1, "%d %lu %lu", &vernum,
 					uid, &uidv)
-	    < 2 || vernum != LISTVERSION)
+	    < 2 || (vernum != LISTVERSION &&
+		    vernum != (LISTVERSION-1)))
 	{
 		if (fp)
 			fclose(fp);
 		fp=NULL;
+	}
+	else
+	{
+		if (vernum != LISTVERSION)
+			savesizes=1;
 	}
 
 	if (fp)
@@ -211,7 +218,7 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 		{
 			if (ch != '\n')
 			{
-				if (n < sizeof(linebuf)-3)
+				if (n < sizeof(linebuf)-20)
 					linebuf[n++]=ch;
 				continue;
 			}
@@ -242,6 +249,10 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 				perror("malloc");
 				exit(1);
 			}
+
+			// Converting from LISTVERSION 2, assuming no UTF-8.
+			// We have extra room at the end.
+			strcat(p, ":0");
 
 			if (sscanf(p, "%lu %lu:%lu:%d", &m->size,
 				   &m->uid.n, &m->uid.uidv,
@@ -417,7 +428,6 @@ static void sortmsgs()
 	size_t i, n;
 	struct msglist *m;
 	struct msglist **prev_list;
-	int savesizes=0;
 
 	unsigned long nextuid;
 
@@ -637,6 +647,59 @@ char	buf[NUMBUFSIZE];
 
 /* RETR and TOP POP3 commands */
 
+#define MIMEWRAPTXT							\
+	"From: Mail Delivery Subsystem <postmaster>\n"			\
+	"Subject: Cannot display Unicode content\n"			\
+	"Mime-Version: 1.0\n"						\
+	"Content-Type: multipart/mixed; boundary=\"%s\"\n"		\
+	"\n\n\n--%s\n"							\
+	"Content-Type: text/plain\n\n"					\
+	"This E-mail message was determined to be Unicode-formatted\n"	\
+	"but your E-mail reader does not support Unicode E-mail.\n\n"	\
+	"Please use an E-mail reader that supports POP3 with UTF-8\n"	\
+	"(see https://tools.ietf.org/html/rfc6856.html).\n\n"		\
+	"This can also happen when the sender's E-mail program does not\n" \
+	"correctly format the sent message.\n\n"			\
+	"The original message is included as a separate attachment\n"	\
+	"so that it can be downloaded manually.\n\n"			\
+	"--%s\n"							\
+	"Content-Type: message/global\n\n"
+
+struct retr_source {
+	char *wrapheader;
+	FILE *f;
+	char *wrapfooter;
+};
+
+static int get_retr_source(struct retr_source *s)
+{
+	int c=(unsigned char)*s->wrapheader;
+
+	if (c)
+	{
+		++s->wrapheader;
+		return c;
+	}
+
+	if (s->f)
+	{
+		int c=getc(s->f);
+
+		if (c >= 0)
+			return c;
+		s->f=0;
+	}
+
+	if (*s->wrapfooter)
+	{
+		int c=(unsigned char)*s->wrapfooter;
+
+		++s->wrapfooter;
+		return c;
+	}
+	return -1;
+}
+
 static void do_retr(unsigned i, unsigned *lptr)
 {
 	FILE	*f;
@@ -645,18 +708,21 @@ static void do_retr(unsigned i, unsigned *lptr)
 	int	inheader=1;
 	char	buf[NUMBUFSIZE];
 	unsigned long *cntr;
+	char boundary[256];
+	char wrapheader[sizeof(MIMEWRAPTXT)+768];
+	char wrapfooter[512];
+
+	struct retr_source rs;
+
+	wrapheader[0]=0;
+	wrapfooter[0]=0;
 
 	if (msglist_a[i]->isutf8 && !utf8_enabled)
 	{
-		printed(printf("-ERR Cannot open message %u because it is"
-			       " a Unicode message and your E-mail reader"
-			       " did not enable Unicode support. Please"
-			       " use an E-mail reader that supports POP3"
-			       " with UTF-8 (see"
-			       " https://tools.ietf.org/html/rfc6856.html)\r\n",
-			       i+1));
-		fflush(stdout);
-		return;
+		sprintf(boundary, "=_%d-%d", (int)getpid(), (int)time(NULL));
+
+		sprintf(wrapheader, MIMEWRAPTXT, boundary, boundary, boundary);
+		sprintf(wrapfooter, "\n--%s--\n", boundary);
 	}
 
 	f=fopen(msglist_a[i]->filename, "r");
@@ -668,13 +734,20 @@ static void do_retr(unsigned i, unsigned *lptr)
 		return;
 	}
 	printed(printf( (lptr ? "+OK headers follow.\r\n":"+OK %s octets follow.\r\n"),
-			libmail_str_off_t(msglist_a[i]->size, buf)));
+			libmail_str_off_t(msglist_a[i]->size +
+					  strlen(wrapheader) +
+					  strlen(wrapfooter),
+					  buf)));
 
 	cntr= &retr_count;
 	if (lptr)
 		cntr= &top_count;
 
-	for (lastc=0; (c=getc(f)) >= 0; lastc=c)
+	rs.wrapheader=wrapheader;
+	rs.f=f;
+	rs.wrapfooter=wrapfooter;
+
+	for (lastc=0; (c=get_retr_source(&rs)) >= 0; lastc=c)
 	{
 		if (lastc == '\n')
 		{
