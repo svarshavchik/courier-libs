@@ -1,3 +1,8 @@
+2018-11-17  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* pop3dserver.c (calcsize): Fix spurious flagging of non-UTF8
+	messages as UTF-8.
+
 2018-11-16  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* pop3dserver.c (readpop3dlist): Be able to update

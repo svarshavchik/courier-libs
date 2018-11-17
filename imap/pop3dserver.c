@@ -139,6 +139,7 @@ static void calcsize(struct msglist *m)
 	if (m->size > 0 && fseek(f, -1, SEEK_SET) == 0 && getc(f) != '\n')
 		m->size+=2; /* We'll add an extra CRLF ourselves */
 
+	m->isutf8=0;
 	if (p->rfcviolation & RFC2045_ERR8BITHEADER)
 		m->isutf8=1;
 	rfc2045_free(p);
