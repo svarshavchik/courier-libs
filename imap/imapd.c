@@ -4052,17 +4052,17 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	}
 
 	dirsync(path);
+	if (utf8_error) {
+		writes("* OK [ALERT] Your IMAP client does not appear to "
+		       "correctly implement Unicode messages, "
+		       "see https://tools.ietf.org/html/rfc6855.html\r\n");
+	}
 	writes(tag);
 	writes(" OK [APPENDUID ");
 	writen(new_uidv);
 	writes(" ");
 	writen(new_uid);
 	writes("] APPEND Ok.");
-	if (utf8_error) {
-		writes(" [ALERT] Your IMAP client does not appear to "
-				"correctly implement Unicode messages, "
-				"see https://tools.ietf.org/html/rfc6855.html");
-	}
 	writes("\r\n");
 	return (0);
 }
