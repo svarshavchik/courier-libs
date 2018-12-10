@@ -1334,6 +1334,8 @@ void doNoop(int real_noop)
 #endif
 		new_maildir_info.msgs[j].copiedflag=
 			current_maildir_info.msgs[i].copiedflag;
+		new_maildir_info.msgs[j].err8bitflag=
+			current_maildir_info.msgs[i].err8bitflag;
 		++j;
 	}
 
