@@ -186,6 +186,7 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 
 	size_t i;
 	int vernum=0;
+	unsigned long size;
 
 	uidv=time(NULL);
 
@@ -255,10 +256,11 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 			// We have extra room at the end.
 			strcat(p, ":0");
 
-			if (sscanf(p, "%lu %lu:%lu:%d", &m->size,
+			if (sscanf(p, "%lu %lu:%lu:%d", &size,
 				   &m->uid.n, &m->uid.uidv,
 				   &m->isutf8) == 4)
 			{
+				m->size=size;
 				m->next=list;
 				list=m;
 				++mcnt;
