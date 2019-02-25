@@ -666,7 +666,7 @@ char	buf[NUMBUFSIZE];
 	"The original message is included as a separate attachment\n"	\
 	"so that it can be downloaded manually.\n\n"			\
 	"--%s\n"							\
-	"Content-Type: message/global\n\n"
+	"Content-Type: %s\n\n"
 
 struct retr_source {
 	char *wrapheader;
@@ -712,19 +712,23 @@ static void do_retr(unsigned i, unsigned *lptr)
 	char	buf[NUMBUFSIZE];
 	unsigned long *cntr;
 	char boundary[256];
-	char wrapheader[sizeof(MIMEWRAPTXT)+768];
+	char wrapheader[sizeof(MIMEWRAPTXT)+1024];
 	char wrapfooter[512];
-
+	const char *mime_message_type=getenv("MIME_UNICODE_MESSAGE_TYPE");
 	struct retr_source rs;
 
 	wrapheader[0]=0;
 	wrapfooter[0]=0;
 
+	if (!mime_message_type)
+		mime_message_type="message/global";
+
 	if (msglist_a[i]->isutf8 && !utf8_enabled)
 	{
 		sprintf(boundary, "=_%d-%d", (int)getpid(), (int)time(NULL));
 
-		sprintf(wrapheader, MIMEWRAPTXT, boundary, boundary, boundary);
+		sprintf(wrapheader, MIMEWRAPTXT, boundary, boundary, boundary,
+			mime_message_type);
 		sprintf(wrapfooter, "\n--%s--\n", boundary);
 	}
 
