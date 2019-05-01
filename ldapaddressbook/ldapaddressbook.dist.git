@@ -10,6 +10,14 @@
 #
 # Example:
 #
-# YourOrganizationName<tab>ldap.example.com<tab>ou=member_directory,o=example.com<tab>ou=people,o=example.com
+# YourOrganizationName<tab>ldap.example.com<tab>port<tab>ou=member_directory,o=example.com<tab>ou=people,o=example.com
 #
+# Field-by-field explanation, each field is <tab> separated.
+#
+# YourOrganizationName      - the label for the address book
+# ldap.example.com          - the ldap server
+# port                      - ldap port.
+# ou=member_directory...    - the LDAP search basedn
+# ou=people,...             - the LDAP search string
+
 ##NAME: ldapaddressbook:0
