@@ -1,3 +1,8 @@
+2019-05-17  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* cgi/cgidaemon.c (connect_err): Fix quoting in HTTP headers for
+	error messages.
+
 6.0.1
 	* Typo correction.
 

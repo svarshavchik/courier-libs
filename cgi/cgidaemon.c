@@ -42,7 +42,7 @@ static void err(const char *func, const char *msg)
 {
 	cginocache();
 
-	printf("Content-Type: text/html; charset='utf-8'\n\n"
+	printf("Content-Type: text/html; charset=\"utf-8\"\n\n"
 	       "<html><head><title>Internal error</title></head>\n"
 	       "<body><h1>Internal Error</h1>\n"
 	       "<p>The webmail system is temporarily unavailable.  An error"
@@ -56,7 +56,7 @@ static void connect_err(const char *func)
 {
 	cginocache();
 
-	printf("Content-Type: text/html; charset='us-ascii'\n\n"
+	printf("Content-Type: text/html; charset=\"us-ascii\"\n\n"
 	       "<html><head><title>System unavailable</title></head>\n"
 	       "<body><h1>System unavailable</h1>\n"
 	       "<p>The web page you're trying to access is not available"
