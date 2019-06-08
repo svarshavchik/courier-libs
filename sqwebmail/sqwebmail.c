@@ -447,7 +447,7 @@ void error3(const char *file, int line, const char *msg1, const char *msg2, int 
 char *get_templatedir()
 {
 char	*templatedir=getenv("SQWEBMAIL_TEMPLATEDIR");
-	
+
 	if (!templatedir || !*templatedir)	templatedir=HTMLLIBDIR;
 
 	return templatedir;
@@ -457,7 +457,7 @@ char	*templatedir=getenv("SQWEBMAIL_TEMPLATEDIR");
 char *get_imageurl()
 {
 char	*imageurl=getenv("SQWEBMAIL_IMAGEURL");
-	
+
 	if (!imageurl || !*imageurl)	imageurl=IMGPATH;
 
 	return imageurl;
@@ -470,7 +470,7 @@ FILE *open_langform(const char *lang, const char *formname,
 char	*formpath;
 FILE	*f;
 char	*templatedir=get_templatedir();
-	
+
 	/* templatedir/lang/formname */
 
 	if (!(formpath=malloc(strlen(templatedir)+3+
@@ -483,7 +483,7 @@ char	*templatedir=get_templatedir();
 	f=fopen(formpath, "r");
 
 	free(formpath);
-	
+
 	if (f && print_header)
 		printf("Content-Language: %s\n", lang);
 	if (f)
@@ -879,7 +879,7 @@ void output_form(const char *formname)
 			close(pipefd[0]);
 			close(pipefd[1]);
 			execl(GZIP, "gzip", "-c", (char *)0);
-			fprintf(stderr, 
+			fprintf(stderr,
 			       "ERR: Cannot execute " GZIP ": %s\n",
 			       strerror(errno));
 			exit(1);
@@ -1310,7 +1310,7 @@ static void do_output_form_loop(FILE *f)
 		else if (strcmp(kw, "IMAGEURL") == 0)
 		{
 			printf("%s", get_imageurl());
-		}			
+		}
 		else if (strcmp(kw, "LOADMAILFILTER") == 0)
 		{
 			mailfilter_init();
@@ -2063,6 +2063,7 @@ char	*cl=http11_best_content_language(templatedir,
 void rename_sent_folder(int really)
 {
 	char buf[128];
+	char buf2[256];
 	char yyyymm[128];
 	const char *yyyymmp;
 
@@ -2093,14 +2094,20 @@ void rename_sent_folder(int really)
 	    strcmp(yyyymm, yyyymmp) == 0)
 		return;
 
-	if (strftime (buf, sizeof(buf), "." SENT ".%Y.%m-%b", tm) == 0)
+	if (strftime (buf, sizeof(buf), "%m-%b", tm) == 0)
 		return;
 
 	pp=folder_toutf8(buf);
 
-	if (really)
-		rename("." SENT, pp);
+	if (strftime (buf2, sizeof(buf), "." SENT ".%Y.", tm) == 0)
+		return;
+
+	strcat(buf2, pp);
 	free(pp);
+
+	if (really)
+		rename("." SENT, buf2);
+
 	if (really)
 		(void)maildir_create(INBOX "." SENT);
 
@@ -2653,7 +2660,7 @@ time_t	timeouthard=get_timeouthard();
 		{
 			http_redirect_top("?index=1");
 		}
-				
+
 		return;
 	}
 	return;
@@ -2759,4 +2766,3 @@ char *trim_spaces(const char *s)
 
 	return (p);
 }
-
