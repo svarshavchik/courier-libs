@@ -23,6 +23,7 @@ static struct testsuite_s {
 	{"spf3.email-scan.com","192.168.1.10","spf1.email-scan.com","spf1","example.com"},
 	{"spf3.email-scan.com","191.168.2.10","spf1.email-scan.com","spf3.test","example.com"},
 	{"spf3.email-scan.com","1234:5678::9ABC","spf1.email-scan.com","spf1","example.com"},
+	{"spf3.испытание.email-scan.com","1234:5678::9ABC","испытание.email-scan.com","испытание.email-scan.com","испытание.email-scan.com"},
 	{"spf4.email-scan.com","192.168.2.10","spf1.email-scan.com","10-1-168-192","example.com"},
 	{"spf5.email-scan.com","::ffff:192.168.1.0","spf5.email-scan.com","helo","example.com"},
 	{"spf5.email-scan.com","::ffff:192.168.1.1","spf5.email-scan.com","helo","example.com"},
@@ -117,4 +118,3 @@ int main(int argc, char **argv)
 
 	return testspf(argv[1], argv[2], argv[3], argv[4], argv[5]);
 }
-

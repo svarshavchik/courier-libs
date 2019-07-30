@@ -22,6 +22,7 @@
 #include	<time.h>
 #endif
 #endif
+#include	<idna.h>
 
 struct rfc1035_spf_info {
 	const char *mailfrom;
@@ -1313,7 +1314,68 @@ static int do_expand(const char *str, struct rfc1035_spf_info *info,
 static char *expandc(const char *ipaddr);
 static char *expandi(const char *ipaddr);
 
+static char *get_macro2(struct rfc1035_spf_info *info, char name);
+
 static char *get_macro(struct rfc1035_spf_info *info, char name)
+{
+	char *v=get_macro2(info, name);
+	char *p;
+	char *buf;
+	char *newbuf;
+
+	if (!v)
+		return v;
+
+	switch (name) {
+	case 's':
+		/* s = responsible-sender */
+
+		p=strrchr(v, '@');
+
+		/* Find domain, convert to ACE */
+		if (!p || idna_to_ascii_8z(++p, &buf, 0) != IDNA_SUCCESS)
+			break;
+
+		/* Buffer for local part + ACE domain */
+
+		newbuf=malloc(p-v+strlen(buf)+1);
+
+		if (!newbuf)
+		{
+			free(buf);
+			break;
+		}
+
+		/* Rebuild address with an ACE domain */
+
+		memcpy(newbuf, v, p-v);
+		strcpy(newbuf+(p-v), buf);
+		free(v);
+		v=newbuf;
+		free(buf);
+		break;
+	case 'o':
+		/* o = responsible-domain */
+	case 'd':
+		/* d = current-domain */
+	case 'p':
+		/* p = SMTP client domain name */
+	case 'h':
+		/* h = HELO/EHLO domain */
+	case 'r':
+		/* r = receiving domain */
+
+		if (idna_to_ascii_8z(v, &buf, 0) == IDNA_SUCCESS)
+		{
+			free(v);
+			v=buf;
+		}
+	}
+
+	return v;
+}
+
+static char *get_macro2(struct rfc1035_spf_info *info, char name)
 {
 	char *p;
 	const char *cp;
