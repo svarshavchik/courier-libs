@@ -249,7 +249,9 @@ char	*p;
 char	buf[BUFSIZ];
 int	c;
 const	char *ip=getenv("TCPREMOTEIP");
-char authservice[40];
+const	char *port=getenv("TCPREMOTEPORT");
+
+ char authservice[40];
 char *q ;
 
 #ifdef HAVE_SETVBUF_IOLBF
@@ -260,6 +262,9 @@ char *q ;
 	{
 		ip="127.0.0.1";
 	}
+
+	if (!port || !*port)
+		port="N/A";
 
 	if (argc != 3)
 	{
@@ -273,7 +278,7 @@ char *q ;
 
 	courier_authdebug_login_init();
 
-	fprintf(stderr, "DEBUG: Connection, ip=[%s]\n", ip);
+	fprintf(stderr, "DEBUG: Connection, ip=[%s], port=[%s]\n", ip, port);
 	printf("+OK Hello there.\r\n");
 
 	fflush(stdout);
@@ -303,8 +308,8 @@ char *q ;
 
 			if ( strcmp(p, "QUIT") == 0)
 			{
-				fprintf(stderr, "INFO: LOGOUT, ip=[%s]\n",
-					ip);
+				fprintf(stderr, "INFO: LOGOUT, ip=[%s], port=[%s]\n",
+					ip, port);
 				fflush(stderr);
 				printf("+OK Better luck next time.\r\n");
 				fflush(stdout);
@@ -407,9 +412,10 @@ char *q ;
 						free(authdata);
 					}
 
-					courier_safe_printf("INFO: LOGIN "
-						"FAILED, method=%s, ip=[%s]",
-						method, ip);
+					courier_safe_printf
+						("INFO: LOGIN "
+						 "FAILED, method=%s, ip=[%s], port=[%s]",
+						 method, ip, port);
 					if (rc == AUTHSASL_ABORTED)
 					    printf("-ERR Authentication aborted.\r\n");
 					else if (rc > 0)
@@ -447,9 +453,10 @@ char *q ;
 					q="pop3";
 
 				rc=auth_login(q, user, p, login_callback, NULL);
-				courier_safe_printf("INFO: LOGIN "
-					"FAILED, user=%s, ip=[%s]",
-					user, ip);
+				courier_safe_printf
+					("INFO: LOGIN "
+					 "FAILED, user=%s, ip=[%s], port=[%s]",
+					 user, ip, port);
 				if (rc > 0)
 				{
 					perror("ERR: authentication error");
@@ -466,7 +473,7 @@ char *q ;
 		printf("-ERR Invalid command.\r\n");
 		fflush(stdout);
 	}
-	fprintf(stderr, "DEBUG: Disconnected, ip=[%s]\n", ip);
+	fprintf(stderr, "DEBUG: Disconnected, ip=[%s], port=[%s]\n", ip, port);
 	exit(0);
 	return (0);
 }

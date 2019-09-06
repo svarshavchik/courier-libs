@@ -558,9 +558,10 @@ static void cleanup()
 			}
 
 			if (log_deletions)
-				fprintf(stderr, "INFO: DELETED, user=%s, ip=[%s], filename=%s\n",
+				fprintf(stderr, "INFO: DELETED, user=%s, ip=[%s], port=[%s], filename=%s\n",
 					getenv("AUTHENTICATED"),
-					getenv("TCPREMOTEIP"),
+					remoteip,
+					remoteport,
 					msglist_a[i]->filename);
 
 			if (unlink(msglist_a[i]->filename))

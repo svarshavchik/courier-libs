@@ -34,6 +34,7 @@ static RETSIGTYPE sigexit(int n)
 	int l = 0;
 	const char *tls=getenv("IMAP_TLS");
 	const char *ip=getenv("TCPREMOTEIP");
+	const char *port=getenv("TCPREMOTEPORT");
 
 	if (write(1, byemsg, sizeof(byemsg)-1) < 0)
 		exit(1);
@@ -49,12 +50,13 @@ static RETSIGTYPE sigexit(int n)
 
 	if (a && *a)
 		l = snprintf(msg, sizeof(msg) - 1, "NOTICE: Disconnected during shutdown by signal, user=%s, "
-			"ip=[%s], headers=%lu, body=%lu, rcvd=%lu, sent=%lu, time=%s%s\n",
-			a, ip, header_count, body_count, bytes_received_count, bytes_sent_count,
+			     "ip=[%s], port=[%s], headers=%lu, body=%lu, rcvd=%lu, sent=%lu, time=%s%s\n",
+			     a, ip, port, header_count, body_count, bytes_received_count, bytes_sent_count,
 			buf, tls);
 	else
-		l = snprintf(msg, sizeof(msg) - 1, "NOTICE: Disconnected during shutdown by signal, ip=[%s], time=%s%s\n",
-			getenv("TCPREMOTEIP"),
+		l = snprintf(msg, sizeof(msg) - 1, "NOTICE: Disconnected during shutdown by signal, ip=[%s], port=[%s], time=%s%s\n",
+			     getenv("TCPREMOTEIP"),
+			     getenv("TCPREMOTEPORT"),
 			buf, tls);
 
 	if (l > 0 && write(2, msg, l))
@@ -123,7 +125,7 @@ void mainloop(void)
 
 			if (strlen(tag)+strlen(curtoken->tokenbuf) > IT_MAX_ATOM_SIZE)
 				write_error_exit("max atom size too small");
-		  		
+
 			strncat(tag, curtoken->tokenbuf, IT_MAX_ATOM_SIZE);
 			rc=do_imap_command(tag, &flushflag);
 

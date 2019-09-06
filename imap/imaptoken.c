@@ -60,13 +60,16 @@ void bye_msg(const char *type)
 
 	if (a && *a)
 		fprintf(stderr, "%s, user=%s, "
-			"ip=[%s], headers=%lu, body=%lu, rcvd=%lu, sent=%lu, time=%s%s\n",
+			"ip=[%s], port=[%s], headers=%lu, body=%lu, rcvd=%lu, sent=%lu, time=%s%s\n",
 			type,
-			a, getenv("TCPREMOTEIP"), header_count, body_count, bytes_received_count, bytes_sent_count,
+			a, getenv("TCPREMOTEIP"),
+			getenv("TCPREMOTEPORT"),
+			header_count, body_count, bytes_received_count, bytes_sent_count,
 			buf, tls);
 	else
-		fprintf(stderr, "DEBUG: Disconnected, ip=[%s], time=%s%s\n",
+		fprintf(stderr, "DEBUG: Disconnected, ip=[%s], port=[%s], time=%s%s\n",
 			getenv("TCPREMOTEIP"),
+			getenv("TCPREMOTEPORT"),
 			buf, tls);
 }
 

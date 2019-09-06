@@ -287,8 +287,9 @@ int do_imap_command(const char *tag, int *flushflag)
 		writes("* BYE Courier-IMAP server shutting down\r\n");
 		cmdsuccess(tag, "LOGOUT completed\r\n");
 		writeflush();
-		fprintf(stderr, "INFO: LOGOUT, ip=[%s], rcvd=%lu, sent=%lu\n",
-			getenv("TCPREMOTEIP"), bytes_received_count, bytes_sent_count);
+		fprintf(stderr, "INFO: LOGOUT, ip=[%s], port=[%s], rcvd=%lu, sent=%lu\n",
+			getenv("TCPREMOTEIP"), getenv("TCPREMOTEPORT"),
+			bytes_received_count, bytes_sent_count);
 		exit(0);
 	}
 	if (strcmp(curtoken->tokenbuf, "NOOP") == 0)
@@ -374,8 +375,9 @@ int do_imap_command(const char *tag, int *flushflag)
 			p="imap";
 
 		rc=auth_login(p, userid, passwd, login_callback, (void *)tag);
-		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s]",
-				  userid, getenv("TCPREMOTEIP"));
+		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s], port=[%s]",
+				    userid, getenv("TCPREMOTEIP"),
+				    getenv("TCPREMOTEPORT"));
 		free(userid);
 		free(passwd);
 		if (rc > 0)
@@ -401,8 +403,9 @@ int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 		rc=authenticate(tag, method, sizeof(method));
-		courier_safe_printf("INFO: LOGIN FAILED, method=%s, ip=[%s]",
-				  method, getenv("TCPREMOTEIP"));
+		courier_safe_printf("INFO: LOGIN FAILED, method=%s, ip=[%s], port=[%s]",
+				    method, getenv("TCPREMOTEIP"),
+				    getenv("TCPREMOTEPORT"));
 		if (rc > 0)
 		{
 			perror("ERR: authentication error");
@@ -424,6 +427,7 @@ extern void ignorepunct();
 int main(int argc, char **argv)
 {
 	const char	*ip;
+	const char	*port;
 
 #ifdef HAVE_SETVBUF_IOLBF
 	setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
@@ -445,6 +449,11 @@ int main(int argc, char **argv)
 	if (!ip)
 		putenv("TCPREMOTEIP=127.0.0.1");
 	ip=getenv("TCPREMOTEIP");
+
+	port=getenv("TCPREMOTEPORT");
+	if (!port)
+		putenv("TCPREMOTEPORT=N/A");
+	port=getenv("TCPREMOTEPORT");
 
 	if (!getenv("TCPLOCALPORT"))
 		putenv("TCPLOCALPORT=143");
@@ -471,9 +480,9 @@ int main(int argc, char **argv)
 	writes("* OK [CAPABILITY ");
 	imapcapability();
 	writes("] Courier-IMAP ready. "
-	       "Copyright 1998-2018 Double Precision, Inc.  "
+	       "Copyright 1998-2019 Double Precision, Inc.  "
 	       "See COPYING for distribution information.\r\n");
-	fprintf(stderr, "DEBUG: Connection, ip=[%s]\n", ip);
+	fprintf(stderr, "DEBUG: Connection, ip=[%s], port=[%s]\n", ip, port);
 	writeflush();
 	main_argc=argc;
 	main_argv=argv;

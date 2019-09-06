@@ -1480,9 +1480,10 @@ static int doId()
 
 		curtoken = nexttoken();
 
-		fprintf(stderr, "INFO: ID, user=%s, ip=[%s]",
+		fprintf(stderr, "INFO: ID, user=%s, ip=[%s], port=[%s]",
 			getenv("AUTHENTICATED"),
-			getenv("TCPREMOTEIP"));
+			getenv("TCPREMOTEIP"),
+			getenv("TCPREMOTEPORT"));
 
 		while ((k < 30) && (curtoken->tokentype != IT_RPAREN)) {
 			k++;
@@ -1820,9 +1821,10 @@ int log_deletions= cp && *cp != '0';
 			}
 
 			if (log_deletions)
-				fprintf(stderr, "INFO: EXPUNGED, user=%s, ip=[%s], old_name=%s, new_name=%s: only new_name will be left\n",
+				fprintf(stderr, "INFO: EXPUNGED, user=%s, ip=[%s], port=[%s], old_name=%s, new_name=%s: only new_name will be left\n",
 					getenv("AUTHENTICATED"),
 					getenv("TCPREMOTEIP"),
+					getenv("TCPREMOTEPORT"),
 					old_name, new_name);
 
 			if (rename(old_name, new_name))
@@ -1858,9 +1860,10 @@ int log_deletions= cp && *cp != '0';
 		}
 
 		if (log_deletions)
-			fprintf(stderr, "INFO: EXPUNGED, user=%s, ip=[%s], old_name=%s\n",
+			fprintf(stderr, "INFO: EXPUNGED, user=%s, ip=[%s], port=[%s], old_name=%s\n",
 				getenv("AUTHENTICATED"),
 				getenv("TCPREMOTEIP"),
+				getenv("TCPREMOTEPORT"),
 				old_name);
 		free(old_name);
 	}
