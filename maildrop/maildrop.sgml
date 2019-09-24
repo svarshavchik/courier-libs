@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildrop">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -31,7 +31,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -155,7 +155,7 @@ See below for a more extensive description of the embedded mode.</para>
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="security">
     <title>SECURITY</title>
 
     <para>
@@ -213,7 +213,7 @@ group or world permissions.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="temporaryfiles">
     <title>TEMPORARY FILES</title>
     <para>
 <command>maildrop</command> is heavily optimized and tries to use as
@@ -228,10 +228,8 @@ temporary file, then accesses the message from the temporary file. The
 temporary file is automatically removed when the message is delivered.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="options">
     <title>OPTIONS</title>
-
-    <anchor id="options"/>
 
     <variablelist>
       <varlistentry>
@@ -502,7 +500,7 @@ below
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="deliverymode">
     <title>DELIVERY MODE</title>
 
     <para>
@@ -538,7 +536,7 @@ delivery mode.</para>
     </note>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="virtualaccounts">
     <title>VIRTUAL ACCOUNTS</title>
 
     <para>
@@ -550,7 +548,7 @@ Authentication library's documentation
 for more information.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="embeddedmode">
     <title>EMBEDDED MODE</title>
     <anchor id="embedded"/>
     <para>
@@ -652,7 +650,7 @@ by
 using the <ulink url="maildropfilter.html#echo">echo</ulink> statement and the
 <varname>EXITCODE</varname> environment variable.</para>
 
-    <refsect2>
+    <refsect2 id="maildroprcs">
       <title><filename>@withetcdir@/maildroprcs</filename></title>
 <para>If <command>maildrop</command> encounters an
 <ulink url="maildropfilter.html#include">include</ulink>
@@ -695,7 +693,7 @@ values of these variables (if they were changed) will NOT be restored once
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="watchdog">
     <title>WATCHDOG TIMER</title>
 
     <para>
@@ -706,7 +704,7 @@ filtering. If filtering is not complete within a predefined time interval
 terminates.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="files">
     <title>FILES</title>
 
     <variablelist>
@@ -757,7 +755,7 @@ Directory containing files used in special embedded mode.</para>
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="seealso">
     <title>SEE ALSO</title>
     <para>
 <ulink url="lockmail.html"><citerefentry><refentrytitle>lockmail</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,

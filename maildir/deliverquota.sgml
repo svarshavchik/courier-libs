@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="deliverquota">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -26,7 +26,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -90,7 +90,7 @@ below
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="return">
     <title>RETURN CODE</title>
 
     <para>
@@ -103,7 +103,7 @@ If the maildir is over its specified quota, <command moreinfo="none">deliverquot
 terminates with exit code 77 (EX_NOPERM).</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="seealso">
     <title>SEE ALSO</title>
 
     <para>

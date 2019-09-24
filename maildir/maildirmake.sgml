@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildirmake">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -23,7 +23,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -36,7 +36,7 @@ which creates an extended form of maildirs that implements
 additional extensions beyond the basic maildir properties that were first
 implemented in the Qmail mail server.</para>
   </refsect1>
-  <refsect1>
+  <refsect1 id="options">
       <title>OPTIONS</title>
 
     <variablelist>
@@ -125,7 +125,7 @@ access shared folders.  See below for more information.</simpara>
       </varlistentry>
     </variablelist>
 
-    <refsect2>
+    <refsect2 id="folders">
       <title>FOLDERS</title>
 
       <para>
@@ -168,7 +168,7 @@ folder.</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="sharedfolders">
       <title>SHARED FOLDERS</title>
 
       <para>
@@ -246,7 +246,7 @@ The <option>--del</option> option "disconnects" the sharable maildir from
 the main maildir.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="globalsharedfolders">
       <title>GLOBAL SHARED FOLDERS</title>
 
       <para>
@@ -268,7 +268,7 @@ is a single tab character, <replaceable>path</replaceable>
 is the pathname to the sharable maildir.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="sharedaccess">
       <title>ACCESSING SHARED FOLDERS</title>
 
       <para>
@@ -284,7 +284,7 @@ own.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="converting">
     <title>Converting pre-unicode format maildirs</title>
 
     <para>
@@ -331,7 +331,7 @@ own.</para>
       existing mailboxes to the new Unicode-based naming standard.
     </para>
 
-    <refsect2>
+    <refsect2 id="background">
       <title>Background</title>
 
       <para>
@@ -366,7 +366,7 @@ own.</para>
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="unicode">
       <title>Unicode conversion overview</title>
 
       <para>
@@ -403,7 +403,7 @@ own.</para>
 	</listitem>
       </itemizedlist>
     </refsect2>
-    <refsect2>
+    <refsect2 id="unicodesteps">
       <title>Unicode conversion steps</title>
 
       <para>
@@ -521,7 +521,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="unicodeconvproblems">
       <title>Resolving unicode conversion problems</title>
 
       <para>
@@ -557,7 +557,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="unicodeafter">
       <title>After the Unicode conversion</title>
 
       <para>
@@ -577,7 +577,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
       </para>
     </refsect2>
   </refsect1>
-  <refsect1>
+  <refsect1 id="seealso">
     <title>SEE ALSO</title>
 
     <para>
