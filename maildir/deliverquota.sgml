@@ -108,8 +108,7 @@ terminates with exit code 77 (EX_NOPERM).</para>
 
     <para>
 <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
-<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
-<ulink url="http://www.qmail.org/man/man5/maildir.html">http://www.qmail.org/man/man5/maildir.html</ulink>.
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.
 </para>
   </refsect1>
 

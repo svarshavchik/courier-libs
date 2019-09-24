@@ -587,8 +587,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
 <ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
 <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
 <ulink url="deliverquota.html"><citerefentry><refentrytitle>deliverquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
-<ulink url="maildropfilter.html"><citerefentry><refentrytitle>maildropfilter</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
-<ulink url="http://www.qmail.org/man/man5/maildir.html">http://www.qmail.org/man/man5/maildir.html</ulink>.
+<ulink url="maildropfilter.html"><citerefentry><refentrytitle>maildropfilter</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>.
 </para>
   </refsect1>
 

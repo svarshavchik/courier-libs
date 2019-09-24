@@ -89,7 +89,7 @@ also knows how to deliver to maildirs. A <literal>maildir</literal> is a
 directory-based mail format used by the
 <ulink url="http://www.courier-mta.org"><application>Courier</application></ulink>
 and
-<application><ulink url="http://www.qmail.org">Qmail</ulink></application>
+<application>Qmail</application>
 mail servers.
 Many other mail servers also know how to read maildirs.
 When delivering to mailbox files, <command>maildrop</command> will lock the
@@ -772,8 +772,7 @@ Directory containing files used in special embedded mode.</para>
 <citerefentry><refentrytitle>grep</refentrytitle><manvolnum>1</manvolnum></citerefentry>,
 ,
 <ulink url="courier.html"><citerefentry><refentrytitle>courier</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
-<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
-<ulink url="http://www.qmail.org">http://www.qmail.org</ulink>.</para>
+<citerefentry><refentrytitle>sendmail</refentrytitle><manvolnum>8</manvolnum></citerefentry>.</para>
   </refsect1>
 
 </refentry>
