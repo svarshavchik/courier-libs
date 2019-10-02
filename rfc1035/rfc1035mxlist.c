@@ -91,6 +91,7 @@ static int add_arecords(struct rfc1035_res *res, struct rfc1035_mxlist **list,
 {
 #if	RFC1035_IPV6
 	struct in6_addr	in;
+	int rc2;
 	int first_a=RFC1035_TYPE_A;
 	int second_a=RFC1035_TYPE_AAAA;
 	const char *prefer_ipv6=getenv("ESMTP_PREFER_IPV6_MX");
@@ -134,29 +135,40 @@ records weren't found.
 
 	if (mxreply && !(opts & RFC1035_MX_QUERYALL))
 	{
-		if ((rc=harvest_records(res, list, mxreply, mxpreference,
-			mxname, second_a, &found, HARVEST_NODUPE,
-				port))
-		    != RFC1035_MX_OK)
+		rc2=harvest_records(res, list, mxreply, mxpreference,
+				    mxname, second_a, &found, HARVEST_NODUPE,
+				    port);
+
+		if (rc2 != RFC1035_MX_OK && rc2 != RFC1035_MX_SOFTERR)
+			return rc2;
+
+		rc=harvest_records(res, list, mxreply, mxpreference,
+				   mxname, first_a, &found, 0, port);
+
+		if (rc != RFC1035_MX_OK && rc != RFC1035_MX_SOFTERR)
 			return (rc);
 
-		if ((rc=harvest_records(res, list, mxreply, mxpreference,
-			mxname, first_a, &found, 0, port))
-				!= RFC1035_MX_OK)
-			return (rc);
+		if (rc == RFC1035_MX_SOFTERR && rc2 == RFC1035_MX_SOFTERR)
+			return rc;
 
 		if (found)	return (RFC1035_MX_OK);
 	}
 
-	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
-		second_a, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE, port))
-						!= RFC1035_MX_OK)
+	rc2=harvest_records(res, list, mxreply, mxpreference, mxname,
+			    second_a, &found, HARVEST_AUTOQUERY|HARVEST_NODUPE,
+			    port);
+
+	if (rc2 != RFC1035_MX_OK && rc2 != RFC1035_MX_SOFTERR)
+		return rc2;
+
+	rc=harvest_records(res, list, mxreply, mxpreference, mxname,
+			   first_a, &found, HARVEST_AUTOQUERY, port);
+
+	if (rc != RFC1035_MX_OK && rc != RFC1035_MX_SOFTERR)
 		return (rc);
 
-	if ((rc=harvest_records(res, list, mxreply, mxpreference, mxname,
-		first_a, &found, HARVEST_AUTOQUERY, port))
-			!= RFC1035_MX_OK)
-		return (rc);
+	if (rc == RFC1035_MX_SOFTERR && rc2 == RFC1035_MX_SOFTERR)
+		return rc;
 
 	if (found)	return (RFC1035_MX_OK);
 
