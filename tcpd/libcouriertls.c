@@ -142,195 +142,12 @@ static int ssl_verify_callback(int goodcert, X509_STORE_CTX *x509)
 	return (1);
 }
 
-static int hostmatch_utf8(const char *a, const char *b)
-{
-	while (*a || *b)
-	{
-		char ca=*a;
-		char cb=*b;
-
-		if (ca >= 'A' && ca <= 'Z')
-			ca += 'a'-'A';
-		if (cb >= 'A' && cb <= 'Z')
-			cb += 'a'-'A';
-		if (ca != cb)
-			return 0;
-
-		++a;
-		++b;
-	}
-	return 1;
-}
-
-static int hostmatch(const struct tls_info *info, const char *domain)
-{
-	const char *p=domain;
-	const char *verify_domain=info->peer_verify_domain;
-	char *idn_domain1;
-	char *idn_domain2;
-	int rc;
-
-	if (*p == '*')
-	{
-		++p;
-
-		if (*p != '.')
-			return 0;
-
-		while (*verify_domain)
-		{
-			if (*verify_domain++ == '.')
-				break;
-		}
-	}
-
-	if (idna_to_unicode_8z8z(info->peer_verify_domain, &idn_domain1, 0)
-	    != IDNA_SUCCESS)
-		idn_domain1=0;
-
-	if (idna_to_unicode_8z8z(p, &idn_domain2, 0)
-	    != IDNA_SUCCESS)
-		idn_domain2=0;
-
-	rc=hostmatch_utf8(idn_domain1 ? idn_domain1:info->peer_verify_domain,
-			  idn_domain2 ? idn_domain2:p);
-
-	if (idn_domain1)
-		free(idn_domain1);
-	if (idn_domain2)
-		free(idn_domain2);
-	return rc;
-}
-
-static int verifypeer1(const struct tls_info *info, X509 *x,
-		       STACK_OF(GENERAL_NAME) *subject_alt_names);
-
 static int verifypeer(const struct tls_info *info, SSL *ssl)
 {
-	X509 *x=NULL;
-	int rc;
-	STACK_OF(GENERAL_NAME) *subject_alt_names;
-
 	if (!info->peer_verify_domain)
 		return (1);
 
-	if (SSL_get_verify_result(ssl) != X509_V_OK)
-		return (1);
-
-	x=SSL_get_peer_certificate(ssl);
-
-	if (!x)
-		return (0);
-
-	subject_alt_names=
-		X509_get_ext_d2i(x, NID_subject_alt_name, NULL, NULL);
-
-	rc=verifypeer1(info, x, subject_alt_names);
-
-	if (subject_alt_names)
-		GENERAL_NAMES_free(subject_alt_names);
-
-	X509_free(x);
-
-	return rc;
-}
-
-static int verifypeer1(const struct tls_info *info, X509 *x,
-		       STACK_OF(GENERAL_NAME) *subject_alt_names)
-{
-	X509_NAME *subj=NULL;
-	int nentries, j;
-	char domain[256];
-	char errmsg[1000];
-
-	if(subject_alt_names)
-	{
-		int n=sk_GENERAL_NAME_num(subject_alt_names);
-		int i;
-
-		for (i=0; i<n; i++)
-		{
-			const GENERAL_NAME *gn=
-				sk_GENERAL_NAME_value(subject_alt_names, i);
-			const char *str;
-			int l;
-
-			if (gn->type != GEN_DNS)
-				continue;
-
-#ifdef HAVE_OPENSSL110
-			str = (const char *)ASN1_STRING_get0_data(gn->d.ia5);
-#else
-			str = (const char *)ASN1_STRING_data(gn->d.ia5);
-#endif
-			l=ASN1_STRING_length(gn->d.ia5);
-
-			if (l >= sizeof(domain)-1)
-				l=sizeof(domain)-1;
-
-			memcpy(domain, str, l);
-			domain[l]=0;
-
-			if (hostmatch(info, domain))
-				return 1;
-		}
-	}
-
-	subj=X509_get_subject_name(x);
-
-	nentries=0;
-	if (subj)
-		nentries=X509_NAME_entry_count(subj);
-
-	domain[0]=0;
-	for (j=0; j<nentries; j++)
-	{
-		const char *obj_name;
-		X509_NAME_ENTRY *e;
-		ASN1_OBJECT *o;
-		ASN1_STRING *d;
-
-		int dlen;
-		const unsigned char *ddata;
-
-		e=X509_NAME_get_entry(subj, j);
-		if (!e)
-			continue;
-
-		o=X509_NAME_ENTRY_get_object(e);
-		d=X509_NAME_ENTRY_get_data(e);
-
-		if (!o || !d)
-			continue;
-
-		obj_name=OBJ_nid2sn(OBJ_obj2nid(o));
-
-		dlen=ASN1_STRING_length(d);
-#ifdef HAVE_OPENSSL110
-		ddata=ASN1_STRING_get0_data(d);
-#else
-		ddata=ASN1_STRING_data(d);
-#endif
-		if (strcasecmp(obj_name, "CN") == 0)
-		{
-			if (dlen >= sizeof(domain)-1)
-				dlen=sizeof(domain)-1;
-
-			memcpy(domain, ddata, dlen);
-			domain[dlen]=0;
-		}
-	}
-
-	if (domain[0] && hostmatch(info, domain))
-		return 1;
-
-	strcpy(errmsg, "couriertls: Mismatched SSL certificate: CN=");
-	strcat(errmsg, domain);
-	strcat(errmsg, " (expected ");
-	strncat(errmsg, info->peer_verify_domain, 256);
-	strcat(errmsg, ")");
-	(*info->tls_err_msg)(errmsg, info->app_data);
-	return (0);
+	return SSL_get_verify_result(ssl) == X509_V_OK;
 }
 
 static void nonsslerror(const struct tls_info *info, const char *pfix)
@@ -1274,6 +1091,24 @@ SSL *tls_connect(SSL_CTX *ctx, int fd)
 			SSL_set_tlsext_host_name(ssl, info->peer_verify_domain);
 		}
 #endif
+		if (info->peer_verify_domain)
+		{
+			char *idn_domain1;
+
+			if (idna_to_unicode_8z8z(info->peer_verify_domain,
+						 &idn_domain1, 0)
+			    != IDNA_SUCCESS)
+				idn_domain1=0;
+
+			X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
+			X509_VERIFY_PARAM_set1_host(param,
+						    idn_domain1 ?
+						    idn_domain1 :
+						    info->peer_verify_domain,
+						    0);
+			if (idn_domain1)
+				free(idn_domain1);
+		}
 
 		if ((rc=SSL_connect(ssl)) > 0)
 		{
