@@ -23,7 +23,7 @@ AC_PATH_PROGS(PERL, perl5 perl, perl)
 
 CFLAGS="-I.. -I${srcdir}/.. -I$srcdir/../.. -I../.. $CFLAGS"
 ALL_LINGUAS=""
-AM_GNU_GETTEXT
+AM_GNU_GETTEXT([external])
 
 AC_PATH_PROGS(COURIERAUTHCONFIG, courierauthconfig)
 
@@ -99,12 +99,12 @@ AC_SYS_LARGEFILE
 
 AC_CACHE_CHECK([for socklen_t],
 	pcpd_cv_hassocklen_t,
- 
+
 AC_COMPILE_IFELSE([
 AC_LANG_SOURCE( [
 #include <sys/types.h>
 #include <sys/socket.h>
- 
+
 socklen_t sl_t;
 ],[
 	accept(0, 0, &sl_t);
@@ -112,9 +112,9 @@ socklen_t sl_t;
 	pcpd_cv_hassocklen_t=yes,
 	pcpd_cv_hassocklen_t=no)
 )
- 
+
 socklen_t="int"
- 
+
 if test $pcpd_cv_hassocklen_t = yes
 then
 	:
