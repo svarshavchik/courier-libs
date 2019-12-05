@@ -18,6 +18,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<netdb.h>
+#include	<idna.h>
 #if HAVE_DIRENT_H
 #include <dirent.h>
 #define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -553,6 +554,27 @@ static int chk_error(int rc, ssl_handle ssl, int fd, fd_set *r, fd_set *w,
 	return 0;
 }
 
+static int name_check(ssl_handle ssl,
+		      gnutls_x509_crt_t cert)
+{
+	char *idn_domain;
+	const char *p;
+	int rc;
+
+	if (idna_to_unicode_8z8z(ssl->info_cpy.peer_verify_domain,
+				 &idn_domain, 0) != IDNA_SUCCESS)
+		idn_domain=0;
+
+	p=idn_domain ? idn_domain:ssl->info_cpy.peer_verify_domain;
+
+	rc=gnutls_x509_crt_check_hostname(cert, p);
+
+	if (idn_domain)
+		free(idn_domain);
+	return rc;
+}
+
+
 static int verify_client(ssl_handle ssl, int fd)
 {
 	unsigned int status;
@@ -646,10 +668,7 @@ static int verify_client(ssl_handle ssl, int fd)
 
 		if (ssl->info_cpy.peer_verify_domain &&
 		    *ssl->info_cpy.peer_verify_domain &&
-		    !gnutls_x509_crt_check_hostname(cert,
-						    ssl->info_cpy
-						    .peer_verify_domain
-						    ))
+		    !name_check(ssl, cert))
 		{
 			char hostname[256];
 			size_t hostname_size=sizeof(hostname);
@@ -1293,6 +1312,27 @@ static gnutls_datum_t db_retrieve_func(void *dummy, gnutls_datum_t key)
 	return drs.ret;
 }
 
+static int name_set(ssl_handle ssl, ssl_context ctx)
+{
+	char *idn_domain;
+	const char *p;
+	int rc;
+
+	if (idna_to_unicode_8z8z(ctx->info_cpy.peer_verify_domain,
+				 &idn_domain, 0) != IDNA_SUCCESS)
+		idn_domain=0;
+
+	p=idn_domain ? idn_domain:ctx->info_cpy.peer_verify_domain;
+
+
+	rc=gnutls_server_name_set(ssl->session, GNUTLS_NAME_DNS,
+				  p, strlen(p));
+
+	if (idn_domain)
+		free(idn_domain);
+	return rc;
+}
+
 ssl_handle tls_connect(ssl_context ctx, int fd)
 {
 	ssl_handle ssl=malloc(sizeof(struct ssl_handle_t));
@@ -1434,10 +1474,7 @@ RT |
 				   ssl->xcred) < 0 ||
 
 	    (ctx->info_cpy.peer_verify_domain &&
-	     gnutls_server_name_set(ssl->session, GNUTLS_NAME_DNS,
-				    ctx->info_cpy.peer_verify_domain,
-				    strlen(ctx->info_cpy.peer_verify_domain))
-	     < 0)
+	     name_set(ssl, ctx) < 0)
 	    )
 	{
 		tls_free_session(ssl);
