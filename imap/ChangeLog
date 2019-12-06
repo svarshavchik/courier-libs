@@ -1,3 +1,7 @@
+2019-12-05  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix virtual IP and hostname handling when using GnuTLS for SSL.
+
 2019-09-05  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* imap, pop3: include remote port TCP port number together with the
