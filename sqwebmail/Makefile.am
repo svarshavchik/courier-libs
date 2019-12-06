@@ -173,6 +173,10 @@ ldapaddressbook.dist: ../ldapaddressbook/ldapaddressbook.dist
 
 install-data-local: cache-reminder
 
+install-data-hook:
+	chmod 755 $(DESTDIR)@htmldir@
+	chmod 755 $(DESTDIR)$(scriptdir)
+
 install-exec-hook:
 	-chown @mailuser@ $(DESTDIR)$(pkglibexecdir)/sqwebpasswd
 	-chgrp @mailgroup@ $(DESTDIR)$(pkglibexecdir)/sqwebpasswd

@@ -27,6 +27,7 @@ install-data-hook:
 		@SED@ -n '/^\#/p' < $(srcdir)/TIMEZONELIST \
 			> $(DESTDIR)$(htmllibdir)/TIMEZONELIST ; \
 		cat ../../TIMEZONELIST >>$(DESTDIR)$(htmllibdir)/TIMEZONELIST
+	chmod 755 $(DESTDIR)$(htmllibdir)
 
 clonedist: distdir
 	-chmod -R a+r $(distdir)
@@ -41,4 +42,3 @@ install-perms:
 	@for f in $(html) ; do\
 		echo $(htmllibdir)/$$f 644 bin bin >>permissions.dat ;\
 		done
-
