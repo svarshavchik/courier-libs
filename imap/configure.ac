@@ -381,4 +381,5 @@ AC_SUBST(cacerts)
 
 AC_OUTPUT(Makefile imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
 	testsuitefix.pl mkimapdcert mkpop3dcert mkdhparams
+	imapd.cnf.gnutls pop3d.cnf.gnutls
 	imapd.cnf.openssl pop3d.cnf.openssl)
