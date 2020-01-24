@@ -190,12 +190,12 @@ static int decode_rfc6533(const char *address,
 		err=0;
 		if (unicode_convert_fromu_tobuf(&c, 1, "utf-8",
 						&p, &ignore1, &err))
-			return NULL;
+			return 0;
 
 		if (err)
 		{
 			free(p);
-			return NULL;
+			return 0;
 		}
 		(*callback)(p, strlen(p), arg);
 		free(p);
