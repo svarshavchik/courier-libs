@@ -225,12 +225,20 @@ docs:
 		--stringparam root.filename 'index' \
 		--stringparam generate.id.attributes 1 \
 		$(srcdir)/docbook/docbook.xsl $(srcdir)/book.xml
-	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; xsltproc --nonet $$HOME/www/www.courier-mta.org/xsl/unicode.xsl $$f.tmp | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f; rm -f $$f.tmp; done
+	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; xsltproc --nonet $$HOME/www/hostrocket/courier-mta.org/xsl/unicode.xsl $$f.tmp | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f; rm -f $$f.tmp; done
 
 	mkdir -p html
 	rm -f html/*
 	mv html.tmp/* html
 	cp -p docbook/frame.js docbook/icon.gif docbook/book.css html
+
+if HAVE_DOCS
+all-am: man.stamp
+
+$(man_MANS): man.stamp
+	touch $@
+
+man.stamp:
 	rm -rf man.tmp
 	mkdir man.tmp
 	d=`cd $(srcdir); pwd`; cd man.tmp; xsltproc --nonet --xinclude \
@@ -241,8 +249,8 @@ docs:
 	mv man.tmp/* man
 	rm -rf html.tmp man.tmp
 	perl -p -i -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", map { "\$$(srcdir)/$$_" } glob("man/*.[123456789]"))@e' Makefile.am
+	touch man.stamp
 
-if HAVE_DOCS
 all-am: INSTALL README
 
 README: html/index.html
