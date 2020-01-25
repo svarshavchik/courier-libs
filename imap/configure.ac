@@ -4,7 +4,7 @@ dnl
 dnl Copyright 1998 - 2019 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(courier-imap, 5.0.8, [courier-users@lists.sourceforge.net])
+AC_INIT(courier-imap, 5.0.8.20191210, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -381,4 +381,5 @@ AC_SUBST(cacerts)
 
 AC_OUTPUT(Makefile imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
 	testsuitefix.pl mkimapdcert mkpop3dcert mkdhparams
+	imapd.cnf.gnutls pop3d.cnf.gnutls
 	imapd.cnf.openssl pop3d.cnf.openssl)

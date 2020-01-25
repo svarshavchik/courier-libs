@@ -12,6 +12,7 @@
 /imapd.8
 /imapd.8.in
 /imapd.cnf
+/imapd.cnf.gnutls
 /imapd.cnf.openssl
 /imapd.dist
 /imapd.dist.in
@@ -43,6 +44,7 @@
 /pop3d-ssl.dist.in
 /pop3d.cnf
 /pop3d.cnf.openssl
+/pop3d.cnf.gnutls
 /pop3d.dist
 /pop3d.dist.in
 /pop3d.pam

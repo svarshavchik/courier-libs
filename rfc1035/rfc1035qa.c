@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.
+** Copyright 1998 - 2019 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -8,6 +8,7 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<arpa/inet.h>
+#include	<idna.h>
 
 /* Convenient function to do forward IP lookup */
 
@@ -16,8 +17,9 @@
 static int rfc1035_a_ipv4(struct rfc1035_res *res,
 	const char *name, struct in_addr **iaptr, unsigned *iasize)
 #else
-int rfc1035_a(struct rfc1035_res *res,
-	const char *name, RFC1035_ADDR **iaptr, unsigned *iasize)
+static int rfc1035_unicode(struct rfc1035_res *res,
+			   const char *name,
+			   RFC1035_ADDR **iaptr, unsigned *iasize)
 #endif
 {
 struct	rfc1035_reply *reply;
@@ -111,8 +113,9 @@ unsigned i;
 	return (0);
 }
 
-int rfc1035_a(struct rfc1035_res *res,
-	const char *name, struct in6_addr **iaptr, unsigned *iasize)
+static int rfc1035_unicode(struct rfc1035_res *res,
+			   const char *name, struct in6_addr **iaptr,
+			   unsigned *iasize)
 {
 struct	rfc1035_reply *reply;
 int	n, o;
@@ -236,3 +239,21 @@ unsigned k;
 	return (0);
 }
 #endif
+
+int rfc1035_a(struct rfc1035_res *res,
+	      const char *name,
+	      RFC1035_ADDR **iaptr, unsigned *iasize)
+{
+	char *p;
+	int r;
+
+	/* Convert requested hostname to UTF-8, with fallback */
+
+	if (idna_to_unicode_8z8z(name, &p, 0) != IDNA_SUCCESS)
+		return rfc1035_unicode(res, name, iaptr, iasize);
+
+	r=rfc1035_unicode(res, p, iaptr, iasize);
+
+	free(p);
+	return r;
+}

@@ -552,7 +552,7 @@ RAND_bytes(dummy, 1);
 ]
 )
 		LIBS="-lssl $LIBS"
-		AC_CHECK_FUNCS(TLSv1_1_method TLSv1_2_method)
+		AC_CHECK_FUNCS(TLSv1_1_method TLSv1_2_method X509_VERIFY_PARAM_set1_host)
 		LIBS="$save_LIBS"
 
 		AC_TRY_COMPILE( [

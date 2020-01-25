@@ -1,5 +1,5 @@
 /*
-** Copyright 2007-2018 Double Precision, Inc.
+** Copyright 2007-2019 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 #include	"config.h"
@@ -18,6 +18,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<netdb.h>
+#include	<idna.h>
 #if HAVE_DIRENT_H
 #include <dirent.h>
 #define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -553,6 +554,38 @@ static int chk_error(int rc, ssl_handle ssl, int fd, fd_set *r, fd_set *w,
 	return 0;
 }
 
+static int name_check(ssl_handle ssl,
+		      gnutls_x509_crt_t cert)
+{
+	char *idn_domain;
+	const char *p;
+	int rc;
+
+	if (idna_to_unicode_8z8z(ssl->info_cpy.peer_verify_domain,
+				 &idn_domain, 0) != IDNA_SUCCESS)
+		idn_domain=0;
+
+	p=idn_domain ? idn_domain:ssl->info_cpy.peer_verify_domain;
+
+	printf("Check %s\n", p);
+	rc=gnutls_x509_crt_check_hostname(cert, p);
+
+	if (idn_domain)
+	{
+		free(idn_domain);
+
+		/* Now try the ACE-encoded hostname for a filename. */
+
+		if (rc == 0)
+		{
+			p=ssl->info_cpy.peer_verify_domain;
+			rc=gnutls_x509_crt_check_hostname(cert, p);
+		}
+	}
+	return rc;
+}
+
+
 static int verify_client(ssl_handle ssl, int fd)
 {
 	unsigned int status;
@@ -646,10 +679,7 @@ static int verify_client(ssl_handle ssl, int fd)
 
 		if (ssl->info_cpy.peer_verify_domain &&
 		    *ssl->info_cpy.peer_verify_domain &&
-		    !gnutls_x509_crt_check_hostname(cert,
-						    ssl->info_cpy
-						    .peer_verify_domain
-						    ))
+		    !name_check(ssl, cert))
 		{
 			char hostname[256];
 			size_t hostname_size=sizeof(hostname);
@@ -717,10 +747,10 @@ static int dohandshake(ssl_handle ssl, int fd, fd_set *r, fd_set *w)
 	return rc;
 }
 
-static char *check_cert(const char *filename,
-			gnutls_certificate_type_t cert_type,
-			const char *req_dn,
-			int isvirtual)
+static char *check_cert_unicode(const char *filename,
+				gnutls_certificate_type_t cert_type,
+				const char *req_dn,
+				int isvirtual)
 {
 	if (!filename || !*filename)
 		return NULL;
@@ -747,6 +777,12 @@ static char *check_cert(const char *filename,
 		++req_dn;
 	}
 
+	/*
+	** We're called with a hostname first. Don't check the defualt
+	** filename, we'll be called again with an IP address
+	*/
+
+	if (!isvirtual)
 	{
 		char *p=malloc(strlen(filename)+10);
 
@@ -761,6 +797,33 @@ static char *check_cert(const char *filename,
 		free(p);
 	}
 	return NULL;
+}
+
+static char *check_cert(const char *filename,
+			gnutls_certificate_type_t cert_type,
+			const char *req_dn,
+			int isvirtual)
+{
+	if (isvirtual)
+	{
+		char *p;
+		char *retfile;
+
+		if (idna_to_ascii_8z(req_dn, &p, 0) != IDNA_SUCCESS)
+			p=0;
+
+		if (p)
+		{
+			retfile=check_cert_unicode(filename, cert_type, p,
+						    isvirtual);
+			free(p);
+
+			if (retfile)
+				return retfile;
+		}
+	}
+
+	return check_cert_unicode(filename, cert_type, req_dn, isvirtual);
 }
 
 static char *check_key(const char *filename,
@@ -933,39 +996,51 @@ static int get_server_cert(gnutls_session_t session,
 	     ++vhost_idx)
 	{
 		char *p;
+		char *utf8;
+		char *namebuf;
 
-		for (p=vhost_buf; *p; p++)
+		/* Convert to UTF8 */
+		if (idna_to_unicode_8z8z(vhost_buf, &utf8, 0)
+		    != IDNA_SUCCESS)
+			utf8=0;
+
+		namebuf=utf8 ? utf8:vhost_buf;
+
+		for (p=namebuf; *p; p++)
 			if (*p == '/')
 				*p='.'; /* Script kiddie check */
 
 		if (ssl->ctx->certfile)
 			certfilename=check_cert(ssl->ctx->certfile,
 						st->cert_type,
-						vhost_buf, 1);
+						namebuf, 1);
 
 		if (ssl->ctx->keyfile)
 			keyfilename=check_key(ssl->ctx->keyfile,
 						st->cert_type,
-						vhost_buf, 1);
+						namebuf, 1);
 
+		if (utf8)
+			free(utf8);
 		if (certfilename)
 			break;
 	}
 
 	if (!certfilename)
 	{
+		const char *ip=
+			safe_getenv(ssl->ctx,
+				    "TCPLOCALIP", "");
+
+		if (strncmp(ip, "::ffff:", 7) == 0 && strchr(ip, '.'))
+			ip += 7;
+
 		if (ssl->ctx->certfile)
 			certfilename=check_cert(ssl->ctx->certfile,
-						st->cert_type,
-						safe_getenv(ssl->ctx,
-							    "TCPLOCALIP", ""),
-						0);
+						st->cert_type, ip, 0);
 		if (ssl->ctx->keyfile)
 			keyfilename=check_key(ssl->ctx->keyfile,
-						st->cert_type,
-						safe_getenv(ssl->ctx,
-							    "TCPLOCALIP", ""),
-						0);
+					      st->cert_type, ip, 0);
 	}
 
 	if (!certfilename)
@@ -1293,6 +1368,26 @@ static gnutls_datum_t db_retrieve_func(void *dummy, gnutls_datum_t key)
 	return drs.ret;
 }
 
+static int name_set(ssl_handle ssl, ssl_context ctx)
+{
+	char *idn_domain;
+	const char *p;
+	int rc;
+
+	if (idna_to_unicode_8z8z(ctx->info_cpy.peer_verify_domain,
+				 &idn_domain, 0) != IDNA_SUCCESS)
+		idn_domain=0;
+
+	p=idn_domain ? idn_domain:ctx->info_cpy.peer_verify_domain;
+
+	rc=gnutls_server_name_set(ssl->session, GNUTLS_NAME_DNS,
+				  p, strlen(p));
+
+	if (idn_domain)
+		free(idn_domain);
+	return rc;
+}
+
 ssl_handle tls_connect(ssl_context ctx, int fd)
 {
 	ssl_handle ssl=malloc(sizeof(struct ssl_handle_t));
@@ -1434,10 +1529,7 @@ RT |
 				   ssl->xcred) < 0 ||
 
 	    (ctx->info_cpy.peer_verify_domain &&
-	     gnutls_server_name_set(ssl->session, GNUTLS_NAME_DNS,
-				    ctx->info_cpy.peer_verify_domain,
-				    strlen(ctx->info_cpy.peer_verify_domain))
-	     < 0)
+	     name_set(ssl, ctx) < 0)
 	    )
 	{
 		tls_free_session(ssl);
