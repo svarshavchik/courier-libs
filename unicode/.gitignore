@@ -18,6 +18,7 @@
 /courier-unicode.h
 /courier-unicode.spec
 /depcomp
+/docs.stamp
 /enttest
 /graphemetest
 /html
@@ -25,7 +26,6 @@
 /linebreaktest
 /ltmain.sh
 /man
-/man.stamp
 /missing
 /rpm
 /rpm.release

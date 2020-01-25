@@ -216,7 +216,13 @@ check-am: unicodetest
 	exit 0; test "`./graphemetest 0xAABB 0x0041`" = "0" # GB9b N/A
 	test "`./graphemetest 0x0041 0x0041`" = "1"
 
+if HAVE_DOCS
+
 docs:
+	rm -f docs.stamp
+	$(MAKE) docs.stamp
+
+docs.stamp:
 	rm -rf html.tmp
 	mkdir html.tmp
 	xsltproc --nonet -o html.tmp/ --xinclude \
@@ -225,20 +231,13 @@ docs:
 		--stringparam root.filename 'index' \
 		--stringparam generate.id.attributes 1 \
 		$(srcdir)/docbook/docbook.xsl $(srcdir)/book.xml
-	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; xsltproc --nonet $$HOME/www/hostrocket/courier-mta.org/xsl/unicode.xsl $$f.tmp | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f; rm -f $$f.tmp; done
-
+	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; mv -f $$f.tmp $$f; done
+	test -d $$HOME/www || exit 0; \
+	  for f in html.tmp/*; do xsltproc --nonet /var/www/html/www.courier-mta.org/courier-mta.org/xsl/unicode.xsl $$f | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f.tmp; mv -f $$f.tmp $$f; done
 	mkdir -p html
 	rm -f html/*
 	mv html.tmp/* html
 	cp -p docbook/frame.js docbook/icon.gif docbook/book.css html
-
-if HAVE_DOCS
-all-am: man.stamp
-
-$(man_MANS): man.stamp
-	touch $@
-
-man.stamp:
 	rm -rf man.tmp
 	mkdir man.tmp
 	d=`cd $(srcdir); pwd`; cd man.tmp; xsltproc --nonet --xinclude \
@@ -248,8 +247,9 @@ man.stamp:
 	rm -f man/*.[123456789]
 	mv man.tmp/* man
 	rm -rf html.tmp man.tmp
-	perl -p -i -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", map { "\$$(srcdir)/$$_" } glob("man/*.[123456789]"))@e' Makefile.am
-	touch man.stamp
+	perl -p -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", map { "\$$(srcdir)/$$_" } glob("man/*.[123456789]"))@e' Makefile.am >Makefile.am.new
+	cmp Makefile.am Makefile.am.new || mv -f Makefile.am.new Makefile.am; rm -f Makefile.am.new
+	touch docs.stamp
 
 all-am: INSTALL README
 
@@ -260,6 +260,10 @@ README: html/index.html
 INSTALL: html/INSTALL.html
 	elinks -dump -no-numbering -no-references html/INSTALL.html >INSTALL.tmp
 	mv -f INSTALL.tmp INSTALL
+
+html/index.html html/INSTALL.html $(man_MANS): docs.stamp
+	touch $@
+
 endif
 
 .PHONY: rpm
