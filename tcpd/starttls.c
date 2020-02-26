@@ -542,8 +542,6 @@ static int dossl(int fd, int argn, int argc, char **argv)
 	stdin_fd=0;
 	stdout_fd=1;
 
-	startclient(argn, argc, argv, fd, &stdin_fd, &stdout_fd);
-
 	if (username)
 		libmail_changeusername(username, 0);
 
@@ -565,6 +563,8 @@ static int dossl(int fd, int argn, int argc, char **argv)
 		tls_destroy(ctx);
 		return 1;
 	}
+
+	startclient(argn, argc, argv, fd, &stdin_fd, &stdout_fd);
 
 	docopy(ssl, fd, stdin_fd, stdout_fd);
 
