@@ -36,6 +36,7 @@ char	*q=malloc(strlen(p)+1), *r;
 					r);
 			}
 		}
+	free(q);
 	rfc1035_init_ns(res, ia, i);
 }
 
@@ -227,7 +228,7 @@ char	ptrbuf[RFC1035_MAXNAMESIZE+1];
 		fprintf(stderr, "%s error.\n", errno == ENOENT ? "Hard":"Soft");
 		exit(1);
 	}
-	
+
 	q_type= -1;
 
 	if (argn < argc)

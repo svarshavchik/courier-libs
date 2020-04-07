@@ -646,6 +646,25 @@ rfc1035_udp_query_response_alloc(const char **queries,
 				 int n_queries);
 
 /*
+** Send all queries via UDPs, wait for responses.
+**
+** Returns non-0 if all queries are received, 0 if not. EAGAIN indicates
+** a timeout, and this can be called again with the same
+** rfc1035_udp_query_responses object; this resends all queries for which
+** no response was received, and this will wait for the remaining responses.
+*/
+int rfc1035_udp_query_multi(struct rfc1035_res *res,
+			    /* Socket: */
+			    int fd,
+			    /* Where to send it to */
+			    const struct sockaddr *sin, int sin_len,
+			    /* The queries */
+			    struct rfc1035_udp_query_responses *qr,
+
+			    /* How long to wait for responses, in seconds. */
+			    unsigned w);
+
+/*
 ** Deallocate rfc1035_udp_query_responses. Each non-NULL response pointer
 ** gets free()d.
 */

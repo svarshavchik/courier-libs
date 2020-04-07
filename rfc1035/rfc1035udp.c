@@ -195,60 +195,73 @@ unsigned     buflen=sizeof(rfc1035_buf);
 	return (0);
 }
 
-static char *rfc1035_recv_udp(int fd,
-	const struct sockaddr *addrshouldfrom, int addrshouldfrom_len,
-			      int *buflen, const char *query,
-			      unsigned query_len)
-{
-	struct rfc1035_udp_query_responses *resps=
-		rfc1035_udp_query_response_alloc(&query, &query_len, 1);
-
-	if (!resps)
-		return 0;
-
-	if (rfc1035_recv_one_udp_response(fd,
-					  addrshouldfrom,
-					  addrshouldfrom_len,
-					  resps))
-	{
-		char *bufptr=resps->queries[0].response;
-
-		*buflen=resps->queries[0].resplen;
-
-		resps->queries[0].response=0;
-		rfc1035_udp_query_response_free(resps);
-		return bufptr;
-	}
-
-	rfc1035_udp_query_response_free(resps);
-
-	return NULL;
-}
-
 char *rfc1035_query_udp(struct rfc1035_res *res,
 	int fd, const struct sockaddr *sin, int sin_len,
 	const char *query, unsigned query_len, int *buflen, unsigned w)
 {
+	struct rfc1035_udp_query_responses *resps=
+		rfc1035_udp_query_response_alloc(&query, &query_len, 1);
+	char *bufptr=0;
+
+	if (!resps)
+		return 0;
+
+	if (rfc1035_udp_query_multi(res, fd, sin, sin_len, resps, w))
+	{
+		bufptr=resps->queries[0].response;
+		*buflen=resps->queries[0].resplen;
+		resps->queries[0].response=0;
+	}
+
+	rfc1035_udp_query_response_free(resps);
+	return bufptr;
+}
+
+int rfc1035_udp_query_multi(struct rfc1035_res *res,
+			    int fd, const struct sockaddr *sin, int sin_len,
+			    struct rfc1035_udp_query_responses *qr,
+			    unsigned w)
+{
 time_t current_time, final_time;
-char	*rc;
+int     i;
 
 	time(&current_time);
 
-	if (rfc1035_send_udp(fd, sin, sin_len, query, query_len))
-		return (0);
+	for (i=0; i<qr->n_queries; ++i)
+	{
+		if (qr->queries[i].response)
+			continue; /* Already sent it */
 
+		if (rfc1035_send_udp(fd, sin, sin_len,
+				     qr->queries[i].query,
+				     qr->queries[i].querylen))
+			return (0);
+	}
 	final_time=current_time+w;
 
-	while (current_time < final_time)
+	while (1)
 	{
+		for (i=0; i<qr->n_queries; ++i)
+			if (!qr->queries[i].response)
+				break;
+
+		if (i == qr->n_queries)
+			return 1; /* Everything received */
+
+		if (current_time >= final_time)
+			break;
+
 		if (rfc1035_wait_reply(fd, final_time-current_time))
 			break;
 
-		rc=rfc1035_recv_udp(fd, sin, sin_len, buflen,
-				    query, query_len);
-		if (rc)	return (rc);
-
-		if (errno != EAGAIN)	break;
+		if (!rfc1035_recv_one_udp_response(fd,
+						   sin,
+						   sin_len,
+						   qr))
+		{
+			if (errno != EAGAIN)
+				return 0;
+		}
 
 		time(&current_time);
 	}
