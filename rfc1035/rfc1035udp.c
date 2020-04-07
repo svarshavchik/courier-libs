@@ -40,7 +40,55 @@ int rfc1035_send_udp(int fd, const struct sockaddr *sin, int sin_len,
 	return (-1);
 }
 
-static int dorecv(int fd, char *bufptr, int buflen, int flags,
+
+struct rfc1035_udp_query_responses *
+rfc1035_udp_query_response_alloc(const char **queries,
+				 const unsigned *querylens,
+				 int n_queries)
+{
+	struct rfc1035_udp_query_response *buf=
+		calloc(n_queries, sizeof(struct rfc1035_udp_query_response));
+	int n;
+
+	struct rfc1035_udp_query_responses *resps;
+
+	if (!buf)
+		return 0;
+
+	resps=malloc(sizeof(struct rfc1035_udp_query_responses));
+
+	if (!resps)
+	{
+		free(buf);
+		return 0;
+	}
+	resps->n_queries=n_queries;
+	resps->queries=buf;
+
+	for (n=0; n<n_queries; ++n)
+	{
+		buf[n].query=queries[n];
+		buf[n].querylen=querylens[n];
+	}
+
+	return resps;
+}
+
+void rfc1035_udp_query_response_free(struct rfc1035_udp_query_responses *resps)
+{
+	int n;
+
+	for (n=0; n<resps->n_queries; ++n)
+	{
+		if (resps->queries[n].response)
+			free(resps->queries[n].response);
+	}
+
+	free(resps->queries);
+	free(resps);
+}
+
+static int dorecv(int fd, char *bufptr, unsigned buflen, int flags,
 		struct sockaddr *addr, socklen_t *addrlen)
 {
 socklen_t len;
@@ -52,9 +100,9 @@ socklen_t len;
 	return (len);
 }
 
-char *rfc1035_recv_udp(int fd,
+static int rfc1035_recv_one_udp_response(int fd,
 	const struct sockaddr *addrshouldfrom, int addrshouldfrom_len,
-	int *buflen, const char *query)
+        struct rfc1035_udp_query_responses *queries)
 {
 int	len;
 
@@ -72,23 +120,23 @@ socklen_t addrfromlen;
 char	rfc1035_buf[512];
 char	*bufptr=rfc1035_buf;
 char	*mallocedbuf=0;
+int     i;
+unsigned     buflen=sizeof(rfc1035_buf);
 
-	*buflen=sizeof(rfc1035_buf);
-
-	while ((len=dorecv(fd, bufptr, *buflen, MSG_PEEK, 0, 0)) >= *buflen )
+	while ((len=dorecv(fd, bufptr, buflen, MSG_PEEK, 0, 0)) >= buflen )
 	{
-		if (len == *buflen)	len += 511;
+		if (len == buflen)	len += 511;
 		++len;
 
 		if (mallocedbuf)	free(mallocedbuf);
 		mallocedbuf=(char *)malloc(len);
 		if (!mallocedbuf)	return (0);
 		bufptr= mallocedbuf;
-		*buflen=len;
+		buflen=len;
 	}
 
 	addrfromlen=sizeof(addrfrom);
-	if (len < 0 || (len=dorecv(fd, bufptr, *buflen, 0,
+	if (len < 0 || (len=dorecv(fd, bufptr, buflen, 0,
 		(struct sockaddr *)&addrfrom, &addrfromlen)) < 0)
 	{
 		if (mallocedbuf)
@@ -97,7 +145,7 @@ char	*mallocedbuf=0;
 		return (0);
 	}
 
-	*buflen=len;
+	buflen=len;
 
 	if ( !rfc1035_same_ip( &addrfrom, addrfromlen,
 				addrshouldfrom, addrshouldfrom_len))
@@ -109,31 +157,72 @@ char	*mallocedbuf=0;
 		return (0);
 	}
 
-	if ( *buflen < 2)
-	{
-		if (mallocedbuf)
-			free(mallocedbuf);
-		errno=EIO;
-		return (0);
-	}
-
-	if ( query && (bufptr[0] != query[0] || bufptr[1] != query[1]
-		|| (unsigned char)(bufptr[2] & 0x80) == 0 ))
+	if ( buflen < 2)
 	{
 		if (mallocedbuf)
 			free(mallocedbuf);
 		errno=EAGAIN;
 		return (0);
 	}
-	if (!mallocedbuf)
-	{
-		if ((mallocedbuf=malloc( *buflen )) == 0)
-			return (0);
 
-		memcpy(mallocedbuf, bufptr, *buflen);
-		bufptr=mallocedbuf;
+	for (i=0; i<queries->n_queries; ++i)
+	{
+		if (queries->queries[i].response)
+			continue; /* Already received this one */
+
+		if ( bufptr[0] != queries->queries[i].query[0] ||
+		     bufptr[1] != queries->queries[i].query[1]
+		     || (unsigned char)(bufptr[2] & 0x80) == 0 )
+			continue;
+
+		if (!mallocedbuf)
+		{
+			if ((mallocedbuf=malloc( buflen )) == 0)
+				return (0);
+
+			memcpy(mallocedbuf, bufptr, buflen);
+			bufptr=mallocedbuf;
+		}
+
+		queries->queries[i].response=mallocedbuf;
+		queries->queries[i].resplen=buflen;
+		return 1;
 	}
-	return (bufptr);
+
+	if (mallocedbuf)
+		free(mallocedbuf);
+	errno=EAGAIN;
+	return (0);
+}
+
+static char *rfc1035_recv_udp(int fd,
+	const struct sockaddr *addrshouldfrom, int addrshouldfrom_len,
+			      int *buflen, const char *query,
+			      unsigned query_len)
+{
+	struct rfc1035_udp_query_responses *resps=
+		rfc1035_udp_query_response_alloc(&query, &query_len, 1);
+
+	if (!resps)
+		return 0;
+
+	if (rfc1035_recv_one_udp_response(fd,
+					  addrshouldfrom,
+					  addrshouldfrom_len,
+					  resps))
+	{
+		char *bufptr=resps->queries[0].response;
+
+		*buflen=resps->queries[0].resplen;
+
+		resps->queries[0].response=0;
+		rfc1035_udp_query_response_free(resps);
+		return bufptr;
+	}
+
+	rfc1035_udp_query_response_free(resps);
+
+	return NULL;
 }
 
 char *rfc1035_query_udp(struct rfc1035_res *res,
@@ -155,7 +244,8 @@ char	*rc;
 		if (rfc1035_wait_reply(fd, final_time-current_time))
 			break;
 
-		rc=rfc1035_recv_udp(fd, sin, sin_len, buflen, query);
+		rc=rfc1035_recv_udp(fd, sin, sin_len, buflen,
+				    query, query_len);
 		if (rc)	return (rc);
 
 		if (errno != EAGAIN)	break;

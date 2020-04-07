@@ -363,17 +363,6 @@ int rfc1035_wait_query(int,	/* File descriptor from rfc1035_open */
 	unsigned);	/* Number of seconds to wait, use 0 for default */
 	/* Like reply, but we select for writing */
 
-char *rfc1035_recv_udp(int,	/* File descriptor from rfc1035_open */
-	const struct sockaddr *, int,
-				/* Expecting reply from this IP address  */
-	int *,		/* * will be set to point to # of bytes received */
-	const char *);	/* Original query, used to validate id # */
-	/* Returns ptr to dynamically allocated memory containing the reply,
-	** or NULL if error.  Errno will be set EAGAIN if we should try
-	** again, because the message received was not in response
-	** to the query.
-	*/
-
 char *rfc1035_query_udp(struct rfc1035_res *,
 	int,	/* file descriptor */
 	const struct sockaddr *, int,	/* Attempt number */
@@ -622,6 +611,47 @@ struct rfc1035_ifconf {
 
 struct rfc1035_ifconf *rfc1035_ifconf(int *errflag);
 void rfc1035_ifconf_free(struct rfc1035_ifconf *ifconf_list);
+
+/*
+** Outstanding UDP queries.
+*/
+
+struct rfc1035_udp_query_response;
+
+	/* How many queries, and the queries */
+
+struct rfc1035_udp_query_responses {
+	int n_queries;
+	struct rfc1035_udp_query_response *queries;
+};
+
+	/* Each query, and response already receives so far, if any. */
+
+struct rfc1035_udp_query_response {
+	const char *query;
+	unsigned querylen;
+	char *response;
+	unsigned resplen;
+};
+
+/*
+** Allocate a new rfc1035_udp_query_responses.
+** Copies each query into the rfc1035_udp_query_response, each response is
+** initialized to null.
+*/
+
+struct rfc1035_udp_query_responses *
+rfc1035_udp_query_response_alloc(const char **queries,
+				 const unsigned *querylens,
+				 int n_queries);
+
+/*
+** Deallocate rfc1035_udp_query_responses. Each non-NULL response pointer
+** gets free()d.
+*/
+
+void rfc1035_udp_query_response_free(struct rfc1035_udp_query_responses *);
+
 
 #ifdef  __cplusplus
 }
