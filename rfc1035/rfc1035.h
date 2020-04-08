@@ -616,6 +616,13 @@ void rfc1035_ifconf_free(struct rfc1035_ifconf *ifconf_list);
 ** Outstanding UDP queries.
 */
 
+	/* common query buffer */
+
+struct querybuf {
+	char qbuf[512];
+	unsigned qbuflen;
+	} ;
+
 struct rfc1035_udp_query_response;
 
 	/* How many queries, and the queries */
@@ -643,6 +650,10 @@ struct rfc1035_udp_query_response {
 struct rfc1035_udp_query_responses *
 rfc1035_udp_query_response_alloc(const char **queries,
 				 const unsigned *querylens,
+				 int n_queries);
+
+struct rfc1035_udp_query_responses *
+rfc1035_udp_query_response_alloc_bis(struct querybuf *queries,
 				 int n_queries);
 
 /*

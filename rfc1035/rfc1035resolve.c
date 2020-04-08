@@ -15,11 +15,6 @@
 #include	<string.h>
 #include	<idna.h>
 
-struct querybuf {
-	char qbuf[512];
-	unsigned qbuflen;
-	} ;
-
 static void putqbuf(const char *p, unsigned l, void *q)
 {
 struct querybuf *qp=(struct querybuf *)q;
