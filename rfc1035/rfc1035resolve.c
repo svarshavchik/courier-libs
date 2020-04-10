@@ -290,6 +290,14 @@ static struct rfc1035_reply
 	int nbytes;
 	char *reply;
 	struct rfc1035_reply *rfcreply;
+	unsigned i;
+
+	/*
+	** First record in axfr will be an SOA. Start searching for the
+	** trailing SOA starting with record 1. In case of multiple responses
+	** we'll start looking with element 0, again.
+	*/
+	unsigned check_soa=1;
 
 		int	tcpfd;
 		struct	rfc1035_reply *firstreply=0, *lastreply=0;
@@ -320,6 +328,18 @@ static struct rfc1035_reply
 			firstreply=lastreply=rfcreply;
 			while (isaxfr && rfcreply->rcode == 0)
 			{
+				for (i=check_soa; i<rfcreply->ancount; ++i)
+				{
+					if (rfcreply->anptr[i].rrtype ==
+					    RFC1035_TYPE_SOA)
+						break;
+				}
+
+				if (i < rfcreply->ancount)
+					break; /* Found trailing SOA */
+
+				check_soa=0;
+
 				if ((reply=rfc1035_recv_tcp(res,
 					tcpfd, &nbytes, current_timeout))==0)
 					break;
@@ -335,11 +355,6 @@ static struct rfc1035_reply
 				rfcreply->mallocedbuf=reply;
 				lastreply->next=rfcreply;
 				lastreply=rfcreply;
-
-				if ( rfcreply->ancount &&
-					rfcreply->anptr[0].rrtype ==
-						RFC1035_TYPE_SOA)
-					break;
 			}
 			sox_close(tcpfd);
 
