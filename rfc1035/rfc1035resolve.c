@@ -85,13 +85,20 @@ struct rfc1035_reply
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt(struct rfc1035_res *res,
 				  int opcode,
-				  const struct rfc1035_query *queries,
-				  unsigned nqueries,
 				  struct querybuf *qbuf,
 				  int udpfd,
 				  int af,
 				  const RFC1035_ADDR *sin,
 				  unsigned current_timeout);
+
+static struct rfc1035_reply
+*rfc1035_resolve_multiple_attempt_tcp(struct rfc1035_res *res,
+				      int opcode,
+				      struct querybuf *qbuf,
+				      int af,
+				      const RFC1035_ADDR *sin,
+				      int isaxfr,
+				      unsigned current_timeout);
 
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_idna(struct rfc1035_res *res,
@@ -107,6 +114,9 @@ static struct rfc1035_reply
 	unsigned current_timeout, timeout_backoff;
 	unsigned nbackoff, backoff_num;
 	int	af;
+	unsigned i;
+	int	isaxfr=0;
+
 	struct	rfc1035_reply *rfcreply=0;
 	static const char fakereply[]={0, 0, 0, RFC1035_RCODE_SERVFAIL,
 				       0, 0,
@@ -127,6 +137,16 @@ static struct rfc1035_reply
 		errno=EINVAL;
 		return (0);
 	}
+
+	for (i=0; i<nqueries; i++)
+		if (queries[i].qtype == RFC1035_TYPE_AXFR)
+		{
+			isaxfr=1;
+			break;
+		}
+
+	if (isaxfr && nqueries > 1)
+		return rfc1035_replyparse(fakereply, sizeof(fakereply));
 
 	/* Prepare the UDP socket */
 
@@ -149,11 +169,18 @@ static struct rfc1035_reply
 			const RFC1035_ADDR *sin=
 				&ns[(res->rfc1035_good_ns+attempt) % nscount];
 
-			rfcreply=rfc1035_resolve_multiple_attempt
+			rfcreply=isaxfr ?
+				rfc1035_resolve_multiple_attempt_tcp
 				(res,
 				 opcode,
-				 queries,
-				 nqueries,
+				 &qbuf,
+				 af,
+				 sin,
+				 1,
+				 current_timeout)
+				: rfc1035_resolve_multiple_attempt
+				(res,
+				 opcode,
 				 &qbuf,
 				 udpfd,
 				 af,
@@ -184,8 +211,6 @@ static struct rfc1035_reply
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt(struct rfc1035_res *res,
 				  int opcode,
-				  const struct rfc1035_query *queries,
-				  unsigned nqueries,
 				  struct querybuf *qbuf,
 				  int udpfd,
 				  int af,
@@ -198,19 +223,8 @@ static struct rfc1035_reply
 
 	int	sin_len=sizeof(*sin);
 
-	int	dotcp=0, isaxfr=0;
-	unsigned i;
+	int	dotcp=0;
 
-		for (i=0; i<nqueries; i++)
-			if (queries[i].qtype == RFC1035_TYPE_AXFR)
-			{
-				dotcp=1;
-				isaxfr=1;
-				break;
-			}
-
-		if (isaxfr && nqueries > 1)
-			return NULL;
 
 		if (!dotcp)
 		{
@@ -253,6 +267,30 @@ static struct rfc1035_reply
 
 		if (dotcp)
 		{
+			rfcreply=rfc1035_resolve_multiple_attempt_tcp
+				(res, opcode, qbuf, af, sin, 0,
+				 current_timeout);
+			if (!rfcreply)
+				return NULL;
+		}
+
+		memcpy(&rfcreply->server_addr, sin, sin_len);
+		return (rfcreply);
+}
+
+static struct rfc1035_reply
+*rfc1035_resolve_multiple_attempt_tcp(struct rfc1035_res *res,
+				      int opcode,
+				      struct querybuf *qbuf,
+				      int af,
+				      const RFC1035_ADDR *sin,
+				      int isaxfr,
+				      unsigned current_timeout)
+{
+	int nbytes;
+	char *reply;
+	struct rfc1035_reply *rfcreply;
+
 		int	tcpfd;
 		struct	rfc1035_reply *firstreply=0, *lastreply=0;
 
@@ -304,12 +342,8 @@ static struct rfc1035_reply
 					break;
 			}
 			sox_close(tcpfd);
-			if (!firstreply)
-				return NULL;
-			rfcreply=firstreply;
-		}
-		memcpy(&rfcreply->server_addr, sin, sin_len);
-		return (rfcreply);
+
+			return firstreply;
 }
 
 struct rfc1035_reply *rfc1035_resolve(
