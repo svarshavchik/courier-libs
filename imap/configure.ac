@@ -4,7 +4,7 @@ dnl
 dnl Copyright 1998 - 2019 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(courier-imap, 5.0.9, [courier-users@lists.sourceforge.net])
+AC_INIT(courier-imap, 5.0.10, [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 

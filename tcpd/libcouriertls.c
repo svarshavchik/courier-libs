@@ -251,7 +251,7 @@ static int verifypeer1(const struct tls_info *info, X509 *x,
 	X509_NAME *subj=NULL;
 	int nentries, j;
 	char domain[256];
-	char errmsg[1000];
+char errmsg[1000];
 
 	if(subject_alt_names)
 	{
@@ -1277,13 +1277,15 @@ SSL *tls_connect(SSL_CTX *ctx, int fd)
 	}
 	else
 	{
-		char *idn_domain1;
+		char *idn_domain1=0;
 
-		if (idna_to_unicode_8z8z(info->peer_verify_domain,
-					 &idn_domain1, 0)
-		    != IDNA_SUCCESS)
-			idn_domain1=0;
-
+		if (info->peer_verify_domain)
+		{
+			if (idna_to_unicode_8z8z(info->peer_verify_domain,
+						 &idn_domain1, 0)
+			    != IDNA_SUCCESS)
+				idn_domain1=0;
+		}
 		SSL_set_connect_state(ssl);
 
 #ifdef HAVE_OPENSSL_SNI
