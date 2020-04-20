@@ -1,3 +1,5 @@
+5.0.10
+
 2020-02-25  FlorianMickler <florian@mickler.org>
 
 	* tcpd/starttls.c (dossl): Start client after negotiating SSL,
