@@ -16,6 +16,7 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CC_C99
 AC_PROG_LIBTOOL
 
 dnl Checks for libraries.

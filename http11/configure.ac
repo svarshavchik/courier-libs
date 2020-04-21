@@ -15,6 +15,7 @@ AM_INIT_AUTOMAKE([foreign no-define])
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CC_C99
 AC_PROG_LIBTOOL
 
 if test "$GCC" = yes ; then

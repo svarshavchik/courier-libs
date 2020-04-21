@@ -16,6 +16,7 @@ AM_INIT_AUTOMAKE([foreign no-define])
 dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
+AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
