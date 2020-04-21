@@ -1,3 +1,7 @@
+2020-04-21  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Add AC_PROG_CC_C99 to configure
+
 2018-07-13  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* unicode.c: Fix error and validation of valid modified-utf7
