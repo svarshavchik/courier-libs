@@ -229,96 +229,96 @@ static struct rfc1035_reply
 	int	dotcp=0;
 	unsigned n, nqueries=resps->n_queries;
 
-		if (!resps)
-			return NULL;
+	if (!resps)
+		return NULL;
 
-		if (!dotcp)
-		{
+	if (!dotcp)
+	{
 		/* Send the query via UDP */
 		RFC1035_NETADDR	addrbuf;
 		const struct sockaddr *addrptr;
 		int	addrptrlen;
 
-			if (rfc1035_mkaddress(af, &addrbuf,
-				sin, htons(53),
-				&addrptr, &addrptrlen))
-				return NULL;
+		if (rfc1035_mkaddress(af, &addrbuf,
+				      sin, htons(53),
+				      &addrptr, &addrptrlen))
+			return NULL;
 
-			if (rfc1035_udp_query_multi(res, udpfd, addrptr,
-				addrptrlen, resps, current_timeout) == 0)
-				return NULL;
+		if (rfc1035_udp_query_multi(res, udpfd, addrptr,
+					    addrptrlen, resps, current_timeout) == 0)
+			return NULL;
 
 		/* Parse the replies */
 
-			for (n = 0; n < nqueries; ++n)
-			{
-				struct rfc1035_udp_query_response *reply=&resps->queries[n];
-				if (!reply->response)
-					break; // How come? rfc1035_udp_query_multi succeeded...
-
-				*rfcpp=rfc1035_replyparse(reply->response, reply->resplen);
-				if (!*rfcpp)
-				{
-					free(reply->response); // possibly unparseable
-					reply->response=0;
-					break;
-				}
-
-				if ((*rfcpp)->tc)
-					dotcp=1;
-				(*rfcpp)->mallocedbuf=reply->response;
-				reply->response=0;
-				rfcpp=&(*rfcpp)->next;
-			}
-
-			if (n < nqueries)
-			{
-				if (rfcreply)
-					rfc1035_replyfree(rfcreply);
-				return NULL;
-			}
-		}
-
-		if (dotcp)
+		for (n = 0; n < nqueries; ++n)
 		{
-			n = 0;
-			for (rfcpp=&rfcreply; *rfcpp; rfcpp=&(*rfcpp)->next, ++n)
+			struct rfc1035_udp_query_response *reply=&resps->queries[n];
+			if (!reply->response)
+				break; // How come? rfc1035_udp_query_multi succeeded...
+
+			*rfcpp=rfc1035_replyparse(reply->response, reply->resplen);
+			if (!*rfcpp)
 			{
-				/*
-				* UDP replies are all in, some were truncated.
-				*/
-				if ((*rfcpp)->tc)
-				{
-					struct rfc1035_reply *next=(*rfcpp)->next, *newrfc;
-					struct rfc1035_udp_query_response *reply=&resps->queries[n];
-
-					newrfc=rfc1035_resolve_multiple_attempt_tcp(res,
-						reply->query, reply->querylen,
-							af, sin, 0, current_timeout);
-					if (!newrfc)
-						break;
-
-					/*
-					* Replace the truncated reply in the linked list
-					*/
-					(*rfcpp)->next=0; // only free this
-					rfc1035_replyfree(*rfcpp);
-					*rfcpp=newrfc;
-					(*rfcpp)->next=next;
-				}
+				free(reply->response); // possibly unparseable
+				reply->response=0;
+				break;
 			}
 
-			if (n < nqueries && rfcreply)
-			{
+			if ((*rfcpp)->tc)
+				dotcp=1;
+			(*rfcpp)->mallocedbuf=reply->response;
+			reply->response=0;
+			rfcpp=&(*rfcpp)->next;
+		}
+
+		if (n < nqueries)
+		{
+			if (rfcreply)
 				rfc1035_replyfree(rfcreply);
-				rfcreply=0;
+			return NULL;
+		}
+	}
+
+	if (dotcp)
+	{
+		n = 0;
+		for (rfcpp=&rfcreply; *rfcpp; rfcpp=&(*rfcpp)->next, ++n)
+		{
+			/*
+			 * UDP replies are all in, some were truncated.
+			 */
+			if ((*rfcpp)->tc)
+			{
+				struct rfc1035_reply *next=(*rfcpp)->next, *newrfc;
+				struct rfc1035_udp_query_response *reply=&resps->queries[n];
+
+				newrfc=rfc1035_resolve_multiple_attempt_tcp(res,
+									    reply->query, reply->querylen,
+									    af, sin, 0, current_timeout);
+				if (!newrfc)
+					break;
+
+				/*
+				 * Replace the truncated reply in the linked list
+				 */
+				(*rfcpp)->next=0; // only free this
+				rfc1035_replyfree(*rfcpp);
+				*rfcpp=newrfc;
+				(*rfcpp)->next=next;
 			}
 		}
 
-		if (rfcreply)
-			memcpy(&rfcreply->server_addr, sin, sin_len);
+		if (n < nqueries && rfcreply)
+		{
+			rfc1035_replyfree(rfcreply);
+			rfcreply=0;
+		}
+	}
 
-		return (rfcreply);
+	if (rfcreply)
+		memcpy(&rfcreply->server_addr, sin, sin_len);
+
+	return (rfcreply);
 }
 
 static struct rfc1035_reply
@@ -342,66 +342,67 @@ static struct rfc1035_reply
 	*/
 	unsigned check_soa=1;
 
-		int	tcpfd;
-		struct	rfc1035_reply *firstreply=0, *lastreply=0;
+	int	tcpfd;
+	struct	rfc1035_reply *firstreply=0, *lastreply=0;
 
-			if ((tcpfd=rfc1035_open_tcp(res, sin)) < 0)
-				return NULL;	/*
-						** Can't connect via TCP,
-						** try the next server.
-						*/
+	if ((tcpfd=rfc1035_open_tcp(res, sin)) < 0)
+		return NULL;	/*
+				** Can't connect via TCP,
+				** try the next server.
+				*/
 
-			reply=rfc1035_query_tcp(res, tcpfd, query,
+	reply=rfc1035_query_tcp(res, tcpfd, query,
 				querylen, &nbytes, current_timeout);
 
-			if (!reply)
-			{
-				sox_close(tcpfd);
-				return NULL;
-			}
+	if (!reply)
+	{
+		sox_close(tcpfd);
+		return NULL;
+	}
 
-			rfcreply=rfc1035_replyparse(reply, nbytes);
-			if (!rfcreply)
-			{
-				free(reply);
-				sox_close(tcpfd);
-				return NULL;
-			}
-			rfcreply->mallocedbuf=reply;
-			firstreply=lastreply=rfcreply;
-			while (isaxfr && rfcreply->rcode == 0)
-			{
-				for (i=check_soa; i<rfcreply->ancount; ++i)
-				{
-					if (rfcreply->anptr[i].rrtype ==
-					    RFC1035_TYPE_SOA)
-						break;
-				}
+	rfcreply=rfc1035_replyparse(reply, nbytes);
+	if (!rfcreply)
+	{
+		free(reply);
+		sox_close(tcpfd);
+		return NULL;
+	}
+	rfcreply->mallocedbuf=reply;
+	firstreply=lastreply=rfcreply;
+	while (isaxfr && rfcreply->rcode == 0)
+	{
+		for (i=check_soa; i<rfcreply->ancount; ++i)
+		{
+			if (rfcreply->anptr[i].rrtype ==
+			    RFC1035_TYPE_SOA)
+				break;
+		}
 
-				if (i < rfcreply->ancount)
-					break; /* Found trailing SOA */
+		if (i < rfcreply->ancount)
+			break; /* Found trailing SOA */
 
-				check_soa=0;
+		check_soa=0;
 
-				if ((reply=rfc1035_recv_tcp(res,
-					tcpfd, &nbytes, current_timeout))==0)
-					break;
+		if ((reply=rfc1035_recv_tcp(res,
+					    tcpfd, &nbytes,
+					    current_timeout))==0)
+			break;
 
-				rfcreply=rfc1035_replyparse(reply, nbytes);
-				if (!rfcreply)
-				{
-					free(reply);
-					rfc1035_replyfree(firstreply);
-					firstreply=0;
-					break;
-				}
-				rfcreply->mallocedbuf=reply;
-				lastreply->next=rfcreply;
-				lastreply=rfcreply;
-			}
-			sox_close(tcpfd);
+		rfcreply=rfc1035_replyparse(reply, nbytes);
+		if (!rfcreply)
+		{
+			free(reply);
+			rfc1035_replyfree(firstreply);
+			firstreply=0;
+			break;
+		}
+		rfcreply->mallocedbuf=reply;
+		lastreply->next=rfcreply;
+		lastreply=rfcreply;
+	}
+	sox_close(tcpfd);
 
-			return firstreply;
+	return firstreply;
 }
 
 struct rfc1035_reply *rfc1035_resolve(
