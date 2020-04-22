@@ -84,8 +84,7 @@ struct rfc1035_reply
 
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt(struct rfc1035_res *res,
-				  int opcode,
-				  struct querybuf *qbuf,
+				  struct rfc1035_udp_query_responses *resps,
 				  int udpfd,
 				  int af,
 				  const RFC1035_ADDR *sin,
@@ -93,8 +92,8 @@ static struct rfc1035_reply
 
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt_tcp(struct rfc1035_res *res,
-				      int opcode,
-				      struct querybuf *qbuf,
+				      char const*query,
+				      unsigned querylen,
 				      int af,
 				      const RFC1035_ADDR *sin,
 				      int isaxfr,
@@ -106,9 +105,9 @@ static struct rfc1035_reply
 			       const struct rfc1035_query *queries,
 			       unsigned nqueries)
 {
-	struct	querybuf qbuf;
+	struct	querybuf qbuf[nqueries];
 	int	udpfd;
-	int	attempt;
+	unsigned attempt;
 	const RFC1035_ADDR *ns;
 	unsigned nscount;
 	unsigned current_timeout, timeout_backoff;
@@ -116,6 +115,7 @@ static struct rfc1035_reply
 	int	af;
 	unsigned i;
 	int	isaxfr=0;
+	struct rfc1035_udp_query_responses *resps=0;
 
 	struct	rfc1035_reply *rfcreply=0;
 	static const char fakereply[]={0, 0, 0, RFC1035_RCODE_SERVFAIL,
@@ -130,20 +130,21 @@ static struct rfc1035_reply
 	if (res->rfc1035_good_ns >= nscount)
 		res->rfc1035_good_ns=0;
 
-	qbuf.qbuflen=0;
-	if ( rfc1035_mkquery(res,
-		opcode, queries, nqueries, &putqbuf, &qbuf))
-	{
-		errno=EINVAL;
-		return (0);
-	}
-
 	for (i=0; i<nqueries; i++)
+	{
+		qbuf[i].qbuflen=0;
+		if ( rfc1035_mkquery(res,
+			opcode, &queries[i], 1, &putqbuf, &qbuf[i]))
+		{
+			errno=EINVAL;
+			return (0);
+		}
 		if (queries[i].qtype == RFC1035_TYPE_AXFR)
 		{
 			isaxfr=1;
 			break;
 		}
+	}
 
 	if (isaxfr && nqueries > 1)
 		return rfc1035_replyparse(fakereply, sizeof(fakereply));
@@ -151,6 +152,11 @@ static struct rfc1035_reply
 	/* Prepare the UDP socket */
 
 	if ((udpfd=rfc1035_open_udp(&af)) < 0)	return (0);
+
+	/* Prepare responses array for multple queries */
+
+	if (!isaxfr)
+		resps=rfc1035_udp_query_response_alloc_bis(qbuf, nqueries);
 
 	/* Keep trying until we get an answer from a nameserver */
 
@@ -172,16 +178,15 @@ static struct rfc1035_reply
 			rfcreply=isaxfr ?
 				rfc1035_resolve_multiple_attempt_tcp
 				(res,
-				 opcode,
-				 &qbuf,
+				 qbuf[0].qbuf,
+				 qbuf[0].qbuflen,
 				 af,
 				 sin,
 				 1,
 				 current_timeout)
 				: rfc1035_resolve_multiple_attempt
 				(res,
-				 opcode,
-				 &qbuf,
+				 resps,
 				 udpfd,
 				 af,
 				 sin,
@@ -202,6 +207,9 @@ static struct rfc1035_reply
 
 	sox_close(udpfd);
 
+	if (resps)
+		rfc1035_udp_query_response_free(resps);
+
 	if (!rfcreply)
 		rfcreply=rfc1035_replyparse(fakereply, sizeof(fakereply));
 
@@ -210,21 +218,19 @@ static struct rfc1035_reply
 
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt(struct rfc1035_res *res,
-				  int opcode,
-				  struct querybuf *qbuf,
+				  struct rfc1035_udp_query_responses *resps,
 				  int udpfd,
 				  int af,
 				  const RFC1035_ADDR *sin,
 				  unsigned current_timeout)
 {
-	int	nbytes;
-	char	*reply;
-	struct	rfc1035_reply *rfcreply=0;
-
+	struct	rfc1035_reply *rfcreply=0, **rfcpp=&rfcreply;
 	int	sin_len=sizeof(*sin);
-
 	int	dotcp=0;
+	unsigned n, nqueries=resps->n_queries;
 
+		if (!resps)
+			return NULL;
 
 		if (!dotcp)
 		{
@@ -238,50 +244,87 @@ static struct rfc1035_reply
 				&addrptr, &addrptrlen))
 				return NULL;
 
-			if ((reply=rfc1035_query_udp(res, udpfd, addrptr,
-				addrptrlen, qbuf->qbuf, qbuf->qbuflen, &nbytes,
-					current_timeout)) == 0)
+			if (rfc1035_udp_query_multi(res, udpfd, addrptr,
+				addrptrlen, resps, current_timeout) == 0)
 				return NULL;
 
-		/* Parse the reply */
+		/* Parse the replies */
 
-			rfcreply=rfc1035_replyparse(reply, nbytes);
-			if (!rfcreply)
+			for (n = 0; n < nqueries; ++n)
 			{
-				free(reply);
-				return NULL;
-			/* Bad response from the server, try the next one. */
+				struct rfc1035_udp_query_response *reply=&resps->queries[n];
+				if (!reply->response)
+					break; // How come? rfc1035_udp_query_multi succeeded...
+
+				*rfcpp=rfc1035_replyparse(reply->response, reply->resplen);
+				if (!*rfcpp)
+				{
+					free(reply->response); // possibly unparseable
+					reply->response=0;
+					break;
+				}
+
+				if ((*rfcpp)->tc)
+					dotcp=1;
+				(*rfcpp)->mallocedbuf=reply->response;
+				reply->response=0;
+				rfcpp=&(*rfcpp)->next;
 			}
-			rfcreply->mallocedbuf=reply;
-		/*
-		** If the reply came back with the truncated bit set,
-		** retry the query via TCP.
-		*/
 
-			if (rfcreply->tc)
+			if (n < nqueries)
 			{
-				dotcp=1;
-				rfc1035_replyfree(rfcreply);
+				if (rfcreply)
+					rfc1035_replyfree(rfcreply);
+				return NULL;
 			}
 		}
 
 		if (dotcp)
 		{
-			rfcreply=rfc1035_resolve_multiple_attempt_tcp
-				(res, opcode, qbuf, af, sin, 0,
-				 current_timeout);
-			if (!rfcreply)
-				return NULL;
+			n = 0;
+			for (rfcpp=&rfcreply; *rfcpp; rfcpp=&(*rfcpp)->next, ++n)
+			{
+				/*
+				* UDP replies are all in, some were truncated.
+				*/
+				if ((*rfcpp)->tc)
+				{
+					struct rfc1035_reply *next=(*rfcpp)->next, *newrfc;
+					struct rfc1035_udp_query_response *reply=&resps->queries[n];
+
+					newrfc=rfc1035_resolve_multiple_attempt_tcp(res,
+						reply->query, reply->querylen,
+							af, sin, 0, current_timeout);
+					if (!newrfc)
+						break;
+
+					/*
+					* Replace the truncated reply in the linked list
+					*/
+					(*rfcpp)->next=0; // only free this
+					rfc1035_replyfree(*rfcpp);
+					*rfcpp=newrfc;
+					(*rfcpp)->next=next;
+				}
+			}
+
+			if (n < nqueries && rfcreply)
+			{
+				rfc1035_replyfree(rfcreply);
+				rfcreply=0;
+			}
 		}
 
-		memcpy(&rfcreply->server_addr, sin, sin_len);
+		if (rfcreply)
+			memcpy(&rfcreply->server_addr, sin, sin_len);
+
 		return (rfcreply);
 }
 
 static struct rfc1035_reply
 *rfc1035_resolve_multiple_attempt_tcp(struct rfc1035_res *res,
-				      int opcode,
-				      struct querybuf *qbuf,
+				      char const*query,
+				      unsigned querylen,
 				      int af,
 				      const RFC1035_ADDR *sin,
 				      int isaxfr,
@@ -308,8 +351,8 @@ static struct rfc1035_reply
 						** try the next server.
 						*/
 
-			reply=rfc1035_query_tcp(res, tcpfd, qbuf->qbuf,
-				qbuf->qbuflen, &nbytes, current_timeout);
+			reply=rfc1035_query_tcp(res, tcpfd, query,
+				querylen, &nbytes, current_timeout);
 
 			if (!reply)
 			{
