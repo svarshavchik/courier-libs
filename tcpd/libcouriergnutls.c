@@ -567,7 +567,6 @@ static int name_check(ssl_handle ssl,
 
 	p=idn_domain ? idn_domain:ssl->info_cpy.peer_verify_domain;
 
-	printf("Check %s\n", p);
 	rc=gnutls_x509_crt_check_hostname(cert, p);
 
 	if (idn_domain)
