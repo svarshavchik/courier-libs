@@ -489,7 +489,10 @@ void rfc1035_rr_rand_ar(struct rfc1035_reply *rr)
 
 void rfc1035_rr_rand(struct rfc1035_reply *rr)
 {
-	rfc1035_rr_rand_an(rr);
-	rfc1035_rr_rand_ns(rr);
-	rfc1035_rr_rand_ar(rr);
+	if (rr->ancount > 1)
+		rfc1035_rr_rand_an(rr);
+	if (rr->nscount > 1)
+		rfc1035_rr_rand_ns(rr);
+	if (rr->arcount > 1)
+		rfc1035_rr_rand_ar(rr);
 }

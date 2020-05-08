@@ -74,13 +74,65 @@ static void spflookup(const char *current_domain)
 	}
 }
 
+static int get_q_type_pass(const char *p,
+			    void (*cb)(unsigned char, void *),
+			    void *ptr)
+{
+	char qbuf[strlen(p)+1];
+	char *q;
+
+	strcpy(qbuf, p);
+
+	for (q=qbuf; (q=strtok(q, ", \t\r\n")); q=0)
+	{
+		int n=rfc1035_type_strtoi(q);
+
+		if (n < 0)
+			return -1;
+
+		(*cb)(n, ptr);
+	}
+
+	return 0;
+}
+
+static void get_q_type_count(unsigned char c, void *ptr)
+{
+	++*(size_t *)ptr;
+}
+
+static void get_q_type_save(unsigned char c, void *ptr)
+{
+	*(*(unsigned char **)ptr)++=c;
+}
+
+static unsigned char *get_q_type(const char *p)
+{
+	size_t n=0;
+	unsigned char *buf, *q;
+
+	errno=EINVAL;
+	if (get_q_type_pass(p, &get_q_type_count, &n) < 0)
+		return 0;
+
+	if ((buf=(unsigned char *)malloc(n+1)) == 0)
+		return 0;
+
+	q=buf;
+	get_q_type_pass(p, &get_q_type_save, &q);
+
+	*q=0;
+
+	return buf;
+}
+
 int main(int argc, char **argv)
 {
 struct  rfc1035_res res;
 struct	rfc1035_reply *replyp;
 int	argn;
 const char *q_name;
-int	q_type;
+unsigned char *q_type;
 int	q_class;
 int	q_xflag=0;
 int	q_rflag=0;
@@ -229,18 +281,26 @@ char	ptrbuf[RFC1035_MAXNAMESIZE+1];
 		exit(1);
 	}
 
-	q_type= -1;
+	q_type=0;
 
 	if (argn < argc)
 	{
 		if (strcmp(argv[argn], "spf") == 0)
-			q_type= -2;
-		else
-			q_type=rfc1035_type_strtoi(argv[argn++]);
+		{
+			spflookup(q_name);
+			exit(0);
+		}
+		q_type=get_q_type(argv[argn]);
+		if (!q_type)
+		{
+			perror(argv[argn]);
+			exit(1);
+		}
+		argn++;
 	}
 
-	if (q_type == -1)
-		q_type=q_xflag ? RFC1035_TYPE_PTR:RFC1035_TYPE_ANY;
+	if (q_type == 0)
+		q_type=get_q_type(q_xflag ? "PTR":"ANY");
 
 	q_class= -1;
 	if (argn < argc)
@@ -248,22 +308,49 @@ char	ptrbuf[RFC1035_MAXNAMESIZE+1];
 	if (q_class < 0)
 		q_class=RFC1035_CLASS_IN;
 
-	if (q_type == -2)
+	if (q_type[0] && q_type[1])
 	{
-		spflookup(q_name);
-		exit(0);
+		char namebuf[RFC1035_MAXNAMESIZE+1];
+
+		namebuf[0]=0;
+		strncat(namebuf, q_name, RFC1035_MAXNAMESIZE);
+
+		if (rfc1035_resolve_cname_multiple(&res, namebuf,
+						   q_type, q_class,
+						   &replyp,
+						   RFC1035_X_RANDOMIZE)
+		    < 0)
+			replyp=0;
 	}
-
-	replyp=rfc1035_resolve(&res, RFC1035_OPCODE_QUERY,
-			       q_name, q_type, q_class);
-
+	else
+	{
+		replyp=rfc1035_resolve(&res, RFC1035_OPCODE_QUERY,
+				       q_name, q_type[0], q_class);
+	}
+	free(q_type);
 	if (!replyp)
 	{
 		perror(argv[0]);
 		exit(1);
 	}
 
-	rfc1035_dump(replyp, stdout);
+	if (q_type[0] && q_type[1])
+	{
+		struct rfc1035_reply *q;
+
+		for (q=replyp; q; q=q->next)
+		{
+			struct rfc1035_reply *s=q->next;
+
+			q->next=0;
+			rfc1035_dump(q, stdout);
+			q->next=s;
+		}
+	}
+	else
+	{
+		rfc1035_dump(replyp, stdout);
+	}
 	rfc1035_replyfree(replyp);
 	rfc1035_destroy_resolv(&res);
 	return (0);

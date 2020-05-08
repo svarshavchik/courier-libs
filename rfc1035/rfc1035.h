@@ -228,6 +228,22 @@ int rfc1035_resolve_cname(
 
 #define RFC1035_X_RANDOMIZE 1    /* Randomize query results */
 
+/*
+** rfc1035_resolve_cname_multiple is a version of rfc1035_resolve_cname
+** that accepts an array of qtypes, and issues a query for each qtype.
+**
+** qtypes points to a 0-terminated list of RRs.
+*/
+int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
+				   char *namebuf,
+				   /* RFC1035_MAXNAMESIZE buffer with
+				   ** the name to query */
+				   unsigned char *qtypes,
+				   unsigned qclass,
+				   struct rfc1035_reply **ptr,
+				   int x_flags);
+
+
 	/*
 	** Always call replyfree when done.
 	*/

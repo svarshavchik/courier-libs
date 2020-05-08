@@ -141,7 +141,8 @@ int rfc1035_replysearch_all(const struct rfc1035_res *res,
 	return (-1);
 }
 
-int rfc1035_resolve_cname(struct rfc1035_res *res, char *namebuf,
+int rfc1035_resolve_cname(struct rfc1035_res *res,
+			  char *namebuf,
 			  unsigned qtype,
 			  unsigned qclass,
 			  struct rfc1035_reply **ptr,
@@ -211,4 +212,145 @@ int	recursion_count=10;
 		}
 		return (-1);
 	}
+}
+
+int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
+				   char *namebuf,
+				   unsigned char *qtypes,
+				   unsigned qclass,
+				   struct rfc1035_reply **ptr,
+				   int x_flags)
+{
+	int	n, query_again;
+	int	retry_count=10;
+	unsigned nqueries=strlen((char*)qtypes), u, good, cname;
+	struct rfc1035_query qu[nqueries];
+	struct rfc1035_reply *p;
+
+	char	cmpname1[RFC1035_MAXNAMESIZE+1],
+		cmpname2[RFC1035_MAXNAMESIZE+1];
+
+	static const char forbidden[] =
+		{
+		 RFC1035_TYPE_CNAME,
+		 RFC1035_TYPE_AXFR,
+		 RFC1035_TYPE_ANY,
+		 0
+		};
+
+	if (nqueries == 0)
+		return -1;
+
+	for (u=0; u<nqueries; ++u)
+	{
+		qu[u].name=namebuf;
+		qu[u].qclass=qclass;
+		qu[u].qtype=qtypes[u];
+
+		if (strchr(forbidden, qtypes[u]))
+		{
+			if (nqueries == 1)
+			{
+				return rfc1035_resolve_cname(res, namebuf,
+							     qtypes[0],
+							     qclass,
+							     ptr,
+							     x_flags);
+			}
+			return -1;
+		}
+	}
+
+	*ptr=NULL;
+
+	do // query loop
+	{
+		if (*ptr)
+			rfc1035_replyfree( *ptr );
+
+		if ( (*ptr=rfc1035_resolve_multiple(res, RFC1035_OPCODE_QUERY,
+				qu, nqueries)) == 0)
+			return (-1);
+
+		query_again=0;
+
+		for (;;) // change name loop
+		{
+			int fatal = 0;
+
+			good = cname = 0;
+			for (u=0, p=*ptr; p; ++u, p=p->next)
+			{
+				if (p->rcode != RFC1035_RCODE_NOERROR ||
+					(n=rfc1035_replysearch_all(res,
+								   p, namebuf,
+								   qu[u].qtype,
+								   qclass, 0))
+				    < 0)
+					continue;
+				else if (p->allrrs[n]->rrtype == qu[u].qtype)
+				{
+					++good;
+				}
+				else // CNAME (not the queried type).
+				{
+					if (rfc1035_replyhostname(p, p->anptr[n].rr.domainname,
+						cname? cmpname1: cmpname2) == 0)
+							fatal=-1;
+
+					else if (cname && strcmp(cmpname1, cmpname2))
+						query_again=1;  // different aliases: try again
+
+					++cname;
+				}
+			}
+
+			if (good == 0 && cname == 0)
+			{
+				rfc1035_replyfree( *ptr );
+				*ptr=0;
+				return (-1);
+			}
+
+			if (good > 0 && cname > 0)
+				query_again=1; // have both cnames and non-cnames
+
+			if (query_again)
+			{
+				if (--retry_count > 0)
+					break;
+
+				fatal=RFC1035_ERR_CNAME_RECURSIVE;
+			}
+
+			if (fatal)
+			{
+				rfc1035_replyfree( *ptr );
+				*ptr=0;
+				return fatal;
+			}
+
+			if (good)
+				break;
+
+		/* CNAME found.  Return alias to caller, and restart from there */
+
+			strcpy(namebuf, cmpname1);
+		}
+
+	} while (query_again);
+
+	if (x_flags & RFC1035_X_RANDOMIZE)
+		for (p=*ptr; p; p=p->next)
+			if (p->rcode == RFC1035_RCODE_NOERROR)
+				rfc1035_rr_rand(p);
+
+/*
+*	Collecting allrrs shall be a further proposal.
+	if ((x_flags & RFC1035_X_COLLECT) &&
+	    (*ptr)->rcode == RFC1035_RCODE_NOERROR)
+		rfc1035_collect_allrrs(*ptr);
+*/
+
+	return (0);
 }
