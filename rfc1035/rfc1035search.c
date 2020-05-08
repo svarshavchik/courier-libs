@@ -238,6 +238,8 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 		 0
 		};
 
+	*ptr=NULL;
+
 	if (nqueries == 0)
 		return -1;
 
@@ -260,8 +262,6 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 			return -1;
 		}
 	}
-
-	*ptr=NULL;
 
 	do // query loop
 	{
@@ -307,8 +307,6 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 
 			if (good == 0 && cname == 0)
 			{
-				rfc1035_replyfree( *ptr );
-				*ptr=0;
 				return (-1);
 			}
 
