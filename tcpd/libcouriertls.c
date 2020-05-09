@@ -348,6 +348,9 @@ static void nonsslerror(const struct tls_info *info, const char *pfix)
 {
 	char errmsg[256];
 
+	if (errno == 0)
+		return;
+
 	strcpy(errmsg, "couriertls: ");
 	strncat(errmsg, pfix, 200);
 	strcat(errmsg, ": ");
@@ -1361,6 +1364,8 @@ int	tls_transfer(struct tls_transfer_info *t, SSL *ssl, int fd,
 {
 	struct tls_info *info=SSL_get_app_data(ssl);
 	int n;
+
+	errno=0;
 
 	if (info->connect_interrupted)
 	{

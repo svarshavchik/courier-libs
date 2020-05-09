@@ -1143,7 +1143,7 @@ static int doit(int argn, int argc, char **argv)
 		if (select(maxfd+1, &fdr, NULL, NULL, NULL) <= 0)
 		{
 			if (errno != EINTR)
-				perror("accept");
+				perror("select");
 			continue;
 		}
 
