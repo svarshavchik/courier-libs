@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2013 Double Precision, Inc.
+** Copyright 1998 - 2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -1603,6 +1603,8 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 	struct rfc1035_res res;
 	unsigned int i;
 	int found;
+	unsigned char query_A[] = {RFC1035_TYPE_A, 0},
+		query_A_and_TXT[] = {RFC1035_TYPE_A, RFC1035_TYPE_TXT, 0};
 
 	hostname[0]=0;
 	strncat(hostname, nameptr, RFC1035_MAXNAMESIZE);
@@ -1626,9 +1628,9 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 	else
 		wanttxt = p->msg && strcmp(p->msg, "*") == 0;
 
-	(void)rfc1035_resolve_cname(&res,
+	(void)rfc1035_resolve_cname_multiple(&res,
 			hostname,
-			wanttxt ? RFC1035_TYPE_TXT:RFC1035_TYPE_A,
+			wanttxt ? query_A_and_TXT:query_A,
 			RFC1035_CLASS_IN, &replyp, 0);
 
 	if (!replyp)
@@ -1670,7 +1672,8 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 		if (p->allow)
 			set_allow_variable(varname, p->msg);
 
-		if (!search_txt_records(&res, p->allow, varname, replyp,
+		if (replyp->next &&
+			!search_txt_records(&res, p->allow, varname, replyp->next,
 					hostname) && !p->allow)
 		{
 			size_t l=strlen(p->zone)+40;
@@ -1702,9 +1705,9 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 	** for a specific IP address, then take what we've got.
 	*/
 
-	if (p->ia.s_addr == INADDR_ANY && !found)
+	if (p->ia.s_addr == INADDR_ANY && !found && replyp->next)
 	{
-		if (search_txt_records(&res, p->allow, varname, replyp,
+		if (search_txt_records(&res, p->allow, varname, replyp->next,
 				       hostname))
 		{
 			/*
