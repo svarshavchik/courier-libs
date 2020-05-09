@@ -227,7 +227,8 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 	struct rfc1035_query qu[nqueries];
 	struct rfc1035_reply *p;
 
-	char	cmpname1[RFC1035_MAXNAMESIZE+1],
+	char	savename[RFC1035_MAXNAMESIZE+1],
+		cmpname1[RFC1035_MAXNAMESIZE+1],
 		cmpname2[RFC1035_MAXNAMESIZE+1];
 
 	static const char forbidden[] =
@@ -243,6 +244,7 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 	if (nqueries == 0)
 		return -1;
 
+	strcpy(savename, namebuf);
 	for (u=0; u<nqueries; ++u)
 	{
 		qu[u].name=namebuf;
@@ -316,7 +318,11 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 			if (query_again)
 			{
 				if (--retry_count > 0)
+				{
+				  /* Query back from the original alias. */
+					strcpy(namebuf, savename);
 					break;
+				}
 
 				fatal=RFC1035_ERR_CNAME_RECURSIVE;
 			}
@@ -342,13 +348,6 @@ int rfc1035_resolve_cname_multiple(struct rfc1035_res *res,
 		for (p=*ptr; p; p=p->next)
 			if (p->rcode == RFC1035_RCODE_NOERROR)
 				rfc1035_rr_rand(p);
-
-/*
-*	Collecting allrrs shall be a further proposal.
-	if ((x_flags & RFC1035_X_COLLECT) &&
-	    (*ptr)->rcode == RFC1035_RCODE_NOERROR)
-		rfc1035_collect_allrrs(*ptr);
-*/
 
 	return (0);
 }
