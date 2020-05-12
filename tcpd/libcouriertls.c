@@ -194,7 +194,7 @@ static int hostmatch(const struct tls_info *info, const char *domain)
 		}
 	}
 
-	if (idna_to_unicode_8z8z(info->peer_verify_domain, &idn_domain1, 0)
+	if (idna_to_unicode_8z8z(verify_domain, &idn_domain1, 0)
 	    != IDNA_SUCCESS)
 		idn_domain1=0;
 
