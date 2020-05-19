@@ -136,7 +136,8 @@ int	rc;
 	if (!p || !*p)
 		p="imap";
 
-	rc=auth_generic(p, authtype, authdata, login_callback, (void *)tag);
+	rc=auth_generic_meta(NULL, p, authtype, authdata,
+			     login_callback, (void *)tag);
 	free(authtype);
 	free(authdata);
 	return (rc);

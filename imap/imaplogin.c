@@ -374,7 +374,8 @@ int do_imap_command(const char *tag, int *flushflag)
 		if (!p || !*p)
 			p="imap";
 
-		rc=auth_login(p, userid, passwd, login_callback, (void *)tag);
+		rc=auth_login_meta(NULL, p, userid, passwd,
+				   login_callback, (void *)tag);
 		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s], port=[%s]",
 				    userid, getenv("TCPREMOTEIP"),
 				    getenv("TCPREMOTEPORT"));

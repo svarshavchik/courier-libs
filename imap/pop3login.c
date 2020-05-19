@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2014 Double Precision, Inc.
+** Copyright 1998 - 2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -403,11 +403,12 @@ char *q ;
 						if (!q || !*q)
 							q="pop3";
 
-						rc=auth_generic(q,
-							     authtype,
-							     authdata,
-							     login_callback,
-							     NULL);
+						rc=auth_generic_meta
+							(NULL, q,
+							 authtype,
+							 authdata,
+							 login_callback,
+							 NULL);
 						free(authtype);
 						free(authdata);
 					}
@@ -452,7 +453,8 @@ char *q ;
 				if (!q || !*q)
 					q="pop3";
 
-				rc=auth_login(q, user, p, login_callback, NULL);
+				rc=auth_login_meta(NULL, q, user, p,
+						   login_callback, NULL);
 				courier_safe_printf
 					("INFO: LOGIN "
 					 "FAILED, user=%s, ip=[%s], port=[%s]",

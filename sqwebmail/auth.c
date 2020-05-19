@@ -169,7 +169,16 @@ static int doauthlogin(struct authinfo *a, void *vp)
 
 const char *do_login(const char *u, const char *p, const char *ip)
 {
-	if (auth_login("webmail", u, p, doauthlogin, (void *)u))
+	char ipbuf[strlen(ip)+sizeof("TCPREMOTEIP=")];
+	char *envvars[2]={ipbuf, 0};
+	struct auth_meta meta;
+
+	strcat(strcpy(ipbuf, "TCPREMOTEIP="), ip);
+
+	memset(&meta, 0, sizeof(meta));
+	meta.envvars=envvars;
+
+	if (auth_login_meta(&meta, "webmail", u, p, doauthlogin, (void *)u))
 	{
 		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s]",
 				  u?u:"", ip);
