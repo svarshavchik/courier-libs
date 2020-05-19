@@ -130,6 +130,11 @@ AUTHLIB=0
 
 if test "$COURIERAUTHCONFIG" != ""
 then
+	if test `$COURIERAUTHCONFIG --version=0.70.0.20200518` = "no"
+	then
+		AC_MSG_ERROR(Courier authentication library version 0.71 is required.)
+	fi
+
 	AUTHINCLUDE=`$COURIERAUTHCONFIG --cppflags`
 	AUTHLDADD="`$COURIERAUTHCONFIG --ldflags` -lcourierauth"
 	AUTHLIB=1

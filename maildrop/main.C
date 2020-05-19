@@ -361,8 +361,12 @@ static int callback_authlib(struct authinfo *auth,
 
 int find_in_authlib(Maildrop *maildrop, const char* user)
 {
-	int rc=auth_getuserinfo("login",
-				user, callback_authlib, maildrop);
+	struct auth_meta meta;
+
+	memset(&meta, 0, sizeof(meta));
+
+	int rc=auth_getuserinfo_meta(&meta, "login",
+				     user, callback_authlib, maildrop);
 
 	if (rc == 0)
 		return 1;
