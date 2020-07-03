@@ -6,19 +6,19 @@
 
 #include <stdlib.h>
 
-int unicode_wcwidth(char32_t c)
+unicode_eastasia_t unicode_eastasia(char32_t c)
 {
 	size_t b=0;
-	size_t e=sizeof(unicode_wcwidth_tab)/sizeof(unicode_wcwidth_tab[0]);
+	size_t e=sizeof(unicode_eastasia_tab)/sizeof(unicode_eastasia_tab[0]);
 
 	while (b < e)
 	{
 		size_t n=b + (e-b)/2;
 
-		if (c >= unicode_wcwidth_tab[n][0])
+		if (c >= unicode_eastasia_tab[n][0])
 		{
-			if (c <= unicode_wcwidth_tab[n][1])
-				return 2;
+			if (c <= unicode_eastasia_tab[n][1])
+				return unicode_eastasia_v[n];
 			b=n+1;
 		}
 		else
@@ -27,6 +27,11 @@ int unicode_wcwidth(char32_t c)
 		}
 	}
 
+	return UNICODE_EASTASIA_N;
+}
+
+int unicode_wcwidth(char32_t c)
+{
 	switch (unicode_lb_lookup(c)) {
 	case UNICODE_LB_BK:
 	case UNICODE_LB_CR:
@@ -39,6 +44,13 @@ int unicode_wcwidth(char32_t c)
 	default:
 		break;
 	}
+
+	switch (unicode_eastasia(c)) {
+	case UNICODE_EASTASIA_F:
+	case UNICODE_EASTASIA_W:
+		return 2;
+	}
+
 	return 1;
 }
 

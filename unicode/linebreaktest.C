@@ -127,6 +127,7 @@ static void testsuite()
 			std::cerr << "Regression, line " << linenum
 				  << ": " << buf << std::endl;
 			flag=1;
+			exit(1);
 		}
 	}
 

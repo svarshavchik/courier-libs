@@ -3,50 +3,78 @@
 # USAGE: perl mkeastasianwidth.pl > charwidth.c
 
 use IO::File;
+use strict;
+use warnings;
 
-my $fh=new IO::File "<EastAsianWidth.txt";
+foreach my $pass (
 
-my $pb=-1;
-my $pe=-1;
-
-print "static const char32_t unicode_wcwidth_tab[][2]={\n";
-
-sub full($$) {
-    my $b=hex(shift);
-    my $e=hex(shift);
-
-    if ($b == $pe+1)
     {
-	$pe=$e;
-	return;
-    }
+	header => "char32_t unicode_eastasia_tab[][2]",
+	emit => sub {
+	    my ($pb, $pe, $pv) = @_;
 
-    printf ("{0x%04x, 0x%04x},\n", $pb, $pe) unless $pb < 0;
+	    printf ("{0x%04x, 0x%04x},\n", $pb, $pe);
+	},
+    },
+    {
+	header => "unicode_eastasia_t unicode_eastasia_v[]",
+	emit => sub {
+	    my ($pb, $pe, $pv) = @_;
 
-    $pb=$b;
-    $pe=$e;
-}
-
-
-while (defined($_=<$fh>))
+	    printf ("UNICODE_EASTASIA_%s,\n", $pv);
+	},
+    })
 {
-    chomp;
-    s/#.*//;
+    my $emit = $pass->{emit};
 
-    my @w=split(/;/);
 
-    grep {s/^\s*//; s/\s*$//; } @w;
+    my $fh=new IO::File "<EastAsianWidth.txt";
 
-    next unless $w[1] eq "F" || $w[1] eq "W";
+    my $pb=-1;
+    my $pe=-1;
+    my $pv="";
 
-    if ($w[0] =~ /(.*)\.\.(.*)/)
+    print "static const " . $pass->{header} . "={\n";
+
+    my $full = sub {
+	my $b=hex(shift);
+	my $e=hex(shift);
+	my $v=shift;
+
+	if ($b == $pe+1 && $v eq $pv)
+	{
+	    $pe=$e;
+	    return;
+	}
+
+	$emit->($pb, $pe, $pv) unless $pb < 0;
+
+	$pb=$b;
+	$pe=$e;
+	$pv=$v;
+    };
+
+
+    while (defined($_=<$fh>))
     {
-	full($1, $2);
+	chomp;
+	s/#.*//;
+
+	my @w=split(/;/);
+
+	next unless @w;
+	grep {s/^\s*//; s/\s*$//; } @w;
+
+	if ($w[0] =~ /(.*)\.\.(.*)/)
+	{
+	    $full->($1, $2, $w[1]);
+	}
+	else
+	{
+	    $full->($w[0], $w[0], $w[1]);
+	}
     }
-    else
-    {
-	full($w[0], $w[0]);
-    }
+
+    $emit->($pb, $pe, $pv);
+    print "};\n\n";
 }
-
-printf ("{0x%04x, 0x%04x}\n};\n", $pb, $pe);

@@ -1,3 +1,11 @@
+2020-07-04  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Unicode 13 update. Adds lookup of EastAsianWidth property, emoji
+	property lookup, adds an alternative sequence-based grapheme API
+	that handles multi-character emoji rules.
+
+2.1
+
 2020-04-21  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Add AC_PROG_CC_C99 to configure

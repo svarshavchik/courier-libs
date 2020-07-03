@@ -9,6 +9,7 @@ AM_CXXFLAGS= @COURIER_UNICODE_CXXFLAGS@
 noinst_SCRIPTS=update.sh \
 	mkultcase.pl unicodefilter.pl \
 	mkeastasianwidth.pl \
+	mkemojidata.pl \
 	mkgraphemebreak.pl mklinebreak.pl mkwordbreak.pl mkcommon.pm \
 	mkhtmlent.pl
 
@@ -22,6 +23,7 @@ update-www:
 	@$(MAKE) update-www-unicode
 	@$(MAKE) update-www-eastasia
 	@$(MAKE) update-www-grapheme
+	@$(MAKE) update-www-emojidata
 	@$(MAKE) update-www-linebreak
 	@$(MAKE) update-www-wordbreak
 	@$(MAKE) update-www-scripts
@@ -37,6 +39,9 @@ update-www-eastasia:
 
 update-www-grapheme:
 	@SHELL@ $(srcdir)/update.sh GraphemeBreakProperty.txt http://www.unicode.org/Public/UNIDATA/auxiliary/GraphemeBreakProperty.txt
+
+update-www-emojidata:
+	@SHELL@ $(srcdir)/update.sh emoji-data.txt https://www.unicode.org/Public/UCD/latest/ucd/emoji/emoji-data.txt
 
 update-www-linebreak:
 	@SHELL@ $(srcdir)/update.sh LineBreak.txt http://www.unicode.org/Public/UNIDATA/LineBreak.txt
@@ -78,6 +83,7 @@ libcourier_unicode_la_SOURCES=\
 			unicode_htmlent.c unicode_htmlent.h \
 			linebreaktab_internal.h \
 			unicode_wordbreak.c wordbreaktab.h scriptstab.h \
+			unicode_emoji.c emojitab.h \
 			wordbreaktab_internal.h \
 			unicode_scripts.c \
 			categoriestab.h \
@@ -91,34 +97,48 @@ EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 
 if UPDATE_UNICODE
 
+BUILT_SOURCES=unicode_ultcasetab.c \
+	eastasianwidth.h \
+	graphemebreaktab.h \
+	linebreaktab.h \
+	wordbreaktab.h \
+	emojitab.h \
+	scriptstab.h \
+	categoriestab.h \
+	unicode_htmlent.h
+
 unicode_ultcasetab.c: UnicodeData.txt mkultcase.pl
-	@PERL@ $(srcdir)/mkultcase.pl >unicode_ultcasetab.c
+	@PERL@ -I$(srcdir) $(srcdir)/mkultcase.pl >unicode_ultcasetab.c
 
 eastasianwidth.h: EastAsianWidth.txt mkeastasianwidth.pl
-	@PERL@ $(srcdir)/mkeastasianwidth.pl >eastasianwidth.h
+	@PERL@ -I$(srcdir) $(srcdir)/mkeastasianwidth.pl >eastasianwidth.h
 
 graphemebreaktab.h: GraphemeBreakProperty.txt mkgraphemebreak.pl mkcommon.pm
-	@PERL@ $(srcdir)/mkgraphemebreak.pl >graphemebreaktab.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mkgraphemebreak.pl >graphemebreaktab.h.tmp
 	mv graphemebreaktab.h.tmp graphemebreaktab.h
 
 linebreaktab.h: LineBreak.txt UnicodeData.txt mklinebreak.pl mkcommon.pm
-	@PERL@ $(srcdir)/mklinebreak.pl >linebreaktab.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mklinebreak.pl >linebreaktab.h.tmp
 	mv linebreaktab.h.tmp linebreaktab.h
 
 wordbreaktab.h: WordBreakProperty.txt mkwordbreak.pl mkcommon.pm
-	@PERL@ $(srcdir)/mkwordbreak.pl >wordbreaktab.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mkwordbreak.pl >wordbreaktab.h.tmp
 	mv wordbreaktab.h.tmp wordbreaktab.h
 
+emojitab.h: emoji-data.txt mkemojidata.pl
+	@PERL@ -I$(srcdir) $(srcdir)/mkemojidata.pl >emojitab.h.tmp
+	mv emojitab.h.tmp emojitab.h
+
 scriptstab.h: Scripts.txt mkscripts.pl mkcommon.pm
-	@PERL@ $(srcdir)/mkscripts.pl >scriptstab.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mkscripts.pl >scriptstab.h.tmp
 	mv scriptstab.h.tmp scriptstab.h
 
 categoriestab.h: Categories.txt mkcategories.pl mkcommon.pm
-	@PERL@ $(srcdir)/mkcategories.pl >categoriestab.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mkcategories.pl >categoriestab.h.tmp
 	mv categoriestab.h.tmp categoriestab.h
 
 unicode_htmlent.h: xhtml-lat1.ent xhtml-special.ent xhtml-symbol.ent mkhtmlent.pl
-	@PERL@ $(srcdir)/mkhtmlent.pl >unicode_htmlent.h.tmp
+	@PERL@ -I$(srcdir) $(srcdir)/mkhtmlent.pl >unicode_htmlent.h.tmp
 	mv unicode_htmlent.h.tmp unicode_htmlent.h
 endif
 
@@ -211,10 +231,12 @@ check-am: unicodetest
 	test "`./graphemetest 0x0041 0x036F`" = "0"  # GB9
 	test "`./graphemetest 0x0041 0x0903`" = "0"  # GB9a
 	test "`./graphemetest 0x0041 0xAABB`" = "1"
-	test "`./graphemetest 0x036F 0x0041`" = "1"
+	test "`./graphemetest 0x036F 0x0041`" = "0"
 	test "`./graphemetest 0x0903 0x0041`" = "1"
-	exit 0; test "`./graphemetest 0xAABB 0x0041`" = "0" # GB9b N/A
-	test "`./graphemetest 0x0041 0x0041`" = "1"
+	test "`./graphemetest 0x0600 0x0041`" = "0" # GB9b
+	test "`./graphemetest 0x1F1E6 0x1f1FF`" = "0" # GB12, GB31
+	test "`./graphemetest 0x1F1E6 0x1F1E7 0x1f1FF`" = "1" # GB12, GB31
+	test "`./graphemetest 0x0041 0x0041`" = "1" # GB999
 
 if HAVE_DOCS
 
@@ -295,7 +317,7 @@ dorpm:
 bump.rpm.release: $(PACKAGE).spec
 	VERSION="x"; \
 	test -f $(srcdir)/rpm.release && . $(srcdir)/rpm.release; \
-	NEXT_RELEASE=0; \
+	NEXT_RELEASE=100; \
 	test "$$VERSION" = "@VERSION@" && NEXT_RELEASE="$$RELEASE"; \
 	RELEASE=`expr $$NEXT_RELEASE + 1`; \
 	echo "VERSION=@VERSION@" >$(srcdir)/rpm.release; \

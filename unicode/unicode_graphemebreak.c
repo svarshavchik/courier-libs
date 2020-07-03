@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Double Precision, Inc.
+** Copyright 2011-2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -8,6 +8,7 @@
 #include	"courier-unicode.h"
 #include	<unistd.h>
 #include	<stdint.h>
+#include	<string.h>
 #include	<stdlib.h>
 
 #define UNICODE_GRAPHEMEBREAK_ANY		0x00
@@ -24,22 +25,63 @@
 #define UNICODE_GRAPHEMEBREAK_LVT		0x0B
 #define UNICODE_GRAPHEMEBREAK_Regional_Indicator 0x0C
 
+#define UNICODE_GRAPHEMEBREAK_ZWJ		0x0D
+
+#define UNICODE_GRAPHEMEBREAK_SOT		0xFF
+
 #include "graphemebreaktab.h"
+
+struct unicode_grapheme_break_info_s {
+	uint8_t prev_class;
+	unsigned prev_count;
+};
+
+unicode_grapheme_break_info_t unicode_grapheme_break_init()
+{
+	unicode_grapheme_break_info_t t=(unicode_grapheme_break_info_t)
+		calloc(1, sizeof(struct unicode_grapheme_break_info_s));
+
+	if (!t)
+		abort();
+
+	t->prev_class=UNICODE_GRAPHEMEBREAK_SOT;
+
+	return t;
+}
+
+void unicode_grapheme_break_deinit(unicode_grapheme_break_info_t t)
+{
+	free(t);
+}
 
 int unicode_grapheme_break(char32_t a, char32_t b)
 {
-	uint8_t ac=unicode_tab_lookup(a, unicode_indextab,
-			 sizeof(unicode_indextab)/sizeof(unicode_indextab[0]),
-			 unicode_rangetab,
-			 unicode_classtab,
-			 UNICODE_GRAPHEMEBREAK_ANY),
-		bc=unicode_tab_lookup(b, unicode_indextab,
+	struct unicode_grapheme_break_info_s s;
+
+	memset((char *)&s, 0, sizeof(s));
+
+	(void)unicode_grapheme_break_next(&s, a);
+
+	return unicode_grapheme_break_next(&s, b);
+}
+
+int unicode_grapheme_break_next(unicode_grapheme_break_info_t t, char32_t b)
+{
+	uint8_t ac=t->prev_class;
+	uint8_t bc=unicode_tab_lookup(b, unicode_indextab,
 			 sizeof(unicode_indextab)/sizeof(unicode_indextab[0]),
 			 unicode_rangetab,
 			 unicode_classtab,
 			 UNICODE_GRAPHEMEBREAK_ANY);
 
-	/* GB1 and GB2 are implied */
+	if (ac != bc)
+		t->prev_count=0;
+	++t->prev_count;
+
+	t->prev_class=bc;
+
+	if (ac == UNICODE_GRAPHEMEBREAK_SOT)
+		return 1; /* GB1, GB2 is implied */
 
 	if (ac == UNICODE_GRAPHEMEBREAK_CR && bc == UNICODE_GRAPHEMEBREAK_LF)
 		return 0; /* GB3 */
@@ -83,11 +125,8 @@ int unicode_grapheme_break(char32_t a, char32_t b)
 	    bc == UNICODE_GRAPHEMEBREAK_T)
 		return 0; /* GB8 */
 
-	if (ac == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&
-	    bc == UNICODE_GRAPHEMEBREAK_Regional_Indicator)
-		return 0; /* GB8a */
-
-	if (bc == UNICODE_GRAPHEMEBREAK_Extend)
+	if (bc == UNICODE_GRAPHEMEBREAK_Extend ||
+	    bc == UNICODE_GRAPHEMEBREAK_ZWJ)
 		return 0; /* GB9 */
 
 	if (bc == UNICODE_GRAPHEMEBREAK_SpacingMark)
@@ -96,5 +135,14 @@ int unicode_grapheme_break(char32_t a, char32_t b)
 	if (ac == UNICODE_GRAPHEMEBREAK_Prepend)
 		return 0; /* GB9b */
 
-	return 1; /* GB10 */
+	if (ac == UNICODE_GRAPHEMEBREAK_Extend ||
+	    ac == UNICODE_GRAPHEMEBREAK_ZWJ)
+		return 0; /* GB11? */
+
+	if (ac == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&
+	    bc == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&
+	    (t->prev_count % 2) == 0)
+		return 0; /* GB12, GB13 */
+
+	return 1; /* GB999 */
 }

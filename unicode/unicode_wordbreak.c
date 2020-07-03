@@ -16,35 +16,76 @@
 #include "wordbreaktab_internal.h"
 #include "wordbreaktab.h"
 
+/*
+** We need to keep track of the original character, in addition
+** to the wordbreaking class, to check WB3.
+*/
+
+typedef struct {
+	uint8_t cl;
+	char32_t ch;
+} wb_info_t;
+
+/*
+** Internal object.
+*/
 struct unicode_wb_info {
 	int (*cb_func)(int, void *);
 	void *cb_arg;
 
-	uint8_t prevclass;
-	uint8_t wb7_first_char;
+	/* Previous character seen. */
+	wb_info_t prevclass;
+
+	/*
+	** For some rules we peek an extra character, and so need to
+	** stash away the 2nd previous character seen, when we're looking at
+	** it.
+	*/
+	wb_info_t prev2class;
+
+	/*
+	** How many (Extend | Format | ZWJ) were processed, so far,
+	** for WB4's sake.
+	*/
 	size_t wb4_cnt;
 
-	size_t wb4_extra_cnt;
+	/*
+	** Most recently processed WB4 character.
+	*/
+	wb_info_t wb4_last;
 
-	int (*next_handler)(unicode_wb_info_t, uint8_t);
+	/*
+	** Each character received by unicode_wb_next is forwarded to
+	** this handler.
+	*/
+	int (*next_handler)(unicode_wb_info_t, wb_info_t);
+
+	/*
+	** unicode_wb_end() calls this. If we were in a middle of a
+	** multi-char rule, this wraps things up.
+	*/
 	int (*end_handler)(unicode_wb_info_t);
 };
 
-static int sot(unicode_wb_info_t i, uint8_t cl);
-static int wb4(unicode_wb_info_t i);
-static int wb1and2_done(unicode_wb_info_t i, uint8_t cl);
+/* Forward declarations */
 
-static int seen_wb67_handler(unicode_wb_info_t i, uint8_t cl);
+static int sot(unicode_wb_info_t i, wb_info_t cl);
+static int wb1and2_done(unicode_wb_info_t i, wb_info_t cl);
+
+static int seen_wb67_handler(unicode_wb_info_t i, wb_info_t cl);
 static int seen_wb67_end_handler(unicode_wb_info_t i);
-static int wb67_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl);
+static int wb67_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl);
 
-static int seen_wb7bc_handler(unicode_wb_info_t i, uint8_t cl);
+static int seen_wb7bc_handler(unicode_wb_info_t i, wb_info_t cl);
 static int seen_wb7bc_end_handler(unicode_wb_info_t i);
-static int wb7bc_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl);
+static int wb7bc_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl);
 
-static int seen_wb1112_handler(unicode_wb_info_t i, uint8_t cl);
+static int seen_wb1112_handler(unicode_wb_info_t i, wb_info_t cl);
 static int seen_wb1112_end_handler(unicode_wb_info_t i);
-static int wb1112_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl);
+static int wb1112_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl);
+
+static int seen_wb1516_handler(unicode_wb_info_t i, wb_info_t cl);
+static int wb1516_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl);
 
 unicode_wb_info_t unicode_wb_init(int (*cb_func)(int, void *),
 				  void *cb_arg)
@@ -57,17 +98,16 @@ unicode_wb_info_t unicode_wb_init(int (*cb_func)(int, void *),
 	i->next_handler=sot;
 	i->cb_func=cb_func;
 	i->cb_arg=cb_arg;
+	i->wb4_cnt=0;
 	return i;
 }
 
 int unicode_wb_end(unicode_wb_info_t i)
 {
-	int rc;
+	int rc=0;
 
 	if (i->end_handler)
 		rc=(*i->end_handler)(i);
-	else
-		rc=wb4(i);
 
 	free(i);
 	return rc;
@@ -91,16 +131,42 @@ int unicode_wb_next_cnt(unicode_wb_info_t i,
 
 int unicode_wb_next(unicode_wb_info_t i, char32_t ch)
 {
-	return (*i->next_handler)
-		(i, unicode_tab_lookup(ch,
-				       unicode_indextab,
-				       sizeof(unicode_indextab)
-				       / sizeof(unicode_indextab[0]),
-				       unicode_rangetab,
-				       unicode_classtab,
-				       UNICODE_WB_OTHER));
+	wb_info_t info;
+
+	info.ch=ch;
+	info.cl=unicode_tab_lookup(ch,
+				   unicode_indextab,
+				   sizeof(unicode_indextab)
+				   / sizeof(unicode_indextab[0]),
+				   unicode_rangetab,
+				   unicode_classtab,
+				   UNICODE_WB_OTHER);
+
+	return (*i->next_handler)(i, info);
 }
 
+#if 0
+
+static int result(unicode_wb_info_t i, int flag)
+{
+	return (*i->cb_func)(flag, i->cb_arg);
+}
+#else
+#define result(i,flag) ( (*(i)->cb_func)( (flag), (i)->cb_arg))
+#endif
+
+/*
+** Check for WB3C
+*/
+
+#define WB3C_APPLIES(prevclass,uclass)			\
+	((prevclass).cl == UNICODE_WB_ZWJ &&		\
+	 unicode_emoji_extended_pictographic((uclass).ch))
+
+/*
+** Finished WB4 processing. Emit the equivalent number of non-break
+** indications.
+*/
 static int wb4(unicode_wb_info_t i)
 {
 	int rc=0;
@@ -110,24 +176,14 @@ static int wb4(unicode_wb_info_t i)
 		--i->wb4_cnt;
 
 		if (rc == 0)
-			rc=(*i->cb_func)(0, i->cb_arg);
+			rc=result(i, 0);
 	}
-	return rc;
-}
-
-static int result(unicode_wb_info_t i, int flag)
-{
-	int rc=wb4(i);
-
-	if (rc == 0)
-		rc=(*i->cb_func)(flag, i->cb_arg);
-
 	return rc;
 }
 
 #define SET_HANDLER(next,end) (i->next_handler=next, i->end_handler=end)
 
-static int sot(unicode_wb_info_t i, uint8_t cl)
+static int sot(unicode_wb_info_t i, wb_info_t cl)
 {
 	i->prevclass=cl;
 	SET_HANDLER(wb1and2_done, NULL);
@@ -135,51 +191,147 @@ static int sot(unicode_wb_info_t i, uint8_t cl)
 	return result(i, 1);	/* WB1 */
 }
 
-static int wb1and2_done(unicode_wb_info_t i, uint8_t cl)
+static int wb4_handled(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl);
+
+static int wb1and2_done(unicode_wb_info_t i, wb_info_t cl)
 {
-	uint8_t prevclass=i->prevclass;
+	wb_info_t prevclass=i->prevclass;
 
 	i->prevclass=cl;
 
-	if (prevclass == UNICODE_WB_CR && cl == UNICODE_WB_LF)
+	if (prevclass.cl == UNICODE_WB_CR && cl.cl == UNICODE_WB_LF)
 		return result(i, 0); /* WB3 */
 
-	switch (prevclass) {
+	switch (prevclass.cl) {
 	case UNICODE_WB_CR:
 	case UNICODE_WB_LF:
 	case UNICODE_WB_Newline:
 		return result(i, 1); /* WB3a */
 	}
 
-	switch (cl) {
+	switch (cl.cl) {
 	case UNICODE_WB_CR:
 	case UNICODE_WB_LF:
 	case UNICODE_WB_Newline:
 		return result(i, 1); /* WB3b */
 	}
 
-	if (cl == UNICODE_WB_Extend || cl == UNICODE_WB_Format)
+	if (WB3C_APPLIES(prevclass, cl))
+		return result(i, 0); /* WB3c */
+
+	if (prevclass.cl == UNICODE_WB_WSegSpace &&
+	    cl.cl == UNICODE_WB_WSegSpace)
+		return result(i, 0); /* WB3d */
+
+	return wb4_handled(i, prevclass, cl);
+}
+
+/*
+** Macros, as defined in the TR
+*/
+#define AHLetter(c) (c.cl == UNICODE_WB_ALetter || \
+		     c.cl == UNICODE_WB_Hebrew_Letter)
+#define MidNumLetQ(c) (c.cl == UNICODE_WB_MidNumLet || \
+		       c.cl == UNICODE_WB_Single_Quote)
+
+/*
+** Whether the character is applicable to the WB4 rule.
+*/
+
+#define WB4(C)	((C).cl == UNICODE_WB_Extend || (C).cl == UNICODE_WB_Format ||\
+		 (C).cl == UNICODE_WB_ZWJ)
+
+/*
+** Check if the current character invokes the WB4 rule, if so return s0,
+** doing nothing, here, after performing some record keeping.
+*/
+
+#define WB4_APPLY(i,cl)				\
+	do {					\
+		if (WB4(cl))			\
+		{				\
+			++(i)->wb4_cnt;		\
+			(i)->wb4_last=(cl);	\
+			return 0;		\
+		}				\
+	} while (0)
+
+/*
+** After processing WB4, check if the last WB4-processed character
+** will invoke WB3C for the next character.
+**
+** This is invoked after WB4_APPLY. The return value must be stored in an
+** int.
+**
+** This must be followed by WB4_END. Then, after WB4_END, if this returned
+** non 0, WB3C applies, returning a non-break indication.
+*/
+
+#define WB3C_APPLIES_AFTER_WB4(i,cl)			\
+	( (i)->wb4_cnt > 0 &&				\
+	  WB3C_APPLIES( (i)->wb4_last, (cl)))
+
+/*
+** Wrapper for invoking wb4() after detecting that it no longer applies. This
+** gets invoked:
+**
+** - After WB4_APPLY
+**
+** - After WB3C_APPLIES_AFTER_WB4
+*/
+
+#define WB4_END(i)				\
+	do {					\
+						\
+		int rc=wb4(i);			\
+						\
+		if (rc)				\
+			return rc;		\
+	} while (0)
+
+
+static int resume_wb4(unicode_wb_info_t i, wb_info_t cl)
+{
+	if (!WB4(cl))
+	{
+		SET_HANDLER(wb1and2_done, NULL);
+
+		if (WB3C_APPLIES(i->wb4_last, cl))
+		{
+			i->prevclass=cl;
+			return result(i, 0);
+		}
+
+		wb_info_t prevclass=i->prevclass;
+
+		i->prevclass=cl;
+
+		return wb4_handled(i, prevclass, cl);
+	}
+	i->wb4_last=cl;
+	return result(i, 0);
+}
+
+
+static int wb4_handled(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl)
+{
+	if (WB4(cl))
 	{
 		i->prevclass=prevclass;
-		++i->wb4_cnt;
-		return 0; /* WB4 */
+		i->wb4_last=cl;
+		SET_HANDLER(resume_wb4, 0);
+		return result(i, 0); /* WB4 */
 	}
 
-	if ((prevclass == UNICODE_WB_ALetter ||
-	     prevclass == UNICODE_WB_Hebrew_Letter) &&
-	    (cl == UNICODE_WB_ALetter || cl == UNICODE_WB_Hebrew_Letter))
+	if (AHLetter(prevclass) && AHLetter(cl))
 	{
 		return result(i, 0); /* WB5 */
 	}
 
-	if ((prevclass == UNICODE_WB_ALetter ||
-	     prevclass == UNICODE_WB_Hebrew_Letter)
-	    &&
-	    (cl == UNICODE_WB_MidLetter || cl == UNICODE_WB_MidNumLet ||
-	     cl == UNICODE_WB_Single_Quote))
+	if (AHLetter(prevclass) &&
+	    (MidNumLetQ(cl) || cl.cl == UNICODE_WB_MidLetter))
 	{
-		i->wb4_extra_cnt=0;
-		i->wb7_first_char=prevclass;
+		i->prev2class=prevclass;
 		SET_HANDLER(seen_wb67_handler, seen_wb67_end_handler);
 		return 0;
 	}
@@ -188,94 +340,69 @@ static int wb1and2_done(unicode_wb_info_t i, uint8_t cl)
 }
 
 /*
-** (ALetter | Hebrew_Letter) (MidLetter | MidNumLet | Single_quote)  ?
-**
-**                           prevclass                               cl
-**
-** Seen (ALetter | Hebrew_Letter)(MidLetter | MidNumLet), with the second
-** character's status not returned yet.
+** AHLetter (MidLetter | MidNumLetQ) seen, is this followed by AHLetter?
 */
 
-static int seen_wb67_handler(unicode_wb_info_t i, uint8_t cl)
+static int seen_wb67_handler(unicode_wb_info_t i, wb_info_t cl)
 {
 	int rc;
-	uint8_t prevclass;
-	size_t extra_cnt;
 
-	if (cl == UNICODE_WB_Extend || cl == UNICODE_WB_Format)
-	{
-		++i->wb4_extra_cnt;
-		return 0;
-	}
-
-	extra_cnt=i->wb4_extra_cnt;
-
-	/*
-	** Reset the handler to the default, then check WB6
-	*/
+	WB4_APPLY(i, cl);
 
 	SET_HANDLER(wb1and2_done, NULL);
 
-	if (cl == UNICODE_WB_ALetter || cl == UNICODE_WB_Hebrew_Letter)
+	if (AHLetter(cl))
 	{
-		rc=result(i, 0); /* WB6 */
-		i->wb4_cnt=extra_cnt;
+		i->prevclass=cl;
 
+		rc=result(i, 0);  /* WB6 */
+
+		WB4_END(i);
 		if (rc == 0)
 			rc=result(i, 0); /* WB7 */
 
-		i->prevclass=cl;
-			
 		return rc;
 	}
 
-	prevclass=i->prevclass; /* This was the second character */
+	int wb3c_applies=WB3C_APPLIES_AFTER_WB4(i, cl);
 
-	/*
-	** Process the second character, starting with WB7
-	*/
+	rc=seen_wb67_end_handler(i);
 
-	rc=wb67_done(i, i->wb7_first_char, prevclass);
-
-	i->prevclass=prevclass;
-	i->wb4_cnt=extra_cnt;
+	if (wb3c_applies)
+		return result(i, 0);
 
 	if (rc == 0)
 		rc=(*i->next_handler)(i, cl);
-	/* Process the current char now */
 
 	return rc;
 }
 
 /*
-** Seen (ALetter | Hebrew_Letter)(MidLetter | MidNumLet), with the second
-** character's status not returned yet, and now sot.
+** AHLetter (MidLetter | MidNumLetQ) seen, with the second
+** character's status not returned yet, and now either sot, or something
+** else.
 */
 
 static int seen_wb67_end_handler(unicode_wb_info_t i)
 {
-	int rc;
-	size_t extra_cnt=i->wb4_extra_cnt;
+	int rc=wb67_done(i, i->prev2class, i->prevclass);
 
-	/*
-	** Process the second character, starting with WB7.
-	*/
-
-	rc=wb67_done(i, i->wb7_first_char, i->prevclass);
-	i->wb4_cnt=extra_cnt;
-	if (rc == 0)
-		rc=wb4(i);
-	return rc;
+	if (rc)
+		return rc;
+	WB4_END(i);
+	return 0;
 }
 
-static int wb67_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
+static int wb67_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl)
 {
-	if (prevclass == UNICODE_WB_Hebrew_Letter && cl == UNICODE_WB_Single_Quote)
+	if (prevclass.cl == UNICODE_WB_Hebrew_Letter &&
+	    cl.cl == UNICODE_WB_Single_Quote)
 		return result(i, 0); /* WB7a */
 
-	if (prevclass == UNICODE_WB_Hebrew_Letter && cl == UNICODE_WB_Double_Quote)
+	if (prevclass.cl == UNICODE_WB_Hebrew_Letter &&
+	    cl.cl == UNICODE_WB_Double_Quote)
 	{
-		i->wb4_extra_cnt=0;
+		i->prev2class=prevclass;
 		SET_HANDLER(seen_wb7bc_handler, seen_wb7bc_end_handler);
 		return 0;
 	}
@@ -292,97 +419,72 @@ static int wb67_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
 ** not returned yet.
 */
 
-static int seen_wb7bc_handler(unicode_wb_info_t i, uint8_t cl)
+static int seen_wb7bc_handler(unicode_wb_info_t i, wb_info_t cl)
 {
 	int rc;
-	uint8_t prevclass;
-	size_t extra_cnt;
 
-	if (cl == UNICODE_WB_Extend || cl == UNICODE_WB_Format)
-	{
-		++i->wb4_extra_cnt;
-		return 0;
-	}
-
-	extra_cnt=i->wb4_extra_cnt;
-
-	/*
-	** Reset the handler to the default, then check WB7a and WB7b
-	*/
+	WB4_APPLY(i, cl);
 
 	SET_HANDLER(wb1and2_done, NULL);
 
-	if (cl == UNICODE_WB_Hebrew_Letter)
+	if (cl.cl == UNICODE_WB_Hebrew_Letter)
 	{
-		rc=result(i, 0); /* WB7b */
-		i->wb4_cnt=extra_cnt;
+		i->prevclass=cl;
+
+		rc=result(i, 0);  /* WB7b */
+
+		WB4_END(i);
 
 		if (rc == 0)
-			rc=result(i, 0); /* WB7bc */
+			rc=result(i, 0); /* WB7c */
 
-		i->prevclass=cl;
-			
 		return rc;
 	}
 
-	prevclass=i->prevclass; /* This was the second character */
+	int wb3c_applies=WB3C_APPLIES_AFTER_WB4(i, cl);
 
-	/*
-	** Process the second character, starting with WB8
-	*/
+	rc=seen_wb7bc_end_handler(i);
 
-	rc=wb7bc_done(i, UNICODE_WB_Hebrew_Letter, prevclass);
-
-	i->prevclass=prevclass;
-	i->wb4_cnt=extra_cnt;
-
+	if (wb3c_applies)
+		return result(i, 0);
 	if (rc == 0)
 		rc=(*i->next_handler)(i, cl);
-	/* Process the current char now */
 
 	return rc;
 }
 
 /*
 ** Seen Hebrew_Letter Double_Quote, with the second
-** character's status not returned yet, and now sot.
+** character's status not returned yet, and now sot or something else.
 */
 
 static int seen_wb7bc_end_handler(unicode_wb_info_t i)
 {
-	int rc;
-	size_t extra_cnt=i->wb4_extra_cnt;
+	int rc=wb7bc_done(i, i->prev2class, i->prevclass);
 
-	/*
-	** Process the second character, starting with WB8.
-	*/
+	if (rc)
+		return rc;
 
-	rc=wb7bc_done(i, UNICODE_WB_Hebrew_Letter, i->prevclass);
-	i->wb4_cnt=extra_cnt;
-	if (rc == 0)
-		rc=wb4(i);
-	return rc;
+	WB4_END(i);
+
+	return 0;
 }
 
-static int wb7bc_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
+static int wb7bc_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl)
 {
-	if (prevclass == UNICODE_WB_Numeric && cl == UNICODE_WB_Numeric)
+	if (prevclass.cl == UNICODE_WB_Numeric && cl.cl == UNICODE_WB_Numeric)
 		return result(i, 0); /* WB8 */
 
-	if ((prevclass == UNICODE_WB_ALetter ||
-	     prevclass == UNICODE_WB_Hebrew_Letter) && cl == UNICODE_WB_Numeric)
+	if (AHLetter(prevclass) && cl.cl == UNICODE_WB_Numeric)
 		return result(i, 0); /* WB9 */
 
-	if (prevclass == UNICODE_WB_Numeric &&
-	    (cl == UNICODE_WB_ALetter || cl == UNICODE_WB_Hebrew_Letter))
+	if (prevclass.cl == UNICODE_WB_Numeric && AHLetter(cl))
 		return result(i, 0); /* WB10 */
 
-
-	if (prevclass == UNICODE_WB_Numeric &&
-	    (cl == UNICODE_WB_MidNum || cl == UNICODE_WB_MidNumLet ||
-	     cl == UNICODE_WB_Single_Quote))
+	if (prevclass.cl == UNICODE_WB_Numeric &&
+	    (cl.cl == UNICODE_WB_MidNum || MidNumLetQ(cl)))
 	{
-		i->wb4_extra_cnt=0;
+		i->prev2class=prevclass;
 		SET_HANDLER(seen_wb1112_handler, seen_wb1112_end_handler);
 		return 0;
 	}
@@ -399,53 +501,37 @@ static int wb7bc_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
 ** not returned yet.
 */
 
-static int seen_wb1112_handler(unicode_wb_info_t i, uint8_t cl)
+static int seen_wb1112_handler(unicode_wb_info_t i, wb_info_t cl)
 {
 	int rc;
-	uint8_t prevclass;
-	size_t extra_cnt;
 
-	if (cl == UNICODE_WB_Extend || cl == UNICODE_WB_Format)
-	{
-		++i->wb4_extra_cnt;
-		return 0;
-	}
-
-	extra_cnt=i->wb4_extra_cnt;
-
-	/*
-	** Reset the handler to the default, then check WB6
-	*/
+	WB4_APPLY(i, cl);
 
 	SET_HANDLER(wb1and2_done, NULL);
 
-	if (cl == UNICODE_WB_Numeric)
+	if (cl.cl == UNICODE_WB_Numeric)
 	{
-		rc=result(i, 0); /* WB11 */
-		i->wb4_cnt=extra_cnt;
+		i->prevclass=cl;
+
+		rc=result(i, 0);  /* WB12 */
+
+		WB4_END(i);
 
 		if (rc == 0)
-			rc=result(i, 0); /* WB12 */
+			rc=result(i, 0); /* WB11 */
 
-		i->prevclass=cl;
-			
 		return rc;
 	}
 
-	prevclass=i->prevclass; /* This was the second character */
+	int wb3c_applies=WB3C_APPLIES_AFTER_WB4(i, cl);
 
-	/*
-	** Process the second character, starting with WB7
-	*/
+	rc=seen_wb1112_end_handler(i);
 
-	rc=wb1112_done(i, UNICODE_WB_Numeric, prevclass);
-
-	i->prevclass=prevclass;
-	i->wb4_cnt=extra_cnt;
+	if (wb3c_applies)
+		return result(i, 0);
 
 	if (rc == 0)
 		rc=(*i->next_handler)(i, cl);
-	/* Process the current char now */
 
 	return rc;
 }
@@ -457,38 +543,34 @@ static int seen_wb1112_handler(unicode_wb_info_t i, uint8_t cl)
 
 static int seen_wb1112_end_handler(unicode_wb_info_t i)
 {
-	int rc;
-	size_t extra_cnt=i->wb4_extra_cnt;
+	int rc=wb1112_done(i, i->prev2class, i->prevclass);
 
-	/*
-	** Process the second character, starting with WB11.
-	*/
+	if (rc)
+		return rc;
 
-	rc=wb1112_done(i, UNICODE_WB_Numeric, i->prevclass);
-	i->wb4_cnt=extra_cnt;
-	if (rc == 0)
-		rc=wb4(i);
-	return rc;
+	WB4_END(i);
+
+	return 0;
 }
 
-static int wb1112_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
+static int wb1112_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl)
 {
-	if (prevclass == UNICODE_WB_Katakana &&
-	    cl == UNICODE_WB_Katakana)
+	if (prevclass.cl == UNICODE_WB_Katakana &&
+	    cl.cl == UNICODE_WB_Katakana)
 		return result(i, 0); /* WB13 */
 
-	switch (prevclass) {
+	switch (prevclass.cl) {
 	case UNICODE_WB_ALetter:
 	case UNICODE_WB_Hebrew_Letter:
 	case UNICODE_WB_Numeric:
 	case UNICODE_WB_Katakana:
 	case UNICODE_WB_ExtendNumLet:
-		if (cl == UNICODE_WB_ExtendNumLet)
+		if (cl.cl == UNICODE_WB_ExtendNumLet)
 			return result(i, 0); /* WB13a */
 	}
 
-	if (prevclass == UNICODE_WB_ExtendNumLet)
-		switch (cl) {
+	if (prevclass.cl == UNICODE_WB_ExtendNumLet)
+		switch (cl.cl) {
 		case UNICODE_WB_ALetter:
 		case UNICODE_WB_Hebrew_Letter:
 		case UNICODE_WB_Numeric:
@@ -496,10 +578,44 @@ static int wb1112_done(unicode_wb_info_t i, uint8_t prevclass, uint8_t cl)
 			return result(i, 0); /* WB13b */
 		}
 
-	if (prevclass == UNICODE_WB_Regional_Indicator &&
-	    cl == UNICODE_WB_Regional_Indicator)
+	if (prevclass.cl == UNICODE_WB_Regional_Indicator &&
+	    cl.cl == UNICODE_WB_Regional_Indicator)
+	{
+		SET_HANDLER(seen_wb1516_handler, 0);
 		return result(i, 0);
-	return result(i, 1); /* WB14 */
+	}
+
+	return wb1516_done(i, prevclass, cl);
+}
+
+static int seen_wb1516_handler(unicode_wb_info_t i, wb_info_t cl)
+{
+	WB4_APPLY(i, cl);
+
+	SET_HANDLER(wb1and2_done, NULL);
+
+	int wb3c_applies=WB3C_APPLIES_AFTER_WB4(i, cl);
+
+	WB4_END(i);
+
+	if (wb3c_applies)
+		return result(i, 0);
+
+	if (cl.cl == UNICODE_WB_Regional_Indicator)
+	{
+		wb_info_t prevclass=i->prevclass;
+
+		i->prevclass=cl;
+
+		return wb1516_done(i, prevclass, cl);
+	}
+
+	return (*i->next_handler)(i, cl);
+}
+
+static int wb1516_done(unicode_wb_info_t i, wb_info_t prevclass, wb_info_t cl)
+{
+	return result(i, 1); /* WB999 */
 }
 
 /* --------------------------------------------------------------------- */
@@ -559,4 +675,3 @@ static int unicode_wbscan_callback(int flag, void *arg)
 		++i->cnt;
 	return 0;
 }
-

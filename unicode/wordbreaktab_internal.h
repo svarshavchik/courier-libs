@@ -25,5 +25,9 @@
 #define UNICODE_WB_Double_Quote	0x0D
 #define UNICODE_WB_Hebrew_Letter 0x0E
 #define UNICODE_WB_Regional_Indicator 0x0F
+
+#define UNICODE_WB_ZWJ		0x10
+#define UNICODE_WB_WSegSpace    0x11
+
 #define UNICODE_WB_OTHER	0xFF
 #endif

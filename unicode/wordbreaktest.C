@@ -120,10 +120,9 @@ static void testsuite()
 			exit(1);
 		}
 
-		if (linenum == 24)
-		{
-			linenum=24;
-		}
+		//if (linenum != 986)
+		//	continue;
+
 		collect_wordbreakflags flags;
 
 		flags(ubuf.begin(), ubuf.end());
@@ -133,6 +132,15 @@ static void testsuite()
 		{
 			std::cerr << "Regression, line " << linenum
 				  << ": " << buf << std::endl;
+			std::cerr << "Calculated:";
+
+			for (auto f:flags.flags)
+			{
+				std::cerr << " "
+					  << (f ? "÷":"×");
+			}
+			std::cerr << " ÷ " << std::endl;
+			std::cerr << std::endl;
 			exit(1);
 		}
 	}

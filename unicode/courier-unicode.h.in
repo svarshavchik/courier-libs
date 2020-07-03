@@ -75,6 +75,24 @@ extern char32_t unicode_tc(char32_t);
 char32_t unicode_html40ent_lookup(const char *n);
 
 /*
+** East Asian Width lookup.
+**
+** unicode_eastasia looks up the EastAsianWidth property for the given
+** Unicode character.
+*/
+
+#define UNICODE_EASTASIA_A	'A'	/* Ambiguous */
+#define UNICODE_EASTASIA_F	'F'	/* Full width */
+#define UNICODE_EASTASIA_H	'H'	/* Half width */
+#define UNICODE_EASTASIA_N	'/'	/* Unassigned */
+#define UNICODE_EASTASIA_Na	'N'	/* Narrow */
+#define UNICODE_EASTASIA_W	'W'	/* Wide */
+
+typedef char unicode_eastasia_t;
+
+unicode_eastasia_t unicode_eastasia(char32_t);
+
+/*
 **
 ** Return "width" of unicode character.
 **
@@ -181,15 +199,66 @@ extern int unicode_islower(char32_t ch);
 extern int unicode_isupper(char32_t ch);
 
 /*
-** Implementation of grapheme cluster boundary rules, as per
-** http://www.unicode.org/reports/tr29/tr29-27.html
-** including  GB9a and GB9b.
+** Implementation of Unicode emoji classification, as per
+** http://www.unicode.org/reports/tr51/tr51-18.html
 **
-** Returns non-zero if there's a grapheme break between the two referenced
-** characters.
+** Given a char32_t, returns the character's emoji value, which is a bitmask:
+**
 */
 
-int unicode_grapheme_break(char32_t a, char32_t b);
+#define UNICODE_EMOJI_NONE			0
+#define UNICODE_EMOJI				1
+#define UNICODE_EMOJI_PRESENTATION		2
+#define UNICODE_EMOJI_MODIFIER			4
+#define UNICODE_EMOJI_MODIFIER_BASE		8
+#define UNICODE_EMOJI_COMPONENT			16
+#define UNICODE_EMOJI_EXTENDED_PICTOGRAPHIC	32
+
+typedef unsigned char unicode_emoji_t;
+
+extern unicode_emoji_t unicode_emoji_lookup(char32_t);
+
+/* Look up just one of the properties, returns non-0 if the char has it */
+
+extern int unicode_emoji(char32_t);
+extern int unicode_emoji_presentation(char32_t);
+extern int unicode_emoji_modifier(char32_t);
+extern int unicode_emoji_modifier_base(char32_t);
+extern int unicode_emoji_component(char32_t);
+extern int unicode_emoji_extended_pictographic(char32_t);
+
+/*
+** Implementation of grapheme cluster boundary rules, as per
+** http://www.unicode.org/reports/tr29/tr29-37.html
+** including  GB9a and GB9b.
+**
+** unicode_grapheme_break_init() allocates an opaque
+** unicode_grapheme_break_info_t handle, and
+** unicode_grapheme_break_destroy() destroys it.
+**
+** Passing the handle to unicode_grapheme_break_next() returns non-0 if
+** there's a grapheme break before the given character (and after the
+** character that got passed in the previous call).
+**
+** The first call to unicode_grapheme_break_next() returns 1, as per GB1.
+**
+** unicode_grapheme_break() is a simplified interface that returns non-0
+** if there is a grapheme break between the two characters. This simplified
+** interface is equivalent to calling unicode_grapheme_break_init(),
+** followed by two calls to unicode_grapheme_break_next(), and finally
+** unicode_grapheme_break_deinit(), and returns the result of the second
+** call to unicode_grapheme_break_next().
+*/
+
+struct unicode_grapheme_break_info_s;
+
+typedef struct unicode_grapheme_break_info_s *unicode_grapheme_break_info_t;
+
+extern unicode_grapheme_break_info_t unicode_grapheme_break_init();
+extern int unicode_grapheme_break_next(unicode_grapheme_break_info_t, char32_t);
+extern void unicode_grapheme_break_deinit(unicode_grapheme_break_info_t);
+
+extern int unicode_grapheme_break(char32_t a, char32_t b);
 
 typedef enum {
 
@@ -199,14 +268,14 @@ typedef enum {
 
 /*
 ** Look up the unicode script property, as per
-** http://www.unicode.org/reports/tr24/tr24-24.html
+** http://www.unicode.org/reports/tr24/tr24-31.html
 */
 
 unicode_script_t unicode_script(char32_t a);
 
 /*
 ** Implementation of line break rules, as per
-** http://www.unicode.org/reports/tr14/tr14-35.html
+** http://www.unicode.org/reports/tr14/tr14-45.html
 **
 ** Invoke unicode_lb_init() to initialize the linebreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -365,7 +434,7 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 
 /*
 ** Implemention of word break rules, as per
-** http://www.unicode.org/reports/tr29/tr29-27.html
+** http://www.unicode.org/reports/tr29/tr29-37.html
 **
 ** Invoke unicode_wb_init() to initialize the wordbreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
