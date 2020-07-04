@@ -4,6 +4,8 @@
 	property lookup, adds an alternative sequence-based grapheme API
 	that handles multi-character emoji rules.
 
+	* Add bidi property lookups.
+
 2.1
 
 2020-04-21  Sam Varshavchik  <mrsam@courier-mta.com>

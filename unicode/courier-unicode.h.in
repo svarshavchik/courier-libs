@@ -536,6 +536,39 @@ int unicode_wbscan_next(unicode_wbscan_info_t i, char32_t ch);
 size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 
 /*
+** Unicode Bidirectional bracket and mirroring lookup
+**
+** http://www.unicode.org/reports/tr9/tr9-42.html
+**
+** unicode_bidi_mirror() returns the Bidi_Mirroring_Glyph property.
+**
+** If there is no mirroring glyph for the given character, returns the
+** same character.
+**
+** unicode_bidi_bracket_type() looks up the Bidi_Paired_Bracket and
+** Bidi_Paired_Bracket_Type properties.
+**
+** unicode_bidi_bracket_type() returns the Bidi_Paired_Bracket property
+** value. If the ret parameter is not a null pointer, the pointed-to
+** value is set to Bidi_Paired_Bracket_Type value, one of the UNICODE_BIDI
+** values.
+**
+** unicode_bidi_bracket_type() returns the same character and
+** UNICODE_BIDI_n if the given character does not have these properties,
+*/
+
+typedef char unicode_bidi_bracket_type_t;
+
+#define UNICODE_BIDI_n  'n'
+#define UNICODE_BIDI_o	'o'
+#define UNICODE_BIDI_c	'c'
+
+extern char32_t unicode_bidi_mirror(char32_t c);
+
+extern char32_t unicode_bidi_bracket_type(char32_t c,
+					  unicode_bidi_bracket_type_t *ret);
+
+/*
 ** A buffer that holds unicode characters, and dynamically grows as needed.
 */
 
@@ -1476,11 +1509,11 @@ class linebreak_callback_base {
 	int opts;
 
 #if __cplusplus >= 201103L
- public:
+public:
 	linebreak_callback_base(const linebreak_callback_base &)=delete;
 	linebreak_callback_base &operator=(const
 					   linebreak_callback_base &)=delete;
- private:
+private:
 #else
 	linebreak_callback_base(const linebreak_callback_base &);
 	/* NOT IMPLEMENTED */
@@ -1489,7 +1522,7 @@ class linebreak_callback_base {
 					   linebreak_callback_base &);
 	/* NOT IMPLEMENTED */
 #endif
- public:
+public:
 	linebreak_callback_base();
 	virtual ~linebreak_callback_base();
 
@@ -1502,8 +1535,8 @@ class linebreak_callback_base {
 	linebreak_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
-		linebreak_callback_base &operator()(iter_type beg_iter,
-						    iter_type end_iter)
+	linebreak_callback_base &operator()(iter_type beg_iter,
+					    iter_type end_iter)
 	{
 		while (beg_iter != end_iter)
 			operator<<(*beg_iter++);
@@ -1511,17 +1544,17 @@ class linebreak_callback_base {
 	}
 
 	template<typename container_type>
-		linebreak_callback_base &operator()(const container_type &vec)
+	linebreak_callback_base &operator()(const container_type &vec)
 	{
 		return operator()(vec.begin(), vec.end());
 	}
- private:
+private:
 	virtual int callback(int);
 };
 
 class linebreak_callback_save_buf : public linebreak_callback_base {
 
- public:
+public:
 	std::list<int> lb_buf;
 
 	linebreak_callback_save_buf();
@@ -1529,7 +1562,7 @@ class linebreak_callback_save_buf : public linebreak_callback_base {
 
 	using linebreak_callback_base::operator<<;
 	using linebreak_callback_base::operator();
- private:
+private:
 	int callback(int value);
 };
 
@@ -1539,7 +1572,7 @@ class linebreak_callback_save_buf : public linebreak_callback_base {
 */
 
 template<typename input_t> class linebreak_iter
-: public std::iterator<std::input_iterator_tag, int, void>
+	: public std::iterator<std::input_iterator_tag, int, void>
 {
 	mutable input_t iter_value, end_iter_value;
 
@@ -1569,16 +1602,16 @@ template<typename input_t> class linebreak_iter
 
 	mutable value_type bufvalue;
 
- public:
- linebreak_iter(const input_t &iter_valueArg,
-		const input_t &iter_endvalueArg)
-	 : iter_value(iter_valueArg),
-		end_iter_value(iter_endvalueArg),
-		buf(new linebreak_callback_save_buf)
-		{
-		}
+public:
+	linebreak_iter(const input_t &iter_valueArg,
+		       const input_t &iter_endvalueArg)
+		: iter_value(iter_valueArg),
+		  end_iter_value(iter_endvalueArg),
+		  buf(new linebreak_callback_save_buf)
+	{
+	}
 
- linebreak_iter() : buf(NULL)
+	linebreak_iter() : buf(NULL)
 	{
 	}
 
@@ -1594,23 +1627,23 @@ template<typename input_t> class linebreak_iter
 			delete buf;
 	}
 
- linebreak_iter(const linebreak_iter<input_t> &v)
-	 : buf(NULL)
+	linebreak_iter(const linebreak_iter<input_t> &v)
+		: buf(NULL)
 	{
 		operator=(v);
 	}
 
 	linebreak_iter<input_t> &operator=(const
 					   linebreak_iter<input_t> &v)
-		{
-			if (buf)
-				delete buf;
-			buf=v.buf;
-			iter_value=v.iter_value;
-			end_iter_value=v.end_iter_value;
-			v.buf=NULL;
-			return *this;
-		}
+	{
+		if (buf)
+			delete buf;
+		buf=v.buf;
+		iter_value=v.iter_value;
+		end_iter_value=v.end_iter_value;
+		v.buf=NULL;
+		return *this;
+	}
 
 	bool operator==(const linebreak_iter<input_t> &v) const
 	{
@@ -1660,14 +1693,14 @@ class linebreakc_callback_base {
 	int opts;
 
 #if __cplusplus >= 201103L
- public:
+public:
 	linebreakc_callback_base(const linebreakc_callback_base &)
-		=delete;
+	=delete;
 
 	linebreakc_callback_base &operator=(const
 					    linebreakc_callback_base
 					    &)=delete;
- private:
+private:
 #else
 	linebreakc_callback_base(const linebreakc_callback_base &);
 	/* NOT IMPLEMENTED */
@@ -1678,7 +1711,7 @@ class linebreakc_callback_base {
 	/* NOT IMPLEMENTED */
 #endif
 
- public:
+public:
 	linebreakc_callback_base();
 	virtual ~linebreakc_callback_base();
 
@@ -1691,8 +1724,8 @@ class linebreakc_callback_base {
 	linebreakc_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
-		linebreakc_callback_base &operator()(iter_type beg_iter,
-						     iter_type end_iter)
+	linebreakc_callback_base &operator()(iter_type beg_iter,
+					     iter_type end_iter)
 	{
 		while (beg_iter != end_iter)
 			operator<<(*beg_iter++);
@@ -1705,13 +1738,13 @@ class linebreakc_callback_base {
 	{
 		return operator()(vec.begin(), vec.end());
 	}
- private:
+private:
 	virtual int callback(int, char32_t);
 };
 
 class linebreakc_callback_save_buf : public linebreakc_callback_base {
 
- public:
+public:
 	std::list<std::pair<int, char32_t> > lb_buf;
 
 	linebreakc_callback_save_buf();
@@ -1719,7 +1752,7 @@ class linebreakc_callback_save_buf : public linebreakc_callback_base {
 
 	using linebreakc_callback_base::operator<<;
 	using linebreakc_callback_base::operator();
- private:
+private:
 	int callback(int, char32_t);
 };
 
@@ -1732,8 +1765,8 @@ class linebreakc_callback_save_buf : public linebreakc_callback_base {
 */
 
 template<typename input_t> class linebreakc_iter
-: public std::iterator<std::input_iterator_tag,
-	std::pair<int, char32_t>, void>
+	: public std::iterator<std::input_iterator_tag,
+			       std::pair<int, char32_t>, void>
 {
 	mutable input_t iter_value, end_iter_value;
 
@@ -1764,16 +1797,16 @@ template<typename input_t> class linebreakc_iter
 
 	mutable value_type bufvalue;
 
- public:
- linebreakc_iter(const input_t &iter_valueArg,
-		 const input_t &iter_endvalueArg)
-	 : iter_value(iter_valueArg),
-		end_iter_value(iter_endvalueArg),
-		buf(new linebreakc_callback_save_buf)
-		{
-		}
+public:
+	linebreakc_iter(const input_t &iter_valueArg,
+			const input_t &iter_endvalueArg)
+		: iter_value(iter_valueArg),
+		  end_iter_value(iter_endvalueArg),
+		  buf(new linebreakc_callback_save_buf)
+	{
+	}
 
- linebreakc_iter() : buf(NULL)
+	linebreakc_iter() : buf(NULL)
 	{
 	}
 
@@ -1783,23 +1816,23 @@ template<typename input_t> class linebreakc_iter
 			delete buf;
 	}
 
- linebreakc_iter(const linebreakc_iter<input_t> &v)
-	 : buf(NULL)
+	linebreakc_iter(const linebreakc_iter<input_t> &v)
+		: buf(NULL)
 	{
 		operator=(v);
 	}
 
 	linebreakc_iter<input_t> &operator=(const
 					    linebreakc_iter<input_t> &v)
-		{
-			if (buf)
-				delete buf;
-			buf=v.buf;
-			iter_value=v.iter_value;
-			end_iter_value=v.end_iter_value;
-			v.buf=NULL;
-			return *this;
-		}
+	{
+		if (buf)
+			delete buf;
+		buf=v.buf;
+		iter_value=v.iter_value;
+		end_iter_value=v.end_iter_value;
+		v.buf=NULL;
+		return *this;
+	}
 
 	bool operator==(const linebreakc_iter<input_t> &v) const
 	{
@@ -1855,13 +1888,13 @@ class wordbreak_callback_base {
 	unicode_wb_info_t handle;
 
 #if __cplusplus >= 201103L
- public:
+public:
 	wordbreak_callback_base(const wordbreak_callback_base &)=delete;
 
 	wordbreak_callback_base &operator=(const
 					   wordbreak_callback_base &)
-		=delete;
- private:
+	=delete;
+private:
 #else
 	wordbreak_callback_base(const wordbreak_callback_base &);
 	/* NOT IMPLEMENTED */
@@ -1870,7 +1903,7 @@ class wordbreak_callback_base {
 					   wordbreak_callback_base &);
 	/* NOT IMPLEMENTED */
 #endif
- public:
+public:
 	wordbreak_callback_base();
 	virtual ~wordbreak_callback_base();
 
@@ -1881,8 +1914,8 @@ class wordbreak_callback_base {
 	wordbreak_callback_base &operator<<(char32_t uc);
 
 	template<typename iter_type>
-		wordbreak_callback_base &operator()(iter_type beg_iter,
-						    iter_type end_iter)
+	wordbreak_callback_base &operator()(iter_type beg_iter,
+					    iter_type end_iter)
 	{
 		while (beg_iter != end_iter)
 			operator<<(*beg_iter++);
@@ -1895,7 +1928,7 @@ class wordbreak_callback_base {
 	{
 		return operator()(vec.begin(), vec.end());
 	}
- private:
+private:
 	virtual int callback(bool);
 };
 
@@ -1908,10 +1941,10 @@ class wordbreakscan {
 	unicode_wbscan_info_t handle;
 
 #if __cplusplus >= 201103L
- public:
+public:
 	wordbreakscan(const wordbreakscan &)=delete;
 	wordbreakscan &operator=(const wordbreakscan &)=delete;
- private:
+private:
 #else
 	wordbreakscan(const wordbreakscan &);
 	/* NOT IMPLEMENTED */
@@ -1919,7 +1952,7 @@ class wordbreakscan {
 	wordbreakscan &operator=(const wordbreakscan &);
 	/* NOT IMPLEMENTED */
 #endif
- public:
+public:
 
 	wordbreakscan();
 	~wordbreakscan();

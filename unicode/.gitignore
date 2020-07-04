@@ -1,7 +1,10 @@
 /*.bz2
 /*.gz
 /*.sig
+/BidiBrackets.txt
+/BidiMirroring.txt
 /Categories.txt
+/DerivedBidiClass.txt
 /EastAsianWidth.txt
 /GraphemeBreakProperty.txt
 /INSTALL
@@ -13,6 +16,7 @@
 /WordBreakProperty.txt
 /WordBreakTest.txt
 /emoji-data.txt
+/biditest
 /config.cache
 /config.guess
 /config.sub

@@ -6,15 +6,20 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 AM_CXXFLAGS= @COURIER_UNICODE_CXXFLAGS@
 
-noinst_SCRIPTS=update.sh \
-	mkultcase.pl unicodefilter.pl \
-	mkeastasianwidth.pl \
-	mkemojidata.pl \
-	mkgraphemebreak.pl mklinebreak.pl mkwordbreak.pl mkcommon.pm \
-	mkhtmlent.pl
+noinst_SCRIPTS=update.sh		\
+	mkcommon.pm			\
+	mkbidi.pl			\
+	mkbidiclass.pl			\
+	mkeastasianwidth.pl		\
+	mkemojidata.pl			\
+	mkgraphemebreak.pl		\
+	mkhtmlent.pl			\
+	mklinebreak.pl			\
+	mkultcase.pl			\
+	mkwordbreak.pl
 
 noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
-	enttest scripttest
+	enttest scripttest biditest
 
 aclocaldir=$(datadir)/aclocal
 aclocal_DATA=m4/courier-unicode.m4
@@ -29,6 +34,7 @@ update-www:
 	@$(MAKE) update-www-scripts
 	@$(MAKE) update-www-htmlent
 	@$(MAKE) update-www-categories
+	@$(MAKE) update-www-bidi
 
 update-www-unicode:
 	@SHELL@ $(srcdir)/update.sh UnicodeData.txt http://www.unicode.org/Public/UNIDATA/UnicodeData.txt
@@ -62,6 +68,11 @@ update-www-htmlent:
 update-www-categories:
 	@SHELL@ $(srcdir)/update.sh Categories.txt http://www.unicode.org/notes/tn36/Categories.txt
 
+update-www-bidi:
+	@SHELL@ $(srcdir)/update.sh BidiBrackets.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiBrackets.txt
+	@SHELL@ $(srcdir)/update.sh BidiMirroring.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiMirroring.txt
+	@SHELL@ $(srcdir)/update.sh DerivedBidiClass.txt https://www.unicode.org/Public/UCD/latest/ucd/extracted/DerivedBidiClass.txt
+
 lib_LTLIBRARIES=libcourier-unicode.la
 include_HEADERS=courier-unicode.h \
 	courier-unicode-categories-tab.h \
@@ -87,6 +98,11 @@ libcourier_unicode_la_SOURCES=\
 			wordbreaktab_internal.h \
 			unicode_scripts.c \
 			categoriestab.h \
+			unicode_bidi.c \
+			bidi_brackets.h \
+			bidi_brackets_v.h \
+			bidi_class.h \
+			bidi_mirroring.h \
 			unicode_categories.c
 
 libcourier_unicode_la_LDFLAGS=-version-info 5:0:1
@@ -98,14 +114,18 @@ EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 if UPDATE_UNICODE
 
 BUILT_SOURCES=unicode_ultcasetab.c \
+	bidi_brackets.h \
+	bidi_brackets_v.h \
+	bidi_class.h \
+	bidi_mirroring.h \
+	categoriestab.h \
 	eastasianwidth.h \
+	emojitab.h \
 	graphemebreaktab.h \
 	linebreaktab.h \
-	wordbreaktab.h \
-	emojitab.h \
 	scriptstab.h \
-	categoriestab.h \
-	unicode_htmlent.h
+	unicode_htmlent.h \
+	wordbreaktab.h
 
 unicode_ultcasetab.c: UnicodeData.txt mkultcase.pl
 	@PERL@ -I$(srcdir) $(srcdir)/mkultcase.pl >unicode_ultcasetab.c
@@ -140,6 +160,22 @@ categoriestab.h: Categories.txt mkcategories.pl mkcommon.pm
 unicode_htmlent.h: xhtml-lat1.ent xhtml-special.ent xhtml-symbol.ent mkhtmlent.pl
 	@PERL@ -I$(srcdir) $(srcdir)/mkhtmlent.pl >unicode_htmlent.h.tmp
 	mv unicode_htmlent.h.tmp unicode_htmlent.h
+
+bidi_brackets.h: BidiBrackets.txt mkbidi.pl
+	@PERL@ -I$(srcdir) $(srcdir)/mkbidi.pl BidiBrackets.txt >bidi_brackets.h.tmp
+	mv bidi_brackets.h.tmp bidi_brackets.h
+
+bidi_brackets_v.h: BidiBrackets.txt mkbidi.pl
+	@PERL@ -I$(srcdir) $(srcdir)/mkbidi.pl BidiBrackets.txt 1 >bidi_brackets_v.h.tmp
+	mv bidi_brackets_v.h.tmp bidi_brackets_v.h
+
+bidi_class.h: DerivedBidiClass.txt mkbidiclass.pl mkcommon.pm
+	@PERL@ -I$(srcdir) $(srcdir)/mkbidiclass.pl >bidi_class.h.tmp
+	mv bidi_class.h.tmp bidi_class.h
+
+bidi_mirroring.h: BidiMirroring.txt mkbidi.pl
+	@PERL@ -I$(srcdir) $(srcdir)/mkbidi.pl BidiMirroring.txt >bidi_mirroring.h.tmp
+	mv bidi_mirroring.h.tmp bidi_mirroring.h
 endif
 
 unicodetest_SOURCES=unicodetest.c
@@ -171,6 +207,13 @@ scripttest_SOURCES=scripttest.c
 scripttest_DEPENDENCIES=libcourier-unicode.la
 scripttest_LDADD=libcourier-unicode.la
 scripttest_LDFLAGS=-static
+
+biditest_SOURCES=biditest.C
+biditest_DEPENDENCIES=libcourier-unicode.la
+biditest_LDADD=libcourier-unicode.la
+biditest_LDFLAGS=-static
+
+
 
 check-am: unicodetest
 	./unicodetest
@@ -237,6 +280,9 @@ check-am: unicodetest
 	test "`./graphemetest 0x1F1E6 0x1f1FF`" = "0" # GB12, GB31
 	test "`./graphemetest 0x1F1E6 0x1F1E7 0x1f1FF`" = "1" # GB12, GB31
 	test "`./graphemetest 0x0041 0x0041`" = "1" # GB999
+	test "`./biditest 30`" = "30 30 n"
+	test "`./biditest 8261`" = "8262 8262 o"
+	test "`./biditest 8262`" = "8261 8261 c"
 
 if HAVE_DOCS
 
