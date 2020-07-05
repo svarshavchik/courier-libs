@@ -554,7 +554,32 @@ size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 ** values.
 **
 ** unicode_bidi_bracket_type() returns the same character and
-** UNICODE_BIDI_n if the given character does not have these properties,
+** UNICODE_BIDI_n if the given character does not have these properties.
+**
+** unicode_bidi_calc() implements the Unicode Bidirectional Algorithm up to
+** step L1.
+**
+** Parameters:
+**
+** - A pointer to char32_t, the Unicode string.
+**
+** - Number of characters in the char32_t string
+**
+** - A pointer to an array of unicode_bidi_level_t values. The caller is
+** responsible for allocating and deallocating this array, which has the
+** same size as the Unicode string (the second parameter).
+**
+** - An optional pointer to a unicode_bidi_level_t value, or a null pointer.
+** A pointer to UNICODE_BIDI_LR or UNICODE_BIDI_RL sets the default paragraph
+** direction level. A null pointer calculates the default paragraph direction
+** level based on the string, as specified by the "P" rules in the algorithm.
+**
+** unicode_bidi_calc() fills in the unicode_bidi_level_t array with the
+** values corresponding to the embedding level of the corresponding character,
+** as specified in the Unicode Bidirection Algorithm (even for left-to-right,
+** and odd for right-to-left). A value of UNICODE_BIDI_SKIP designates
+** directional markers (from step X9). These characters should be removed
+** before using unicode_bidi_reorder().
 */
 
 typedef char unicode_bidi_bracket_type_t;
@@ -567,6 +592,18 @@ extern char32_t unicode_bidi_mirror(char32_t c);
 
 extern char32_t unicode_bidi_bracket_type(char32_t c,
 					  unicode_bidi_bracket_type_t *ret);
+
+
+typedef unsigned char unicode_bidi_level_t;
+
+#define UNICODE_BIDI_LR		((unicode_bidi_level_t)0)
+#define UNICODE_BIDI_RL		((unicode_bidi_level_t)1)
+#define UNICODE_BIDI_SKIP	((unicode_bidi_level_t)254)
+
+extern void unicode_bidi_calc(const char32_t *p, size_t n,
+			      unicode_bidi_level_t *bufp,
+			      const unicode_bidi_level_t *
+			      initial_embedding_level);
 
 /*
 ** A buffer that holds unicode characters, and dynamically grows as needed.

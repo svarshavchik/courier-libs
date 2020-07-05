@@ -10,6 +10,7 @@ noinst_SCRIPTS=update.sh		\
 	mkcommon.pm			\
 	mkbidi.pl			\
 	mkbidiclass.pl			\
+	mkbidiclassnames.pl		\
 	mkeastasianwidth.pl		\
 	mkemojidata.pl			\
 	mkgraphemebreak.pl		\
@@ -35,6 +36,11 @@ update-www:
 	@$(MAKE) update-www-htmlent
 	@$(MAKE) update-www-categories
 	@$(MAKE) update-www-bidi
+	@$(MAKE) update-www-unicode-copyright
+
+update-www-unicode-copyright:
+	links -dump https://www.unicode.org/license.html >UNICODE-LICENSE.txt.tmp
+	mv UNICODE-LICENSE.txt.tmp UNICODE-LICENSE.txt
 
 update-www-unicode:
 	@SHELL@ $(srcdir)/update.sh UnicodeData.txt http://www.unicode.org/Public/UNIDATA/UnicodeData.txt
@@ -72,6 +78,7 @@ update-www-bidi:
 	@SHELL@ $(srcdir)/update.sh BidiBrackets.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiBrackets.txt
 	@SHELL@ $(srcdir)/update.sh BidiMirroring.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiMirroring.txt
 	@SHELL@ $(srcdir)/update.sh DerivedBidiClass.txt https://www.unicode.org/Public/UCD/latest/ucd/extracted/DerivedBidiClass.txt
+	@SHELL@ $(srcdir)/update.sh BidiTest.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiTest.txt
 
 lib_LTLIBRARIES=libcourier-unicode.la
 include_HEADERS=courier-unicode.h \
@@ -117,6 +124,7 @@ BUILT_SOURCES=unicode_ultcasetab.c \
 	bidi_brackets.h \
 	bidi_brackets_v.h \
 	bidi_class.h \
+	bidi_classnames.h \
 	bidi_mirroring.h \
 	categoriestab.h \
 	eastasianwidth.h \
@@ -176,6 +184,11 @@ bidi_class.h: DerivedBidiClass.txt mkbidiclass.pl mkcommon.pm
 bidi_mirroring.h: BidiMirroring.txt mkbidi.pl
 	@PERL@ -I$(srcdir) $(srcdir)/mkbidi.pl BidiMirroring.txt >bidi_mirroring.h.tmp
 	mv bidi_mirroring.h.tmp bidi_mirroring.h
+
+bidi_classnames.h: unicode_bidi.c mkbidiclassnames.pl
+	@PERL@ $(srcdir)/mkbidiclassnames.pl <$(srcdir)/unicode_bidi.c >bidi_classnames.h.tmp
+	mv bidi_classnames.h.tmp bidi_classnames.h
+
 endif
 
 unicodetest_SOURCES=unicodetest.c
@@ -208,7 +221,7 @@ scripttest_DEPENDENCIES=libcourier-unicode.la
 scripttest_LDADD=libcourier-unicode.la
 scripttest_LDFLAGS=-static
 
-biditest_SOURCES=biditest.C
+biditest_SOURCES=biditest.C bidi_classnames.h
 biditest_DEPENDENCIES=libcourier-unicode.la
 biditest_LDADD=libcourier-unicode.la
 biditest_LDFLAGS=-static
@@ -283,6 +296,7 @@ check-am: unicodetest
 	test "`./biditest 30`" = "30 30 n"
 	test "`./biditest 8261`" = "8262 8262 o"
 	test "`./biditest 8262`" = "8261 8261 c"
+	./biditest
 
 if HAVE_DOCS
 
