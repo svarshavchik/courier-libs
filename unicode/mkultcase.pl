@@ -58,7 +58,7 @@ close(U);
 
 my $tabsize=2048;
 
-grep ($bucket[ $_ % $tabsize ] .= "$_\n", keys %FLAG);
+grep ($bucket[ $_ % $tabsize ] .= "$_\n", sort keys %FLAG);
 
 my $maxcnt=0;
 

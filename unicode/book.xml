@@ -2,9 +2,9 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
  "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
-<!ENTITY tr14ver "35">
-<!ENTITY tr24ver "24">
-<!ENTITY tr29ver "27">
+<!ENTITY tr14ver "45">
+<!ENTITY tr24ver "31">
+<!ENTITY tr29ver "37">
 ]>
 
 <!--
@@ -1017,6 +1017,9 @@ See COPYING for distribution information.
 	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
 	<refmeta>
 	  <refentrytitle>unicode_grapheme_break</refentrytitle>
+	  <refentrytitle>unicode_grapheme_break_init</refentrytitle>
+	  <refentrytitle>unicode_grapheme_break_next</refentrytitle>
+	  <refentrytitle>unicode_grapheme_break_deinit</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</refmeta>
 
@@ -1028,6 +1031,23 @@ See COPYING for distribution information.
 	<refsynopsisdiv>
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+
+	    <funcprototype>
+              <funcdef>unicode_grapheme_break_info_t <function>unicode_grapheme_break_init</function></funcdef>
+	      <void />
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_grapheme_next</function></funcdef>
+              <paramdef>unicode_grapheme_break_info_t <parameter>handle</parameter></paramdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode_grapheme_deinit</function></funcdef>
+              <paramdef>unicode_grapheme_break_info_t <parameter>handle</parameter></paramdef>
+	    </funcprototype>
+
 	    <funcprototype>
               <funcdef>int <function>unicode_grapheme_break</function></funcdef>
               <paramdef>char32_t <parameter>a</parameter></paramdef>
@@ -1037,11 +1057,40 @@ See COPYING for distribution information.
 	</refsynopsisdiv>
 	<refsect1>
 	  <title>DESCRIPTION</title>
+
 	  <para>
-	    <function>unicode_grapheme_break</function>() returns non-zero
-	    if there is a grapheme break between the two unicode characters
+	    <function>unicode_grapheme_break_init</function>() returns an
+	    opaque handle for an object that computes grapheme breaks.
+	    Each call to <function>unicode_grapheme_break_next</function>()
+	    passes one character of a unicode string, and returns a non-0
+	    value if there's a grapheme break before this character, in the
+	    sequence of Unicode characters.
+	    <function>unicode_grapheme_break_deinit</function>() releases
+	    all reosurces used by the grapheme breaking handle.
+	  </para>
+	  <para>
+	    Call
+	    <function>unicode_grapheme_break_init</function>(), then call
+	    <function>unicode_grapheme_break_next</function>() for each
+	    character,
+	    then call
+	    <function>unicode_grapheme_break_deinit</function>().
+	    The first call to <function>unicode_grapheme_break_next</function>()
+	    always returns non-0, as per the GB1 rule.
+	  </para>
+	  <para>
+	    <function>unicode_grapheme_break</function>() is a simplified
+	    interface that returns non-zero
+	    if there is a grapheme break between two unicode characters
 	    <parameter>a</parameter> and
 	    <parameter>b</parameter>.
+	    This is is equivalent to calling
+	    <function>> unicode_grapheme_break_init</function>(),
+	    followed by two calls to
+	    <function> unicode_grapheme_break_next</function>(), and finally
+	    <function>unicode_grapheme_break_deinit</function>(), and returns
+	    the result of the second
+	    call to <function>unicode_grapheme_break_next</function>().
 	  </para>
 	</refsect1>
 
