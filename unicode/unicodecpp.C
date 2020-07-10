@@ -558,13 +558,13 @@ std::u32string unicode::toupper(const std::u32string &u)
 	return copy;
 }
 
-std::vector<unicode_bidi_level_t>
+std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
 unicode::bidi_calc(const std::u32string &s)
 {
 	return unicode::bidi_calc(s, UNICODE_BIDI_SKIP);
 }
 
-std::vector<unicode_bidi_level_t>
+std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
 unicode::bidi_calc(const std::u32string &s,
 		   unicode_bidi_level_t paragraph_embedding_level)
 {
@@ -576,16 +576,19 @@ unicode::bidi_calc(const std::u32string &s,
 		initial_embedding_level=&paragraph_embedding_level;
 	}
 
-	std::vector<unicode_bidi_level_t> buf;
+	std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
+		ret;
 
-	buf.resize(s.size());
+	std::get<0>(ret).resize(s.size());
+	std::get<1>(ret)=UNICODE_BIDI_LR;
 
 	if (s.size())
 	{
-		unicode_bidi_calc(s.c_str(), s.size(), &buf[0],
-				  initial_embedding_level);
+		std::get<1>(ret)=unicode_bidi_calc(s.c_str(), s.size(),
+						   &std::get<0>(ret)[0],
+						   initial_embedding_level);
 	}
-	return buf;
+	return ret;
 }
 
 extern "C" {

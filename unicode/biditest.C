@@ -35,8 +35,10 @@ int main(int argc, char **argv)
 	std::ifstream fp("BidiTest.txt");
 
 	if (!fp.is_open())
+	{
+		std::cerr << "Cannot open BidiTest.txt" << std::endl;
 		exit(1);
-
+	}
 	size_t linenum=0;
 	size_t nextlogline=0;
 	std::string logmsg;
@@ -178,9 +180,10 @@ int main(int argc, char **argv)
 		{
 			if (n & 1)
 			{
-				actual_levels=level ?
+				auto ret=level ?
 					unicode::bidi_calc(dummy_input,*level)
 					: unicode::bidi_calc(dummy_input);
+				actual_levels=std::get<0>(ret);
 
 				int matched=0;
 
@@ -349,31 +352,6 @@ extern "C" {
 #endif
 
 #include "unicode_bidi.c"
-
-static const struct {
-	char			classname[8];
-	enum_bidi_type_t	classenum;
-} bidiclassnames[]={
-
-#include "bidi_classnames.h"
-
-};
-
-const char *bidi_classname(enum_bidi_type_t classenum)
-{
-	for (const auto &cn:bidiclassnames)
-	{
-		if (cn.classenum == classenum)
-			return cn.classname;
-	}
-
-	return "???";
-}
-
-static const char *lookup_classname(const std::string &s)
-{
-	abort();
-}
 
 enum_bidi_type_t fudge_unicode_bidi(size_t i)
 {

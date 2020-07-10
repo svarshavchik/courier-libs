@@ -4,6 +4,7 @@
 
 <!ENTITY tr9ver  "42">
 <!ENTITY tr14ver "45">
+<!ENTITY tr15ver "50">
 <!ENTITY tr24ver "31">
 <!ENTITY tr29ver "37">
 <!ENTITY tr51ver "18">
@@ -231,6 +232,9 @@ See COPYING for distribution information.
 	  <para>
 	    <link linkend="unicode_bidi">
 	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_canonical">
+	      <citerefentry><refentrytitle>unicode_canonical</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_category_lookup">
 	      <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
@@ -472,6 +476,91 @@ See COPYING for distribution information.
 		<refentrytitle>courier-unicode</refentrytitle>
 		<manvolnum>7</manvolnum></citerefentry></link>,
 	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_canonical">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_canonical</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_canonical</refname>
+
+	  <refpurpose>unicode canonical character mapping</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+	      <funcdef>unicode_canonical_t <function>unicode_canonical</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <function>unicode_canonical</function>() looks up the
+	    character's
+	    <ulink url="https://www.unicode.org/reports/tr15/tr15-&tr15ver;.html
+">canonical
+	    and compatibility mapping</ulink>.
+
+	    <function>unicode_canonical</function>() returns a structure
+	    with the following fields:
+	  </para>
+
+	  <variablelist>
+	    <varlistentry>
+	      <term><structfield>canonical_chars</structfield></term>
+	      <listitem>
+		<para>
+		  A pointer to the canonical or equivalent representation
+		  of the character.
+	        </para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><structfield>n_canonical_chars</structfield></term>
+	      <listitem>
+		<para>
+		  Number of characters in the
+		  <structfield>canonical_chars</structfield>.
+	        </para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><structfield>format</structfield></term>
+	      <listitem>
+		<para>
+		  The character's canonical formatting flag, if any.
+	        </para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+
+	  <para>
+	    A NULL <structfield>canonical_chars</structfield> (with a 0
+	    <structfield>n_canonical_chars</structfield>) indicates
+	    that the character without a canonical or compatibility
+	    equivalence.
+	  </para>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr15/tr15-&tr15ver;.html">TR-15</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
+	    </para>
 	</refsect1>
       </refentry>
 

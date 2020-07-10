@@ -584,6 +584,15 @@ size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 ** and odd for right-to-left). A value of UNICODE_BIDI_SKIP designates
 ** directional markers (from step X9). These characters should be removed
 ** before using unicode_bidi_reorder().
+**
+** unicode_bidi_calc() returns the resolved paragraph direction level, which
+** always matches the passed in level, if specified, else it reports the
+** derived one.
+**
+** unicode_bidi_reorder() reorders the characters according to the resolved
+** embedding levels. A non-null reorder_callback gets invoked repeatedly,
+** indicating the starting index and the number of characters reversed, so
+** that any related metadata can be updated accordingly.
 */
 
 typedef char unicode_bidi_bracket_type_t;
@@ -604,10 +613,10 @@ typedef unsigned char unicode_bidi_level_t;
 #define UNICODE_BIDI_RL		((unicode_bidi_level_t)1)
 #define UNICODE_BIDI_SKIP	((unicode_bidi_level_t)254)
 
-extern void unicode_bidi_calc(const char32_t *p, size_t n,
-			      unicode_bidi_level_t *bufp,
-			      const unicode_bidi_level_t *
-			      initial_embedding_level);
+extern unicode_bidi_level_t unicode_bidi_calc(const char32_t *p, size_t n,
+					      unicode_bidi_level_t *bufp,
+					      const unicode_bidi_level_t *
+					      initial_embedding_level);
 
 extern void unicode_bidi_reorder(char32_t *p,
 				 unicode_bidi_level_t *levels,
@@ -644,6 +653,48 @@ typedef enum {
 } enum_bidi_type_t;
 
 extern enum_bidi_type_t unicode_bidi_type(char32_t c);
+
+/*
+** unicode_canonical() returns the canonical mapping of the given Unicode
+** character. The returned structure specifies:
+**
+** - A pointer to the canonical decomposition of the given character.
+** - Number of characters in the canonical decomposition.
+** - An optional formatting tag.
+**
+** A null pointer, and a 0 character count gets returned for characters
+** without a canonical decomposition.
+**
+*/
+
+typedef enum {
+	      UNICODE_CANONICAL_FMT_NONE=0,
+
+	      UNICODE_CANONICAL_FMT_CIRCLE,
+	      UNICODE_CANONICAL_FMT_COMPAT,
+	      UNICODE_CANONICAL_FMT_FINAL,
+	      UNICODE_CANONICAL_FMT_FONT,
+	      UNICODE_CANONICAL_FMT_FRACTION,
+	      UNICODE_CANONICAL_FMT_INITIAL,
+	      UNICODE_CANONICAL_FMT_ISOLATED,
+	      UNICODE_CANONICAL_FMT_MEDIAL,
+	      UNICODE_CANONICAL_FMT_NARROW,
+	      UNICODE_CANONICAL_FMT_NOBREAK,
+	      UNICODE_CANONICAL_FMT_SMALL,
+	      UNICODE_CANONICAL_FMT_SQUARE,
+	      UNICODE_CANONICAL_FMT_SUB,
+	      UNICODE_CANONICAL_FMT_SUPER,
+	      UNICODE_CANONICAL_FMT_VERTICAL,
+	      UNICODE_CANONICAL_FMT_WIDE,
+} unicode_canonical_fmt_t;
+
+typedef struct {
+	const char32_t *canonical_chars;
+	size_t n_canonical_chars;
+	unicode_canonical_fmt_t format;
+} unicode_canonical_t;
+
+extern unicode_canonical_t unicode_canonical(char32_t);
 
 /*
 ** A buffer that holds unicode characters, and dynamically grows as needed.
@@ -2066,11 +2117,13 @@ std::u32string tolower(const std::u32string &u);
 std::u32string toupper(const std::u32string &u);
 
 //! Calculate bidirectional embedding levels
-std::vector<unicode_bidi_level_t> bidi_calc(const std::u32string &s);
+std::tuple<std::vector<unicode_bidi_level_t>,
+	   unicode_bidi_level_t> bidi_calc(const std::u32string &s);
 
 //! Calculate bidirectional embedding levels
-std::vector<unicode_bidi_level_t> bidi_calc(const std::u32string &s,
-					    unicode_bidi_level_t level);
+std::tuple<std::vector<unicode_bidi_level_t>,
+	   unicode_bidi_level_t> bidi_calc(const std::u32string &s,
+					   unicode_bidi_level_t level);
 
 //! Reorder bidirectional text
 int bidi_reorder(std::u32string &string,

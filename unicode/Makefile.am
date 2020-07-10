@@ -11,6 +11,7 @@ noinst_SCRIPTS=update.sh		\
 	mkbidi.pl			\
 	mkbidiclass.pl			\
 	mkbidiclassnames.pl		\
+	mkcanonical.pl			\
 	mkeastasianwidth.pl		\
 	mkemojidata.pl			\
 	mkgraphemebreak.pl		\
@@ -20,7 +21,7 @@ noinst_SCRIPTS=update.sh		\
 	mkwordbreak.pl
 
 noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
-	enttest scripttest biditest
+	enttest scripttest biditest biditest2
 
 aclocaldir=$(datadir)/aclocal
 aclocal_DATA=m4/courier-unicode.m4
@@ -111,6 +112,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_calc.3 \
         $(srcdir)/man/unicode_bidi_mirror.3 \
         $(srcdir)/man/unicode_bidi_reorder.3 \
+        $(srcdir)/man/unicode_canonical.3 \
         $(srcdir)/man/unicode_category_lookup.3 \
         $(srcdir)/man/unicode_convert.3 \
         $(srcdir)/man/unicode_convert_deinit.3 \
@@ -187,6 +189,7 @@ libcourier_unicode_la_SOURCES=\
 			unicode_graphemebreak.c graphemebreaktab.h \
 			unicode_linebreak.c linebreaktab.h \
 			unicode_htmlent.c unicode_htmlent.h \
+			unicode_canonical.c canonicalmappings.h \
 			linebreaktab_internal.h \
 			unicode_wordbreak.c wordbreaktab.h scriptstab.h \
 			unicode_emoji.c emojitab.h \
@@ -214,6 +217,7 @@ BUILT_SOURCES=unicode_ultcasetab.c \
 	bidi_class.h \
 	bidi_classnames.h \
 	bidi_mirroring.h \
+	canonicalmappings.h \
 	categoriestab.h \
 	eastasianwidth.h \
 	emojitab.h \
@@ -277,6 +281,9 @@ bidi_classnames.h: unicode_bidi.c mkbidiclassnames.pl
 	@PERL@ $(srcdir)/mkbidiclassnames.pl <$(srcdir)/courier-unicode.h.in >bidi_classnames.h.tmp
 	mv bidi_classnames.h.tmp bidi_classnames.h
 
+canonicalmappings.h: UnicodeData.txt mkcanonical.pl
+	@PERL@ -I$(srcdir) $(srcdir)/mkcanonical.pl >canonicalmappings.h.tmp
+	mv canonicalmappings.h.tmp canonicalmappings.h
 endif
 
 unicodetest_SOURCES=unicodetest.c
@@ -314,7 +321,10 @@ biditest_DEPENDENCIES=libcourier-unicode.la
 biditest_LDADD=libcourier-unicode.la
 biditest_LDFLAGS=-static
 
-
+biditest2_SOURCES=biditest2.C
+biditest2_DEPENDENCIES=libcourier-unicode.la
+biditest2_LDADD=libcourier-unicode.la
+biditest2_LDFLAGS=-static
 
 check-am: unicodetest
 	./unicodetest
@@ -385,6 +395,7 @@ check-am: unicodetest
 	test "`./biditest 8261`" = "8262 8262 o"
 	test "`./biditest 8262`" = "8261 8261 c"
 	./biditest
+	./biditest2
 
 if HAVE_DOCS
 

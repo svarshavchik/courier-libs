@@ -467,6 +467,28 @@ typedef struct {
 } *directional_status_stack_t;
 
 #ifdef BIDI_DEBUG
+
+static const struct {
+	char			classname[8];
+	enum_bidi_type_t	classenum;
+} bidiclassnames[]={
+
+#include "bidi_classnames.h"
+
+};
+
+const char *bidi_classname(enum_bidi_type_t classenum)
+{
+	for (const auto &cn:bidiclassnames)
+	{
+		if (cn.classenum == classenum)
+			return cn.classname;
+	}
+
+	return "???";
+}
+
+
 void dump_classes(const char *prefix, directional_status_stack_t stack)
 {
 	fprintf(DEBUGDUMP, "%s: ", prefix);
@@ -621,11 +643,12 @@ static void directional_status_stack_deinit(directional_status_stack_t stack)
 	free(stack);
 }
 
-static void unicode_bidi_b(const char32_t *p,
-			   size_t n,
-			   enum_bidi_type_t *buf,
-			   unicode_bidi_level_t *bufp,
-			   const unicode_bidi_level_t *initial_embedding_level);
+static unicode_bidi_level_t
+unicode_bidi_b(const char32_t *p,
+	       size_t n,
+	       enum_bidi_type_t *buf,
+	       unicode_bidi_level_t *bufp,
+	       const unicode_bidi_level_t *initial_embedding_level);
 
 enum_bidi_type_t unicode_bidi_type(char32_t c)
 {
@@ -639,8 +662,9 @@ enum_bidi_type_t unicode_bidi_type(char32_t c)
 				   UNICODE_BIDI_TYPE_L);
 }
 
-void unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
-		       const unicode_bidi_level_t *initial_embedding_level)
+unicode_bidi_level_t
+unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
+		  const unicode_bidi_level_t *initial_embedding_level)
 {
 	/*
 	** Look up the bidi class for each char32_t.
@@ -661,26 +685,32 @@ void unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 		bufp[i]=UNICODE_BIDI_SKIP;
 	}
 
-	unicode_bidi_b(p, n,
-		       buf,
-		       bufp,
-		       initial_embedding_level);
+	unicode_bidi_level_t level=unicode_bidi_b(p, n,
+						  buf,
+						  bufp,
+						  initial_embedding_level);
 
 	free(buf);
+
+	return level;
 }
 
 static void unicode_bidi_cl(directional_status_stack_t stack);
 
-static void unicode_bidi_b(const char32_t *p,
-			   size_t n,
-			   enum_bidi_type_t *buf,
-			   unicode_bidi_level_t *bufp,
-			   const unicode_bidi_level_t *initial_embedding_level)
+static unicode_bidi_level_t
+unicode_bidi_b(const char32_t *p,
+	       size_t n,
+	       enum_bidi_type_t *buf,
+	       unicode_bidi_level_t *bufp,
+	       const unicode_bidi_level_t *initial_embedding_level)
 {
 	directional_status_stack_t stack;
 
 	stack=directional_status_stack_init(p, buf, n, bufp,
 					    initial_embedding_level);
+
+	unicode_bidi_level_t paragraph_embedding_level=
+		stack->paragraph_embedding_level;
 
 #ifdef BIDI_DEBUG
 	fprintf(DEBUGDUMP, "BIDI: START: Paragraph embedding level: %d\n",
@@ -690,6 +720,8 @@ static void unicode_bidi_b(const char32_t *p,
 	unicode_bidi_cl(stack);
 
 	directional_status_stack_deinit(stack);
+
+	return paragraph_embedding_level;
 }
 
 #define RESET_CLASS(p,stack) do {				\
@@ -1173,6 +1205,8 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 	{
 #ifdef BIDI_DEBUG
 		dump_sequence_info(stack, p);
+		fprintf(DEBUGDUMP, "Sequence embedding level: %d\n",
+			(int)p->embedding_level);
 		dump_sequence("Contents before W", stack, p);
 #endif
 
@@ -1408,6 +1442,16 @@ struct bidi_n_stack {
 	short matched;
 };
 
+#define IS_NI(class)						\
+	((class) == UNICODE_BIDI_TYPE_B ||			\
+	 (class) == UNICODE_BIDI_TYPE_S ||			\
+	 (class) == UNICODE_BIDI_TYPE_WS ||			\
+	 (class) == UNICODE_BIDI_TYPE_ON ||			\
+	 (class) == UNICODE_BIDI_TYPE_FSI ||			\
+	 (class) == UNICODE_BIDI_TYPE_LRI ||			\
+	 (class) == UNICODE_BIDI_TYPE_RLI ||			\
+	 (class) == UNICODE_BIDI_TYPE_PDI)
+
 static void unicode_bidi_n(directional_status_stack_t stack,
 			   struct isolating_run_sequence_s *seq)
 {
@@ -1430,45 +1474,86 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 
 	for (; irs_compare(&iter, &end); irs_incr(&iter))
 	{
-		unicode_bidi_bracket_type_t bracket_type;
-		char32_t open_bracket=
-			unicode_bidi_bracket_type(stack->chars[iter.i],
-						  &bracket_type);
+		unicode_bidi_bracket_type_t bracket_type=UNICODE_BIDI_n;
+
+		char32_t open_or_close_bracket=0;
+
+		if (IS_NI(stack->classes[iter.i]))
+		{
+			open_or_close_bracket=
+				unicode_bidi_bracket_type(stack->chars[iter.i],
+							  &bracket_type);
+		}
 
 		if (bracket_type == UNICODE_BIDI_o)
 		{
 			if (stackp >= NSTACKSIZE)
+			{
+#ifdef BIDI_DEBUG
+				fprintf(DEBUGDUMP,
+					"BD16 stack exceeded on index %d\n",
+					(int)iter.i);
+#endif
 				break; /* BD16 failure */
-
+			}
 			if (!((*bracket_stack_tail)=(struct bidi_n_stack *)
 			      calloc(1, sizeof(struct bidi_n_stack))))
 				abort();
 
 			stack_iters[stackp]=*bracket_stack_tail;
-
-			(*bracket_stack_tail)->start=iter;
+			stack_iters[stackp]->start=iter;
 
 			stack_chars[stackp]=stack->chars[iter.i];
 
+			unicode_canonical_t canon=
+				unicode_canonical(stack_chars[stackp]);
+
+			if (canon.n_canonical_chars == 1 &&
+			    !canon.format)
+			{
+				stack_chars[stackp]=
+					canon.canonical_chars[0];
+			}
+
 			bracket_stack_tail= &(*bracket_stack_tail)->next;
 			++stackp;
-			continue;
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP, "Found opening bracket at index %d\n",
+				(int)iter.i);
+#endif
 		}
 
-		if (bracket_type == UNICODE_BIDI_c) /* Should be "n" */
+		if (bracket_type == UNICODE_BIDI_c)
 		{
+			unicode_canonical_t canon=
+				unicode_canonical(open_or_close_bracket);
+
+			if (canon.n_canonical_chars == 1 &&
+			    !canon.format)
+			{
+				open_or_close_bracket=
+					canon.canonical_chars[0];
+			}
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP, "Found closing bracket at index %d\n",
+				(int)iter.i);
+#endif
 			for (size_t i=stackp; i > 0; )
 			{
 				--i;
-				if (stack_chars[i] != open_bracket)
+				if (stack_chars[i] != open_or_close_bracket)
 					continue;
+#ifdef BIDI_DEBUG
+				fprintf(DEBUGDUMP,
+					"Matched to open bracket at index %d\n",
+					(int)stack_iters[i]->start.i);
+#endif
 
 				stack_iters[i]->end = iter;
 				stack_iters[i]->matched=1;
 				stackp=i;
 				break;
 			}
-			continue;
 		}
 
 		/*
@@ -1496,11 +1581,41 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 
 		if (eoclass == E_CLASS)
 		{
+#ifdef BIDI_DEBUG
+			if (stackp)
+			{
+				fprintf(DEBUGDUMP,
+					"Found e for brackets at:");
+
+				for (size_t i=0; i<stackp; ++i)
+				{
+					fprintf(DEBUGDUMP,
+						" %d",
+						(int)stack_iters[i]->start.i);
+				}
+				fprintf(DEBUGDUMP, "\n");
+			}
+#endif
 			for (size_t i=0; i<stackp; ++i)
 				stack_iters[i]->has_e=1;
 		}
 		else if (eoclass == O_CLASS)
 		{
+#ifdef BIDI_DEBUG
+			if (stackp)
+			{
+				fprintf(DEBUGDUMP,
+					"Found o for brackets at:");
+
+				for (size_t i=0; i<stackp; ++i)
+				{
+					fprintf(DEBUGDUMP,
+						" %d",
+						(int)stack_iters[i]->start.i);
+				}
+				fprintf(DEBUGDUMP, "\n");
+			}
+#endif
 			for (size_t i=0; i<stackp; ++i)
 				stack_iters[i]->has_o=1;
 		}
@@ -1516,6 +1631,18 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 		{
 			int set=0;
 
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP,
+				"Brackets: %d and %d: e=%s, o=%s",
+				(int)p->start.i,
+				(int)p->end.i,
+				bidi_classname(E_CLASS),
+				bidi_classname(O_CLASS));
+
+			fprintf(DEBUGDUMP, ", has e=%d, has o=%d\n",
+				p->has_e,
+				p->has_o);
+#endif
 			if (p->has_e)
 			{
 				stack->classes[p->start.i]=
@@ -1548,16 +1675,18 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 					}
 
 					strong_type=eoclass;
+#ifdef BIDI_DEBUG
+					fprintf(DEBUGDUMP,
+						"Brackets: O context: %s\n",
+						bidi_classname(strong_type));
+#endif
 					break;
 				}
 
-				if (strong_type == O_CLASS)
-				{
-					stack->classes[p->start.i]=
-						stack->classes[p->end.i]=
-						strong_type;
-					set=1;
-				}
+				stack->classes[p->start.i]=
+					stack->classes[p->end.i]=
+					strong_type;
+				set=1;
 			}
 
 			if (set)
@@ -1580,16 +1709,6 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 	}
 
 	/* N1 */
-
-#define IS_NI(class)						\
-	((class) == UNICODE_BIDI_TYPE_B ||			\
-	 (class) == UNICODE_BIDI_TYPE_S ||			\
-	 (class) == UNICODE_BIDI_TYPE_WS ||			\
-	 (class) == UNICODE_BIDI_TYPE_ON ||			\
-	 (class) == UNICODE_BIDI_TYPE_FSI ||			\
-	 (class) == UNICODE_BIDI_TYPE_LRI ||			\
-	 (class) == UNICODE_BIDI_TYPE_RLI ||			\
-	 (class) == UNICODE_BIDI_TYPE_PDI)
 
 	enum_bidi_type_t prev_type=seq->sos;
 

@@ -19,6 +19,8 @@
 /WordBreakTest.txt
 /emoji-data.txt
 /biditest
+/biditest2
+/canonicalmappings.h
 /config.cache
 /config.guess
 /config.sub
