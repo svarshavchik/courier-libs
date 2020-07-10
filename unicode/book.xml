@@ -6,6 +6,7 @@
 <!ENTITY tr14ver "45">
 <!ENTITY tr24ver "31">
 <!ENTITY tr29ver "37">
+<!ENTITY tr51ver "18">
 ]>
 
 <!--
@@ -228,20 +229,23 @@ See COPYING for distribution information.
 	  <title>SEE ALSO</title>
 
 	  <para>
+	    <link linkend="unicode_bidi">
+	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_category_lookup">
+	      <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_default_chset">
 	      <citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_emoji_lookup">
+	      <citerefentry><refentrytitle>unicode_emoji_lookup</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_html40ent_lookup">
 	      <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_bidi">
-	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_category_lookup">
-	      <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_grapheme_break">
 	      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
@@ -252,11 +256,11 @@ See COPYING for distribution information.
 	    <link linkend="unicode_script">
 	      <citerefentry><refentrytitle>unicode_script</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_word_break">
-	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_uc">
 	      <citerefentry><refentrytitle>unicode_uc</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_word_break">
+	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__bidi">
 	      <citerefentry><refentrytitle>unicode::bidi</refentrytitle>
@@ -1148,6 +1152,107 @@ See COPYING for distribution information.
 	    <link linkend="unicode_uc">
 	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_emoji_lookup">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_emoji_lookup</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_emoji_lookup</refname>
+          <refname>unicode_emoji</refname>
+          <refname>unicode_emoji_presentation</refname>
+	  <refname>unicode_emoji_modifier</refname>
+	  <refname>unicode_emoji_modifier_base</refname>
+	  <refname>unicode_emoji_component</refname>
+	  <refname>unicode_emoji_extended_pictographic</refname>
+
+	  <refpurpose>look up unicode character's Unicode Emoji Classification</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_emoji_t <function>unicode_emoji_lookup</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji_presentation</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji_modifier</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji_modifier_base</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji_component</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode_emoji_extended_pictographic</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_emoji_lookup</function>() returns the
+	    unicode emoji properties of the specified character, as a bitmask
+	    of <literal>UNICODE_EMOJI</literal> flags, as defined in the
+	    header file.
+	    <function>unicode_emoji</function>(),
+	    <function>unicode_emoji_presentation</function>(),
+	    <function>unicode_emoji_modifier</function>(),
+	    <function>unicode_emoji_modifier_base</function>(),
+	    <function>unicode_emoji_component</function>(), and
+	    <function>unicode_emoji_extended_pictographic</function>()
+	    check whether the given character carries a specific emoji
+	    property. They return 0 if not, and non-0 if the specified
+	    character has the corresponding property.
+	  </para>
+        </refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr51/tr51-&tr51ver;.html">TR-51</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
 	  </para>
 	</refsect1>
       </refentry>

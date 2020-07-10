@@ -127,6 +127,13 @@ man_MANS= \
         $(srcdir)/man/unicode_convert_toutf8.3 \
         $(srcdir)/man/unicode_convert_uc.3 \
         $(srcdir)/man/unicode_default_chset.3 \
+        $(srcdir)/man/unicode_emoji.3 \
+        $(srcdir)/man/unicode_emoji_component.3 \
+        $(srcdir)/man/unicode_emoji_extended_pictographic.3 \
+        $(srcdir)/man/unicode_emoji_lookup.3 \
+        $(srcdir)/man/unicode_emoji_modifier.3 \
+        $(srcdir)/man/unicode_emoji_modifier_base.3 \
+        $(srcdir)/man/unicode_emoji_presentation.3 \
         $(srcdir)/man/unicode_grapheme_break.3 \
         $(srcdir)/man/unicode_grapheme_break_deinit.3 \
         $(srcdir)/man/unicode_grapheme_break_init.3 \
