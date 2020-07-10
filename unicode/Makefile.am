@@ -79,6 +79,7 @@ update-www-bidi:
 	@SHELL@ $(srcdir)/update.sh BidiMirroring.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiMirroring.txt
 	@SHELL@ $(srcdir)/update.sh DerivedBidiClass.txt https://www.unicode.org/Public/UCD/latest/ucd/extracted/DerivedBidiClass.txt
 	@SHELL@ $(srcdir)/update.sh BidiTest.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiTest.txt
+	@SHELL@ $(srcdir)/update.sh BidiCharacterTest.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiCharacterTest.txt
 
 lib_LTLIBRARIES=libcourier-unicode.la
 include_HEADERS=courier-unicode.h \
