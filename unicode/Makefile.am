@@ -85,7 +85,87 @@ include_HEADERS=courier-unicode.h \
 	courier-unicode-categories-tab.h \
 	courier-unicode-script-tab.h
 
-man_MANS=$(srcdir)/man/courier-unicode.7 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 $(srcdir)/man/unicode[\:][\:]tolower.3 $(srcdir)/man/unicode[\:][\:]toupper.3 $(srcdir)/man/unicode[\:][\:]ucs_2.3 $(srcdir)/man/unicode[\:][\:]ucs_4.3 $(srcdir)/man/unicode[\:][\:]utf_8.3 $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 $(srcdir)/man/unicode_category_lookup.3 $(srcdir)/man/unicode_convert.3 $(srcdir)/man/unicode_convert_deinit.3 $(srcdir)/man/unicode_convert_fromu_init.3 $(srcdir)/man/unicode_convert_fromu_tobuf.3 $(srcdir)/man/unicode_convert_fromutf8.3 $(srcdir)/man/unicode_convert_init.3 $(srcdir)/man/unicode_convert_tobuf.3 $(srcdir)/man/unicode_convert_tocase.3 $(srcdir)/man/unicode_convert_tocbuf_fromutf8_init.3 $(srcdir)/man/unicode_convert_tocbuf_init.3 $(srcdir)/man/unicode_convert_tocbuf_toutf8_init.3 $(srcdir)/man/unicode_convert_tou_init.3 $(srcdir)/man/unicode_convert_tou_tobuf.3 $(srcdir)/man/unicode_convert_toutf8.3 $(srcdir)/man/unicode_convert_uc.3 $(srcdir)/man/unicode_default_chset.3 $(srcdir)/man/unicode_grapheme_break.3 $(srcdir)/man/unicode_html40ent_lookup.3 $(srcdir)/man/unicode_isalnum.3 $(srcdir)/man/unicode_isalpha.3 $(srcdir)/man/unicode_isblank.3 $(srcdir)/man/unicode_isdigit.3 $(srcdir)/man/unicode_isgraph.3 $(srcdir)/man/unicode_islower.3 $(srcdir)/man/unicode_ispunct.3 $(srcdir)/man/unicode_isspace.3 $(srcdir)/man/unicode_isupper.3 $(srcdir)/man/unicode_lb_end.3 $(srcdir)/man/unicode_lb_init.3 $(srcdir)/man/unicode_lb_next.3 $(srcdir)/man/unicode_lb_next_cnt.3 $(srcdir)/man/unicode_lb_set_opts.3 $(srcdir)/man/unicode_lbc_end.3 $(srcdir)/man/unicode_lbc_init.3 $(srcdir)/man/unicode_lbc_next.3 $(srcdir)/man/unicode_lbc_next_cnt.3 $(srcdir)/man/unicode_lbc_set_opts.3 $(srcdir)/man/unicode_lc.3 $(srcdir)/man/unicode_locale_chset.3 $(srcdir)/man/unicode_script.3 $(srcdir)/man/unicode_tc.3 $(srcdir)/man/unicode_u_ucs2_native.3 $(srcdir)/man/unicode_u_ucs4_native.3 $(srcdir)/man/unicode_uc.3 $(srcdir)/man/unicode_wb_end.3 $(srcdir)/man/unicode_wb_init.3 $(srcdir)/man/unicode_wb_next.3 $(srcdir)/man/unicode_wb_next_cnt.3 $(srcdir)/man/unicode_wbscan_end.3 $(srcdir)/man/unicode_wbscan_init.3 $(srcdir)/man/unicode_wbscan_next.3
+man_MANS= \
+        $(srcdir)/man/courier-unicode.7 \
+        $(srcdir)/man/unicode\:\:bidi_calc.3 \
+        $(srcdir)/man/unicode\:\:bidi_reorder.3 \
+        $(srcdir)/man/unicode\:\:iconvert\:\:convert.3 \
+        $(srcdir)/man/unicode\:\:iconvert\:\:convert_tocase.3 \
+        $(srcdir)/man/unicode\:\:iconvert\:\:fromu.3 \
+        $(srcdir)/man/unicode\:\:iconvert\:\:tou.3 \
+        $(srcdir)/man/unicode\:\:iso_8859_1.3 \
+        $(srcdir)/man/unicode\:\:linebreak_callback_base.3 \
+        $(srcdir)/man/unicode\:\:linebreak_callback_save_buf.3 \
+        $(srcdir)/man/unicode\:\:linebreak_iter.3 \
+        $(srcdir)/man/unicode\:\:linebreakc_callback_base.3 \
+        $(srcdir)/man/unicode\:\:linebreakc_iter.3 \
+        $(srcdir)/man/unicode\:\:tolower.3 \
+        $(srcdir)/man/unicode\:\:toupper.3 \
+        $(srcdir)/man/unicode\:\:ucs_2.3 \
+        $(srcdir)/man/unicode\:\:ucs_4.3 \
+        $(srcdir)/man/unicode\:\:utf_8.3 \
+        $(srcdir)/man/unicode\:\:wordbreak_callback_base.3 \
+        $(srcdir)/man/unicode_bidi.3 \
+        $(srcdir)/man/unicode_bidi_bracket_type.3 \
+        $(srcdir)/man/unicode_bidi_calc.3 \
+        $(srcdir)/man/unicode_bidi_mirror.3 \
+        $(srcdir)/man/unicode_bidi_reorder.3 \
+        $(srcdir)/man/unicode_category_lookup.3 \
+        $(srcdir)/man/unicode_convert.3 \
+        $(srcdir)/man/unicode_convert_deinit.3 \
+        $(srcdir)/man/unicode_convert_fromu_init.3 \
+        $(srcdir)/man/unicode_convert_fromu_tobuf.3 \
+        $(srcdir)/man/unicode_convert_fromutf8.3 \
+        $(srcdir)/man/unicode_convert_init.3 \
+        $(srcdir)/man/unicode_convert_tobuf.3 \
+        $(srcdir)/man/unicode_convert_tocase.3 \
+        $(srcdir)/man/unicode_convert_tocbuf_fromutf8_init.3 \
+        $(srcdir)/man/unicode_convert_tocbuf_init.3 \
+        $(srcdir)/man/unicode_convert_tocbuf_toutf8_init.3 \
+        $(srcdir)/man/unicode_convert_tou_init.3 \
+        $(srcdir)/man/unicode_convert_tou_tobuf.3 \
+        $(srcdir)/man/unicode_convert_toutf8.3 \
+        $(srcdir)/man/unicode_convert_uc.3 \
+        $(srcdir)/man/unicode_default_chset.3 \
+        $(srcdir)/man/unicode_grapheme_break.3 \
+        $(srcdir)/man/unicode_grapheme_break_deinit.3 \
+        $(srcdir)/man/unicode_grapheme_break_init.3 \
+        $(srcdir)/man/unicode_grapheme_break_next.3 \
+        $(srcdir)/man/unicode_html40ent_lookup.3 \
+        $(srcdir)/man/unicode_isalnum.3 \
+        $(srcdir)/man/unicode_isalpha.3 \
+        $(srcdir)/man/unicode_isblank.3 \
+        $(srcdir)/man/unicode_isdigit.3 \
+        $(srcdir)/man/unicode_isgraph.3 \
+        $(srcdir)/man/unicode_islower.3 \
+        $(srcdir)/man/unicode_ispunct.3 \
+        $(srcdir)/man/unicode_isspace.3 \
+        $(srcdir)/man/unicode_isupper.3 \
+        $(srcdir)/man/unicode_lb_end.3 \
+        $(srcdir)/man/unicode_lb_init.3 \
+        $(srcdir)/man/unicode_lb_next.3 \
+        $(srcdir)/man/unicode_lb_next_cnt.3 \
+        $(srcdir)/man/unicode_lb_set_opts.3 \
+        $(srcdir)/man/unicode_lbc_end.3 \
+        $(srcdir)/man/unicode_lbc_init.3 \
+        $(srcdir)/man/unicode_lbc_next.3 \
+        $(srcdir)/man/unicode_lbc_next_cnt.3 \
+        $(srcdir)/man/unicode_lbc_set_opts.3 \
+        $(srcdir)/man/unicode_lc.3 \
+        $(srcdir)/man/unicode_line_break.3 \
+        $(srcdir)/man/unicode_locale_chset.3 \
+        $(srcdir)/man/unicode_script.3 \
+        $(srcdir)/man/unicode_tc.3 \
+        $(srcdir)/man/unicode_u_ucs2_native.3 \
+        $(srcdir)/man/unicode_u_ucs4_native.3 \
+        $(srcdir)/man/unicode_uc.3 \
+        $(srcdir)/man/unicode_wb_end.3 \
+        $(srcdir)/man/unicode_wb_init.3 \
+        $(srcdir)/man/unicode_wb_next.3 \
+        $(srcdir)/man/unicode_wb_next_cnt.3 \
+        $(srcdir)/man/unicode_wbscan_end.3 \
+        $(srcdir)/man/unicode_wbscan_init.3 \
+        $(srcdir)/man/unicode_wbscan_next.3
 
 libcourier_unicode_la_SOURCES=\
 			courier-unicode-categories-tab.h \
@@ -329,7 +409,7 @@ docs.stamp:
 	rm -f man/*.[123456789]
 	mv man.tmp/* man
 	rm -rf html.tmp man.tmp
-	perl -p -e 's/:/[\\:]/g if s@^man_MANS=.*@"man_MANS=" . join(" ", map { "\$$(srcdir)/$$_" } glob("man/*.[123456789]"))@e' Makefile.am >Makefile.am.new
+	perl -e '$$f=join("",<STDIN>); $$p=join("", map { " \\\n        \$$(srcdir)/$$_" } glob("man/*.[123456789]")); $$p=~s/:/\\:/g; $$f =~ s/\nman_MANS=([^\n]|\n[^\n])*/\nman_MANS=$$p/s; print $$f' <Makefile.am >Makefile.am.new
 	cmp Makefile.am Makefile.am.new || mv -f Makefile.am.new Makefile.am; rm -f Makefile.am.new
 	touch docs.stamp
 
@@ -405,4 +485,4 @@ distrelease:
 	$(MAKE) dist
 
 www:
-	rsync -a html/. $$HOME/www/www.courier-mta.org/unicode
+	rsync -a html/. $$HOME/www/hostrocket/courier-mta.org/unicode

@@ -557,3 +557,79 @@ std::u32string unicode::toupper(const std::u32string &u)
 
 	return copy;
 }
+
+std::vector<unicode_bidi_level_t>
+unicode::bidi_calc(const std::u32string &s)
+{
+	return unicode::bidi_calc(s, UNICODE_BIDI_SKIP);
+}
+
+std::vector<unicode_bidi_level_t>
+unicode::bidi_calc(const std::u32string &s,
+		   unicode_bidi_level_t paragraph_embedding_level)
+{
+	const unicode_bidi_level_t *initial_embedding_level=0;
+
+	if (paragraph_embedding_level == UNICODE_BIDI_LR ||
+	    paragraph_embedding_level == UNICODE_BIDI_RL)
+	{
+		initial_embedding_level=&paragraph_embedding_level;
+	}
+
+	std::vector<unicode_bidi_level_t> buf;
+
+	buf.resize(s.size());
+
+	if (s.size())
+	{
+		unicode_bidi_calc(s.c_str(), s.size(), &buf[0],
+				  initial_embedding_level);
+	}
+	return buf;
+}
+
+extern "C" {
+	static void reorder_callback(size_t i, size_t cnt,
+				     void *arg)
+	{
+		auto p=reinterpret_cast<const std::function<void (size_t,
+								  size_t)> *>
+			(arg);
+
+		(*p)(i, cnt);
+	}
+}
+
+int unicode::bidi_reorder(std::u32string &string,
+			  std::vector<unicode_bidi_level_t> &levels,
+			  const std::function<void (size_t, size_t)> &lambda)
+{
+	size_t s=string.size();
+
+	if (s != levels.size())
+		return -1;
+
+	if (!s)
+		return 0;
+
+	unicode_bidi_reorder(&string[0], &levels[0], s,
+			     reorder_callback,
+			     const_cast<void *>
+			     (reinterpret_cast<const void *>(&lambda)));
+
+	return 0;
+}
+
+void unicode::bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
+			   const std::function<void (size_t, size_t)> &lambda)
+{
+	size_t s=levels.size();
+
+	if (!s)
+		return;
+
+	unicode_bidi_reorder(0, &levels[0], s, reorder_callback,
+			     const_cast<void *>
+			     (reinterpret_cast<const void *>(&lambda)));
+
+}

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2020 Double Precision, Inc.
+** Copyright 2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -148,14 +148,56 @@ struct level_run {
 	size_t end; /* one past */
 };
 
+/* A growing list of level runs */
+
+struct level_runs {
+	struct level_run *runs; /* All level runs in the sequence */
+	size_t n_level_runs;          /* How many of them */
+	size_t cap_level_runs;        /* Capacity of the level runs */
+};
+
+static void level_runs_init(struct level_runs *p)
+{
+	p->runs=0;
+	p->n_level_runs=0;
+	p->cap_level_runs=0;
+}
+
+static void level_runs_deinit(struct level_runs *p)
+{
+	if (p->runs)
+		free(p->runs);
+}
+
+static struct level_run *level_runs_add(struct level_runs *p)
+{
+	if (p->n_level_runs == p->cap_level_runs)
+	{
+		p->cap_level_runs *= 2;
+
+		if (p->cap_level_runs == 0)
+			p->cap_level_runs=1;
+
+		p->runs=(struct level_run *)
+			(p->runs ?
+			 realloc(p->runs,
+				 sizeof(struct level_run) *
+				 p->cap_level_runs)
+			 :malloc(sizeof(struct level_run) *
+				 p->cap_level_runs));
+		if (!p->runs)
+			abort();
+	}
+
+	return p->runs + (p->n_level_runs++);
+}
+
 /* An isolating run sequence */
 
 struct isolating_run_sequence_s {
 	struct isolating_run_sequence_s *prev, *next; /* Linked list */
 
-	struct level_run *level_runs; /* All level runs in the sequence */
-	size_t n_level_runs;          /* How many of them */
-	size_t cap_level_runs;        /* Capacity of the level runs */
+	struct level_runs runs;
 	unicode_bidi_level_t embedding_level; /* This seq's embedding level */
 	enum_bidi_class_t sos, eos;
 };
@@ -185,11 +227,11 @@ static irs_iterator irs_begin(struct isolating_run_sequence_s *seq)
 
 	/* Edge case, empty isolating run sequence */
 
-	while (iter.level_run_i < seq->n_level_runs)
+	while (iter.level_run_i < seq->runs.n_level_runs)
 	{
-		iter.i=seq->level_runs[iter.level_run_i].start;
+		iter.i=seq->runs.runs[iter.level_run_i].start;
 
-		if (iter.i < seq->level_runs[iter.level_run_i].end)
+		if (iter.i < seq->runs.runs[iter.level_run_i].end)
 			break;
 
 		++iter.level_run_i;
@@ -202,7 +244,7 @@ static irs_iterator irs_end(struct isolating_run_sequence_s *seq)
 	irs_iterator iter;
 
 	iter.seq=seq;
-	iter.level_run_i=seq->n_level_runs;
+	iter.level_run_i=seq->runs.n_level_runs;
 	return iter;
 }
 
@@ -214,7 +256,7 @@ static int irs_compare(const irs_iterator *a,
 	if (a->level_run_i > b->level_run_i)
 		return 1;
 
-	if (a->level_run_i == a->seq->n_level_runs)
+	if (a->level_run_i == a->seq->runs.n_level_runs)
 		return 0;
 
 	if (a->i < b->i)
@@ -227,7 +269,7 @@ static int irs_compare(const irs_iterator *a,
 
 static void irs_incr(irs_iterator *iter)
 {
-	if (iter->seq->n_level_runs == iter->level_run_i)
+	if (iter->seq->runs.n_level_runs == iter->level_run_i)
 	{
 		fprintf(stderr, "%s%s\n",
 			"Internal error: attempting to increment ",
@@ -235,10 +277,10 @@ static void irs_incr(irs_iterator *iter)
 		abort();
 	}
 
-	if (++iter->i >= iter->seq->level_runs[iter->level_run_i].end)
+	if (++iter->i >= iter->seq->runs.runs[iter->level_run_i].end)
 	{
-		if (++iter->level_run_i < iter->seq->n_level_runs)
-			iter->i=iter->seq->level_runs[iter->level_run_i].start;
+		if (++iter->level_run_i < iter->seq->runs.n_level_runs)
+			iter->i=iter->seq->runs.runs[iter->level_run_i].start;
 	}
 }
 
@@ -246,8 +288,8 @@ static void irs_decr(irs_iterator *iter)
 {
 	while (1)
 	{
-		if (iter->seq->n_level_runs > iter->level_run_i &&
-		    iter->i > iter->seq->level_runs[iter->level_run_i].start)
+		if (iter->seq->runs.n_level_runs > iter->level_run_i &&
+		    iter->i > iter->seq->runs.runs[iter->level_run_i].start)
 		{
 			--iter->i;
 			break;
@@ -261,7 +303,7 @@ static void irs_decr(irs_iterator *iter)
 			abort();
 		}
 
-		iter->i=iter->seq->level_runs[--iter->level_run_i].end;
+		iter->i=iter->seq->runs.runs[--iter->level_run_i].end;
 	}
 }
 
@@ -328,13 +370,12 @@ isolating_run_sequences_init(struct isolating_run_sequences_s *p,
 
 	if (!seq) abort();
 
-	if ((seq->level_runs=(struct level_run *)
-	     malloc(sizeof(struct level_run))) == 0) abort();
+	level_runs_init(&seq->runs);
 
-	seq->level_runs->start=i;
-	seq->level_runs->end=i;
+	struct level_run *run=level_runs_add(&seq->runs);
 
-	seq->n_level_runs=seq->cap_level_runs=1;
+	run->start=i;
+	run->end=i;
 	seq->embedding_level=embedding_level;
 
 	if (!p->head)
@@ -355,7 +396,7 @@ static void isolating_run_sequences_record(struct isolating_run_sequence_s *p,
 					   size_t i)
 {
 	struct level_run *current_level_run=
-		&p->level_runs[p->n_level_runs-1];
+		&p->runs.runs[p->runs.n_level_runs-1];
 
 	if (current_level_run->start == current_level_run->end)
 	{
@@ -375,19 +416,7 @@ static void isolating_run_sequences_record(struct isolating_run_sequence_s *p,
 	** run sequence.
 	*/
 
-	if (p->n_level_runs == p->cap_level_runs)
-	{
-		p->cap_level_runs *= 2;
-
-		p->level_runs=(struct level_run *)
-			realloc(p->level_runs,
-				sizeof(struct level_run) *
-				p->cap_level_runs);
-		if (!p->level_runs)
-			abort();
-	}
-
-	current_level_run = p->level_runs + (p->n_level_runs++);
+	current_level_run=level_runs_add(&p->runs);
 
 	current_level_run->start=i;
 	current_level_run->end=i+1;
@@ -430,7 +459,7 @@ static void isolating_run_sequences_deinit(struct isolating_run_sequences_s *p)
 
 		seq=seq->next;
 
-		free(p->level_runs);
+		level_runs_deinit(&p->runs);
 		free(p);
 	}
 
@@ -706,12 +735,12 @@ void dump_sequence_info(directional_status_stack_t stack,
 		(seq->sos == UNICODE_BIDI_CLASS_L ? 'L':'R'),
 		(seq->eos == UNICODE_BIDI_CLASS_L ? 'L':'R'));
 
-	for (size_t i=0; i<seq->n_level_runs; ++i)
+	for (size_t i=0; i<seq->runs.n_level_runs; ++i)
 	{
 		fprintf(DEBUGDUMP, "%s[%lu-%lu]",
 			i == 0 ? " ":", ",
-			(unsigned long)seq->level_runs[i].start,
-			(unsigned long)seq->level_runs[i].end-1);
+			(unsigned long)seq->runs.runs[i].start,
+			(unsigned long)seq->runs.runs[i].end-1);
 	}
 	fprintf(DEBUGDUMP, "\n");
 }
@@ -1705,4 +1734,128 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 #ifdef BIDI_DEBUG
 	dump_sequence("Contents after I", stack, seq);
 #endif
+}
+
+struct level_run_layers {
+	struct level_runs *lruns;     /* At this embedding level, or higher */
+	size_t n_lruns;               /* How many of them */
+	size_t cap_lruns;             /* Capacity of the level runs */
+};
+
+static void level_run_layers_init(struct level_run_layers *p)
+{
+	p->lruns=0;
+	p->n_lruns=0;
+	p->cap_lruns=0;
+}
+
+static void level_run_layers_deinit(struct level_run_layers *p)
+{
+	if (p->lruns)
+	{
+		for (size_t i=0; i<p->n_lruns; ++i)
+			level_runs_deinit(&p->lruns[i]);
+		free(p->lruns);
+	}
+}
+
+static void level_run_layers_add(struct level_run_layers *p)
+{
+	if (p->n_lruns == p->cap_lruns)
+	{
+		p->cap_lruns *= 2;
+
+		if (p->cap_lruns == 0)
+			p->cap_lruns=1;
+
+		p->lruns=(struct level_runs *)
+			(p->lruns ?
+			 realloc(p->lruns,
+				 sizeof(struct level_runs) *
+				 p->cap_lruns)
+			 :malloc(sizeof(struct level_runs) *
+				 p->cap_lruns));
+		if (!p->lruns)
+			abort();
+	}
+
+	level_runs_init(p->lruns + (p->n_lruns++));
+}
+
+void unicode_bidi_reorder(char32_t *p,
+			  unicode_bidi_level_t *levels,
+			  size_t n,
+			  void (*reorder_callback)(size_t, size_t, void *),
+			  void *arg)
+{
+	/* L2 */
+
+	struct level_run_layers layers;
+	unicode_bidi_level_t previous_level=0;
+
+	level_run_layers_init(&layers);
+
+	for (size_t i=0; i<n; ++i)
+	{
+		if (levels[i] != UNICODE_BIDI_SKIP)
+			previous_level=levels[i];
+
+		while (layers.n_lruns <= previous_level)
+			level_run_layers_add(&layers);
+
+		/* We intentionally don't put anything in level 0 */
+		for (size_t j=1; j<=previous_level; ++j)
+		{
+			struct level_runs *runs=layers.lruns+j;
+
+			if (runs->n_level_runs &&
+			    runs->runs[runs->n_level_runs-1].end == i)
+			{
+				++runs->runs[runs->n_level_runs-1].end;
+			}
+			else
+			{
+				struct level_run *run=
+					level_runs_add(runs);
+
+				run->start=i;
+				run->end=i+1;
+			}
+		}
+	}
+
+	for (size_t i=layers.n_lruns; i; )
+	{
+		struct level_runs *runs=layers.lruns+ --i;
+
+		for (size_t j=0; j<runs->n_level_runs; ++j)
+		{
+			size_t start=runs->runs[j].start;
+			size_t end=runs->runs[j].end;
+			size_t right=end;
+			size_t left=start;
+
+			while (right > left)
+			{
+				--right;
+
+				if (p)
+				{
+					char32_t c=p[left];
+					unicode_bidi_level_t l=levels[left];
+
+					p[left]=p[right];
+					levels[left]=levels[right];
+					p[right]=c;
+					levels[right]=l;
+				}
+				++left;
+			}
+
+			if (end-start > 1 && reorder_callback)
+				(*reorder_callback)(start, end-start, arg);
+		}
+	}
+
+	level_run_layers_deinit(&layers);
 }

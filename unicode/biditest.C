@@ -5,7 +5,9 @@
 #include	<sstream>
 #include	<string>
 #include	<algorithm>
+#include	<utility>
 #include	<iomanip>
+#include	<numeric>
 
 std::vector<std::string> testcase;
 
@@ -42,6 +44,8 @@ int main(int argc, char **argv)
 	std::string buf;
 
 	std::vector<unicode_bidi_level_t> expected_levels;
+
+	std::vector<size_t> expected_reorder;
 
 	while (1)
 	{
@@ -99,6 +103,28 @@ int main(int argc, char **argv)
 			continue;
 		}
 
+
+
+		if (buf.substr(0, 9) == "@Reorder:")
+		{
+			expected_reorder.clear();
+
+			std::istringstream i(buf);
+
+			std::string word;
+
+			i >> word;
+
+			size_t n;
+
+			while (i >> n)
+			{
+				expected_reorder.push_back(n);
+			}
+			continue;
+		}
+
+
 		if (buf.substr(0, 1) == "@")
 			continue;
 
@@ -138,10 +164,9 @@ int main(int argc, char **argv)
 
 		std::vector<unicode_bidi_level_t> actual_levels;
 
-		std::vector<char32_t> dummy_input;
+		std::u32string dummy_input;
 
 		dummy_input.resize(testcase.size());
-		actual_levels.resize(testcase.size());
 
 		static const unicode_bidi_level_t level_0=0;
 		static const unicode_bidi_level_t level_1=1;
@@ -153,9 +178,9 @@ int main(int argc, char **argv)
 		{
 			if (n & 1)
 			{
-				unicode_bidi_calc(&dummy_input[0],
-						  testcase.size(),
-						  &actual_levels[0], level);
+				actual_levels=level ?
+					unicode::bidi_calc(dummy_input,*level)
+					: unicode::bidi_calc(dummy_input);
 
 				int matched=0;
 
@@ -216,6 +241,87 @@ int main(int argc, char **argv)
 					for (int l:actual_levels)
 					{
 						std::cerr << " " << l;
+					}
+					std::cerr << std::endl;
+					exit(1);
+				}
+
+				std::vector<size_t> actual_reorder;
+
+				actual_reorder.resize(testcase.size());
+
+				std::iota(actual_reorder.begin(),
+					  actual_reorder.end(), 0);
+
+				unicode::bidi_reorder
+					(dummy_input,
+					 actual_levels,
+					 [&]
+					 (size_t s, size_t cnt)
+					 {
+						 auto *b=&actual_reorder[s];
+						 auto *e=b+cnt;
+
+						 while (b < e)
+						 {
+							 --e;
+							 std::swap(*b, *e);
+							 ++b;
+						 }
+					 });
+
+				auto b=actual_reorder.begin(), p=b,
+					e=actual_reorder.end();
+
+				auto q=actual_levels.begin();
+
+				while (b != e)
+				{
+					if (*q != UNICODE_BIDI_SKIP)
+					{
+						*p=*b;
+						++p;
+					}
+					++b;
+					++q;
+				}
+				actual_reorder.erase(p, e);
+
+				if (actual_reorder != expected_reorder)
+				{
+					fclose(DEBUGDUMP);
+					DEBUGDUMP=stderr;
+					std::cout << std::endl
+						  << std::flush;
+					unicode_bidi_calc(&dummy_input[0],
+							  testcase.size(),
+							  &actual_levels[0],
+							  level);
+
+					std::cerr << "Regression, line "
+						  << linenum;
+
+					if (!level)
+					{
+						std::cerr << ", auto";
+					}
+					else
+					{
+						std::cerr <<
+							(*level ? ", RTL"
+							 : ", LTR");
+					}
+					std::cerr << ": expected reorder";
+
+					for (auto o:expected_reorder)
+					{
+						std::cerr << " " << o;
+					}
+					std::cerr << std::endl
+						  << "Moved: ";
+					for (auto o:actual_reorder)
+					{
+						std::cerr << " " << o;
 					}
 					std::cerr << std::endl;
 					exit(1);

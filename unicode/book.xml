@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
- "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+ "https://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
+<!ENTITY tr9ver  "42">
 <!ENTITY tr14ver "45">
 <!ENTITY tr24ver "31">
 <!ENTITY tr29ver "37">
@@ -19,7 +20,7 @@ See COPYING for distribution information.
 
   <para>
     This library implements several algorithms related to the
-    <ulink url="http://www.unicode.org/standard/standard.html">Unicode
+    <ulink url="https://www.unicode.org/standard/standard.html">Unicode
     Standard</ulink>:
   </para>
 
@@ -33,15 +34,22 @@ See COPYING for distribution information.
     <listitem>
       <para>
 	Implementation of
-	<ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">grapheme
+	<ulink url="https://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">grapheme
 	and work breaking</ulink> rules.
       </para>
     </listitem>
     <listitem>
       <para>
 	Implementation of
-	<ulink url="http://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">line
+	<ulink url="https://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">line
 	breaking</ulink> rules.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+	Implementation of the
+	<ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html">bi-directional
+	algorithm</ulink>.
       </para>
     </listitem>
     <listitem>
@@ -51,7 +59,7 @@ See COPYING for distribution information.
 	entity (such as <quote>&amp;amp;</quote>, for example), and
 	determining the normal width or a double-width status of a unicode
 	character. Also, an adaptation of the
-	<ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	<ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	<citerefentry><refentrytitle>iconv</refentrytitle>
 	<manvolnum>3</manvolnum></citerefentry></ulink>
 	API for this unicode library.
@@ -60,14 +68,14 @@ See COPYING for distribution information.
     <listitem>
       <para>
 	Look up the
-	<ulink url="http://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">Unicode
+	<ulink url="https://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">Unicode
 	script property</ulink>.
       </para>
     </listitem>
     <listitem>
       <para>
 	Look up the
-	<ulink url="http://unicode.org/notes/tn36/">category</ulink>
+	<ulink url="https://unicode.org/notes/tn36/">category</ulink>
 	property.
       </para>
     </listitem>
@@ -82,7 +90,7 @@ See COPYING for distribution information.
 
     <para>
       The current release of the Courier Unicode library is based on the
-      Unicode 8.0.0 standard.
+      Unicode 13.0.0 standard.
     </para>
   </section>
 
@@ -91,7 +99,7 @@ See COPYING for distribution information.
 
     <para>
       Download the current version of the library from
-      <ulink url="/download.html#unicode">http://www.courier-mta.org/download.html#unicode</ulink>.
+      <ulink url="/download.html#unicode">https://www.courier-mta.org/download.html#unicode</ulink>.
       After unpacking the tarball, run the configure script, which takes
       the usual options, followed by <command>make</command>, then
       <command>make install</command>.
@@ -154,7 +162,7 @@ See COPYING for distribution information.
 	  <manvolnum>7</manvolnum></citerefentry></link>.
 	  Refer to the included manual pages,
 	  and
-	  <ulink url="http://www.courier-mta.org/unicode/manpages.html"> the HTML
+	  <ulink url="https://www.courier-mta.org/unicode/manpages.html"> the HTML
 	  version of the man pages</ulink> for more information.
     </para>
   </section>
@@ -166,7 +174,7 @@ See COPYING for distribution information.
       <title>C manual pages</title>
       <refentry id="courier-unicode">
 
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>courier-unicode</refentrytitle>
 	  <manvolnum>7</manvolnum>
@@ -187,12 +195,12 @@ See COPYING for distribution information.
 
 	  <para>
 	    This library implements several algorithms related to the
-	    <ulink url="http://www.unicode.org/standard/standard.html">Unicode
+	    <ulink url="https://www.unicode.org/standard/standard.html">Unicode
 	    Standard</ulink>.
 	    This library uses
-	    <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
-	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink> to convert
+	    <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html"
+		   ><citerefentry><refentrytitle>iconv</refentrytitle>
+	    <manvolnum>3</manvolnum></citerefentry></ulink> to convert
 	      text in a given character set to unicode. Any character set
 	      displayed by <command>iconv --list</command> can be specified
 	      for the corresponding character set parameter. Additionally,
@@ -229,6 +237,9 @@ See COPYING for distribution information.
 	    <link linkend="unicode_html40ent_lookup">
 	      <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_bidi">
+	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_category_lookup">
 	      <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
@@ -246,6 +257,9 @@ See COPYING for distribution information.
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_uc">
 	      <citerefentry><refentrytitle>unicode_uc</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__bidi">
+	      <citerefentry><refentrytitle>unicode::bidi</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__iconvert__convert">
 	      <citerefentry><refentrytitle>unicode::iconvert::convert</refentrytitle>
@@ -272,8 +286,409 @@ See COPYING for distribution information.
 	</refsect1>
       </refentry>
 
+      <refentry id="unicode_bidi">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_bidi</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_bidi</refname>
+	  <refname>unicode_bidi_calc</refname>
+	  <refname>unicode_bidi_reorder</refname>
+	  <refname>unicode_bidi_mirror</refname>
+	  <refname>unicode_bidi_bracket_type</refname>
+
+	  <refpurpose>unicode bidirectional algorithm</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcsynopsisinfo>unicode_bidi_level_t lr=UNICODE_BIDI_LR</funcsynopsisinfo>
+	    <funcprototype>
+	      <funcdef>void unicode_bidi_calc</funcdef>
+              <paramdef>const char32_t *<parameter>p</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>initial_embedding_level</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void unicode_bidi_reorder</funcdef>
+              <paramdef>char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>void (*<parameter>reorder_callback</parameter>)(size_t, size_t, void *)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>char32_t <function>bidi_mirror</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>char32_t <function>bidi_bracket_type</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+              <paramdef>unicode_bracket_type_t *<parameter>ret</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <function>unicode_bidi_calc</function>() and
+	    <function>unicode_bidi_reorder</function>() implement
+	    the
+	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html"> Unicode Bi-directional algorithm</ulink>.
+	  </para>
+	  <para>
+	    The first two parameters to
+	    <function>unicode_bidi_calc</function>() are a unicode string
+	    and the number of characters in the Unicode string.
+	    <parameter>levels</parameter> points to a buffer of
+	    <classname>unicode_bidi_level_t</classname> values which the
+	    caller is responsible for allocating and deallocating, and has
+	    the same number of values as the number of characters in the
+	    Unicode string.
+	  </para>
+	  <para>
+	    <function>unicode_bidi_calc</function>() calculates the
+	    embedding level of each character and fills in the
+	    <parameter>levels</parameter> buffer (executes all steps of the
+	    bidirectional algorithm up to step L1).
+	    A <literal>NULL</literal> <parameter>initial_embedding</parameter>
+	    value calculates the default paragraph embedding value.
+	    A pointer to a <literal>UNICODE_BIDI_LR</literal> or
+	    <literal>UNICODE_BIDI_RL</literal> value explicitly sets a
+	    left-to-right or right-to-left paragraph embedding value.
+	  </para>
+
+	  <para>
+	    <function>unicode_bidi_calc</function>() calculates each
+	    character's embedding value; an even value for left-to-right text
+	    or an odd value for right-to-left text. A
+	    <classname>UNICODE_BIDI_SKIP</classname> embedding level value
+	    specifies a character whose embedding value is unspecified.
+	    This is used for embedding and override markers which can be
+	    removed from the string (together with this embedding value)
+	    from the string and the embedding value itself). This can be
+	    done before or after <function>unicode_bidi_reorder</function>.
+	  </para>
+
+	  <refsect2>
+	    <title>Reordering text</title>
+
+	    <para>
+	      <function>unicode_bidi_reorder</function> takes the actual
+	      unicode string together with the embedding values from
+	      <function>unicode_bidi_calc</function>, then reverses the
+	      bidirectional string, as specified by step L2 of the bidirectional
+	      algorithm.
+	    </para>
+
+	    <para>
+	      A non-<literal>NULL</literal>
+	      <parameter>reorder_callback</parameter> gets invoked to report
+	      each reveversed character range. The callback's first parameter
+	      is the index of the first reversed character, the second parameter
+	      is the number of reversed characters.
+	      The third parameter is the <parameter>arg</parameter> passthrough
+	      parameter.
+	    </para>
+
+	    <para>
+	      <parameter>reorder_callback</parameter> gets invoked after
+	      reversing each consecutive range of values in the
+	      <parameter>string</parameter> and <parameter>levels</parameter>
+	      buffers. For example: <quote>reorder_callback(5, 2, arg)</quote>
+	      reports that character indexes #5 and #6 got reverse in the
+	      string.
+	    </para>
+
+	    <para>
+	      Specifying a NULL <parameter>string</parameter> leaves the
+	      <parameter>levels</parameter> buffer unchanged, but still
+	      invokes the <parameter>reorder_callback</parameter> as if
+	      the character string, and their values, were reversed.
+	    </para>
+	  </refsect2>
+	  <refsect2>
+	    <title>Miscellaneous utility functions</title>
+
+	    <para>
+	      <function>unicode_bidi_mirror</function>
+	      returns the glyph that's a mirror image of the parameter
+	      (i.e. an open parenthesis for a close parenthesis, and vice
+	      versa); or the same value if there is no mirror image.
+	    </para>
+
+	    <para>
+	      <function>unicode_bidi_bracket_type</function>
+	      looks up each bracket character and returns its opposite, or
+	      the same value if the character is not a bracket that has an
+	      opposing bracket character.
+	      A non-NULL <parameter>ret</parameter> gets initialized to
+	      either <literal>UNICODE_BIDI_o</literal>,
+	      <literal>UNICODE_BIDI_c</literal> or
+	      <literal>UNICODE_BIDI_n</literal>.
+	    </para>
+	  </refsect2>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html">TR-9</ulink>,
+	    <link linkend="unicode__bidi">
+	      <citerefentry><refentrytitle>unicode::bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_category_lookup">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_category_lookup</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_category_lookup</refname>
+	  <refname>unicode_isalnum</refname>
+	  <refname>unicode_isalpha</refname>
+	  <refname>unicode_isblank</refname>
+	  <refname>unicode_isdigit</refname>
+	  <refname>unicode_isgraph</refname>
+	  <refname>unicode_islower</refname>
+	  <refname>unicode_ispunct</refname>
+	  <refname>unicode_isspace</refname>
+	  <refname>unicode_isupper</refname>
+
+	  <refpurpose>unicode character categorization</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+	      <funcdef>uint32_t <function>unicode_category_lookup</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isalnum</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isalpha</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isblank</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isdigit</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isgraph</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_islower</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_ispunct</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isspace</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode_isupper</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    <function>unicode_category_lookup</function>() looks up the
+	    <ulink url="https://unicode.org/notes/tn36/">unicode character's
+	    categorization</ulink>.
+	    <function>unicode_category_lookup</function>() returns a 32 bit
+	    value.
+	    The value's
+	    <symbol>UNICODE_CATEGORY_1</symbol> bits specify the first level
+	    of the unicode character's category, with
+	    <symbol>UNICODE_CATEGORY_2</symbol>,
+	    <symbol>UNICODE_CATEGORY_3</symbol>, and
+	    <symbol>UNICODE_CATEGORY_4</symbol> bits specifying the 2nd,
+	    3rd, and 4th level, if given. A value of 0 for each corresponding
+	    bit set indicates that no category is specified for this level,
+	    for this character; otherwise the possible values are defined
+	    in <filename>&lt;courier-unicode.h&gt;</filename>.
+	  </para>
+
+	  <para>
+	    The remaining functions implement comparable equivalents of
+	    their non-unicode versions in the standard C library, as follows:
+	  </para>
+
+	  <variablelist>
+	    <varlistentry>
+              <term><function>unicode_isalnum</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <function>unicode_isalpha</function>() or
+		  <function>unicode_isdigit</function>().
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isalpha</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <symbol>UNICODE_CATEGORY_1_LETTER</symbol>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isblank</function>()</term>
+	      <listitem>
+		<para>
+		  Return non-0 for
+		  <symbol>TAB</symbol>, and all
+		  <symbol>UNICODE_CATEGORY_2_SPACE</symbol>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isdigit</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <symbol>UNICODE_CATEGORY_1_NUMBER</symbol>
+		  | <symbol>UNICODE_CATEGORY_2_DIGIT</symbol>,
+		  only (no third categories).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isgraph</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all codepoints above
+		  <symbol>SPACE</symbol> which are not
+		  <function>unicode_isspace</function>().
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_islower</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <function>unicode_isalpha</function>() for which the
+		  character is
+		  equal to
+		  <link linkend="unicode_uc">
+		    <citerefentry><refentrytitle>unicode_lc</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>
+		  of itself.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_ispunct</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <symbol>UNICODE_CATEGORY_1_PUNCTUATION</symbol>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isspace</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for unicode_isblank() or
+		  for unicode characters
+		  with linebreaking properties of
+		  <symbol>BK</symbol>,
+		  <symbol>CR</symbol>,
+		  <symbol>LF</symbol>,
+		  <symbol>NL</symbol>,
+		  and
+		  <symbol>SP</symbol>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+              <term><function>unicode_isupper</function>()</term>
+	      <listitem>
+		<para>
+		  Returns non-0 for all
+		  <function>unicode_isalpha</function>() for which the
+		  character is
+		  equal to
+		  <link linkend="unicode_uc">
+		    <citerefentry><refentrytitle>unicode_uc</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>
+		  of itself.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</refsect1>
+	<refsect1>
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_uc">
+	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
       <refentry id="unicode_convert">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode_convert</refentrytitle>
@@ -444,7 +859,7 @@ See COPYING for distribution information.
 	    <function>unicode_convert_init</function>(),
 	    <function>unicode_convert</function>(), and
 	    <function>unicode_convert_deinit</function>() are an adaption of th
-	    <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	    <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></ulink> API that uses the same
 	      calling convention as the other algorithms in this unicode library,
@@ -668,7 +1083,7 @@ See COPYING for distribution information.
       </refentry>
 
       <refentry id="unicode_default_chset">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode_default_chset</refentrytitle>
@@ -721,7 +1136,7 @@ See COPYING for distribution information.
       </refentry>
 
       <refentry id="unicode_html40ent_lookup">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode_html40ent_lookup</refentrytitle>
@@ -780,251 +1195,18 @@ See COPYING for distribution information.
 	</refsect1>
       </refentry>
 
-      <refentry id="unicode_category_lookup">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
-
-	<refmeta>
-	  <refentrytitle>unicode_category_lookup</refentrytitle>
-	  <manvolnum>3</manvolnum>
-	</refmeta>
-
-	<refnamediv>
-	  <refname>unicode_category_lookup</refname>
-	  <refname>unicode_isalnum</refname>
-	  <refname>unicode_isalpha</refname>
-	  <refname>unicode_isblank</refname>
-	  <refname>unicode_isdigit</refname>
-	  <refname>unicode_isgraph</refname>
-	  <refname>unicode_islower</refname>
-	  <refname>unicode_ispunct</refname>
-	  <refname>unicode_isspace</refname>
-	  <refname>unicode_isupper</refname>
-
-	  <refpurpose>unicode character categorization</refpurpose>
-	</refnamediv>
-
-	<refsynopsisdiv>
-	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
-	    <funcprototype>
-	      <funcdef>uint32_t <function>unicode_category_lookup</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isalnum</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isalpha</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isblank</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isdigit</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isgraph</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_islower</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_ispunct</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isspace</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode_isupper</function></funcdef>
-              <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-	  </funcsynopsis>
-	</refsynopsisdiv>
-	<refsect1>
-	  <title>DESCRIPTION</title>
-
-	  <para>
-	    <function>unicode_category_lookup</function>() looks up the
-	    <ulink url="http://unicode.org/notes/tn36/">unicode character's
-	    categorization</ulink>.
-	    <function>unicode_category_lookup</function>() returns a 32 bit
-	    value.
-	    The value's
-	    <symbol>UNICODE_CATEGORY_1</symbol> bits specify the first level
-	    of the unicode character's category, with
-	    <symbol>UNICODE_CATEGORY_2</symbol>,
-	    <symbol>UNICODE_CATEGORY_3</symbol>, and
-	    <symbol>UNICODE_CATEGORY_4</symbol> bits specifying the 2nd,
-	    3rd, and 4th level, if given. A value of 0 for each corresponding
-	    bit set indicates that no category is specified for this level,
-	    for this character; otherwise the possible values are defined
-	    in <filename>&lt;courier-unicode.h&gt;</filename>.
-	  </para>
-
-	  <para>
-	    The remaining functions implement comparable equivalents of
-	    their non-unicode versions in the standard C library, as follows:
-	  </para>
-
-	  <variablelist>
-	    <varlistentry>
-              <term><function>unicode_isalnum</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <function>unicode_isalpha</function>() or
-		  <function>unicode_isdigit</function>().
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isalpha</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <symbol>UNICODE_CATEGORY_1_LETTER</symbol>.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isblank</function>()</term>
-	      <listitem>
-		<para>
-		  Return non-0 for
-		  <symbol>TAB</symbol>, and all
-		  <symbol>UNICODE_CATEGORY_2_SPACE</symbol>.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isdigit</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <symbol>UNICODE_CATEGORY_1_NUMBER</symbol>
-		  | <symbol>UNICODE_CATEGORY_2_DIGIT</symbol>,
-		  only (no third categories).
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isgraph</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all codepoints above
-		  <symbol>SPACE</symbol> which are not
-		  <function>unicode_isspace</function>().
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_islower</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <function>unicode_isalpha</function>() for which the
-		  character is
-		  equal to
-		  <link linkend="unicode_uc">
-		    <citerefentry><refentrytitle>unicode_lc</refentrytitle>
-		  <manvolnum>3</manvolnum></citerefentry></link>
-		  of itself.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_ispunct</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <symbol>UNICODE_CATEGORY_1_PUNCTUATION</symbol>.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isspace</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for unicode_isblank() or
-		  for unicode characters
-		  with linebreaking properties of
-		  <symbol>BK</symbol>,
-		  <symbol>CR</symbol>,
-		  <symbol>LF</symbol>,
-		  <symbol>NL</symbol>,
-		  and
-		  <symbol>SP</symbol>.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-              <term><function>unicode_isupper</function>()</term>
-	      <listitem>
-		<para>
-		  Returns non-0 for all
-		  <function>unicode_isalpha</function>() for which the
-		  character is
-		  equal to
-		  <link linkend="unicode_uc">
-		    <citerefentry><refentrytitle>unicode_uc</refentrytitle>
-		  <manvolnum>3</manvolnum></citerefentry></link>
-		  of itself.
-		</para>
-	      </listitem>
-	    </varlistentry>
-	  </variablelist>
-	</refsect1>
-	<refsect1>
-	  <title>SEE ALSO</title>
-	  <para>
-	    <link linkend="courier-unicode">
-	      <citerefentry>
-		<refentrytitle>courier-unicode</refentrytitle>
-		<manvolnum>7</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_uc">
-	      <citerefentry><refentrytitle>unicode_convert_tocase</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></link>.
-	  </para>
-	</refsect1>
-      </refentry>
-
       <refentry id="unicode_grapheme_break">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>unicode_grapheme_break</refentrytitle>
-	  <refentrytitle>unicode_grapheme_break_init</refentrytitle>
-	  <refentrytitle>unicode_grapheme_break_next</refentrytitle>
-	  <refentrytitle>unicode_grapheme_break_deinit</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</refmeta>
 
 	<refnamediv>
 	  <refname>unicode_grapheme_break</refname>
+	  <refname>unicode_grapheme_break_init</refname>
+	  <refname>unicode_grapheme_break_next</refname>
+	  <refname>unicode_grapheme_break_deinit</refname>
 	  <refpurpose>unicode grapheme cluster boundary rules</refpurpose>
 	</refnamediv>
 
@@ -1059,22 +1241,23 @@ See COPYING for distribution information.
 	  <title>DESCRIPTION</title>
 
 	  <para>
+	    These functions implement the unicode grapheme cluster breaking
+	    algorithm. Invoke
+	    <function>unicode_grapheme_break_init</function>() to initialize
+	    the grapheme cluster breaking algorithm.
 	    <function>unicode_grapheme_break_init</function>() returns an
-	    opaque handle for an object that computes grapheme breaks.
-	    Each call to <function>unicode_grapheme_break_next</function>()
-	    passes one character of a unicode string, and returns a non-0
-	    value if there's a grapheme break before this character, in the
+	    opaque handle. Each subsequent call to
+	    <function>unicode_grapheme_break_next</function>() passes this
+	    handle, and the next character.
+	    <function>unicode_grapheme_break_next</function>() returns a non-0
+	    value if there's a grapheme break before the character, in a
 	    sequence of Unicode characters.
 	    <function>unicode_grapheme_break_deinit</function>() releases
-	    all reosurces used by the grapheme breaking handle.
+	    all reosurces used by the grapheme breaking handle, and the
+	    <classname>unicode_grapheme_break_info_t</classname> handle
+	    is no longer valid after this call.
 	  </para>
 	  <para>
-	    Call
-	    <function>unicode_grapheme_break_init</function>(), then call
-	    <function>unicode_grapheme_break_next</function>() for each
-	    character,
-	    then call
-	    <function>unicode_grapheme_break_deinit</function>().
 	    The first call to <function>unicode_grapheme_break_next</function>()
 	    always returns non-0, as per the GB1 rule.
 	  </para>
@@ -1085,10 +1268,11 @@ See COPYING for distribution information.
 	    <parameter>a</parameter> and
 	    <parameter>b</parameter>.
 	    This is is equivalent to calling
-	    <function>> unicode_grapheme_break_init</function>(),
+	    <function>unicode_grapheme_break_init</function>(),
 	    followed by two calls to
 	    <function> unicode_grapheme_break_next</function>(), and finally
-	    <function>unicode_grapheme_break_deinit</function>(), and returns
+	    <function>unicode_grapheme_break_deinit</function>(), then
+	    returning
 	    the result of the second
 	    call to <function>unicode_grapheme_break_next</function>().
 	  </para>
@@ -1098,7 +1282,7 @@ See COPYING for distribution information.
 	  <title>SEE ALSO</title>
 
 	  <para>
-	    <ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
+	    <ulink url="https://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
@@ -1116,60 +1300,15 @@ See COPYING for distribution information.
 	</refsect1>
       </refentry>
 
-      <refentry id="unicode_script">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
-	<refmeta>
-	  <refentrytitle>unicode_script</refentrytitle>
-	  <manvolnum>3</manvolnum>
-	</refmeta>
-
-	<refnamediv>
-	  <refname>unicode_script</refname>
-	  <refpurpose>unicode script property</refpurpose>
-	</refnamediv>
-
-	<refsynopsisdiv>
-	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
-	    <funcprototype>
-              <funcdef>unicode_script_t <function>unicode_script</function></funcdef>
-              <paramdef>char32_t <parameter>ch</parameter></paramdef>
-	    </funcprototype>
-	  </funcsynopsis>
-	</refsynopsisdiv>
-	<refsect1>
-	  <title>DESCRIPTION</title>
-	  <para>
-	    <function>unicode_script</function>() looks up the
-	    <quote>script</quote> property of the specified unicode character,
-	    and returns it. The <classname>unicode_script_t</classname>
-	    enumeration encodes possible unicode script values.
-	    <literal>unicode_script_unknown</literal> gets returned for a
-	    unicode character  with an unknown script property.
-	  </para>
-	</refsect1>
-
-	<refsect1>
-	  <title>SEE ALSO</title>
-
-	  <para>
-	    <ulink url="http://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">TR-24</ulink>,
-	    <link linkend="courier-unicode">
-	      <citerefentry>
-		<refentrytitle>courier-unicode</refentrytitle>
-		<manvolnum>7</manvolnum></citerefentry></link>.
-	  </para>
-	</refsect1>
-      </refentry>
-
       <refentry id="unicode_line_break">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>unicode_line_break</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</refmeta>
 
 	<refnamediv>
+	  <refname>unicode_line_break</refname>
 	  <refname>unicode_lb_init</refname>
 	  <refname>unicode_lb_set_opts</refname>
 	  <refname>unicode_lb_next</refname>
@@ -1483,13 +1622,59 @@ See COPYING for distribution information.
 	    <link linkend="unicode__linebreak">
 	      <citerefentry><refentrytitle>unicode::linebreak</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	    <ulink url="http://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">TR-14</ulink>
+	    <ulink url="https://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">TR-14</ulink>
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_script">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+	<refmeta>
+	  <refentrytitle>unicode_script</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_script</refname>
+	  <refpurpose>unicode script property</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>unicode_script_t <function>unicode_script</function></funcdef>
+              <paramdef>char32_t <parameter>ch</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1>
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_script</function>() looks up the
+	    <quote>script</quote> property of the specified unicode character,
+	    and returns it. The <classname>unicode_script_t</classname>
+	    enumeration encodes possible unicode script values.
+	    <literal>unicode_script_unknown</literal> gets returned for a
+	    unicode character  with an unknown script property.
+	  </para>
+	</refsect1>
+
+	<refsect1>
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">TR-24</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
 	  </para>
 	</refsect1>
       </refentry>
 
       <refentry id="unicode_word_break">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>unicode_word_break</refentrytitle>
 	  <manvolnum>3</manvolnum>
@@ -1682,7 +1867,7 @@ See COPYING for distribution information.
 	<refsect1>
 	  <title>SEE ALSO</title>
 	  <para>
-	    <ulink url="http://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
+	    <ulink url="https://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
@@ -1704,7 +1889,7 @@ See COPYING for distribution information.
       </refentry>
 
       <refentry id="unicode_uc">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>unicode_uc</refentrytitle>
 	  <manvolnum>3</manvolnum>
@@ -1816,8 +2001,109 @@ See COPYING for distribution information.
     <section id="manpagescpp">
       <title>C++ manual pages</title>
 
+      <refentry id="unicode__bidi">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode::bidi::calc</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::bidi_calc</refname>
+	  <refname>unicode::bidi_reorder</refname>
+	  <refpurpose>unicode bidirectional algorithm</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>std::vector&lt;unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>std::vector&lt;unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>unicode_bidi_level_t<parameter>embedding_level</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter> embedding_level</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
+	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These functions implement the C++ interface for the
+	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html"> Unicode Bi-directional algorithm</ulink>.
+	    See the description of the underlying
+	    <link linkend="unicode_bidi">
+	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link> C library
+	      API for more information.
+	  </para>
+
+	  <para>
+            <function>unicode::bidi_calc</function> computes and return a vector
+	    of bidirection embedding level values for the given Unicode string.
+	    An overload takes an additional parameter that override the
+	    paragraph embedding level, a <literal>UNICODE_BIDI_LR</literal> or
+            an <literal>UNICODE_BIDI_RL</literal> value.
+          </para>
+	  <para>
+            <function>unicode::bidi_reorder</function> reverses the characters
+	    in the Unicode script, according to their embedding levels (and
+	    reverses the corresponding embedding level values too).
+	    As is with the C API, an optional parameter is a callable object
+	    that gets invoked to report each range of characters that gets
+	    reversed (specified as the starting position and a number of
+	    characters).
+          </para>
+	  <para>
+	    An overloaded <function>unicode::bidi_reorder</function> without
+	    the string parameter goes through the motions, according to the
+	    embedded level vector parameter, but without actually reversing
+	    the values in the vector, but still invoking the callable object
+	    normally.
+          </para>
+	  <para>
+	    This is comparable to the C API. Also comparable with the C API:
+	    the convention that even embedding levels specify left to right
+	    text and odd embedding values specify right to left text.
+	    An embedding value of <literal>UNICODE_BIDI_SKIP</literal>
+	    indicates an embedding or an override marker that has no
+	    specified embeded value. These markers may be removed from the
+	    Unicode string (together with the
+	    <literal>UNICODE_BIDI_SKIP</literal>
+	    values from the embedding values vector) either before or after
+	    they get reordered.
+	  </para>
+	</refsect1>
+      </refentry>
+
+
       <refentry id="unicode__iconvert__convert">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::iconvert::convert</refentrytitle>
@@ -1951,7 +2237,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></ulink>.
 
@@ -1960,7 +2246,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
       </refentry>
 
       <refentry id="unicode__iconvert__convert_tocase">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::iconvert::convert_tocase</refentrytitle>
@@ -2041,7 +2327,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></ulink>.
 
@@ -2050,7 +2336,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
       </refentry>
 
       <refentry id="unicode__iconvert__fromu">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::iconvert::fromu</refentrytitle>
@@ -2138,7 +2424,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></ulink>.
 
@@ -2147,7 +2433,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
       </refentry>
 
       <refentry id="unicode__iconvert__tou">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::iconvert::tou</refentrytitle>
@@ -2237,7 +2523,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="http://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></ulink>.
 
@@ -2246,7 +2532,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
       </refentry>
 
       <refentry id="unicode__linebreak">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::linebreak</refentrytitle>
@@ -2447,7 +2733,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
       </refentry>
 
       <refentry id="unicode__tolower">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::tolower</refentrytitle>
@@ -2542,19 +2828,8 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	</refsect1>
       </refentry>
 
-
-
-
-
-
-
-
-
-
-
-
       <refentry id="unicode__wordbreak">
-	<info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></info>
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
 	  <refentrytitle>unicode::wordbreak</refentrytitle>

@@ -2,7 +2,7 @@
 #define	courier_unicode_h
 
 /*
-** Copyright 2000-2018 Double Precision, Inc.
+** Copyright 2000-2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <functional>
 
 extern "C" {
 #endif
@@ -40,7 +41,7 @@ typedef uint32_t char32_t;
 #endif
 #endif
 
-#define COURIER_UNICODE_VERSION 210
+#define COURIER_UNICODE_VERSION 220
 
 /*
 ** The system default character set, from the locale.
@@ -604,6 +605,13 @@ extern void unicode_bidi_calc(const char32_t *p, size_t n,
 			      unicode_bidi_level_t *bufp,
 			      const unicode_bidi_level_t *
 			      initial_embedding_level);
+
+extern void unicode_bidi_reorder(char32_t *p,
+				 unicode_bidi_level_t *levels,
+				 size_t n,
+				 void (*reorder_callback)(size_t, size_t,
+							  void *),
+				 void *arg);
 
 /*
 ** A buffer that holds unicode characters, and dynamically grows as needed.
@@ -2024,6 +2032,24 @@ std::u32string tolower(const std::u32string &u);
 //! Convert unicode to uppercase
 
 std::u32string toupper(const std::u32string &u);
+
+//! Calculate bidirectional embedding levels
+std::vector<unicode_bidi_level_t> bidi_calc(const std::u32string &s);
+
+//! Calculate bidirectional embedding levels
+std::vector<unicode_bidi_level_t> bidi_calc(const std::u32string &s,
+					    unicode_bidi_level_t level);
+
+//! Reorder bidirectional text
+int bidi_reorder(std::u32string &string,
+		 std::vector<unicode_bidi_level_t> &levels,
+		 const std::function<void (size_t, size_t)> &reorder_callback=
+		 [](size_t, size_t){});
+
+//! Reorder bidirectional text
+void bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
+		  const std::function<void (size_t, size_t)> &reorder_callback=
+		  [](size_t, size_t){});
 
 #if 0
 {

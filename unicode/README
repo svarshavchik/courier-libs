@@ -25,6 +25,8 @@ Courier Unicode Library
 
      * Implementation of line breaking rules.
 
+     * Implementation of the bi-directional algorithm.
+
      * Several ancillary functions, like looking up the unicode character
        that corresponds to some HTML 4.0 entity (such as “&amp;”, for
        example), and determining the normal width or a double-width status of
@@ -40,7 +42,7 @@ Courier Unicode Library
 Current status
 
    The current release of the Courier Unicode library is based on the Unicode
-   8.0.0 standard.
+   13.0.0 standard.
 
    --------------------------------------------------------------------------
 
