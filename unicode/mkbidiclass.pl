@@ -45,10 +45,10 @@ while (defined($_=<F>))
 grep {
     #if ($prevl + 1 < $$_[0])
     #{
-    #	$obj->range($prevl+1, $$_[0]-1, "UNICODE_BIDI_CLASS_$$_[2]");
+    #	$obj->range($prevl+1, $$_[0]-1, "UNICODE_BIDI_TYPE_$$_[2]");
     #}
     #$prevl = $$_[1];
-    $obj->range($$_[0], $$_[1], "UNICODE_BIDI_CLASS_$$_[2]");
+    $obj->range($$_[0], $$_[1], "UNICODE_BIDI_TYPE_$$_[2]");
 } sort { $$a[0] <=> $$b[0] } @table;
 
 $obj->output;

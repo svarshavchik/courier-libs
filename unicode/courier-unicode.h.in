@@ -557,6 +557,9 @@ size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 ** unicode_bidi_bracket_type() returns the same character and
 ** UNICODE_BIDI_n if the given character does not have these properties.
 **
+** unicode_bidi_type() looks up the bidirectional character type of the
+** given Unicode character.
+**
 ** unicode_bidi_calc() implements the Unicode Bidirectional Algorithm up to
 ** step L1.
 **
@@ -612,6 +615,35 @@ extern void unicode_bidi_reorder(char32_t *p,
 				 void (*reorder_callback)(size_t, size_t,
 							  void *),
 				 void *arg);
+
+/* BIDI_TYPE_LIST */
+typedef enum {
+	      UNICODE_BIDI_TYPE_AL,
+	      UNICODE_BIDI_TYPE_AN,
+	      UNICODE_BIDI_TYPE_B,
+	      UNICODE_BIDI_TYPE_BN,
+	      UNICODE_BIDI_TYPE_CS,
+	      UNICODE_BIDI_TYPE_EN,
+	      UNICODE_BIDI_TYPE_ES,
+	      UNICODE_BIDI_TYPE_ET,
+	      UNICODE_BIDI_TYPE_FSI,
+	      UNICODE_BIDI_TYPE_L,
+	      UNICODE_BIDI_TYPE_LRE,
+	      UNICODE_BIDI_TYPE_LRI,
+	      UNICODE_BIDI_TYPE_LRO,
+	      UNICODE_BIDI_TYPE_NSM,
+	      UNICODE_BIDI_TYPE_ON,
+	      UNICODE_BIDI_TYPE_PDF,
+	      UNICODE_BIDI_TYPE_PDI,
+	      UNICODE_BIDI_TYPE_R,
+	      UNICODE_BIDI_TYPE_RLE,
+	      UNICODE_BIDI_TYPE_RLI,
+	      UNICODE_BIDI_TYPE_RLO,
+	      UNICODE_BIDI_TYPE_S,
+	      UNICODE_BIDI_TYPE_WS,
+} enum_bidi_type_t;
+
+extern enum_bidi_type_t unicode_bidi_type(char32_t c);
 
 /*
 ** A buffer that holds unicode characters, and dynamically grows as needed.

@@ -5,7 +5,7 @@ use warnings;
 
 while (<>)
 {
-    last if m@^/\* BIDI_CLASS_LIST@;
+    last if m@^/\* BIDI_TYPE_LIST@;
 }
 
 while (<>)
@@ -15,7 +15,7 @@ while (<>)
     next if /^\s*$/;
     next if m@/\*@;
 
-    die unless /UNICODE_BIDI_CLASS_(.*),/;
+    die unless /UNICODE_BIDI_TYPE_(.*),/;
 
-    print "{\"$1\", UNICODE_BIDI_CLASS_$1},\n";
+    print "{\"$1\", UNICODE_BIDI_TYPE_$1},\n";
 }

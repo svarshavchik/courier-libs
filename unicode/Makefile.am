@@ -266,7 +266,7 @@ bidi_mirroring.h: BidiMirroring.txt mkbidi.pl
 	mv bidi_mirroring.h.tmp bidi_mirroring.h
 
 bidi_classnames.h: unicode_bidi.c mkbidiclassnames.pl
-	@PERL@ $(srcdir)/mkbidiclassnames.pl <$(srcdir)/unicode_bidi.c >bidi_classnames.h.tmp
+	@PERL@ $(srcdir)/mkbidiclassnames.pl <$(srcdir)/courier-unicode.h.in >bidi_classnames.h.tmp
 	mv bidi_classnames.h.tmp bidi_classnames.h
 
 endif

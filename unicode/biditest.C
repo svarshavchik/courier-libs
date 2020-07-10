@@ -352,14 +352,14 @@ extern "C" {
 
 static const struct {
 	char			classname[8];
-	enum_bidi_class_t	classenum;
+	enum_bidi_type_t	classenum;
 } bidiclassnames[]={
 
 #include "bidi_classnames.h"
 
 };
 
-const char *bidi_classname(enum_bidi_class_t classenum)
+const char *bidi_classname(enum_bidi_type_t classenum)
 {
 	for (const auto &cn:bidiclassnames)
 	{
@@ -375,7 +375,7 @@ static const char *lookup_classname(const std::string &s)
 	abort();
 }
 
-enum_bidi_class_t fudge_unicode_bidi(size_t i)
+enum_bidi_type_t fudge_unicode_bidi(size_t i)
 {
 	if (i >= testcase.size())
 	{
