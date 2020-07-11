@@ -203,7 +203,7 @@ libcourier_unicode_la_SOURCES=\
 			bidi_mirroring.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 5:0:1
+libcourier_unicode_la_LDFLAGS=-version-info 6:0:2
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	m4/courier-unicode.m4 \
@@ -394,8 +394,8 @@ check-am: unicodetest
 	test "`./biditest 30`" = "30 30 n"
 	test "`./biditest 8261`" = "8262 8262 o"
 	test "`./biditest 8262`" = "8261 8261 c"
-	./biditest
-	./biditest2
+	set -vx; test -f ./BidiTest.txt || exit 0; ./biditest
+	set -vx; test -f ./BidiCharacterTest.txt || exit 0; ./biditest2
 
 if HAVE_DOCS
 

@@ -1,3 +1,10 @@
+2.2
+
+2020-07-11  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Implement bidirectional algorithm, canonical or equivalent character
+	mappings.
+
 2020-07-04  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Unicode 13 update. Adds lookup of EastAsianWidth property, emoji
