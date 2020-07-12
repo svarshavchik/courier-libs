@@ -196,7 +196,7 @@ courierpop3d.8.in: courierpop3d.sgml ../docbook/sgml2man
 README.proxy.html: README.proxy.sgml
 	rm -rf html.tmp
 	xsltproc -o html.tmp/ --nonet http://docbook.sourceforge.net/release/xsl/current/xhtml/onechunk.xsl README.proxy.sgml
-	xsltproc ../docbook/fixhtml.xsl html.tmp/* >README.proxy.html.tmp
+	xsltproc --nonet ../docbook/fixhtml.xsl html.tmp/* >README.proxy.html.tmp
 	mv -f README.proxy.html.tmp README.proxy.html
 	rm -rf html.tmp
 

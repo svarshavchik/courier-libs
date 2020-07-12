@@ -16,6 +16,6 @@ fi
 rm -rf $dstfile.tmp
 mkdir $dstfile.tmp
 xsltproc --nonet -o $dstfile.tmp/ $options `dirname $0`/manpages.xsl $srcfile || exit 1
-xsltproc `dirname $0`/fixhtml.xsl $dstfile.tmp/* >$dstfile.tmp2 || exit 1
+xsltproc --nonet `dirname $0`/fixhtml.xsl $dstfile.tmp/* >$dstfile.tmp2 || exit 1
 rm -rf $dstfile.tmp
 mv $dstfile.tmp2 $dstfile || exit 1
