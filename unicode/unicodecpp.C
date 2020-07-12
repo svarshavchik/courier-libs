@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2014 Double Precision, Inc.
+** Copyright 2011-2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -596,7 +596,8 @@ extern "C" {
 				     void *arg)
 	{
 		auto p=reinterpret_cast<const std::function<void (size_t,
-								  size_t)> *>
+								  size_t)
+							    noexcept> *>
 			(arg);
 
 		(*p)(i, cnt);
@@ -605,7 +606,8 @@ extern "C" {
 
 int unicode::bidi_reorder(std::u32string &string,
 			  std::vector<unicode_bidi_level_t> &levels,
-			  const std::function<void (size_t, size_t)> &lambda)
+			  const std::function<void (size_t, size_t)
+			  noexcept> &lambda)
 {
 	size_t s=string.size();
 
@@ -624,7 +626,8 @@ int unicode::bidi_reorder(std::u32string &string,
 }
 
 void unicode::bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
-			   const std::function<void (size_t, size_t)> &lambda)
+			   const std::function<void (size_t, size_t)
+			   noexcept> &lambda)
 {
 	size_t s=levels.size();
 
@@ -635,4 +638,190 @@ void unicode::bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
 			     const_cast<void *>
 			     (reinterpret_cast<const void *>(&lambda)));
 
+}
+
+extern "C" {
+	static void removed_callback(size_t i,
+				     void *arg)
+	{
+		auto p=reinterpret_cast<const std::function<void (size_t)
+							    noexcept> *>
+			(arg);
+
+		(*p)(i);
+	}
+}
+
+void unicode::bidi_cleanup(std::u32string &string,
+			   const std::function<void (size_t) noexcept> &lambda)
+{
+	if (string.empty())
+		return;
+
+	size_t n=unicode_bidi_cleanup(&string[0],
+				      0,
+				      string.size(),
+				      removed_callback,
+				      const_cast<void *>
+				      (reinterpret_cast<const void *>
+				       (&lambda)));
+
+	string.resize(n);
+}
+
+int unicode::bidi_cleanup(std::u32string &string,
+			  std::vector<unicode_bidi_level_t> &levels,
+			  const std::function<void (size_t) noexcept> &lambda)
+{
+	if (levels.size() != string.size())
+		return -1;
+
+	size_t n=unicode_bidi_cleanup(&string[0],
+				      &levels[0],
+				      string.size(),
+				      removed_callback,
+				      const_cast<void *>
+				      (reinterpret_cast<const void *>
+				       (&lambda)));
+
+	string.resize(n);
+	levels.resize(n);
+	return 0;
+}
+
+
+void unicode::bidi_extra_cleanup(std::u32string &string,
+				 const std::function<void (size_t) noexcept>
+				 &lambda)
+{
+	if (string.empty())
+		return;
+
+	size_t n=unicode_bidi_extra_cleanup(&string[0],
+					    0,
+					    string.size(),
+					    removed_callback,
+					    const_cast<void *>
+					    (reinterpret_cast<const void *>
+					     (&lambda)));
+
+	string.resize(n);
+}
+
+int unicode::bidi_extra_cleanup(std::u32string &string,
+				std::vector<unicode_bidi_level_t> &levels,
+				const std::function<void (size_t) noexcept>
+				&lambda)
+{
+	if (levels.size() != string.size())
+		return -1;
+
+	size_t n=unicode_bidi_extra_cleanup(&string[0],
+					    &levels[0],
+					    string.size(),
+					    removed_callback,
+					    const_cast<void *>
+					    (reinterpret_cast<const void *>
+					     (&lambda)));
+
+	string.resize(n);
+	levels.resize(n);
+	return 0;
+}
+
+int unicode::bidi_logical_order(std::u32string &string,
+				std::vector<unicode_bidi_level_t> &levels,
+				unicode_bidi_level_t paragraph_embedding,
+				const std::function<void (size_t, size_t)
+				noexcept> &lambda)
+{
+	if (string.size() != levels.size())
+		return -1;
+
+	if (string.empty())
+		return 0;
+
+	unicode_bidi_logical_order(&string[0], &levels[0], string.size(),
+				   paragraph_embedding,
+				   &reorder_callback,
+				   const_cast<void *>
+				   (reinterpret_cast<const void *>(&lambda)));
+	return 0;
+}
+
+void unicode::bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
+				 unicode_bidi_level_t paragraph_embedding,
+				 const std::function<void (size_t, size_t)
+				 noexcept> &lambda)
+{
+	if (levels.size() == 0)
+		return;
+
+	unicode_bidi_logical_order(NULL, &levels[0], levels.size(),
+				   paragraph_embedding,
+				   &reorder_callback,
+				   const_cast<void *>
+				   (reinterpret_cast<const void *>(&lambda)));
+}
+
+extern "C" {
+	static void embed_callback(const char32_t *string,
+				   size_t n,
+				   void *arg)
+	{
+		auto p=reinterpret_cast<const std::function<void
+							    (const char32_t *,
+							     size_t n)
+							    noexcept> *>(arg);
+		(*p)(string, n);
+	}
+}
+
+int unicode::bidi_embed(const std::u32string &string,
+			const std::vector<unicode_bidi_level_t> &levels,
+			unicode_bidi_level_t paragraph_embedding,
+			const std::function<void (const char32_t *string,
+						  size_t n) noexcept>
+			&lambda)
+{
+	if (string.size() != levels.size())
+		return -1;
+
+	if (string.empty())
+		return 0;
+
+	unicode_bidi_embed(&string[0], &levels[0], string.size(),
+			   paragraph_embedding,
+			   embed_callback,
+			   const_cast<void *>
+			   (reinterpret_cast<const void *>
+			    (&lambda)));
+	return 0;
+}
+
+std::u32string unicode::bidi_embed(const std::u32string &string,
+				   const std::vector<unicode_bidi_level_t
+				   > &levels,
+				   unicode_bidi_level_t paragraph_embedding)
+{
+	std::u32string new_string;
+
+	(void)bidi_embed(string, levels, paragraph_embedding,
+			 [&]
+			 (const char32_t *string,
+			  size_t n)
+			 {
+				 new_string.insert(new_string.end(),
+						   string, string+n);
+			 });
+
+	return new_string;
+}
+
+char32_t unicode::bidi_embed_paragraph_level(const std::u32string &string,
+					     unicode_bidi_level_t level)
+{
+	return unicode_bidi_embed_paragraph_level(string.c_str(),
+						  string.size(),
+						  level);
 }

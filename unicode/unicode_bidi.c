@@ -112,6 +112,17 @@ typedef enum {
 	 (c) == UNICODE_BIDI_TYPE_LRO ||		\
 	 (c) == UNICODE_BIDI_TYPE_RLO)
 
+#define is_explicit_indicator_except_b(c)	\
+	( is_isolate_initiator(c) ||		\
+	  is_embedding_initiator(c) ||		\
+	  (c) == UNICODE_BIDI_TYPE_BN ||        \
+	  (c) == UNICODE_BIDI_TYPE_PDF ||       \
+	  (c) == UNICODE_BIDI_TYPE_PDI)
+
+#define is_explicit_indicator(c)               \
+	( is_explicit_indicator_except_b(c) || \
+	  (c) == UNICODE_BIDI_TYPE_B)
+
 /* BD13 implementation */
 
 /* A level run, specified as indexes */
@@ -529,6 +540,8 @@ static void directional_status_stack_push
 		(struct directional_status_stack_entry *)
 		malloc(sizeof(struct directional_status_stack_entry));
 
+	if (!p)
+		abort();
 #ifdef BIDI_DEBUG
 	fprintf(DEBUGDUMP, "BIDI: Push level %d, override: %s, isolate: %s\n",
 		(int)embedding_level,
@@ -548,16 +561,21 @@ static void directional_status_stack_push
 }
 
 static unicode_bidi_level_t
-compute_paragraph_embedding_level(const enum_bidi_type_t *p,
-				  size_t i, size_t j)
+compute_paragraph_embedding_level(size_t i, size_t j,
+				  enum_bidi_type_t (*get)(size_t i,
+							  void *arg),
+				  void *arg)
+
 {
 	unicode_bidi_level_t in_isolation=0;
 
 	for (; i<j; ++i)
 	{
-		if (is_isolate_initiator(p[i]))
+		enum_bidi_type_t t=get(i, arg);
+
+		if (is_isolate_initiator(t))
 			++in_isolation;
-		else if (p[i] == UNICODE_BIDI_TYPE_PDI)
+		else if (t == UNICODE_BIDI_TYPE_PDI)
 		{
 			if (in_isolation)
 				--in_isolation;
@@ -565,16 +583,43 @@ compute_paragraph_embedding_level(const enum_bidi_type_t *p,
 
 		if (in_isolation == 0)
 		{
-			if (p[i] == UNICODE_BIDI_TYPE_AL ||
-			    p[i] == UNICODE_BIDI_TYPE_R)
+			if (t == UNICODE_BIDI_TYPE_AL ||
+			    t == UNICODE_BIDI_TYPE_R)
 			{
-				return 1;
+				return UNICODE_BIDI_RL;
 			}
-			if (p[i] == UNICODE_BIDI_TYPE_L)
+			if (t == UNICODE_BIDI_TYPE_L)
 				break;
 		}
 	}
-	return 0;
+	return UNICODE_BIDI_LR;
+}
+
+struct compute_paragraph_embedding_level_type_info {
+	const enum_bidi_type_t *p;
+};
+
+static enum_bidi_type_t
+get_enum_bidi_type_for_paragraph_embedding_level(size_t i,
+						 void *arg)
+{
+	struct compute_paragraph_embedding_level_type_info *p=
+		(struct compute_paragraph_embedding_level_type_info *)arg;
+
+	return p->p[i];
+}
+
+static unicode_bidi_level_t
+compute_paragraph_embedding_level_from_types(const enum_bidi_type_t *p,
+					     size_t i, size_t j)
+{
+	struct compute_paragraph_embedding_level_type_info info;
+	info.p=p;
+
+	return compute_paragraph_embedding_level
+		(i, j,
+		 get_enum_bidi_type_for_paragraph_embedding_level,
+		 &info);
 }
 
 static directional_status_stack_t
@@ -591,7 +636,7 @@ directional_status_stack_init(const char32_t *chars,
 	stack->paragraph_embedding_level=
 		initial_embedding_level
 		? *initial_embedding_level & 1
-		: compute_paragraph_embedding_level(classes, 0, n);
+		: compute_paragraph_embedding_level_from_types(classes, 0, n);
 	stack->chars=chars;
 	stack->classes=classes;
 
@@ -676,6 +721,8 @@ unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 	enum_bidi_type_t *buf=
 		(enum_bidi_type_t *)malloc(n * sizeof(enum_bidi_type_t));
 
+	if (!buf)
+		abort();
 	for (size_t i=0; i<n; ++i)
 	{
 		buf[i]=unicode_bidi_type(p[i]);
@@ -732,7 +779,7 @@ unicode_bidi_b(const char32_t *p,
 		}							\
 	} while(0)
 
-static void unicode_bidi_w(directional_status_stack_t stack,
+static void unicode_bidi_w(enum_bidi_type_t *classes,
 			   struct isolating_run_sequence_s *seq);
 static void unicode_bidi_n(directional_status_stack_t stack,
 			   struct isolating_run_sequence_s *seq);
@@ -900,7 +947,7 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 				}
 			}
 
-			cur_class=compute_paragraph_embedding_level
+			cur_class=compute_paragraph_embedding_level_from_types
 				(stack->classes, i+1, j) == 1
 				? UNICODE_BIDI_TYPE_RLI
 				: UNICODE_BIDI_TYPE_LRI;
@@ -955,24 +1002,11 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 			break;
 		}
 
-		switch (stack->orig_classes[i]) {
-		case UNICODE_BIDI_TYPE_BN:
-		case UNICODE_BIDI_TYPE_B:
-		case UNICODE_BIDI_TYPE_RLE:
-		case UNICODE_BIDI_TYPE_LRE:
-		case UNICODE_BIDI_TYPE_RLO:
-		case UNICODE_BIDI_TYPE_LRO:
-		case UNICODE_BIDI_TYPE_PDF:
-		case UNICODE_BIDI_TYPE_RLI:
-		case UNICODE_BIDI_TYPE_LRI:
-		case UNICODE_BIDI_TYPE_FSI:
-		case UNICODE_BIDI_TYPE_PDI:
-			break;
-		default:
+		if (!is_explicit_indicator(stack->orig_classes[i]))
+		{
 			/* X6 */
 			stack->levels[i]=stack->head->embedding_level;
 			RESET_CLASS(stack->classes[i],stack);
-			break;
 		}
 
 		if (stack->classes[i] == UNICODE_BIDI_TYPE_PDI)
@@ -1210,7 +1244,7 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 		dump_sequence("Contents before W", stack, p);
 #endif
 
-		unicode_bidi_w(stack, p);
+		unicode_bidi_w(stack->classes, p);
 
 #ifdef BIDI_DEBUG
 		dump_sequence("Contents after W", stack, p);
@@ -1258,7 +1292,7 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 	}
 }
 
-static void unicode_bidi_w(directional_status_stack_t stack,
+static void unicode_bidi_w(enum_bidi_type_t *classes,
 			   struct isolating_run_sequence_s *seq)
 {
 	irs_iterator iter=irs_begin(seq), end=irs_end(seq);
@@ -1268,10 +1302,10 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 
 	while (irs_compare(&iter, &end))
 	{
-		if (stack->classes[iter.i] == UNICODE_BIDI_TYPE_NSM)
+		if (classes[iter.i] == UNICODE_BIDI_TYPE_NSM)
 		{
 			/* W1 */
-			stack->classes[iter.i] =
+			classes[iter.i] =
 				is_isolate_initiator(previous_type) ||
 				previous_type == UNICODE_BIDI_TYPE_PDI
 				? UNICODE_BIDI_TYPE_ON
@@ -1281,14 +1315,14 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 
 		/* W2 */
 
-		if (stack->classes[iter.i] == UNICODE_BIDI_TYPE_EN &&
+		if (classes[iter.i] == UNICODE_BIDI_TYPE_EN &&
 		    strong_type == UNICODE_BIDI_TYPE_AL)
 		{
-			stack->classes[iter.i] = UNICODE_BIDI_TYPE_AN;
+			classes[iter.i] = UNICODE_BIDI_TYPE_AN;
 		}
 
 		/* W2 */
-		previous_type=stack->classes[iter.i];
+		previous_type=classes[iter.i];
 
 		switch (previous_type) {
 		case UNICODE_BIDI_TYPE_R:
@@ -1312,12 +1346,12 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 	while (not_eol)
 	{
 		/* W3 */
-		if (stack->classes[iter.i] == UNICODE_BIDI_TYPE_AL)
-			stack->classes[iter.i] = UNICODE_BIDI_TYPE_R;
+		if (classes[iter.i] == UNICODE_BIDI_TYPE_AL)
+			classes[iter.i] = UNICODE_BIDI_TYPE_R;
 
 		/* W4 */
 
-		enum_bidi_type_t this_type=stack->classes[iter.i];
+		enum_bidi_type_t this_type=classes[iter.i];
 		irs_incr(&iter);
 
 		not_eol=irs_compare(&iter, &end);
@@ -1332,13 +1366,13 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 		       previous_type == UNICODE_BIDI_TYPE_AN)
 		      )
 		     ) &&
-		    stack->classes[iter.i] == previous_type)
+		    classes[iter.i] == previous_type)
 		{
 			irs_iterator prev=iter;
 
 			irs_decr(&prev);
 
-			stack->classes[prev.i]=previous_type;
+			classes[prev.i]=previous_type;
 		}
 
 		if (not_eol)
@@ -1353,9 +1387,9 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 
 	while (irs_compare(&iter, &end))
 	{
-		if (stack->classes[iter.i] != UNICODE_BIDI_TYPE_ET)
+		if (classes[iter.i] != UNICODE_BIDI_TYPE_ET)
 		{
-			previous_type=stack->classes[iter.i];
+			previous_type=classes[iter.i];
 			irs_incr(&iter);
 			continue;
 		}
@@ -1363,7 +1397,7 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 		/* ET after EN */
 		if (previous_type == UNICODE_BIDI_TYPE_EN)
 		{
-			stack->classes[iter.i] = UNICODE_BIDI_TYPE_EN;
+			classes[iter.i] = UNICODE_BIDI_TYPE_EN;
 			irs_incr(&iter);
 			continue;
 		}
@@ -1374,7 +1408,7 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 
 		while (irs_incr(&iter), irs_compare(&iter, &end))
 		{
-			previous_type=stack->classes[iter.i];
+			previous_type=classes[iter.i];
 
 			if (previous_type == UNICODE_BIDI_TYPE_ET)
 				continue;
@@ -1383,7 +1417,7 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 			{
 				while (irs_compare(&start, &iter))
 				{
-					stack->classes[start.i]=
+					classes[start.i]=
 						UNICODE_BIDI_TYPE_EN;
 					irs_incr(&start);
 				}
@@ -1397,12 +1431,12 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 	for (iter=irs_begin(seq);
 	     irs_compare(&iter, &end); irs_incr(&iter))
 	{
-		switch (stack->classes[iter.i]) {
+		switch (classes[iter.i]) {
 		case UNICODE_BIDI_TYPE_ET:
 		case UNICODE_BIDI_TYPE_ES:
 		case UNICODE_BIDI_TYPE_CS:
 			/* W6 */
-			stack->classes[iter.i]=UNICODE_BIDI_TYPE_ON;
+			classes[iter.i]=UNICODE_BIDI_TYPE_ON;
 			break;
 		default:
 			break;
@@ -1416,14 +1450,14 @@ static void unicode_bidi_w(directional_status_stack_t stack,
 
 	while (irs_compare(&iter, &end))
 	{
-		switch (stack->classes[iter.i]) {
+		switch (classes[iter.i]) {
 		case UNICODE_BIDI_TYPE_L:
 		case UNICODE_BIDI_TYPE_R:
-			previous_type=stack->classes[iter.i];
+			previous_type=classes[iter.i];
 			break;
 		case UNICODE_BIDI_TYPE_EN:
 			if (previous_type == UNICODE_BIDI_TYPE_L)
-				stack->classes[iter.i]=previous_type;
+				classes[iter.i]=previous_type;
 			break;
 		default:
 			break;
@@ -1573,13 +1607,13 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 
 		ADJUST_EOCLASS(eoclass);
 
-#define E_CLASS (seq->embedding_level & 1 ?			\
-		 UNICODE_BIDI_TYPE_R:UNICODE_BIDI_TYPE_L)
+#define E_CLASS(level) ((level) & 1 ?					\
+			UNICODE_BIDI_TYPE_R:UNICODE_BIDI_TYPE_L)
 
-#define O_CLASS (seq->embedding_level & 1 ?			\
-		 UNICODE_BIDI_TYPE_L:UNICODE_BIDI_TYPE_R)
+#define O_CLASS(level) ((level) & 1 ?					\
+			UNICODE_BIDI_TYPE_L:UNICODE_BIDI_TYPE_R)
 
-		if (eoclass == E_CLASS)
+		if (eoclass == E_CLASS(seq->embedding_level))
 		{
 #ifdef BIDI_DEBUG
 			if (stackp)
@@ -1599,7 +1633,7 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 			for (size_t i=0; i<stackp; ++i)
 				stack_iters[i]->has_e=1;
 		}
-		else if (eoclass == O_CLASS)
+		else if (eoclass == O_CLASS(seq->embedding_level))
 		{
 #ifdef BIDI_DEBUG
 			if (stackp)
@@ -1636,8 +1670,8 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 				"Brackets: %d and %d: e=%s, o=%s",
 				(int)p->start.i,
 				(int)p->end.i,
-				bidi_classname(E_CLASS),
-				bidi_classname(O_CLASS));
+				bidi_classname(E_CLASS(seq->embedding_level)),
+				bidi_classname(O_CLASS(seq->embedding_level)));
 
 			fprintf(DEBUGDUMP, ", has e=%d, has o=%d\n",
 				p->has_e,
@@ -1879,6 +1913,37 @@ static void level_run_layers_add(struct level_run_layers *p)
 	level_runs_init(p->lruns + (p->n_lruns++));
 }
 
+static void reverse_str(char32_t *p,
+			unicode_bidi_level_t *levels,
+			size_t start,
+			size_t end,
+			void (*reorder_callback)(size_t, size_t, void *),
+			void *arg)
+{
+	size_t right=end;
+	size_t left=start;
+
+	while (right > left)
+	{
+		--right;
+
+		if (p)
+		{
+			char32_t c=p[left];
+			unicode_bidi_level_t l=levels[left];
+
+			p[left]=p[right];
+			levels[left]=levels[right];
+			p[right]=c;
+			levels[right]=l;
+		}
+		++left;
+	}
+
+	if (end-start > 1 && reorder_callback)
+		(*reorder_callback)(start, end-start, arg);
+}
+
 void unicode_bidi_reorder(char32_t *p,
 			  unicode_bidi_level_t *levels,
 			  size_t n,
@@ -1886,6 +1951,15 @@ void unicode_bidi_reorder(char32_t *p,
 			  void *arg)
 {
 	/* L2 */
+
+#ifdef BIDI_DEBUG
+	fprintf(DEBUGDUMP, "Before L2:");
+	for (size_t i=0; i<n; ++i)
+		fprintf(DEBUGDUMP, " %04x/%d",
+			(unsigned)p[i],
+			(int)levels[i]);
+	fprintf(DEBUGDUMP, "\n");
+#endif
 
 	struct level_run_layers layers;
 	unicode_bidi_level_t previous_level=0;
@@ -1920,39 +1994,738 @@ void unicode_bidi_reorder(char32_t *p,
 			}
 		}
 	}
-
+#ifdef BIDI_DEBUG
+	fprintf(DEBUGDUMP, "L2:\n");
+#endif
 	for (size_t i=layers.n_lruns; i; )
 	{
 		struct level_runs *runs=layers.lruns+ --i;
+
+#ifdef BIDI_DEBUG
+		if (runs->n_level_runs)
+			fprintf(DEBUGDUMP, "Reverse %d:",
+				(int)i);
+#endif
 
 		for (size_t j=0; j<runs->n_level_runs; ++j)
 		{
 			size_t start=runs->runs[j].start;
 			size_t end=runs->runs[j].end;
-			size_t right=end;
-			size_t left=start;
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP, " %d-%d",
+				(int)start, (int)end-1);
+#endif
 
-			while (right > left)
-			{
-				--right;
-
-				if (p)
-				{
-					char32_t c=p[left];
-					unicode_bidi_level_t l=levels[left];
-
-					p[left]=p[right];
-					levels[left]=levels[right];
-					p[right]=c;
-					levels[right]=l;
-				}
-				++left;
-			}
-
-			if (end-start > 1 && reorder_callback)
-				(*reorder_callback)(start, end-start, arg);
+			reverse_str(p, levels, start, end,
+				    reorder_callback, arg);
 		}
+
+#ifdef BIDI_DEBUG
+		if (runs->n_level_runs)
+			fprintf(DEBUGDUMP, "\n");
+#endif
 	}
 
 	level_run_layers_deinit(&layers);
+}
+
+#define LRM	0x200E
+#define RLM	0x200F
+#define ALM	0x061C
+
+size_t unicode_bidi_cleanup(char32_t *string,
+			    unicode_bidi_level_t *levels,
+			    size_t n,
+			    void (*removed_callback)(size_t, void *),
+			    void *arg)
+{
+	size_t i=0;
+	for (size_t j=0; j<n; ++j)
+	{
+		enum_bidi_type_t cl=unicode_bidi_type(string[j]);
+
+		if (IS_X9(cl))
+		{
+			if (removed_callback)
+				(*removed_callback)(j, arg);
+			continue;
+		}
+		if (levels)
+			levels[i]=levels[j] & 1;
+		++i;
+	}
+	return i;
+}
+
+size_t unicode_bidi_extra_cleanup(char32_t *string,
+				  unicode_bidi_level_t *levels,
+				  size_t n,
+				  void (*removed_callback)(size_t, void *),
+				  void *arg)
+{
+	size_t i=0;
+	for (size_t j=0; j<n; ++j)
+	{
+		enum_bidi_type_t cl=unicode_bidi_type(string[j]);
+
+		if (is_explicit_indicator_except_b(cl) ||
+		    (string[j] == LRM ||
+		     string[j] == RLM ||
+		     string[j] == ALM))
+		{
+			if (removed_callback)
+				(*removed_callback)(j, arg);
+			continue;
+		}
+		string[i]=cl == UNICODE_BIDI_TYPE_B ? '\n' : string[j];
+		if (levels)
+			levels[i]=levels[j] & 1;
+		++i;
+	}
+	return i;
+}
+
+void unicode_bidi_logical_order(char32_t *string,
+				unicode_bidi_level_t *levels,
+				size_t n,
+				unicode_bidi_level_t paragraph_embedding,
+				void (*reorder_callback)(size_t, size_t,
+							 void *),
+				void *arg)
+{
+	size_t i=0;
+
+	// On this pass:
+	//
+	// When paragraph_embedding is 0, we reverse odd embedding levels.
+	// When paragraph_embedding is 1, we reverse even embedding levels.
+
+#define LOGICAL_FLIP(n) ( ((n) ^ paragraph_embedding) & 1)
+
+	while (i<n)
+	{
+		if ( !LOGICAL_FLIP(levels[i]))
+		{
+			++i;
+			continue;
+		}
+
+		size_t j=i;
+
+		while (i<n)
+		{
+			if (!LOGICAL_FLIP(levels[i]))
+				break;
+			++i;
+		}
+
+		reverse_str(string, levels, j, i,
+			    reorder_callback, arg);
+	}
+
+	if (paragraph_embedding & 1)
+		reverse_str(string, levels, 0, n, reorder_callback, arg);
+}
+
+/*
+** Track consecutive sequences of characters with the same embedding level.
+**
+** Linked list create in compute_bidi_embed_levelruns().
+*/
+
+struct bidi_embed_levelrun {
+	struct bidi_embed_levelrun *next;
+	size_t start;
+	size_t end;
+	unicode_bidi_level_t level;
+};
+
+static struct bidi_embed_levelrun **
+record_bidi_embed_levelrun(struct bidi_embed_levelrun **tailp,
+			   size_t start,
+			   size_t end,
+			   unicode_bidi_level_t level)
+{
+	struct bidi_embed_levelrun *p;
+
+	p=(struct bidi_embed_levelrun *)calloc(1, sizeof(*p));
+	if (!p)
+		abort();
+
+	p->start=start;
+	p->end=end;
+	p->level=level;
+
+	if (*tailp)
+	{
+		(*tailp)->next=p;
+		return &(*tailp)->next;
+	}
+	else
+	{
+		*tailp=p;
+		return tailp;
+	}
+}
+
+static void compute_bidi_embed_levelruns(const char32_t *string,
+					 const unicode_bidi_level_t *levels,
+					 size_t n,
+					 struct bidi_embed_levelrun **tailp)
+{
+	size_t i=0;
+
+	while (i<n)
+	{
+		size_t j=i;
+
+		while (++i < n)
+		{
+			if ((levels[i] & 1) != (levels[j] & 1))
+				break;
+		}
+		tailp=record_bidi_embed_levelrun(tailp, j, i,
+						 levels[j] & 1);
+	}
+}
+
+#define RLI 0x2067
+#define LRI 0x2066
+#define RLO 0x202e
+#define LRO 0x202d
+#define PDF 0x202c
+#define PDI 0x2069
+
+/*
+** Whether a directional marker and a PDI is required to be generated after
+** some subset of characters.
+*/
+
+struct need_marker_info {
+	int need_marker;
+	int need_pdi;
+};
+
+static void need_marker_info_init(struct need_marker_info *info)
+{
+	info->need_marker=0;
+	info->need_pdi=0;
+}
+
+static void need_marker_info_merge(struct need_marker_info *info,
+				   const struct need_marker_info *other_info)
+{
+	if (other_info->need_marker)
+		info->need_marker=1;
+	if (other_info->need_pdi)
+		info->need_pdi=1;
+}
+
+static void emit_bidi_embed_levelrun(const char32_t *string,
+				     enum_bidi_type_t *classes,
+				     struct bidi_embed_levelrun *run,
+				     unicode_bidi_level_t paragraph_level,
+				     unicode_bidi_level_t previous_level,
+				     unicode_bidi_level_t next_level,
+				     struct need_marker_info *need_marker,
+				     void (*emit)(const char32_t *string,
+						  size_t n,
+						  void *arg),
+				     void *arg);
+
+/* L1 */
+
+static int is_l1_on_or_after(const enum_bidi_type_t *classes,
+			     size_t n,
+			     size_t i,
+			     int atend)
+{
+	/*
+	** Determine if rule L1 will apply starting at the given position.
+	*/
+	while (i<n)
+	{
+		enum_bidi_type_t t=classes[i];
+
+		if (t == UNICODE_BIDI_TYPE_WS)
+		{
+			++i;
+			continue;
+		}
+
+		if (t == UNICODE_BIDI_TYPE_S ||
+		    t == UNICODE_BIDI_TYPE_B)
+			return 1;
+		return 0;
+	}
+	return atend;
+}
+
+static void emit_marker(struct bidi_embed_levelrun *p,
+			struct need_marker_info *info,
+			void (*emit)(const char32_t *string,
+				     size_t n,
+				     void *arg),
+			void *arg)
+{
+	char32_t marker= (p->level & 1) ? RLM:LRM;
+
+	if (info->need_marker)
+		(*emit)(&marker, 1, arg);
+
+	if (info->need_pdi)
+	{
+		marker=PDI;
+		(*emit)(&marker, 1, arg);
+	}
+}
+
+void unicode_bidi_embed(const char32_t *string,
+			const unicode_bidi_level_t *levels,
+			size_t n,
+			unicode_bidi_level_t paragraph_level,
+			void (*emit)(const char32_t *string,
+				     size_t n,
+				     void *arg),
+			void *arg)
+{
+	struct bidi_embed_levelrun *runs=0;
+	enum_bidi_type_t *classes=
+		(enum_bidi_type_t *)calloc(n, sizeof(enum_bidi_type_t));
+
+	if (!classes)
+		abort();
+
+	for (size_t i=0; i<n; ++i)
+		classes[i]=unicode_bidi_type(string[i]);
+
+	compute_bidi_embed_levelruns(string, levels,
+				     n,
+				     &runs);
+
+	/*
+	** Go through the sequences of consecutive characters with the
+	** same embedding level. Keep track of the preceding and the
+	** next embedding level, which is usually the opposite from the
+	** current sequence's embedding level. Except that the first and
+	** the last sequence of characters, in the string, are bound to
+	** the paragraph_level, which may be the same.
+	*/
+
+	unicode_bidi_level_t previous_level=paragraph_level;
+
+	while (runs)
+	{
+		struct bidi_embed_levelrun *p=runs;
+
+		runs=runs->next;
+
+		unicode_bidi_level_t next_level=paragraph_level;
+
+		if (runs)
+			next_level=runs->level;
+
+#ifdef BIDI_DEBUG
+		fprintf(DEBUGDUMP, "  Range %d-%d, level %d\n",
+			(int)p->start, (int)(p->end-1), p->level);
+#endif
+
+		if (((p->level ^ paragraph_level) & 1) == 0)
+		{
+			/*
+			** Sequence in the same direction as the paragraph
+			** embedding level.
+			**
+			** We'll definitely need a directional marker if
+			** rule L1 applies after this sequence.
+			*/
+
+			struct need_marker_info need_marker;
+
+			need_marker_info_init(&need_marker);
+
+			if (classes[p->end-1] == UNICODE_BIDI_TYPE_WS)
+			{
+				need_marker.need_marker=
+					is_l1_on_or_after(classes, n,
+							  p->end,
+							  0);
+#ifdef BIDI_DEBUG
+				fprintf(DEBUGDUMP, "    need marker=%d\n",
+					need_marker.need_marker);
+#endif
+
+			}
+
+			emit_bidi_embed_levelrun(string, classes,
+						 p, paragraph_level,
+						 previous_level,
+						 next_level,
+						 &need_marker,
+						 emit, arg);
+
+			emit_marker(p, &need_marker, emit, arg);
+		}
+		else
+		{
+			struct need_marker_info need_marker;
+			size_t orig_end=p->end;
+
+			/*
+			** Sequence in the opposite direction. Because S and
+			** B reset to the paragraph level, no matter what,
+			** if we want things to render like that we will need
+			** to emit sequences on each side of S/B in reverse
+			** order. We start at the end of this sequence, then
+			** search towards the beginning, emit that sequence,
+			** emit the S and B, then go to the next sequence.
+			*/
+
+			need_marker_info_init(&need_marker);
+
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP, "    need marker=%d\n",
+				need_marker);
+#endif
+
+			while (p->start < p->end)
+			{
+				size_t j=p->end;
+
+				int end_with_ws=
+					classes[j-1] == UNICODE_BIDI_TYPE_WS;
+				while (j > p->start)
+				{
+					--j;
+
+					enum_bidi_type_t t=classes[j];
+
+					if (t == UNICODE_BIDI_TYPE_S ||
+					    t == UNICODE_BIDI_TYPE_B)
+					{
+						++j;
+						break;
+					}
+				}
+
+				if (j == p->end) /* Must be lone break */
+				{
+#ifdef BIDI_DEBUG
+					fprintf(DEBUGDUMP,
+						"    break: %d\n",
+						(int)j);
+#endif
+					--p->end;
+
+					previous_level=paragraph_level;
+
+					(*emit)(string+p->end, 1, arg);
+					continue;
+				}
+
+				struct need_marker_info need_marker_partial;
+
+				need_marker_info_init(&need_marker_partial);
+
+				/*
+				** Rule L1, there's going to be an S or a B
+				** after we emit this sequence.
+				*/
+
+				if (j != p->start)
+					need_marker_partial.need_marker=1;
+
+				/*
+				** To emit this sequence, we monkey-patch
+				** the run level to indicate the sub-
+				** sequence to emit.
+				*/
+				size_t i=p->start;
+
+				p->start=j;
+
+				emit_bidi_embed_levelrun
+					(string, classes, p, paragraph_level,
+					 previous_level,
+
+					 j == i
+					 /* No more, this is next */
+					 ? next_level
+					 /* We'll emit a paragraph brk */
+					 : paragraph_level,
+					 &need_marker_partial,
+					 emit, arg);
+
+				/* Continue monkey-patching. */
+
+				p->end=p->start;
+				p->start=i;
+
+				if (p->start == p->end)
+					/* Do it below */
+				{
+					if (end_with_ws)
+						need_marker.need_marker=
+							is_l1_on_or_after
+							(classes, n,
+							 orig_end,
+							 0);
+					need_marker_info_merge
+						(&need_marker,
+						 &need_marker_partial);
+				}
+				else
+				{
+					emit_marker(p, &need_marker_partial,
+						    emit, arg);
+				}
+			}
+			emit_marker(p, &need_marker, emit, arg);
+		}
+		free(p);
+	}
+	free(classes);
+}
+
+#define ADJUST_LR(t,e) do {					\
+		switch (t) {					\
+		case UNICODE_BIDI_TYPE_AL:			\
+			(t)=UNICODE_BIDI_TYPE_R;		\
+			break;					\
+		case UNICODE_BIDI_TYPE_ET:			\
+		case UNICODE_BIDI_TYPE_ES:			\
+		case UNICODE_BIDI_TYPE_AN:			\
+		case UNICODE_BIDI_TYPE_EN:			\
+			(t)=UNICODE_BIDI_TYPE_L;		\
+			break;					\
+		default:					\
+			break;					\
+		}						\
+	} while (0)
+
+#define ADJUST_LRSTRONG(t) do {					\
+		switch (t) {					\
+		case UNICODE_BIDI_TYPE_AL:			\
+			(t)=UNICODE_BIDI_TYPE_R;		\
+		default:					\
+			break;					\
+		}						\
+	} while (0)
+
+static void emit_bidi_embed_levelrun(const char32_t *string,
+				     enum_bidi_type_t *classes,
+				     struct bidi_embed_levelrun *run,
+				     unicode_bidi_level_t paragraph_level,
+				     unicode_bidi_level_t previous_level,
+				     unicode_bidi_level_t next_level,
+				     struct need_marker_info *need_marker,
+				     void (*emit)(const char32_t *string,
+						  size_t n,
+						  void *arg),
+				     void *arg)
+{
+	/*
+	** Our first order of business will be to apply rules W to this
+	** sequence, to resolve weak types.
+	**
+	** It's easy to simulate what unicode_bidi_w() expects.
+	*/
+
+	struct level_run lrun;
+	struct isolating_run_sequence_s seq;
+	enum_bidi_type_t e_type=E_CLASS(run->level);
+	enum_bidi_type_t o_type=O_CLASS(run->level);
+
+	if (run->start == run->end)
+		return;
+
+	memset(&seq, 0, sizeof(seq));
+
+	seq.embedding_level=run->level;
+	seq.sos=seq.eos=e_type;
+	seq.runs.runs=&lrun;
+	seq.runs.n_level_runs=1;
+	seq.runs.cap_level_runs=1;
+	lrun.start=run->start;
+	lrun.end=run->end;
+	unicode_bidi_w(classes, &seq);
+
+	/*
+	** Peek at the first character's class.
+	**
+	** If the previous sequence's embedding level was the same, it
+	** guarantees the peristence of the embedding direction. We can
+	** accept classes that default to our embedding level.
+	**
+	** Otherwise we recognize only strong classes.
+	*/
+	enum_bidi_type_t t=classes[run->start];
+
+	if (previous_level == run->level)
+	{
+		ADJUST_LR(t, E_CLASS(previous_level));
+	}
+	else
+	{
+		ADJUST_LRSTRONG(t);
+	}
+
+	/*
+	** Sequence in the opposite direction always get isolated.
+	*/
+	char32_t override_start=run->level ? RLI:LRI;
+
+	if (run->level != paragraph_level)
+		(*emit)(&override_start, 1, arg);
+
+	/*
+	** Make sure the character sequence has strong context.
+	*/
+	if (t == o_type)
+	{
+		struct need_marker_info need_marker;
+
+		need_marker_info_init(&need_marker);
+
+		need_marker.need_marker=1;
+
+		emit_marker(run, &need_marker, emit, arg);
+	}
+
+	override_start=run->level ? RLO:LRO;
+	char32_t override_end=PDF;
+
+	size_t start=run->start;
+	size_t end=run->end;
+
+	while (start < end)
+	{
+		size_t i=start;
+		size_t word_start=i;
+
+#ifdef BIDI_DEBUG
+		fprintf(DEBUGDUMP,
+			"    examining, starting at: %d\n", (int)i);
+#endif
+
+		/*
+		** Look for the next character with the opposite class.
+		** While doing that, keep an eye out on any WS or ONs,
+		** which will tell us where the most recent "word"s starts,
+		** before this character.
+		*/
+		while (i < end)
+		{
+			enum_bidi_type_t t=classes[i];
+
+			ADJUST_LR(t, e_type);
+
+			if (t == o_type)
+				break;
+
+			switch (t) {
+			case UNICODE_BIDI_TYPE_WS:
+			case UNICODE_BIDI_TYPE_ON:
+				word_start=i+1;
+				break;
+			default:
+				break;
+			}
+
+			++i;
+		}
+
+		if (i < end)
+		{
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP,
+				"    override needed: %d,"
+				" start of word at %d, ",
+				(int)i, (int)word_start);
+#endif
+			/*
+			** Found something to override. First, emit everything
+			** up to the start of this "word".
+			**
+			** Then emit the RLO or LRO, then look for the end
+			** of the "word", and drop the PDF there.
+			*/
+			if (word_start > start)
+				(*emit)(string+start,
+					word_start-start, arg);
+
+			(*emit)(&override_start, 1, arg);
+			while (++i < end)
+			{
+				enum_bidi_type_t t=classes[i];
+
+				switch (t) {
+				case UNICODE_BIDI_TYPE_WS:
+				case UNICODE_BIDI_TYPE_ON:
+					break;
+				default:
+					continue;
+				}
+				break;
+			}
+#ifdef BIDI_DEBUG
+			fprintf(DEBUGDUMP, "end of word at %d\n",
+				(int)i);
+#endif
+			(*emit)(string+word_start, i-word_start, arg);
+			(*emit)(&override_end, 1, arg);
+			start=i;
+			continue;
+		}
+		(*emit)(string+start, i-start, arg);
+		start=i;
+	}
+
+	/*
+	** Make sure that if a different embedding level follows we will
+	** emit a marker, to ensure strong context.
+	*/
+	t=classes[run->end-1];
+
+	if (next_level != run->level)
+	{
+		ADJUST_LRSTRONG(t);
+
+		if (e_type != t)
+			need_marker->need_marker=1;
+	}
+
+	if (run->level != paragraph_level)
+		need_marker->need_pdi=1;
+}
+
+struct compute_paragraph_embedding_level_char_info {
+	const char32_t *str;
+};
+
+static enum_bidi_type_t
+get_enum_bidi_type_for_embedding_paragraph_level(size_t i,
+						 void *arg)
+{
+	struct compute_paragraph_embedding_level_char_info *p=
+		(struct compute_paragraph_embedding_level_char_info *)arg;
+
+	return unicode_bidi_type(p->str[i]);
+}
+
+char32_t unicode_bidi_embed_paragraph_level(const char32_t *str,
+					    size_t n,
+					    unicode_bidi_level_t paragraph_level
+					    )
+{
+	struct compute_paragraph_embedding_level_char_info info;
+	info.str=str;
+
+	if ((compute_paragraph_embedding_level
+	     (0, n,
+	      get_enum_bidi_type_for_embedding_paragraph_level,
+	      &info) ^ paragraph_level) == 0)
+		return 0;
+
+	return (paragraph_level & 1) ? RLM:LRM;
 }

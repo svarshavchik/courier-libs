@@ -16,12 +16,12 @@ Courier Unicode Library
    COPYING
 
    This library implements several algorithms related to the Unicode
-   Standard:
+   Standard, notably:
 
      * Look up uppercase, lowercase, and titlecase equivalents of a unicode
        character.
 
-     * Implementation of grapheme and work breaking rules.
+     * Implementation of grapheme and word breaking rules.
 
      * Implementation of line breaking rules.
 

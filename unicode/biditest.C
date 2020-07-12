@@ -8,6 +8,7 @@
 #include	<utility>
 #include	<iomanip>
 #include	<numeric>
+#include	<unistd.h>
 
 std::vector<std::string> testcase;
 
@@ -53,11 +54,11 @@ int main(int argc, char **argv)
 	{
 		buf.clear();
 
-		if (std::getline(fp, buf).eof() && buf.empty())
-			break;
+		bool iseof=std::getline(fp, buf).eof() && buf.empty();
 
-		if (++linenum >= nextlogline)
+		if (iseof || ++linenum >= nextlogline)
 		{
+			alarm(300);
 			std::cout << logmsg;
 
 			std::ostringstream o;
@@ -72,7 +73,8 @@ int main(int argc, char **argv)
 
 			nextlogline += 20000;
 		}
-
+		if (iseof)
+			break;
 		buf.erase(std::find(buf.begin(), buf.end(), '#'), buf.end());
 
 		if (buf.substr(0, 8) == "@Levels:")
@@ -334,11 +336,7 @@ int main(int argc, char **argv)
 			n >>= 1;
 		}
 	}
-
-	std::cout << logmsg;
-
-	std::fill(logmsg.begin(), logmsg.end(), ' ');
-	std::cout << logmsg << std::endl;
+	std::cout << std::endl;
 	return 0;
 }
 

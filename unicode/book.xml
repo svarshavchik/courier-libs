@@ -12,7 +12,7 @@
 
 <!--
 
-Copyright 2014-2017 Double Precision, Inc.
+Copyright 2014-2020 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -23,7 +23,7 @@ See COPYING for distribution information.
   <para>
     This library implements several algorithms related to the
     <ulink url="https://www.unicode.org/standard/standard.html">Unicode
-    Standard</ulink>:
+    Standard</ulink>, notably:
   </para>
 
   <itemizedlist>
@@ -36,22 +36,21 @@ See COPYING for distribution information.
     <listitem>
       <para>
 	Implementation of
-	<ulink url="https://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">grapheme
-	and work breaking</ulink> rules.
+	<link linkend="unicode_grapheme_break">grapheme
+	and word breaking</link> rules.
       </para>
     </listitem>
     <listitem>
       <para>
 	Implementation of
-	<ulink url="https://www.unicode.org/reports/tr14/tr14-&tr14ver;.html">line
-	breaking</ulink> rules.
+	<link linkend="unicode_line_break">line	breaking</link> rules.
       </para>
     </listitem>
     <listitem>
       <para>
 	Implementation of the
-	<ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html">bi-directional
-	algorithm</ulink>.
+	<link linkend="unicode_bidi">bi-directional
+	algorithm</link>.
       </para>
     </listitem>
     <listitem>
@@ -69,15 +68,13 @@ See COPYING for distribution information.
     </listitem>
     <listitem>
       <para>
-	Look up the
-	<ulink url="https://www.unicode.org/reports/tr24/tr24-&tr24ver;.html">Unicode
-	script property</ulink>.
+	Look up the <link linkend="unicode_script">Unicode
+	script property</link>.
       </para>
     </listitem>
     <listitem>
       <para>
-	Look up the
-	<ulink url="https://unicode.org/notes/tn36/">category</ulink>
+	Look up the <link linkend="unicode_category_lookup">category</link>
 	property.
       </para>
     </listitem>
@@ -192,7 +189,7 @@ See COPYING for distribution information.
 	  <programlisting>
 #include &lt;courier-unicode.h&gt;</programlisting>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="courier_unicode_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -226,7 +223,7 @@ See COPYING for distribution information.
 	    with this library.
 	  </para>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="courier_unicode_seealso">
 	  <title>SEE ALSO</title>
 
 	  <para>
@@ -306,16 +303,22 @@ See COPYING for distribution information.
 	  <refname>unicode_bidi</refname>
 	  <refname>unicode_bidi_calc</refname>
 	  <refname>unicode_bidi_reorder</refname>
+	  <refname>unicode_bidi_cleanup</refname>
+	  <refname>unicode_bidi_extra_cleanup</refname>
+	  <refname>unicode_bidi_logical_order</refname>
+	  <refname>unicode_bidi_embed</refname>
+	  <refname>unicode_bidi_embed_paragraph_level</refname>
+
+	  <refname>unicode_bidi_type</refname>
 	  <refname>unicode_bidi_mirror</refname>
 	  <refname>unicode_bidi_bracket_type</refname>
 
-	  <refpurpose>unicode bidirectional algorithm</refpurpose>
+	  <refpurpose>unicode bi-directional algorithm</refpurpose>
 	</refnamediv>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
-	    <funcsynopsisinfo>unicode_bidi_level_t lr=UNICODE_BIDI_LR;</funcsynopsisinfo>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;&#10;&#10;unicode_bidi_level_t lr=UNICODE_BIDI_LR;</funcsynopsisinfo>
 	    <funcprototype>
 	      <funcdef>void <function>unicode_bidi_calc</function></funcdef>
               <paramdef>const char32_t *<parameter>p</parameter></paramdef>
@@ -331,6 +334,51 @@ See COPYING for distribution information.
               <paramdef>size_t <parameter>n</parameter></paramdef>
               <paramdef>void (*<parameter>reorder_callback</parameter>)(size_t, size_t, void *)</paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_bidi_cleanup</function></funcdef>
+              <paramdef>char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>void (*<parameter>removed_callback</parameter>)(size_t, size_t, void *)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_bidi_extra_cleanup</function></funcdef>
+              <paramdef>char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>void (*<parameter>removed_callback</parameter>)(size_t, size_t, void *)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_bidi_logical_order</function></funcdef>
+              <paramdef>char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+              <paramdef>void (*<parameter>reorder_callback</parameter>)(size_t index, size_t n, void *arg)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_bidi_embed</function></funcdef>
+              <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+              <paramdef>void (*<parameter>emit</parameter>)(const char32_t *string, size_t n, void *arg)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>char32_t <function>unicode_bidi_embed_paragraph_level</function></funcdef>
+              <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -350,63 +398,160 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_bidi_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
-	    <function>unicode_bidi_calc</function>() and
-	    <function>unicode_bidi_reorder</function>() implement
-	    the
+	    These functions are related to the
 	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html"> Unicode Bi-Directional algorithm</ulink>.
-	  </para>
-	  <para>
-	    The first two parameters to
-	    <function>unicode_bidi_calc</function>() are a unicode string
-	    and the number of characters in the Unicode string.
-	    <parameter>levels</parameter> points to a buffer of
-	    <classname>unicode_bidi_level_t</classname> values.
-	    The caller is responsible for allocating and deallocating this
-	    buffer, of
-	    size <parameter>n</parameter>,
-	    the same number of values as the number of characters in the
-	    Unicode string.
-	  </para>
-	  <para>
-	    <function>unicode_bidi_calc</function>() calculates the
-	    embedding level of each character and fills in the
-	    <parameter>levels</parameter> buffer (executes all steps of the
-	    bidirectional algorithm up to, and including, step L1).
-	    A <literal>NULL</literal> <parameter>initial_embedding</parameter>
-	    value calculates the default paragraph embedding value.
-	    A pointer to a <literal>UNICODE_BIDI_LR</literal> or
-	    <literal>UNICODE_BIDI_RL</literal> value explicitly sets a
-	    left-to-right or right-to-left paragraph embedding value.
+	    They implement the algorithm up to and including step L2,
+	    and provide additional functionality of returning miscellaneous
+	    bi-directional-related metadata of Unicode characters. There's
+	    also a basic algorithm that <quote>reverses</quote> the
+	    bi-directional algorithm
+	    and produces a Unicode string with bi-directional markers that
+	    results in the same bi-directional string after reapplying the
+	    algorithm.
 	  </para>
 
-	  <para>
-	    <function>unicode_bidi_calc</function>() calculates each
-	    character's directional embedding value: an even value for
-	    left-to-right text or an odd value for right-to-left text.
-	    Unicode characters with an unspecified directional embedding
-	    value are specified by the
-	    <classname>UNICODE_BIDI_SKIP</classname> embedding level value.
-	    This indicates embedding and override markers, which can be
-	    removed from the string (together with this embedding value)
-	    from the string and the embedding value itself). This can be
-	    done before or after <function>unicode_bidi_reorder</function>().
-	  </para>
-
-	  <refsect2>
-	    <title>Reordering text</title>
+	  <refsect2 id="unicode_bidi_calc_reorder">
+	    <title>Calculating bi-directional rendering order</title>
 
 	    <para>
-	      <function>unicode_bidi_reorder</function> takes the actual
-	      unicode string together with the embedding values from
-	      <function>unicode_bidi_calc</function>, then reverses the
-	      bidirectional string, as specified by step L2 of the bidirectional
-	      algorithm.
+	      The following process computes the rendering order of
+	      characters according to the Unicode Bi-Directional algorithm:
 	    </para>
 
+	    <orderedlist>
+	      <listitem>
+		<para>
+		  Allocate an array of
+		  <structname>unicode_bidi_level_t</structname> that's the
+		  same size as the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  Use <function>unicode_bidi_calc</function>() to compute
+		  the Unicode string's characters' bi-directional embedding
+		  level (executes the Bi-Directional algorithm up to and
+		  including step L1). This populates the
+		  <structname>unicode_bidi_level_t</structname> buffer.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  Use <function>unicode_bidi_reorder</function>() to reverse
+		  any characters in the string, according to the
+		  algorithm (step L2), with an optional
+		  callback that reports which ranges of characters get
+		  reversed.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  Use <function>unicode_bidi_cleanup</function>() or
+		  <function>unicode_bidi_extra_cleanup</function>(),
+		  to remove the characters from the string which are used
+		  by the bi-directional algorithm, and are not needed for
+		  rendering the text.
+		</para>
+	      </listitem>
+	    </orderedlist>
+
+	    <para>
+	      The parameters to
+	      <function>unicode_bidi_calc</function>() are:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  A pointer to the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  Number of characters in the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  A pointer to an array of
+		  <structname>unicode_bidi_level_t</structname> values.
+		  The caller is
+		  responsible for allocating and deallocating this array,
+		  which has the same size as the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  An optional pointer to a
+		  <literal>UNICODE_BIDI_LR</literal> or
+		  <literal>UNICODE_BIDI_RL</literal> value. This sets
+		  the default paragraph direction level.
+		  A null pointer computes the default paragraph direction
+		  level based on the string, as specified by the "P" rules
+		  of the bi-directional algorithm.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+
+	    <para>
+	      <function>unicode_bidi_calc</function>() fills in the
+	      <structname>unicode_bidi_level_t</structname> array with the
+	      values corresponding to the embedding level of the
+	      corresponding character,
+	      according the Unicode Bidirection Algorithm (even values for
+	      left-to-right ordering, and odd values for right-to-left
+	      ordering).
+	      A value of UNICODE_BIDI_SKIP designates directional markers
+	      (from step X9).
+	    </para>
+
+	    <para>
+	      <function>unicode_bidi_calc</function>() returns the resolved
+	      paragraph direction level, which
+	      always matches the passed in level, if specified, else it
+	      reports the
+	      derived one.
+	    </para>
+
+	    <para>
+	      <function>unicode_bidi_reorder</function>() takes the actual
+	      unicode string together with the embedding values from
+	      <function>unicode_bidi_calc</function>, then reverses the
+	      bi-directional string, as specified by step L2 of the bi-directional
+	      algorithm.
+	      The parameters to
+	      <function>unicode_bidi_reorder</function>() are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  A pointer to the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  A pointer to an array of
+		  <structname>unicode_bidi_level_t</structname> values.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  Number of characters in the Unicode string and the
+		  <structname>unicode_bidi_level_t</structname> array.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  An optional <varname>reorder_callback</varname> function
+		  pointer.
+		</para>
+	      </listitem>
+	    </itemizedlist>
 	    <para>
 	      A non-<literal>NULL</literal>
 	      <parameter>reorder_callback</parameter> gets invoked to report
@@ -434,13 +579,280 @@ See COPYING for distribution information.
 	      invokes the <parameter>reorder_callback</parameter> as if
 	      the character string, and their embedding values, were reversed.
 	    </para>
+
+	    <para>
+	      The resulting string and embedding levels are in
+	      <quote>rendering order</quote>, but still contain bi-directional
+	      embedding, override, boundary-neutral, isolate, and marker
+	      characters.
+	      <function>unicode_bidi_cleanup</function>() and
+	      <function>unicode_bidi_extra_cleanup</function>() remove these
+	      characters and directional markers from the unicode string.
+	      <function>unicode_bidi_cleanup</function> removes only the
+	      embedding, override, and  boundry-neutral characters (as
+	      specified by step X9 of the bi-directional algorithm).
+	      <function>unicode_bidi_extra_cleanup</function>()
+	      additionally removes the isolation markers, implicit markers;
+	      and all characters
+	      classified as paragraph separators get replaced by a newline.
+            </para>
+	    <para>
+	      A non-null pointer to the directional embedding level buffer,
+	      of the same size as the string, also removes the corresponding
+	      values from the buffer, and the remaining values in the
+	      embedding level buffer get reset to
+	      levels <literal>UNICODE_BIDI_LR</literal> and
+	      <literal> UNICODE_BIDI_RL</literal>, only.
+            </para>
+	    <para>
+	      The parameters to <function>unicode_bidi_cleanup</function>() and
+	      <function>unicode_bidi_extra_cleanup</function>() are:
+            </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  The pointer to the unicode string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The pointer to the directional embedding buffer.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The size of the unicode string and the directional embedding
+		  buffer.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  A pointer to a function that gets repeatedly invoked with the
+		  index of the character that gets removed from the Unicode
+		  string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  An opaque pointer that gets forwarded to the callback.
+                </para>
+              </listitem>
+            </itemizedlist>
+	    <para>
+	      The function pointer (if not <literal>NULL</literal>)
+	      gets invoked to report the index of each
+	      removed character. The reported index is the index from the
+	      original string, and the callback gets invoked in strict order,
+	      from the first to
+	      the last removed character (if any).
+            </para>
+	    <para>
+	      Multiple calls to <function>unicode_bidi_cleanup</function>() or
+	      <function>unicode_bidi_extra_cleanup</function>() do no harm;
+	      except that <function>unicode_bidi_extra_cleanup</function>()
+	      always removes all the additional characters that
+	      <function>unicode_bidi_cleanup</function>() does not remove.
+            </para>
+	    <para>
+	      The character string and the embedding level values resulting
+	      from <function>unicode_bidi_extra_cleanup</function>() are in
+	      <quote>canonical rendering order</quote>.
+            </para>
 	  </refsect2>
-	  <refsect2>
+
+	  <refsect2 id="unicode_bidi_embed">
+	    <title>Embedding bi-directional markers in Unicode text strings</title>
+            <para>
+	      <function>unicode_bidi_logical_order</function>() and
+	      <function>unicode_bidi_embed</function>() add various
+	      bi-directional markers to a Unicode string in canonical rendering
+	      order. The resulting string is not guaranteed to be
+	      identical to the
+	      original Unicode bi-directional string. The algorithm is fairly
+	      basic,
+	      but the resulting bi-directional string produces the same
+	      canonical rendering order after applying
+	      <function>unicode_bidi_calc()</function>,
+	      <function>unicode_reorder()</function> and
+	      <function>unicode_bidi_extra_cleanup()</function>,
+	      with the same paragraph_embedding level.
+            </para>
+
+	    <para>
+	      <function>unicode_bidi_logical_order</function>() gets called
+	      first, followed by
+	      <function>unicode_bidi_embed</function>().
+	      Finally, <function>unicode_bidi_embed_paragraph_level</function>()
+	      optionally determines whether the resulting string's default
+	      paragraph embedding level matches the one used for the actual
+	      embedding direction, and if not returns a directional marker
+	      to be prepended to the Unicode character string, as a hint.
+            </para>
+	    <para>
+	      <function>unicode_bidi_logical_order</function>() factors in the
+	      characters' embedding values, and the provided paragraph
+	      embedding value
+	      (<literal>UNICODE_BIDI_LR</literal> or
+	      <literal>UNICODE_BIDI_RL</literal>), and rearranges the characters
+	      and the embedding levels in left-to-right order, while
+	      simultaneously
+	      invoking the supplied reorder_callback indicating each range of
+	      characters whose relative order gets reversed. The
+	      <function>reorder_callback</function>() receives, as
+	      parameters:
+            </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  The starting index of the first reversed character, in the
+		  string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  Number of reversed characters.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  Forwarded <parameter>arg</parameter> pointer value.
+                </para>
+              </listitem>
+            </itemizedlist>
+	    <para>
+	      This specifies a consecutive range of characters (and
+	      directional  embedding values)
+	      that get reversed (first character in the range becomes the
+	      last character,
+	      and the last character becomes the first character).
+            </para>
+
+	    <para>
+	      After
+	      <function>unicode_bidi_logical_order</function>(),
+	      <function>unicode_bidi_embed</function>() progressively invokes
+	      the passed-in callback with
+	      the contents of a bi-directional unicode string.
+	      The parameters to <function>unicode_bidi_embed</function>() are:
+            </para>
+            <itemizedlist>
+	      <listitem>
+		<para>
+		  The Unicode string, and &hellip;
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  &hellip; the directional embedding buffer, in canonical
+		  rendering order.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The size of the string and the embedding level buffer.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The paragraph embedding level, either
+		  <literal>UNICODE_BIDI_LR</literal> or
+		  <literal>UNICODE_BIDI_RL</literal>.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The pointer to the callback function.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  An opaque pointer argument that gets forwarded to the
+		  callback function.
+                </para>
+              </listitem>
+            </itemizedlist>
+	    <para>
+	      The callback receives pointers to
+	      various parts of the original string that gets passed to
+	      <function>unicode_bidi_embed</function>(), intermixed with
+	      bi-directional markers,
+	      overrides, and isolates. The callback's parameters are:
+            </para>
+
+            <itemizedlist>
+	      <listitem>
+		<para>
+		  The pointer to a Unicode string.
+                </para>
+		<note>
+		  <para>
+		    It is not a given that the callback receives pointers
+		    to progressively increasing pointers of the original
+		    string that gets passed to
+		    <function>unicode_bidi_embed</function>().
+		    Some calls will be for individual bi-directional
+		    markers, and
+		    <function>unicode_bidi_embed</function>() also
+		    performs some additional internal reordering, on the fly,
+		    after <function>unicode_bidi_logical_order</function>()'s
+		    big hammer.
+                  </para>
+                </note>
+              </listitem>
+	      <listitem>
+		<para>
+		  Number of characters in the Unicode string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  Forwarded <parameter>arg</parameter> pointer value.
+                </para>
+              </listitem>
+            </itemizedlist>
+
+	    <para>
+	      The assembled unicode string should produce the same
+	      canonical rendering order, for the same paragraph embedding
+	      level.
+	      <function>unicode_bidi_embed_paragraph_level</function>()
+	      checks if the specified Unicode string computes the given
+	      default paragraph embedding level and returns 0 if it matches.
+	      Otherwise it returns a directional marker that should be
+	      <emphasis>prepended</emphasis> to the Unicode string to allow
+	      <function>unicode_bidi_calc</function>'s optional paragraph
+	      embedding level pointer's value to be <literal>NULL</literal>,
+	      but derive the same default embedding level.
+	      The parameters to
+	      <function>unicode_bidi_embed_paragraph_level</function>() are:
+            </para>
+            <itemizedlist>
+	      <listitem>
+		<para>
+		  The Unicode string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The size of the string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The paragraph embedding level, either
+		  <literal>UNICODE_BIDI_LR</literal> or
+		  <literal>UNICODE_BIDI_RL</literal>.
+                </para>
+              </listitem>
+	    </itemizedlist>
+          </refsect2>
+	  <refsect2 id="unicode_bidi_misc">
 	    <title>Miscellaneous utility functions</title>
 
 	    <para>
 	      <function>unicode_bidi_type</function>
-	      looks up each character's bidirectional character type.
+	      looks up each character's bi-directional character type.
 	    </para>
 	    <para>
 	      <function>unicode_bidi_mirror</function>
@@ -464,7 +876,7 @@ See COPYING for distribution information.
 	    </para>
 	  </refsect2>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="courier_unicode_bidi_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html">TR-9</ulink>,
@@ -502,7 +914,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_canonical_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -552,7 +964,7 @@ See COPYING for distribution information.
 	    equivalence.
 	  </para>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_canonical_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <ulink url="https://www.unicode.org/reports/tr15/tr15-&tr15ver;.html">TR-15</ulink>,
@@ -641,7 +1053,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_category_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -783,7 +1195,7 @@ See COPYING for distribution information.
 	    </varlistentry>
 	  </variablelist>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_category_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -950,7 +1362,7 @@ See COPYING for distribution information.
 
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_convert_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -1040,7 +1452,7 @@ See COPYING for distribution information.
 	  </para>
 
 
-	  <refsect2>
+	  <refsect2 id="unicode_convert_collect">
 	    <title>Collecting converted text into a buffer</title>
 
 	    <para>
@@ -1097,7 +1509,7 @@ See COPYING for distribution information.
 	    </para>
 	  </refsect2>
 
-	  <refsect2>
+	  <refsect2 id="unicode_convert_chset_unicode">
 	    <title>Converting between character sets and unicode</title>
 
 	    <para>
@@ -1126,7 +1538,7 @@ See COPYING for distribution information.
 	    </para>
 	  </refsect2>
 
-	  <refsect2>
+	  <refsect2 id="unicode_convert_oneshot">
 	    <title>One-shot conversions</title>
 
 	    <para>
@@ -1175,7 +1587,7 @@ See COPYING for distribution information.
 	    </para>
 	  </refsect2>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_convert_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -1220,7 +1632,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_default_chset_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    <function>unicode_default_chset</function>() returns the name of the
@@ -1231,7 +1643,7 @@ See COPYING for distribution information.
 	    current application locale's character set.
 	  </para>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_default_chset_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -1316,7 +1728,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_emoji_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    <function>unicode_emoji_lookup</function>() returns the
@@ -1334,7 +1746,7 @@ See COPYING for distribution information.
 	    character has the corresponding property.
 	  </para>
         </refsect1>
-	<refsect1>
+	<refsect1 id="unicode_emoji_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <ulink url="https://www.unicode.org/reports/tr51/tr51-&tr51ver;.html">TR-51</ulink>,
@@ -1368,7 +1780,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_html40_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    <function>unicode_html40ent_lookup</function>() returns the
@@ -1392,7 +1804,7 @@ See COPYING for distribution information.
 	    a single unicode character.
 	  </para>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_html40_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -1448,7 +1860,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_grapheme_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -1489,7 +1901,7 @@ See COPYING for distribution information.
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_grapheme_seealso">
 	  <title>SEE ALSO</title>
 
 	  <para>
@@ -1600,7 +2012,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_lb_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    These functions implement the unicode line breaking algorithm.
@@ -1730,7 +2142,7 @@ See COPYING for distribution information.
 	    line breaking handle is no longer valid.
 	  </para>
 
-	  <refsect2>
+	  <refsect2 id="unicode_lb_altcallback">
 	    <title>Alternative callback function</title>
 
 	    <para>
@@ -1745,7 +2157,7 @@ See COPYING for distribution information.
 	    </para>
 	  </refsect2>
 
-	  <refsect2>
+	  <refsect2 id="unicode_lb_altcallback_opt">
 	    <title>Options</title>
 
 	    <para>
@@ -1822,7 +2234,7 @@ See COPYING for distribution information.
 	  </refsect2>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_lb_seealso">
 	  <title>SEE ALSO</title>
 
 	  <para>
@@ -1859,7 +2271,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_script_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    <function>unicode_script</function>() looks up the
@@ -1871,7 +2283,7 @@ See COPYING for distribution information.
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_script_seealso">
 	  <title>SEE ALSO</title>
 
 	  <para>
@@ -1949,7 +2361,7 @@ See COPYING for distribution information.
 
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_wb_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    These functions implement the unicode word breaking algorithm.
@@ -2046,7 +2458,7 @@ See COPYING for distribution information.
 	    line breaking handle is no longer valid.
 	  </para>
 
-	  <refsect2>
+	  <refsect2 id="unicode_wb_scan">
 	    <title>Word scan</title>
 
 	    <para>
@@ -2075,7 +2487,7 @@ See COPYING for distribution information.
 	  </refsect2>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_wb_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <ulink url="https://www.unicode.org/reports/tr29/tr29-&tr29ver;.html">TR-29</ulink>,
@@ -2144,7 +2556,7 @@ See COPYING for distribution information.
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
-	<refsect1>
+	<refsect1 id="unicode_uc_descr">
 	  <title>DESCRIPTION</title>
 	  <para>
 	    <function>unicode_uc</function>(),
@@ -2174,7 +2586,7 @@ See COPYING for distribution information.
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_uc_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2223,94 +2635,162 @@ See COPYING for distribution information.
 	<refnamediv>
 	  <refname>unicode::bidi_calc</refname>
 	  <refname>unicode::bidi_reorder</refname>
-	  <refpurpose>unicode bidirectional algorithm</refpurpose>
+	  <refname>unicode::bidi_cleanup</refname>
+	  <refname>unicode::bidi_extra_cleanup</refname>
+	  <refname>unicode::bidi_logical_order</refname>
+	  <refname>unicode::bidi_embed</refname>
+	  <refname>unicode::bidi_embed_paragraph_level</refname>
+	  <refpurpose>unicode bi-directional algorithm</refpurpose>
 	</refnamediv>
 
 	<refsynopsisdiv>
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
-              <funcdef>std::vector&lt;unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
 	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
 	    </funcprototype>
-	  </funcsynopsis>
 
-	  <funcsynopsis>
 	    <funcprototype>
-              <funcdef>std::vector&lt;unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
 	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>embedding_level</parameter></paramdef>
 	    </funcprototype>
-	  </funcsynopsis>
 
-	  <funcsynopsis>
 	    <funcprototype>
               <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
 	    </funcprototype>
-	  </funcsynopsis>
 
-	  <funcsynopsis>
 	    <funcprototype>
-              <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
+              <funcdef>void <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
 	    </funcprototype>
-	  </funcsynopsis>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::bidi_cleanup</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_cleanup</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::bidi_extra_cleanup</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_extra_cleanup</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_logical_order</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::bidi_logical_order</function></funcdef>
+	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_embed</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, const char32_t *, size_t) noexcept&gt; &amp;<parameter>callback</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::u32string <function>unicode::bidi_embed</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>char32_t <function>unicode_bidi_embed_paragraph_level</function></funcdef>
+              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+	    </funcprototype>
+          </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_bidi_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
 	    These functions implement the C++ interface for the
-	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html"> Unicode Bi-directional algorithm</ulink>.
+	    <ulink url="https://www.unicode.org/reports/tr9/tr9-&tr9ver;.html"> Unicode Bi-Directional algorithm</ulink>.
 	    See the description of the underlying
 	    <link linkend="unicode_bidi">
 	      <citerefentry><refentrytitle>unicode_bidi</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link> C library
-	      API for more information.
+	      API for more information. C++ specific notes:
 	  </para>
 
-	  <para>
-            <function>unicode::bidi_calc</function> computes and return a vector
-	    of bidirection embedding level values for the given Unicode string.
-	    An overload takes an additional parameter that override the
-	    paragraph embedding level, a <literal>UNICODE_BIDI_LR</literal> or
-            an <literal>UNICODE_BIDI_RL</literal> value.
-          </para>
-	  <para>
-            <function>unicode::bidi_reorder</function> reverses the characters
-	    in the Unicode script, according to their embedding levels (and
-	    reverses the corresponding embedding level values too).
-	    As is with the C API, an optional parameter is a callable object
-	    that gets invoked to report each range of characters that gets
-	    reversed (specified as the starting position and a number of
-	    characters).
-          </para>
-	  <para>
-	    An overloaded <function>unicode::bidi_reorder</function> without
-	    the string parameter goes through the motions, according to the
-	    embedded level vector parameter, but without actually reversing
-	    the values in the vector, but still invoking the callable object
-	    normally.
-          </para>
-	  <para>
-	    This is comparable to the C API. Also comparable with the C API:
-	    the convention that even embedding levels specify left to right
-	    text and odd embedding values specify right to left text.
-	    An embedding value of <literal>UNICODE_BIDI_SKIP</literal>
-	    indicates an embedding or an override marker that has no
-	    specified embeded value. These markers may be removed from the
-	    Unicode string (together with the
-	    <literal>UNICODE_BIDI_SKIP</literal>
-	    values from the embedding values vector) either before or after
-	    they get reordered.
-	  </para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+                <function>unicode::bidi_calc</function> returns the
+		directional embedding value buffer and the paragraph
+		embedding level.
+              </para>
+            </listitem>
+	    <listitem>
+	      <para>
+		Several C functions provide a <quote>dry-run</quote> mode
+		by passing a <literal>NULL</literal> pointer. The C++ API
+		provides separate overloads, with and without the nullable
+		parameter.
+              </para>
+            </listitem>
+	    <listitem>
+	      <para>
+		Several C functions accept a nullable function pointer, with
+		the <literal>NULL</literal> function pointer specifying no
+		callback. The C++ functions have a
+		<classname>std::function</classname> parameter with a
+		default do-nothing closure.
+              </para>
+            </listitem>
+
+	    <listitem>
+	      <para>
+		Several C functions accept two parameters, a Unicode character
+		pointer and the embedding level buffer, and a single parameter
+		that specifies the size of both.
+		The equivalent C++ function takes two discrete parameters,
+		a <classname>std::u32string</classname> and a
+		<classname>std::vector</classname> and returns an
+		<classname>int</classname>; a negative value if their sizes
+		differ, and 0 if their sizes match, and the requested function
+		completes. The <function>unicode::bidi_embed</function> overload
+		that returns a <classname>std::u32string</classname> returns
+		an empty string in case of a mismatch.
+              </para>
+            </listitem>
+          </itemizedlist>
 	</refsect1>
-	<refsect1>
+	<refsect1 id="unicode_cpp_bidi_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2389,7 +2869,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -2447,7 +2927,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2505,7 +2985,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_tocase_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -2537,7 +3017,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_tocase_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2602,7 +3082,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_fromu_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -2634,7 +3114,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_fromu_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2698,7 +3178,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_tou_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -2733,7 +3213,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_convert_tou_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -2846,7 +3326,7 @@ std::vector&lt;std::pair&lt;int, char32_t&gt;&gt; linebreaks;
 std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt;&gt;(linebreaks));</programlisting>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_lb_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -2941,7 +3421,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_lb_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -3012,7 +3492,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	  </funcsynopsis>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_tolower_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -3040,7 +3520,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_tolower_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">
@@ -3104,7 +3584,7 @@ size_t nchars=scan.finish();
 </programlisting>
 	</refsynopsisdiv>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_wb_descr">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -3168,7 +3648,7 @@ size_t nchars=scan.finish();
 	  </para>
 	</refsect1>
 
-	<refsect1>
+	<refsect1 id="unicode_cpp_wb_seealso">
 	  <title>SEE ALSO</title>
 	  <para>
 	    <link linkend="courier-unicode">

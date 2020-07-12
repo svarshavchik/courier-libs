@@ -44,7 +44,7 @@ code.computeroutput div.literallayout {
     font-weight: bold;
 }
 
-.command, .acronym, .symbol {
+.command, .acronym, .symbol, .structname {
     font-family: "liberation mono", "courier new", monospace;
     background-color: #eeeeee;
 }

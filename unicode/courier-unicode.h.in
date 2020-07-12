@@ -536,65 +536,6 @@ int unicode_wbscan_next(unicode_wbscan_info_t i, char32_t ch);
 
 size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 
-/*
-** Unicode Bidirectional bracket and mirroring lookup
-**
-** http://www.unicode.org/reports/tr9/tr9-42.html
-**
-** unicode_bidi_mirror() returns the Bidi_Mirroring_Glyph property.
-**
-** If there is no mirroring glyph for the given character, returns the
-** same character.
-**
-** unicode_bidi_bracket_type() looks up the Bidi_Paired_Bracket and
-** Bidi_Paired_Bracket_Type properties.
-**
-** unicode_bidi_bracket_type() returns the Bidi_Paired_Bracket property
-** value. If the ret parameter is not a null pointer, the pointed-to
-** value is set to Bidi_Paired_Bracket_Type value, one of the UNICODE_BIDI
-** values.
-**
-** unicode_bidi_bracket_type() returns the same character and
-** UNICODE_BIDI_n if the given character does not have these properties.
-**
-** unicode_bidi_type() looks up the bidirectional character type of the
-** given Unicode character.
-**
-** unicode_bidi_calc() implements the Unicode Bidirectional Algorithm up to
-** step L1.
-**
-** Parameters:
-**
-** - A pointer to char32_t, the Unicode string.
-**
-** - Number of characters in the char32_t string
-**
-** - A pointer to an array of unicode_bidi_level_t values. The caller is
-** responsible for allocating and deallocating this array, which has the
-** same size as the Unicode string (the second parameter).
-**
-** - An optional pointer to a unicode_bidi_level_t value, or a null pointer.
-** A pointer to UNICODE_BIDI_LR or UNICODE_BIDI_RL sets the default paragraph
-** direction level. A null pointer calculates the default paragraph direction
-** level based on the string, as specified by the "P" rules in the algorithm.
-**
-** unicode_bidi_calc() fills in the unicode_bidi_level_t array with the
-** values corresponding to the embedding level of the corresponding character,
-** as specified in the Unicode Bidirection Algorithm (even for left-to-right,
-** and odd for right-to-left). A value of UNICODE_BIDI_SKIP designates
-** directional markers (from step X9). These characters should be removed
-** before using unicode_bidi_reorder().
-**
-** unicode_bidi_calc() returns the resolved paragraph direction level, which
-** always matches the passed in level, if specified, else it reports the
-** derived one.
-**
-** unicode_bidi_reorder() reorders the characters according to the resolved
-** embedding levels. A non-null reorder_callback gets invoked repeatedly,
-** indicating the starting index and the number of characters reversed, so
-** that any related metadata can be updated accordingly.
-*/
-
 typedef char unicode_bidi_bracket_type_t;
 
 #define UNICODE_BIDI_n  'n'
@@ -653,6 +594,40 @@ typedef enum {
 } enum_bidi_type_t;
 
 extern enum_bidi_type_t unicode_bidi_type(char32_t c);
+
+extern size_t unicode_bidi_cleanup(char32_t *string,
+				   unicode_bidi_level_t *levels,
+				   size_t n,
+				   void (*removed_callback)(size_t, void *),
+				   void *);
+
+extern size_t unicode_bidi_extra_cleanup(char32_t *string,
+					 unicode_bidi_level_t *levels,
+					 size_t n,
+					 void (*removed_callback)(size_t,
+								  void *),
+					 void *);
+
+extern void unicode_bidi_logical_order(char32_t *string,
+				       unicode_bidi_level_t *levels,
+				       size_t n,
+				       unicode_bidi_level_t paragraph_embedding,
+				       void (*reorder_callback)(size_t, size_t,
+								void *),
+				       void *arg);
+
+extern void unicode_bidi_embed(const char32_t *string,
+			       const unicode_bidi_level_t *levels,
+			       size_t n,
+			       unicode_bidi_level_t paragraph_embedding,
+			       void (*emit)(const char32_t *string,
+					    size_t n,
+					    void *arg),
+			       void *arg);
+
+extern char32_t unicode_bidi_embed_paragraph_level(const char32_t *str,
+						   size_t n,
+						   unicode_bidi_level_t);
 
 /*
 ** unicode_canonical() returns the canonical mapping of the given Unicode
@@ -2117,24 +2092,124 @@ std::u32string tolower(const std::u32string &u);
 std::u32string toupper(const std::u32string &u);
 
 //! Calculate bidirectional embedding levels
+
+//! Returns the bidirectional embedding levels, and the paragraph
+//! embedding level.
+
 std::tuple<std::vector<unicode_bidi_level_t>,
 	   unicode_bidi_level_t> bidi_calc(const std::u32string &s);
 
 //! Calculate bidirectional embedding levels
+
+//! Overload calculates the embedding levels using a predetermined
+//! paragraph embedding level.
+//!
+//! Returns the bidirectional embedding levels, and the same paragraph
+//! embedding level.
+
 std::tuple<std::vector<unicode_bidi_level_t>,
 	   unicode_bidi_level_t> bidi_calc(const std::u32string &s,
 					   unicode_bidi_level_t level);
 
 //! Reorder bidirectional text
+
+//! Reorders the string and levels in place.
+//!
+//! Non-0 return value indicates the string and levels' sizes do not match.
+
 int bidi_reorder(std::u32string &string,
 		 std::vector<unicode_bidi_level_t> &levels,
-		 const std::function<void (size_t, size_t)> &reorder_callback=
-		 [](size_t, size_t){});
+		 const std::function<void (size_t, size_t) noexcept>
+		 &reorder_callback=[](size_t, size_t) noexcept{});
 
-//! Reorder bidirectional text
+//! Dry-run reorder bidirectional text
 void bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
-		  const std::function<void (size_t, size_t)> &reorder_callback=
-		  [](size_t, size_t){});
+		  const std::function<void (size_t, size_t) noexcept>
+		  &reorder_callback=[](size_t, size_t) noexcept{});
+
+//! Remove directional markers
+
+//! Removes them from the string, in place. Optional lambda gets notified
+//! of the index (in the original string, of each removed marker.
+
+void bidi_cleanup(std::u32string &string,
+		  const std::function<void (size_t) noexcept> &removed_callback=
+		  [](size_t) noexcept {});
+
+//! Also remove them from the embedding direction level buffer.
+
+//! Returns non-0 in case of non-matching level buffer size.
+
+int bidi_cleanup(std::u32string &string,
+		 std::vector<unicode_bidi_level_t> &levels,
+		 const std::function<void (size_t) noexcept> &removed_callback=
+		  [](size_t) noexcept {});
+
+
+//! Remove directional markers and isolation markers.
+
+//! Removes them from the string, in place. Optional lambda gets notified
+//! of the index (in the original string, of each removed marker.
+
+void bidi_extra_cleanup(std::u32string &string,
+			const std::function<void (size_t) noexcept>
+			&removed_callback=
+			[](size_t) noexcept {});
+
+//! Also remove them from the embedding direction level buffer.
+
+//! Returns non-0 in case of non-matching level buffer size.
+
+int bidi_extra_cleanup(std::u32string &string,
+		       std::vector<unicode_bidi_level_t> &levels,
+		       const std::function<void (size_t) noexcept>
+		       &removed_callback=
+		       [](size_t) noexcept {});
+
+//! Convert Unicode string from canonical rendering order to logical order.
+int bidi_logical_order(std::u32string &string,
+		       std::vector<unicode_bidi_level_t> &levels,
+		       unicode_bidi_level_t paragraph_embedding,
+		       const std::function<void (size_t, size_t) noexcept>
+		       &lambda=[](size_t,size_t){});
+
+//! Convert Unicode string from canonical rendering order to logical order.
+void bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
+			unicode_bidi_level_t paragraph_embedding,
+			const std::function<void (size_t, size_t) noexcept>
+			&lambda);
+
+//! Embed directional and isolation markers
+
+//! Non-0 return value indicates the string and levels' sizes do not match.
+//!
+//! The lambda gets called repeatedly, to specify the contents of the
+//! string with embedded direction markers.
+
+int bidi_embed(const std::u32string &string,
+	       const std::vector<unicode_bidi_level_t> &levels,
+	       unicode_bidi_level_t paragraph_embedding,
+	       const std::function<void (const char32_t *string,
+					 size_t n) noexcept> &lambda);
+
+//! Embed directional and isolation markers
+
+//! \overload
+//!
+//! Provides a lambda that collects the new string, and returns it. An
+//! empty string gets returned if the string and levels' sizes do not match.
+
+std::u32string bidi_embed(const std::u32string &string,
+			  const std::vector<unicode_bidi_level_t> &levels,
+			  unicode_bidi_level_t paragraph_embedding);
+
+//! Check if a directional marker needs to be inserted
+
+//! In order for the unicode string to have the specified default
+//! paragraph embedding level.
+
+extern char32_t bidi_embed_paragraph_level(const std::u32string &string,
+					   unicode_bidi_level_t level);
 
 #if 0
 {

@@ -90,6 +90,11 @@ include_HEADERS=courier-unicode.h \
 man_MANS= \
         $(srcdir)/man/courier-unicode.7 \
         $(srcdir)/man/unicode\:\:bidi_calc.3 \
+        $(srcdir)/man/unicode\:\:bidi_cleanup.3 \
+        $(srcdir)/man/unicode\:\:bidi_embed.3 \
+        $(srcdir)/man/unicode\:\:bidi_embed_paragraph_level.3 \
+        $(srcdir)/man/unicode\:\:bidi_extra_cleanup.3 \
+        $(srcdir)/man/unicode\:\:bidi_logical_order.3 \
         $(srcdir)/man/unicode\:\:bidi_reorder.3 \
         $(srcdir)/man/unicode\:\:iconvert\:\:convert.3 \
         $(srcdir)/man/unicode\:\:iconvert\:\:convert_tocase.3 \
@@ -110,8 +115,14 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi.3 \
         $(srcdir)/man/unicode_bidi_bracket_type.3 \
         $(srcdir)/man/unicode_bidi_calc.3 \
+        $(srcdir)/man/unicode_bidi_cleanup.3 \
+        $(srcdir)/man/unicode_bidi_embed.3 \
+        $(srcdir)/man/unicode_bidi_embed_paragraph_level.3 \
+        $(srcdir)/man/unicode_bidi_extra_cleanup.3 \
+        $(srcdir)/man/unicode_bidi_logical_order.3 \
         $(srcdir)/man/unicode_bidi_mirror.3 \
         $(srcdir)/man/unicode_bidi_reorder.3 \
+        $(srcdir)/man/unicode_bidi_type.3 \
         $(srcdir)/man/unicode_canonical.3 \
         $(srcdir)/man/unicode_category_lookup.3 \
         $(srcdir)/man/unicode_convert.3 \
