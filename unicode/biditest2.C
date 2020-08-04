@@ -416,14 +416,15 @@ void character_test()
 				std::cerr << " ";
 
 				switch (c) {
-				case LRM: std::cerr << "LRM"; break;
-				case RLM: std::cerr << "RLM"; break;
-				case RLI: std::cerr << "RLI"; break;
-				case LRI: std::cerr << "LRI"; break;
-				case RLO: std::cerr << "RLO"; break;
-				case LRO: std::cerr << "LRO"; break;
-				case PDF: std::cerr << "PDF"; break;
-				case PDI: std::cerr << "PDI"; break;
+				case UNICODE_LRM: std::cerr << "LRM"; break;
+				case UNICODE_RLM: std::cerr << "RLM"; break;
+				case UNICODE_ALM: std::cerr << "ALM"; break;
+				case UNICODE_RLI: std::cerr << "RLI"; break;
+				case UNICODE_LRI: std::cerr << "LRI"; break;
+				case UNICODE_RLO: std::cerr << "RLO"; break;
+				case UNICODE_LRO: std::cerr << "LRO"; break;
+				case UNICODE_PDF: std::cerr << "PDF"; break;
+				case UNICODE_PDI: std::cerr << "PDI"; break;
 				default:
 					std::cerr << std::hex << std::setw(4)
 						  << std::setfill('0')

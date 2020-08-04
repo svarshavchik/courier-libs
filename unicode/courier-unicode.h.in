@@ -536,6 +536,19 @@ int unicode_wbscan_next(unicode_wbscan_info_t i, char32_t ch);
 
 size_t unicode_wbscan_end(unicode_wbscan_info_t i);
 
+/* Unicode directional markers */
+
+#define UNICODE_LRM	0x200E /* Left-to-right marker */
+#define UNICODE_RLM	0x200F /* Right-to-left marker */
+#define UNICODE_ALM	0x061C /* Right-to-left Arabic marker */
+#define UNICODE_LRI	0x2066 /* Left-to-right isolate */
+#define UNICODE_RLI	0x2067 /* Right-to-left isolate */
+#define UNICODE_PDI	0x2069 /* Pop isolate */
+#define UNICODE_RLO	0x202e /* Right-to-left override */
+#define UNICODE_LRO	0x202d /* Left-to-right override */
+#define UNICODE_PDF	0x202c /* Pop directional override */
+
+
 typedef char unicode_bidi_bracket_type_t;
 
 #define UNICODE_BIDI_n  'n'

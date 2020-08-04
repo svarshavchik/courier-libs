@@ -2029,10 +2029,6 @@ void unicode_bidi_reorder(char32_t *p,
 	level_run_layers_deinit(&layers);
 }
 
-#define LRM	0x200E
-#define RLM	0x200F
-#define ALM	0x061C
-
 size_t unicode_bidi_cleanup(char32_t *string,
 			    unicode_bidi_level_t *levels,
 			    size_t n,
@@ -2069,9 +2065,9 @@ size_t unicode_bidi_extra_cleanup(char32_t *string,
 		enum_bidi_type_t cl=unicode_bidi_type(string[j]);
 
 		if (is_explicit_indicator_except_b(cl) ||
-		    (string[j] == LRM ||
-		     string[j] == RLM ||
-		     string[j] == ALM))
+		    (string[j] == UNICODE_LRM ||
+		     string[j] == UNICODE_RLM ||
+		     string[j] == UNICODE_ALM))
 		{
 			if (removed_callback)
 				(*removed_callback)(j, arg);
@@ -2189,15 +2185,8 @@ static void compute_bidi_embed_levelruns(const char32_t *string,
 	}
 }
 
-#define RLI 0x2067
-#define LRI 0x2066
-#define RLO 0x202e
-#define LRO 0x202d
-#define PDF 0x202c
-#define PDI 0x2069
-
 /*
-** Whether a directional marker and a PDI is required to be generated after
+** Whether a directional marker and a UNICODE_PDI is required to be generated after
 ** some subset of characters.
 */
 
@@ -2268,14 +2257,14 @@ static void emit_marker(struct bidi_embed_levelrun *p,
 				     void *arg),
 			void *arg)
 {
-	char32_t marker= (p->level & 1) ? RLM:LRM;
+	char32_t marker= (p->level & 1) ? UNICODE_RLM:UNICODE_LRM;
 
 	if (info->need_marker)
 		(*emit)(&marker, 1, arg);
 
 	if (info->need_pdi)
 	{
-		marker=PDI;
+		marker=UNICODE_PDI;
 		(*emit)(&marker, 1, arg);
 	}
 }
@@ -2573,7 +2562,7 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 	/*
 	** Sequence in the opposite direction always get isolated.
 	*/
-	char32_t override_start=run->level ? RLI:LRI;
+	char32_t override_start=run->level ? UNICODE_RLI:UNICODE_LRI;
 
 	if (run->level != paragraph_level)
 		(*emit)(&override_start, 1, arg);
@@ -2592,8 +2581,8 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 		emit_marker(run, &need_marker, emit, arg);
 	}
 
-	override_start=run->level ? RLO:LRO;
-	char32_t override_end=PDF;
+	override_start=run->level ? UNICODE_RLO:UNICODE_LRO;
+	char32_t override_end=UNICODE_PDF;
 
 	size_t start=run->start;
 	size_t end=run->end;
@@ -2648,7 +2637,7 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 			** up to the start of this "word".
 			**
 			** Then emit the RLO or LRO, then look for the end
-			** of the "word", and drop the PDF there.
+			** of the "word", and drop the UNICODE_PDF there.
 			*/
 			if (word_start > start)
 				(*emit)(string+start,
@@ -2727,5 +2716,5 @@ char32_t unicode_bidi_embed_paragraph_level(const char32_t *str,
 	      &info) ^ paragraph_level) == 0)
 		return 0;
 
-	return (paragraph_level & 1) ? RLM:LRM;
+	return (paragraph_level & 1) ? UNICODE_RLM:UNICODE_LRM;
 }
