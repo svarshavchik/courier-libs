@@ -55,19 +55,36 @@ AC_DEFUN([AX_COURIER_UNICODE_VERSION],[
 
 AC_MSG_CHECKING(courier-unicode library and version)
 
+v="$1"
+
+if test "$v" = ""
+then
+	v=2.2
+fi
+
+set -- `echo "$v" | tr '.' ' '`
+
+v=$[]1
+r=$[]2
+p=$[]3
+
+if test "$p" = ""
+   then p="0"
+fi
+
 AC_TRY_COMPILE([
 #include <courier-unicode.h>
 #ifndef COURIER_UNICODE_VERSION
 #define COURIER_UNICODE_VERSION 0
 #endif
 
-#if COURIER_UNICODE_VERSION < 220
-#error "courier-unicode 2.2 library is required"
+#if COURIER_UNICODE_VERSION < ]$v$r$p[
+#error "courier-unicode ]$1[ library is required"
 #endif
 
 ],[],[],
 AC_MSG_ERROR([
-ERROR: The Courier Unicode Library 2.2 header files appear not to be installed.
+ERROR: The Courier Unicode Library ]$1[ header files appear not to be installed.
 You may need to upgrade the library or install a separate development
 subpackage in addition to the main package.])
 )
