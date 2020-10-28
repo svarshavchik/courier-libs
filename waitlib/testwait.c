@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2006 Double Precision, Inc.
+** Copyright 1998 - 2020 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -10,17 +10,24 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<signal.h>
+#include	<pthread.h>
 
 /* Stress test waitlib.c */
 
 #define	NUMCHILDREN	100		/* Start 100 child processes */
 #define	INITCHILDREN	10		/* Start with these many child procs */
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 static unsigned started, finished;
 
 static void reap_child(pid_t p, int dummy)
 {
+	pthread_mutex_lock(&mutex);
 	++finished;
+	pthread_cond_signal(&cond);
+	pthread_mutex_unlock(&mutex);
 }
 
 static RETSIGTYPE sighandler(int sig)
@@ -87,13 +94,16 @@ char	c;
 		; /* Shut gcc up */
 	close(pipefd[1]);
 	close(pipefd2[0]);
-
 	while (started < NUMCHILDREN)
 		if (start_child() == 0)
 			_exit(0);
 
 	alarm(30);
+	pthread_mutex_lock(&mutex);
 	while (finished < started)
-		foobar();
+	{
+		pthread_cond_wait(&cond, &mutex);
+	}
+	pthread_mutex_unlock(&mutex);
 	exit(0);
 }
