@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2000-2015 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2000-2020 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry>
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -122,9 +122,9 @@ information.</para>
       </varlistentry>
 
       <varlistentry>
-	<term>-block=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>][,<replaceable>msg</replaceable>]]
+	<term>-block=<replaceable>zone</replaceable>[=<replaceable>display_zone</replaceable>][,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>][,<replaceable>msg</replaceable>]]
 	  or
-	-allow=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>[,]]]</term>
+	-allow=<replaceable>zone</replaceable>[=<replaceable>display_zone</replaceable>][,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>[,]]]</term>
 	<listitem>
 	  <para>
 Initialize the environment variable <replaceable>var</replaceable> if both of
@@ -681,6 +681,15 @@ file, the entry for the most specific IP address.</para>
       </para>
 
       <para>
+	An optional <quote>=<replaceable>display_zone</replaceable></quote>
+	follows the DNS zone. This sets the contents of
+	<varname>BLOCK_ZONE</varname> DNS access list variable (see
+	below), which defaults to the DNS zone name. This is only useful
+	with <option>-allow</option>, since <option>-block</option> rejects
+	the message, so nothing gets set anyway.
+      </para>
+
+      <para>
 	For IPv6 addresses, the DNS query consists of individual hexadecimal
 	nybbles (in reverse order, like the IPv4 query).
       </para>
@@ -887,7 +896,8 @@ file, the entry for the most specific IP address.</para>
 	  <term>BLOCK_ZONE</term>
 	  <para>
 	    The DNS zone of the succesfull access list lookup, like
-	    <quote>dnsbl.example.com</quote>.
+	    <quote>dnsbl.example.com</quote>, or an explicit
+	    display zone name.
 	  </para>
 	</varlistentry>
       </variablelist>
