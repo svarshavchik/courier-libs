@@ -2374,7 +2374,7 @@ void unicode_bidi_embed(const char32_t *string,
 
 #ifdef BIDI_DEBUG
 			fprintf(DEBUGDUMP, "    need marker=%d\n",
-				need_marker);
+				need_marker.need_marker);
 #endif
 
 			while (p->start < p->end)

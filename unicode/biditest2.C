@@ -337,6 +337,8 @@ void character_test()
 				case UNICODE_BIDI_TYPE_S:
 				case UNICODE_BIDI_TYPE_B:
 					levels.at(i)=paragraph;
+				default:
+					break;
 				}
 			}
 

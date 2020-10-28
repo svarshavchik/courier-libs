@@ -2132,13 +2132,13 @@ std::tuple<std::vector<unicode_bidi_level_t>,
 
 int bidi_reorder(std::u32string &string,
 		 std::vector<unicode_bidi_level_t> &levels,
-		 const std::function<void (size_t, size_t) noexcept>
-		 &reorder_callback=[](size_t, size_t) noexcept{});
+		 const std::function<void (size_t, size_t)>
+		 &reorder_callback=[](size_t, size_t){});
 
 //! Dry-run reorder bidirectional text
 void bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
-		  const std::function<void (size_t, size_t) noexcept>
-		  &reorder_callback=[](size_t, size_t) noexcept{});
+		  const std::function<void (size_t, size_t)>
+		  &reorder_callback=[](size_t, size_t){});
 
 //! Remove directional markers
 
@@ -2146,8 +2146,8 @@ void bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
 //! of the index (in the original string, of each removed marker.
 
 void bidi_cleanup(std::u32string &string,
-		  const std::function<void (size_t) noexcept> &removed_callback=
-		  [](size_t) noexcept {});
+		  const std::function<void (size_t)> &removed_callback=
+		  [](size_t) {});
 
 //! Also remove them from the embedding direction level buffer.
 
@@ -2155,8 +2155,8 @@ void bidi_cleanup(std::u32string &string,
 
 int bidi_cleanup(std::u32string &string,
 		 std::vector<unicode_bidi_level_t> &levels,
-		 const std::function<void (size_t) noexcept> &removed_callback=
-		  [](size_t) noexcept {});
+		 const std::function<void (size_t)> &removed_callback=
+		  [](size_t) {});
 
 
 //! Remove directional markers and isolation markers.
@@ -2165,9 +2165,9 @@ int bidi_cleanup(std::u32string &string,
 //! of the index (in the original string, of each removed marker.
 
 void bidi_extra_cleanup(std::u32string &string,
-			const std::function<void (size_t) noexcept>
+			const std::function<void (size_t)>
 			&removed_callback=
-			[](size_t) noexcept {});
+			[](size_t) {});
 
 //! Also remove them from the embedding direction level buffer.
 
@@ -2175,21 +2175,21 @@ void bidi_extra_cleanup(std::u32string &string,
 
 int bidi_extra_cleanup(std::u32string &string,
 		       std::vector<unicode_bidi_level_t> &levels,
-		       const std::function<void (size_t) noexcept>
+		       const std::function<void (size_t)>
 		       &removed_callback=
-		       [](size_t) noexcept {});
+		       [](size_t) {});
 
 //! Convert Unicode string from canonical rendering order to logical order.
 int bidi_logical_order(std::u32string &string,
 		       std::vector<unicode_bidi_level_t> &levels,
 		       unicode_bidi_level_t paragraph_embedding,
-		       const std::function<void (size_t, size_t) noexcept>
+		       const std::function<void (size_t, size_t)>
 		       &lambda=[](size_t,size_t){});
 
 //! Convert Unicode string from canonical rendering order to logical order.
 void bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 			unicode_bidi_level_t paragraph_embedding,
-			const std::function<void (size_t, size_t) noexcept>
+			const std::function<void (size_t, size_t)>
 			&lambda);
 
 //! Embed directional and isolation markers
@@ -2203,7 +2203,7 @@ int bidi_embed(const std::u32string &string,
 	       const std::vector<unicode_bidi_level_t> &levels,
 	       unicode_bidi_level_t paragraph_embedding,
 	       const std::function<void (const char32_t *string,
-					 size_t n) noexcept> &lambda);
+					 size_t n)> &lambda);
 
 //! Embed directional and isolation markers
 
