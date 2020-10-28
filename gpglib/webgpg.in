@@ -1,7 +1,7 @@
 #! @SHELL@
 #
 #
-# Copyright 2001 Double Precision, Inc.  See COPYING for
+# Copyright 2001-2020 Double Precision, Inc.  See COPYING for
 # distribution information.
 #
 # This scripts initializes Maildir/gpg, enabling GPG code for the given
@@ -14,15 +14,24 @@ maildir="$1"
 # Sanity check
 
 test ! -d "$maildir" && echo "$maildir: not a directory" >&2 && exit 1
+test ! -d "$maildir/cur" && echo "$maildir: not a directory" >&2 && exit 1
+test ! -d "$maildir/new" && echo "$maildir: not a directory" >&2 && exit 1
+test ! -d "$maildir/tmp" && echo "$maildir: not a directory" >&2 && exit 1
 
 umask 077
-test -d "$maildir/gpg" && echo "$maildir/gpg: already exists" >&2 && exit 1
-test -f "$maildir/gpg/options" && echo "$maildir/gpg/options: already exists" >&2 && exit 1
 
-mkdir $maildir/gpg || exit 1
-cat >$maildir/gpg/options <<EOF
+mkdir -p $maildir/gpg || exit 1
 
-force-v3-sigs
+if test -f $maildir/gpg/options
+then
+	rm -f $maildir/gpg/options
+	echo "$maildir/gpg/options removed, installing gpg.conf"
+fi
+
+cat >$maildir/gpg/gpg.conf <<EOF
+
+use-agent
+pinentry-mode loopback
 escape-from-lines
 lock-once
 comment ""
@@ -30,10 +39,15 @@ no-secmem-warning
 
 EOF
 
+cat >$maildir/gpg/gpg-agent.conf <<EOF
+allow-loopback-pinentry
+EOF
+
 owner=`@PERL@ -e '@a=stat "'$maildir'"; print "$a[4]:$a[5]";'`
 
 chown -R $owner $maildir/gpg
 
-echo "$maildir/gpg/options created, please verify that the options are correct."
+echo "$maildir/gpg/gpg.conf and gpg-agent.conf created,"
+echo "please verify that the options are correct."
 
 echo "See INSTALL for more information."
