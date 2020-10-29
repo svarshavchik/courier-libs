@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2001-2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="rfc822">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -28,7 +28,7 @@ cc ... -lrfc822
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="rfc822_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -60,7 +60,7 @@ its logical components: names and E-mail addresses.</para>
 3) Allow some limited modifications of the parsed structure, and then
 convert it back into a text string.</para>
 
-    <refsect2>
+    <refsect2 id="rfc822_tokenizing_an_e_mail_header">
       <title>Tokenizing an E-mail header</title>
 
       <informalexample>
@@ -88,7 +88,7 @@ If <parameter moreinfo="none">err_func</parameter> argument, if not NULL, is a p
 to a callback
 function.  The function is called in the event that the E-mail header is
 corrupted to the point that it cannot even be parsed.  This is a rare instance
--- most forms of corruption are still valid at least on the lexical level. 
+-- most forms of corruption are still valid at least on the lexical level.
 The only time this error is reported is in the event of mismatched
 parenthesis, angle brackets, or quotes.  The callback function receives the
 <parameter moreinfo="none">header</parameter> pointer, an index to the syntax error in the
@@ -120,7 +120,7 @@ and they must remain valid.</para>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc822_extracting_e_mail_addresses">
       <title>Extracting E-mail addresses</title>
 
       <informalexample>
@@ -291,7 +291,7 @@ This happens with null addresses used as return addresses for delivery status
 notifications.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc822_working_with_e_mail_addresses">
       <title>Working with E-mail addresses</title>
       <informalexample>
 	<programlisting format="linespecific">
@@ -303,11 +303,11 @@ void rfc822tok_print(const struct rfc822token *list,
 void rfc822_print(const struct rfc822a *addrs,
         void (*print_func)(char, void *),
         void (*print_separator)(const char *, void *), void *callback_arg);
- 
+
 void rfc822_addrlist(const struct rfc822a *addrs,
                 void (*print_func)(char, void *),
                 void *callback_arg);
- 
+
 void rfc822_namelist(const struct rfc822a *addrs,
                 void (*print_func)(char, void *),
                 void *callback_arg);
@@ -422,7 +422,7 @@ newline characters.</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc822_working_with_dates">
       <title>Working with dates</title>
       <informalexample>
 	<programlisting format="linespecific">
@@ -449,7 +449,7 @@ which must be big enough to accommodate it.</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc822_working_with_8_bit_mime_encoded_headers">
       <title>Working with 8-bit MIME-encoded headers</title>
 
       <informalexample>
@@ -457,26 +457,26 @@ which must be big enough to accommodate it.</para>
 int error=rfc2047_decode(const char *text,
                 int (*callback_func)(const char *, int, const char *, void *),
                 void *callback_arg);
- 
+
 extern char *str=rfc2047_decode_simple(const char *text);
- 
+
 extern char *str=rfc2047_decode_enhanced(const char *text,
                 const char *charset);
- 
+
 void rfc2047_print(const struct rfc822a *a,
         const char *charset,
         void (*print_func)(char, void *),
         void (*print_separator)(const char *, void *), void *);
 
- 
+
 char *buffer=rfc2047_encode_str(const char *string,
                 const char *charset);
- 
+
 int error=rfc2047_encode_callback(const char *string,
         const char *charset,
         int (*func)(const char *, size_t, void *),
         void *callback_arg);
- 
+
 char *buffer=rfc2047_encode_header(const struct rfc822a *a,
         const char *charset);
 </programlisting>
@@ -561,8 +561,7 @@ equivalent to <function moreinfo="none">rfc822_getaddrs</function>(), followed b
 
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="rfc822_working_with_subjects">
       <title>Working with subjects</title>
 
       <informalexample>
@@ -614,7 +613,7 @@ is not converted to uppercase.</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="rfc822_see_also">
     <title>SEE ALSO</title>
 
     <para>

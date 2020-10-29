@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2003-2009 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildiracl">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -56,7 +56,7 @@
 
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="maildiracl_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -87,7 +87,8 @@ on setting up virtual shared folders.</para>
 
       </note>
 
-    <refsect2><title>ACL overview</title>
+      <refsect2 id="maildiracl_acl_overview">
+	<title>ACL overview</title>
 
       <para>
 ACLs provide a fine-grained mechanism for controlling
@@ -148,7 +149,7 @@ may add messages to this folder (either uploading them one by one,
 or copying messages from another folder).</para>
 	  </listitem>
 	</varlistentry>
-	
+
 	<varlistentry>
 	  <term>l</term>
 	  <listitem>
@@ -160,7 +161,7 @@ right on this folder, the folder is effectively invisible to
 <replaceable>identifier</replaceable>.</para>
 	  </listitem>
 	</varlistentry>
-	
+
 	<varlistentry>
 	  <term>r</term>
 	  <listitem>
@@ -173,7 +174,7 @@ knows the name of this folder, it can open it even if
 right on this folder.</para>
 	  </listitem>
 	</varlistentry>
-	
+
 	<varlistentry>
 	  <term>s</term>
 	  <listitem>
@@ -201,7 +202,7 @@ may change other status flags of messages in this folder.
 May also add or remove custom keywords on individual messages.</para>
 	  </listitem>
 	</varlistentry>
-	
+
 	<varlistentry>
 	  <term>x</term>
 	  <listitem>
@@ -213,7 +214,7 @@ mailbox's subfoler.</para>
 	</varlistentry>
       </variablelist>
 
-      <refsect3>
+      <refsect3 id="maildiracl_negative_rights">
 	<title>Negative rights</title>
 
 	<para>
@@ -227,7 +228,7 @@ applicable <replaceable>identifier</replaceable>, than subtracting any
 negative rights, as specified in the following section.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildiracl_identifiers">
 	<title>Identifiers</title>
 
 	<para>
@@ -330,7 +331,7 @@ seen/unseen, which requires additional rights).</para>
       </refsect3>
     </refsect2>
   </refsect1>
-  <refsect1>
+  <refsect1 id="maildiracl_options">
     <title>OPTIONS</title>
 
     <cmdsynopsis sepchar=" ">
@@ -459,7 +460,7 @@ This command computes access rights <quote>tom46</quote> has on
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildiracl_irrevocable_access_rights">
     <title>IRREVOCABLE ACCESS RIGHTS</title>
 
     <para>
@@ -471,7 +472,7 @@ Attempts to set access control lists, that do not include these minimum
 access rights, will be rejected.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildiracl_bugs">
     <title>BUGS</title>
 
     <para>
@@ -499,7 +500,7 @@ The <quote>ACL overview</quote> portion of this manual page is a
 parts of ACL2 that are not implemented.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildiracl_see_also">
     <title>SEE ALSO</title>
 
     <para>

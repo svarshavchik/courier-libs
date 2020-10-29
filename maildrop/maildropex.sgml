@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2010 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildropex">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -24,7 +24,7 @@
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="maildropex_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -45,7 +45,7 @@ are used when <command>maildrop</command> is
 invoked in embedded mode.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildropex_examples">
     <title>EXAMPLES</title>
 
     <para>
@@ -287,7 +287,7 @@ a list of everyone who sent you mail (of course, that can also be determined
 by examining your mailbox).</para>
 
   </refsect1>
-  <refsect1>
+  <refsect1 id="maildropex_see_also">
     <title>SEE ALSO</title>
 
     <para>

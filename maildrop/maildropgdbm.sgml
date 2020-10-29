@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildropgdbm">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -29,7 +29,7 @@ gdbmstore(key,value)
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="maildropgdbm_description">
     <title>DESCRIPTION</title>
     <para>
 The gdbm family of functions provides access to the GDBM library - a library
@@ -62,8 +62,7 @@ are unique. After storing an arbitrary key/value pair in the GDBM file, the
 value associated with the given key can be quickly located and
 retrieved.</para>
 
-    <refsect2>
-
+    <refsect2 id="maildropgdbm_gdbmclose___close_gdbm_file">
       <title>gdbmclose - close gdbm file</title>
 
       <blockquote>
@@ -78,7 +77,7 @@ gdbmclose
 This function closes the current GDBM file.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropgdbm_gdbmfetch___retrieve_data">
       <title>gdbmfetch - retrieve data</title>
 
       <blockquote>
@@ -170,7 +169,7 @@ of time to complete.</para>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropgdbm_gdbmopen___open_gdbm_file">
       <title>gdbmopen - open gdbm file</title>
 
       <blockquote>
@@ -244,8 +243,7 @@ The gdbmopen function returns 0 if the GDBM file was successfully opened,
 non-zero otherwise.</para>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropgdbm_gdbmstore___store_data">
       <title>gdbmstore - store data</title>
 
       <blockquote>

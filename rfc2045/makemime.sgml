@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2001-2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="makemime">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -27,7 +27,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="makemime_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -80,7 +80,7 @@ available to be used as an input file (which must be explicitly specified
 by one of the options). Of course, only one input file can come from a single
 pipe.</para>
 
-    <refsect2>
+    <refsect2 id="makemime_mime_overview">
 <title>MIME overview</title>
 
       <para>
@@ -182,7 +182,7 @@ sections also exist, and their usage is defined by their respective
 RFCs.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="makemime_creating_a_single_mime_section">
       <title>Creating a single MIME section</title>
 
       <cmdsynopsis sepchar=" ">
@@ -271,7 +271,7 @@ options must follow the <option>-c</option> option.</para>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="makemime_creating_a_multipart_mime_collection">
       <title>Creating a multipart MIME collection</title>
 
       <cmdsynopsis sepchar=" ">
@@ -309,7 +309,7 @@ The collection is written to standard output, or the pipe or
 to <replaceable>outputfile</replaceable>.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="makemime_creating_a_multipart_mime_section">
       <title>Creating a multipart MIME section</title>
 
       <cmdsynopsis sepchar=" ">
@@ -353,7 +353,7 @@ headers may confuse <command moreinfo="none">makemime</command>, and it may not 
 handle them.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="makemime_recursive_mime_collections">
 <title>Recursive MIME collections</title>
 
       <para>
@@ -413,7 +413,7 @@ Just add the
 course), and send it on its way.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="makemime_building_complex_mime_encodings">
       <title>Building complex MIME encodings</title>
 
       <para>
@@ -571,7 +571,7 @@ An equivalent argument file would be:</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="makemime_see_also">
     <title>SEE ALSO</title>
 
     <para>

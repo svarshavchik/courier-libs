@@ -72,12 +72,12 @@ int libmail_gpg_cleanup()
 	return (rc);
 }
 
-static char *optionfile(const char *gpgdir)
+static char *optionfile(const char *gpgdir, const char *suffix)
 {
-	char *p=malloc(strlen(gpgdir)+sizeof("/options"));
+	char *p=malloc(strlen(gpgdir)+strlen(suffix)+1);
 
 	if (p)
-		strcat(strcpy(p, gpgdir), "/options");
+		strcat(strcpy(p, gpgdir), suffix);
 	return (p);
 }
 
@@ -88,7 +88,7 @@ static char *optionfile(const char *gpgdir)
 
 int libmail_gpg_has_gpg(const char *gpgdir)
 {
-	char *p=optionfile(gpgdir);
+	char *p=optionfile(gpgdir, "/options");
 	struct stat stat_buf;
 	int rc;
 
@@ -97,6 +97,16 @@ int libmail_gpg_has_gpg(const char *gpgdir)
 
 	rc=stat(p, &stat_buf);
 	free(p);
+
+	if (rc)
+	{
+		p=optionfile(gpgdir, "/gpg.conf");
+		if (!p)
+			return -1;
+		rc=stat(p, &stat_buf);
+		free(p);
+	}
+
 	if (rc == 0)
 		rc=stat(GPG, &stat_buf);
 

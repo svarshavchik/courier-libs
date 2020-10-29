@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2014 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildropfilter">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -25,7 +25,7 @@
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="maildropfilter_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -54,7 +54,7 @@
       syntax errors will not cause mail to be bounced back if the error is caught
       and fixed quickly.</para>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_environment">
       <title>Environment</title>
       <para>
 	<anchor id="environment"/>
@@ -160,7 +160,7 @@ DEFAULT=$SAVEDEFAULT
 	by the <systemitem class="resource">filter file</systemitem>, are reflected in the exported environment.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_lexical_structure">
       <title>Lexical structure</title>
 
       <para>
@@ -183,7 +183,7 @@ DEFAULT=$SAVEDEFAULT
 	  backslash character.</para></note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_literal_text">
       <title>Literal text</title>
       <para>
 	Literal text in the <command>maildrop</command> filtering language is
@@ -218,8 +218,7 @@ FOOBAR="Foo"'bar'
 
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropfilter_variable_substitution">
       <title>Variable substitution</title>
 
       <para>
@@ -277,7 +276,7 @@ MAILBOX="${HOME-WORD}/Mailbox"
     </refsect2>
 
 
-    <refsect2>
+    <refsect2 id="maildropfilter_command_line_arguments">
       <title>Command line arguments</title>
 
       <para>
@@ -288,7 +287,7 @@ MAILBOX="${HOME-WORD}/Mailbox"
 	may use those variables just like any other variables.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_predefined_variables">
       <title>Predefined variables</title>
       <anchor id="predefined"/>
       <para>
@@ -429,8 +428,7 @@ MAILBOX="${HOME-WORD}/Mailbox"
       </variablelist>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropfilter_other_special_variables">
       <title>Other special variables</title>
       <para>
 	The following variables are automatically used by <command>maildrop</command> when the
@@ -521,8 +519,7 @@ MAILBOX="${HOME-WORD}/Mailbox"
       </variablelist>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropfilter_unquoted_text">
       <title>Unquoted text</title>
 
       <para>
@@ -572,8 +569,7 @@ TEXT="This is a long \
 	removed, resulting in "This is a long text string".</para>
 
     </refsect2>
-    <refsect2>
-
+    <refsect2 id="maildropfilter_command_substitution">
       <title>Command substitution</title>
 
       <para>
@@ -599,7 +595,7 @@ DIR=`ls`
 	made available to the command on standard input.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_patterns">
       <title>Patterns</title>
 
       <anchor id="patterns"/>
@@ -696,7 +692,7 @@ DIR=`ls`
       </itemizedlist>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_pattern_options">
       <title>Pattern options</title>
 
       <anchor id="options"/>
@@ -755,7 +751,7 @@ DIR=`ls`
 	are silently combined into a single line, before the pattern is applied.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_mime_encoding">
       <title>MIME encoding</title>
 
       <para>
@@ -775,7 +771,7 @@ DIR=`ls`
 	message (with a Mime-Version: 1.0 header).
       </para>
     </refsect2>
-    <refsect2>
+    <refsect2 id="maildropfilter_weighted_scoring">
       <title>Weighted scoring</title>
 
       <para>
@@ -821,8 +817,7 @@ DIR=`ls`
       </note>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropfilter_pattern_match_results">
       <title>Pattern Match Results</title>
 
       <anchor id="patmatch"/>
@@ -915,8 +910,7 @@ From: postmaster@localhost
       </itemizedlist>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="maildropfilter_expressions">
       <title>Expressions</title>
 
       <para>
@@ -926,7 +920,7 @@ From: postmaster@localhost
 	converted to numbers, then the results of a mathematical operation is
 	converted back into a text literal.</para>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_operators">
 	<title>Operators</title>
 
 	<para>
@@ -951,7 +945,7 @@ From: postmaster@localhost
 	</blockquote>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_variable_assignment">
 	<title>Variable assignment</title>
 
 	<anchor id="assign"/>
@@ -980,7 +974,7 @@ VARIABLE=<replaceable>expression</replaceable>
 
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_cc___deliver_a_copy_of_the_message">
 	<title>cc - deliver a copy of the message</title>
 
 	<anchor id="cc"/>
@@ -1016,7 +1010,7 @@ cc <replaceable>expression</replaceable>
 	  code.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_dotlock___create_a_manual_dot_lock">
 	<title>dotlock - create a manual dot-lock</title>
 
 	<anchor id="dotlock"/>
@@ -1070,7 +1064,7 @@ dotlock <replaceable>expression</replaceable> {
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_echo___output_diagnostic_information">
 	<title>echo - output diagnostic information</title>
 
 	<anchor id="echo"/>
@@ -1092,7 +1086,7 @@ echo <replaceable>expression</replaceable>
 	  terminated with a \c, no newline will be printed.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_exception___trap_fatal_errors">
 	<title>exception - trap fatal errors</title>
 
 	<anchor id="exception"/>
@@ -1119,8 +1113,7 @@ exception {
 	  resume immediately following the <command>exception</command> clause.</para>
       </refsect3>
 
-      <refsect3>
-
+      <refsect3 id="maildropfilter_exit___terminate_filtering_unconditionally">
 	<title>exit - terminate filtering unconditionally</title>
 
 	<anchor id="exit"/>
@@ -1146,7 +1139,7 @@ exit
 	  delivery instructions are not allowed.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_flock___create_an_manual_flock___lock">
 	<title>flock - create an manual flock() lock</title>
 
 	<anchor id="flock"/>
@@ -1194,7 +1187,7 @@ flock <replaceable>expression</replaceable> {
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_foreach___iterate_over_text_sections_matched_by_a_pattern">
 	<title>foreach - iterate over text sections matched by a pattern</title>
 	<blockquote>
 	  <informalexample>
@@ -1240,7 +1233,7 @@ foreach (expression) =~ /pattern/:options
 	</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_if___conditional_execution">
 	<title>if - conditional execution</title>
 	<anchor id="if"/>
 	<blockquote>
@@ -1357,7 +1350,7 @@ elsif (<replaceable>expression</replaceable>)
 	</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_import___access_original_environment_variable">
 	<title>import - access original environment variable</title>
 	<anchor id="import"/>
 	<blockquote>
@@ -1430,7 +1423,7 @@ PATH is /home/root/bin:/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
 	  <command>import</command> statement shows what it was.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_include___execute_filtering_instructions_from_another_file">
 	<title>include - execute filtering instructions from another file</title>
 
 	<anchor id="include"/>
@@ -1461,7 +1454,7 @@ include <replaceable>expression</replaceable>
 	  code of <errorcode>EX_TEMPFAIL</errorcode>.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_log__logfile___log_message_deliveries">
 	<title>log, logfile - log message deliveries</title>
 	<anchor id="log"/>
 	<blockquote>
@@ -1499,7 +1492,7 @@ log <replaceable>expression</replaceable>
 	  standard output.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_system___execute_a_system_command">
 	<title>system - execute a system command</title>
 	<anchor id="system"/>
 
@@ -1521,7 +1514,7 @@ system <replaceable>expression</replaceable>
 	   <command>maildrop</command>.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_to___deliver_message_to_a_mailbox">
 	<title>to - deliver message to a mailbox</title>
 	<anchor id="to"/>
 	<blockquote>
@@ -1585,7 +1578,7 @@ to <replaceable>expression</replaceable>
 	  delivering the message to the file.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_while___repeatedly_execute_a_block_of_statements">
 	<title>while - repeatedly execute a block of statements</title>
 	<anchor id="while"/>
 	<blockquote>
@@ -1608,7 +1601,7 @@ while (<replaceable>expression</replaceable>)
 	  the while loop is over. Take care to avoid infinite loops.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_xfilter___filter_message_through_another_program">
 	<title>xfilter - filter message through another program</title>
 	<anchor id="xfilter"/>
 
@@ -1632,7 +1625,7 @@ xfilter <replaceable>expression</replaceable>
 	  <errorcode>EX_TEMPFAIL</errorcode>.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter______logical_or">
 	<title>|| - logical or</title>
 
 	<blockquote>
@@ -1657,7 +1650,7 @@ xfilter <replaceable>expression</replaceable>
 	  logical false value. Anything else is a logical true value.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter__amp__amp____logical_and">
 	<title>&amp;&amp; - logical and</title>
 
 	<blockquote>
@@ -1683,7 +1676,7 @@ xfilter <replaceable>expression</replaceable>
 
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter__lt____lt_____gt____gt_______________numerical_comparison">
 	<title>&lt;, &lt;=, &gt;, &gt;=, ==, !=   - numerical comparison</title>
 
 	<blockquote>
@@ -1720,7 +1713,7 @@ xfilter <replaceable>expression</replaceable>
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_lt__le__gt__ge__eq__ne___text_comparison">
 	<title>lt, le, gt, ge, eq, ne - text comparison</title>
 
 	<blockquote>
@@ -1758,7 +1751,7 @@ xfilter <replaceable>expression</replaceable>
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_____bitwise_or">
 	<title>| - bitwise or</title>
 
 	<blockquote>
@@ -1775,7 +1768,7 @@ xfilter <replaceable>expression</replaceable>
 	  right hand side.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter__amp____bitwise_and">
 	<title>&amp; - bitwise and</title>
 
 	<blockquote>
@@ -1792,7 +1785,7 @@ xfilter <replaceable>expression</replaceable>
 	  right hand side.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter______________numerical_operations">
 	<title>+, -, *, / - numerical operations</title>
 
 	<blockquote>
@@ -1815,8 +1808,7 @@ xfilter <replaceable>expression</replaceable>
 
       </refsect3>
 
-      <refsect3>
-
+      <refsect3 id="maildropfilter_____pattern__options___pattern_match_against_string">
 	<title>=~ /pattern/:options - pattern match against string</title>
 
 	<blockquote>
@@ -1839,7 +1831,7 @@ xfilter <replaceable>expression</replaceable>
 	<para>
 	  See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
       </refsect3>
-      <refsect3>
+      <refsect3 id="maildropfilter__pattern__options___pattern_match_against_message">
 	<title>/pattern/:options - pattern match against message</title>
 
 	<blockquote>
@@ -1859,7 +1851,7 @@ xfilter <replaceable>expression</replaceable>
 	  See "<ulink url="#patterns">Patterns</ulink>" for more information.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter________logical_bitwise_not_operator_">
 	<title>!, ~ - logical/bitwise not operator.</title>
 
 	<blockquote>
@@ -1893,7 +1885,7 @@ xfilter <replaceable>expression</replaceable>
 	  result.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_escape_string____escape_special_characters_in_a_string_">
 	<title>escape(string) - escape special characters in a string.</title>
 	<blockquote>
 	  <informalexample>
@@ -1960,9 +1952,8 @@ if ( /^From:\s*(.*)/ )
 	  result in fewer surprises.</para>
       </refsect3>
 
-      <refsect3>
-	<title>gdbmopen, gdbmclose, gdbmfetch, gdbmstore - GDBM support in
-	  <command>maildrop</command></title>
+      <refsect3 id="maildropfilter_gdbmopen__gdbmclose__gdbmfetch__gdbmstore___gdbm_support_in_maildrop">
+	<title>gdbmopen, gdbmclose, gdbmfetch, gdbmstore - GDBM support in <command>maildrop</command></title>
 	<para>
 	  These functions provide support for GDBM database files. See <ulink url="maildropgdbm.html"><citerefentry><refentrytitle>maildropgdbm</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>
 	  for more information.</para>
@@ -1975,7 +1966,7 @@ if ( /^From:\s*(.*)/ )
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_getaddr_string____extract_rfc_2822_addresses_from_a_header_">
 	<title>getaddr(string) - extract RFC 2822 addresses from a header.</title>
 
 	<anchor id="getaddr"/>
@@ -2053,7 +2044,7 @@ foreach /^(To|Cc): .*/
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_hasaddr_string____search_for_an_address_">
 	<title>hasaddr(string) - Search for an address.</title>
 	<blockquote>
 	  <informalexample>
@@ -2086,7 +2077,7 @@ if ( hasaddr(<replaceable>string</replaceable>) )
 	  of the address may be (but is not required to be) case sensitive.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_length__string____length_of_a_string">
 	<title>length (string) - length of a string</title>
 	<blockquote>
 	  <informalexample>
@@ -2104,7 +2095,7 @@ if (length(<replaceable>string</replaceable>) &gt; 80)
 	  <replaceable>string</replaceable>.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_lookup__expr___filename____options_____read_file_for_patterns">
 	<title>lookup (expr, 'filename', 'options') - read file for patterns</title>
 
 	<blockquote>
@@ -2182,7 +2173,7 @@ friend@public
 	</note>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_substr_string_start___count_____return_substring">
 	<title>substr(string,start [,count]) - return substring</title>
 
 	<blockquote>
@@ -2203,7 +2194,7 @@ foo=substr($foo, 1, 10)
 	  trimmed.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_time___return_current_time">
 	<title>time - return current time</title>
 
 	<blockquote>
@@ -2221,7 +2212,7 @@ foo=time
 	  for an example of using the <function>time</function> function.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_tolower_string____convert_string_to_lowercase_">
 	<title>tolower(string) - Convert string to lowercase.</title>
 
 	<blockquote>
@@ -2238,7 +2229,7 @@ foo=tolower(<replaceable>string</replaceable>)
 	  replaced by lowercase characters.</para>
       </refsect3>
 
-      <refsect3>
+      <refsect3 id="maildropfilter_toupper_string____convert_string_to_uppercase_">
 	<title>toupper(string) - Convert string to uppercase.</title>
 
 	<blockquote>
@@ -2256,7 +2247,7 @@ foo=toupper(<replaceable>string</replaceable>)
       </refsect3>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildropfilter_statements">
       <title>Statements</title>
 
       <para>
@@ -2275,7 +2266,7 @@ foo=toupper(<replaceable>string</replaceable>)
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildropfilter_bugs">
     <title>BUGS</title>
 
     <para>
@@ -2289,7 +2280,7 @@ foo=toupper(<replaceable>string</replaceable>)
       it's not in too many cases, so there.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildropfilter_see_also">
     <title>SEE ALSO</title>
 
     <para>

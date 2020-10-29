@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2002-2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="lockmail">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -26,7 +26,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="lockmail_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -50,7 +50,7 @@ After the mailbox is successfully locked, <command moreinfo="none">lockmail</com
 When <replaceable>program</replaceable> terminates, <command moreinfo="none">lockmail</command>
 removes the mailbox lock, and terminates itself.</para>
   </refsect1>
-  <refsect1>
+  <refsect1 id="lockmail_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -74,7 +74,7 @@ The actual timeout is rounded up to the next five second interval
       </varlistentry>
     </variablelist>
   </refsect1>
-  <refsect1>
+  <refsect1 id="lockmail_description">
     <title>DESCRIPTION</title>
     <para>
 This section briefly describes the locking mechanism used by
@@ -84,7 +84,7 @@ order to maximize compatibility with other mail software:
 C-Client folder locks, dot-locks, and file locks.
 </para>
 
-    <refsect2>
+    <refsect2 id="lockmail_c_client_folder_locks">
       <title>C-Client folder locks</title>
       <para>
 Mail software based on the <literal moreinfo="none">C-Client</literal> library creates
@@ -114,7 +114,7 @@ that are at least five minutes old.</para>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="lockmail_dot_locks">
       <title>dot-locks</title>
       <para>
 <command moreinfo="none">lockmail</command>
@@ -148,7 +148,7 @@ will be content with using file-locking only.
 </para>
       </note>
     </refsect2>
-    <refsect2>
+    <refsect2 id="lockmail_file_locks">
       <title>File locks</title>
 
       <para>
@@ -181,7 +181,7 @@ obtained by <command moreinfo="none">lockmail</command> expire, and are consider
 as <replaceable>program</replaceable>.</para>
     </refsect2>
   </refsect1>
-  <refsect1>
+  <refsect1 id="lockmail_exit_status">
     <title>EXIT STATUS</title>
 
     <para>
@@ -193,7 +193,7 @@ exit status if it was unable to obtain a lock, or if
 was killed by a signal.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="lockmail_see_also">
     <title>SEE ALSO</title>
 
     <para>

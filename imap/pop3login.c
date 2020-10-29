@@ -100,7 +100,7 @@ static int	starttls()
 		exit(1);
 	}
 	close(pipefd[0]);
-
+	fflush(stdin);
 	putenv("POP3_STARTTLS=NO");
 	putenv("POP3_TLS_REQUIRED=0");
 	putenv("POP3_TLS=1");

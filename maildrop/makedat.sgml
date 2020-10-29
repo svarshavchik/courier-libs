@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="makedat">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -25,7 +25,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="makedat_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -109,7 +109,7 @@ Perl module to be installed separately. Download Net::CIDR from
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="makedat_bugs">
     <title>BUGS</title>
 
     <para>
@@ -120,7 +120,7 @@ later.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="makedat_example">
     <title>EXAMPLE</title>
     <informalexample>
       <programlisting format="linespecific">
@@ -134,7 +134,7 @@ Takes <filename moreinfo="none">blacklist</filename>, and creates
 <filename moreinfo="none">/etc/mail/blacklist.tmp</filename> as a temporary file.</para>
 
   </refsect1>
-  <refsect1>
+  <refsect1 id="makedat_see_also">
     <title>SEE ALSO</title>
 
     <para>

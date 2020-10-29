@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="imapd">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -31,7 +31,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="imapd_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -81,7 +81,7 @@ variable, then attempts to talk IMAP on standard input and output.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="imapd_files_and_environment_variables">
     <title>FILES AND ENVIRONMENT VARIABLES</title>
 
     <variablelist>
@@ -136,7 +136,7 @@ Other environment variables are initialized from the
 These files are loaded into the environment by the system startup script
 that runs <command moreinfo="none">couriertcpd</command>.</para>
 
-    <refsect2>
+    <refsect2 id="imapd_realtime_concurrent_folder_status_updates">
       <title>Realtime concurrent folder status updates</title>
 
       <para>
@@ -310,7 +310,7 @@ in IDLE mode (instead of in real time).
       </variablelist>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="imapd_verifying_realtime_concurrent_folder_status_updates">
       <title>Verifying realtime concurrent folder status updates</title>
       <para>
 Use the following procedure to verify that realtime concurrent folder status
@@ -482,7 +482,7 @@ all terminal windows have the same <literal moreinfo="none">EXISTS</literal> mes
       </orderedlist>
     </refsect2>
   </refsect1>
-  <refsect1>
+  <refsect1 id="imapd_see_also">
     <title>SEE ALSO</title>
 
     <para>

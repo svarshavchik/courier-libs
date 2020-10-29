@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2000-2015 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2000-2020 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="couriertcpd">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -39,7 +39,7 @@ TCP server daemon</refpurpose>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="couriertcpd_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -68,7 +68,7 @@ which network connections will be rejected.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertcpd_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -122,9 +122,9 @@ information.</para>
       </varlistentry>
 
       <varlistentry>
-	<term>-block=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>][,<replaceable>msg</replaceable>]]
+	<term>-block=<replaceable>zone</replaceable>[=<replaceable>display_zone</replaceable>][,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>][,<replaceable>msg</replaceable>]]
 	  or
-	-allow=<replaceable>zone</replaceable>[,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>[,]]]</term>
+	-allow=<replaceable>zone</replaceable>[=<replaceable>display_zone</replaceable>][,<replaceable>var</replaceable>[/<replaceable>n.n.n.n</replaceable>[,]]]</term>
 	<listitem>
 	  <para>
 Initialize the environment variable <replaceable>var</replaceable> if both of
@@ -378,8 +378,7 @@ superuser can specify <option>-user</option>.</para>
 
   </refsect1>
 
-  <refsect1>
-
+  <refsect1 id="couriertcpd_multiple_port_list">
     <title>MULTIPLE PORT LIST</title>
 
     <anchor id="list"/>
@@ -440,8 +439,7 @@ will create network connections on ports 25 and 999 of the IP address
 
   </refsect1>
 
-  <refsect1>
-
+  <refsect1 id="couriertcpd_access_file">
     <title>ACCESS FILE</title>
 
     <para>
@@ -465,7 +463,7 @@ from one or more plain text
 files. Blank lines in the text file are ignored. Lines that start with the #
 character are also ignored.</para>
 
-    <refsect2>
+    <refsect2 id="couriertcpd_rejecting_and_accepting_connections_by_ip_address">
       <title>Rejecting and accepting connections by IP address</title>
 
       <para>
@@ -529,7 +527,7 @@ connections to be rejected:</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="couriertcpd_ipv6_addresses">
       <title>IPv6 addresses</title>
 
       <note>
@@ -638,8 +636,7 @@ file, the entry for the most specific IP address.</para>
       </para>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="couriertcpd_dns_access_lists">
       <title>DNS ACCESS LISTS</title>
 
       <para>
@@ -678,6 +675,15 @@ file, the entry for the most specific IP address.</para>
 	<quote>d.c.b.a.dnswl.example.com</quote>, then, if necessary, for
 	<quote>d.c.b.a.dnsbl.example.com</quote>, for a connection from the
 	IPv4 address <replaceable>a.b.c.d</replaceable>.
+      </para>
+
+      <para>
+	An optional <quote>=<replaceable>display_zone</replaceable></quote>
+	follows the DNS zone. This sets the contents of
+	<varname>BLOCK_ZONE</varname> DNS access list variable (see
+	below), which defaults to the DNS zone name. This is only useful
+	with <option>-allow</option>, since <option>-block</option> rejects
+	the message, so nothing gets set anyway.
       </para>
 
       <para>
@@ -816,7 +822,7 @@ file, the entry for the most specific IP address.</para>
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="couriertcpd_multiple_dns_lists">
       <title>MULTIPLE DNS LISTS</title>
 
       <para>
@@ -852,7 +858,7 @@ file, the entry for the most specific IP address.</para>
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="couriertcpd_additional_dns_access_list_variables">
       <title>ADDITIONAL DNS ACCESS LIST VARIABLES</title>
 
       <para>
@@ -887,7 +893,8 @@ file, the entry for the most specific IP address.</para>
 	  <term>BLOCK_ZONE</term>
 	  <para>
 	    The DNS zone of the succesfull access list lookup, like
-	    <quote>dnsbl.example.com</quote>.
+	    <quote>dnsbl.example.com</quote>, or an explicit
+	    display zone name.
 	  </para>
 	</varlistentry>
       </variablelist>
@@ -901,7 +908,7 @@ file, the entry for the most specific IP address.</para>
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="couriertcpd_using_dns_whitelists_with_spf">
       <title>USING DNS WHITELISTS WITH SPF</title>
 
       <para>
@@ -918,7 +925,7 @@ file, the entry for the most specific IP address.</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertcpd_environment_variables">
     <title>ENVIRONMENT VARIABLES</title>
 
     <para>
@@ -997,7 +1004,7 @@ TCP port of the remote end of the network connection.</para>
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertcpd_see_also">
     <title>SEE ALSO</title>
 
     <para>

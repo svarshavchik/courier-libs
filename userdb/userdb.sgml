@@ -31,13 +31,13 @@
       <arg choice='plain'>unset</arg>
       <arg choice='req' rep='repeat'><replaceable>field</replaceable></arg>
     </cmdsynopsis>
-    
+
     <cmdsynopsis>
       <command>userdb</command>
       <arg choice='req'><replaceable>addr</replaceable></arg>
       <arg choice='plain'>del</arg>
     </cmdsynopsis>
-    
+
     <cmdsynopsis>
       <command>userdb</command>
       <arg choice='req'><replaceable>path/addr</replaceable></arg>
@@ -91,7 +91,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="userdb_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -185,7 +185,8 @@ record. Use
 plus the record itself.</para>
 
 
-    <refsect2><title>DISPLAYING <filename>@userdb@</filename></title>
+    <refsect2 id="userdb_displaying__userdb_">
+      <title>DISPLAYING <filename>@userdb@</filename></title>
 
       <para>
 If the first argument to userdb
@@ -211,9 +212,9 @@ all the fields in <filename>@userdb@</filename> for this
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="userdb_rebuilding__userdb__dat">
       <title>REBUILDING <filename>@userdb@.dat</filename></title>
-      
+
       <para>
 The actual virtual account/address database is
 <filename>@userdb@.dat</filename>.
@@ -225,7 +226,7 @@ version. After running <command>userdb</command>, execute the
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="userdb_bugs">
     <title>BUGS</title>
 
     <para>
@@ -240,7 +241,7 @@ however the subsequent
 will fail with an error message.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="userdb_files">
     <title>FILES</title>
 
     <para>
@@ -251,15 +252,14 @@ will fail with an error message.</para>
 <filename> .tmp.filename</filename> - temporary file used to create new contents of <filename>filename</filename></para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="userdb_see_also">
     <title>SEE ALSO</title>
 
     <para>
 <ulink url="makeuserdb.html"><citerefentry><refentrytitle>makeuserdb</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
- 
+
 <ulink url="userdbpw.html"><citerefentry><refentrytitle>userdbpw</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink></para>
 
   </refsect1>
 
 </refentry>
-
