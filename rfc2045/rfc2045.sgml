@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2001-2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="rfc2045">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -27,7 +27,7 @@ cc ... -lrfc2045 -lrfc822
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="rfc2045_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -43,7 +43,7 @@ The rfc2045 library is used to:</para>
     <para>
 3) Optionally rewrite and reformat the message.</para>
 
-    <refsect2>
+    <refsect2 id="rfc2045_creating_an_rfc2045_structure">
       <title>Creating an rfc2045 structure</title>
       <informalexample>
 	<programlisting format="linespecific">
@@ -123,8 +123,7 @@ function <function moreinfo="none">rfc2045_free</function>() deallocates and des
 structure.</para>
     </refsect2>
 
-    <refsect2>
-
+    <refsect2 id="rfc2045_structure_of_a_mime_message">
       <title>Structure of a MIME message</title>
 
       <informalexample>
@@ -229,7 +228,7 @@ ignored, and skipped over, when traversing the
 <structname>rfc2045</structname> tree.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc2045_basic_mime_information">
       <title>Basic MIME information</title>
 
       <informalexample>
@@ -411,7 +410,7 @@ NULL, or an empty string.</para>
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc2045_decoding_a_mime_section">
       <title>Decoding a MIME section</title>
 
       <informalexample>
@@ -473,7 +472,7 @@ immediately stops and
 <function moreinfo="none">rfc2045_cdecode</function>() or <function moreinfo="none">rfc2045_cdecode_end</function>() terminates with <function moreinfo="none">callback_func</function>'s return code.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="rfc2045_rewriting_mime_messages">
       <title>Rewriting MIME messages</title>
 
       <para>
@@ -567,7 +566,7 @@ by <parameter moreinfo="none">appname</parameter>.</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="rfc2045_see_also">
     <title>SEE ALSO</title>
 
     <para>

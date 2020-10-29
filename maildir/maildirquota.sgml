@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="maildirquota">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -24,7 +24,7 @@
   </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="maildirquota_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -54,7 +54,7 @@ Both <command moreinfo="none">maildrop</command> and
 <command moreinfo="none">deliverquota</command> will observe any
 <command moreinfo="none">maildirmake</command>-requested quota.</para>
 
-    <refsect2>
+    <refsect2 id="maildirquota_limitations">
       <title>LIMITATIONS</title>
  
       <para>This quota mechanism will only work as long as
@@ -104,7 +104,7 @@ Your maildir quota should be chosen so that it makes sense when compared to
 the maximum message size allowed by your mail server.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="maildirquota_folders">
       <title>FOLDERS</title>
 
       <para>
@@ -123,7 +123,7 @@ Quota enforcement will not work if you do that.</para>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="maildirquota_see_also">
     <title>SEE ALSO</title>
 
     <para>

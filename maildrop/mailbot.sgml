@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="mailbot">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -35,7 +35,7 @@ if (/^Subject: *info/)
     </informalexample>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="mailbot_description">
     <title>DESCRIPTION</title>
 
 
@@ -76,7 +76,7 @@ The <option>-M</option> option formats the
 the autoresponse itself as a MIME delivery status notification.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="mailbot_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -574,7 +574,7 @@ Set the <literal>Subject:</literal> header on the autoresponse to
       </varlistentry>
     </variablelist>
 
-    <refsect2>
+    <refsect2 id="mailbot_autoreplies_from_a_maildir_folder">
       <title>Autoreplies from a maildir folder</title>
 
       <para>In <filename>.mailfilter:</filename></para>
@@ -621,7 +621,7 @@ to "./Maildir"</programlisting>
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="mailbot_see_also">
     <title>SEE ALSO</title>
 
     <para>

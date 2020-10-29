@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2010 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="reformime">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -22,7 +22,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="reformime_description">
     <title>DESCRIPTION</title>
     <para>
 <command>reformime</command> is a utility for reformatting
@@ -92,7 +92,7 @@ Here's the output from
     <para>
 Arbitrarily complex MIME constructs are possible.</para>
   </refsect1>
-  <refsect1>
+  <refsect1 id="reformime_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -237,7 +237,7 @@ Pipe the contents of the indicated MIME section to a program.</para>
       </varlistentry>
     </variablelist>
 
-    <refsect2>
+    <refsect2 id="reformime_extracting_rfc_2045_mime_section_s__to_file_s_">
       <title>Extracting RFC 2045 MIME section(s) to file(s)</title>
 
       <para>
@@ -326,7 +326,7 @@ content that usually precedes a binary attachment.</para>
       </note>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="reformime_adding_rfc_2045_mime_headers">
       <title>Adding RFC 2045 MIME headers</title>
 
       <para>
@@ -364,7 +364,7 @@ mail delivery, as a delivery failure may occur.
       </para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="reformime_creating_multipart_digest_mime_digests">
       <title>Creating <literal>multipart/digest</literal> MIME digests</title>
 
       <para>The <option>-m</option> option creates a MIME digest.
@@ -376,7 +376,7 @@ presumed to contain an RFC 2822-formatted message.
 and writes it to standard output.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="reformime_translating_mime_headers">
       <title>Translating MIME headers</title>
 
       <para>
@@ -470,7 +470,7 @@ is a structured header with RFC 2822 addresses.</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="reformime_see_also">
     <title>SEE ALSO</title>
 
     <para>

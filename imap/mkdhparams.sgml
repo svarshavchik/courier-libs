@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2013 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="mkdhparams">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -21,7 +21,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="mkdhparams_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -38,7 +38,7 @@
     </para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="mkdhparams_files">
     <title>FILES</title>
 
     <variablelist>
@@ -53,7 +53,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="mkdhparams_environment_variables">
     <title>ENVIRONMENT VARIABLES</title>
 
     <variablelist>
@@ -79,7 +79,7 @@
     </para>
   </note>
 
-  <refsect1>
+  <refsect1 id="mkdhparams_see_also">
     <title>SEE ALSO</title>
 
     <para>

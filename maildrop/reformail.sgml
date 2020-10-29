@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="reformail">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -49,7 +49,7 @@
     </sidebar>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="reformail_description">
     <title>DESCRIPTION</title>
 
 <para>
@@ -57,7 +57,7 @@ The <command>reformail</command> program reads a message on standard input,
 reformats it
 in some way, and writes the message to standard output:</para>
 
-    <refsect2>
+    <refsect2 id="reformail_splitting_mailboxes_into_individual_messages">
       <title>Splitting mailboxes into individual messages</title>
 
       <para>
@@ -81,7 +81,7 @@ If <envar>FILENO</envar> is set to a non-numeric value,
 <envar>FILENO</envar> will remain unchanged.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="reformail_detecting_duplicate_messages">
       <title>Detecting duplicate messages</title>
 
       <para>
@@ -107,7 +107,7 @@ the cache file,
 
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="reformail_extracting_headers">
       <title>Extracting headers</title>
 
       <para>
@@ -127,7 +127,7 @@ follows:</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="reformail_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -248,7 +248,7 @@ remove all occurrences except the last one.</para>
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="reformail_autoreplies">
     <title>AUTOREPLIES</title>
 
     <anchor id="Autoreplies"/>
@@ -259,7 +259,7 @@ remove all occurrences except the last one.</para>
     </para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="reformail_bugs">
     <title>BUGS</title>
 
     <para>
@@ -276,7 +276,7 @@ It's better to run <option>reformail</option> several times (use a pipe,
 perhaps).</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="reformail_see_also">
     <title>SEE ALSO</title>
 
     <para>

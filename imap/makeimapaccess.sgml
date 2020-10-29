@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="makeimapaccess">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -21,7 +21,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="makeimapaccess_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -46,7 +46,7 @@
       describes the general format of access files.</para>
 
 
-    <refsect2>
+    <refsect2 id="makeimapaccess_the_imapaccess_configuration_file">
       <title>The <filename>imapaccess</filename> configuration file</title>
 
       <para>
@@ -64,7 +64,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="makeimapaccess_see_also">
     <title>SEE ALSO</title>
     <para>
       <ulink url="couriertcpd.html"><citerefentry><refentrytitle>couriertcpd</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>.

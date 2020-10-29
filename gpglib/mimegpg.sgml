@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="mimegpg">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -30,7 +30,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="mimegpg_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -74,7 +74,7 @@ used in a non-interactive mode.  As always, secret keys that are
 password-protected secret keys cannot be used in the <option>--no-tty</option>
 mode, unless the <option>-p</option> option is used.</para>
 
-    <refsect2>
+    <refsect2 id="mimegpg_signing_and_encrypting_messages">
       <title>SIGNING AND ENCRYPTING MESSAGES</title>
 
       <para>
@@ -103,7 +103,7 @@ themselves.  However, any <literal moreinfo="none">message/rfc822</literal> MIME
 messages - are encrypted/signed in their entirety, headers and content.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="mimegpg_decrypting_and_checking_signatures">
       <title>DECRYPTING AND CHECKING SIGNATURES</title>
 
       <para>
@@ -142,7 +142,7 @@ this is what got decrypted).</para>
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="mimegpg_see_also">
     <title>SEE ALSO</title>
 
     <para>

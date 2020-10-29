@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <!-- Copyright 2000-2018 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
-<refentry>
+<refentry id="couriertls">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
 
   <refmeta>
@@ -25,7 +25,7 @@ TLS/SSL protocol wrapper</refpurpose>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="couriertls_description">
     <title>DESCRIPTION</title>
 
     <para>
@@ -42,7 +42,7 @@ An application typically creates a network connection, then runs
 connection with SSL/TLS.</para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertls_options">
     <title>OPTIONS</title>
 
     <variablelist>
@@ -175,7 +175,7 @@ If the program is not specified, the standard input and output of
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertls_environment_variables">
     <title>ENVIRONMENT VARIABLES</title>
 
 <para>
@@ -288,7 +288,7 @@ X.509 certificate according to the <option>-domain</option> option,
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="couriertls_see_also">
     <title>SEE ALSO</title>
 
     <para>
