@@ -17,17 +17,13 @@
 #define	NUMCHILDREN	100		/* Start 100 child processes */
 #define	INITCHILDREN	10		/* Start with these many child procs */
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-
-static unsigned started, finished;
+static unsigned started;
+static int reap_pipefd[2];
 
 static void reap_child(pid_t p, int dummy)
 {
-	pthread_mutex_lock(&mutex);
-	++finished;
-	pthread_cond_signal(&cond);
-	pthread_mutex_unlock(&mutex);
+	if (write(reap_pipefd[1], "", 1) < 0)
+		; /* shut up gcc */
 }
 
 static RETSIGTYPE sighandler(int sig)
@@ -65,8 +61,9 @@ int	main()
 int	pipefd[2];
 int	pipefd2[2];
 char	c;
+unsigned finished=0;
 
-	if (pipe(pipefd) || pipe(pipefd2))
+	if (pipe(reap_pipefd) || pipe(pipefd) || pipe(pipefd2))
 	{
 		perror("pipe");
 		exit(1);
@@ -74,7 +71,7 @@ char	c;
 
 	signal(SIGCHLD, sighandler);
 
-	started=finished=0;
+	started=0;
 	while (started < INITCHILDREN)
 	{
 		if (start_child() == 0)
@@ -99,11 +96,17 @@ char	c;
 			_exit(0);
 
 	alarm(30);
-	pthread_mutex_lock(&mutex);
 	while (finished < started)
 	{
-		pthread_cond_wait(&cond, &mutex);
+		char c;
+		int n=read(reap_pipefd[0], &c, 1);
+
+		if (n <= 0)
+		{
+			fprintf(stderr, "pipe error\n");
+			exit(1);
+		}
+		++finished;
 	}
-	pthread_mutex_unlock(&mutex);
 	exit(0);
 }

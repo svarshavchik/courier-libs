@@ -106,24 +106,4 @@ then
 	CFLAGS="-Wall $CFLAGS"
 fi
 
-save_CFLAGS="$CFLAGS"
-
-AC_CACHE_CHECK([for -pthread flag],waitlib_cv_PTHREAD,
-		    CFLAGS="$CFLAGS -pthread"
-		    AC_TRY_COMPILE([],[],
-		    [
-		    waitlib_cv_PTHREAD='yes'
-		    ],
-		    [
-		    waitlib_cv_PTHREAD='no'
-		    ]))
-CFLAGS="$save_CFLAGS"
-
-PTHREAD=''
-if test "$waitlib_cv_PTHREAD" = "yes"
-then
-	PTHREAD="$CFLAGS -pthread"
-fi
-AC_SUBST(PTHREAD)
-
 AC_OUTPUT(Makefile)

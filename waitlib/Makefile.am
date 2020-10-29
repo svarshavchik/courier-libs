@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2020 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 
@@ -13,7 +13,6 @@ libwaitlib_la_SOURCES=waitlib.c waitlib.h waitlib2.c
 testwait_SOURCES=testwait.c
 testwait_DEPENDENCIES=libwaitlib.la
 testwait_LDADD=libwaitlib.la
-testwait_CFLAGS=@PTHREAD@
 
 check-am:
 	./testwait
