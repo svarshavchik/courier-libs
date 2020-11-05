@@ -9,6 +9,7 @@ Source: http://download.sourceforge.net/courier/courier-unicode-@VERSION@.tar.bz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: perl
 BuildRequires: gcc-c++
+BuildRequires: %{__make}
 
 %package devel
 Summary: Courier Unicode Library development files
