@@ -1,3 +1,9 @@
+2.1.2
+
+2020-11-25  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Makefile.am: Regenerate docs due to broken man page links.
+
 2.1.1
 
 2020-11-24  Sam Varshavchik  <mrsam@courier-mta.com>
