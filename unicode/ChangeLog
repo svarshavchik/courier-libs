@@ -21,6 +21,12 @@
 
 	* Add bidi property lookups.
 
+2.1.1
+
+2020-11-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* unicodebuf.c (unicode_buf_remove): Bug fix.
+
 2.1
 
 2020-04-21  Sam Varshavchik  <mrsam@courier-mta.com>

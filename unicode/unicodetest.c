@@ -123,11 +123,30 @@ static void test2()
 	exit(1);
 }
 
+void testunicodebuf()
+{
+	struct unicode_buf buf;
+
+	unicode_buf_init(&buf, -1);
+	unicode_buf_append_char(&buf, "01234567", 8);
+	unicode_buf_remove(&buf, 1, 6);
+
+	if (unicode_buf_len(&buf) != 2 ||
+	    unicode_buf_ptr(&buf)[0] != '0' ||
+	    unicode_buf_ptr(&buf)[1] != '7')
+	{
+		fprintf(stderr, "unicode_buf_remove failed\n");
+		exit(1);
+	}
+	unicode_buf_deinit(&buf);
+}
+
 int main(int argc, char **argv)
 {
 	const char *chset=unicode_x_imap_modutf7;
 	int argn=1;
 
+	testunicodebuf();
 	if (argn < argc && strcmp(argv[argn], "--smap") == 0)
 	{
 		chset=unicode_x_imap_modutf7 " ./~:";
