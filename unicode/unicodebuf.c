@@ -89,7 +89,8 @@ void unicode_buf_remove(struct unicode_buf *p,
 		cnt=p->len-pos;
 
 	if (cnt)
-		memmove(p->ptr+pos+cnt, p->ptr+pos, p->len-pos-cnt);
+		memmove(p->ptr+pos, p->ptr+pos+cnt,
+			(p->len-pos-cnt) * sizeof(char32_t));
 	p->len -= cnt;
 }
 
