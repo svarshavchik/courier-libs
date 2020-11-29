@@ -2032,6 +2032,7 @@ void unicode_bidi_reorder(char32_t *p,
 size_t unicode_bidi_cleanup(char32_t *string,
 			    unicode_bidi_level_t *levels,
 			    size_t n,
+			    int cleanup_options,
 			    void (*removed_callback)(size_t, void *),
 			    void *arg)
 {
@@ -2040,7 +2041,13 @@ size_t unicode_bidi_cleanup(char32_t *string,
 	{
 		enum_bidi_type_t cl=unicode_bidi_type(string[j]);
 
-		if (IS_X9(cl))
+		if (cleanup_options & UNICODE_BIDI_CLEANUP_EXTRA
+		    ? (
+		       is_explicit_indicator_except_b(cl) ||
+		       (string[j] == UNICODE_LRM ||
+			string[j] == UNICODE_RLM ||
+			string[j] == UNICODE_ALM))
+		    : IS_X9(cl))
 		{
 			if (removed_callback)
 				(*removed_callback)(j, arg);
@@ -2048,34 +2055,9 @@ size_t unicode_bidi_cleanup(char32_t *string,
 		}
 		if (levels)
 			levels[i]=levels[j] & 1;
-		++i;
-	}
-	return i;
-}
 
-size_t unicode_bidi_extra_cleanup(char32_t *string,
-				  unicode_bidi_level_t *levels,
-				  size_t n,
-				  void (*removed_callback)(size_t, void *),
-				  void *arg)
-{
-	size_t i=0;
-	for (size_t j=0; j<n; ++j)
-	{
-		enum_bidi_type_t cl=unicode_bidi_type(string[j]);
-
-		if (is_explicit_indicator_except_b(cl) ||
-		    (string[j] == UNICODE_LRM ||
-		     string[j] == UNICODE_RLM ||
-		     string[j] == UNICODE_ALM))
-		{
-			if (removed_callback)
-				(*removed_callback)(j, arg);
-			continue;
-		}
-		string[i]=cl == UNICODE_BIDI_TYPE_B ? '\n' : string[j];
-		if (levels)
-			levels[i]=levels[j] & 1;
+		string[i]=(cleanup_options & UNICODE_BIDI_CLEANUP_BNL)
+			&& cl == UNICODE_BIDI_TYPE_B ? '\n' : string[j];
 		++i;
 	}
 	return i;

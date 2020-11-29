@@ -304,7 +304,6 @@ See COPYING for distribution information.
 	  <refname>unicode_bidi_calc</refname>
 	  <refname>unicode_bidi_reorder</refname>
 	  <refname>unicode_bidi_cleanup</refname>
-	  <refname>unicode_bidi_extra_cleanup</refname>
 	  <refname>unicode_bidi_logical_order</refname>
 	  <refname>unicode_bidi_embed</refname>
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
@@ -341,15 +340,7 @@ See COPYING for distribution information.
               <paramdef>char32_t *<parameter>string</parameter></paramdef>
               <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
-              <paramdef>void (*<parameter>removed_callback</parameter>)(size_t, size_t, void *)</paramdef>
-	      <paramdef>void *<parameter>arg</parameter></paramdef>
-	    </funcprototype>
-
-	    <funcprototype>
-	      <funcdef>size_t <function>unicode_bidi_extra_cleanup</function></funcdef>
-              <paramdef>char32_t *<parameter>string</parameter></paramdef>
-              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
-              <paramdef>size_t <parameter>n</parameter></paramdef>
+	      <paramdef>int <parameter>options</parameter></paramdef>
               <paramdef>void (*<parameter>removed_callback</parameter>)(size_t, size_t, void *)</paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
 	    </funcprototype>
@@ -450,8 +441,7 @@ See COPYING for distribution information.
 	      </listitem>
 	      <listitem>
 		<para>
-		  Use <function>unicode_bidi_cleanup</function>() or
-		  <function>unicode_bidi_extra_cleanup</function>(),
+		  Use <function>unicode_bidi_cleanup</function>()
 		  to remove the characters from the string which are used
 		  by the bi-directional algorithm, and are not needed for
 		  rendering the text.
@@ -585,28 +575,12 @@ See COPYING for distribution information.
 	      <quote>rendering order</quote>, but still contain bi-directional
 	      embedding, override, boundary-neutral, isolate, and marker
 	      characters.
-	      <function>unicode_bidi_cleanup</function>() and
-	      <function>unicode_bidi_extra_cleanup</function>() remove these
-	      characters and directional markers from the unicode string.
-	      <function>unicode_bidi_cleanup</function> removes only the
-	      embedding, override, and  boundry-neutral characters (as
-	      specified by step X9 of the bi-directional algorithm).
-	      <function>unicode_bidi_extra_cleanup</function>()
-	      additionally removes the isolation markers, implicit markers;
-	      and all characters
-	      classified as paragraph separators get replaced by a newline.
-            </para>
+	      <function>unicode_bidi_cleanup</function>
+	      removes these characters and directional markers.
+	    </para>
 	    <para>
-	      A non-null pointer to the directional embedding level buffer,
-	      of the same size as the string, also removes the corresponding
-	      values from the buffer, and the remaining values in the
-	      embedding level buffer get reset to
-	      levels <literal>UNICODE_BIDI_LR</literal> and
-	      <literal> UNICODE_BIDI_RL</literal>, only.
-            </para>
-	    <para>
-	      The parameters to <function>unicode_bidi_cleanup</function>() and
-	      <function>unicode_bidi_extra_cleanup</function>() are:
+	      The parameters to <function>unicode_bidi_cleanup</function>()
+	      are:
             </para>
 
 	    <itemizedlist>
@@ -617,15 +591,66 @@ See COPYING for distribution information.
               </listitem>
 	      <listitem>
 		<para>
-		  The pointer to the directional embedding buffer.
-                </para>
+		  A non-null pointer to the directional embedding level buffer,
+		  of the same size as the string, also removes the corresponding
+		  values from the buffer, and the remaining values in the
+		  embedding level buffer get reset to
+		  levels <literal>UNICODE_BIDI_LR</literal> and
+		  <literal> UNICODE_BIDI_RL</literal>, only.
+		</para>
               </listitem>
+
 	      <listitem>
 		<para>
 		  The size of the unicode string and the directional embedding
-		  buffer.
+		  buffer (if not NULL).
                 </para>
               </listitem>
+
+	      <listitem>
+		<para>
+		  A a bitmask that selects the following options
+		  (or 0 if no options):
+		</para>
+
+		<variablelist>
+		  <varlistentry>
+		    <term><literal>UNICODE_BIDI_CLEANUP_EXTRA</literal></term>
+		    <listitem>
+		      <para>
+			In addition to removing all embedding, override, and
+			boundry-neutral characters as
+			specified by step X9 of the bi-directional algorithm
+			(the default behavior without this flag), also
+			remove all isolation markers and implicit markers.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term><literal>UNICODE_BIDI_CLEANUP_BNL</literal></term>
+		    <listitem>
+		      <para>
+			Replace all characters classified as paragraph
+			separators with a newline character.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term><literal>UNICODE_BIDI_CLEANUP_CANONICAL</literal></term>
+		    <listitem>
+		      <para>
+			A combined set of
+			<literal>UNICODE_BIDI_CLEANUP_EXTRA</literal>
+			and
+			<literal>UNICODE_BIDI_CLEANUP_BNL</literal>,
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		</variablelist>
+	      </listitem>
+
 	      <listitem>
 		<para>
 		  A pointer to a function that gets repeatedly invoked with the
@@ -647,17 +672,17 @@ See COPYING for distribution information.
 	      from the first to
 	      the last removed character (if any).
             </para>
-	    <para>
-	      Multiple calls to <function>unicode_bidi_cleanup</function>() or
-	      <function>unicode_bidi_extra_cleanup</function>() do no harm;
-	      except that <function>unicode_bidi_extra_cleanup</function>()
-	      always removes all the additional characters that
-	      <function>unicode_bidi_cleanup</function>() does not remove.
-            </para>
+
 	    <para>
 	      The character string and the embedding level values resulting
-	      from <function>unicode_bidi_extra_cleanup</function>() are in
+	      from <function>unicode_bidi_cleanup</function>()
+	      with the <literal>UNICODE_BIDI_CLEANUP_CANONICAL</literal>
+	      are in
 	      <quote>canonical rendering order</quote>.
+	      <function>unicode_bidi_logical_order</function>() and
+	      <function>unicode_bidi_embed</function>() require the
+	      canonical rendering order for their string and embedding level
+	      values.
             </para>
 	  </refsect2>
 
@@ -675,7 +700,8 @@ See COPYING for distribution information.
 	      canonical rendering order after applying
 	      <function>unicode_bidi_calc()</function>,
 	      <function>unicode_reorder()</function> and
-	      <function>unicode_bidi_extra_cleanup()</function>,
+	      <function>unicode_bidi_cleanup()</function>
+	      (with the canonical option),
 	      with the same paragraph_embedding level.
             </para>
 
@@ -2628,15 +2654,15 @@ See COPYING for distribution information.
 	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
 	<refmeta>
-	  <refentrytitle>unicode::bidi::calc</refentrytitle>
+	  <refentrytitle>unicode::bidi</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</refmeta>
 
 	<refnamediv>
+	  <refname>unicode::bidi</refname>
 	  <refname>unicode::bidi_calc</refname>
 	  <refname>unicode::bidi_reorder</refname>
 	  <refname>unicode::bidi_cleanup</refname>
-	  <refname>unicode::bidi_extra_cleanup</refname>
 	  <refname>unicode::bidi_logical_order</refname>
 	  <refname>unicode::bidi_embed</refname>
 	  <refname>unicode::bidi_embed_paragraph_level</refname>
@@ -2674,6 +2700,7 @@ See COPYING for distribution information.
               <funcdef>void <function>unicode::bidi_cleanup</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
             </funcprototype>
 
 	    <funcprototype>
@@ -2681,19 +2708,7 @@ See COPYING for distribution information.
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
-            </funcprototype>
-
-	    <funcprototype>
-              <funcdef>void <function>unicode::bidi_extra_cleanup</function></funcdef>
-	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
-            </funcprototype>
-
-	    <funcprototype>
-              <funcdef>int <function>unicode::bidi_extra_cleanup</function></funcdef>
-	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
-	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
             </funcprototype>
 
 	    <funcprototype>
@@ -2789,7 +2804,51 @@ See COPYING for distribution information.
               </para>
             </listitem>
           </itemizedlist>
+
+	  <refsect2 id="unicode_cpp_bidi_literals">
+	    <title><literal>unicode::literals</literal> namespace</title>
+
+	    <blockquote>
+	      <informalexample>
+		<programlisting><![CDATA[
+using namespace unicode::literals;
+
+std::u32string foo(std::u32string bar)
+{
+	return bar + LRO;
+}
+]]></programlisting>
+	      </informalexample>
+	    </blockquote>
+
+	    <para>
+	      This namespace contains the following <literal>constexpr</literal>
+	      definitions:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  <classname>char32_t</classname> arrays with literal
+		  Unicode character strings containing Unicode directional,
+		  isolate, and override markers, like
+		  <literal>LRO</literal>,
+		  <literal>RLO</literal> and others.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  <literal>CLEANUP_EXTRA</literal>,
+		  <literal>CLEANUP_BNL</literal>, and
+		  <literal>CLEANUP_CANONICAL</literal> options for
+		  <function>unicode::bidi_cleanup</function>().
+		</para>
+	      </listitem>
+	    </itemizedlist>
+
+	  </refsect2>
 	</refsect1>
+
 	<refsect1 id="unicode_cpp_bidi_seealso">
 	  <title>SEE ALSO</title>
 	  <para>

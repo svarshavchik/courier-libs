@@ -691,7 +691,8 @@ extern "C" {
 }
 
 void unicode::bidi_cleanup(std::u32string &string,
-			   const std::function<void (size_t)> &lambda)
+			   const std::function<void (size_t)> &lambda,
+			   int cleanup_options)
 {
 	if (string.empty())
 		return;
@@ -701,6 +702,7 @@ void unicode::bidi_cleanup(std::u32string &string,
 	size_t n=unicode_bidi_cleanup(&string[0],
 				      0,
 				      string.size(),
+				      cleanup_options,
 				      removed_callback,
 				      reinterpret_cast<void *>(&cb));
 	cb.rethrow();
@@ -709,55 +711,24 @@ void unicode::bidi_cleanup(std::u32string &string,
 
 int unicode::bidi_cleanup(std::u32string &string,
 			  std::vector<unicode_bidi_level_t> &levels,
-			  const std::function<void (size_t)> &lambda)
+			  const std::function<void (size_t)> &lambda,
+			  int cleanup_options)
 {
 	if (levels.size() != string.size())
 		return -1;
+
+	if (levels.size() == 0)
+		return 0;
 
 	cb_wrapper<void (size_t)> cb{lambda};
 	size_t n=unicode_bidi_cleanup(&string[0],
 				      &levels[0],
 				      string.size(),
+				      cleanup_options,
 				      removed_callback,
 				      reinterpret_cast<void *>(&cb));
 	cb.rethrow();
 
-	string.resize(n);
-	levels.resize(n);
-	return 0;
-}
-
-
-void unicode::bidi_extra_cleanup(std::u32string &string,
-				 const std::function<void (size_t)> &lambda)
-{
-	if (string.empty())
-		return;
-
-	cb_wrapper<void (size_t)> cb{lambda};
-	size_t n=unicode_bidi_extra_cleanup(&string[0],
-					    0,
-					    string.size(),
-					    removed_callback,
-					    reinterpret_cast<void *>(&cb));
-	cb.rethrow();
-	string.resize(n);
-}
-
-int unicode::bidi_extra_cleanup(std::u32string &string,
-				std::vector<unicode_bidi_level_t> &levels,
-				const std::function<void (size_t)> &lambda)
-{
-	if (levels.size() != string.size())
-		return -1;
-
-	cb_wrapper<void (size_t)> cb{lambda};
-	size_t n=unicode_bidi_extra_cleanup(&string[0],
-					    &levels[0],
-					    string.size(),
-					    removed_callback,
-					    reinterpret_cast<void *>(&cb));
-	cb.rethrow();
 	string.resize(n);
 	levels.resize(n);
 	return 0;

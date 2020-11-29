@@ -89,11 +89,11 @@ include_HEADERS=courier-unicode.h \
 
 man_MANS= \
         $(srcdir)/man/courier-unicode.7 \
+        $(srcdir)/man/unicode\:\:bidi.3 \
         $(srcdir)/man/unicode\:\:bidi_calc.3 \
         $(srcdir)/man/unicode\:\:bidi_cleanup.3 \
         $(srcdir)/man/unicode\:\:bidi_embed.3 \
         $(srcdir)/man/unicode\:\:bidi_embed_paragraph_level.3 \
-        $(srcdir)/man/unicode\:\:bidi_extra_cleanup.3 \
         $(srcdir)/man/unicode\:\:bidi_logical_order.3 \
         $(srcdir)/man/unicode\:\:bidi_reorder.3 \
         $(srcdir)/man/unicode\:\:iconvert\:\:convert.3 \
@@ -118,7 +118,6 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_cleanup.3 \
         $(srcdir)/man/unicode_bidi_embed.3 \
         $(srcdir)/man/unicode_bidi_embed_paragraph_level.3 \
-        $(srcdir)/man/unicode_bidi_extra_cleanup.3 \
         $(srcdir)/man/unicode_bidi_logical_order.3 \
         $(srcdir)/man/unicode_bidi_mirror.3 \
         $(srcdir)/man/unicode_bidi_reorder.3 \
@@ -515,4 +514,4 @@ distrelease:
 	$(MAKE) dist
 
 www:
-	rsync -a html/. $$HOME/www/hostrocket/courier-mta.org/unicode
+	rsync -a --delete-after html/. $$HOME/www/hostrocket/courier-mta.org/unicode

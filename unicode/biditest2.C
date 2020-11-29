@@ -307,7 +307,9 @@ void character_test()
 			exit(1);
 		}
 
-		unicode::bidi_extra_cleanup(s, levels);
+		unicode::bidi_cleanup(s, levels,
+				      [](size_t) {},
+				      UNICODE_BIDI_CLEANUP_CANONICAL);
 
 		auto dump_ls=
 			[&]
@@ -371,8 +373,13 @@ void character_test()
 			}
 
 			unicode::bidi_reorder(new_string, std::get<0>(ret));
-			unicode::bidi_extra_cleanup(new_string,
-						    std::get<0>(ret));
+			unicode::bidi_cleanup(new_string,
+					      std::get<0>(ret),
+					      []
+					      (size_t)
+					      {
+					      },
+					      UNICODE_BIDI_CLEANUP_CANONICAL);
 
 			/* New string is now back in logical order */
 
