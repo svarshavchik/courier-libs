@@ -467,7 +467,7 @@ typedef struct {
 	unicode_bidi_level_t paragraph_embedding_level;
 	const char32_t    *chars;
 	enum_bidi_type_t *classes;
-	enum_bidi_type_t *orig_classes;
+	const enum_bidi_type_t *orig_classes;
 	unicode_bidi_level_t *levels;
 	size_t size;
 	int overflow_isolate_count;
@@ -624,7 +624,7 @@ compute_paragraph_embedding_level_from_types(const enum_bidi_type_t *p,
 
 static directional_status_stack_t
 directional_status_stack_init(const char32_t *chars,
-			      enum_bidi_type_t *classes, size_t n,
+			      const enum_bidi_type_t *classes, size_t n,
 			      unicode_bidi_level_t *levels,
 			      const unicode_bidi_level_t
 			      *initial_embedding_level)
@@ -638,21 +638,21 @@ directional_status_stack_init(const char32_t *chars,
 		? *initial_embedding_level & 1
 		: compute_paragraph_embedding_level_from_types(classes, 0, n);
 	stack->chars=chars;
-	stack->classes=classes;
+	stack->orig_classes=classes;
 
 	if (n)
 	{
-		classes=(enum_bidi_type_t *)
+		stack->classes=(enum_bidi_type_t *)
 			malloc(sizeof(enum_bidi_type_t)*n);
-		if (!classes)
+		if (!stack->classes)
 			abort();
-		memcpy(classes, stack->classes, sizeof(enum_bidi_type_t)*n);
+		memcpy(stack->classes, stack->orig_classes,
+		       sizeof(enum_bidi_type_t)*n);
 	}
 	else
 	{
-		classes=0;
+		stack->classes=0;
 	}
-	stack->orig_classes=classes;
 	stack->levels=levels;
 	stack->size=n;
 
@@ -682,18 +682,11 @@ static void directional_status_stack_deinit(directional_status_stack_t stack)
 {
 	while (stack->head)
 		directional_status_stack_pop(stack);
-	if (stack->orig_classes)
-		free(stack->orig_classes);
+	if (stack->classes)
+		free(stack->classes);
 	isolating_run_sequences_deinit(&stack->isolating_run_sequences);
 	free(stack);
 }
-
-static unicode_bidi_level_t
-unicode_bidi_b(const char32_t *p,
-	       size_t n,
-	       enum_bidi_type_t *buf,
-	       unicode_bidi_level_t *bufp,
-	       const unicode_bidi_level_t *initial_embedding_level);
 
 enum_bidi_type_t unicode_bidi_type(char32_t c)
 {
@@ -707,35 +700,40 @@ enum_bidi_type_t unicode_bidi_type(char32_t c)
 				   UNICODE_BIDI_TYPE_L);
 }
 
-unicode_bidi_level_t
-unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
-		  const unicode_bidi_level_t *initial_embedding_level)
+
+void unicode_bidi_calc_types(const char32_t *p, size_t n,
+			     enum_bidi_type_t *buf)
 {
 	/*
 	** Look up the bidi class for each char32_t.
-	**
-	** When we encounter a paragraph break we call unicode_bidi_b() to
-	** process it.
 	*/
-
-	enum_bidi_type_t *buf=
-		(enum_bidi_type_t *)malloc(n * sizeof(enum_bidi_type_t));
-
-	if (!buf)
-		abort();
 	for (size_t i=0; i<n; ++i)
 	{
 		buf[i]=unicode_bidi_type(p[i]);
 #ifdef UNICODE_BIDI_TEST
 		UNICODE_BIDI_TEST(i);
 #endif
-		bufp[i]=UNICODE_BIDI_SKIP;
 	}
+}
 
-	unicode_bidi_level_t level=unicode_bidi_b(p, n,
-						  buf,
-						  bufp,
-						  initial_embedding_level);
+unicode_bidi_level_t
+unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
+		  const unicode_bidi_level_t *initial_embedding_level)
+{
+	enum_bidi_type_t *buf=
+		(enum_bidi_type_t *)malloc(n * sizeof(enum_bidi_type_t));
+
+	if (!buf)
+		abort();
+
+	unicode_bidi_calc_types(p, n, buf);
+
+	unicode_bidi_level_t level=
+		unicode_bidi_calc_levels(p,
+					 buf,
+					 n,
+					 bufp,
+					 initial_embedding_level);
 
 	free(buf);
 
@@ -744,16 +742,21 @@ unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 
 static void unicode_bidi_cl(directional_status_stack_t stack);
 
-static unicode_bidi_level_t
-unicode_bidi_b(const char32_t *p,
-	       size_t n,
-	       enum_bidi_type_t *buf,
-	       unicode_bidi_level_t *bufp,
-	       const unicode_bidi_level_t *initial_embedding_level)
+unicode_bidi_level_t
+unicode_bidi_calc_levels(const char32_t *p,
+			 const enum_bidi_type_t *classes,
+			 size_t n,
+			 unicode_bidi_level_t *bufp,
+			 const unicode_bidi_level_t *initial_embedding_level)
 {
 	directional_status_stack_t stack;
 
-	stack=directional_status_stack_init(p, buf, n, bufp,
+	for (size_t i=0; i<n; ++i)
+	{
+		bufp[i]=UNICODE_BIDI_SKIP;
+	}
+
+	stack=directional_status_stack_init(p, classes, n, bufp,
 					    initial_embedding_level);
 
 	unicode_bidi_level_t paragraph_embedding_level=

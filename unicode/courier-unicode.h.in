@@ -626,6 +626,16 @@ typedef enum {
 
 extern enum_bidi_type_t unicode_bidi_type(char32_t c);
 
+extern void unicode_bidi_calc_types(const char32_t *p, size_t n,
+				    enum_bidi_type_t *buf);
+
+extern unicode_bidi_level_t unicode_bidi_calc_levels(const char32_t *p,
+						     const enum_bidi_type_t
+						     *types,
+						     size_t n,
+						     unicode_bidi_level_t *bufp,
+						     const unicode_bidi_level_t
+						     *initial_embedding_level);
 /* Bitmask options to unicode_bidi_cleanup */
 
 /*
@@ -2153,13 +2163,45 @@ std::u32string tolower(const std::u32string &u);
 
 std::u32string toupper(const std::u32string &u);
 
+//! Calculate bidirectional character types
+
+//! Passed as a parameter to bidi_calc(), supplying the string and the
+//! calculated bidirectional types.
+
+struct bidi_calc_types {
+	const std::u32string &s;
+
+	//! Calculated bidirectional types.
+
+	std::vector<enum_bidi_type_t> types;
+
+	//! A reference to an existing std::u32string
+
+	//! bidi_calc_types can be constructed only from a reference to
+	//! an existing std::u32string.
+	bidi_calc_types(const std::u32string &);
+
+	//! Deleted constructor
+
+	//! bidi_calc_types cannot be constructed from a temporary
+	//! std::u32string.
+	bidi_calc_types(std::u32string &&)=delete;
+
+	//! Destructor
+	~bidi_calc_types();
+};
+
 //! Calculate bidirectional embedding levels
 
 //! Returns the bidirectional embedding levels, and the paragraph
 //! embedding level.
+//!
+//! The first parameter can be implicitly converted from an existing
+//! std::u32string object. Alternatively a bidi_calc_types helper
+//! can be constructed explicitly, and then passed in directly.
 
 std::tuple<std::vector<unicode_bidi_level_t>,
-	   unicode_bidi_level_t> bidi_calc(const std::u32string &s);
+	   unicode_bidi_level_t> bidi_calc(const bidi_calc_types &s);
 
 //! Calculate bidirectional embedding levels
 
@@ -2170,7 +2212,7 @@ std::tuple<std::vector<unicode_bidi_level_t>,
 //! embedding level.
 
 std::tuple<std::vector<unicode_bidi_level_t>,
-	   unicode_bidi_level_t> bidi_calc(const std::u32string &s,
+	   unicode_bidi_level_t> bidi_calc(const bidi_calc_types &s,
 					   unicode_bidi_level_t level);
 
 //! Reorder bidirectional text

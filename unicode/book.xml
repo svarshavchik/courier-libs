@@ -301,6 +301,8 @@ See COPYING for distribution information.
 
 	<refnamediv>
 	  <refname>unicode_bidi</refname>
+	  <refname>unicode_bidi_calc_levels</refname>
+	  <refname>unicode_bidi_calc_types</refname>
 	  <refname>unicode_bidi_calc</refname>
 	  <refname>unicode_bidi_reorder</refname>
 	  <refname>unicode_bidi_cleanup</refname>
@@ -318,6 +320,23 @@ See COPYING for distribution information.
 	<refsynopsisdiv>
 	  <funcsynopsis>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;&#10;&#10;unicode_bidi_level_t lr=UNICODE_BIDI_LR;</funcsynopsisinfo>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_bidi_calc_types</function></funcdef>
+              <paramdef>const char32_t *<parameter>p</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_type_t *<parameter>types</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_bidi_calc_levels</function></funcdef>
+              <paramdef>const char32_t *<parameter>p</parameter></paramdef>
+              <paramdef>const unicode_bidi_type_t *<parameter>types</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>initial_embedding_level</parameter></paramdef>
+	    </funcprototype>
+
 	    <funcprototype>
 	      <funcdef>void <function>unicode_bidi_calc</function></funcdef>
               <paramdef>const char32_t *<parameter>p</parameter></paramdef>
@@ -417,19 +436,49 @@ See COPYING for distribution information.
 	      <listitem>
 		<para>
 		  Allocate an array of
-		  <structname>unicode_bidi_level_t</structname> that's the
+		  <structname>unicode_bidi_type_t</structname> that's the
 		  same size as the Unicode string.
 		</para>
 	      </listitem>
 	      <listitem>
 		<para>
-		  Use <function>unicode_bidi_calc</function>() to compute
+		  Allocate an array of
+		  <structname>unicode_bidi_level_t</structname> that's the
+		  same size as the Unicode string.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  Use <function>unicode_bidi_calc_types</function>() to compute
+		  the Unicode string's characters' bi-directional types,
+		  and populate the
+		  <structname>unicode_bidi_type_t</structname> buffer.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  Use <function>unicode_bidi_calc_levels</function>() to compute
 		  the Unicode string's characters' bi-directional embedding
 		  level (executes the Bi-Directional algorithm up to and
 		  including step L1). This populates the
 		  <structname>unicode_bidi_level_t</structname> buffer.
 		</para>
 	      </listitem>
+
+	      <listitem>
+		<para>
+		  Alternatively: allocate only the
+		  <structname>unicode_bidi_level_t</structname> array
+		  and use <function>unicode_bidi_calc</function>(), which
+		  <function>malloc</function>()s the
+		  <structname>unicode_bidi_type_t</structname> buffer,
+		  calls <function>unicode_bidi_calc_levels</function>(),
+		  and then <function>free</function>()s the buffer.
+		</para>
+	      </listitem>
+
 	      <listitem>
 		<para>
 		  Use <function>unicode_bidi_reorder</function>() to reverse
@@ -451,7 +500,7 @@ See COPYING for distribution information.
 
 	    <para>
 	      The parameters to
-	      <function>unicode_bidi_calc</function>() are:
+	      <function>unicode_bidi_calc_types</function>() are:
 	    </para>
 
 	    <itemizedlist>
@@ -463,6 +512,42 @@ See COPYING for distribution information.
 	      <listitem>
 		<para>
 		  Number of characters in the Unicode string.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  A pointer to an array of
+		  <structname>unicode_bidi_type_t</structname> values.
+		  The caller is
+		  responsible for allocating and deallocating this array,
+		  which has the same size as the Unicode string.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+
+	    <para>
+	      The parameters to
+	      <function>unicode_bidi_calc_levels</function>() are:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  A pointer to the Unicode string.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  A pointer to the buffer that was passed to
+		  <function>unicode_bidi_calc_types</function>().
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  Number of characters in the Unicode string and the
+		  <structname>unicode_bidi_type_t</structname> buffer.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -488,7 +573,18 @@ See COPYING for distribution information.
 	    </itemizedlist>
 
 	    <para>
-	      <function>unicode_bidi_calc</function>() fills in the
+	      The parameters to <function>unicode_bidi_calc</function>() are
+	      the same except for the
+	      <structname>unicode_bidi_type_t</structname> pointer.
+	      <function>unicode_bidi_calc</function>() allocates this
+	      buffer by itself and calls
+	      <function>unicode_bidi_calc_types</function>, and
+	      destroys the buffer before returning.
+	    </para>
+
+	    <para>
+	      <function>unicode_bidi_calc</function>()
+	      and <function>unicode_bidi_calc_levels</function>() fill in the
 	      <structname>unicode_bidi_level_t</structname> array with the
 	      values corresponding to the embedding level of the
 	      corresponding character,
@@ -500,7 +596,9 @@ See COPYING for distribution information.
 	    </para>
 
 	    <para>
-	      <function>unicode_bidi_calc</function>() returns the resolved
+	      <function>unicode_bidi_calc</function>()
+	      and <function>unicode_bidi_calc_levels</function>()
+	      return the resolved
 	      paragraph direction level, which
 	      always matches the passed in level, if specified, else it
 	      reports the
@@ -510,7 +608,8 @@ See COPYING for distribution information.
 	    <para>
 	      <function>unicode_bidi_reorder</function>() takes the actual
 	      unicode string together with the embedding values from
-	      <function>unicode_bidi_calc</function>, then reverses the
+	      <function>unicode_bidi_calc</function> or
+	      <function>unicode_bidi_calc_levels</function>(), then reverses the
 	      bi-directional string, as specified by step L2 of the bi-directional
 	      algorithm.
 	      The parameters to
@@ -698,7 +797,8 @@ See COPYING for distribution information.
 	      basic,
 	      but the resulting bi-directional string produces the same
 	      canonical rendering order after applying
-	      <function>unicode_bidi_calc()</function>,
+	      <function>unicode_bidi_calc()</function> or
+	      <function>unicode_bidi_calc_levels</function>(),
 	      <function>unicode_reorder()</function> and
 	      <function>unicode_bidi_cleanup()</function>
 	      (with the canonical option),
@@ -847,7 +947,9 @@ See COPYING for distribution information.
 	      default paragraph embedding level and returns 0 if it matches.
 	      Otherwise it returns a directional marker that should be
 	      <emphasis>prepended</emphasis> to the Unicode string to allow
-	      <function>unicode_bidi_calc</function>'s optional paragraph
+	      <function>unicode_bidi_calc</function>'s
+	      (or <function>unicode_bidi_calc_levels</function>())
+	      optional paragraph
 	      embedding level pointer's value to be <literal>NULL</literal>,
 	      but derive the same default embedding level.
 	      The parameters to
@@ -2661,6 +2763,7 @@ See COPYING for distribution information.
 	<refnamediv>
 	  <refname>unicode::bidi</refname>
 	  <refname>unicode::bidi_calc</refname>
+	  <refname>unicode::bidi_calc_types</refname>
 	  <refname>unicode::bidi_reorder</refname>
 	  <refname>unicode::bidi_cleanup</refname>
 	  <refname>unicode::bidi_logical_order</refname>
@@ -2670,16 +2773,31 @@ See COPYING for distribution information.
 	</refnamediv>
 
 	<refsynopsisdiv>
+	  <synopsis>#include &lt;courier-unicode.h&gt;</synopsis>
+	  <classsynopsis class="class" language="C++">
+	    <ooclass>
+	      <classname>struct unicode::bidi_calc_types</classname>
+	    </ooclass>
+	    <constructorsynopsis>
+	      <methodname>bidi_calc_types</methodname>
+	      <methodparam><modifier>const std::u32string &amp;</modifier><parameter>string</parameter>
+	      </methodparam>
+	    </constructorsynopsis>
+	    <fieldsynopsis>
+	      <modifier>std::vector&lt;unicode_bidi_type_t&gt;</modifier>
+	      <varname>types</varname>
+	    </fieldsynopsis>
+	  </classsynopsis>
+
 	  <funcsynopsis>
-	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 	    <funcprototype>
               <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const unicode::bidi_calc_types &amp;<parameter>ustring</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const unicode::bidi_calc_types &amp;<parameter>ustring</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>embedding_level</parameter></paramdef>
 	    </funcprototype>
 
@@ -2766,9 +2884,55 @@ See COPYING for distribution information.
 	    <listitem>
 	      <para>
                 <function>unicode::bidi_calc</function> returns the
-		directional embedding value buffer and the paragraph
-		embedding level.
+		directional embedding value buffer and the calculated paragraph
+		embedding level. Its <parameter>ustring</parameter>
+		is implicitly converted from a
+		<classname>std::u32string</classname>:
               </para>
+	      <blockquote>
+		<informalexample>
+		  <programlisting><![CDATA[
+std::u32string text;
+
+auto [levels, level]=unicode::bidi_calc(text);
+
+]]></programlisting>
+		</informalexample>
+	      </blockquote>
+
+	      <para>
+		Alternatively a <classname>unicode::bidi_calc_types</classname>
+		objects gets constructed from the same
+		<classname>std::u32string</classname> and then passed
+		directly to <function>unicode::bidi_calc</function>:
+	      </para>
+	      <blockquote>
+		<informalexample>
+		  <programlisting><![CDATA[
+std::u32string text;
+
+unicode::bidi_calc_types types{text};
+
+// types.types is a std::vector of enum_bidi_types_t values
+
+auto [levels, level]=unicode::bidi_calc(types);
+
+]]></programlisting>
+		</informalexample>
+	      </blockquote>
+	      <para>
+		This provides the means to access the intermediate
+		<classname>enum_bidi_types_t</classname> values that
+		get calculated from the Unicode text string.
+	      </para>
+
+	      <note>
+		<para>
+		  In all cases the <classname>std::u32string</classname>
+		  cannot be a temporary object, and it must remain in scope
+		  until <function>unicode::bidi_calc</function>() returns.
+		</para>
+	      </note>
             </listitem>
 	    <listitem>
 	      <para>

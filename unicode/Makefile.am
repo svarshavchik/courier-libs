@@ -91,6 +91,7 @@ man_MANS= \
         $(srcdir)/man/courier-unicode.7 \
         $(srcdir)/man/unicode\:\:bidi.3 \
         $(srcdir)/man/unicode\:\:bidi_calc.3 \
+        $(srcdir)/man/unicode\:\:bidi_calc_types.3 \
         $(srcdir)/man/unicode\:\:bidi_cleanup.3 \
         $(srcdir)/man/unicode\:\:bidi_embed.3 \
         $(srcdir)/man/unicode\:\:bidi_embed_paragraph_level.3 \
@@ -115,6 +116,8 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi.3 \
         $(srcdir)/man/unicode_bidi_bracket_type.3 \
         $(srcdir)/man/unicode_bidi_calc.3 \
+        $(srcdir)/man/unicode_bidi_calc_levels.3 \
+        $(srcdir)/man/unicode_bidi_calc_types.3 \
         $(srcdir)/man/unicode_bidi_cleanup.3 \
         $(srcdir)/man/unicode_bidi_embed.3 \
         $(srcdir)/man/unicode_bidi_embed_paragraph_level.3 \
@@ -432,7 +435,7 @@ docs.stamp:
 	rm -rf man.tmp
 	mkdir man.tmp
 	d=`cd $(srcdir); pwd`; cd man.tmp; xsltproc --nonet --xinclude \
-	http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl\
+        http://cdn.docbook.org/release/xsl-nons/current//manpages/docbook.xsl\
 		$$d/book.xml
 	mkdir -p man
 	rm -f man/*.[123456789]
