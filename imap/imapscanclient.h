@@ -23,7 +23,6 @@ struct imapscanmessageinfo {
 
 	char storeflag;  /* Used by imap_addRemoveKeywords() */
 
-	char err8bitflag;       /* Invalid 8 bit header error was reported */
 	/* When reading keywords, hash messages by filename */
 
 	struct imapscanmessageinfo *firstBucket, *nextBucket;

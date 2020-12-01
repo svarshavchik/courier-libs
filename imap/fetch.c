@@ -61,8 +61,8 @@ extern void get_message_flags(struct imapscanmessageinfo *,
 extern void append_flags(char *, struct imapflags *);
 
 static int fetchitem(FILE **, int *, struct fetchinfo *,
-	struct imapscaninfo *,  unsigned long,
-	struct rfc2045 **);
+		     struct imapscaninfo *,  unsigned long,
+		     struct rfc2045 **, int *);
 
 static void bodystructure(FILE *, struct fetchinfo *,
 	struct imapscaninfo *,  unsigned long,
@@ -250,6 +250,7 @@ int do_fetch(unsigned long n, int byuid, void *p)
 	int	seen;
 	int	open_err;
 	int	unicode_err=0;
+	int	report_unicode_err=0;
 
 	fp=NULL;
 	open_err=0;
@@ -278,15 +279,11 @@ int do_fetch(unsigned long n, int byuid, void *p)
 	while (fi)
 	{
 		int rc=fetchitem(&fp, &open_err, fi, &current_maildir_info, n-1,
-				 &rfc2045p);
+				 &rfc2045p, &unicode_err);
 
 		if (rc > 0)
 			seen=1;
-		if (rc < 0)
-		{
-			rc=0;
-			unicode_err=1;
-		}
+
 		if ((fi=fi->next) != 0)	writes(" ");
 	}
 	writes(")\r\n");
@@ -297,22 +294,6 @@ int do_fetch(unsigned long n, int byuid, void *p)
 		writen(n);
 		writes("\r\n");
 		return (0);
-	}
-
-	if (current_maildir_info.msgs[n-1].err8bitflag)
-		unicode_err=0;
-
-	if (unicode_err)
-	{
-		current_maildir_info.msgs[n-1].err8bitflag=1;
-
-		writes("* OK [ALERT] Message ");
-		writen(n);
-		writes(" appears to be a Unicode message and your"
-		       " E-mail reader did not enable Unicode support."
-		       " Please use an E-mail reader that supports"
-		       " IMAP with UTF-8 (see"
-		       " https://tools.ietf.org/html/rfc6855.html)\r\n");
 	}
 
 #if SMAP
@@ -334,7 +315,20 @@ int do_fetch(unsigned long n, int byuid, void *p)
 			reflag_filename(&current_maildir_info.msgs[n-1],&flags,
 				fileno(fp));
 			current_maildir_info.msgs[n-1].changedflags=1;
+
+			report_unicode_err=unicode_err;
 		}
+	}
+
+	if (report_unicode_err)
+	{
+		writes("* OK [ALERT] Message ");
+		writen(n);
+		writes(" appears to be a Unicode message and your"
+		       " E-mail reader did not enable Unicode support."
+		       " Please use an E-mail reader that supports"
+		       " IMAP with UTF-8 (see"
+		       " https://tools.ietf.org/html/rfc6855.html)\r\n");
 	}
 
 	if (current_maildir_info.msgs[n-1].changedflags)
@@ -343,8 +337,9 @@ int do_fetch(unsigned long n, int byuid, void *p)
 }
 
 static int fetchitem(FILE **fp, int *open_err, struct fetchinfo *fi,
-	struct imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 **mimep)
+		     struct imapscaninfo *i, unsigned long msgnum,
+		     struct rfc2045 **mimep,
+		     int *unicode_err)
 {
 	void (*fetchfunc)(FILE *, struct fetchinfo *,
 			  struct imapscaninfo *, unsigned long,
@@ -460,8 +455,7 @@ static int fetchitem(FILE **fp, int *open_err, struct fetchinfo *fi,
 	if (mimecorrectness && !enabled_utf8 &&
 	    ((*mimep)->rfcviolation & RFC2045_ERR8BITHEADER))
 	{
-		/* Still return -1, in order to [ALERT] the client */
-		rc= -1;
+		*unicode_err=1;
 	}
 
 	(*fetchfunc)(*fp, fi, i, msgnum, *mimep);
