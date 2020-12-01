@@ -573,6 +573,14 @@ unicode::bidi_calc_types::bidi_calc_types(const std::u32string &s)
 
 unicode::bidi_calc_types::~bidi_calc_types()=default;
 
+void unicode::bidi_calc_types::setbnl(std::u32string &s)
+{
+	if (s.empty() || s.size() != types.size())
+		return;
+
+	unicode_bidi_setbnl(&s[0], &types[0], s.size());
+}
+
 std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
 unicode::bidi_calc(const bidi_calc_types &s)
 {

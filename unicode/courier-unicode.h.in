@@ -629,6 +629,10 @@ extern enum_bidi_type_t unicode_bidi_type(char32_t c);
 extern void unicode_bidi_calc_types(const char32_t *p, size_t n,
 				    enum_bidi_type_t *buf);
 
+extern void unicode_bidi_setbnl(char32_t *p,
+				const enum_bidi_type_t *types,
+				size_t n);
+
 extern unicode_bidi_level_t unicode_bidi_calc_levels(const char32_t *p,
 						     const enum_bidi_type_t
 						     *types,
@@ -2181,13 +2185,19 @@ struct bidi_calc_types {
 	//! an existing std::u32string.
 	bidi_calc_types(const std::u32string &);
 
+#if __cplusplus >= 201103L
 	//! Deleted constructor
 
 	//! bidi_calc_types cannot be constructed from a temporary
 	//! std::u32string.
 	bidi_calc_types(std::u32string &&)=delete;
+#endif
+	//! Replace all paragraph breaks by newlines.
+
+	void setbnl(std::u32string &);
 
 	//! Destructor
+
 	~bidi_calc_types();
 };
 

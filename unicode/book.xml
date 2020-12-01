@@ -311,6 +311,7 @@ See COPYING for distribution information.
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
 
 	  <refname>unicode_bidi_type</refname>
+	  <refname>unicode_bidi_setbnl</refname>
 	  <refname>unicode_bidi_mirror</refname>
 	  <refname>unicode_bidi_bracket_type</refname>
 
@@ -406,6 +407,14 @@ See COPYING for distribution information.
 	      <funcdef>enum_bidi_type_t <function>unicode_bidi_type</function></funcdef>
               <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_bidi_setbnl</function></funcdef>
+              <paramdef>char32_t *<parameter>p</parameter></paramdef>
+              <paramdef>const unicode_bidi_type_t *<parameter>types</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+	    </funcprototype>
+
 	  </funcsynopsis>
 	</refsynopsisdiv>
 	<refsect1 id="unicode_bidi_descr">
@@ -982,6 +991,18 @@ See COPYING for distribution information.
 	      <function>unicode_bidi_type</function>
 	      looks up each character's bi-directional character type.
 	    </para>
+
+	    <para>
+	      <function>unicode_bidi_setbnl</function>
+	      takes a pointer to a unicode string, a pointer to an
+	      array of <classname>enum_bidi_type_t</classname> values and
+	      the number of characters in the string and the array.
+	      <function>unicode_bidi_setbnl</function> replaces all
+	      paragraph separators in the unicode string with a newline
+	      character (same as the <literal>UNICODE_BIDI_CLEANUP_BNL</literal>
+	      option to <function>unicode_bidi_cleanup</function>.
+	    </para>
+
 	    <para>
 	      <function>unicode_bidi_mirror</function>
 	      returns the glyph that's a mirror image of the parameter
@@ -2787,6 +2808,15 @@ See COPYING for distribution information.
 	      <modifier>std::vector&lt;unicode_bidi_type_t&gt;</modifier>
 	      <varname>types</varname>
 	    </fieldsynopsis>
+
+	    <methodsynopsis>
+	      <void />
+	      <methodname>setbnl</methodname>
+	      <methodparam>
+		<modifier>std::u32string &amp;</modifier>
+		<parameter>string</parameter>
+	      </methodparam>
+	    </methodsynopsis>
 	  </classsynopsis>
 
 	  <funcsynopsis>
@@ -2913,6 +2943,8 @@ std::u32string text;
 
 unicode::bidi_calc_types types{text};
 
+types.setbnl(text); // Optional
+
 // types.types is a std::vector of enum_bidi_types_t values
 
 auto [levels, level]=unicode::bidi_calc(types);
@@ -2933,6 +2965,19 @@ auto [levels, level]=unicode::bidi_calc(types);
 		  until <function>unicode::bidi_calc</function>() returns.
 		</para>
 	      </note>
+
+	      <para>
+		The optional <methodname>setbnl</methodname>() method uses
+		<link linkend="unicode_bidi">
+		<citerefentry>
+		  <refentrytitle>unicode_bidi_setbnl</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>
+		to replace paragraph separators with newline characters,
+		in the unicode string. It requires the same unicode string
+		that was passed to the constructor as a parameter (because
+		the constructor takes a constant reference, but this
+		method modifies the string.
+	      </para>
             </listitem>
 	    <listitem>
 	      <para>

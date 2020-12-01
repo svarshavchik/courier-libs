@@ -124,6 +124,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_logical_order.3 \
         $(srcdir)/man/unicode_bidi_mirror.3 \
         $(srcdir)/man/unicode_bidi_reorder.3 \
+        $(srcdir)/man/unicode_bidi_setbnl.3 \
         $(srcdir)/man/unicode_bidi_type.3 \
         $(srcdir)/man/unicode_canonical.3 \
         $(srcdir)/man/unicode_category_lookup.3 \
