@@ -66,12 +66,14 @@ struct proto_ops op_list[] =
 {
 #ifdef SSL_OP_NO_TLSv1
 #ifdef SSL_OP_NO_TLSv1_1
+    { "TLSv1.2++", &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_NO_RENEGOTIATION },
     { "TLSv1.2+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1 },
     { "TLSv1.2",   &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1 },
 #endif
 #endif
 
 #ifdef SSL_OP_NO_TLSv1
+    { "TLSv1.1++", &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_RENEGOTIATION },
     { "TLSv1.1+",  &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1 },
     { "TLSv1.1",   &SSLv23_method,  SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1 },
 #endif
