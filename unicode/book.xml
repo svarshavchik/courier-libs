@@ -2835,13 +2835,17 @@ See COPYING for distribution information.
               <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -3012,6 +3016,20 @@ auto [levels, level]=unicode::bidi_calc(types);
 		an empty string in case of a mismatch.
               </para>
             </listitem>
+
+	    <listitem>
+	      <para>
+		<function>unicode::bidi_reorder</function>
+		reorders the entire <parameter>string</parameter> and its
+		<parameter>embedding_level</parameter>s by default.
+		The optional
+		<parameter>starting_pos</parameter> and
+		<parameter>n</parameter> parameters limit the reordering
+		to the indicated subset of the original string (specified
+		as the starting position offset index, and the number of
+		characters).
+	      </para>
+	    </listitem>
           </itemizedlist>
 
 	  <refsect2 id="unicode_cpp_bidi_literals">

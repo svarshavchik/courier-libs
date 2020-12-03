@@ -2234,12 +2234,16 @@ std::tuple<std::vector<unicode_bidi_level_t>,
 int bidi_reorder(std::u32string &string,
 		 std::vector<unicode_bidi_level_t> &levels,
 		 const std::function<void (size_t, size_t)>
-		 &reorder_callback=[](size_t, size_t){});
+		 &reorder_callback=[](size_t, size_t){},
+		 size_t starting_pos=0,
+		 size_t n=(size_t)-1);
 
 //! Dry-run reorder bidirectional text
 void bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
 		  const std::function<void (size_t, size_t)>
-		  &reorder_callback=[](size_t, size_t){});
+		  &reorder_callback=[](size_t, size_t){},
+		  size_t starting_pos=0,
+		  size_t n=(size_t)-1);
 
 //! Remove directional markers
 

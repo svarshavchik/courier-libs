@@ -669,19 +669,23 @@ extern "C" {
 
 int unicode::bidi_reorder(std::u32string &string,
 			  std::vector<unicode_bidi_level_t> &levels,
-			  const std::function<void (size_t, size_t)> &lambda)
+			  const std::function<void (size_t, size_t)> &lambda,
+			  size_t pos,
+			  size_t n)
 {
 	size_t s=string.size();
 
 	if (s != levels.size())
 		return -1;
 
-	if (!s)
+	if (pos >= s)
 		return 0;
 
+	if (n > s-pos)
+		n=s-pos;
 	cb_wrapper<void (size_t, size_t)> cb{lambda};
 
-	unicode_bidi_reorder(&string[0], &levels[0], s,
+	unicode_bidi_reorder(&string[pos], &levels[pos], n,
 			     reorder_callback,
 			     reinterpret_cast<void *>(&cb));
 
@@ -690,16 +694,24 @@ int unicode::bidi_reorder(std::u32string &string,
 }
 
 void unicode::bidi_reorder(std::vector<unicode_bidi_level_t> &levels,
-			   const std::function<void (size_t, size_t)> &lambda)
+			   const std::function<void (size_t, size_t)> &lambda,
+			   size_t pos,
+			   size_t n)
 {
 	size_t s=levels.size();
 
 	if (!s)
 		return;
 
+	if (pos >= s)
+		return;
+
+	if (n > s-pos)
+		n=s-pos;
+
 	cb_wrapper<void (size_t, size_t)> cb{lambda};
 
-	unicode_bidi_reorder(0, &levels[0], s, reorder_callback,
+	unicode_bidi_reorder(0, &levels[pos], n, reorder_callback,
 			     reinterpret_cast<void *>(&cb));
 	cb.rethrow();
 
