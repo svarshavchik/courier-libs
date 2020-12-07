@@ -2878,14 +2878,18 @@ See COPYING for distribution information.
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
 
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_logical_order</function></funcdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
 
 	    <funcprototype>
@@ -3043,8 +3047,10 @@ auto [levels, level]=unicode::bidi_calc(types);
 
 	    <listitem>
 	      <para>
-		<function>unicode::bidi_reorder</function> and
-		<function>unicode::bidi_cleanup</function> take two optional
+		<function>unicode::bidi_reorder</function>,
+		<function>unicode::bidi_cleanup</function>, and
+		<function>unicode::bidi_logical_order</function>
+		take two optional
 		parameters (defaulted values or overloaded) specifying
 		an optional starting position and number of characters that
 		define a subset of the original string that gets reordered

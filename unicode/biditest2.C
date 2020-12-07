@@ -349,7 +349,11 @@ void character_test()
 
 			unicode::bidi_logical_order(logical_string,
 						    logical_levels,
-						    paragraph);
+						    paragraph,
+						    []
+						    (size_t, size_t) {},
+						    0,
+						    logical_string.size());
 
 			auto new_string=unicode::bidi_embed(logical_string,
 							    logical_levels,

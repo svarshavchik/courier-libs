@@ -2291,12 +2291,16 @@ int bidi_logical_order(std::u32string &string,
 		       std::vector<unicode_bidi_level_t> &levels,
 		       unicode_bidi_level_t paragraph_embedding,
 		       const std::function<void (size_t, size_t)>
-		       &lambda=[](size_t,size_t){});
+		       &lambda=[](size_t,size_t){},
+		       size_t starting_pos=0,
+		       size_t n=(size_t)-1);
 
 //! Convert Unicode string from canonical rendering order to logical order.
 void bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 			unicode_bidi_level_t paragraph_embedding,
-			const std::function<void (size_t, size_t)> &lambda);
+			const std::function<void (size_t, size_t)> &lambda,
+			size_t starting_pos=0,
+			size_t n=(size_t)-1);
 
 //! Embed directional and isolation markers
 

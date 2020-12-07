@@ -806,16 +806,24 @@ int unicode::bidi_logical_order(std::u32string &string,
 				std::vector<unicode_bidi_level_t> &levels,
 				unicode_bidi_level_t paragraph_embedding,
 				const std::function<void (size_t, size_t)>
-				&lambda)
+				&lambda,
+				size_t starting_pos,
+				size_t n)
 {
-	if (string.size() != levels.size())
+	auto s=string.size();
+
+	if (s != levels.size())
 		return -1;
 
-	if (string.empty())
+	if (starting_pos >= s)
 		return 0;
 
+	if (n > s-starting_pos)
+		n=s-starting_pos;
+
 	cb_wrapper<void (size_t, size_t)> cb{lambda};
-	unicode_bidi_logical_order(&string[0], &levels[0], string.size(),
+	unicode_bidi_logical_order(&string[starting_pos],
+				   &levels[starting_pos], n,
 				   paragraph_embedding,
 				   &reorder_callback,
 				   reinterpret_cast<void *>(&cb));
@@ -826,13 +834,20 @@ int unicode::bidi_logical_order(std::u32string &string,
 void unicode::bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 				 unicode_bidi_level_t paragraph_embedding,
 				 const std::function<void (size_t, size_t)>
-				 &lambda)
+				 &lambda,
+				 size_t starting_pos,
+				 size_t n)
 {
-	if (levels.size() == 0)
+	auto s=levels.size();
+
+	if (starting_pos >= s)
 		return;
 
+	if (n > s-starting_pos)
+		n=s-starting_pos;
+
 	cb_wrapper<void (size_t, size_t)> cb{lambda};
-	unicode_bidi_logical_order(NULL, &levels[0], levels.size(),
+	unicode_bidi_logical_order(NULL, &levels[starting_pos], n,
 				   paragraph_embedding,
 				   &reorder_callback,
 				   reinterpret_cast<void *>(&cb));
