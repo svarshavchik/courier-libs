@@ -2215,6 +2215,7 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 				     struct need_marker_info *need_marker,
 				     void (*emit)(const char32_t *string,
 						  size_t n,
+						  int is_part_of_string,
 						  void *arg),
 				     void *arg);
 
@@ -2250,18 +2251,19 @@ static void emit_marker(struct bidi_embed_levelrun *p,
 			struct need_marker_info *info,
 			void (*emit)(const char32_t *string,
 				     size_t n,
+				     int is_part_of_string,
 				     void *arg),
 			void *arg)
 {
 	char32_t marker= (p->level & 1) ? UNICODE_RLM:UNICODE_LRM;
 
 	if (info->need_marker)
-		(*emit)(&marker, 1, arg);
+		(*emit)(&marker, 1, 0, arg);
 
 	if (info->need_pdi)
 	{
 		marker=UNICODE_PDI;
-		(*emit)(&marker, 1, arg);
+		(*emit)(&marker, 1, 0, arg);
 	}
 }
 
@@ -2271,6 +2273,7 @@ void unicode_bidi_embed(const char32_t *string,
 			unicode_bidi_level_t paragraph_level,
 			void (*emit)(const char32_t *string,
 				     size_t n,
+				     int is_part_of_string,
 				     void *arg),
 			void *arg)
 {
@@ -2404,7 +2407,7 @@ void unicode_bidi_embed(const char32_t *string,
 
 					previous_level=paragraph_level;
 
-					(*emit)(string+p->end, 1, arg);
+					(*emit)(string+p->end, 1, 1, arg);
 					continue;
 				}
 
@@ -2506,6 +2509,7 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 				     struct need_marker_info *need_marker,
 				     void (*emit)(const char32_t *string,
 						  size_t n,
+						  int is_part_of_string,
 						  void *arg),
 				     void *arg)
 {
@@ -2561,7 +2565,7 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 	char32_t override_start=run->level ? UNICODE_RLI:UNICODE_LRI;
 
 	if (run->level != paragraph_level)
-		(*emit)(&override_start, 1, arg);
+		(*emit)(&override_start, 1, 0, arg);
 
 	/*
 	** Make sure the character sequence has strong context.
@@ -2637,9 +2641,9 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 			*/
 			if (word_start > start)
 				(*emit)(string+start,
-					word_start-start, arg);
+					word_start-start, 1, arg);
 
-			(*emit)(&override_start, 1, arg);
+			(*emit)(&override_start, 1, 0, arg);
 			while (++i < end)
 			{
 				enum_bidi_type_t t=types[i];
@@ -2657,12 +2661,12 @@ static void emit_bidi_embed_levelrun(const char32_t *string,
 			fprintf(DEBUGDUMP, "end of word at %d\n",
 				(int)i);
 #endif
-			(*emit)(string+word_start, i-word_start, arg);
-			(*emit)(&override_end, 1, arg);
+			(*emit)(string+word_start, i-word_start, 1, arg);
+			(*emit)(&override_end, 1, 0, arg);
 			start=i;
 			continue;
 		}
-		(*emit)(string+start, i-start, arg);
+		(*emit)(string+start, i-start, 1, arg);
 		start=i;
 	}
 

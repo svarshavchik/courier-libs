@@ -698,6 +698,7 @@ extern void unicode_bidi_embed(const char32_t *string,
 			       unicode_bidi_level_t paragraph_embedding,
 			       void (*emit)(const char32_t *string,
 					    size_t n,
+					    int,
 					    void *arg),
 			       void *arg);
 
@@ -2313,7 +2314,8 @@ int bidi_embed(const std::u32string &string,
 	       const std::vector<unicode_bidi_level_t> &levels,
 	       unicode_bidi_level_t paragraph_embedding,
 	       const std::function<void (const char32_t *string,
-					 size_t n)> &lambda);
+					 size_t n,
+					 bool is_part_of_string)> &lambda);
 
 //! Embed directional and isolation markers
 

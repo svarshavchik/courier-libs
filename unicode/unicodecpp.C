@@ -857,12 +857,14 @@ void unicode::bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 extern "C" {
 	static void embed_callback(const char32_t *string,
 				   size_t n,
+				   int is_part_of_string,
 				   void *arg)
 	{
 		auto p=reinterpret_cast<cb_wrapper<void
 						   (const char32_t *,
-						    size_t n)> *>(arg);
-		(*p)(string, n);
+						    size_t n,
+						    bool)> *>(arg);
+		(*p)(string, n, is_part_of_string != 0);
 	}
 }
 
@@ -870,7 +872,8 @@ int unicode::bidi_embed(const std::u32string &string,
 			const std::vector<unicode_bidi_level_t> &levels,
 			unicode_bidi_level_t paragraph_embedding,
 			const std::function<void (const char32_t *string,
-						  size_t n)>
+						  size_t n,
+						  bool is_part_of_string)>
 			&lambda)
 {
 	if (string.size() != levels.size())
@@ -879,7 +882,7 @@ int unicode::bidi_embed(const std::u32string &string,
 	if (string.empty())
 		return 0;
 
-	cb_wrapper<void (const char32_t *, size_t)> cb{lambda};
+	cb_wrapper<void (const char32_t *, size_t, bool)> cb{lambda};
 	unicode_bidi_embed(&string[0], &levels[0], string.size(),
 			   paragraph_embedding,
 			   embed_callback,
@@ -899,7 +902,8 @@ std::u32string unicode::bidi_embed(const std::u32string &string,
 	(void)bidi_embed(string, levels, paragraph_embedding,
 			 [&]
 			 (const char32_t *string,
-			  size_t n)
+			  size_t n,
+			  bool ignored)
 			 {
 				 new_string.insert(new_string.end(),
 						   string, string+n);

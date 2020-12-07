@@ -355,9 +355,40 @@ void character_test()
 						    0,
 						    logical_string.size());
 
-			auto new_string=unicode::bidi_embed(logical_string,
-							    logical_levels,
-							    paragraph);
+			std::u32string new_string;
+
+			unicode::bidi_embed
+				(logical_string,
+				 logical_levels,
+				 paragraph,
+				 [&]
+				 (const char32_t *string,
+				  size_t n,
+				  bool is_part_of_string)
+				 {
+					 if ((std::less_equal<const char32_t *>
+						 {}(logical_string.c_str(),
+						    string) &&
+							 std::less<const
+							 char32_t *>
+						 {}(string,
+						    logical_string.c_str()
+						    +logical_string.size()))
+						 != is_part_of_string)
+					 {
+						 std::cerr <<
+							 "bidi_embed passed in "
+							 "wrong value for "
+							 "is_part_of_string"
+							   << std::endl;
+						 exit(1);
+					 }
+
+					 new_string.insert
+						 (new_string.end(),
+						  string,
+						  string+n);
+				 });
 
 			auto save_string=new_string;
 

@@ -381,7 +381,7 @@ See COPYING for distribution information.
               <paramdef>const unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
               <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-              <paramdef>void (*<parameter>emit</parameter>)(const char32_t *string, size_t n, void *arg)</paramdef>
+              <paramdef>void (*<parameter>emit</parameter>)(const char32_t *string, size_t n, int is_part_of_string, void *arg)</paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
 	    </funcprototype>
 
@@ -940,6 +940,14 @@ See COPYING for distribution information.
 		  Number of characters in the Unicode string.
                 </para>
               </listitem>
+	      <listitem>
+		<para>
+		  Indication whether the Unicode string pointer is pointing
+		  to a part of the original Unicode string that's getting
+		  embedded. Otherwise this must be some marker character that's
+		  not present in the original Unicode string.
+		</para>
+	      </listitem>
 	      <listitem>
 		<para>
 		  Forwarded <parameter>arg</parameter> pointer value.
@@ -2835,7 +2843,7 @@ See COPYING for distribution information.
               <funcdef>int <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
@@ -2843,7 +2851,7 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_reorder</function></funcdef>
 	      <paramdef>std::vector&lt;unicode_bidi_level_t&gt; &amp;<parameter>embedding_level</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
@@ -2851,7 +2859,7 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_cleanup</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
+	      <paramdef>const std::function&lt;void (size_t)&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
             </funcprototype>
 
@@ -2859,7 +2867,7 @@ See COPYING for distribution information.
               <funcdef>int <function>unicode::bidi_cleanup</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
+	      <paramdef>const std::function&lt;void (size_t)&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter>=0</paramdef>
             </funcprototype>
 
@@ -2867,7 +2875,7 @@ See COPYING for distribution information.
               <funcdef>int <function>unicode::bidi_cleanup</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t)&gt; &amp;<parameter>removed_callback</parameter></paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter></paramdef>
 	      <paramdef>size_t <parameter>n</parameter></paramdef>
@@ -2878,7 +2886,7 @@ See COPYING for distribution information.
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter>=[](size_t, size_t){}</paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
@@ -2887,7 +2895,7 @@ See COPYING for distribution information.
               <funcdef>void <function>unicode::bidi_logical_order</function></funcdef>
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t) noexcept&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
@@ -2897,7 +2905,7 @@ See COPYING for distribution information.
 	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t, const char32_t *, size_t) noexcept&gt; &amp;<parameter>callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (const char32_t *, size_t, bool)&gt; &amp;<parameter>callback</parameter></paramdef>
             </funcprototype>
 
 	    <funcprototype>
