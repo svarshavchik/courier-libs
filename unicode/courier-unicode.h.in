@@ -2265,6 +2265,27 @@ int bidi_cleanup(std::u32string &string,
 		 [](size_t) {},
 		 int cleanup_options=0);
 
+//! Clean up a substring of the unicode string.
+
+//! The substring gets specified by starting_pos and n.
+//!
+//! \note
+//! The removed position parameter to the removed_callback is based on
+//! the given starting_position. Add starting_pos to it to get the
+//! actual removed index.
+//!
+//! Returns non-0 in case of non-matching level buffer size.
+//!
+//! The final size of the returned string is determined by counting
+//! how many calls to removed_callback were made.
+
+int bidi_cleanup(std::u32string &string,
+		 std::vector<unicode_bidi_level_t> &levels,
+		 const std::function<void (size_t)> &removed_callback,
+		 int cleanup_options,
+		 size_t starting_pos,
+		 size_t n);
+
 //! Convert Unicode string from canonical rendering order to logical order.
 int bidi_logical_order(std::u32string &string,
 		       std::vector<unicode_bidi_level_t> &levels,

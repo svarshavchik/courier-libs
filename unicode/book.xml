@@ -2851,8 +2851,16 @@ See COPYING for distribution information.
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_cleanup</function></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
-	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>int <function>unicode::bidi_cleanup</function></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter>=[](size_t){}</paramdef>
+	      <paramdef>int <parameter>cleanup_options</parameter>=0</paramdef>
             </funcprototype>
 
 	    <funcprototype>
@@ -2861,6 +2869,8 @@ See COPYING for distribution information.
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>const std::function&lt;void (size_t) noexcept&gt; &amp;<parameter>removed_callback</parameter></paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter></paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter></paramdef>
+	      <paramdef>size_t <parameter>n</parameter></paramdef>
             </funcprototype>
 
 	    <funcprototype>
@@ -3030,6 +3040,26 @@ auto [levels, level]=unicode::bidi_calc(types);
 		characters).
 	      </para>
 	    </listitem>
+
+	    <listitem>
+	      <para>
+		<function>unicode::bidi_reorder</function> and
+		<function>unicode::bidi_cleanup</function> take two optional
+		parameters (defaulted values or overloaded) specifying
+		an optional starting position and number of characters that
+		define a subset of the original string that gets reordered
+		or cleaned up.
+	      </para>
+
+	      <para>
+		This <function>unicode::bidi_cleanup</function> does not
+		trim off the passed in string and embedding level buffer,
+		since it affects only a subset of the string. The number
+		of times the removed character callback gets invoked
+		indicates how much the substring should be trimmed off.
+	      </para>
+	    </listitem>
+
           </itemizedlist>
 
 	  <refsect2 id="unicode_cpp_bidi_literals">

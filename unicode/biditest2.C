@@ -451,6 +451,53 @@ void character_test()
 	std::cout << std::endl;
 }
 
+void exception_test()
+{
+	std::u32string s{U"שלום"};
+
+	auto res=unicode::bidi_calc(s);
+
+	int thrown=0;
+	int caught=0;
+
+	try
+	{
+		unicode::bidi_reorder(s, std::get<0>(res),
+				      [&]
+				      (size_t, size_t)
+				      {
+					      ++thrown;
+					      throw 42;
+				      });
+	} catch(int n)
+	{
+		caught += n;
+	}
+
+	if (thrown != 1 || caught != 42)
+	{
+		std::cerr << "Exception handling failed"
+			  << std::endl;
+	}
+}
+
+void partial_reorder_cleanup()
+{
+	std::u32string s{U"שלום"};
+
+	auto res=unicode::bidi_calc(s);
+
+	unicode::bidi_reorder(s, std::get<0>(res));
+
+	unicode::bidi_cleanup(s, std::get<0>(res),
+			      []
+			      (size_t)
+			      {
+			      },
+			      0,
+			      0, 3);
+}
+
 int main(int argc, char **argv)
 {
 	DEBUGDUMP=fopen("/dev/null", "w");
@@ -459,7 +506,8 @@ int main(int argc, char **argv)
 		perror("/dev/null");
 		exit(1);
 	}
-
+	exception_test();
+	partial_reorder_cleanup();
 	latin_test();
 	character_test();
 	return 0;

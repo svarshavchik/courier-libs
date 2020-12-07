@@ -636,6 +636,8 @@ struct cb_wrapper {
 
 	template<typename ...Args> void operator()(Args && ...args)
 	{
+		if (caught)
+			return;
 		try {
 			cb(std::forward<Args>(args)...);
 		} catch (...)
@@ -768,6 +770,35 @@ int unicode::bidi_cleanup(std::u32string &string,
 
 	string.resize(n);
 	levels.resize(n);
+	return 0;
+}
+
+int unicode::bidi_cleanup(std::u32string &string,
+			  std::vector<unicode_bidi_level_t> &levels,
+			  const std::function<void (size_t)> &lambda,
+			  int cleanup_options,
+			  size_t starting_pos,
+			  size_t n)
+{
+	size_t s=string.size();
+
+	if (levels.size() != s)
+		return -1;
+
+	if (starting_pos >= s)
+		return 0;
+
+	if (n > s-starting_pos)
+		n=s-starting_pos;
+
+	cb_wrapper<void (size_t)> cb{lambda};
+	unicode_bidi_cleanup(&string[starting_pos],
+			     &levels[starting_pos],
+			     n,
+			     cleanup_options,
+			     removed_callback,
+			     reinterpret_cast<void *>(&cb));
+	cb.rethrow();
 	return 0;
 }
 
