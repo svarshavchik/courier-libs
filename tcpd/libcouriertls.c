@@ -62,6 +62,11 @@ struct proto_ops {
     const SSL_METHOD * (*m)();
     int o;
 };
+
+#ifndef SSL_OP_NORENEGOTIATION
+#define SSL_OP_NORENEGOTIATION 0
+#endif
+
 struct proto_ops op_list[] =
 {
 #ifdef SSL_OP_NO_TLSv1
