@@ -63,8 +63,8 @@ struct proto_ops {
     int o;
 };
 
-#ifndef SSL_OP_NORENEGOTIATION
-#define SSL_OP_NORENEGOTIATION 0
+#ifndef SSL_OP_NO_RENEGOTIATION
+#define SSL_OP_NO_RENEGOTIATION 0
 #endif
 
 struct proto_ops op_list[] =
