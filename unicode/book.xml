@@ -310,6 +310,7 @@ See COPYING for distribution information.
 	  <refname>unicode_bidi_embed</refname>
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
 
+	  <refname>unicode_bidi_direction</refname>
 	  <refname>unicode_bidi_type</refname>
 	  <refname>unicode_bidi_setbnl</refname>
 	  <refname>unicode_bidi_mirror</refname>
@@ -401,6 +402,12 @@ See COPYING for distribution information.
 	      <funcdef>char32_t <function>bidi_bracket_type</function></funcdef>
               <paramdef>char32_t <parameter>c</parameter></paramdef>
               <paramdef>unicode_bracket_type_t *<parameter>ret</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>struct unicode_bidi_direction <function>unicode_bidi_get_direction</function></funcdef>
+              <paramdef>char32_t *<parameter>c</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -995,6 +1002,40 @@ See COPYING for distribution information.
 	  <refsect2 id="unicode_bidi_misc">
 	    <title>Miscellaneous utility functions</title>
 
+	    <para>
+	      <function>unicode_bidi_get_direction</function>
+	      takes a pointer to a unicode string, the number of
+	      characters in the unicode string, and determines
+	      default paragraph level level.
+	      <function>unicode_bidi_get_direction</function> returns
+	      a <literal>struct</literal> with the following fields:
+	    </para>
+	    <variablelist>
+	      <varlistentry>
+		<term><varname>direction</varname></term>
+		<listitem>
+		  <para>
+		    This value is either <literal>UNICODE_BIDI_LR</literal>
+		    or <literal>UNICODE_BIDI_RL</literal> (left to right or
+		    right to left).
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term><varname>is_explicit</varname></term>
+		<listitem>
+		  <para>
+		    This value is a flag. A non-0 value indicates that
+		    the embedding level was derived from an explicit
+		    character type (<literal>L</literal>, <literal>R</literal>
+		    or <literal>AL</literal>) from the stirng. A 0 value
+		    indicates the default paragraph direction, no explicit
+		    character was found in the string.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	    </variablelist>
 	    <para>
 	      <function>unicode_bidi_type</function>
 	      looks up each character's bi-directional character type.
@@ -2798,6 +2839,7 @@ See COPYING for distribution information.
 	  <refname>unicode::bidi_logical_order</refname>
 	  <refname>unicode::bidi_embed</refname>
 	  <refname>unicode::bidi_embed_paragraph_level</refname>
+	  <refname>unicode::bidi_get_direction</refname>
 	  <refpurpose>unicode bi-directional algorithm</refpurpose>
 	</refnamediv>
 
@@ -2919,6 +2961,13 @@ See COPYING for distribution information.
 	      <funcdef>char32_t <function>unicode_bidi_embed_paragraph_level</function></funcdef>
               <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
               <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>unicode_bidi_direction <function>bidi_get_direction</function></funcdef>
+              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
           </funcsynopsis>
 	</refsynopsisdiv>
@@ -3056,13 +3105,14 @@ auto [levels, level]=unicode::bidi_calc(types);
 	    <listitem>
 	      <para>
 		<function>unicode::bidi_reorder</function>,
-		<function>unicode::bidi_cleanup</function>, and
-		<function>unicode::bidi_logical_order</function>
+		<function>unicode::bidi_cleanup</function>,
+		<function>unicode::bidi_logical_order</function> and
+		<function>unicode::bidi_get_direction</function>
 		take two optional
 		parameters (defaulted values or overloaded) specifying
 		an optional starting position and number of characters that
-		define a subset of the original string that gets reordered
-		or cleaned up.
+		define a subset of the original string that gets reordered,
+		cleaned up, or has its direction determined.
 	      </para>
 
 	      <para>

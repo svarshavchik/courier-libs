@@ -533,6 +533,65 @@ void partial_reorder_cleanup()
 			      0, 3);
 }
 
+void null_character_test()
+{
+	std::u32string s{{0}};
+
+	auto res=unicode::bidi_calc(s);
+
+	unicode::bidi_reorder(s, std::get<0>(res));
+
+	unicode::bidi_cleanup(s, std::get<0>(res),
+			      []
+			      (size_t)
+			      {
+			      },
+			      UNICODE_BIDI_CLEANUP_EXTRA,
+			      0, 3);
+}
+
+void direction_test()
+{
+	static const struct {
+		const char32_t *str;
+		unicode_bidi_level_t direction;
+		int is_explicit;
+	} tests[]={
+		{
+			U"Hello",
+			UNICODE_BIDI_LR,
+			1,
+		},
+		{
+			U" ",
+			UNICODE_BIDI_LR,
+			0,
+		},
+		{
+			U"",
+			UNICODE_BIDI_LR,
+			0,
+		},
+		{
+			U"שלום",
+			UNICODE_BIDI_RL,
+			1,
+		},
+	};
+
+	for (const auto &t:tests)
+	{
+		auto ret=unicode::bidi_get_direction(t.str);
+
+		if (ret.direction != t.direction ||
+		    ret.is_explicit != t.is_explicit)
+		{
+			std::cerr << "direction_test failed\n";
+			exit(1);
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	DEBUGDUMP=fopen("/dev/null", "w");
@@ -543,7 +602,9 @@ int main(int argc, char **argv)
 	}
 	exception_test();
 	partial_reorder_cleanup();
+	null_character_test();
 	latin_test();
 	character_test();
+	direction_test();
 	return 0;
 }

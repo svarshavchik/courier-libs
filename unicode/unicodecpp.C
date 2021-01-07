@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2020 Double Precision, Inc.
+** Copyright 2011-2021 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -918,4 +918,17 @@ char32_t unicode::bidi_embed_paragraph_level(const std::u32string &string,
 	return unicode_bidi_embed_paragraph_level(string.c_str(),
 						  string.size(),
 						  level);
+}
+
+unicode_bidi_direction unicode::bidi_get_direction(const std::u32string &string,
+						   size_t starting_pos,
+						   size_t n)
+{
+	if (starting_pos >= string.size())
+		starting_pos=string.size();
+
+	if (string.size()-starting_pos < n)
+		n=string.size()-starting_pos;
+
+	return unicode_bidi_get_direction(string.c_str()+starting_pos, n);
 }

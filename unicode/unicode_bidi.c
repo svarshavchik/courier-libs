@@ -560,13 +560,17 @@ static void directional_status_stack_push
 	stack->head=p;
 }
 
-static unicode_bidi_level_t
+static struct unicode_bidi_direction
 compute_paragraph_embedding_level(size_t i, size_t j,
 				  enum_bidi_type_t (*get)(size_t i,
 							  void *arg),
 				  void *arg)
-
 {
+	struct unicode_bidi_direction ret;
+
+	memset(&ret, 0, sizeof(ret));
+	ret.direction=UNICODE_BIDI_LR;
+
 	unicode_bidi_level_t in_isolation=0;
 
 	for (; i<j; ++i)
@@ -586,13 +590,18 @@ compute_paragraph_embedding_level(size_t i, size_t j,
 			if (t == UNICODE_BIDI_TYPE_AL ||
 			    t == UNICODE_BIDI_TYPE_R)
 			{
-				return UNICODE_BIDI_RL;
+				ret.direction=UNICODE_BIDI_RL;
+				ret.is_explicit=1;
+				break;
 			}
 			if (t == UNICODE_BIDI_TYPE_L)
+			{
+				ret.is_explicit=1;
 				break;
+			}
 		}
 	}
-	return UNICODE_BIDI_LR;
+	return ret;
 }
 
 struct compute_paragraph_embedding_level_type_info {
@@ -619,7 +628,7 @@ compute_paragraph_embedding_level_from_types(const enum_bidi_type_t *p,
 	return compute_paragraph_embedding_level
 		(i, j,
 		 get_enum_bidi_type_for_paragraph_embedding_level,
-		 &info);
+		 &info).direction;
 }
 
 static directional_status_stack_t
@@ -2713,8 +2722,19 @@ char32_t unicode_bidi_embed_paragraph_level(const char32_t *str,
 	if ((compute_paragraph_embedding_level
 	     (0, n,
 	      get_enum_bidi_type_for_embedding_paragraph_level,
-	      &info) ^ paragraph_level) == 0)
+	      &info).direction ^ paragraph_level) == 0)
 		return 0;
 
 	return (paragraph_level & 1) ? UNICODE_RLM:UNICODE_LRM;
+}
+
+struct unicode_bidi_direction unicode_bidi_get_direction(const char32_t *str,
+							 size_t n)
+{
+	struct compute_paragraph_embedding_level_char_info info;
+
+	info.str=str;
+	return compute_paragraph_embedding_level
+		(0, n,
+		 get_enum_bidi_type_for_embedding_paragraph_level, &info);
 }

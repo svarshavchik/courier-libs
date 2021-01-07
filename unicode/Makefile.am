@@ -95,6 +95,7 @@ man_MANS= \
         $(srcdir)/man/unicode\:\:bidi_cleanup.3 \
         $(srcdir)/man/unicode\:\:bidi_embed.3 \
         $(srcdir)/man/unicode\:\:bidi_embed_paragraph_level.3 \
+        $(srcdir)/man/unicode\:\:bidi_get_direction.3 \
         $(srcdir)/man/unicode\:\:bidi_logical_order.3 \
         $(srcdir)/man/unicode\:\:bidi_reorder.3 \
         $(srcdir)/man/unicode\:\:iconvert\:\:convert.3 \
@@ -119,6 +120,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_calc_levels.3 \
         $(srcdir)/man/unicode_bidi_calc_types.3 \
         $(srcdir)/man/unicode_bidi_cleanup.3 \
+        $(srcdir)/man/unicode_bidi_direction.3 \
         $(srcdir)/man/unicode_bidi_embed.3 \
         $(srcdir)/man/unicode_bidi_embed_paragraph_level.3 \
         $(srcdir)/man/unicode_bidi_logical_order.3 \
