@@ -87,7 +87,8 @@ char	*f, *g;
 	for (p=userid; *p; p++)
 	{
 		++l;
-		if (*p < ' ' || *p == ';' || *p == '\'' || *p == ';')
+		if ((unsigned char)*p < ' ' ||
+		    *p == ';' || *p == '\'' || *p == ';')
 		{
 			fprintf(stderr, "CRIT: maildircache: invalid chars in userid: %s\n", p);
 			return (NULL);
