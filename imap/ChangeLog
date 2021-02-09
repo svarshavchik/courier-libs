@@ -1,3 +1,5 @@
+5.0.12
+
 2020-12-06  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* openssl: Add TLS_PROTOCOL setting to disable client-initiated
