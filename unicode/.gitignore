@@ -26,6 +26,7 @@
 /config.sub
 /courier-unicode.h
 /courier-unicode.spec
+/courier-unicode-version.m4
 /depcomp
 /docs.stamp
 /enttest

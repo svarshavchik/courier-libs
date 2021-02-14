@@ -99,10 +99,38 @@ See COPYING for distribution information.
     <para>
       Download the current version of the library from
       <ulink url="/download.html#unicode">https://www.courier-mta.org/download.html#unicode</ulink>.
-      After unpacking the tarball, run the configure script, which takes
-      the usual options, followed by <command>make</command>, then
-      <command>make install</command>.
+      Use the downloaded tarball to create an appropriate installation
+      package for your operating system distribution.
+      The typical sequence of commands is:
     </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>
+./configure    # Takes the default configure script options
+make
+make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      The library uses a stock configure script, <command>make</command>
+      and <command>make install</command> command that respects the
+      <varname>DESTDIR</varname> setting to create an installation image
+      in the directory specified by <varname>DESTDIR</varname>.
+    </para>
+
+    <note>
+      <para>
+	<command>make install</command> will not take any explicit action
+	to uninstall any older version of the library, or remove any files
+	from an older version that do not exist any more in the new version.
+	The library's installation image should be used to prepare an
+	installable package in a native package format for your operating
+	system distribution. Use your native system distribution's package
+	manager to properly install and uninstall the library's package.
+      </para>
+    </note>
 
     <para>
       To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link

@@ -24,7 +24,7 @@ noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
 	enttest scripttest biditest biditest2
 
 aclocaldir=$(datadir)/aclocal
-aclocal_DATA=m4/courier-unicode.m4
+aclocal_DATA=m4/courier-unicode.m4 courier-unicode-version.m4
 
 update-www:
 	@$(MAKE) update-www-unicode

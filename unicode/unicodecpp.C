@@ -606,7 +606,8 @@ unicode::bidi_calc(const bidi_calc_types &st,
 		ret;
 
 	std::get<0>(ret).resize(st.s.size());
-	std::get<1>(ret)=UNICODE_BIDI_LR;
+	std::get<1>(ret)=initial_embedding_level ?
+		paragraph_embedding_level : UNICODE_BIDI_LR;
 
 	if (st.s.size())
 	{

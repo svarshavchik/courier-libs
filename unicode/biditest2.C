@@ -548,6 +548,16 @@ void null_character_test()
 			      },
 			      UNICODE_BIDI_CLEANUP_EXTRA,
 			      0, 3);
+
+	s=U"";
+	res=unicode::bidi_calc(s, UNICODE_BIDI_RL);
+
+	if (std::get<1>(res) != UNICODE_BIDI_RL)
+	{
+		std::cerr << "Paragraph embedding level not honored"
+			  << std::endl;
+		exit(1);
+	}
 }
 
 void direction_test()
