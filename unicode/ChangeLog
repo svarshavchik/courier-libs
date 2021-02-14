@@ -1,3 +1,10 @@
+2021-02-14  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* unicode_bidi_calc and unicode_bidi_calc_levels return a
+	unicode_bidi_direction object, to indicate whether the
+	computer paragraph embedding level was explicitly computed or
+	defaulted.
+
 2021-02-13  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* courier-unicode-version.m4: split version checking macro into its

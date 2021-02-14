@@ -604,10 +604,10 @@ struct unicode_bidi_direction {
 struct unicode_bidi_direction unicode_bidi_get_direction(const char32_t *p,
 							 size_t n);
 
-extern unicode_bidi_level_t unicode_bidi_calc(const char32_t *p, size_t n,
-					      unicode_bidi_level_t *bufp,
-					      const unicode_bidi_level_t *
-					      initial_embedding_level);
+struct unicode_bidi_direction unicode_bidi_calc(const char32_t *p, size_t n,
+						unicode_bidi_level_t *bufp,
+						const unicode_bidi_level_t *
+						initial_embedding_level);
 
 extern void unicode_bidi_reorder(char32_t *p,
 				 unicode_bidi_level_t *levels,
@@ -652,13 +652,15 @@ extern void unicode_bidi_setbnl(char32_t *p,
 				const enum_bidi_type_t *types,
 				size_t n);
 
-extern unicode_bidi_level_t unicode_bidi_calc_levels(const char32_t *p,
-						     const enum_bidi_type_t
-						     *types,
-						     size_t n,
-						     unicode_bidi_level_t *bufp,
-						     const unicode_bidi_level_t
-						     *initial_embedding_level);
+extern struct unicode_bidi_direction
+unicode_bidi_calc_levels(const char32_t *p,
+			 const enum_bidi_type_t
+			 *types,
+			 size_t n,
+			 unicode_bidi_level_t *bufp,
+			 const unicode_bidi_level_t
+			 *initial_embedding_level);
+
 /* Bitmask options to unicode_bidi_cleanup */
 
 /*
@@ -2231,7 +2233,7 @@ struct bidi_calc_types {
 //! can be constructed explicitly, and then passed in directly.
 
 std::tuple<std::vector<unicode_bidi_level_t>,
-	   unicode_bidi_level_t> bidi_calc(const bidi_calc_types &s);
+	   struct unicode_bidi_direction> bidi_calc(const bidi_calc_types &s);
 
 //! Calculate bidirectional embedding levels
 
@@ -2242,8 +2244,8 @@ std::tuple<std::vector<unicode_bidi_level_t>,
 //! embedding level.
 
 std::tuple<std::vector<unicode_bidi_level_t>,
-	   unicode_bidi_level_t> bidi_calc(const bidi_calc_types &s,
-					   unicode_bidi_level_t level);
+	   struct unicode_bidi_direction> bidi_calc(const bidi_calc_types &s,
+						    unicode_bidi_level_t level);
 
 //! Reorder bidirectional text
 

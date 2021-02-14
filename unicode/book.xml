@@ -359,7 +359,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>void <function>unicode_bidi_calc_levels</function></funcdef>
+	      <funcdef>struct unicode_bidi_direction <function>unicode_bidi_calc_levels</function></funcdef>
               <paramdef>const char32_t *<parameter>p</parameter></paramdef>
               <paramdef>const unicode_bidi_type_t *<parameter>types</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
@@ -368,7 +368,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>void <function>unicode_bidi_calc</function></funcdef>
+	      <funcdef>struct unicode_bidi_direction <function>unicode_bidi_calc</function></funcdef>
               <paramdef>const char32_t *<parameter>p</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
               <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
@@ -645,8 +645,46 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      return the resolved
 	      paragraph direction level, which
 	      always matches the passed in level, if specified, else it
-	      reports the
-	      derived one.
+	      reports the derived one. These functions return a
+	      <structname>unicode_bidi_direction</structname> structure:
+	    </para>
+
+	    <informaltable border='0'>
+	      <tgroup cols="3">
+		<colspec colname='c1' />
+		<colspec colname='c2' />
+		<colspec colname='c3' />
+		<tbody>
+		  <row>
+		    <entry namest='c1' nameend='c3'>struct&nbsp;<structname>unicode_bidi_direction</structname>&nbsp;{</entry>
+		  </row>
+		  <row>
+		    <entry></entry>
+		    <entry>unicode_bidi_level_t</entry>
+		    <entry><varname>direction</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry></entry>
+		    <entry>int</entry>
+		    <entry><varname>is_explicit</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c1' nameend='c3'>};</entry>
+		  </row>
+		</tbody>
+	      </tgroup>
+	    </informaltable>
+	    <para>
+	      <varname>direction</varname> gives the paragraph embedding
+	      level, <literal>UNICODE_BIDI_LR</literal> or
+	      <literal> UNICODE_BIDI_RL</literal>.
+	      <varname>is_explicit</varname> indicates whether:
+	      the optional pointer to a
+	      <literal>UNICODE_BIDI_LR</literal> or
+	      <literal>UNICODE_BIDI_RL</literal> value was specified (and
+	      returned in <varname>direction</varname>), or whether the
+	      <varname>direction</varname> comes from an character with an
+	      explicit direction indication.
 	    </para>
 
 	    <para>
@@ -2899,12 +2937,12 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
 	  <funcsynopsis>
 	    <funcprototype>
-              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, struct unicode_bidi_direction&gt; <function>unicode::bidi_calc</function></funcdef>
 	      <paramdef>const unicode::bidi_calc_types &amp;<parameter>ustring</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
-              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, unicode_bidi_level_t&gt; <function>unicode::bidi_calc</function></funcdef>
+              <funcdef>std::tuple&lt;std::vector&lt;unicode_bidi_level_t&gt;, struct unicode_bidi_direction&gt; <function>unicode::bidi_calc</function></funcdef>
 	      <paramdef>const unicode::bidi_calc_types &amp;<parameter>ustring</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>embedding_level</parameter></paramdef>
 	    </funcprototype>
@@ -3027,7 +3065,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 		  <programlisting><![CDATA[
 std::u32string text;
 
-auto [levels, level]=unicode::bidi_calc(text);
+auto [levels, direction]=unicode::bidi_calc(text);
 
 ]]></programlisting>
 		</informalexample>
@@ -3050,7 +3088,7 @@ types.setbnl(text); // Optional
 
 // types.types is a std::vector of enum_bidi_types_t values
 
-auto [levels, level]=unicode::bidi_calc(types);
+auto [levels, direction]=unicode::bidi_calc(types);
 
 ]]></programlisting>
 		</informalexample>

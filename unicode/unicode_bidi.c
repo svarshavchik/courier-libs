@@ -464,7 +464,7 @@ struct directional_status_stack_entry {
 typedef struct {
 	struct directional_status_stack_entry *head;
 
-	unicode_bidi_level_t paragraph_embedding_level;
+	struct unicode_bidi_direction paragraph_embedding_level;
 	const char32_t    *chars;
 	enum_bidi_type_t *types;
 	const enum_bidi_type_t *orig_types;
@@ -618,7 +618,7 @@ get_enum_bidi_type_for_paragraph_embedding_level(size_t i,
 	return p->p[i];
 }
 
-static unicode_bidi_level_t
+static struct unicode_bidi_direction
 compute_paragraph_embedding_level_from_types(const enum_bidi_type_t *p,
 					     size_t i, size_t j)
 {
@@ -628,7 +628,7 @@ compute_paragraph_embedding_level_from_types(const enum_bidi_type_t *p,
 	return compute_paragraph_embedding_level
 		(i, j,
 		 get_enum_bidi_type_for_paragraph_embedding_level,
-		 &info).direction;
+		 &info);
 }
 
 static directional_status_stack_t
@@ -642,10 +642,18 @@ directional_status_stack_init(const char32_t *chars,
 
 	stack=(directional_status_stack_t)calloc(1, sizeof(*stack));
 
-	stack->paragraph_embedding_level=
-		initial_embedding_level
-		? *initial_embedding_level & 1
-		: compute_paragraph_embedding_level_from_types(types, 0, n);
+	if (initial_embedding_level)
+	{
+		stack->paragraph_embedding_level.direction=
+			*initial_embedding_level & 1;
+		stack->paragraph_embedding_level.is_explicit=1;
+	}
+	else
+	{
+		stack->paragraph_embedding_level=
+			compute_paragraph_embedding_level_from_types(types,
+								     0, n);
+	}
 	stack->chars=chars;
 	stack->orig_types=types;
 
@@ -666,7 +674,8 @@ directional_status_stack_init(const char32_t *chars,
 	stack->size=n;
 
 	directional_status_stack_push(stack,
-				      stack->paragraph_embedding_level,
+				      stack->paragraph_embedding_level
+				      .direction,
 				      do_neutral, 0);
 
 	return stack;
@@ -736,7 +745,7 @@ void unicode_bidi_setbnl(char32_t *p,
 		}
 }
 
-unicode_bidi_level_t
+struct unicode_bidi_direction
 unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 		  const unicode_bidi_level_t *initial_embedding_level)
 {
@@ -748,7 +757,7 @@ unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 
 	unicode_bidi_calc_types(p, n, buf);
 
-	unicode_bidi_level_t level=
+	struct unicode_bidi_direction level=
 		unicode_bidi_calc_levels(p,
 					 buf,
 					 n,
@@ -762,7 +771,7 @@ unicode_bidi_calc(const char32_t *p, size_t n, unicode_bidi_level_t *bufp,
 
 static void unicode_bidi_cl(directional_status_stack_t stack);
 
-unicode_bidi_level_t
+struct unicode_bidi_direction
 unicode_bidi_calc_levels(const char32_t *p,
 			 const enum_bidi_type_t *types,
 			 size_t n,
@@ -779,12 +788,12 @@ unicode_bidi_calc_levels(const char32_t *p,
 	stack=directional_status_stack_init(p, types, n, bufp,
 					    initial_embedding_level);
 
-	unicode_bidi_level_t paragraph_embedding_level=
+	struct unicode_bidi_direction paragraph_embedding_level=
 		stack->paragraph_embedding_level;
 
 #ifdef BIDI_DEBUG
 	fprintf(DEBUGDUMP, "BIDI: START: Paragraph embedding level: %d\n",
-		(int)stack->paragraph_embedding_level);
+		(int)paragraph_embedding_level.direction);
 #endif
 
 	unicode_bidi_cl(stack);
@@ -971,7 +980,8 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 			}
 
 			cur_class=compute_paragraph_embedding_level_from_types
-				(stack->types, i+1, j) == 1
+				(stack->types, i+1, j).direction
+				!= UNICODE_BIDI_LR
 				? UNICODE_BIDI_TYPE_RLI
 				: UNICODE_BIDI_TYPE_LRI;
 		}
@@ -1104,7 +1114,8 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 		{
 			/* X8 */
 
-			stack->levels[i]=stack->paragraph_embedding_level;
+			stack->levels[i]=
+				stack->paragraph_embedding_level.direction;
 		}
 	}
 
@@ -1203,9 +1214,9 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 			continue; /* Edge case */
 
 		unicode_bidi_level_t before=
-			stack->paragraph_embedding_level;
+			stack->paragraph_embedding_level.direction;
 		unicode_bidi_level_t after=
-			stack->paragraph_embedding_level;
+			stack->paragraph_embedding_level.direction;
 
 
 		size_t first_i=beg_iter.i;
@@ -1301,11 +1312,11 @@ static void unicode_bidi_cl(directional_status_stack_t stack)
 		case UNICODE_BIDI_TYPE_PDI:
 			if (seen_sb)
 				stack->levels[i]=
-					stack->paragraph_embedding_level;
+					stack->paragraph_embedding_level.direction;
 			break;
 		case UNICODE_BIDI_TYPE_S:
 		case UNICODE_BIDI_TYPE_B:
-			stack->levels[i]=stack->paragraph_embedding_level;
+			stack->levels[i]=stack->paragraph_embedding_level.direction;
 			seen_sb=1;
 			break;
 		default:

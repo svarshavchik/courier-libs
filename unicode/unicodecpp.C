@@ -581,18 +581,29 @@ void unicode::bidi_calc_types::setbnl(std::u32string &s)
 	unicode_bidi_setbnl(&s[0], &types[0], s.size());
 }
 
-std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
+std::tuple<std::vector<unicode_bidi_level_t>,
+	   struct unicode_bidi_direction>
 unicode::bidi_calc(const bidi_calc_types &s)
 {
 	return unicode::bidi_calc(s, UNICODE_BIDI_SKIP);
 }
 
-std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
+std::tuple<std::vector<unicode_bidi_level_t>,
+	   struct unicode_bidi_direction>
 unicode::bidi_calc(const bidi_calc_types &st,
 		   unicode_bidi_level_t paragraph_embedding_level)
 {
+	std::tuple<std::vector<unicode_bidi_level_t>,
+		   struct unicode_bidi_direction>
+		ret;
+	auto &direction_ret=std::get<1>(ret);
+
 	if (st.s.size() != st.types.size())
-		return { {}, UNICODE_BIDI_LR };
+	{
+		direction_ret.direction=UNICODE_BIDI_LR;
+		direction_ret.is_explicit=false;
+		return ret;
+	}
 
 	const unicode_bidi_level_t *initial_embedding_level=0;
 
@@ -602,12 +613,17 @@ unicode::bidi_calc(const bidi_calc_types &st,
 		initial_embedding_level=&paragraph_embedding_level;
 	}
 
-	std::tuple<std::vector<unicode_bidi_level_t>, unicode_bidi_level_t>
-		ret;
-
 	std::get<0>(ret).resize(st.s.size());
-	std::get<1>(ret)=initial_embedding_level ?
-		paragraph_embedding_level : UNICODE_BIDI_LR;
+
+	if (initial_embedding_level)
+	{
+		direction_ret.direction=paragraph_embedding_level;
+		direction_ret.is_explicit=1;
+	}
+	else
+	{
+		direction_ret.direction= UNICODE_BIDI_LR;
+	}
 
 	if (st.s.size())
 	{

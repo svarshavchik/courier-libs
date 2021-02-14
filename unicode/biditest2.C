@@ -204,14 +204,14 @@ void character_test()
 			? unicode::bidi_calc(s, direction)
 			: unicode::bidi_calc(s);
 
-		if (std::get<1>(ret) != paragraph_embedding_level)
+		if (std::get<1>(ret).direction != paragraph_embedding_level)
 		{
 			std::cerr << "Regression, line "
 				  << linenum
 				  << ": expected "
 				  << paragraph_embedding_level
 				  << " paragraph embedding level, got "
-				  << (int)std::get<1>(ret)
+				  << (int)std::get<1>(ret).direction
 				  << std::endl;
 			exit(1);
 		}
@@ -552,7 +552,7 @@ void null_character_test()
 	s=U"";
 	res=unicode::bidi_calc(s, UNICODE_BIDI_RL);
 
-	if (std::get<1>(res) != UNICODE_BIDI_RL)
+	if (std::get<1>(res).direction != UNICODE_BIDI_RL)
 	{
 		std::cerr << "Paragraph embedding level not honored"
 			  << std::endl;
