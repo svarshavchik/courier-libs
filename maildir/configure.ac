@@ -74,26 +74,9 @@ AX_COURIER_UNICODE_CXXFLAGS
 AC_SUBST(COURIER_UNICODE_CXXFLAGS)
 
 dnl Checks for library functions.
-AC_CHECK_HEADER(fam.h, :, :)
 AC_CHECK_FUNCS(symlink readlink strcasecmp utime utimes)
-AC_CHECK_LIB(fam, FAMOpen,  [
-			LIBFAM=-lfam
-			AC_DEFINE_UNQUOTED(HAVE_FAM,1,
-			[ Whether libfam.a is available ])
 
-			AC_CHECK_HEADER(fam.h, : , [
-AC_MSG_WARN([[The development header files and libraries for fam,]])
-AC_MSG_WARN([[the File Alteration Monitor, are not installed.]])
-AC_MSG_WARN([[You appear to have the FAM runtime libraries installed,]])
-AC_MSG_WARN([[so you need to simply install the additional development]])
-AC_MSG_WARN([[package for your operating system.]])
-AC_MSG_ERROR([[FAM development libraries not found.]]) ]
-					)
-		  ])
-
-AC_SUBST(LIBFAM)
-
-echo "$LIBFAM" >maildir.libdeps
+AC_CHECK_FUNCS(inotify_init inotify_init1)
 
 AC_CACHE_CHECK([for missing gethostname prototype],maildir_cv_SYS_GETHOSTNAME,
 

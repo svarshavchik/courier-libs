@@ -9,7 +9,6 @@
 /mailbot.h
 /maildir.5
 /maildir.html
-/maildir.libdeps
 /maildiracl
 /maildiracl.1
 /maildiracl.1.in
@@ -29,6 +28,9 @@
 /maildirquota.7
 /maildirquota.html
 /maildirsharedrc.h
+/maildirwatch
+/maildirwatch.1
+/maildirwatch.html
 /quotawarnmsg.h
 /sharedindexinstall
 /sharedindexsplit

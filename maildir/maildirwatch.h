@@ -1,7 +1,7 @@
 #ifndef maildirwatch_h
 #define maildirwatch_h
 /*
-** Copyright 2002 Double Precision, Inc.
+** Copyright 2002-2021 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -15,15 +15,8 @@ extern "C" {
 #endif
 
 /*
-** These function leverage libfam.a to watch for maildir changes.
-**
-** If libfam.a is not available, these functions are compiled to no-ops
+** These function use inotify to watch for maildir changes.
 */
-
-#if HAVE_FAM
-#include <fam.h>
-#endif
-
 
 #if TIME_WITH_SYS_TIME
 #include	<sys/time.h>
@@ -36,20 +29,11 @@ extern "C" {
 #endif
 #endif
 
-#if HAVE_FAM
-struct maildirwatch_fam {
-	FAMConnection fc;
-	int broken;
-	unsigned refcnt;
-};
-
-#endif
-
 struct maildirwatch {
 	char *maildir;
 
-#if HAVE_FAM
-	struct maildirwatch_fam *fam;
+#if HAVE_INOTIFY_INIT
+	int inotify_fd;
 #endif
 	time_t now;
 	time_t timeout;
@@ -79,27 +63,16 @@ int maildirwatch_unlock(struct maildirwatch *w, int nseconds);
 struct maildirwatch_contents {
 	struct maildirwatch *w;
 
-#if HAVE_FAM
-	FAMRequest new_req;
-	FAMRequest cur_req;
-	FAMRequest courierimapkeywords_req;
-
-	unsigned short endexists_received;
-	unsigned short ack_received;
-
-	unsigned short cancelled;
-
+#if HAVE_INOTIFY_INIT
+	int handles[3];
 #endif
-
 };
 
 /*
 ** maildirwatch_start() initiates the process of monitoring the maildir.
-** The monitoring process does not get started right away, since FAM needs
-** to acknowledge th monitoring requests first.
 **
-** Returns: 0 - monitoring request sent.
-**          1 - FAM is not available, will fall back to 60 second polls.
+** Returns: 0 - monitoring started.
+**          1 - inotify not available, will fall back to 60 second polls.
 **         -1 - Fatal error.
 */
 
@@ -107,10 +80,11 @@ int maildirwatch_start(struct maildirwatch *p,
 		       struct maildirwatch_contents *w);
 
 /*
-** Check if FAM started monitoring yet.
+** Check the status of inotify monitoring.
 **
 ** Returns: 1 - Monitoring has started, or we're in fallback mode.
 **          0 - Not yet, *fdret is initialized to file descriptor to wait on.
+**              (not used at this time).
 **         -1 - A fatal error occured, fall back to polling mode.
 **
 ** maildirwatch_started() returns right away, without blocking.
@@ -127,7 +101,9 @@ int maildirwatch_started(struct maildirwatch_contents *w,
 **         -1 - Fatal error.
 **
 ** *fdret and *timeout get initialized to the file descriptor to wait on,
-** and the requested timeout.  *fdret may be negative in polling mode.
+** and the requested timeout.  *fdret may be negative in polling mode, this
+** should be interpreted as: if *changed is not set, sleep for this period of
+** time.
 */
 
 int maildirwatch_check(struct maildirwatch_contents *w,

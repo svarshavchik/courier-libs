@@ -12,6 +12,7 @@ DOCS=	deliverquota.html.in deliverquota.8.in \
 	maildir.html maildir.5 \
 	maildiracl.html.in \
 	maildirmake.html.in maildirmake.1.in maildirquota.html maildirquota.7 \
+	maildirwatch.html maildirwatch.1 \
 	maildirkw.html maildirkw.1
 
 if HAVE_SGML
@@ -23,7 +24,7 @@ BUILT_SOURCES=maildirsharedrc.h maildirfilterconfig.h quotawarnmsg.h \
 endif
 
 noinst_DATA=deliverquota.html maildirmake.html deliverquota.8 maildirmake.1 \
-	maildiracl.html maildiracl.1 maildir.libdeps
+	maildiracl.html maildiracl.1
 
 libmaildir_la_SOURCES=autoresponse.c autoresponse.h \
 	maildiraclt.c maildiraclt.h \
@@ -49,7 +50,7 @@ libmaildir_la_SOURCES=autoresponse.c autoresponse.h \
 	maildirwatch.c maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
-	maildirkw maildiracl maildiraclttest testmaildirsearch
+	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch
 
 deliverquota_SOURCES=deliverquota.c
 deliverquota_DEPENDENCIES=libmaildir.la ../rfc822/librfc822.la \
@@ -77,24 +78,28 @@ maildirkwtest_DEPENDENCIES=libmaildir.la
 maildirkwtest_LDFLAGS=-static
 
 maildirkw_SOURCES=maildirkw.c
-maildirkw_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la \
-		`cat maildir.libdeps`
+maildirkw_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
 maildirkw_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
-	../numlib/libnumlib.la maildir.libdeps
+	../numlib/libnumlib.la
 maildirkw_LDFLAGS=-static
 
+maildirwatch_SOURCES=maildirwatchprog.c
+maildirwatch_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
+maildirwatch_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
+	../numlib/libnumlib.la
+maildirwatch_LDFLAGS=-static
+
 maildiracl=maildiracl.c
-maildiracl_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la \
-			`cat maildir.libdeps`
+maildiracl_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
 maildiracl_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
-		../numlib/libnumlib.la maildir.libdeps
+		../numlib/libnumlib.la
 maildiracl_LDFLAGS=-static
 
 maildiraclttest_SOURCES=testmaildiraclt.c
 maildiraclttest_LDADD=libmaildir.la ../liblock/liblock.la \
-		../numlib/libnumlib.la `cat maildir.libdeps`
+		../numlib/libnumlib.la
 maildiraclttest_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
-		../numlib/libnumlib.la maildir.libdeps
+		../numlib/libnumlib.la
 maildiraclttest_LDFLAGS=-static
 
 testmaildirsearch_SOURCES=testmaildirsearch.c
@@ -130,11 +135,9 @@ autoresponsequota.h: config.status
 
 quotawarnmsg.h: config.status
 	echo '#define QUOTAWARNMSG "$(sysconfdir)/quotawarnmsg"' >quotawarnmsg.h
-maildir.libdeps: config.status
-	echo @LIBFAM@ >maildir.libdeps
 
 clean-local:
-	rm -rf maildir.libdeps testmd
+	rm -rf testmd
 
 check-am:
 	@SHELL@ $(srcdir)/testsuite 2>&1 | cmp - $(srcdir)/testsuite.txt
@@ -187,6 +190,12 @@ maildirkw.html: maildirkw.sgml ../docbook/sgml2html
 
 maildirkw.1: maildirkw.sgml ../docbook/sgml2man
 	../docbook/sgml2man maildirkw.sgml maildirkw.1 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/"
+
+maildirwatch.html: maildirwatch.sgml ../docbook/sgml2html
+	../docbook/sgml2html maildirwatch.sgml maildirwatch.html
+
+maildirwatch.1: maildirwatch.sgml ../docbook/sgml2man
+	../docbook/sgml2man maildirwatch.sgml maildirwatch.1
 
 endif
 

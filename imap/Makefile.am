@@ -74,11 +74,9 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.c imapd.h \
 	search.c searchinfo.c searchinfo.h \
 	storeinfo.c storeinfo.h
 
-imapd_DEPENDENCIES=libimapd.la \
-	../maildir/maildir.libdeps @dblibrary@
+imapd_DEPENDENCIES=libimapd.la @dblibrary@
 
-imapd_LDADD=libimapd.la `cat ../maildir/maildir.libdeps` \
-	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth
+imapd_LDADD=libimapd.la	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth
 
 pop3login_SOURCES=pop3login.c pop3dcapa.c proxy.c proxy.h
 pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la

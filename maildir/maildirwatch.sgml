@@ -1,0 +1,114 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!-- Copyright 2021 Double Precision, Inc.  See COPYING for -->
+<!-- distribution information. -->
+<refentry id="maildirwatch">
+  <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
+
+  <refmeta>
+    <refentrytitle>maildirwatch</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class="manual">Double Precision, Inc.</refmiscinfo>
+  </refmeta>
+
+  <refnamediv>
+    <refname>maildirwatch</refname>
+    <refpurpose>wait for changes to a maildir</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis sepchar=" ">
+      <command>maildirwatch</command>
+      <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
+      <arg choice="req" rep="norepeat"><replaceable>command</replaceable></arg>
+
+      <arg choice="opt" rep="repeat"><replaceable>argument</replaceable></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1 id="maildirwatch_description">
+    <title>DESCRIPTION</title>
+
+    <para>
+      <command>maildirwatch</command> repeatedly invokes the
+      <command><replaceable>command</replaceable></command>, with any optional
+      <command><replaceable>argument</replaceable></command>s, an external
+      command, as follows:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  The first time the
+	  <command><replaceable>command</replaceable></command> gets executed
+	  is immediately after
+	  <command>maildirwatch</command> starts.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Subsequent invocatons of
+	  <command><replaceable>command</replaceable></command> occur whenever
+	  there <emphasis>may</emphasis> be some kind of a change
+	  to the contents of the
+	  <filename><replaceable>maildir</replaceable></filename>.
+	</para>
+
+	<para>
+	  <command>maildirwatch</command> does not determine what, if anything,
+	  changed in the
+	  <filename><replaceable>maildir</replaceable></filename>.
+	  <command>maildirwatch</command>
+	  might
+	  occasionally raise a false alarm and run the
+	  <command><replaceable>command</replaceable></command> even though
+	  nothing changed, but that's rare. It's also possible that by
+	  the time <command><replaceable>command</replaceable></command>
+	  actually runs, then whatever was changed in the
+	  <filename><replaceable>maildir</replaceable></filename> is no longer
+	  changed; it became what it was before it was changed (a mystery
+	  that will remain unsolved forever).
+	  It's up to the
+	  <command><replaceable>command</replaceable></command> to
+	  intelligently figure out
+	  if it needs to do something about whatever it finds in the
+	  <filename><replaceable>maildir</replaceable></filename>.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      <command>maildirwatch</command> is a rudimentary mechanism for writing
+      shell scripts that deal with newly-delivered mail, in
+      some form or fashion.
+    </para>
+  </refsect1>
+
+  <refsect1 id="maildirwatch_exit">
+    <title>EXIT CODE</title>
+
+    <para>
+      A non-zero exit code indicates that the specified
+      <filename><replaceable>maildir</replaceable></filename> does not
+      exist or is corrupted.
+    </para>
+
+    <para>
+      Otherwise
+      <command>maildirwatch</command> runs until the
+      <command><replaceable>command</replaceable></command> exits with a
+      non-zero exit code.
+      <command>maildirwatch</command> prints
+      <command><replaceable>command</replaceable></command>'s exit code on
+      standard output, and terminates with an exit code of 0.
+    </para>
+  </refsect1>
+
+  <refsect1 id="maildirwatch_see_also">
+    <title>SEE ALSO</title>
+
+    <para>
+<ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>.</para>
+  </refsect1>
+
+</refentry>

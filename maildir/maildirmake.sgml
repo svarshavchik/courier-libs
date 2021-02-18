@@ -584,6 +584,7 @@ Updating /home/mrsam/.mailfilter</programlisting>
 <ulink url="maildir.html"><citerefentry><refentrytitle>maildir</refentrytitle><manvolnum>5</manvolnum></citerefentry></ulink>,
 <ulink url="maildiracl.html"><citerefentry><refentrytitle>maildiracl</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
 <ulink url="maildirkw.html"><citerefentry><refentrytitle>maildirkw</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
+<ulink url="maildirwatch.html"><citerefentry><refentrytitle>maildirwatch</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
 <ulink url="maildrop.html"><citerefentry><refentrytitle>maildrop</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>,
 <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
 <ulink url="deliverquota.html"><citerefentry><refentrytitle>deliverquota</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>,
