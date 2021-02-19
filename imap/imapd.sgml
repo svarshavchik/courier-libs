@@ -140,15 +140,6 @@ that runs <command>couriertcpd</command>.</para>
       <title>Realtime concurrent folder status updates</title>
 
       <para>
-Setting the <literal>IMAP_ENHANCEDIDLE</literal> to
-<literal>1</literal> in
-<filename>@sysconfdir@/imapd</filename> enables realtime concurrent folder
-status updates.
-When relatime folder status updates are enabled all IMAP mail clients
-that have the same folder open will be
-immediately notified of any changes to the folder's contents.</para>
-
-      <para>
 The <application>Courier</application> IMAP server always allows
 more than one mail client to have the
 same folder opened.
@@ -163,12 +154,7 @@ contents are modified by another mail client.</para>
       <para>
 The <literal>IDLE</literal> extension to the base IMAP protocol provides
 a delivery mechanism for notifying mail clients of changes to the mail
-folder's contents.  Although at this time it's not known to which extent
-the <literal>IDLE</literal> extension is supported by IMAP mail clients,
-the <application>Courier</application> IMAP server fully implements
-the <literal>IDLE</literal>
-extension provided that the following requirements are met:
-</para>
+folder's contents.</para>
 
       <variablelist>
 	<varlistentry>
@@ -213,22 +199,8 @@ in most IMAP mail clients is not known.</para>
 	</varlistentry>
 
 	<varlistentry>
-	  <term><envar>IMAP_ENHANCEDIDLE</envar></term>
 	  <listitem>
 	    <para>
-This setting in <filename>@sysconfdir@/imapd</filename>
-actually enables concurrent realtime folder status updates using the
-<literal>IDLE</literal> extension and the inotify kernel interface.
-Note that it is possible to enable the <literal>IDLE</literal> extension
-even when Courier-IMAP is compiled on a platform without the inotify
-kernel interface, or without
-enabling either the <envar>IMAP_USELOCKS</envar> and/or
-<envar>IMAP_ENHANCEDIDLE</envar> settings.
-The resulting consequences are described are as follows:</para>
-
-	    <orderedlist inheritnum="ignore" continuation="restarts">
-	      <listitem>
-		<para>
 Without <envar>IMAP_USERLOCKS</envar> there exists a small possibility
 that multiple mail clients will receive a slightly inconsistent folder index
 if both clients try to update the contents of the folder at the same time.
@@ -237,17 +209,13 @@ downloading the same message twice from the server, and caching it incorrectly
 in the local cache (if the IMAP client caches message contents).
 Clearing the local message cache will quickly eliminate any residual
 confusion that results from this situation.</para>
-	      </listitem>
-	      <listitem>
-		<para>
-Without inotify kernel interface, and
-<envar>IMAP_ENHANCEDIDLE</envar> set, the
+
+	    <para>
+Without inotify kernel interface, the
 <application>Courier</application> IMAP server will
 manually check for changes to the folder's contents every 60 seconds,
 in IDLE mode (instead of in real time).
 </para>
-	      </listitem>
-	    </orderedlist>
 	  </listitem>
 	</varlistentry>
       </variablelist>
@@ -286,7 +254,7 @@ Open two or three terminal windows.
 In each window, connect to the IMAP server, and enter IDLE mode:
 </para>
 	  <programlisting format="linespecific">
-S:* OK Courier-IMAP ready. Copyright 1998-2002 Double Precision, Inc.
+S:* OK Courier-IMAP ready. Copyright 1998-2021 Double Precision, Inc.
   See COPYING for distribution information.
 C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
 S:a OK LOGIN Ok.
@@ -326,7 +294,7 @@ Open another terminal window, connect to the server, and modify the flags
 of one of the messages:</para>
 
 	  <programlisting format="linespecific">
-S:* OK Courier-IMAP ready. Copyright 1998-2002 Double Precision, Inc.
+S:* OK Courier-IMAP ready. Copyright 1998-2021 Double Precision, Inc.
   See COPYING for distribution information.
 C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
 S:a OK LOGIN Ok.

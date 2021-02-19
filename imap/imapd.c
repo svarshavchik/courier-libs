@@ -4324,9 +4324,7 @@ int	uid=0;
 
 	       read_eol();
 
-	       if ((p=getenv("IMAP_ENHANCEDIDLE")) == NULL
-		   || !atoi(p)
-		   || imapenhancedidle())
+	       if (imapenhancedidle())
 		       imapidle();
 	       curtoken=nexttoken();
 	       if (strcmp(curtoken->tokenbuf, "DONE") == 0)

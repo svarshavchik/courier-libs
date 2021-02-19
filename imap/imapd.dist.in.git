@@ -282,20 +282,6 @@ IMAP_USELOCKS=1
 
 IMAP_SHAREDINDEXFILE=@sysconfdir@/shared/index
 
-##NAME: IMAP_ENHANCEDIDLE:0
-#
-# If Courier was compiled with the File Alteration Monitor, setting
-# IMAP_ENHANCEDIDLE to 1 enables enhanced IDLE mode, where multiple
-# clients may open the same folder concurrently, and receive updates to
-# folder contents in realtime.  See the imapd(8) man page for additional
-# information.
-#
-# IMPORTANT: IMAP_USELOCKS *MUST* also be set to 1, and IDLE must be included
-# in the IMAP_CAPABILITY list.
-#
-
-IMAP_ENHANCEDIDLE=0
-
 ##NAME: IMAP_TRASHFOLDERNAME:0
 #
 # The name of the magic trash Folder.  For MSOE compatibility,
