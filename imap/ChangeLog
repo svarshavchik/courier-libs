@@ -7,6 +7,8 @@
 	* Remove the IMAP_ENHANCEDIDLE setting from the imapd configuration
 	file.
 
+	* Update RPM spec file.
+
 5.0.12
 
 2020-12-06  Sam Varshavchik  <mrsam@courier-mta.com>
