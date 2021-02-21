@@ -1046,6 +1046,7 @@ static int get_server_cert(gnutls_session_t session,
 	{
 		if (ssl->ctx->certfile)
 			nonsslerror(&ssl->info_cpy, ssl->ctx->certfile);
+		free(vhost_buf);
 		return 0;
 	}
 
@@ -1053,6 +1054,7 @@ static int get_server_cert(gnutls_session_t session,
 	free(certfilename);
 	if (keyfilename)
 		free(keyfilename);
+	free(vhost_buf);
 	return rc;
 }
 
