@@ -445,6 +445,9 @@ static void load_dh_params(SSL_CTX *ctx, const char *filename,
 
 static int check_readable_file(const char *filename)
 {
+	if (!filename)
+		return 0;
+
 	return (access(filename, R_OK) == 0) ? 1 : 0;
 }
 
