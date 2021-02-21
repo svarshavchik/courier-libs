@@ -89,31 +89,31 @@ include_HEADERS=courier-unicode.h \
 
 man_MANS= \
         $(srcdir)/man/courier-unicode.7 \
-        $(srcdir)/man/unicode\:\:bidi.3 \
-        $(srcdir)/man/unicode\:\:bidi_calc.3 \
-        $(srcdir)/man/unicode\:\:bidi_calc_types.3 \
-        $(srcdir)/man/unicode\:\:bidi_cleanup.3 \
-        $(srcdir)/man/unicode\:\:bidi_embed.3 \
-        $(srcdir)/man/unicode\:\:bidi_embed_paragraph_level.3 \
-        $(srcdir)/man/unicode\:\:bidi_get_direction.3 \
-        $(srcdir)/man/unicode\:\:bidi_logical_order.3 \
-        $(srcdir)/man/unicode\:\:bidi_reorder.3 \
-        $(srcdir)/man/unicode\:\:iconvert\:\:convert.3 \
-        $(srcdir)/man/unicode\:\:iconvert\:\:convert_tocase.3 \
-        $(srcdir)/man/unicode\:\:iconvert\:\:fromu.3 \
-        $(srcdir)/man/unicode\:\:iconvert\:\:tou.3 \
-        $(srcdir)/man/unicode\:\:iso_8859_1.3 \
-        $(srcdir)/man/unicode\:\:linebreak_callback_base.3 \
-        $(srcdir)/man/unicode\:\:linebreak_callback_save_buf.3 \
-        $(srcdir)/man/unicode\:\:linebreak_iter.3 \
-        $(srcdir)/man/unicode\:\:linebreakc_callback_base.3 \
-        $(srcdir)/man/unicode\:\:linebreakc_iter.3 \
-        $(srcdir)/man/unicode\:\:tolower.3 \
-        $(srcdir)/man/unicode\:\:toupper.3 \
-        $(srcdir)/man/unicode\:\:ucs_2.3 \
-        $(srcdir)/man/unicode\:\:ucs_4.3 \
-        $(srcdir)/man/unicode\:\:utf_8.3 \
-        $(srcdir)/man/unicode\:\:wordbreak_callback_base.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_calc.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_calc_types.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_cleanup.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_embed.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_embed_paragraph_level.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_get_direction.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_logical_order.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_reorder.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 \
+        $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 \
+        $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 \
+        $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 \
+        $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 \
+        $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 \
+        $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 \
+        $(srcdir)/man/unicode[\:][\:]tolower.3 \
+        $(srcdir)/man/unicode[\:][\:]toupper.3 \
+        $(srcdir)/man/unicode[\:][\:]ucs_2.3 \
+        $(srcdir)/man/unicode[\:][\:]ucs_4.3 \
+        $(srcdir)/man/unicode[\:][\:]utf_8.3 \
+        $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 \
         $(srcdir)/man/unicode_bidi.3 \
         $(srcdir)/man/unicode_bidi_bracket_type.3 \
         $(srcdir)/man/unicode_bidi_calc.3 \
@@ -444,7 +444,7 @@ docs.stamp:
 	rm -f man/*.[123456789]
 	mv man.tmp/* man
 	rm -rf html.tmp man.tmp
-	perl -e '$$f=join("",<STDIN>); $$p=join("", map { " \\\n        \$$(srcdir)/$$_" } glob("man/*.[123456789]")); $$p=~s/:/\\:/g; $$f =~ s/\nman_MANS=([^\n]|\n[^\n])*/\nman_MANS=$$p/s; print $$f' <Makefile.am >Makefile.am.new
+	perl -e '$$f=join("",<STDIN>); $$p=join("", map { " \\\n        \$$(srcdir)/$$_" } glob("man/*.[123456789]")); $$p=~s/:/\[\\:\]/g; $$f =~ s/\nman_MANS=([^\n]|\n[^\n])*/\nman_MANS=$$p/s; print $$f' <Makefile.am >Makefile.am.new
 	cmp Makefile.am Makefile.am.new || mv -f Makefile.am.new Makefile.am; rm -f Makefile.am.new
 	touch docs.stamp
 
