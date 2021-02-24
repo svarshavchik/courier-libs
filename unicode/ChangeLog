@@ -1,3 +1,5 @@
+2.2.1
+
 2021-02-14  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* unicode_bidi_calc and unicode_bidi_calc_levels return a

@@ -117,7 +117,19 @@ fi
 CFLAGS="-I.. -I$srcdir/.. $CFLAGS"
 CXXFLAGS="-I.. -I$srcdir/.. $CXXFLAGS"
 
-HVERSION="`echo $VERSION | tr -d '.'`"
+set -- `echo "$VERSION" | tr '.' ' '`
+
+v=$1
+r=`echo "00"$2 | sed 's/.*(...)$/$1/'`
+p=$3
+
+if test "$p" = ""
+   then p="0"
+fi
+
+p=`echo "00"$p | sed 's/.*(...)$/$[]1/'`
+
+HVERSION="$v$r$p"
 AC_SUBST(HVERSION)
 
 AM_CONDITIONAL(HAVE_DOCS,[test -f $srcdir/docbook/icon.gif])

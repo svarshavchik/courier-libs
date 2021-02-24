@@ -2063,12 +2063,14 @@ void unicode_bidi_reorder(char32_t *p,
 	level_run_layers_deinit(&layers);
 }
 
-size_t unicode_bidi_cleanup(char32_t *string,
-			    unicode_bidi_level_t *levels,
-			    size_t n,
-			    int cleanup_options,
-			    void (*removed_callback)(size_t, void *),
-			    void *arg)
+static size_t unicode_bidi_count_or_cleanup(const char32_t *string,
+					    char32_t *dest,
+					    unicode_bidi_level_t *levels,
+					    size_t n,
+					    int cleanup_options,
+					    void (*removed_callback)(size_t,
+								     void *),
+					    void *arg)
 {
 	size_t i=0;
 	for (size_t j=0; j<n; ++j)
@@ -2090,11 +2092,32 @@ size_t unicode_bidi_cleanup(char32_t *string,
 		if (levels)
 			levels[i]=levels[j] & 1;
 
-		string[i]=(cleanup_options & UNICODE_BIDI_CLEANUP_BNL)
-			&& cl == UNICODE_BIDI_TYPE_B ? '\n' : string[j];
+		if (dest)
+			dest[i]=(cleanup_options & UNICODE_BIDI_CLEANUP_BNL)
+				&& cl == UNICODE_BIDI_TYPE_B ? '\n' : string[j];
 		++i;
 	}
 	return i;
+}
+
+size_t unicode_bidi_cleanup(char32_t *string,
+			    unicode_bidi_level_t *levels,
+			    size_t n,
+			    int cleanup_options,
+			    void (*removed_callback)(size_t, void *),
+			    void *arg)
+{
+	return unicode_bidi_count_or_cleanup(string, string, levels, n,
+					     cleanup_options, removed_callback,
+					     arg);
+}
+
+size_t unicode_bidi_cleaned_size(const char32_t *string,
+				 size_t n,
+				 int cleanup_options)
+{
+	return unicode_bidi_count_or_cleanup(string, NULL, NULL, n,
+					     cleanup_options, NULL, NULL);
 }
 
 void unicode_bidi_logical_order(char32_t *string,

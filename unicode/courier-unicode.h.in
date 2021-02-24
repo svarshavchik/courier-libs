@@ -705,6 +705,10 @@ extern size_t unicode_bidi_cleanup(char32_t *string,
 				   void (*removed_callback)(size_t, void *),
 				   void *);
 
+extern size_t unicode_bidi_cleaned_size(const char32_t *string,
+					size_t n,
+					int options);
+
 extern void unicode_bidi_logical_order(char32_t *string,
 				       unicode_bidi_level_t *levels,
 				       size_t n,
@@ -2354,14 +2358,19 @@ std::u32string bidi_embed(const std::u32string &string,
 //! In order for the unicode string to have the specified default
 //! paragraph embedding level.
 
-extern char32_t bidi_embed_paragraph_level(const std::u32string &string,
-					   unicode_bidi_level_t level);
+char32_t bidi_embed_paragraph_level(const std::u32string &string,
+				    unicode_bidi_level_t level);
 
 //! Compute default direction of text
 
-extern unicode_bidi_direction bidi_get_direction(const std::u32string &string,
-						 size_t starting_pos=0,
-						 size_t n=(size_t)-1);
+unicode_bidi_direction bidi_get_direction(const std::u32string &string,
+					  size_t starting_pos=0,
+					  size_t n=(size_t)-1);
+
+//! Override bidi direction.
+std::u32string bidi_override(const std::u32string &s,
+			     unicode_bidi_level_t direction,
+			     int cleanup_options=0);
 
 #if 0
 {

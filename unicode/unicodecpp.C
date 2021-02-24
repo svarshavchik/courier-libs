@@ -949,3 +949,20 @@ unicode_bidi_direction unicode::bidi_get_direction(const std::u32string &string,
 
 	return unicode_bidi_get_direction(string.c_str()+starting_pos, n);
 }
+
+std::u32string unicode::bidi_override(const std::u32string &s,
+				      unicode_bidi_level_t direction,
+				      int cleanup_options)
+{
+	std::u32string ret;
+
+	ret.reserve(s.size()+1);
+
+	ret.push_back(' ');
+	ret.insert(ret.end(), s.begin(), s.end());
+
+	bidi_cleanup(ret, [](size_t) {}, cleanup_options);
+	ret.at(0)=direction & 1 ? UNICODE_RLO : UNICODE_LRO;
+
+	return ret;
+}

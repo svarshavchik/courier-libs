@@ -14,12 +14,15 @@ fi
 set -- `echo "$vers" | tr '.' ' '`
 
 v=$[]1
-r=$[]2
+r=`echo "00"$[]2 | sed 's/.*(...)$/$[]1/'`
+
 p=$[]3
 
 if test "$p" = ""
    then p="0"
 fi
+
+p=`echo "00"$p | sed 's/.*(...)$/$[]1/'`
 
 AC_TRY_COMPILE([
 #include <courier-unicode.h>

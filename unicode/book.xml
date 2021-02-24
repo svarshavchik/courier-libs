@@ -334,6 +334,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode_bidi_calc</refname>
 	  <refname>unicode_bidi_reorder</refname>
 	  <refname>unicode_bidi_cleanup</refname>
+	  <refname>unicode_bidi_cleaned_size</refname>
 	  <refname>unicode_bidi_logical_order</refname>
 	  <refname>unicode_bidi_embed</refname>
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
@@ -392,6 +393,13 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <paramdef>int <parameter>options</parameter></paramdef>
               <paramdef>void (*<parameter>removed_callback</parameter>)(size_t, size_t, void *)</paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_bidi_cleaned_size</function></funcdef>
+              <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+	      <paramdef>int <parameter>options</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -538,6 +546,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 		  to remove the characters from the string which are used
 		  by the bi-directional algorithm, and are not needed for
 		  rendering the text.
+		  <function>unicode_bidi_cleaned_size</function>() is
+		  available to determine, in advance, how many characters
+		  will remain.
 		</para>
 	      </listitem>
 	    </orderedlist>
@@ -864,6 +875,11 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <function>unicode_bidi_embed</function>() require the
 	      canonical rendering order for their string and embedding level
 	      values.
+            </para>
+	    <para>
+	      The parameters to <function>unicode_bidi_cleaned_size</function>()
+	      are a pointer to the unicode string, its size, and
+	      the bitmask option to <function>unicode_bidi_cleanup</function>().
             </para>
 	  </refsect2>
 
@@ -2906,6 +2922,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode::bidi_embed</refname>
 	  <refname>unicode::bidi_embed_paragraph_level</refname>
 	  <refname>unicode::bidi_get_direction</refname>
+	  <refname>unicode::bidi_override</refname>
 	  <refpurpose>unicode bi-directional algorithm</refpurpose>
 	</refnamediv>
 
@@ -3034,6 +3051,13 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
               <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>std::u32string <function>bidi_override</function></funcdef>
+              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+              <paramdef>unicode_bidi_level_t <parameter>direction</parameter></paramdef>
+	      <paramdef>int <parameter>cleanup_options</parameter>=0</paramdef>
 	    </funcprototype>
           </funcsynopsis>
 	</refsynopsisdiv>
@@ -3190,6 +3214,41 @@ auto [levels, direction]=unicode::bidi_calc(types);
 	      </para>
 	    </listitem>
 
+	    <listitem>
+	      <para>
+		<function>unicode::bidi_override</function>
+		modifies the passed-in <parameter>string</parameter> as
+		follows:
+	      </para>
+
+	      <itemizedlist>
+		<listitem>
+		  <para>
+		    <function>unicode::bidi_cleanup</function>() is applied
+		    with the specified, or defaulted,
+		    <replaceable>cleanup_options</replaceable>
+		  </para>
+		</listitem>
+
+		<listitem>
+		  <para>
+		    Either the <literal>LRO</literal> or an
+		    <literal>RLO</literal> override marker gets prepended
+		    to the Unicode string, forcing the entire string to
+		    be interpreted in a single rendering direction, when
+		    processed by the Unicode bi-directional algorithm.
+		  </para>
+		</listitem>
+	      </itemizedlist>
+
+	      <para>
+		<function>unicode::bidi_override</function> makes it
+		possible to use a Unicode-aware application or algorithm
+		in a context that only works with text that's always
+		displayed in a fixed direction, allowing graceful handling
+		of input containing bi-directional text.
+	      </para>
+	    </listitem>
           </itemizedlist>
 
 	  <refsect2 id="unicode_cpp_bidi_literals">

@@ -97,6 +97,7 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]bidi_embed_paragraph_level.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_get_direction.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_logical_order.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_override.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_reorder.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 \
@@ -119,6 +120,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_calc.3 \
         $(srcdir)/man/unicode_bidi_calc_levels.3 \
         $(srcdir)/man/unicode_bidi_calc_types.3 \
+        $(srcdir)/man/unicode_bidi_cleaned_size.3 \
         $(srcdir)/man/unicode_bidi_cleanup.3 \
         $(srcdir)/man/unicode_bidi_direction.3 \
         $(srcdir)/man/unicode_bidi_embed.3 \
@@ -219,7 +221,7 @@ libcourier_unicode_la_SOURCES=\
 			bidi_mirroring.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 6:0:2
+libcourier_unicode_la_LDFLAGS=-version-info 7:0:0
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	m4/courier-unicode.m4 \

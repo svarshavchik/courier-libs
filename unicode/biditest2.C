@@ -274,6 +274,9 @@ void character_test()
 				 std::reverse(b+index, b+index+n);
 			 });
 
+		size_t cleaned_size=unicode_bidi_cleaned_size(s.c_str(),
+							      s.size(), 0);
+
 		n=0;
 		unicode::bidi_cleanup
 			(s, levels,
@@ -285,6 +288,17 @@ void character_test()
 				 ++n;
 			 });
 
+		if (cleaned_size != s.size())
+		{
+			std::cerr << "Regression, line "
+				  << linenum
+				  << ": default cleaned size"
+				  << std::endl
+				  << "   Expected size: " << cleaned_size
+				  << ", actual size: " << s.size()
+				  << std::endl;
+			exit(1);
+		}
 		if (render_order != actual_render_order)
 		{
 			std::cerr << "Regression, line "
@@ -408,6 +422,12 @@ void character_test()
 			}
 
 			unicode::bidi_reorder(new_string, std::get<0>(ret));
+
+			cleaned_size=unicode_bidi_cleaned_size
+				(new_string.c_str(),
+				 new_string.size(),
+				 UNICODE_BIDI_CLEANUP_CANONICAL);
+
 			unicode::bidi_cleanup(new_string,
 					      std::get<0>(ret),
 					      []
@@ -415,6 +435,20 @@ void character_test()
 					      {
 					      },
 					      UNICODE_BIDI_CLEANUP_CANONICAL);
+
+			if (cleaned_size != new_string.size())
+			{
+				std::cerr << "Regression, line "
+					  << linenum
+					  << ": canonoical cleaned size"
+					  << std::endl
+					  << "   Expected size: "
+					  << cleaned_size
+					  << ", actual size: "
+					  << new_string.size()
+					  << std::endl;
+				exit(1);
+			}
 
 			/* New string is now back in logical order */
 
