@@ -1,3 +1,8 @@
+2021-02-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Implement unicode_bidi_needs_embed(), unicode_bidi_cleaned_size(),
+	unicode::bidi_override,
+
 2.2.1
 
 2021-02-14  Sam Varshavchik  <mrsam@courier-mta.com>

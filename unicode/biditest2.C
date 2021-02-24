@@ -597,29 +597,47 @@ void null_character_test()
 void direction_test()
 {
 	static const struct {
-		const char32_t *str;
+		std::u32string str;
 		unicode_bidi_level_t direction;
 		int is_explicit;
+		bool needs_embed;
 	} tests[]={
 		{
 			U"Hello",
 			UNICODE_BIDI_LR,
 			1,
+			true,
 		},
 		{
 			U" ",
 			UNICODE_BIDI_LR,
 			0,
+			true,
 		},
 		{
 			U"",
 			UNICODE_BIDI_LR,
 			0,
+			true,
 		},
 		{
 			U"שלום",
 			UNICODE_BIDI_RL,
 			1,
+			true,
+		},
+		{
+			U"Helloש",
+			UNICODE_BIDI_LR,
+			1,
+			true,
+		},
+		{
+			U"Hello" + std::u32string{unicode::literals::LRO}
+			+ U"ש",
+			UNICODE_BIDI_LR,
+			1,
+			false,
 		},
 	};
 
@@ -631,6 +649,18 @@ void direction_test()
 		    ret.is_explicit != t.is_explicit)
 		{
 			std::cerr << "direction_test failed\n";
+			exit(1);
+		}
+
+		std::u32string s=t.str;
+		auto levels=std::get<0>(unicode::bidi_calc(s, t.direction));
+		unicode::bidi_reorder(s, levels);
+		unicode::bidi_cleanup(s, levels);
+
+		if (unicode::bidi_needs_embed(s, levels, &t.direction)
+		    != t.needs_embed)
+		{
+			std::cerr << "needs embed failed\n";
 			exit(1);
 		}
 	}

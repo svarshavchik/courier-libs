@@ -336,6 +336,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode_bidi_cleanup</refname>
 	  <refname>unicode_bidi_cleaned_size</refname>
 	  <refname>unicode_bidi_logical_order</refname>
+	  <refname>unicode_bidi_needs_embed</refname>
 	  <refname>unicode_bidi_embed</refname>
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
 
@@ -403,13 +404,21 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>size_t <function>unicode_bidi_logical_order</function></funcdef>
+	      <funcdef>void <function>unicode_bidi_logical_order</function></funcdef>
               <paramdef>char32_t *<parameter>string</parameter></paramdef>
               <paramdef>unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
               <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
               <paramdef>void (*<parameter>reorder_callback</parameter>)(size_t index, size_t n, void *arg)</paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>int <function>unicode_bidi_needs_embed</function></funcdef>
+              <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t <parameter>*paragraph_embedding</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -871,7 +880,8 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      with the <literal>UNICODE_BIDI_CLEANUP_CANONICAL</literal>
 	      are in
 	      <quote>canonical rendering order</quote>.
-	      <function>unicode_bidi_logical_order</function>() and
+	      <function>unicode_bidi_logical_order</function>(),
+	      <function>unicode_bidi_needs_embed</function>() and
 	      <function>unicode_bidi_embed</function>() require the
 	      canonical rendering order for their string and embedding level
 	      values.
@@ -886,8 +896,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refsect2 id="unicode_bidi_embed">
 	    <title>Embedding bi-directional markers in Unicode text strings</title>
             <para>
-	      <function>unicode_bidi_logical_order</function>() and
-	      <function>unicode_bidi_embed</function>() add various
+	      <function>unicode_bidi_logical_order</function>() rearranges
+	      the string from rendering to its logical order.
+	      <function>unicode_bidi_embed</function>() adds various
 	      bi-directional markers to a Unicode string in canonical rendering
 	      order. The resulting string is not guaranteed to be
 	      identical to the
@@ -901,12 +912,18 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <function>unicode_bidi_cleanup()</function>
 	      (with the canonical option),
 	      with the same paragraph_embedding level.
+	      <function>unicode_bidi_needs_embed</function>() attempts to
+	      heuristically determine whether
+	      <function>unicode_bidi_embed</function>() is required.
             </para>
 
 	    <para>
 	      <function>unicode_bidi_logical_order</function>() gets called
 	      first, followed by
-	      <function>unicode_bidi_embed</function>().
+	      <function>unicode_bidi_embed</function>()
+	      (or
+	      <function>unicode_bidi_needs_embed</function>() in order to
+	      determine whether bi-directional markers are required).
 	      Finally, <function>unicode_bidi_embed_paragraph_level</function>()
 	      optionally determines whether the resulting string's default
 	      paragraph embedding level matches the one used for the actual
@@ -963,12 +980,12 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
             <itemizedlist>
 	      <listitem>
 		<para>
-		  The Unicode string, and &hellip;
+		  The Unicode string.
                 </para>
               </listitem>
 	      <listitem>
 		<para>
-		  &hellip; the directional embedding buffer, in canonical
+		  The directional embedding buffer, in canonical
 		  rendering order.
                 </para>
               </listitem>
@@ -1080,6 +1097,53 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
                 </para>
               </listitem>
 	    </itemizedlist>
+
+	    <para>
+	      <function>unicode_bidi_needs_embed</function>() attempts to
+	      heuristically determine whether the Unicode string, in logical
+	      order, requires bi-directional markers.
+	      The parameters to
+	      <function>unicode_bidi_embed_paragraph_level</function>() are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  The Unicode string.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The directional embedding buffer, in logical
+		  rendering order.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  The size of the string and the embedding level buffer.
+                </para>
+              </listitem>
+	      <listitem>
+		<para>
+		  A pointer to an explicit paragraph embedding level, either
+		  <literal>UNICODE_BIDI_LR</literal> or
+		  <literal>UNICODE_BIDI_RL</literal>; or a
+		  <literal>NULL</literal> pointer (see
+		  <function>unicode_bidi_calc_types</function>()'s
+		  explanation for this parameter).
+                </para>
+              </listitem>
+	    </itemizedlist>
+
+	    <para>
+	      <function>unicode_bidi_needs_embed</function>() returns 0
+	      if the Unicode string does not need explicit directional
+	      markers, or 1 if it does. This is done by using
+	      <function>unicode_bidi_calc()</function>,
+	      <function>unicode_bidi_reorder()</function>,
+	      <function>unicode_bidi_logical_order</function> and then
+	      checking if the end result is different from what was passed
+	      in.
+	    </para>
           </refsect2>
 	  <refsect2 id="unicode_bidi_misc">
 	    <title>Miscellaneous utility functions</title>
@@ -2919,6 +2983,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode::bidi_reorder</refname>
 	  <refname>unicode::bidi_cleanup</refname>
 	  <refname>unicode::bidi_logical_order</refname>
+	  <refname>unicode::bidi_needs_embed</refname>
 	  <refname>unicode::bidi_embed</refname>
 	  <refname>unicode::bidi_embed_paragraph_level</refname>
 	  <refname>unicode::bidi_get_direction</refname>
@@ -3021,6 +3086,15 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <paramdef>std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
 	      <paramdef>const std::function&lt;void (size_t, size_t)&gt; &amp;<parameter>reorder_callback</parameter></paramdef>
+	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
+	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
+            </funcprototype>
+
+	    <funcprototype>
+              <funcdef>bool <function>unicode::bidi_needs_embed</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>const unicode_bidi_level_t (<parameter>paragraph_embedding</parameter>=NULL</paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
@@ -3196,7 +3270,8 @@ auto [levels, direction]=unicode::bidi_calc(types);
 	      <para>
 		<function>unicode::bidi_reorder</function>,
 		<function>unicode::bidi_cleanup</function>,
-		<function>unicode::bidi_logical_order</function> and
+		<function>unicode::bidi_logical_order</function>,
+		<function>unicode::bidi_needs_embed</function> and
 		<function>unicode::bidi_get_direction</function>
 		take two optional
 		parameters (defaulted values or overloaded) specifying

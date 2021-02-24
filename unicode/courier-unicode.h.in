@@ -717,6 +717,12 @@ extern void unicode_bidi_logical_order(char32_t *string,
 								void *),
 				       void *arg);
 
+extern int unicode_bidi_needs_embed(const char32_t *string,
+				    const unicode_bidi_level_t *levels,
+				    size_t n,
+				    const unicode_bidi_level_t *
+				    paragraph_embedding);
+
 extern void unicode_bidi_embed(const char32_t *string,
 			       const unicode_bidi_level_t *levels,
 			       size_t n,
@@ -2327,6 +2333,14 @@ void bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 			const std::function<void (size_t, size_t)> &lambda,
 			size_t starting_pos=0,
 			size_t n=(size_t)-1);
+
+//! Whether directional and isolation markers are needed.
+
+bool bidi_needs_embed(const std::u32string &string,
+		      const std::vector<unicode_bidi_level_t> &levels,
+		      const unicode_bidi_level_t *paragraph_embedding=0,
+		      size_t starting_pos=0,
+		      size_t n=(size_t)-1);
 
 //! Embed directional and isolation markers
 

@@ -2310,6 +2310,49 @@ static void emit_marker(struct bidi_embed_levelrun *p,
 	}
 }
 
+int unicode_bidi_needs_embed(const char32_t *string,
+			     const unicode_bidi_level_t *levels,
+			     size_t n,
+			     const unicode_bidi_level_t *paragraph_level)
+{
+	char32_t *string_cpy=(char32_t *)malloc(n * sizeof(char32_t));
+	unicode_bidi_level_t *levels_cpy=(unicode_bidi_level_t *)
+		malloc(n * sizeof(unicode_bidi_level_t));
+	size_t nn;
+	int ret;
+
+	if (!string_cpy || !levels_cpy)
+		abort();
+
+	memcpy(string_cpy, string, n * sizeof(char32_t));
+
+	struct unicode_bidi_direction direction=
+		unicode_bidi_calc(string_cpy, n,
+				  levels_cpy, paragraph_level);
+
+	unicode_bidi_reorder(string_cpy, levels_cpy, n, NULL, NULL);
+	nn=unicode_bidi_cleanup(string_cpy, levels_cpy, n, 0,
+				NULL, NULL);
+
+	ret=0;
+	if (n == nn && (paragraph_level == NULL ||
+			direction.direction == *paragraph_level))
+	{
+		unicode_bidi_logical_order(string_cpy, levels_cpy, nn,
+					   direction.direction,
+					   NULL, NULL);
+		if (memcmp(string_cpy, string, n * sizeof(char32_t)) == 0 &&
+		    memcmp(levels_cpy, levels, n * sizeof(unicode_bidi_level_t))
+		    == 0)
+		{
+			ret=1;
+		}
+	}
+	free(string_cpy);
+	free(levels_cpy);
+	return ret;
+}
+
 void unicode_bidi_embed(const char32_t *string,
 			const unicode_bidi_level_t *levels,
 			size_t n,

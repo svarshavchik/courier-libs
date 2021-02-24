@@ -950,6 +950,29 @@ unicode_bidi_direction unicode::bidi_get_direction(const std::u32string &string,
 	return unicode_bidi_get_direction(string.c_str()+starting_pos, n);
 }
 
+bool unicode::bidi_needs_embed(const std::u32string &string,
+			       const std::vector<unicode_bidi_level_t> &levels,
+			       const unicode_bidi_level_t *paragraph_embedding,
+			       size_t starting_pos,
+			       size_t n)
+{
+	if (string.size() != levels.size())
+		return false;
+
+	auto s=levels.size();
+
+	if (starting_pos >= s)
+		return false;
+
+	if (n > s-starting_pos)
+		n=s-starting_pos;
+
+	return unicode_bidi_needs_embed(string.c_str(),
+					n == 0 ? NULL : &levels[starting_pos],
+					n,
+					paragraph_embedding) != 0;
+}
+
 std::u32string unicode::bidi_override(const std::u32string &s,
 				      unicode_bidi_level_t direction,
 				      int cleanup_options)
