@@ -318,6 +318,11 @@ if test "$have_ssl" = "yes"
 then
 	LIBCOURIERTLSOPENSSL=libcouriertlsopenssl.la
 
+	AC_CHECK_LIB(ssl, SSL_CTX_set_alpn_protos, [
+		  AC_DEFINE_UNQUOTED(HAVE_OPENSSL_ALPN, 1,
+					[ Whether OpenSSL supports ALPN ])
+		])
+
 	if test "$KRB5CONFIG" != "krb5-config"
 	then
 		AC_MSG_CHECKING(whether OpenSSL requires Kerberos)
@@ -394,6 +399,11 @@ then
 		gnutlsdep="`$PKGCONFIG --libs gnutls`"
 		AC_DEFINE([HAVE_GNUTLS3], [1], [Use GnuTLS3])
 	fi
+
+	AC_CHECK_LIB(gnutls, gnutls_alpn_set_protocols, [
+		  AC_DEFINE_UNQUOTED(HAVE_GNUTLS_ALPN, 1,
+					[ Whether OpenSSL supports ALPN ])
+		])
 fi
 
 AC_CHECK_SIZEOF(gnutls_transport_ptr_t,0, [

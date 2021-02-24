@@ -161,6 +161,23 @@ static void nonsslerror(struct tls_info *info, const char *pfix)
         (*info->tls_err_msg)(errmsg, info->app_data);
 }
 
+#if HAVE_GNUTLS_ALPN
+
+static void sslerror(ssl_context ctx, int errcode, const char *pfix)
+{
+	char errmsg[512];
+	const char *err;
+
+	strcat(strcpy(errmsg, pfix), ": ");
+
+	err=gnutls_strerror(errcode);
+
+	strncat(errmsg, err, sizeof(errmsg)-1-strlen(errmsg));
+	errmsg[sizeof(errmsg)-1]=0;
+	(*ctx->info_cpy.tls_err_msg)(errmsg, ctx->info_cpy.app_data);
+}
+#endif
+
 static const char *safe_getenv(ssl_context context, const char *n,
 			       const char *def)
 {
@@ -722,6 +739,154 @@ static int verify_client(ssl_handle ssl, int fd)
 	return 0;
 }
 
+#if HAVE_GNUTLS_ALPN
+/*
+** Parse the TLS_ALPN setting, repeatedly invoking a callback with:
+** 1) size of the protocol string
+** 2) the protocol string
+** 3) pass-through parameter.
+*/
+
+static gnutls_alpn_flags_t alpn_parse(const char *alpn,
+				      void (*cb)(unsigned char l,
+						 const char *p,
+						 void *arg),
+				      void *arg)
+{
+	gnutls_alpn_flags_t flags=GNUTLS_ALPN_MANDATORY;
+
+	while (alpn && *alpn)
+	{
+		const char *p;
+		unsigned char l;
+
+		/* Commas and spaces are delimiters here */
+
+		if (*alpn==',' || isspace(*alpn))
+		{
+			++alpn;
+			continue;
+		}
+
+		/* Look for the next comma, spaces, or end of string */
+		p=alpn;
+
+		while (*alpn && *alpn != ',' && !isspace(*alpn))
+			++alpn;
+
+		/*
+		** We now have the character count and the string.
+		** Defend against a bad setting by checking for overflow.
+		*/
+		l=alpn - p;
+
+		if (l != alpn - p)
+			continue;
+
+		if (*p != '@')
+			(*cb)(l, p, arg);
+		else
+		{
+			if (l > 1)
+				switch (p[1]) {
+				case 'o':
+				case 'O':
+					flags &= GNUTLS_ALPN_MANDATORY;
+					break;
+				case 's':
+				case 'S':
+					flags |= GNUTLS_ALPN_SERVER_PRECEDENCE;
+					break;
+				}
+		}
+	}
+
+	return flags;
+}
+
+static void alpn_count(unsigned char l,
+		       const char *p,
+		       void *arg)
+{
+	++*(unsigned *)arg;
+}
+
+static void alpn_save(unsigned char l,
+		      const char *name,
+		      void *arg)
+{
+	gnutls_datum_t **p=(gnutls_datum_t **)arg;
+
+	(*p)->data=(unsigned char *)name;
+	(*p)->size=l;
+	++*p;
+}
+
+static int alpn_set(ssl_context ctx,
+		    gnutls_session_t session)
+{
+	const char *p=safe_getenv(ctx, "TLS_ALPN", "");
+	unsigned n=0;
+	gnutls_datum_t *datums;
+	gnutls_datum_t *datum_ptr;
+	gnutls_alpn_flags_t flags;
+	int ret;
+
+	alpn_parse(p, alpn_count, &n);
+
+	if (n == 0)
+		return GNUTLS_E_SUCCESS;
+
+	if ((datums=(gnutls_datum_t *)malloc(n * sizeof(gnutls_datum_t)))
+	    == NULL)
+	{
+		return GNUTLS_E_SUCCESS;
+	}
+
+	datum_ptr=datums;
+
+	flags=alpn_parse(p, alpn_save, &datum_ptr);
+
+	ret=gnutls_alpn_set_protocols(session, datums, n, flags);
+	free((char *)datums);
+
+	return ret;
+}
+
+#if 0
+static int verify_alpn(ssl_handle ssl)
+{
+	const char *p=safe_getenv(ssl->ctx, "TLS_ALPN", "");
+	unsigned n=0;
+
+	gnutls_datum_t protocol;
+	int rc;
+
+	alpn_parse(p, alpn_count, &n);
+
+	rc=gnutls_alpn_get_selected_protocol(ssl->session, &protocol);
+	if (rc == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+	{
+		fprintf(stderr, "Not negotiated\n");
+
+		return 0;
+	}
+	if (rc != GNUTLS_E_SUCCESS)
+	{
+		fprintf(stderr, "ERROR: %d %s\n",
+			rc, gnutls_strerror(rc));
+		return 0;
+	}
+
+	fprintf(stderr, "Negotiated ");
+	fwrite(protocol.data, protocol.size, 1, stderr);
+	fprintf(stderr, "\n");
+
+	return 0;
+}
+#endif
+#endif
+
 static int dohandshake(ssl_handle ssl, int fd, fd_set *r, fd_set *w)
 {
 	int rc;
@@ -734,10 +899,13 @@ static int dohandshake(ssl_handle ssl, int fd, fd_set *r, fd_set *w)
 	{
 		ssl->info_cpy.connect_interrupted=0;
 
-
 		if (verify_client(ssl, fd))
 			return -1;
 
+#if 0
+		if (verify_alpn(ssl))
+			return -1;
+#endif
 		if (ssl->info_cpy.connect_callback != NULL &&
 		    !(*ssl->info_cpy.connect_callback)(ssl,
 						       ssl->info_cpy.app_data))
@@ -1537,6 +1705,20 @@ RT |
 		return NULL;
 	}
 
+#if HAVE_GNUTLS_ALPN
+	{
+		int result_rc;
+
+		result_rc=alpn_set(ctx, ssl->session);
+
+		if (result_rc != GNUTLS_E_SUCCESS)
+		{
+			sslerror(ctx, result_rc, "gnutls_alpn_set_protocols");
+			tls_free_session(ssl);
+			return (NULL);
+		}
+	}
+#endif
 	if (ssl->dhparams_initialized)
 	{
 		gnutls_certificate_set_dh_params(ssl->xcred, ssl->dhparams);

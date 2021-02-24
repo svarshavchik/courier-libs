@@ -5,7 +5,7 @@
 # Do not alter lines that begin with ##, they are used when upgrading
 # this configuration.
 #
-#  Copyright 2000 - 2019 Double Precision, Inc.  See COPYING for
+#  Copyright 2000 - 2021 Double Precision, Inc.  See COPYING for
 #  distribution information.
 #
 #  This configuration file sets various options for the Courier-IMAP server
@@ -315,6 +315,13 @@ TLS_VERIFYPEER=NONE
 
 TLS_CACHEFILE=@localstatedir@/couriersslpop3cache
 TLS_CACHESIZE=524288
+
+##TLS_ALPN:0
+#
+# Application level protocol negotiation should be enabled by default, and
+# should be commented out only in case of compatibility issues.
+
+TLS_ALPN=imap
 
 ##NAME: MAILDIRPATH:0
 #
