@@ -316,7 +316,7 @@ TLS_VERIFYPEER=NONE
 TLS_CACHEFILE=@localstatedir@/couriersslpop3cache
 TLS_CACHESIZE=524288
 
-##TLS_ALPN:0
+##NAME: TLS_ALPN:0
 #
 # Application level protocol negotiation should be enabled by default, and
 # should be commented out only in case of compatibility issues.
