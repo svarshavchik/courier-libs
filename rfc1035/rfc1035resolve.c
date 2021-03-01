@@ -67,7 +67,7 @@ struct rfc1035_reply
 				free(buffers[--n]);
 			}
 			free(idna_queries);
-			free(buffers[n]);
+			free(buffers);
 			return NULL;
 		}
 
