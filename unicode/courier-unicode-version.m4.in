@@ -24,6 +24,15 @@ fi
 
 p=`echo "00"$p | sed 's/.*(...)$/$[]1/'`
 
+if test "$v$r$p" -lt 2002002
+then
+   r=$[]2
+   p=$[]3
+   if test "$p" = ""
+       then p="0"
+   fi
+fi
+
 AC_TRY_COMPILE([
 #include <courier-unicode.h>
 #ifndef COURIER_UNICODE_VERSION
