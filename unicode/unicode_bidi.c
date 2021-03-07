@@ -2334,7 +2334,7 @@ int unicode_bidi_needs_embed(const char32_t *string,
 	nn=unicode_bidi_cleanup(string_cpy, levels_cpy, n, 0,
 				NULL, NULL);
 
-	ret=0;
+	ret=1;
 	if (n == nn && (paragraph_level == NULL ||
 			direction.direction == *paragraph_level))
 	{
@@ -2345,7 +2345,7 @@ int unicode_bidi_needs_embed(const char32_t *string,
 		    memcmp(levels_cpy, levels, n * sizeof(unicode_bidi_level_t))
 		    == 0)
 		{
-			ret=1;
+			ret=0;
 		}
 	}
 	free(string_cpy);

@@ -606,38 +606,38 @@ void direction_test()
 			U"Hello",
 			UNICODE_BIDI_LR,
 			1,
-			true,
+			false,
 		},
 		{
 			U" ",
 			UNICODE_BIDI_LR,
 			0,
-			true,
+			false,
 		},
 		{
 			U"",
 			UNICODE_BIDI_LR,
 			0,
-			true,
+			false,
 		},
 		{
 			U"שלום",
 			UNICODE_BIDI_RL,
 			1,
-			true,
+			false,
 		},
 		{
 			U"Helloש",
 			UNICODE_BIDI_LR,
 			1,
-			true,
+			false,
 		},
 		{
 			U"Hello" + std::u32string{unicode::literals::LRO}
 			+ U"ש",
 			UNICODE_BIDI_LR,
 			1,
-			false,
+			true,
 		},
 	};
 
@@ -666,6 +666,67 @@ void direction_test()
 	}
 }
 
+void direction_test2()
+{
+	static const struct {
+		std::u32string str;
+		std::vector<unicode_bidi_level_t> directions;
+		unicode_bidi_level_t direction;
+		bool needs_embed;
+	} tests[]={
+		{
+			U"Hello world!",
+			{UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR,
+			 UNICODE_BIDI_LR},
+			UNICODE_BIDI_LR,
+			false,
+		},
+		{
+			U"Hello world!",
+			{UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL,
+			 UNICODE_BIDI_RL},
+			UNICODE_BIDI_LR,
+			true,
+		},
+	};
+
+	for (const auto &t:tests)
+	{
+		if (t.str.size() != t.directions.size())
+		{
+			std::cerr << "direction_test2 bad data\n";
+			exit(1);
+		}
+
+		if (unicode::bidi_needs_embed(t.str, t.directions, &t.direction)
+		    != t.needs_embed)
+		{
+			std::cerr << "direction-test2 failed\n";
+			exit(1);
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	DEBUGDUMP=fopen("/dev/null", "w");
@@ -680,5 +741,6 @@ int main(int argc, char **argv)
 	latin_test();
 	character_test();
 	direction_test();
+	direction_test2();
 	return 0;
 }
