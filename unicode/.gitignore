@@ -6,6 +6,7 @@
 /BidiMirroring.txt
 /BidiTest.txt
 /Categories.txt
+/DerivedNormalizationProps.txt
 /DerivedBidiClass.txt
 /EastAsianWidth.txt
 /GraphemeBreakProperty.txt
@@ -20,7 +21,6 @@
 /emoji-data.txt
 /biditest
 /biditest2
-/canonicalmappings.h
 /config.cache
 /config.guess
 /config.sub
@@ -37,6 +37,7 @@
 /ltmain.sh
 /man
 /missing
+/normalizetest
 /rpm
 /rpm.release
 /scripttest

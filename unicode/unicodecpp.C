@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <new>
 
 extern "C" {
 
@@ -988,4 +989,135 @@ std::u32string unicode::bidi_override(const std::u32string &s,
 	ret.at(0)=direction & 1 ? UNICODE_RLO : UNICODE_LRO;
 
 	return ret;
+}
+
+void unicode::decompose_default_reallocate(std::u32string &s,
+					   const std::vector<std::tuple<size_t,
+					   size_t>> &v)
+{
+	size_t i=0;
+
+	for (auto &t:v)
+		i += std::get<1>(t);
+
+	s.resize(s.size()+i);
+}
+
+namespace {
+
+	struct decompose_info {
+		std::u32string &s;
+		const std::function<void (std::u32string &,
+					  const std::vector<std::tuple<size_t,
+					  size_t>>)> &resizes;
+		std::exception_ptr caught;
+
+		void do_reallocate(struct unicode_decompose_info *info,
+				   const size_t *offsets,
+				   const size_t *sizes,
+				   size_t n)
+		{
+			std::vector<std::tuple<size_t, size_t>> v;
+
+			v.reserve(n);
+
+			for (size_t i=0; i<n; ++i)
+				v.push_back(std::tuple<size_t,
+					    size_t>{offsets[i],
+						    sizes[i]});
+
+			resizes(s, v);
+
+			info->string=&s[0];
+		}
+	};
+};
+
+extern "C" {
+
+	static int decompose_reallocate(struct unicode_decompose_info *info,
+					const size_t *offsets,
+					const size_t *sizes,
+					size_t n)
+	{
+		decompose_info *ptr=
+			reinterpret_cast<decompose_info *>(info->arg);
+
+		try {
+			ptr->do_reallocate(info, offsets, sizes, n);
+		} catch (...) {
+			ptr->caught=std::current_exception();
+			return -1;
+		}
+
+		return 0;
+	}
+}
+
+void unicode::decompose(std::u32string &s,
+			int decompose_flags,
+			const std::function<void (std::u32string &s,
+						  const std::vector<
+						  std::tuple<size_t,
+						  size_t>>)> &resizes)
+{
+	if (s.empty())
+		return;
+
+	decompose_info info={s, resizes};
+
+	unicode_decompose_info uinfo;
+
+	unicode_decompose_info_init(&uinfo, &s[0], s.size(), &info);
+	uinfo.decompose_flags=decompose_flags;
+	uinfo.reallocate=decompose_reallocate;
+	int rc=unicode_decompose(&uinfo);
+	unicode_decompose_info_deinit(&uinfo);
+
+	if (info.caught)
+		std::rethrow_exception(info.caught);
+
+	if (rc)
+		/* unicode_decompose only returns non-0 itself for an enomem */
+		throw std::bad_alloc();
+}
+
+void unicode::compose_default_callback(size_t, size_t, const char32_t *, size_t)
+{
+}
+
+namespace {
+	struct comps_raii {
+		struct unicode_compositions *comps;
+
+		~comps_raii()
+		{
+			unicode_composition_deinit(comps);
+		}
+	};
+};
+
+void unicode::compose(std::u32string &s,
+		      int flags,
+		      const std::function<void (size_t, size_t,
+						const char32_t *, size_t)> &cb)
+{
+	if (s.empty())
+		return;
+
+	comps_raii comps;
+
+	if (unicode_composition_init(&s[0], s.size(), flags, &comps.comps))
+	{
+		comps.comps=nullptr;
+		throw std::bad_alloc(); /* The only reason */
+	}
+
+	for (auto ptr=comps.comps; ptr; ptr=ptr->next)
+	{
+		cb(ptr->index, ptr->n_composed,
+		   ptr->composition, ptr->n_composition);
+	}
+
+	s.resize(unicode_composition_apply(&s[0], s.size(), comps.comps));
 }

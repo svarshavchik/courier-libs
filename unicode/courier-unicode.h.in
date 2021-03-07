@@ -13,6 +13,7 @@
 #include <vector>
 #include <list>
 #include <functional>
+#include <tuple>
 
 extern "C" {
 #endif
@@ -1317,6 +1318,63 @@ extern const char unicode_u_ucs2_native[];
 
 #define unicode_x_smap_modutf8 "x-smap-modutf8"
 
+#define UNICODE_DECOMPOSE_FLAG_QC	1
+#define UNICODE_DECOMPOSE_FLAG_COMPAT	2
+
+struct unicode_decompose_info {
+	char32_t *string;
+	size_t string_size;
+	int decompose_flags;
+
+	int (*reallocate)(struct unicode_decompose_info *info,
+			  const size_t *offsets,
+			  const size_t *sizes,
+			  size_t n);
+
+	void *arg;
+};
+
+extern void unicode_decompose_info_init(struct unicode_decompose_info *,
+					char32_t *string,
+					size_t string_size,
+					void *arg);
+
+extern void unicode_decompose_info_deinit(struct unicode_decompose_info *);
+
+extern int unicode_decompose(struct unicode_decompose_info *);
+
+extern size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *,
+						const size_t *sizes,
+						size_t n);
+
+struct unicode_compositions {
+	struct unicode_compositions *next;
+	size_t index;
+	size_t n_composed;
+	char32_t *composition;
+	size_t n_composition;
+};
+
+#define UNICODE_COMPOSE_FLAG_REMOVEUNUSED 1
+#define UNICODE_COMPOSE_FLAG_ONESHOT 128
+
+int unicode_composition_init(const char32_t *string,
+			     size_t string_size,
+			     int flags,
+			     struct unicode_compositions **ret
+			     );
+
+void unicode_composition_deinit(struct unicode_compositions *);
+
+size_t unicode_composition_apply(char32_t *string,
+				 size_t string_size,
+				 struct unicode_compositions *compositions);
+
+int unicode_compose(char32_t *string,
+		    size_t string_size,
+		    int flags,
+		    size_t *new_size);
+
 #if 0
 {
 #endif
@@ -2389,6 +2447,32 @@ unicode_bidi_direction bidi_get_direction(const std::u32string &string,
 std::u32string bidi_override(const std::u32string &s,
 			     unicode_bidi_level_t direction,
 			     int cleanup_options=0);
+
+constexpr int decompose_flag_qc=UNICODE_DECOMPOSE_FLAG_QC;
+constexpr int decompose_flag_compat=UNICODE_DECOMPOSE_FLAG_COMPAT;
+
+void decompose_default_reallocate(std::u32string &,
+				  const std::vector<std::tuple<size_t, size_t>>
+				  &);
+
+void decompose(std::u32string &,
+	       int flags=0,
+	       const std::function<void (std::u32string &,
+					 const std::vector<std::tuple<size_t,
+					 size_t>>)> &
+	       =decompose_default_reallocate);
+
+constexpr int compose_flag_removeunused=UNICODE_COMPOSE_FLAG_REMOVEUNUSED;
+
+constexpr int compose_flag_oneshot=UNICODE_COMPOSE_FLAG_ONESHOT;
+
+void compose_default_callback(size_t, size_t, const char32_t *, size_t);
+
+void compose(std::u32string &string,
+	     int flags=0,
+	     const std::function<void (size_t, size_t,
+				       const char32_t *, size_t)> &cb=
+	     compose_default_callback);
 
 #if 0
 {

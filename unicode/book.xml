@@ -8,6 +8,7 @@
 <!ENTITY tr24ver "31">
 <!ENTITY tr29ver "37">
 <!ENTITY tr51ver "18">
+
 ]>
 
 <!--
@@ -23,7 +24,7 @@ See COPYING for distribution information.
   <para>
     This library implements several algorithms related to the
     <ulink url="https://www.unicode.org/standard/standard.html">Unicode
-    Standard</ulink>, notably:
+    Standard</ulink> (with both C and C++ bindings), notably:
   </para>
 
   <itemizedlist>
@@ -55,15 +56,8 @@ See COPYING for distribution information.
     </listitem>
     <listitem>
       <para>
-	Several ancillary functions, like looking up
-	the unicode character that corresponds to some HTML 4.0
-	entity (such as <quote>&amp;amp;</quote>, for example), and
-	determining the normal width or a double-width status of a unicode
-	character. Also, an adaptation of the
-	<ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
-	<citerefentry><refentrytitle>iconv</refentrytitle>
-	<manvolnum>3</manvolnum></citerefentry></ulink>
-	API for this unicode library.
+	<link linkend="unicode_canonical">Canonical forms and
+	normalizations</link> of Unicode text.
       </para>
     </listitem>
     <listitem>
@@ -78,11 +72,20 @@ See COPYING for distribution information.
 	property.
       </para>
     </listitem>
+    <listitem>
+      <para>
+	Several ancillary functions, like looking up
+	the unicode character that corresponds to some HTML 4.0
+	entity (such as <quote>&amp;amp;</quote>, for example), and
+	determining the normal width or a double-width status of a unicode
+	character. Also, an adaptation of the
+	<ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
+	<citerefentry><refentrytitle>iconv</refentrytitle>
+	<manvolnum>3</manvolnum></citerefentry></ulink>
+	API for this unicode library.
+      </para>
+    </listitem>
   </itemizedlist>
-
-  <para>
-    This library also implements C++ bindings for these algorithms.
-  </para>
 
   <section id="status">
     <title>Current status</title>
@@ -293,6 +296,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__bidi">
 	      <citerefentry><refentrytitle>unicode::bidi</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode__canonical">
+	      <citerefentry><refentrytitle>unicode::canonical</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__iconvert__convert">
 	      <citerefentry><refentrytitle>unicode::iconvert::convert</refentrytitle>
@@ -1245,8 +1251,16 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
 	<refnamediv>
 	  <refname>unicode_canonical</refname>
+	  <refname>unicode_decompose_info_init</refname>
+	  <refname>unicode_decompose_info_deinit</refname>
+	  <refname>unicode_decompose</refname>
+	  <refname>unicode_decompose_reallocate_size</refname>
+	  <refname>unicode_compose</refname>
+	  <refname>unicode_composition_init</refname>
+	  <refname>unicode_composition_deinit</refname>
+	  <refname>unicode_composition_apply</refname>
 
-	  <refpurpose>unicode canonical character mapping</refpurpose>
+	  <refpurpose>unicode canonical normalization and denormalization</refpurpose>
 	</refnamediv>
 
 	<refsynopsisdiv>
@@ -1256,10 +1270,68 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <funcdef>unicode_canonical_t <function>unicode_canonical</function></funcdef>
               <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_decompose_info_init</function></funcdef>
+	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <paramdef>char32_t *<parameter>string</parameter></paramdef>
+	      <paramdef>size_t *<parameter>string_size</parameter></paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>int <function>unicode_decompose</function></funcdef>
+	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_decompose_info_deinit</function></funcdef>
+	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_decompose_reallocate_size</function></funcdef>
+	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <paramdef>const size_t *<parameter>sizes</parameter></paramdef>
+	      <paramdef>size_t <parameter>n</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>int <function>unicode_compose</function></funcdef>
+	      <paramdef>char32_t *<parameter>string</parameter></paramdef>
+	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
+	      <paramdef>int <parameter>flags</parameter></paramdef>
+	      <paramdef>size_t *<parameter>new_size</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>int <funcname>unicode_composition_init</funcname></funcdef>
+	      <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
+	      <paramdef>int <parameter>flags</parameter></paramdef>
+	      <paramdef>struct unicode_compositions **<parameter>ret</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_composition_deinit</function></funcdef>
+	      <paramdef>struct unicode_compositions *<parameter>ptr</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>size_t <function>unicode_composition_apply</function></funcdef>
+	      <paramdef>char32_t *<parameter>string</parameter></paramdef>
+	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
+	      <paramdef>struct unicode_compositions *<parameter>compositions</parameter></paramdef>
+	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
 	<refsect1 id="unicode_canonical_descr">
 	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These functions compose or decompose a Unicode string into a
+	    canonical or a compatible normalized form.
+	  </para>
 
 	  <para>
 	    <function>unicode_canonical</function>() looks up the
@@ -1304,8 +1376,583 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <para>
 	    A NULL <structfield>canonical_chars</structfield> (with a 0
 	    <structfield>n_canonical_chars</structfield>) indicates
-	    that the character without a canonical or compatibility
+	    that the character has no canonical or compatibility
 	    equivalence.
+	  </para>
+
+	  <para>
+	    <function>unicode_decompose_info_init</function>(),
+	    <function>unicode_decompose</function>()
+	    and <function>unicode_decompose_info_deinit</function>()
+	    implement a complete interface for decomposing a
+	    Unicode string:
+	  </para>
+
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+struct unicode_decompose_info info;
+
+unicode_decompose_info_init(&info, before, (size_t)-1, NULL);
+info.decompose_flags=UNICODE_DECOMPOSE_FLAG_QC;
+unicode_decompose(&info);
+unicode_decompose_info_deinit(&info);]]></programlisting>
+	    </informalexample>
+	  </blockquote>
+
+	  <para>
+	    <function>unicode_decompose_info_init</function>() initializes
+	    a new <structname>unicode_decompose_info</structname> structure,
+	    that gets passed in as its first parameter.
+	    The second parameter is a pointer to a Unicode string,
+	    with the number of characters in the string in the third parameter.
+	    A string size
+	    of <literal>-1</literal> indicates a
+	    <literal>\0</literal>-terminated string and calculates its
+	    <varname>string_size</varname> (which does not include the
+	    trailing <literal>\0</literal>.
+	    The last parameter is a <literal>void *</literal>, an opaque
+	    pointer that gets stored in the
+	    <structname>unicode_decompose_info</structname> object:
+	  </para>
+	  <blockquote>
+	    <informaltable border='0' colsep='0'>
+	      <tgroup cols="3">
+		<colspec colname='c1' />
+		<colspec colname='c2' />
+		<colspec colname='c3' />
+		<colspec colname='c4' />
+		<colspec colname='c5' />
+		<tbody>
+		  <row>
+		    <entry namest='c1' nameend='c5'>struct&nbsp;<structname>unicode_decompose_info</structname>&nbsp;{</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>char32_t</entry>
+		    <entry namest='c3' nameend='c5'>*<varname>string</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>size_t</entry>
+		    <entry namest='c3' nameend='c5'><varname>string_size</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>int</entry>
+		    <entry namest='c3' nameend='c5'><varname>decompose_flags</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>int</entry>
+		    <entry namest='c3' nameend='c5'>(*<varname>reallocate)(</varname></entry>
+		  </row>
+		  <row>
+		    <entry namest='c4'>struct&#160;unicode_decompose_info</entry>
+		    <entry>*<varname>info</varname>,</entry>
+		  </row>
+		  <row>
+		    <entry namest='c4'>const&#160;size_t</entry>
+		    <entry>*<varname>offsets</varname>,</entry>
+		  </row>
+		  <row>
+		    <entry namest='c4'>const&#160;size_t</entry>
+		    <entry>*<varname>sizes</varname>,</entry>
+		  </row>
+		  <row>
+		    <entry namest='c4'>size_t</entry>
+		    <entry><varname>n</varname></entry>
+		  </row>
+		  <row>
+		    <entry namest='c3' align='right'>);</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>void</entry>
+		    <entry namest='c3' nameend='c5'>*<varname>arg</varname>;</entry>
+		    </row>q
+		    <row>
+		      <entry namest='c1' nameend='c5'>};</entry>
+		    </row>
+		</tbody>
+	      </tgroup>
+	    </informaltable>
+	  </blockquote>
+
+	  <para>
+	    <function>unicode_decompose</function>() proceeds and decomposes
+	    the <varname>string</varname> and replacing it with its
+	    decomposed <varname>string</varname> version. Finally
+	    <function>unicode_decompose_info_deinit</function>() releases
+	    all resources and destroys the
+	    <structname>unicode_decompose_info</structname>; it is no longer
+	    valid.
+	  </para>
+
+	  <note>
+	    <para>
+	      At this time
+	      <function>unicode_decompose_info_deinit</function>() does
+	      nothing. All code should explicitly call it in order to
+	      remain forward-compatible (at the source level).
+	    </para>
+	  </note>
+
+	  <para>
+	    <structname>unicode_decompose_info</structname>'s
+	    <varname>string</varname>,
+	    <varname>string_size</varname> and
+	    <varname>arg</varname> are copies of
+	    <function>unicode_decompose_info_init</function>'s parameters;
+	    and it initializes all other fields to their default values.
+	  </para>
+
+	  <para>
+	    The <varname>decompose_flags</varname> bitmask gets initialized to
+	    0, and can be set to:
+	  </para>
+
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>UNICODE_DECOMPOSE_FLAG_QC</literal></term>
+	      <listitem>
+		<para>
+		  Check each character's appropriate
+		  <quote>quick check</quote> property
+		  and skip decomposing Unicode characters that would
+		  get re-composed by
+		  <function>unicode_composition_apply</function>().
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><literal>UNICODE_DECOMPOSE_FLAG_COMPAT</literal></term>
+	      <listitem>
+		<para>
+		  Perform a compatibility decomposition instead of a
+		  canonical decomposition.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+
+	  <para>
+	    <function>unicode_decompose</function>() determines which characters
+	    in the <varname>string</varname> need decomposing and calls
+	    the <varname>reallocate</varname> function zero or more times.
+	    Each call to <varname>reallocate</varname> passes information
+	    about where new characters will get inserted into the
+	    <varname>string</varname>.
+	  </para>
+
+	  <para>
+	    <varname>reallocate</varname> must enlarge the buffer where
+	    <varname>string</varname> points to be big enough to hold the
+	    larger, decomposed string; and update
+	    <varname>string</varname> accordingly.
+	    <varname>reallocate</varname> should not update
+	    <varname>string_size</varname> or make any changes to the existing
+	    <varname>string</varname>, that's
+	    <function>unicode_decompose</function>()'s job
+	    (after <varname>reallocate</varname> returns).
+	  </para>
+
+	  <para>
+	    The <varname>reallocate</varname> callback function receives
+	    the following parameters.
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		A pointer to the
+		<structname>unicode_decompose_info</structname> and, notably,
+		its <varname>arg</varname>.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		A pointer to the array of offset indexes in the
+		<varname>string</varname> where new characters will get
+		inserted in order to hold the decomposed string.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		A pointer to the array that holds the number of characters
+		that get inserted each corresponding offset.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		The size of the two arrays.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  <para>
+	    <varname>reallocate</varname> must update the
+	    <varname>string</varname> if necessary to hold at least
+	    the number of characters that's the sum total of the
+	    initial <varname>string_size</varname> and the sum total of al
+	    <varname>sizes</varname>.
+	  </para>
+
+	  <para>
+	    <function>unicode_decompose_info_init</function>() initializes
+	    the <varname>reallocate</varname> pointer to a default
+	    implementation that uses
+	    <citerefentry>
+	      <refentrytitle>realloc</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry>
+	    and updates <varname>string</varname> with its return value.
+	    The application can use its own
+	    <varname>reallocate</varname> to handle this task on its own,
+	    and use <function>unicode_decompose_reallocate_size</function>
+	    to compute the minimum string size:
+	  </para>
+
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
+                                         const size_t *sizes,
+                                         size_t n)
+{
+    size_t i;
+    size_t new_size=info->string_size;
+
+    for (i=0; i<n; ++i)
+        new_size += sizes[i];
+
+    return new_size;
+}]]>
+	      </programlisting>
+	    </informalexample>
+	  </blockquote>
+
+	  <para>
+	    The <varname>reallocate</varname> returns 0 on success and
+	    a non-0 error code to report a failure; and
+	    <varname>unicode_decompose</varname>() does the same.
+	    A successful decomposition results in
+	    <varname>unicode_decompose</varname>() returning 0 and
+	    <function>unicode_decompose_info_init</function>()'s
+	    <varname>string</varname> pointing to the decomposed string
+	    and <varname>string_size</varname> giving the number of
+	    characters in the decomposed string.
+	  </para>
+
+	  <note>
+	    <para>
+	      <varname>string_size</varname> does not include the trailing
+	      <literal>\0</literal> character.
+	      The input string also has its
+	      <varname>string_size</varname> specified without counting its
+	      <literal>\0</literal> character.
+	      The default implementation of <varname>reallocate</varname>
+	      allocates an extra <classname>char32_t</classname> ands sets it
+	      to a <literal>\0</literal>. Therefore:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  If the Unicode string before decomposition has a trailing
+		  <literal>\0</literal> and no decomposition occurs, and
+		  no calls to <varname>reallocate</varname> takes place:
+		  the <varname>string</varname> in the
+		  <structname>unicode_decompose_info</structname> is unchanged
+		  and it's still
+		  <literal>\0</literal>-terminated.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  The default <varname>reallocate</varname> allocates an
+		  extra <classname>char32_t</classname> ands sets it
+		  to a <literal>\0</literal>; and it takes care of
+		  that for the decomposed string.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  An application that provides its own replacement
+		  <varname>reallocate</varname> is responsible for doing
+		  the same, if it wants the decomposed string to be
+		  <literal>\0</literal> terminated.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+	  </note>
+
+	  <note>
+	    <para>
+	      Multiple calls to the <varname>reallocate</varname> callback
+	      are possible. Each call to <varname>reallocate</varname>
+	      reflect the prior calls' decompositions. Example:
+	      the original string has ten characters and the first call
+	      to <varname>reallocate</varname> had two offsets, at position
+	      3 and 7, with a value of 1 for their both
+	      <varname>sizes</varname>.
+	      This effects transforming an original Unicode string
+	      "AAAAAAAAAA" into
+	      "AAAXAAAAXAAA" (with <quote>A</quote> representing unspecified
+	      characters in the original string, and <quote>X</quote> showing
+	      the two characters added in the first call to
+	      <function>reallocate</function>.
+	    </para>
+
+	    <para>
+	      A second call to <varname>varname</varname> with am offset
+	      at position 8, and a size of 1, results in the updated
+	      string of "AAAXAAAAYXAAA" (with <quote>Y</quote>) marking an
+	      unspecified character inserted by the second call.
+	    </para>
+	  </note>
+
+	  <note>
+	    <para>
+	      Unicode string decomposition involves replacing a given
+	      Unicode character with one or more other characters.
+	      The sizes given to <varname>reallocate</varname> reflect the
+	      net addition to the Unicode string. For example: decomposing
+	      one Unicode character into three decomposed characters results
+	      in a call to <varname>reallocate</varname> reporting an
+	      insert of two more characters.
+	    </para>
+	  </note>
+
+	  <note>
+	    <para>
+	      <varname>offsets</varname> actually report the indices
+	      of each Unicode character that's getting decomposed. A 1:1
+	      decomposition of a Unicode Character gets reported as an
+	      additional <varname>sizes</varname> entry of 0.
+	    </para>
+	  </note>
+
+	  <para>
+	    <function>unicode_compose</function>() performs a canonical
+	    composition of a decomposed string. Its parameters are:
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		A pointer to the decomposed Unicode string.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		The number of characters in the Unicode string.
+		The Unicode string does not need to be
+		<literal>\0</literal>-terminated; if it is this number
+		does not include it.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		A flags bitmask, which can have the following values:
+	      </para>
+
+	      <variablelist>
+		<varlistentry>
+		  <term><literal>UNICODE_COMPOSE_FLAG_REMOVEUNUSED</literal></term>
+		  <listitem>
+		    <para>
+		      Remove all combining marks after doing all canonical
+		      compositions. Normally any unused combining marks
+		      are left in place, in the combined text. This option
+		      removes them.
+		    </para>
+		  </listitem>
+		</varlistentry>
+		<varlistentry>
+		  <term><literal>UNICODE_COMPOSE_FLAG_ONESHOT</literal></term>
+		  <listitem>
+		    <para>
+		      Perform canonical composition once per character, and
+		      do not attempt to combine any resulting combined
+		      characters again.
+		    </para>
+		  </listitem>
+		</varlistentry>
+	      </variablelist>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		A non-<literal>NULL</literal> pointer to a
+		<classname>size_t</classname>.
+	      </para>
+
+	      <para>
+		A successful composition sets this <classname>size_t</classname>
+		to the number of characters in the combined string, and returns
+		0. The combined string gets
+		placed back into the <parameter>string</parameter> parameter,
+		this string gets combined in place and this gives the
+		size of the combined string.
+	      </para>
+
+	      <para>
+		<function>unicode_compose</function>() returns a non-zero
+		value to indicate an error.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+
+	  <para>
+	    <function>unicode_composition_init</function>(),
+	    <function>unicode_composition_apply</function>()
+	    and <function>unicode_composition_deinit</function>()
+	    implement a detailed interface for canonical composition
+	    of a decompose Unicode string:
+	  </para>
+
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+struct unicode_compositions *compositions;
+
+if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
+{
+    size_t new_size=unicode_composition_apply(str, strsize, compositions);
+
+    unicode_composition_deinit(compositions);
+}]]></programlisting>
+	    </informalexample>
+	  </blockquote>
+
+	  <para>
+	    The first two parameters to both
+	    <function>unicode_composition_init</function>()
+	    and
+	    <function>unicode_composition_apply</function>()
+	    are the same:
+	    the Unicode string and the number of characters (not including
+	    any trailing <literal>\0</literal> character) in the Unicode string.
+	  </para>
+
+	  <para>
+	    <function>unicode_composition_init</function>()'s additional
+	    parameters are: any optional flags
+	    (see <function>unicode_compose()</function> for a list of
+	    available flags), and the address of a
+	    <structname>unicode_compositions</structname> pointer.
+	    A non-0 return from
+	    <function>unicode_composition_init</function>() indicates an
+	    error.
+	    <function>unicode_composition_init</function>() indicates success
+	    by returning 0 and initializing a pointer to the head of a linked
+	    list of <structname>unicode_compositions</structname>'s objects
+	    that enumerate the canonical compositions.
+	    <function>unicode_composition_init</function>() does not change
+	    the string; the only thing it does is calculate the
+	    <structname>unicode_compositions</structname> list.
+	  </para>
+
+	  <para>
+	    <function>unicode_composition_apply</function>() applies the
+	    compositions to the <varname>string</varname>, in place, and
+	    returns the new size of the <varname>string</varname>
+	    (also not including the <literal>\0</literal> byte, however it
+	    does append one if the composed string is smaller, so the
+	    composed string is <literal>\0</literal>-terminated if the
+	    decomposed string was).
+	  </para>
+
+	  <para>
+	    It is necessary to call
+	    <function>unicode_composition_deinit</function>() to free all
+	    memory that was allocated for the
+	    <structname>unicode_compositions</structname> list:
+	  </para>
+
+	  <blockquote>
+	    <informaltable border='0' colsep='0'>
+	      <tgroup cols="3">
+		<colspec colname='c1' />
+		<colspec colname='c2' />
+		<colspec colname='c3' />
+		<tbody>
+		  <row>
+		    <entry namest='c1' nameend='c3'>struct&nbsp;<structname>unicode_compositions</structname> {</entry>
+		  </row>
+
+		  <row>
+		    <entry namest='c2'>struct unicode_compositions</entry>
+		    <entry>*<varname>next</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>size_t</entry>
+		    <entry><varname>index</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>size_t</entry>
+		    <entry><varname>n_composed</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>char32_t</entry>
+		    <entry>*<varname>composition</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>size_t</entry>
+		    <entry><varname>n_composition</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c1' nameend='c3'>};</entry>
+		  </row>
+		</tbody>
+	      </tgroup>
+	    </informaltable>
+	  </blockquote>
+
+	  <para>
+	    <varname>index</varname> gives the character index in the
+	    <varname>string</varname> where each composition occurs.
+	    <varname>n_composed</varname> gives the number of characters
+	    in the original string that get composed.
+	    The composed characters are the
+	    <varname>composition</varname>;
+	    and <varname>n_composition</varname> gives the
+	    number of composed characters
+	  </para>
+
+	  <para>
+	    Effectively: at the <varname>index</varname> position in the
+	    original string, #<varname>n_composed</varname> characters get
+	    removed and there are #<varname>n_composition</varname>
+	    characters that replace them (always <varname>n_composed</varname>
+	    or less).
+	  </para>
+
+	  <note>
+	    <para>
+	      The <literal>UNICODE_COMPOSE_FLAG_REMOVEUNUSED</literal> flag
+	      has the effect of including
+	      the combining marks that did not get combined
+	      in the <varname>n_composed</varname> count. It's possible that,
+	      in this case, <varname>n_composition</varname> is 0.
+	      This indicates complete removal of the combining marks, without
+	      anything getting combined in their place.
+	    </para>
+	  </note>
+
+	  <para>
+	    <function>unicode_composition_init</function>()
+	    sets the <structname>unicode_compositions</structname> pointer
+	    to <literal>NULL</literal> when the decomposed string has
+	    nothing to combine.
+	    This <literal>NULL</literal> pointer gets interpreted accordingly
+	    when it gets passed to
+	    <function>unicode_composition_apply</function>() and
+	    <function>unicode_composition_deinit</function>(): nothing
+	    happens (and <function>unicode_composition_apply</function>()
+	    simply returns the size of the unchanged <varname>string</varname>.
 	  </para>
 	</refsect1>
 	<refsect1 id="unicode_canonical_seealso">
@@ -1315,8 +1962,12 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
-		<manvolnum>7</manvolnum></citerefentry></link>.
-	    </para>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+		<link linkend="unicode__canonical">
+		  <citerefentry>
+		  <refentrytitle>unicode::canonical</refentrytitle>
+		  <manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
 	</refsect1>
       </refentry>
 
@@ -3385,7 +4036,120 @@ std::u32string foo(std::u32string bar)
         </refsect1>
       </refentry>
 
+      <refentry id="unicode__canonical">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
+	<refmeta>
+	  <refentrytitle>unicode::canonical</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::canonical</refname>
+	  <refname>unicode::decompose</refname>
+	  <refname>unicode::decompose_default_reallocate</refname>
+	  <refname>unicode::compose</refname>
+	  <refname>unicode::compose_default_callback</refname>
+
+	  <refpurpose>unicode canonical normalization and denormalization</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;
+
+constexpr int decompose_flag_qc=UNICODE_DECOMPOSE_FLAG_QC;
+constexpr int decompose_flag_compat=UNICODE_DECOMPOSE_FLAG_COMPAT;
+
+constexpr int compose_flag_removeunused=UNICODE_COMPOSE_FLAG_REMOVEUNUSED;
+constexpr int compose_flag_oneshot=UNICODE_COMPOSE_FLAG_ONESHOT;</funcsynopsisinfo>
+
+	    <funcprototype>
+	      <funcdef>void <funcname>decompose_default_reallocate</funcname></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::vector&lt;std::tuple&lt;size_t, size_t&gt;&gt; &amp;<parameter>list</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <funcname>decompose</funcname></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>int <parameter>flags</parameter>=0</paramdef>
+	      <paramdef>const std::function&lt;void (std::u32string &amp;, const std::vector&lt;std::tuple&lt;size_t, size_t&gt;&gt;)&gt; &amp;<parameter>reallocate</parameter>=decompose_default_reallocate</paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <funcname>compose_default_callback</funcname></funcdef>
+	      <paramdef>size_t <parameter>index</parameter></paramdef>
+	      <paramdef>size_t <parameter>n_composed</parameter></paramdef>
+	      <paramdef>const char32_t *<parameter>compositions</parameter></paramdef>
+	      <paramdef>size_t <parameter>n_compositions</parameter></paramdef>
+
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <funcname>compose</funcname></funcdef>
+	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>int <parameter>flags</parameter>=0</paramdef>
+	      <paramdef>const std::function&lt;void (size_t, size_t, const char32_t *, size_t)&gt; &amp;<parameter>cb</parameter>=compose_default_reallocate</paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1 id="unicode_cpp_canonical_descr">
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These functions implement the C++ interface for the
+	    <ulink url="https://www.unicode.org/reports/tr15/tr15-&tr15ver;.html">Unicode Canonical Decomposition and Composition</ulink>,
+	    See the description of the underlying
+	    <link linkend="unicode_canonical">
+	      <citerefentry><refentrytitle>unicode_canonical</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link> C library
+	      API for more information. C++ specific notes:
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The C++ decomposition <parameter>reallocate</parameter> callback
+		receives a single vector of <replaceable>offset</replaceable>
+		and
+		<replaceable>size</replaceable> tuple instead of two separate
+		arrays or vectors; with the C++ version of the default
+		<varname>reallocate</varname> callback receiving the same
+		parameter.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		<function>unicode::compose</function>() invokes the callback
+		function once for each composition point in the underlying
+		<structname>unicode_compositions</structname> linked list.
+		The callback directly receives the
+		<varname>index</varname>,
+		<varname>n_composed</varname>,
+		<varname>composition</varname> and
+		<varname>n_composition</varname> values as
+		discrete parameters.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</refsect1>
+	<refsect1 id="unicode_cpp_canonical_seealso">
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_canonical">
+	      <citerefentry>
+		<refentrytitle>unicode_canonical</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
       <refentry id="unicode__iconvert__convert">
 	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 

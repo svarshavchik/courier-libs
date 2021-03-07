@@ -1,5 +1,5 @@
 #
-# Copyright 2000-2017 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2021 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
@@ -11,17 +11,17 @@ noinst_SCRIPTS=update.sh		\
 	mkbidi.pl			\
 	mkbidiclass.pl			\
 	mkbidiclassnames.pl		\
-	mkcanonical.pl			\
 	mkeastasianwidth.pl		\
 	mkemojidata.pl			\
 	mkgraphemebreak.pl		\
 	mkhtmlent.pl			\
 	mklinebreak.pl			\
+	mknormalization.pl		\
 	mkultcase.pl			\
 	mkwordbreak.pl
 
 noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
-	enttest scripttest biditest biditest2
+	enttest scripttest biditest biditest2 normalizetest
 
 aclocaldir=$(datadir)/aclocal
 aclocal_DATA=m4/courier-unicode.m4 courier-unicode-version.m4
@@ -38,6 +38,7 @@ update-www:
 	@$(MAKE) update-www-categories
 	@$(MAKE) update-www-bidi
 	@$(MAKE) update-www-unicode-copyright
+	@$(MAKE) update-www-composition
 
 update-www-unicode-copyright:
 	links -dump https://www.unicode.org/license.html >UNICODE-LICENSE.txt.tmp
@@ -82,6 +83,9 @@ update-www-bidi:
 	@SHELL@ $(srcdir)/update.sh BidiTest.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiTest.txt
 	@SHELL@ $(srcdir)/update.sh BidiCharacterTest.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiCharacterTest.txt
 
+update-www-composition:
+	@SHELL@ $(srcdir)/update.sh DerivedNormalizationProps.txt https://www.unicode.org/Public/UCD/latest/ucd/DerivedNormalizationProps.txt
+
 lib_LTLIBRARIES=libcourier-unicode.la
 include_HEADERS=courier-unicode.h \
 	courier-unicode-categories-tab.h \
@@ -100,6 +104,11 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]bidi_needs_embed.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_override.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_reorder.3 \
+        $(srcdir)/man/unicode[\:][\:]canonical.3 \
+        $(srcdir)/man/unicode[\:][\:]compose.3 \
+        $(srcdir)/man/unicode[\:][\:]compose_default_callback.3 \
+        $(srcdir)/man/unicode[\:][\:]decompose.3 \
+        $(srcdir)/man/unicode[\:][\:]decompose_default_reallocate.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 \
@@ -135,6 +144,10 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_type.3 \
         $(srcdir)/man/unicode_canonical.3 \
         $(srcdir)/man/unicode_category_lookup.3 \
+        $(srcdir)/man/unicode_compose.3 \
+        $(srcdir)/man/unicode_composition_apply.3 \
+        $(srcdir)/man/unicode_composition_deinit.3 \
+        $(srcdir)/man/unicode_composition_init.3 \
         $(srcdir)/man/unicode_convert.3 \
         $(srcdir)/man/unicode_convert_deinit.3 \
         $(srcdir)/man/unicode_convert_fromu_init.3 \
@@ -150,6 +163,10 @@ man_MANS= \
         $(srcdir)/man/unicode_convert_tou_tobuf.3 \
         $(srcdir)/man/unicode_convert_toutf8.3 \
         $(srcdir)/man/unicode_convert_uc.3 \
+        $(srcdir)/man/unicode_decompose.3 \
+        $(srcdir)/man/unicode_decompose_info_deinit.3 \
+        $(srcdir)/man/unicode_decompose_info_init.3 \
+        $(srcdir)/man/unicode_decompose_reallocate_size.3 \
         $(srcdir)/man/unicode_default_chset.3 \
         $(srcdir)/man/unicode_emoji.3 \
         $(srcdir)/man/unicode_emoji_component.3 \
@@ -211,7 +228,8 @@ libcourier_unicode_la_SOURCES=\
 			unicode_graphemebreak.c graphemebreaktab.h \
 			unicode_linebreak.c linebreaktab.h \
 			unicode_htmlent.c unicode_htmlent.h \
-			unicode_canonical.c canonicalmappings.h \
+			unicode_normalization.c \
+			normalization.h normalization_defs.h \
 			linebreaktab_internal.h \
 			unicode_wordbreak.c wordbreaktab.h scriptstab.h \
 			unicode_emoji.c emojitab.h \
@@ -239,12 +257,12 @@ BUILT_SOURCES=unicode_ultcasetab.c \
 	bidi_class.h \
 	bidi_classnames.h \
 	bidi_mirroring.h \
-	canonicalmappings.h \
 	categoriestab.h \
 	eastasianwidth.h \
 	emojitab.h \
 	graphemebreaktab.h \
 	linebreaktab.h \
+	normalization.h \
 	scriptstab.h \
 	unicode_htmlent.h \
 	wordbreaktab.h
@@ -303,9 +321,10 @@ bidi_classnames.h: unicode_bidi.c mkbidiclassnames.pl
 	@PERL@ $(srcdir)/mkbidiclassnames.pl <$(srcdir)/courier-unicode.h.in >bidi_classnames.h.tmp
 	mv bidi_classnames.h.tmp bidi_classnames.h
 
-canonicalmappings.h: UnicodeData.txt mkcanonical.pl
-	@PERL@ -I$(srcdir) $(srcdir)/mkcanonical.pl >canonicalmappings.h.tmp
-	mv canonicalmappings.h.tmp canonicalmappings.h
+normalization.h: DerivedNormalizationProps.txt UnicodeData.txt \
+			mknormalization.pl mkcommon.pm
+	@PERL@ -I$(srcdir) $(srcdir)/mknormalization.pl >normalization.h.tmp
+	mv normalization.h.tmp normalization.h
 endif
 
 unicodetest_SOURCES=unicodetest.c
@@ -347,6 +366,11 @@ biditest2_SOURCES=biditest2.C
 biditest2_DEPENDENCIES=libcourier-unicode.la
 biditest2_LDADD=libcourier-unicode.la
 biditest2_LDFLAGS=-static
+
+normalizetest_SOURCES=normalizetest.C
+normalizetest_DEPENDENCIES=libcourier-unicode.la
+normalizetest_LDADD=libcourier-unicode.la
+normalizetest_LDFLAGS=-static
 
 check-am: unicodetest
 	./unicodetest
@@ -418,6 +442,7 @@ check-am: unicodetest
 	test "`./biditest 8262`" = "8261 8261 c"
 	set -vx; test -f ./BidiTest.txt || exit 0; ./biditest
 	set -vx; test -f ./BidiCharacterTest.txt || exit 0; ./biditest2
+	./normalizetest
 
 if HAVE_DOCS
 

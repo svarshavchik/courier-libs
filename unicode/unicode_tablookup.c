@@ -54,7 +54,9 @@ uint8_t unicode_tab_lookup(char32_t ch,
 			{
 				if (chmodcl <= p[n][1])
 				{
-					uclass=unicode_classtab[start_pos+n];
+					uclass=unicode_classtab ?
+						unicode_classtab[start_pos+n]
+						: 1;
 					break;
 				}
 				b=n+1;
@@ -115,7 +117,9 @@ uint32_t unicode_tab32_lookup(char32_t ch,
 			{
 				if (chmodcl <= p[n][1])
 				{
-					uclass=unicode_classtab[start_pos+n];
+					uclass=unicode_classtab ?
+						unicode_classtab[start_pos+n]
+						: 1;
 					break;
 				}
 				b=n+1;

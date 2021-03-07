@@ -82,6 +82,7 @@ sub new {
     $self->{'last_l'}=0;
 
     $self->{"classtype"} //= "uint8_t";
+    $self->{"prefix"} //= "unicode";
 
     return $self;
 }
@@ -148,7 +149,7 @@ sub range {
 
     my $f=shift;
     my $l=shift;
-    my $t=shift;
+    my $t=shift // 'NONE';
 
     if ($this->{'last_l'} + 1 == $f && $this->{'last'} eq $t)
     {
@@ -168,7 +169,9 @@ sub output {
 
     $this->_doemit();  # Emit last linebreaking unicode char range class
 
-    print "static const uint8_t unicode_rangetab[][2]={\n";
+    my $prefix = $this->{"prefix"};
+
+    print "static const uint8_t ${prefix}_rangetab[][2]={\n";
 
     my $comma="\t";
 
@@ -183,16 +186,20 @@ sub output {
 
     print "};\n\n";
 
-    print "static const " . $this->{classtype} . " unicode_classtab[]={\n";
-
-    $comma="\t";
-    foreach ( @{$this->{'char_class'}} )
+    unless ($this->{noclass})
     {
-	print "${comma}$_";
-	$comma=",\n\t";
-    }
+	print "static const " . $this->{classtype}
+	. " ${prefix}_classtab[]={\n";
 
-    print "};\n\n";
+	$comma="\t";
+	foreach ( @{$this->{'char_class'}} )
+	{
+	    print "${comma}$_";
+	    $comma=",\n\t";
+	}
+
+	print "};\n\n";
+    }
 
     my $prev_block=-1;
 
@@ -211,7 +218,7 @@ sub output {
 	}
     }
 
-    print "static const size_t unicode_starting_indextab[]={\n";
+    print "static const size_t ${prefix}_starting_indextab[]={\n";
 
     $comma="\t";
 
@@ -221,7 +228,7 @@ sub output {
 	$comma=",\n\t";
     }
 
-    print "\n};\n\nstatic const char32_t unicode_starting_pagetab[]={\n";
+    print "\n};\n\nstatic const char32_t ${prefix}_starting_pagetab[]={\n";
 
     $comma="\t";
 
