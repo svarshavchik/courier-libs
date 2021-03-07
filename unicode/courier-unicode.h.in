@@ -114,16 +114,20 @@ extern size_t unicode_wcwidth_str(const char32_t *c);
 /* Internal unicode table lookup functions */
 
 extern uint8_t unicode_tab_lookup(char32_t ch,
-				  const size_t *unicode_indextab,
-				  size_t unicode_indextab_sizeof,
+				  const size_t *unicode_starting_indextab,
+				  const char32_t *unicode_starting_pagetab,
+				  size_t unicode_tab_sizeof,
 				  const uint8_t (*unicode_rangetab)[2],
+				  size_t unicode_rangetab_sizeof,
 				  const uint8_t *unicode_classtab,
 				  uint8_t uclass);
 
 extern uint32_t unicode_tab32_lookup(char32_t ch,
-				     const size_t *unicode_indextab,
-				     size_t unicode_indextab_sizeof,
+				     const size_t *unicode_starting_indextab,
+				     const char32_t *unicode_starting_pagetab,
+				     size_t unicode_tab_sizeof,
 				     const uint8_t (*unicode_rangetab)[2],
+				     size_t unicode_rangetab_sizeof,
 				     const uint32_t *unicode_classtab,
 				     uint32_t uclass);
 

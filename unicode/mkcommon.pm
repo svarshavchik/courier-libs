@@ -8,6 +8,38 @@ require Exporter;
 
 our @ISA = qw(Exporter);
 
+# Common code used to create Unicode lookup tables.
+#
+# Generates C code that declares a bunch of arrays.
+#
+# The 'rangetab' array's structure is [firstchar, lastchar], and the
+# 'classtab' array has the same size containing "class", giving the
+# associated "value" for unicode character range firstchar-lastchar.
+#
+# The ranges are sorted in numerical order, but rangetab stores the least
+# singificant byte of the 32-bit Unicode character (firstchar and lastchar).
+# The leading bytes of both firstchar and lastchar are the same.
+#
+# In this manner, the Unicode data gets divided into 256 character blocks.
+#
+# The "starting_indextab" array enumerates which 256 character blocks have
+# any data in the "rangetab" array. 256 characters that don't wind up
+# with any data get skipped entirely.
+#
+# The "starting_pagetab" array is the starting index in the "rangetab"
+# array for the corresponding 256 character block. "starting_indextab" and
+# "starting_pagetab" arrays have the same size.
+#
+# "starting_indextab" is sorted, a binary search finds the start of the
+# 256 character block containing the character, via "starting_pagetab".
+#
+# The end of the 256 character block in "rangetab" is given by the
+# starting index of the next 256 character block, or the end of the "rangetab"
+# array.
+#
+# A binary search is done to locate the range containing the given character,
+# and the associated value from "classtab" gets returned.
+
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
@@ -136,8 +168,6 @@ sub output {
 
     $this->_doemit();  # Emit last linebreaking unicode char range class
 
-    $this->_doemit_endblock(); # End of the most recent $BLOCK_SIZE char range class
-
     print "static const uint8_t unicode_rangetab[][2]={\n";
 
     my $comma="\t";
@@ -164,32 +194,46 @@ sub output {
 
     print "};\n\n";
 
-    print "static const size_t unicode_indextab[]={\n";
-
-    $comma="\t";
-
     my $prev_block=-1;
-    foreach (@{$this->{'char_start'}})
+
+    my @starting_indextab;
+    my @starting_pagetab;
+
+    foreach my $sp (@{$this->{'char_start'}})
     {
-	my $sp=$_;
-	my $cnt=1;
+	my $block=int($this->{'char_array'}->[$sp]->[0] / $BLOCK_SIZE);
 
-	if ($sp <= $#{$this->{'char_array'}})
+	if ($block != $prev_block)
 	{
-	    my $block=int($this->{'char_array'}->[$sp]->[0] / $BLOCK_SIZE);
-
-	    $cnt = $block - $prev_block;
+	    push @starting_indextab, $block;
+	    push @starting_pagetab, $sp;
 	    $prev_block=$block;
-	}
-
-	foreach (1..$cnt)
-	{
-	    print "$comma$sp";
-	    $comma=",\n\t";
 	}
     }
 
-    print "};\n\n";
+    print "static const size_t unicode_starting_indextab[]={\n";
+
+    $comma="\t";
+
+    foreach (@starting_indextab)
+    {
+	print "$comma$_";
+	$comma=",\n\t";
+    }
+
+    print "\n};\n\nstatic const char32_t unicode_starting_pagetab[]={\n";
+
+    $comma="\t";
+
+    foreach (@starting_pagetab)
+    {
+	my $sp=$_;
+
+	print "$comma$sp";
+	$comma=",\n\t";
+    }
+
+    print "\n};\n\n";
 }
 
 1;

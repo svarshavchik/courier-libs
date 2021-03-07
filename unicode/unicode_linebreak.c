@@ -135,10 +135,13 @@ int unicode_lb_next_cnt(unicode_lb_info_t i,
 int unicode_lb_lookup(char32_t ch)
 {
 	return unicode_tab_lookup(ch,
-				  unicode_indextab,
-				  sizeof(unicode_indextab)
-				  / sizeof(unicode_indextab[0]),
+				  unicode_starting_indextab,
+				  unicode_starting_pagetab,
+				  sizeof(unicode_starting_indextab)/
+				  sizeof(unicode_starting_indextab[0]),
 				  unicode_rangetab,
+				  sizeof(unicode_rangetab)/
+				  sizeof(unicode_rangetab[0]),
 				  unicode_classtab,
 				  UNICODE_LB_AL /* XX, LB1 */);
 }

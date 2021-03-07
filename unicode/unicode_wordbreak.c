@@ -134,11 +134,15 @@ int unicode_wb_next(unicode_wb_info_t i, char32_t ch)
 	wb_info_t info;
 
 	info.ch=ch;
+
 	info.cl=unicode_tab_lookup(ch,
-				   unicode_indextab,
-				   sizeof(unicode_indextab)
-				   / sizeof(unicode_indextab[0]),
+				   unicode_starting_indextab,
+				   unicode_starting_pagetab,
+				   sizeof(unicode_starting_indextab)/
+				   sizeof(unicode_starting_indextab[0]),
 				   unicode_rangetab,
+				   sizeof(unicode_rangetab)/
+				   sizeof(unicode_rangetab[0]),
 				   unicode_classtab,
 				   UNICODE_WB_OTHER);
 

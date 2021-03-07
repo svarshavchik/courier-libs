@@ -68,11 +68,16 @@ int unicode_grapheme_break(char32_t a, char32_t b)
 int unicode_grapheme_break_next(unicode_grapheme_break_info_t t, char32_t b)
 {
 	uint8_t ac=t->prev_class;
-	uint8_t bc=unicode_tab_lookup(b, unicode_indextab,
-			 sizeof(unicode_indextab)/sizeof(unicode_indextab[0]),
-			 unicode_rangetab,
-			 unicode_classtab,
-			 UNICODE_GRAPHEMEBREAK_ANY);
+	uint8_t bc=unicode_tab_lookup(b,
+				      unicode_starting_indextab,
+				      unicode_starting_pagetab,
+				      sizeof(unicode_starting_indextab)/
+				      sizeof(unicode_starting_indextab[0]),
+				      unicode_rangetab,
+				      sizeof(unicode_rangetab)/
+				      sizeof(unicode_rangetab[0]),
+				      unicode_classtab,
+				      UNICODE_GRAPHEMEBREAK_ANY);
 
 	if (ac != bc)
 		t->prev_count=0;

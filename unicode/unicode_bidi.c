@@ -710,10 +710,13 @@ enum_bidi_type_t unicode_bidi_type(char32_t c)
 {
 	return (enum_bidi_type_t)
 		unicode_tab_lookup(c,
-				   unicode_indextab,
-				   sizeof(unicode_indextab)
-				   /sizeof(unicode_indextab[0]),
+				   unicode_starting_indextab,
+				   unicode_starting_pagetab,
+				   sizeof(unicode_starting_indextab)/
+				   sizeof(unicode_starting_indextab[0]),
 				   unicode_rangetab,
+				   sizeof(unicode_rangetab)/
+				   sizeof(unicode_rangetab[0]),
 				   unicode_classtab,
 				   UNICODE_BIDI_TYPE_L);
 }
