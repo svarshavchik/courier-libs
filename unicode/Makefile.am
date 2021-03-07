@@ -115,6 +115,7 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]ucs_2.3 \
         $(srcdir)/man/unicode[\:][\:]ucs_4.3 \
         $(srcdir)/man/unicode[\:][\:]utf_8.3 \
+        $(srcdir)/man/unicode[\:][\:]wordbreak.3 \
         $(srcdir)/man/unicode[\:][\:]wordbreak_callback_base.3 \
         $(srcdir)/man/unicode_bidi.3 \
         $(srcdir)/man/unicode_bidi_bracket_type.3 \
@@ -195,7 +196,8 @@ man_MANS= \
         $(srcdir)/man/unicode_wb_next_cnt.3 \
         $(srcdir)/man/unicode_wbscan_end.3 \
         $(srcdir)/man/unicode_wbscan_init.3 \
-        $(srcdir)/man/unicode_wbscan_next.3
+        $(srcdir)/man/unicode_wbscan_next.3 \
+        $(srcdir)/man/unicode_word_break.3
 
 libcourier_unicode_la_SOURCES=\
 			courier-unicode-categories-tab.h \

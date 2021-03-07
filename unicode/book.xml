@@ -12,7 +12,7 @@
 
 <!--
 
-Copyright 2014-2020 Double Precision, Inc.
+Copyright 2014-2021 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -2656,6 +2656,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode_wbscan_init</refname>
 	  <refname>unicode_wbscan_next</refname>
 	  <refname>unicode_wbscan_end</refname>
+	  <refname>unicode_word_break</refname>
 
 	  <refpurpose>calculate word breaks</refpurpose>
 	</refnamediv>
@@ -4121,7 +4122,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	<refnamediv>
 	  <refname>unicode::wordbreak_callback_base</refname>
-	  <refname>unicode::wordbreak_callback_base</refname>
+	  <refname>unicode::wordbreak</refname>
 	  <refpurpose>unicode word-breaking rules</refpurpose>
 	</refnamediv>
 
