@@ -727,6 +727,102 @@ void direction_test2()
 	}
 }
 
+void composition_test()
+{
+	static const struct {
+		std::u32string str;
+		std::vector<unicode_bidi_level_t> levels;
+		std::vector<std::tuple<unicode_bidi_level_t,
+				       size_t, size_t, size_t,
+				       size_t>> results;
+	} tests[] = {
+		// Test 1
+		{
+			U"a\u0303\u0303b\u0303\u0303c",
+			{0, 0, 0, 0, 0, 0, 0},
+			{
+				{0, 0, 7, 1, 2},
+				{0, 0, 7, 4, 2},
+			}
+		},
+		// Test 2
+		{
+			U"\u0303ab\u0303",
+			{0, 0, 0, 0},
+			{
+				{0, 0, 4, 0, 1},
+				{0, 0, 4, 3, 1},
+			}
+		},
+		// Test 3
+		{
+			U"a\u0303\u0303b",
+			{0, 0, 1, 1},
+			{
+				{0, 0, 2, 1, 1},
+				{1, 2, 2, 2, 1},
+			}
+		},
+		// Test 4
+		{
+			U"\u0303a\u0303a",
+			{0, 0, 0, 0},
+			{
+				{0, 0, 4, 0, 1},
+				{0, 0, 4, 2, 1},
+			}
+		},
+	};
+
+	int testnum=0;
+
+	for (const auto &t:tests)
+	{
+		++testnum;
+
+		std::vector<std::tuple<unicode_bidi_level_t,
+				       size_t, size_t, size_t, size_t>> actual;
+
+		auto copy=t.str;
+
+		unicode::bidi_combinings(copy, t.levels,
+					 [&]
+					 (unicode_bidi_level_t level,
+					  size_t level_start,
+					  size_t n_chars,
+					  size_t comb_start,
+					  size_t n_comb_chars)
+					 {
+						 actual.emplace_back
+							 (level,
+							  level_start,
+							  n_chars,
+							  comb_start,
+							  n_comb_chars);
+
+						 auto b=copy.begin()+comb_start;
+						 auto e=b+n_comb_chars;
+
+						 if (comb_start + n_comb_chars
+						     < level_start + n_chars)
+							 ++e;
+
+						 while (b < e)
+						 {
+							 --e;
+							 std::swap(*b, *e);
+							 ++b;
+						 }
+					 });
+
+		if (actual != t.results)
+		{
+			std::cerr << "composition test " << testnum
+				  << " failed\n";
+			exit(1);
+		}
+	}
+}
 int main(int argc, char **argv)
 {
 	DEBUGDUMP=fopen("/dev/null", "w");
@@ -736,6 +832,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	exception_test();
+	composition_test();
 	partial_reorder_cleanup();
 	null_character_test();
 	latin_test();

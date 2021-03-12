@@ -2818,3 +2818,75 @@ struct unicode_bidi_direction unicode_bidi_get_direction(const char32_t *str,
 		(0, n,
 		 get_enum_bidi_type_for_embedding_paragraph_level, &info);
 }
+
+void unicode_bidi_combinings(const char32_t *str,
+			     const unicode_bidi_level_t *levels,
+			     size_t n,
+			     void (*combinings)(unicode_bidi_level_t level,
+						size_t level_start,
+						size_t n_chars,
+						size_t comb_start,
+						size_t n_comb_chars,
+						void *arg),
+			       void *arg)
+{
+	size_t level_start=0;
+
+	while (level_start < n)
+	{
+		size_t level_end;
+		size_t comb_start;
+		size_t comb_end;
+
+		// Find the end of this level
+
+		for (level_end=level_start; ++level_end<n; )
+		{
+			if (levels && (levels[level_end] !=
+				       levels[level_start]))
+				break;
+		}
+
+		// Now sweep from level_start to level_end.
+
+		for (comb_start=level_start; comb_start < level_end; )
+		{
+			// Search for a non-0 ccc
+
+			if (unicode_ccc(str[comb_start]) == 0)
+			{
+				++comb_start;
+				continue;
+			}
+
+			// Now, search for the next ccc of 0, stopping at
+			// level_end
+
+			for (comb_end=comb_start; ++comb_end < level_end; )
+			{
+				if (unicode_ccc(str[comb_end]) == 0)
+					break;
+			}
+
+			// Report this
+			(*combinings)((levels ? levels[level_start]
+					 : 0), level_start,
+				      level_end-level_start,
+				      comb_start,
+				      comb_end-comb_start, arg);
+
+			// If we're here before the level_end we must
+			// have reached the next starter. So, on the next
+			// iteration we want to start with the following
+			// character. So, if the callback reversed the
+			// combinings and the following starter the
+			// next character will now be a composition, so
+			// we can skip it.
+
+			if (comb_end < level_end)
+				++comb_end;
+			comb_start=comb_end;
+		}
+		level_start=level_end;
+	}
+}

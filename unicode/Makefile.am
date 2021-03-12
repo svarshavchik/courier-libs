@@ -97,6 +97,7 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]bidi_calc.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_calc_types.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_cleanup.3 \
+        $(srcdir)/man/unicode[\:][\:]bidi_combinings.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_embed.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_embed_paragraph_level.3 \
         $(srcdir)/man/unicode[\:][\:]bidi_get_direction.3 \
@@ -133,6 +134,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_calc_types.3 \
         $(srcdir)/man/unicode_bidi_cleaned_size.3 \
         $(srcdir)/man/unicode_bidi_cleanup.3 \
+        $(srcdir)/man/unicode_bidi_combinings.3 \
         $(srcdir)/man/unicode_bidi_direction.3 \
         $(srcdir)/man/unicode_bidi_embed.3 \
         $(srcdir)/man/unicode_bidi_embed_paragraph_level.3 \
@@ -144,6 +146,7 @@ man_MANS= \
         $(srcdir)/man/unicode_bidi_type.3 \
         $(srcdir)/man/unicode_canonical.3 \
         $(srcdir)/man/unicode_category_lookup.3 \
+        $(srcdir)/man/unicode_ccc.3 \
         $(srcdir)/man/unicode_compose.3 \
         $(srcdir)/man/unicode_composition_apply.3 \
         $(srcdir)/man/unicode_composition_deinit.3 \
@@ -164,9 +167,9 @@ man_MANS= \
         $(srcdir)/man/unicode_convert_toutf8.3 \
         $(srcdir)/man/unicode_convert_uc.3 \
         $(srcdir)/man/unicode_decompose.3 \
-        $(srcdir)/man/unicode_decompose_info_deinit.3 \
-        $(srcdir)/man/unicode_decompose_info_init.3 \
         $(srcdir)/man/unicode_decompose_reallocate_size.3 \
+        $(srcdir)/man/unicode_decomposition_deinit.3 \
+        $(srcdir)/man/unicode_decomposition_init.3 \
         $(srcdir)/man/unicode_default_chset.3 \
         $(srcdir)/man/unicode_emoji.3 \
         $(srcdir)/man/unicode_emoji_component.3 \

@@ -742,6 +742,18 @@ extern char32_t unicode_bidi_embed_paragraph_level(const char32_t *str,
 						   size_t n,
 						   unicode_bidi_level_t);
 
+extern void unicode_bidi_combinings(const char32_t *str,
+				    const unicode_bidi_level_t *levels,
+				    size_t n,
+				    void (*combinings)
+				    (unicode_bidi_level_t level,
+				     size_t level_start,
+				     size_t n_chars,
+				     size_t comb_start,
+				     size_t n_comb_chars,
+				     void *arg),
+				    void *arg);
+
 /*
 ** unicode_canonical() returns the canonical mapping of the given Unicode
 ** character. The returned structure specifies:
@@ -1318,42 +1330,48 @@ extern const char unicode_u_ucs2_native[];
 
 #define unicode_x_smap_modutf8 "x-smap-modutf8"
 
+extern uint8_t unicode_ccc(char32_t ch);
+
 #define UNICODE_DECOMPOSE_FLAG_QC	1
 #define UNICODE_DECOMPOSE_FLAG_COMPAT	2
 
-struct unicode_decompose_info {
+typedef struct unicode_decomposition {
 	char32_t *string;
 	size_t string_size;
 	int decompose_flags;
 
-	int (*reallocate)(struct unicode_decompose_info *info,
+	int (*reallocate)(struct unicode_decomposition *info,
 			  const size_t *offsets,
 			  const size_t *sizes,
 			  size_t n);
 
 	void *arg;
-};
+} unicode_decomposition_t;
 
-extern void unicode_decompose_info_init(struct unicode_decompose_info *,
-					char32_t *string,
-					size_t string_size,
-					void *arg);
+extern void unicode_decomposition_init(unicode_decomposition_t *,
+				       char32_t *string,
+				       size_t string_size,
+				       void *arg);
 
-extern void unicode_decompose_info_deinit(struct unicode_decompose_info *);
+extern void unicode_decomposition_deinit(unicode_decomposition_t *);
 
-extern int unicode_decompose(struct unicode_decompose_info *);
+extern int unicode_decompose(unicode_decomposition_t *);
 
-extern size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *,
+extern size_t unicode_decompose_reallocate_size(unicode_decomposition_t *,
 						const size_t *sizes,
 						size_t n);
 
-struct unicode_compositions {
-	struct unicode_compositions *next;
+struct unicode_compose_info {
 	size_t index;
 	size_t n_composed;
 	char32_t *composition;
 	size_t n_composition;
 };
+
+typedef struct {
+	struct unicode_compose_info **compositions;
+	size_t n_compositions;
+} unicode_composition_t;
 
 #define UNICODE_COMPOSE_FLAG_REMOVEUNUSED 1
 #define UNICODE_COMPOSE_FLAG_ONESHOT 128
@@ -1361,14 +1379,13 @@ struct unicode_compositions {
 int unicode_composition_init(const char32_t *string,
 			     size_t string_size,
 			     int flags,
-			     struct unicode_compositions **ret
-			     );
+			     unicode_composition_t *info);
 
-void unicode_composition_deinit(struct unicode_compositions *);
+void unicode_composition_deinit(unicode_composition_t *info);
 
 size_t unicode_composition_apply(char32_t *string,
 				 size_t string_size,
-				 struct unicode_compositions *compositions);
+				 unicode_composition_t *info);
 
 int unicode_compose(char32_t *string,
 		    size_t string_size,
@@ -2429,6 +2446,28 @@ std::u32string bidi_embed(const std::u32string &string,
 			  const std::vector<unicode_bidi_level_t> &levels,
 			  unicode_bidi_level_t paragraph_embedding);
 
+
+//! Identify contiguous sequences of combining characters
+
+//! Bounded by each embedding level.
+
+void bidi_combinings(const std::u32string &string,
+		     const std::vector<unicode_bidi_level_t> &levels,
+		     const std::function<void (unicode_bidi_level_t level,
+					       size_t level_start,
+					       size_t n_chars,
+					       size_t comb_start,
+					       size_t n_comb_chars)> &callback);
+
+//! Identify contiguous sequences of composition characters
+
+void bidi_combinings(const std::u32string &string,
+		     const std::function<void (unicode_bidi_level_t level,
+					       size_t level_start,
+					       size_t n_chars,
+					       size_t comb_start,
+					       size_t n_comb_chars)> &callback);
+
 //! Check if a directional marker needs to be inserted
 
 //! In order for the unicode string to have the specified default
@@ -2466,12 +2505,11 @@ constexpr int compose_flag_removeunused=UNICODE_COMPOSE_FLAG_REMOVEUNUSED;
 
 constexpr int compose_flag_oneshot=UNICODE_COMPOSE_FLAG_ONESHOT;
 
-void compose_default_callback(size_t, size_t, const char32_t *, size_t);
+void compose_default_callback(unicode_composition_t &);
 
 void compose(std::u32string &string,
 	     int flags=0,
-	     const std::function<void (size_t, size_t,
-				       const char32_t *, size_t)> &cb=
+	     const std::function<void (unicode_composition_t &)> &cb=
 	     compose_default_callback);
 
 #if 0

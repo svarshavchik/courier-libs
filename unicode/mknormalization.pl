@@ -339,6 +339,8 @@ struct decomposition_info {
 #define canonical_mult1 $mult1
 #define canonical_mult2 $mult2
 
+#ifndef exclusion_table
+
 static uint16_t canonical_compositions_lookup[]={
 );
 		    $comma="\t";
@@ -353,6 +355,7 @@ static uint16_t canonical_compositions_lookup[]={
 			$counter += scalar @{ $buckets{$index} // []};
 		    }
 		    print "\n};\n";
+		    print "#endif\n";
 		    exit(0);
 		}
 		++$hash;

@@ -15,29 +15,28 @@ Courier Unicode Library
 
    COPYING
 
-   This library implements several algorithms related to the Unicode Standard
-   (with both C and C++ bindings), notably:
+   This library implements several algorithms related to the Unicode
+   Standard, featuring:
 
-     * Look up uppercase, lowercase, and titlecase equivalents of a unicode
-       character.
+     * Both C and C++11 bindings, with a complete manual page documentation
+       set.
 
-     * Implementation of grapheme and word breaking rules.
+     * The library has all Unicode mappings compiled in as fast, compact,
+       lookup table. The library does not need to load the Unicode database
+       files at startup, every time.
 
-     * Implementation of line breaking rules.
+     * The library implements lookups uppercase, lowercase, and titlecase
+       equivalents of a unicode character; grapheme and word breaking rules;
+       line breaking rules; and the bi-directional algorithm.
 
-     * Implementation of the bi-directional algorithm.
+     * The library implements canonical and compatibility decomposition and
+       composition of Unicode text; and the Unicode script property.
 
-     * Canonical forms and normalizations of Unicode text.
-
-     * Look up the Unicode script property.
-
-     * Look up the category property.
-
-     * Several ancillary functions, like looking up the unicode character
-       that corresponds to some HTML 4.0 entity (such as “&amp;”, for
-       example), and determining the normal width or a double-width status of
-       a unicode character. Also, an adaptation of the iconv(3) API for this
-       unicode library.
+     * The library also implements ancillary functions, like looking up the
+       unicode character that corresponds to some HTML 4.0 entity (such as
+       “&amp;”, for example), and determining the normal width or a
+       double-width status of a unicode character. Also, an adaptation of the
+       iconv(3) API for this unicode library.
 
 Current status
 

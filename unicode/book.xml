@@ -24,57 +24,47 @@ See COPYING for distribution information.
   <para>
     This library implements several algorithms related to the
     <ulink url="https://www.unicode.org/standard/standard.html">Unicode
-    Standard</ulink> (with both C and C++ bindings), notably:
+    Standard</ulink>, featuring:
   </para>
 
   <itemizedlist>
     <listitem>
       <para>
-	Look up uppercase, lowercase, and titlecase equivalents of a unicode
-	character.
+	Both C and C++11 bindings, with a
+	<link linkend="courier-unicode">complete manual page
+	documentation set</link>.
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>
+	The library has all Unicode mappings compiled in as fast, compact,
+	lookup table. The library does not need to load the Unicode database
+	files at startup, every time.
       </para>
     </listitem>
     <listitem>
       <para>
-	Implementation of
+	The library implements lookups uppercase, lowercase, and
+	titlecase equivalents of a unicode character;
 	<link linkend="unicode_grapheme_break">grapheme
-	and word breaking</link> rules.
-      </para>
-    </listitem>
-    <listitem>
-      <para>
-	Implementation of
-	<link linkend="unicode_line_break">line	breaking</link> rules.
-      </para>
-    </listitem>
-    <listitem>
-      <para>
-	Implementation of the
+	and word breaking</link> rules;
+	<link linkend="unicode_line_break">line	breaking</link> rules;
+	and the
 	<link linkend="unicode_bidi">bi-directional
 	algorithm</link>.
       </para>
     </listitem>
     <listitem>
       <para>
-	<link linkend="unicode_canonical">Canonical forms and
-	normalizations</link> of Unicode text.
+	The library implements <link linkend="unicode_canonical">canonical
+	and compatibility decomposition and composition</link> of Unicode text;
+	and the <link linkend="unicode_script">Unicode script property</link>.
       </para>
     </listitem>
     <listitem>
       <para>
-	Look up the <link linkend="unicode_script">Unicode
-	script property</link>.
-      </para>
-    </listitem>
-    <listitem>
-      <para>
-	Look up the <link linkend="unicode_category_lookup">category</link>
-	property.
-      </para>
-    </listitem>
-    <listitem>
-      <para>
-	Several ancillary functions, like looking up
+	The library also implements ancillary functions, like looking up
 	the unicode character that corresponds to some HTML 4.0
 	entity (such as <quote>&amp;amp;</quote>, for example), and
 	determining the normal width or a double-width status of a unicode
@@ -102,7 +92,7 @@ See COPYING for distribution information.
     <para>
       Download the current version of the library from
       <ulink url="/download.html#unicode">https://www.courier-mta.org/download.html#unicode</ulink>.
-      Use the downloaded tarball to create an appropriate installation
+      Use the downloaded tarball to prepare an appropriate installation
       package for your operating system distribution.
       The typical sequence of commands is:
     </para>
@@ -125,13 +115,13 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
     <note>
       <para>
-	<command>make install</command> will not take any explicit action
+	<command>make install</command> does not take any explicit action
 	to uninstall any older version of the library, or remove any files
 	from an older version that do not exist any more in the new version.
-	The library's installation image should be used to prepare an
+	Use the created installation image to prepare an
 	installable package in a native package format for your operating
 	system distribution. Use your native system distribution's package
-	manager to properly install and uninstall the library's package.
+	manager to properly install and update this library.
       </para>
     </note>
 
@@ -141,9 +131,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
       The C++ compiler must have C++11 support. Minimum usable version of
       gcc appears to be gcc 4.4 with the <literal>-std=c++0x</literal> flag.
       Current versions of gcc use C++11, or higher, by default and do not
-      require extra flags. Like with all C++ code, the same compiler, and flags,
-      must be used to build code that uses this library that was used to
-      build the library itself.
+      require extra flags. For C++ code, as usual, the compiler and compilation
+      flags for compiling any code that uses this library must be ABI-compatible
+      too.
     </para>
 
     <para>
@@ -177,7 +167,19 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
     <para>
       The <varname>AX_COURIER_UNICODE_VERSION</varname> macro
-      checks the minimum library version.
+      checks the minimum library version, which defaults to the build
+      version. An optional parameter explicitly specifies which version
+      of the Courier Unicode library is the minimum version required, i.e.:
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>
+	AX_COURIER_UNICODE_VERSION(2.2.0)</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
       <varname>AX_COURIER_UNICODE_CXXFLAGS</varname> sets
       <varname>COURIER_UNICODE_CXXFLAGS</varname> to the appropriate option
       for older gcc compilers that require an option to enable C++11
@@ -342,6 +344,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <refname>unicode_bidi_cleanup</refname>
 	  <refname>unicode_bidi_cleaned_size</refname>
 	  <refname>unicode_bidi_logical_order</refname>
+	  <refname>unicode_bidi_combinings</refname>
 	  <refname>unicode_bidi_needs_embed</refname>
 	  <refname>unicode_bidi_embed</refname>
 	  <refname>unicode_bidi_embed_paragraph_level</refname>
@@ -419,6 +422,14 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
 	    </funcprototype>
 
+	    <funcprototype>
+	      <funcdef>void <function>unicode_bidi_combinings</function></funcdef>
+              <paramdef>const char32_t *<parameter>string</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
+              <paramdef>size_t <parameter>n</parameter></paramdef>
+	      <paramdef>void (*<parameter>combinings</parameter>)(unicode_bidi_level_t level, size_t level_start, size_t n_chars, size_t comb_start, size_t n_comb_chars, void *arg)</paramdef>
+	      <paramdef>void *<parameter>arg</parameter></paramdef>
+	    </funcprototype>
 	    <funcprototype>
 	      <funcdef>int <function>unicode_bidi_needs_embed</function></funcdef>
               <paramdef>const char32_t *<parameter>string</parameter></paramdef>
@@ -1119,8 +1130,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
               </listitem>
 	      <listitem>
 		<para>
-		  The directional embedding buffer, in logical
-		  rendering order.
+		  The directional embedding buffer, in logical order.
                 </para>
               </listitem>
 	      <listitem>
@@ -1151,6 +1161,206 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      in.
 	    </para>
           </refsect2>
+	  <refsect2 id="unicode_bidi_combinings">
+	    <title>Combining character ranges</title>
+
+	    <para>
+	      <function>unicode_bidi_combinings</function>() reports
+	      consecutive sequences of one or more combining marks
+	      in bidirectional text (which can be either in rendering or
+	      logical order) that have the same embedding level. It takes
+	      the following parameters:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>The Unicode string.</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  The directional embedding buffer, in logical
+		  or rendering order. A <literal>NULL</literal> value for
+		  this pointer is equivalent to a directional embedding
+		  buffer with a level of 0 for every character in the Unicode
+		  string.
+                </para>
+              </listitem>
+
+	      <listitem>
+		<para>
+		  Number of characters in the Unicode string.
+                </para>
+              </listitem>
+
+	      <listitem>
+		<para>
+		  The pointer to the callback function.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  An opaque pointer argument that gets forwarded to the
+		  callback function.
+                </para>
+              </listitem>
+            </itemizedlist>
+
+	    <para>
+	      The callback function gets invoked for every consecutive
+	      sequence of one or more characters that have a canonical
+	      combining class other than 0, and with the same
+	      embedding level. The parameters to the callback function are:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>The embedding level of the combining characters.</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  The starting index of a consecutive sequence of all
+		  characters with the same embedding level.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  The number of characters with the same embedding level.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  The starting index of a consecutive sequence of all
+		  characters with the same embedding level
+		  and a canonical combining
+		  class other than 0. This will always be equal to or greater
+		  than the value of the second parameter.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  The number of consecutive characters with the
+		  characters with the same embedding level
+		  and a canonical combining class other than 0.
+		  The last character included in this sequence will always
+		  be less than or equal to the last character in the sequence
+		  defined by the second and the third parameters.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  The opaque pointer argument that was passed to
+		  <function>unicode_bidi_combinings</function>.
+                </para>
+              </listitem>
+	    </itemizedlist>
+
+	    <para>
+	      A consecutive sequence of Unicode characters with non-0 combining
+	      classes but different embedding levels gets reported individually,
+	      for each consecutive sequence with the same embedding level.
+	    </para>
+
+	    <para>
+	      This function helps with reordering the combining characters in
+	      right-to-left-rendered text.
+	      Right-to-left text reversed by
+	      <function>unicode_bidi_reorder</function>() results in combining
+	      characters preceding their starter character. They get reversed
+	      no differently than any other character.
+	      The same thing also occurs after
+	      <function>unicode_bidi_logical_order</function>() reverses
+	      everything back.
+	      Use <function>unicode_bidi_combinings</function> to identify
+	      consecutive sequences of combining characters followed by their
+	      original starter.
+	    </para>
+
+	    <para>
+	      The callback may reorder the characters identified
+	      by its third and the fourth parameters
+	      in the manner described below.
+	      <function>unicode_bidi_reorder</function>'s parameter is
+	      pointers to a constant Unicode string; but it can modify the
+	      string (via an out-of-band mutable pointer) subject to the
+	      following conditions:
+	    </para>
+
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  The characters identified by the third and the fourth
+		  parameter may be modified.
+		</para>
+	      </listitem>
+
+	      <listitem>
+		<para>
+		  If the last character in this sequence is not the last
+		  character included in the range specified by the first
+		  and the second character, then one more character after
+		  the last character may also be modified.
+		</para>
+
+		<para>
+		  This is, presumably, the original starter that preceded
+		  the combining characters before the entire sequence was
+		  reversed.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+
+	    <para>
+	      Here's an example of a callback that reverses
+	      combining characters and their immediately-following starter
+	      character:
+	    </para>
+	    <blockquote>
+	      <informalexample>
+		<programlisting><![CDATA[
+void reorder_right_to_left_combining(unicode_bidi_level_t level,
+                                     size_t level_start,
+                                     size_t n_chars,
+                                     size_t comb_start,
+                                     size_t n_comb_chars,
+                                     void *arg)
+{
+    /* Let's say that this is the Unicode string */
+    char32_t *buf=(char32_t *)arg;
+
+    if ((level & 1) == 0)
+        return; /* Left-to-right text not reversed */
+
+    char32_t *b=buf+comb_start;
+    char32_t *e=b+n_comb_chars;
+
+    /*
+    ** Include the starter characters in the reversed range.
+    ** The semantics of the combining characters with different
+    ** embedding levels -- so they get reported here separately -- is
+    ** not specified. This will reverse just the combining marks, and
+    ** they're on their own.
+    */
+
+    if (comb_start + n_comb_chars < level_start + n_chars)
+        ++e;
+
+    while (b < e)
+    {
+        char32_t t;
+
+        --e;
+        t=*b;
+        *b=*e;
+        *e=t;
+        ++b;
+    }
+}]]></programlisting>
+	      </informalexample>
+	    </blockquote>
+	  </refsect2>
 	  <refsect2 id="unicode_bidi_misc">
 	    <title>Miscellaneous utility functions</title>
 
@@ -1251,8 +1461,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
 	<refnamediv>
 	  <refname>unicode_canonical</refname>
-	  <refname>unicode_decompose_info_init</refname>
-	  <refname>unicode_decompose_info_deinit</refname>
+	  <refname>unicode_ccc</refname>
+	  <refname>unicode_decomposition_init</refname>
+	  <refname>unicode_decomposition_deinit</refname>
 	  <refname>unicode_decompose</refname>
 	  <refname>unicode_decompose_reallocate_size</refname>
 	  <refname>unicode_compose</refname>
@@ -1272,8 +1483,13 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>void <function>unicode_decompose_info_init</function></funcdef>
-	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <funcdef>uint8_t <function>unicode_ccc</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+	      <funcdef>void <function>unicode_decomposition_init</function></funcdef>
+	      <paramdef>unicode_decomposition_t *<parameter>info</parameter></paramdef>
 	      <paramdef>char32_t *<parameter>string</parameter></paramdef>
 	      <paramdef>size_t *<parameter>string_size</parameter></paramdef>
 	      <paramdef>void *<parameter>arg</parameter></paramdef>
@@ -1281,17 +1497,17 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 
 	    <funcprototype>
 	      <funcdef>int <function>unicode_decompose</function></funcdef>
-	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <paramdef>unicode_decomposition_t *<parameter>info</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>void <function>unicode_decompose_info_deinit</function></funcdef>
-	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <funcdef>void <function>unicode_decomposition_deinit</function></funcdef>
+	      <paramdef>unicode_decomposition_t *<parameter>info</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>size_t <function>unicode_decompose_reallocate_size</function></funcdef>
-	      <paramdef>struct unicode_decompose_info *<parameter>info</parameter></paramdef>
+	      <paramdef>unicode_decomposition_t *<parameter>info</parameter></paramdef>
 	      <paramdef>const size_t *<parameter>sizes</parameter></paramdef>
 	      <paramdef>size_t <parameter>n</parameter></paramdef>
 	    </funcprototype>
@@ -1309,19 +1525,19 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <paramdef>const char32_t *<parameter>string</parameter></paramdef>
 	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
 	      <paramdef>int <parameter>flags</parameter></paramdef>
-	      <paramdef>struct unicode_compositions **<parameter>ret</parameter></paramdef>
+	      <paramdef>unicode_composition_t *<parameter>compositions</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>void <function>unicode_composition_deinit</function></funcdef>
-	      <paramdef>struct unicode_compositions *<parameter>ptr</parameter></paramdef>
+	      <paramdef>unicode_composition_t *<parameter>compositions</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>size_t <function>unicode_composition_apply</function></funcdef>
 	      <paramdef>char32_t *<parameter>string</parameter></paramdef>
 	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
-	      <paramdef>struct unicode_compositions *<parameter>compositions</parameter></paramdef>
+	      <paramdef>unicode_composition_t *<parameter>compositions</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -1367,7 +1583,9 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	      <term><structfield>format</structfield></term>
 	      <listitem>
 		<para>
-		  The character's canonical formatting flag, if any.
+		  A value of <literal>UNICODE_CANONICAL_FMT_NONE</literal>
+		  indicates a canonical mapping, other values indicate
+		  a compatibility equivalent mapping.
 	        </para>
 	      </listitem>
 	    </varlistentry>
@@ -1381,9 +1599,14 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  </para>
 
 	  <para>
-	    <function>unicode_decompose_info_init</function>(),
+	    <function>unicode_ccc</function>() returns the character's
+	    canonical combining class value.
+	  </para>
+
+	  <para>
+	    <function>unicode_decomposition_init</function>(),
 	    <function>unicode_decompose</function>()
-	    and <function>unicode_decompose_info_deinit</function>()
+	    and <function>unicode_decomposition_deinit</function>()
 	    implement a complete interface for decomposing a
 	    Unicode string:
 	  </para>
@@ -1391,18 +1614,18 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
 	  <blockquote>
 	    <informalexample>
 	      <programlisting><![CDATA[
-struct unicode_decompose_info info;
+unicode_decomposition_t info;
 
-unicode_decompose_info_init(&info, before, (size_t)-1, NULL);
+unicode_decomposition_init(&info, before, (size_t)-1, NULL);
 info.decompose_flags=UNICODE_DECOMPOSE_FLAG_QC;
 unicode_decompose(&info);
-unicode_decompose_info_deinit(&info);]]></programlisting>
+unicode_decomposition_deinit(&info);]]></programlisting>
 	    </informalexample>
 	  </blockquote>
 
 	  <para>
-	    <function>unicode_decompose_info_init</function>() initializes
-	    a new <structname>unicode_decompose_info</structname> structure,
+	    <function>unicode_decomposition_init</function>() initializes
+	    a new <classname>unicode_decomposition_t</classname> structure,
 	    that gets passed in as its first parameter.
 	    The second parameter is a pointer to a Unicode string,
 	    with the number of characters in the string in the third parameter.
@@ -1412,8 +1635,8 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 	    <varname>string_size</varname> (which does not include the
 	    trailing <literal>\0</literal>.
 	    The last parameter is a <literal>void *</literal>, an opaque
-	    pointer that gets stored in the
-	    <structname>unicode_decompose_info</structname> object:
+	    pointer that gets stored in the initialized
+	    <classname>unicode_decomposition_t</classname> object:
 	  </para>
 	  <blockquote>
 	    <informaltable border='0' colsep='0'>
@@ -1425,7 +1648,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 		<colspec colname='c5' />
 		<tbody>
 		  <row>
-		    <entry namest='c1' nameend='c5'>struct&nbsp;<structname>unicode_decompose_info</structname>&nbsp;{</entry>
+		    <entry namest='c1' nameend='c5'>typedef struct&nbsp;<structname>unicode_decomposition</structname>&nbsp;{</entry>
 		  </row>
 		  <row>
 		    <entry namest='c2'>char32_t</entry>
@@ -1444,7 +1667,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 		    <entry namest='c3' nameend='c5'>(*<varname>reallocate)(</varname></entry>
 		  </row>
 		  <row>
-		    <entry namest='c4'>struct&#160;unicode_decompose_info</entry>
+		    <entry namest='c4'>struct&#160;unicode_decomposition</entry>
 		    <entry>*<varname>info</varname>,</entry>
 		  </row>
 		  <row>
@@ -1467,7 +1690,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 		    <entry namest='c3' nameend='c5'>*<varname>arg</varname>;</entry>
 		    </row>q
 		    <row>
-		      <entry namest='c1' nameend='c5'>};</entry>
+		      <entry namest='c1' nameend='c5'>} unicode_decomposition_t;</entry>
 		    </row>
 		</tbody>
 	      </tgroup>
@@ -1476,35 +1699,23 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 
 	  <para>
 	    <function>unicode_decompose</function>() proceeds and decomposes
-	    the <varname>string</varname> and replacing it with its
-	    decomposed <varname>string</varname> version. Finally
-	    <function>unicode_decompose_info_deinit</function>() releases
-	    all resources and destroys the
-	    <structname>unicode_decompose_info</structname>; it is no longer
-	    valid.
+	    the <varname>string</varname> and replaces it with its
+	    decomposed <varname>string</varname> version.
 	  </para>
 
-	  <note>
-	    <para>
-	      At this time
-	      <function>unicode_decompose_info_deinit</function>() does
-	      nothing. All code should explicitly call it in order to
-	      remain forward-compatible (at the source level).
-	    </para>
-	  </note>
-
 	  <para>
-	    <structname>unicode_decompose_info</structname>'s
+	    <classname>unicode_decomposition_t</classname>'s
 	    <varname>string</varname>,
 	    <varname>string_size</varname> and
 	    <varname>arg</varname> are copies of
-	    <function>unicode_decompose_info_init</function>'s parameters;
-	    and it initializes all other fields to their default values.
+	    <function>unicode_decomposition_init</function>'s parameters.
+	    <function>unicode_decomposition_init</function>
+	    initializes all other fields to their default values.
 	  </para>
 
 	  <para>
 	    The <varname>decompose_flags</varname> bitmask gets initialized to
-	    0, and can be set to:
+	    0, and is a bit mask:
 	  </para>
 
 	  <variablelist>
@@ -1532,18 +1743,22 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 	  </variablelist>
 
 	  <para>
+	    <varname>reallocate</varname> is a pointer to a function that
+	    gets called to reallocate a larger <varname>string</varname>.
 	    <function>unicode_decompose</function>() determines which characters
 	    in the <varname>string</varname> need decomposing and calls
-	    the <varname>reallocate</varname> function zero or more times.
+	    the <varname>reallocate</varname> function pointer
+	    zero or more times.
 	    Each call to <varname>reallocate</varname> passes information
 	    about where new characters will get inserted into the
 	    <varname>string</varname>.
 	  </para>
 
 	  <para>
-	    <varname>reallocate</varname> must enlarge the buffer where
-	    <varname>string</varname> points to be big enough to hold the
-	    larger, decomposed string; and update
+	    <varname>reallocate</varname> only needs to grow the size of the
+	    buffer where
+	    <varname>string</varname> points so that it's big enough to hold
+	    a larger, decomposed string; then update
 	    <varname>string</varname> accordingly.
 	    <varname>reallocate</varname> should not update
 	    <varname>string_size</varname> or make any changes to the existing
@@ -1561,7 +1776,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 	    <listitem>
 	      <para>
 		A pointer to the
-		<structname>unicode_decompose_info</structname> and, notably,
+		<classname>unicode_decomposition_t</classname> and, notably,
 		its <varname>arg</varname>.
 	      </para>
 	    </listitem>
@@ -1596,7 +1811,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 	  </para>
 
 	  <para>
-	    <function>unicode_decompose_info_init</function>() initializes
+	    <function>unicode_decomposition_init</function>() initializes
 	    the <varname>reallocate</varname> pointer to a default
 	    implementation that uses
 	    <citerefentry>
@@ -1613,7 +1828,7 @@ unicode_decompose_info_deinit(&info);]]></programlisting>
 	  <blockquote>
 	    <informalexample>
 	      <programlisting><![CDATA[
-size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
+size_t unicode_decompose_reallocate_size(unicode_decomposition_t *info,
                                          const size_t *sizes,
                                          size_t n)
 {
@@ -1630,12 +1845,16 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 	  </blockquote>
 
 	  <para>
-	    The <varname>reallocate</varname> returns 0 on success and
+	    The <varname>reallocate</varname> function
+	    returns 0 on success and
 	    a non-0 error code to report a failure; and
 	    <varname>unicode_decompose</varname>() does the same.
-	    A successful decomposition results in
+	    The only error condition from
+	    <varname>unicode_decompose</varname>() is a non-0 error code
+	    from the <varname>reallocate</varname> function. Otherwise:
+	    a successful decomposition results in
 	    <varname>unicode_decompose</varname>() returning 0 and
-	    <function>unicode_decompose_info_init</function>()'s
+	    <function>unicode_decomposition_init</function>()'s
 	    <varname>string</varname> pointing to the decomposed string
 	    and <varname>string_size</varname> giving the number of
 	    characters in the decomposed string.
@@ -1660,7 +1879,7 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 		  <literal>\0</literal> and no decomposition occurs, and
 		  no calls to <varname>reallocate</varname> takes place:
 		  the <varname>string</varname> in the
-		  <structname>unicode_decompose_info</structname> is unchanged
+		  <classname>unicode_decomposition_t</classname> is unchanged
 		  and it's still
 		  <literal>\0</literal>-terminated.
 		</para>
@@ -1691,13 +1910,13 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 	      Multiple calls to the <varname>reallocate</varname> callback
 	      are possible. Each call to <varname>reallocate</varname>
 	      reflect the prior calls' decompositions. Example:
-	      the original string has ten characters and the first call
+	      the original string has five characters and the first call
 	      to <varname>reallocate</varname> had two offsets, at position
-	      3 and 7, with a value of 1 for their both
+	      1 and 3, with a value of 1 for their both
 	      <varname>sizes</varname>.
 	      This effects transforming an original Unicode string
-	      "AAAAAAAAAA" into
-	      "AAAXAAAAXAAA" (with <quote>A</quote> representing unspecified
+	      "AAAAA" into
+	      "AXAAXAA" (with <quote>A</quote> representing unspecified
 	      characters in the original string, and <quote>X</quote> showing
 	      the two characters added in the first call to
 	      <function>reallocate</function>.
@@ -1705,8 +1924,8 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 
 	    <para>
 	      A second call to <varname>varname</varname> with am offset
-	      at position 8, and a size of 1, results in the updated
-	      string of "AAAXAAAAYXAAA" (with <quote>Y</quote>) marking an
+	      at position 4, and a size of 1, results in the updated
+	      string of "AXAAYXAA" (with <quote>Y</quote>) marking an
 	      unspecified character inserted by the second call.
 	    </para>
 	  </note>
@@ -1729,6 +1948,45 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 	      of each Unicode character that's getting decomposed. A 1:1
 	      decomposition of a Unicode Character gets reported as an
 	      additional <varname>sizes</varname> entry of 0.
+	    </para>
+	  </note>
+
+	  <para>
+	    <function>unicode_decomposition_deinit</function>() releases
+	    all resources and destroys the
+	    <classname>unicode_decomposition_t</classname>; it is no longer
+	    valid.
+	  </para>
+
+	  <note>
+	    <para>
+	      <function>unicode_decomposition_deinit</function>() does not
+	      <citerefentry>
+		<refentrytitle>free</refentrytitle>
+		<manvolnum>3</manvolnum>
+	      </citerefentry>
+	      the <varname>string</varname>. The original string gets passed
+	      in to <function>unicode_decomposition_init</function>() and
+	      the decomposed string is left in the <varname>string</varname>.
+	    </para>
+	  </note>
+	  <para>
+	      The default implementation of the
+	      <varname>reallocate</varname> function assumes the
+	      <varname>string</varname> is a
+	      <citerefentry>
+		<refentrytitle>malloc</refentrytitle>
+		<manvolnum>3</manvolnum>
+		</citerefentry>-ed string, and
+		<function>realloc</function>s it.
+	  </para>
+
+	  <note>
+	    <para>
+	      At this time
+	      <function>unicode_decomposition_deinit</function>() does
+	      nothing. All code should explicitly call it in order to
+	      remain forward-compatible (at the source level).
 	    </para>
 	  </note>
 
@@ -1810,19 +2068,19 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 	    <function>unicode_composition_apply</function>()
 	    and <function>unicode_composition_deinit</function>()
 	    implement a detailed interface for canonical composition
-	    of a decompose Unicode string:
+	    of a decomposed Unicode string:
 	  </para>
 
 	  <blockquote>
 	    <informalexample>
 	      <programlisting><![CDATA[
-struct unicode_compositions *compositions;
+unicode_compositions_t compositions;
 
 if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 {
-    size_t new_size=unicode_composition_apply(str, strsize, compositions);
+    size_t new_size=unicode_composition_apply(str, strsize, &compositions);
 
-    unicode_composition_deinit(compositions);
+    unicode_composition_deinit(&compositions);
 }]]></programlisting>
 	    </informalexample>
 	  </blockquote>
@@ -1842,17 +2100,19 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	    parameters are: any optional flags
 	    (see <function>unicode_compose()</function> for a list of
 	    available flags), and the address of a
-	    <structname>unicode_compositions</structname> pointer.
+	    <classname>unicode_composition_t</classname> object.
 	    A non-0 return from
 	    <function>unicode_composition_init</function>() indicates an
 	    error.
 	    <function>unicode_composition_init</function>() indicates success
-	    by returning 0 and initializing a pointer to the head of a linked
-	    list of <structname>unicode_compositions</structname>'s objects
-	    that enumerate the canonical compositions.
+	    by returning 0 and initializing the
+	    <classname>unicode_composition_t</classname>'s object
+	    which contains a pointer to an array of pointers to
+	    of <structname>unicode_compose_info</structname> objects, and
+	    the number of pointers.
 	    <function>unicode_composition_init</function>() does not change
-	    the string; the only thing it does is calculate the
-	    <structname>unicode_compositions</structname> list.
+	    the string; the only thing it does is initialize the
+	    <structname>unicode_composition_t</structname> object.
 	  </para>
 
 	  <para>
@@ -1869,10 +2129,14 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	    It is necessary to call
 	    <function>unicode_composition_deinit</function>() to free all
 	    memory that was allocated for the
-	    <structname>unicode_compositions</structname> list:
+	    <classname>unicode_composition_t</classname> object:
 	  </para>
 
 	  <blockquote>
+
+
+
+
 	    <informaltable border='0' colsep='0'>
 	      <tgroup cols="3">
 		<colspec colname='c1' />
@@ -1880,13 +2144,9 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 		<colspec colname='c3' />
 		<tbody>
 		  <row>
-		    <entry namest='c1' nameend='c3'>struct&nbsp;<structname>unicode_compositions</structname> {</entry>
+		    <entry namest='c1' nameend='c3'>struct&nbsp;<structname>unicode_compose_info</structname> {</entry>
 		  </row>
 
-		  <row>
-		    <entry namest='c2'>struct unicode_compositions</entry>
-		    <entry>*<varname>next</varname>;</entry>
-		  </row>
 		  <row>
 		    <entry namest='c2'>size_t</entry>
 		    <entry><varname>index</varname>;</entry>
@@ -1906,6 +2166,24 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 		  <row>
 		    <entry namest='c1' nameend='c3'>};</entry>
 		  </row>
+		  <row>
+		    <entry namest='c1' nameend='c3'>&nbsp;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c1' nameend='c3'>typedef&nbsp;struct&nbsp;{</entry>
+		  </row>
+
+		  <row>
+		    <entry namest='c2'>struct&nbsp;<structname>unicode_compose_info</structname></entry>
+		    <entry>**<varname>compositions</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c2'>size_t</entry>
+		    <entry><varname>n_compositions</varname>;</entry>
+		  </row>
+		  <row>
+		    <entry namest='c1' nameend='c3'>} unicode_composition_t;</entry>
+		  </row>
 		</tbody>
 	      </tgroup>
 	    </informaltable>
@@ -1919,7 +2197,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	    The composed characters are the
 	    <varname>composition</varname>;
 	    and <varname>n_composition</varname> gives the
-	    number of composed characters
+	    number of composed characters.
 	  </para>
 
 	  <para>
@@ -1944,15 +2222,21 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 
 	  <para>
 	    <function>unicode_composition_init</function>()
-	    sets the <structname>unicode_compositions</structname> pointer
-	    to <literal>NULL</literal> when the decomposed string has
-	    nothing to combine.
-	    This <literal>NULL</literal> pointer gets interpreted accordingly
+	    sets <classname>unicode_composition_t</classname>'s
+	    <varname>compositions</varname> pointer to an array of
+	    pointers to <structname>unicode_compose_info</structname>s
+	    that are sorted according to their <varname>index</varname>.
+	    <varname>n_compositions</varname> gives the number of pointers
+	    in the array, and is 0 if there are no compositions, the
+	    array is empty.
+	    The empty array gets interpreted accordingly
 	    when it gets passed to
 	    <function>unicode_composition_apply</function>() and
 	    <function>unicode_composition_deinit</function>(): nothing
-	    happens (and <function>unicode_composition_apply</function>()
-	    simply returns the size of the unchanged <varname>string</varname>.
+	    happens. <function>unicode_composition_apply</function>()
+	    simply returns the size of the unchanged <varname>string</varname>,
+	    and <function>unicode_composition_deinit</function>() does a
+	    pro-forma cleanup.
 	  </para>
 	</refsect1>
 	<refsect1 id="unicode_canonical_seealso">
@@ -3635,6 +3919,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	  <refname>unicode::bidi_reorder</refname>
 	  <refname>unicode::bidi_cleanup</refname>
 	  <refname>unicode::bidi_logical_order</refname>
+	  <refname>unicode::bidi_combinings</refname>
 	  <refname>unicode::bidi_needs_embed</refname>
 	  <refname>unicode::bidi_embed</refname>
 	  <refname>unicode::bidi_embed_paragraph_level</refname>
@@ -3732,6 +4017,19 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
             </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::bidi_combinings</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
+	      <paramdef>const std::function &lt;void (unicode_bidi_level_t level, size_t level_start, size_t n_chars, size_t comb_start, size_t n_comb_chars)&gt; &amp;<parameter>callback</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>void <function>unicode::bidi_combinings</function></funcdef>
+	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::function &lt;void (unicode_bidi_level_t level, size_t level_start, size_t n_chars, size_t comb_start, size_t n_comb_chars)&gt; &amp;<parameter>callback</parameter></paramdef>
+	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_logical_order</function></funcdef>
@@ -4079,18 +4377,14 @@ constexpr int compose_flag_oneshot=UNICODE_COMPOSE_FLAG_ONESHOT;</funcsynopsisin
 
 	    <funcprototype>
 	      <funcdef>void <funcname>compose_default_callback</funcname></funcdef>
-	      <paramdef>size_t <parameter>index</parameter></paramdef>
-	      <paramdef>size_t <parameter>n_composed</parameter></paramdef>
-	      <paramdef>const char32_t *<parameter>compositions</parameter></paramdef>
-	      <paramdef>size_t <parameter>n_compositions</parameter></paramdef>
-
+	      <paramdef>unicode_composition_t &amp;<parameter>compositions</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>void <funcname>compose</funcname></funcdef>
 	      <paramdef>std::u32string &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>int <parameter>flags</parameter>=0</paramdef>
-	      <paramdef>const std::function&lt;void (size_t, size_t, const char32_t *, size_t)&gt; &amp;<parameter>cb</parameter>=compose_default_reallocate</paramdef>
+	      <paramdef>const std::function&lt;void (unicode_composition_t &amp;)&gt; &amp;<parameter>cb</parameter>=compose_default_reallocate</paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -4114,24 +4408,32 @@ constexpr int compose_flag_oneshot=UNICODE_COMPOSE_FLAG_ONESHOT;</funcsynopsisin
 		The C++ decomposition <parameter>reallocate</parameter> callback
 		receives a single vector of <replaceable>offset</replaceable>
 		and
-		<replaceable>size</replaceable> tuple instead of two separate
-		arrays or vectors; with the C++ version of the default
-		<varname>reallocate</varname> callback receiving the same
-		parameter.
+		<replaceable>size</replaceable> tuples instead of two separate
+		arrays or vectors.
+		<function>unicode::decompose_default_reallocate</function>() is
+		the C++ version of the default
+		<varname>reallocate</varname> callback. It receives the
+		receiving the same tuple vector parameter, too.
+		The C++ interface use <classname>std::u32string</classname>s
+		to represent Unicode text strings, and
+		<function>unicode::decompose_default_reallocate</function>()
+		<function>resize</function>s it.
+	      </para>
+
+	      <para>
+		Like the C callback, the C++ one gets called 0 or more times.
 	      </para>
 	    </listitem>
 
 	    <listitem>
 	      <para>
-		<function>unicode::compose</function>() invokes the callback
-		function once for each composition point in the underlying
-		<structname>unicode_compositions</structname> linked list.
-		The callback directly receives the
-		<varname>index</varname>,
-		<varname>n_composed</varname>,
-		<varname>composition</varname> and
-		<varname>n_composition</varname> values as
-		discrete parameters.
+		<function>unicode::compose</function>() takes care of
+		initializing, applying, and de-initialization
+		the <classname>unicode_composition_t</classname> object,
+		for decomposition.
+		The callback receives a reference to the
+		<classname>unicode_composition_t</classname> object, which
+		the callback should not modify in any way.
 	      </para>
 	    </listitem>
 	  </itemizedlist>

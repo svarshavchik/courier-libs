@@ -51,7 +51,7 @@ static int unicode_nfkc_qc(char32_t ch)
 ** Lookup a character's canonical combining class.
 */
 
-static uint8_t unicode_ccc(char32_t ch)
+uint8_t unicode_ccc(char32_t ch)
 {
 	return unicode_tab_lookup(ch,
 				  ccc_starting_indextab,
@@ -113,8 +113,8 @@ unicode_canonical_t unicode_canonical(char32_t ch)
 ** decomposed.
 */
 
-static void search_for_decompose(struct unicode_decompose_info *info,
-				 void (*f)(struct unicode_decompose_info *,
+static void search_for_decompose(unicode_decomposition_t *info,
+				 void (*f)(unicode_decomposition_t *,
 					   size_t,
 					   const struct decomposition_info *,
 					   void *),
@@ -182,7 +182,7 @@ struct decompose_meta {
 
 /* Pass 1: count the number of characters to decompose. */
 
-static void decompose_meta_count(struct unicode_decompose_info *info,
+static void decompose_meta_count(unicode_decomposition_t *info,
 				 size_t i,
 				 const struct decomposition_info *cinfo,
 				 void *arg)
@@ -194,7 +194,7 @@ static void decompose_meta_count(struct unicode_decompose_info *info,
 
 /* Pass 2: compile a list of characters to decompose. */
 
-static void decompose_meta_save(struct unicode_decompose_info *info,
+static void decompose_meta_save(unicode_decomposition_t *info,
 				size_t i,
 				const struct decomposition_info *cinfo,
 				void *arg)
@@ -208,7 +208,7 @@ static void decompose_meta_save(struct unicode_decompose_info *info,
 	++ptr->nchars;
 }
 
-size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
+size_t unicode_decompose_reallocate_size(unicode_decomposition_t *info,
 					 const size_t *sizes,
 					 size_t n)
 {
@@ -221,7 +221,7 @@ size_t unicode_decompose_reallocate_size(struct unicode_decompose_info *info,
 	return new_size;
 }
 
-static int unicode_decompose_reallocate(struct unicode_decompose_info *info,
+static int unicode_decompose_reallocate(unicode_decomposition_t *info,
 					 const size_t *offsets,
 					 const size_t *sizes,
 					 size_t n)
@@ -240,10 +240,10 @@ static int unicode_decompose_reallocate(struct unicode_decompose_info *info,
 	return 0;
 }
 
-void unicode_decompose_info_init(struct unicode_decompose_info *info,
-				 char32_t *string,
-				 size_t string_size,
-				 void *arg)
+void unicode_decomposition_init(unicode_decomposition_t *info,
+				char32_t *string,
+				size_t string_size,
+				void *arg)
 {
 	memset(info, 0, sizeof(*info));
 
@@ -259,11 +259,11 @@ void unicode_decompose_info_init(struct unicode_decompose_info *info,
 	info->arg=arg;
 }
 
-void unicode_decompose_info_deinit(struct unicode_decompose_info *info)
+void unicode_decomposition_deinit(unicode_decomposition_t *info)
 {
 }
 
-int unicode_decompose(struct unicode_decompose_info *info)
+int unicode_decompose(unicode_decomposition_t *info)
 {
 	int replaced;
 	int rc=0;
@@ -450,6 +450,14 @@ static char32_t lookup_composition(char32_t a, char32_t b)
 	return 0;
 }
 
+/* Temporary linked list, until all compositions get built. */
+
+struct unicode_compose_info_list {
+	struct unicode_compose_info_list *next;
+	struct unicode_compose_info *info;
+};
+
+
 /*
 ** Collect consecutive sequence of composable characters. We cache each
 ** character's composition level.
@@ -525,15 +533,15 @@ static int unicode_composition_init2(const char32_t *string,
 				     size_t string_size,
 				     int flags,
 				     struct chars_and_levels *clptr,
-				     struct unicode_compositions ***tail_ptr);
+				     struct unicode_compose_info_list ***tail_ptr);
 
 int unicode_composition_init(const char32_t *string,
 			     size_t string_size,
 			     int flags,
-			     struct unicode_compositions **ret)
+			     unicode_composition_t *info)
 {
 	/*
-	** Initialize a singly-linked unicode_compositions_list.
+	** Initialize a singly-linked unicode_compose_info_list_list.
 	**
 	** Initialize the tail pointer. We'll be adding onto the tail pointer
 	** as we find each composition.
@@ -541,10 +549,13 @@ int unicode_composition_init(const char32_t *string,
 	** Initialize the chars_and_levels buffer.
 	*/
 
-	struct unicode_compositions *list=NULL;
-	struct unicode_compositions **tail=&list;
+	struct unicode_compose_info_list *list=NULL;
+	struct unicode_compose_info_list **tail=&list;
 	struct chars_and_levels cl;
 	int c;
+
+	info->n_compositions=0;
+	info->compositions=0;
 
 	if (chars_and_levels_init(&cl))
 		return -1;
@@ -561,13 +572,51 @@ int unicode_composition_init(const char32_t *string,
 				    &cl, &tail);
 	chars_and_levels_deinit(&cl);
 
-	if (c)
+	if (c == 0)
 	{
-		unicode_composition_deinit(list);
-		list=NULL;
+		struct unicode_compose_info_list *ptr;
+
+		info->n_compositions=0;
+
+		for (ptr=list; ptr; ptr=ptr->next)
+			++info->n_compositions;
+
+		if ((info->compositions=(struct unicode_compose_info **)
+		    malloc(sizeof(struct unicode_composition_info *)
+			   * (info->n_compositions+1))) == NULL)
+		{
+			c= -1;
+			info->n_compositions=0;
+		}
 	}
 
-	*ret=list;
+	if (c == 0)
+	{
+		struct unicode_compose_info_list *ptr;
+		size_t i=0;
+
+		while (list)
+		{
+			ptr=list->next;
+			info->compositions[i++]=list->info;
+			free(list);
+			list=ptr;
+		}
+		info->compositions[i]=NULL;
+	}
+
+	if (c)
+	{
+		while (list)
+		{
+			struct unicode_compose_info_list *next=list->next;
+
+			free(list->info);
+			free(list);
+			list=next;
+		}
+	}
+
 	return c;
 }
 
@@ -575,22 +624,22 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 				    size_t starter_index,
 				    int flags,
 				    struct chars_and_levels *clptr,
-				    struct unicode_compositions
+				    struct unicode_compose_info_list
 				    **last_compositionptr,
-				    struct unicode_compositions ***tail_ptr);
+				    struct unicode_compose_info_list ***tail_ptr);
 
 static int create_new_composition(size_t starter_index,
 				  size_t n_combining_marks,
-				  struct unicode_compositions **ptr);
+				  struct unicode_compose_info_list **ptr);
 
 static int unicode_composition_init2(const char32_t *string,
 				     size_t string_size,
 				     int flags,
 				     struct chars_and_levels *clptr,
-				     struct unicode_compositions ***tail_ptr)
+				     struct unicode_compose_info_list ***tail_ptr)
 {
 	size_t i;
-	struct unicode_compositions *last_composition=NULL;
+	struct unicode_compose_info_list *last_composition=NULL;
 
 	/*
 	** Here we consecutively scan the string and look up each character's
@@ -629,13 +678,13 @@ static int unicode_composition_init2(const char32_t *string,
 			if (starterptr &&
 			    /* Did we just compose this starter? */
 			    last_composition &&
-			    last_composition->index == starter_index &&
+			    last_composition->info->index == starter_index &&
 
 			    /*
 			    ** Did we compose everything, didn't leave
 			    ** any combined marks behind?
 			    */
-			    last_composition->n_composition == 1)
+			    last_composition->info->n_composition == 1)
 			{
 				/*
 				** So, check if we can combine with that
@@ -643,7 +692,7 @@ static int unicode_composition_init2(const char32_t *string,
 				** original starter, the new one is here.
 				*/
 				new_char=lookup_composition
-					(last_composition->composition[0],
+					(last_composition->info->composition[0],
 					 string[i]);
 
 				if (new_char != 0)
@@ -651,7 +700,7 @@ static int unicode_composition_init2(const char32_t *string,
 					/*
 					** Just update the composed char.
 					*/
-					last_composition->composition[0]=
+					last_composition->info->composition[0]=
 						new_char;
 
 					/*
@@ -659,7 +708,7 @@ static int unicode_composition_init2(const char32_t *string,
 					** This nukes this starter, as if
 					** it was a part of the composition!
 					*/
-					++last_composition->n_composed;
+					++last_composition->info->n_composed;
 					continue;
 				}
 			}
@@ -679,7 +728,7 @@ static int unicode_composition_init2(const char32_t *string,
 				** from two starters here.
 				*/
 
-				struct unicode_compositions *new_composition;
+				struct unicode_compose_info_list *new_composition;
 
 				if (create_new_composition(starter_index,
 							   1, &new_composition))
@@ -689,9 +738,9 @@ static int unicode_composition_init2(const char32_t *string,
 				**tail_ptr=new_composition;
 				*tail_ptr= &new_composition->next;
 
-				new_composition->n_composed=2;
-				new_composition->n_composition=1;
-				new_composition->composition[0]=new_char;
+				new_composition->info->n_composed=2;
+				new_composition->info->n_composition=1;
+				new_composition->info->composition[0]=new_char;
 				continue;
 			}
 			/*
@@ -739,26 +788,30 @@ static int compare_levels(const void *a, const void *b)
 
 static int create_new_composition(size_t starter_index,
 				  size_t n_combining_marks,
-				  struct unicode_compositions **ptr)
+				  struct unicode_compose_info_list **ptr)
 {
-	struct unicode_compositions *c=
-		(struct unicode_compositions *)
-		malloc(sizeof(struct unicode_compositions));
+	struct unicode_compose_info_list *c=
+		(struct unicode_compose_info_list *)
+		malloc(sizeof(struct unicode_compose_info_list));
 
 	if (!c)
 		return -1;
 
-	c->index=starter_index;
-	c->next=NULL;
+	c->info=malloc(sizeof(struct unicode_compose_info)+
+		       sizeof(char32_t) * n_combining_marks);
 
-	/* Worst case: nothing is composed */
-
-	if ((c->composition=malloc(sizeof(char32_t) *
-				   n_combining_marks)) == NULL)
+	if (!c->info)
 	{
 		free(c);
 		return -1;
 	}
+
+	c->info->index=starter_index;
+	c->info->composition=(char32_t *)(c->info+1);
+	c->next=NULL;
+
+	/* Worst case: nothing is composed */
+
 	*ptr=c;
 	return 0;
 }
@@ -767,11 +820,11 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 				    size_t starter_index,
 				    int flags,
 				    struct chars_and_levels *clptr,
-				    struct unicode_compositions
+				    struct unicode_compose_info_list
 				    **last_compositionptr,
-				    struct unicode_compositions ***tail_ptr)
+				    struct unicode_compose_info_list ***tail_ptr)
 {
-	struct unicode_compositions *new_composition;
+	struct unicode_compose_info_list *new_composition;
 	char32_t starter=0;
 	size_t i;
 	int composed;
@@ -826,9 +879,9 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 	{
 		size_t j;
 
-		new_composition->n_composed=clptr->size+1;
+		new_composition->info->n_composed=clptr->size+1;
 
-		new_composition->composition[0]=starter;
+		new_composition->info->composition[0]=starter;
 
 		i=1;
 		if (!(flags & UNICODE_COMPOSE_FLAG_REMOVEUNUSED))
@@ -841,12 +894,12 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 				*/
 				if (clptr->ptr[j].level)
 				{
-					new_composition->composition[i++]=
+					new_composition->info->composition[i++]=
 						clptr->ptr[j].ch;
 				}
 			}
 		}
-		new_composition->n_composition=i;
+		new_composition->info->n_composition=i;
 	} else if (!starterptr && (flags & UNICODE_COMPOSE_FLAG_REMOVEUNUSED))
 	{
 		/*
@@ -855,8 +908,8 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 		** new_composition.
 		*/
 
-		new_composition->n_composed=clptr->size;
-		new_composition->n_composition=0;
+		new_composition->info->n_composed=clptr->size;
+		new_composition->info->n_composition=0;
 		composed=1;
 	}
 
@@ -868,7 +921,7 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 	}
 	else
 	{
-		free(new_composition->composition);
+		free(new_composition->info);
 		free(new_composition);
 		new_composition=NULL;
 	}
@@ -877,37 +930,39 @@ static int compose_chars_and_levels(const char32_t *starterptr,
 	return 0;
 }
 
-void unicode_composition_deinit(struct unicode_compositions *ptr)
+void unicode_composition_deinit(unicode_composition_t *info)
 {
-	while (ptr)
-	{
-		struct unicode_compositions *next=ptr->next;
+	size_t i;
 
-		if (ptr->composition)
-			free(ptr->composition);
-		free(ptr);
-		ptr=next;
-	}
+	for (i=0; i<info->n_compositions; ++i)
+		free(info->compositions[i]);
+
+	if (info->compositions)
+		free(info->compositions);
+	info->compositions=0;
+	info->n_compositions=0;
 }
 
 size_t unicode_composition_apply(char32_t *string,
 				 size_t string_size,
-				 struct unicode_compositions *compositions)
+				 unicode_composition_t *info)
 {
 	size_t j=0;
 	size_t i;
+	size_t c_index=0;
 
 	for (i=0; i<string_size; )
 	{
-		if (compositions && compositions->index == i)
+		if (c_index < info->n_compositions &&
+		    info->compositions[c_index]->index == i)
 		{
 			size_t k;
+			struct unicode_compose_info *compose=
+				info->compositions[c_index++];
 
-			for (k=0; k<compositions->n_composition; ++k)
-				string[j++]=compositions->composition[k];
-			i += compositions->n_composed;
-
-			compositions=compositions->next;
+			for (k=0; k<compose->n_composition; ++k)
+				string[j++]=compose->composition[k];
+			i += compose->n_composed;
 		}
 		else
 		{
@@ -925,14 +980,14 @@ int unicode_compose(char32_t *string,
 		    int flags,
 		    size_t *new_size)
 {
-	struct unicode_compositions *composes;
+	unicode_composition_t info;
 
-	if (unicode_composition_init(string, string_size, flags, &composes))
+	if (unicode_composition_init(string, string_size, flags, &info))
 		return -1;
 
-	*new_size=unicode_composition_apply(string, string_size, composes);
+	*new_size=unicode_composition_apply(string, string_size, &info);
 
-	unicode_composition_deinit(composes);
+	unicode_composition_deinit(&info);
 
 	return 0;
 }

@@ -11,6 +11,46 @@
 #include <exception>
 #include <new>
 
+
+namespace {
+#if 0
+}
+#endif
+
+template<typename callable>
+struct cb_wrapper {
+
+	const std::function<callable> &cb;
+	std::exception_ptr caught;
+
+	cb_wrapper(const std::function<callable> &cb) : cb{cb}
+	{
+	}
+
+	template<typename ...Args> void operator()(Args && ...args)
+	{
+		if (caught)
+			return;
+		try {
+			cb(std::forward<Args>(args)...);
+		} catch (...)
+		{
+			caught=std::current_exception();
+		}
+	}
+
+	void rethrow()
+	{
+		if (caught)
+			std::rethrow_exception(caught);
+	}
+};
+#if 0
+{
+#endif
+}
+
+
 extern "C" {
 
 	static int iconv_trampoline(const char *str, size_t cnt, void *arg)
@@ -638,44 +678,6 @@ unicode::bidi_calc(const bidi_calc_types &st,
 	return ret;
 }
 
-namespace {
-#if 0
-}
-#endif
-template<typename callable>
-struct cb_wrapper {
-
-	const std::function<callable> &cb;
-	std::exception_ptr caught;
-
-	cb_wrapper(const std::function<callable> &cb) : cb{cb}
-	{
-	}
-
-	template<typename ...Args> void operator()(Args && ...args)
-	{
-		if (caught)
-			return;
-		try {
-			cb(std::forward<Args>(args)...);
-		} catch (...)
-		{
-			caught=std::current_exception();
-		}
-	}
-
-	void rethrow()
-	{
-		if (caught)
-			std::rethrow_exception(caught);
-	}
-};
-#if 0
-{
-#endif
-}
-
-
 extern "C" {
 	static void reorder_callback(size_t i, size_t cnt,
 				     void *arg)
@@ -991,6 +993,66 @@ std::u32string unicode::bidi_override(const std::u32string &s,
 	return ret;
 }
 
+typedef void bidi_combinings_callback_t(unicode_bidi_level_t,
+					  size_t level_start,
+					  size_t n_chars,
+					  size_t comb_start,
+					  size_t n_comb_chars);
+
+extern "C" {
+	static void bidi_combinings_trampoline(unicode_bidi_level_t level,
+					       size_t level_start,
+					       size_t n_chars,
+					       size_t comb_start,
+					       size_t n_comb_chars,
+					       void *arg)
+	{
+		(*reinterpret_cast<cb_wrapper<bidi_combinings_callback_t> *>
+		 (arg))(level, level_start, n_chars, comb_start, n_comb_chars);
+	}
+};
+
+void unicode::bidi_combinings(const std::u32string &string,
+			      const std::vector<unicode_bidi_level_t> &levels,
+			      const std::function<void (unicode_bidi_level_t,
+							size_t level_start,
+							size_t n_chars,
+							size_t comb_start,
+							size_t n_comb_chars)>
+			      &callback)
+{
+	if (string.size() != levels.size() || string.empty())
+		return;
+
+	cb_wrapper<bidi_combinings_callback_t> cb{callback};
+
+	unicode_bidi_combinings(&string[0], &levels[0],
+				  string.size(),
+				  bidi_combinings_trampoline,
+				  &cb);
+	cb.rethrow();
+}
+
+void unicode::bidi_combinings(const std::u32string &string,
+			      const std::function<void (unicode_bidi_level_t,
+							size_t level_start,
+							size_t n_chars,
+							size_t comb_start,
+							size_t n_comb_chars)>
+			      &callback)
+{
+	if (string.empty())
+		return;
+
+	cb_wrapper<bidi_combinings_callback_t> cb{callback};
+
+	unicode_bidi_combinings(&string[0], nullptr,
+				  string.size(),
+				  bidi_combinings_trampoline,
+				  &cb);
+	cb.rethrow();
+}
+
 void unicode::decompose_default_reallocate(std::u32string &s,
 					   const std::vector<std::tuple<size_t,
 					   size_t>> &v)
@@ -1012,7 +1074,7 @@ namespace {
 					  size_t>>)> &resizes;
 		std::exception_ptr caught;
 
-		void do_reallocate(struct unicode_decompose_info *info,
+		void do_reallocate(unicode_decomposition_t *info,
 				   const size_t *offsets,
 				   const size_t *sizes,
 				   size_t n)
@@ -1035,7 +1097,7 @@ namespace {
 
 extern "C" {
 
-	static int decompose_reallocate(struct unicode_decompose_info *info,
+	static int decompose_reallocate(unicode_decomposition_t *info,
 					const size_t *offsets,
 					const size_t *sizes,
 					size_t n)
@@ -1066,13 +1128,13 @@ void unicode::decompose(std::u32string &s,
 
 	decompose_info info={s, resizes};
 
-	unicode_decompose_info uinfo;
+	unicode_decomposition_t uinfo;
 
-	unicode_decompose_info_init(&uinfo, &s[0], s.size(), &info);
+	unicode_decomposition_init(&uinfo, &s[0], s.size(), &info);
 	uinfo.decompose_flags=decompose_flags;
 	uinfo.reallocate=decompose_reallocate;
 	int rc=unicode_decompose(&uinfo);
-	unicode_decompose_info_deinit(&uinfo);
+	unicode_decomposition_deinit(&uinfo);
 
 	if (info.caught)
 		std::rethrow_exception(info.caught);
@@ -1082,25 +1144,24 @@ void unicode::decompose(std::u32string &s,
 		throw std::bad_alloc();
 }
 
-void unicode::compose_default_callback(size_t, size_t, const char32_t *, size_t)
+void unicode::compose_default_callback(unicode_composition_t &)
 {
 }
 
 namespace {
 	struct comps_raii {
-		struct unicode_compositions *comps;
+		unicode_composition_t comps;
 
 		~comps_raii()
 		{
-			unicode_composition_deinit(comps);
+			unicode_composition_deinit(&comps);
 		}
 	};
 };
 
 void unicode::compose(std::u32string &s,
 		      int flags,
-		      const std::function<void (size_t, size_t,
-						const char32_t *, size_t)> &cb)
+		      const std::function<void (unicode_composition_t &)> &cb)
 {
 	if (s.empty())
 		return;
@@ -1109,15 +1170,10 @@ void unicode::compose(std::u32string &s,
 
 	if (unicode_composition_init(&s[0], s.size(), flags, &comps.comps))
 	{
-		comps.comps=nullptr;
 		throw std::bad_alloc(); /* The only reason */
 	}
 
-	for (auto ptr=comps.comps; ptr; ptr=ptr->next)
-	{
-		cb(ptr->index, ptr->n_composed,
-		   ptr->composition, ptr->n_composition);
-	}
+	cb(comps.comps);
 
-	s.resize(unicode_composition_apply(&s[0], s.size(), comps.comps));
+	s.resize(unicode_composition_apply(&s[0], s.size(), &comps.comps));
 }

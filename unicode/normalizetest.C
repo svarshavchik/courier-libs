@@ -91,12 +91,12 @@ void testdecompose()
 		for (i=0; (before[i]=t.before[i]) != 0; ++i)
 			     ;
 
-		struct unicode_decompose_info info;
+		unicode_decomposition_t info;
 
-		unicode_decompose_info_init(&info, before, (size_t)-1, NULL);
+		unicode_decomposition_init(&info, before, (size_t)-1, NULL);
 		info.decompose_flags=t.flags;
 		unicode_decompose(&info);
-		unicode_decompose_info_deinit(&info);
+		unicode_decomposition_deinit(&info);
 
 		if (info.string[info.string_size] != 0)
 		{
@@ -193,20 +193,6 @@ void testtablookup()
 		}
 	}
 
-}
-
-static int unicode_exclude(char32_t ch)
-{
-	return unicode_tab_lookup(ch,
-				  exclusion_starting_indextab,
-				  exclusion_starting_pagetab,
-				  sizeof(exclusion_starting_indextab)/
-				  sizeof(exclusion_starting_indextab[0]),
-				  exclusion_rangetab,
-				  sizeof(exclusion_rangetab)/
-				  sizeof(exclusion_rangetab[0]),
-				  NULL,
-				  0);
 }
 
 void testcompose1()
