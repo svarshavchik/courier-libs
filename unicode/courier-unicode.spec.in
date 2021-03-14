@@ -1,18 +1,18 @@
 Summary: Courier Unicode Library
 %if 0%{?compat:1}
-Name: courier-unicode%(echo @VERSION@ | tr -d '.')
+Name: courier-unicode%(echo @PACKAGE_VERSION@ | tr -d '.')
 
 %define __brp_ldconfig %{nil}
 
 %else
 Name: courier-unicode
 %endif
-Version: @VERSION@
+Version: @PACKAGE_VERSION@
 Release: 1%{?dist}%{?courier_release}
 License: GPLv3
 Group: System Environment/Libraries
 URL: http://www.courier-mta.org/unicode/
-Source: http://download.sourceforge.net/courier/courier-unicode-@VERSION@.tar.bz2
+Source: http://download.sourceforge.net/courier/courier-unicode-@PACKAGE_VERSION@.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: perl
 BuildRequires: gcc-c++
@@ -45,7 +45,7 @@ unicode library.
 %endif
 
 %prep
-%setup -q -n courier-unicode-@VERSION@
+%setup -q -n courier-unicode-@PACKAGE_VERSION@
 %configure
 %build
 %{__make} -s %{?_smp_mflags}
