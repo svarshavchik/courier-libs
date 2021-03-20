@@ -310,7 +310,7 @@ TLS_VERIFYPEER=NONE
 # problems with SSL clients.  Disable SSL caching by commenting out the
 # following settings:
 
-TLS_CACHEFILE=@localstatedir@/couriersslimapcache
+TLS_CACHEFILE=@localstatedir@/couriersslpop3cache
 TLS_CACHESIZE=524288
 
 ##NAME: TLS_ALPN:0
