@@ -729,20 +729,22 @@ void direction_test2()
 
 void composition_test()
 {
+	typedef std::tuple<unicode_bidi_level_t,
+			   size_t, size_t, size_t,
+			   size_t> results_t;
+
 	static const struct {
 		std::u32string str;
 		std::vector<unicode_bidi_level_t> levels;
-		std::vector<std::tuple<unicode_bidi_level_t,
-				       size_t, size_t, size_t,
-				       size_t>> results;
+		std::vector<results_t> results;
 	} tests[] = {
 		// Test 1
 		{
 			U"a\u0303\u0303b\u0303\u0303c",
 			{0, 0, 0, 0, 0, 0, 0},
 			{
-				{0, 0, 7, 1, 2},
-				{0, 0, 7, 4, 2},
+				results_t{0, 0, 7, 1, 2},
+				results_t{0, 0, 7, 4, 2},
 			}
 		},
 		// Test 2
@@ -750,8 +752,8 @@ void composition_test()
 			U"\u0303ab\u0303",
 			{0, 0, 0, 0},
 			{
-				{0, 0, 4, 0, 1},
-				{0, 0, 4, 3, 1},
+				results_t{0, 0, 4, 0, 1},
+				results_t{0, 0, 4, 3, 1},
 			}
 		},
 		// Test 3
@@ -759,8 +761,8 @@ void composition_test()
 			U"a\u0303\u0303b",
 			{0, 0, 1, 1},
 			{
-				{0, 0, 2, 1, 1},
-				{1, 2, 2, 2, 1},
+				results_t{0, 0, 2, 1, 1},
+				results_t{1, 2, 2, 2, 1},
 			}
 		},
 		// Test 4
@@ -768,8 +770,8 @@ void composition_test()
 			U"\u0303a\u0303a",
 			{0, 0, 0, 0},
 			{
-				{0, 0, 4, 0, 1},
-				{0, 0, 4, 2, 1},
+				results_t{0, 0, 4, 0, 1},
+				results_t{0, 0, 4, 2, 1},
 			}
 		},
 	};
