@@ -1,7 +1,7 @@
 #! @SHELL@
 #
 #
-# Copyright 1998 - 2004 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2021 Double Precision, Inc.  See COPYING for
 # distribution information.
 #
 # Generic wrapper for makedat.
@@ -83,10 +83,16 @@ get_access() {
 	then
 		if test "$srcfile" != "CVS"
 		then
-			find -L "$srcfile" -maxdepth 1 -type f -not -name "*~" -not -regex ".*\.dpkg-[a-z]*" -exec cat {} \;
+			find -L "$srcfile" -maxdepth 1 -type f -not -name "*~" -not -regex ".*\.dpkg-[a-z]*" -print |
+			while read F
+			do
+				@CAT@ "$F"
+				echo
+			done
 		fi
 	else
-		cat "$srcfile" || return
+		@CAT@ "$srcfile" || return
+		echo
 	fi
 	echo "."
 }
