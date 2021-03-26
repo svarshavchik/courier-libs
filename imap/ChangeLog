@@ -1,3 +1,5 @@
+5.1.2
+
 2021-03-25  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* make*: Individual files that did not end in a newline were
