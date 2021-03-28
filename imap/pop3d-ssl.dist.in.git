@@ -150,15 +150,6 @@ TLS_STARTTLS_PROTOCOL="$TLS_PROTOCOL"
 #
 # See the OpenSSL ciphers(1) manual page for the format of this setting.
 
-##NAME: TLS_STARTTLS_PROTOCOL:0
-#
-# TLS_STARTTLS_PROTOCOL is used instead of TLS_PROTOCOL for the IMAP STARTTLS
-# extension, as opposed to IMAP over SSL on port 993.
-#
-# It takes the same values for OpenSSL as TLS_PROTOCOL
-
-TLS_STARTTLS_PROTOCOL="$TLS_PROTOCOL"
-
 ##NAME: TLS_MIN_DH_BITS:0
 #
 # TLS_MIN_DH_BITS=n
