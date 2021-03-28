@@ -1672,9 +1672,9 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 		if (p->allow)
 			set_allow_variable(varname, p->msg);
 
-		if (replyp->next &&
-			!search_txt_records(&res, p->allow, varname, replyp->next,
-					hostname) && !p->allow)
+		if ((replyp->next == NULL ||
+		     !search_txt_records(&res, p->allow, varname, replyp->next,
+					    hostname)) && !p->allow)
 		{
 			size_t l=strlen(p->zone)+40;
 			char *buf=malloc(l+1);
