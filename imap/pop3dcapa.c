@@ -85,6 +85,33 @@ void pop3dcapa()
 	printf("TOP\r\nUSER\r\nLOGIN-DELAY 10\r\n"
 	       "PIPELINING\r\nUIDL\r\n"
 	       "UTF8 USER\r\n"
+	       "LANG\r\n"
 	       "IMPLEMENTATION Courier Mail Server\r\n.\r\n");
+	fflush(stdout);
+}
+
+void pop3dlang(const char *lang)
+{
+	if (!lang)
+	{
+		printf("+OK Language listing follows:\r\n"
+		       "en English\r\n"
+		       "i-default Default language\r\n"
+		       ".\r\n");
+		fflush(stdout);
+		return;
+	}
+
+	if (strcmp(lang, "*") == 0)
+		lang="en";
+
+	if (strcmp(lang, "en") == 0 ||
+	    strcmp(lang, "i-default") == 0)
+	{
+		printf("+OK %s King's English\r\n", lang);
+		fflush(stdout);
+		return;
+	}
+	printf("-ERR Language not available.\r\n");
 	fflush(stdout);
 }

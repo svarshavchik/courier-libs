@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2020 Double Precision, Inc.
+** Copyright 1998 - 2021 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -31,6 +31,7 @@
 
 
 extern void pop3dcapa();
+extern void pop3dlang(const char *);
 extern int have_starttls();
 extern int tls_required();
 extern const char *pop3_externalauth();
@@ -352,6 +353,10 @@ char *q ;
 			} else if (strcmp(p, "CAPA") == 0)
 			{
 				pop3dcapa();
+				continue;
+			} else if (strcmp(p, "LANG") == 0)
+			{
+				pop3dlang(strtok(0, "\r\n"));
 				continue;
 			} else if (strcmp(p, "STLS") == 0)
 			{
