@@ -5,10 +5,14 @@
 
 AlarmSleep::AlarmSleep(unsigned nseconds) : flag(0)
 {
+	sigset_t ss;
+
+	sigemptyset(&ss);
+
 	Set(nseconds);
 	do
 	{
-		sigpause(0);
+		sigsuspend(&ss);
 	} while (!flag);
 	Cancel();
 }

@@ -322,3 +322,24 @@ else
 fi
 
 rm -f testsuite?.filter testsuite.msg
+
+rm -f testsuite.dotlock
+cat >testmd <<EOF
+dotlock "testsuite.dotlock" {
+	EXITCODE=5
+	exit
+}
+EOF
+chmod 600 testmd
+./maildrop ./testmd </dev/null
+if test $? != 5
+then
+	echo "dotlock test did not exit with the correct exit code"
+	exit 1
+fi
+if test -f testsuite.dotlock
+then
+	echo "dotlock test did not clean up after itself"
+	exit 1
+fi
+rm -f testmd

@@ -866,7 +866,7 @@ RecipeNode	*c;
 		break;
 	case exit:
 		b="EXITCODE";
-		::exit ( GetVar(b)->Int("0") );
+		throw ( GetVar(b)->Int("0") );
 	case foreach:
 		if (!firstChild || !firstChild->nextSibling ||
 			( firstChild->nodeType != regexpr &&

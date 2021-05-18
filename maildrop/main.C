@@ -983,7 +983,12 @@ int	fd;
 		{
 			if (r.ParseRecipe(in) < 0)
 				return (EX_TEMPFAIL);
-			r.ExecuteRecipe();
+			try {
+				r.ExecuteRecipe();
+			} catch (int n)
+			{
+				::exit(0);
+			}
 		}
 	}
 
