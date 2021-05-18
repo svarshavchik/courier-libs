@@ -13,6 +13,13 @@
 #if	USE_LOCKF
 #include	"locklockf.c"
 #endif
+#if	HAVE_UNISTD_H
+#include	<unistd.h>
+#endif
+#include <sys/types.h>
+#if HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
 #include	<signal.h>
 #include	<stdlib.h>
 #include	<string.h>

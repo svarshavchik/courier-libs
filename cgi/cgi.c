@@ -50,11 +50,11 @@
 #include	<sys/stat.h>
 #include	"rfc2045/rfc2045.h"
 
-static void cgi_formdata(unsigned long);
-
-#ifndef	HAVE_STRNCASECMP
-extern int strncasecmp(const char *, const char *, size_t);
+#if HAVE_STRINGS_H
+#include	<strings.h>
 #endif
+
+static void cgi_formdata(unsigned long);
 
 static int cgiformfd;
 static char hascgiformfd=0;

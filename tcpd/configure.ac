@@ -208,9 +208,8 @@ AC_TRY_COMPILE( [
 #include <stropts.h>
 #include <fcntl.h>
 ],[ {
-        struct strfdinsert      ins;
-        queue_t                 *pointer;
-	int i=I_FDINSERT;
+	(void)(sizeof(struct strfdinsert) +
+	        sizeof(queue_t) + I_FDINSERT)
 }
 ], tcpd_cv_svr3=yes, tcpd_cv_svr3=no))
 
@@ -223,6 +222,7 @@ changequote(<<,>>)
 
 #include	<stdio.h>
 #include	<unistd.h>
+#include	<stdlib.h>
 
 int main(int argc, char **argv)
 {
@@ -328,7 +328,7 @@ then
 		AC_MSG_CHECKING(whether OpenSSL requires Kerberos)
 		AC_TRY_COMPILE( [
 #include <openssl/ssl.h>
-], [ int x=1; ], :,
+], [ ], :,
 		 [
 			KRBFLAGS=`$KRB5CONFIG --cflags`
 			CFLAGS="$CFLAGS $KRBFLAGS"
@@ -336,7 +336,7 @@ then
 
 			AC_TRY_COMPILE( [
 #include <openssl/ssl.h>
-], [ int x=1; ], [ KRBLIBS="`$KRB5CONFIG --libs`" ],
+], [ ], [ KRBLIBS="`$KRB5CONFIG --libs`" ],
    AC_MSG_ERROR(OpenSSL test build failed) )
 			]
 )
@@ -544,7 +544,7 @@ RAND_pseudo_bytes(dummy, 1);
 #include <openssl/rand.h>
 ],
 [
-char dummy[1];
+unsigned char dummy[1];
 unsigned char a[1], b[1];
 
 EVP_CIPHER_CTX *ctx=EVP_CIPHER_CTX_new();

@@ -60,8 +60,6 @@ AC_SUBST(COURIER_UNICODE_CXXFLAGS)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(setlocale)
-AC_CHECK_FUNC(strncasecmp,,CFLAGS="$CFLAGS -Dstrncasecmp=strnicmp")
-AC_CHECK_FUNC(strcasecmp,,CFLAGS="$CFLAGS -Dstrcasecmp=stricmp")
 
 AC_ARG_WITH(package, [], package="$withval",
 	[

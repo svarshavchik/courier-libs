@@ -74,7 +74,7 @@ AX_COURIER_UNICODE_CXXFLAGS
 AC_SUBST(COURIER_UNICODE_CXXFLAGS)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(symlink readlink strcasecmp utime utimes)
+AC_CHECK_FUNCS(symlink readlink utime utimes)
 
 AC_CHECK_FUNCS(inotify_init inotify_init1)
 

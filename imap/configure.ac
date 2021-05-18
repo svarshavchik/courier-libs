@@ -113,7 +113,7 @@ AC_SUBST(piddir)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(locale.h unistd.h sys/stat.h sys/wait.h time.h sys/time.h sys/utsname.h utime.h)
+AC_CHECK_HEADERS(locale.h unistd.h sys/stat.h sys/wait.h time.h sys/time.h sys/utsname.h utime.h strings.h)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
@@ -152,7 +152,7 @@ fi
 
 dnl Checks for library functions.
 
-AC_CHECK_FUNCS(strerror utime utimes strcasecmp strncasecmp setlocale poll getaddrinfo)
+AC_CHECK_FUNCS(strerror utime utimes setlocale poll getaddrinfo)
 
 AC_DEFINE_UNQUOTED(SOCKET_TIMEOUT,60,
 	[ Read/write timeout ])

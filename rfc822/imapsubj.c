@@ -10,19 +10,10 @@
 #include	<ctype.h>
 #include	<stdlib.h>
 #include	<string.h>
+#if	HAVE_STRINGS_H
+#include	<strings.h>
+#endif
 #include	"rfc822.h"
-
-#if	HAVE_STRCASECMP
-
-#else
-#define	strcasecmp	stricmp
-#endif
-
-#if	HAVE_STRNCASECMP
-
-#else
-#define	strncasecmp	strnicmp
-#endif
 
 /* Skip over blobs */
 

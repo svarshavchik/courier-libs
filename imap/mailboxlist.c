@@ -1006,13 +1006,7 @@ static void match_mailbox_prep(char *name)
 
 	/* First component, INBOX, is case insensitive */
 
-	if (
-#if	HAVE_STRNCASECMP
-	    strncasecmp(name, INBOX, sizeof(INBOX)-1) == 0
-#else
-	    strnicmp(name, INBOX, sizeof(INBOX)-1) == 0
-#endif
-	    )
+	if (strncasecmp(name, INBOX, sizeof(INBOX)-1) == 0)
 		for (i=0; name[i] && name[i] != HIERCH; i++)
 			name[i]=toupper( (int)(unsigned char)name[i] );
 

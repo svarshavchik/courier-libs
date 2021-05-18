@@ -52,12 +52,6 @@ static struct { const char *name; int num; } typetab[]={
 	{"UNIMPLEMENTED", 4},
 	{"REFUSED",	5}};
 
-#if HAVE_STRCASECMP
-#define	COMPARE(a,b)	strcasecmp((a), (b))
-#else
-#define	COMPARE(a,b)	stricmp((a), (b))
-#endif
-
 void rfc1035_type_itostr(int n, void (*func)(const char *, void *), void *arg)
 {
 	unsigned i;
@@ -82,7 +76,7 @@ int rfc1035_type_strtoi(const char *n)
 unsigned i;
 
 	for (i=0; i<sizeof(typetab)/sizeof(typetab[0]); i++)
-		if (COMPARE(typetab[i].name, n) == 0) return (typetab[i].num);
+		if (strcasecmp(typetab[i].name, n) == 0) return (typetab[i].num);
 	return (-1);
 }
 
@@ -100,7 +94,7 @@ int rfc1035_class_strtoi(const char *n)
 unsigned i;
 
 	for (i=0; i<sizeof(classtab)/sizeof(classtab[0]); i++)
-		if (COMPARE(classtab[i].name, n) == 0) return (classtab[i].num);
+		if (strcasecmp(classtab[i].name, n) == 0) return (classtab[i].num);
 	return (-1);
 }
 
@@ -118,8 +112,8 @@ int rfc1035_opcode_strtoi(const char *n)
 unsigned i;
 
 	for (i=0; i<sizeof(opcodetab)/sizeof(opcodetab[0]); i++)
-		if (COMPARE(opcodetab[i].name, n) == 0)
-				return (opcodetab[i].num);
+		if (strcasecmp(opcodetab[i].name, n) == 0)
+			return (opcodetab[i].num);
 	return (-1);
 }
 
@@ -137,7 +131,7 @@ int rfc1035_rcode_strtoi(const char *n)
 unsigned i;
 
 	for (i=0; i<sizeof(rcodetab)/sizeof(rcodetab[0]); i++)
-		if (COMPARE(rcodetab[i].name, n) == 0)
-				return (rcodetab[i].num);
+		if (strcasecmp(rcodetab[i].name, n) == 0)
+			return (rcodetab[i].num);
 	return (-1);
 }

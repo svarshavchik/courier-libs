@@ -57,9 +57,7 @@ then
 #include <ldap.h>
 ],
 [
-	LDAP *p=NULL;
-
-	ldap_search(p, "", 0, NULL, NULL, 0);
+	(void)ldap_err2string(0);
 ],
 [
 	:

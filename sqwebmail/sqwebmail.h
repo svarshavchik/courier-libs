@@ -79,14 +79,6 @@ extern void error3(const char *, int, const char *, const char *, int);
 extern char *strdup(const char *);
 #endif
 
-#ifndef	HAVE_STRCASECMP
-extern int strcasecmp(const char *, const char *);
-#endif
-
-#ifndef	HAVE_STRNCASECMP
-extern int strncasecmp(const char *, const char *, size_t);
-#endif
-
 extern void cleanup();
 
 extern void http_redirect_argu(const char *, unsigned long);

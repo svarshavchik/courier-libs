@@ -175,7 +175,7 @@ AC_SUBST(piddir)
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h sys/wait.h sys/select.h sys/uio.h sys/stat.h sys/time.h utime.h unistd.h locale.h crypt.h wchar.h)
+AC_CHECK_HEADERS(fcntl.h sys/wait.h sys/select.h sys/uio.h sys/stat.h sys/time.h utime.h unistd.h locale.h crypt.h wchar.h strings.h)
 
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
@@ -217,7 +217,7 @@ FILE	*fp=fopen("conftestval", "w");
 dnl Checks for library functions.
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(crypt utime utimes setreuid setlocale)
-AC_REPLACE_FUNCS(strdup strcasecmp strncasecmp)
+AC_REPLACE_FUNCS(strdup)
 
 AC_CACHE_CHECK([for crypt() prototype],sqwebmail_cv_NEED_CRYPT_PROTOTYPE,
 

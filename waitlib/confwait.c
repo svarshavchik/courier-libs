@@ -14,6 +14,7 @@
 #endif
 #include	<stdio.h>
 #include	<signal.h>
+#include	<stdlib.h>
 
 #if	HAVE_UNISTD_H
 #include	<unistd.h>

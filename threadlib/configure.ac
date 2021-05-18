@@ -76,7 +76,16 @@ AM_CONDITIONAL(HAVE_PTHREADS, test "$have_pthreads" != "no")
 
 AC_SUBST(THREADLIB)
 
-AC_CHECK_LIB(m, sqrt)
+AC_TRY_COMPILE([
+#include <math.h>
+
+double x()
+{
+    return sqrt(0);
+}],[
+], [
+   LIBS='-lm'
+])
 
 if test "$GCC" = "yes"
 then
