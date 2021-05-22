@@ -49,27 +49,4 @@ AC_SYS_LARGEFILE
 
 dnl Checks for library functions.
 
-AC_LANG_CPLUSPLUS
-AC_CACHE_CHECK([if the C++ compiler needs -fhandle-exceptions],
-	ac_cv_need_handlexceptions,
-
-AC_TRY_COMPILE([],
-[
-throw;
-], ac_cv_need_handlexceptions=no,
-ac_cv_need_handlexceptions=yes)
-)
-
-if test "$ac_cv_need_handlexceptions" = "yes"
-then
-	case "$CXXFLAGS" in
-	*handle-exceptions*)
-		;;
-	*)
-		CXXFLAGS="-fhandle-exceptions $CXXFLAGS"
-		CXXFLAGS=`echo "$CXXFLAGS" | sed 's/-O2//'`
-		;;
-	esac
-fi
-
 AC_OUTPUT(Makefile)

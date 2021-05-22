@@ -1,3 +1,7 @@
+2021-05-21  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Minor code tweaks, make it compleable with -Wall -Werror.
+
 6.0.6
 
 2021-02-19  Sam Varshavchik  <mrsam@courier-mta.com>

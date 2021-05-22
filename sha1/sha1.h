@@ -14,6 +14,9 @@
 #if	HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
+#if	HAVE_STDINT_H
+#include	<stdint.h>
+#endif
 
 #define	SHA1_DIGEST_SIZE	20
 #define	SHA1_BLOCK_SIZE		64

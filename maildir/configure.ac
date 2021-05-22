@@ -85,7 +85,7 @@ AC_TRY_COMPILE([
 #include	<unistd.h>
 #endif
 
-extern "C" int gethostname(int,int);
+extern int gethostname(int,int);
 ],[
 ],maildir_cv_SYS_GETHOSTNAME=yes,maildir_cv_SYS_GETHOSTNAME=no
 )

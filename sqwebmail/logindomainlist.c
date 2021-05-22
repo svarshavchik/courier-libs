@@ -31,13 +31,13 @@ static const char g_wc_en_mods[NUM_WC_EN_MODS][2] = { "@", "-" };
  * Created  : 03/03/03
  * Author   : JDG
  * Purpose  : Emulate the BSD strsep() function.
- * Notes    : 
- * This function is designed to emulate the BSD strsep function 
- * without introducing any doubts that it is a custom 
- * implementation. It's probably quite a bit slower than the 
- * original BSD strsep(), but it'll do for most purposes. 
- * mystrsep's functionality should be nearly identical to the 
- * BSD strsep, except that it takes an int as argument for the 
+ * Notes    :
+ * This function is designed to emulate the BSD strsep function
+ * without introducing any doubts that it is a custom
+ * implementation. It's probably quite a bit slower than the
+ * original BSD strsep(), but it'll do for most purposes.
+ * mystrsep's functionality should be nearly identical to the
+ * BSD strsep, except that it takes an int as argument for the
  * delimiter.
  * -------------------------------------------------------------- */
 static char *mystrsep( char **stringp, int delim )
@@ -49,16 +49,16 @@ static char *mystrsep( char **stringp, int delim )
 
 	/* Locate first occurance of delim in stringp */
 	*stringp=strchr(*stringp, delim);
-	
+
 	/* If no more delimiters were found, return the last substring */
 	if (*stringp == NULL) return orig_stringp;
 
 	/* Set that first occurance to NUL */
 	**stringp='\0';
-	
+
 	/* move pointer in front of NUL character */
 	++(*stringp);
-	
+
 	/* Return original value of *stringp */
 	return orig_stringp;
 
@@ -144,7 +144,7 @@ static int ldl_invalidstatement( char *statementp )
 {
 	const int TRUE = 1;
 	const int FALSE = 0;
-	
+
 	/* comments aren't valid statements */
 	if (statementp[0] == '#') return TRUE;
 
@@ -175,7 +175,7 @@ static int ldl_invalidstatement( char *statementp )
  *            If the substring afterwildcardp appears at the
  *            absolute end of realstringp, then afterwildcardp
  *            is deleted from realstringp.
- *            
+ *
  *            The string remaining in realstringp represents the
  *            contents of our wildcard character in
  *            wildcardedstringp.
@@ -189,12 +189,12 @@ static int ldl_invalidstatement( char *statementp )
  *            contents of realstringp with the following string:
  *
  *            example
- *            
+ *
  *            If no wildcard character exists in
  *            wildcardedstringp or if wildcardedstringp and
  *            realstringp don't match, extract_wildcardvalue()
  *            will return zero.
- *            
+ *
  *            Otherwise, extract_wildcardvalue() returns non
  *            zero.
  * -------------------------------------------------------------- */
@@ -210,9 +210,9 @@ static int extract_wildcardvalue( char *wildcardedstringp, char *realstringp, in
 		/* Copy argument to buffer so as not to modify the original. */
 		strcpy(wildcardedstring, wildcardedstringp);
 
-		/* create a pointer to a pointer of a copy*/	
+		/* create a pointer to a pointer of a copy*/
 		wildcardedstringpp = wildcardedstring;
-		
+
 
 		/* tokenize wildcardstring with '\0's */
 		beforewildcardp=mystrsep(&wildcardedstringpp, wildcard);
@@ -240,7 +240,7 @@ static int extract_wildcardvalue( char *wildcardedstringp, char *realstringp, in
 				 * However, this has the same effect as if we
 				 * had somehow "deleted" beforewildcardp from
 				 * the beginning of realstring. */
-				
+
 				p=realstringp;
 
 				while ((*p++= *tmpp++) != 0)
@@ -301,6 +301,18 @@ static int extract_wildcardvalue( char *wildcardedstringp, char *realstringp, in
 	}
 }
 
+static void cat_truncate(char *to, char *from, size_t maxn)
+{
+	size_t l=strlen(from);
+
+	if (l > maxn)
+		l=maxn;
+
+	while (*to)
+		++to;
+	memcpy(to, from, l);
+	to[l]=0;
+}
 
 /* --------------------------------------------------------------
  * Function : replace_wildcard()
@@ -316,16 +328,16 @@ static int replace_wildcard( char *wildcardedstringp, char *wildcardvaluep, int 
 	char *afterwildcardp;
 	char *wildcardedstringpp=NULL;
 
-	
+
 	/* Continue only if there is actually a wildcard in wildcardedstringp */
 	if (ldl_haswildcard(wildcardedstringp, wildcard)) {
 		/* Copy wildcardedstringp so as not to modify the original. */
 		strcpy(wildcardedstring, wildcardedstringp);
 
-		/* create a pointer to a pointer of a copy */	
+		/* create a pointer to a pointer of a copy */
 		wildcardedstringpp = wildcardedstring;
 
-		
+
 		/* tokenize first field */
 		beforewildcardp=mystrsep(&wildcardedstringpp, wildcard);
 		afterwildcardp=mystrsep(&wildcardedstringpp, wildcard);
@@ -341,15 +353,15 @@ static int replace_wildcard( char *wildcardedstringp, char *wildcardvaluep, int 
 		}
 
 		/* Add wildcardvaluep string to end of wildcardedstringp */
-		strncat(wildcardedstringp, wildcardvaluep,
-			LINELEN-1-strlen(wildcardedstringp));
+		cat_truncate(wildcardedstringp, wildcardvaluep,
+			     LINELEN-1-strlen(wildcardedstringp));
 
 		if (afterwildcardp != NULL &&
 		    strcmp(afterwildcardp, "") != 0)
 		{
 			/* Add afterwildcardp string to end of wildcardedstringp */
-			strncat(wildcardedstringp, afterwildcardp,
-				LINELEN-1-strlen(wildcardedstringp));
+			cat_truncate(wildcardedstringp, afterwildcardp,
+				     LINELEN-1-strlen(wildcardedstringp));
 		}
 
 		/* all is well */
@@ -368,12 +380,12 @@ static int replace_wildcard( char *wildcardedstringp, char *wildcardvaluep, int 
  * Modified : 04/07/03 by JDG
  * Author   : JDG
  * Purpose  : Retrieve default domain from 'LOGINDOMAINLIST' file
- *            using either 'SERVER_ADDR' or 'HTTP_HOST' CGI 
+ *            using either 'SERVER_ADDR' or 'HTTP_HOST' CGI
  *            variables.
- * Notes    : 
+ * Notes    :
  *
  * LOGINDOMAINLIST file can have the following format:
- * 
+ *
  * DOMAIN1:IP1:MODIFIER
  * DOMAIN2:DOMAIN3:MODIFIER
  * DOMAIN4:DOMAIN5:MODIFIER
@@ -430,7 +442,7 @@ static void get_defaultdomainfields( FILE *fp, char *domainp, char *modifyp)
 		for (count = 0; count < NUM_WC_EN_MODS; count++)
 		{
 			const char *current_modifier = &g_wc_en_mods[count][0];
-		
+
 			/* If this record is using wildcard domain mapping... */
 			if (strcmp(thirdfield, current_modifier) == 0)
 			{
@@ -479,7 +491,7 @@ static void get_defaultdomainfields( FILE *fp, char *domainp, char *modifyp)
 						strcpy(finaldomain, secondfield);
 					}
 
-					
+
 					/* seed tempbuf with contents of firstfield */
 					strcpy(tempbuf, firstfield);
 
@@ -515,7 +527,7 @@ static void get_defaultdomainfields( FILE *fp, char *domainp, char *modifyp)
 			}
 		}
 
-			
+
 		/* This is reached if the third field (modifier) is NOT a wildcard */
 		/* compare second field against CGI variables */
 		if (strcmp(secondfield, serveraddr) == 0 ||
@@ -539,7 +551,7 @@ static void get_defaultdomainfields( FILE *fp, char *domainp, char *modifyp)
  * Notes    : none
  * -------------------------------------------------------------- */
 static void ldl_displayhiddenfield( char *defaultdomainp) {
-	
+
 	if (strlen(defaultdomainp) > 0)
 	{
 		/* This is displayed only if defaultdomain is NOT
@@ -564,7 +576,7 @@ static void ldl_displayhiddenfield( char *defaultdomainp) {
  * Notes    : none
  * -------------------------------------------------------------- */
 static void ldl_displaytextfield( char *defaultdomainp) {
-	
+
 	if (strlen(defaultdomainp) > 0)
 	{
 		/* This is displayed only if defaultdomain is NOT
@@ -594,7 +606,7 @@ static void ldl_displaytextfield( char *defaultdomainp) {
 static void ldl_displaydropdown( FILE *fp, char *defaultdomainp, char *defaultgroupp) {
 
 	char buf[LINELEN];
-	
+
 	/* This is a flag that is toggled once the first match has been
 	 * made. */
 	int firstmatch=0;
@@ -650,7 +662,7 @@ static void ldl_displaydropdown( FILE *fp, char *defaultdomainp, char *defaultgr
 							firstfield, firstfield);
 				}
 			}
-		}	
+		}
 	}
 
 	/* Display a closing select tag only if we displayed
@@ -673,7 +685,7 @@ void print_logindomainlist( FILE *fp )
 	char modifierfield[LINELEN]="";
 
 	/* get default domain field and the corresponding default
-	 * group field (if applicable) from fp. */	
+	 * group field (if applicable) from fp. */
 	get_defaultdomainfields(fp, defaultdomain, modifierfield);
 
 
@@ -693,7 +705,7 @@ void print_logindomainlist( FILE *fp )
 		/* ----------------------
 		 * DISPLAY HIDDEN FIELD
 		 * ---------------------- */
-		
+
 		ldl_displayhiddenfield(defaultdomain);
 	}
 	else if (strcmp(modifierfield, "-") == 0)

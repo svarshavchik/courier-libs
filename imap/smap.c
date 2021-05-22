@@ -3245,6 +3245,7 @@ void smap()
 			while (*(p=getword(&ptr)))
 			{
 				char *q=strchr(p, '=');
+				char *comma=q;
 
 				if (q)
 					*q++=0;
@@ -3335,7 +3336,7 @@ void smap()
 				{
 					memset(&add_flags, 0,
 					       sizeof(add_flags));
-					*--q='=';
+					*(q=comma)='=';
 					parseflags(q, &add_flags);
 
 					if (strchr(rights_buf,
@@ -3370,7 +3371,7 @@ void smap()
 						write_error_exit(0);
 					}
 
-					*--q='=';
+					*(q=comma)='=';
 					parsekeywords(q, &addKeywords);
 					okmsg="KEYWORDS set";
 				}

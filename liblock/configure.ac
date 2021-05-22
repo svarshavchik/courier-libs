@@ -42,8 +42,8 @@ AC_CACHE_CHECK( [for off64_t], liblock_cv_hasoff64t,
 liblock_cv_hasoff64t="no"
 AC_TRY_COMPILE([
 #include <sys/types.h>
-],[
 off64_t	n;
+],[
 
 	n=0;
 ], liblock_cv_hasoff64t="yes")
@@ -72,8 +72,8 @@ AC_TRY_COMPILE([
 #if     HAVE_SYS_FCNTL_H
 #include        <sys/fcntl.h>
 #endif
-],[
 flock_t t;
+],[
 ], liblock_cv_hasflock_t="yes"))
 
 if test "$liblock_cv_hasflock_t" = "yes"
@@ -95,8 +95,8 @@ liblock_cv_hasfcntl="no"
 AC_TRY_LINK([
 #define	LL_OFFSET_TYPE	$LL_OFFSET_TYPE
 #include "${srcdir}/lockfcntl.c"
-],[
 int n;
+],[
 ], liblock_cv_hasfcntl="yes"))
 if test "$liblock_cv_hasfcntl" = "yes"
 then
@@ -109,8 +109,8 @@ liblock_cv_hasflock="no"
 AC_TRY_LINK([
 #define	LL_OFFSET_TYPE	$LL_OFFSET_TYPE
 #include "${srcdir}/lockflock.c"
-],[
 int n;
+],[
 ], liblock_cv_hasflock="yes"))
 if test "$liblock_cv_hasflock" = "yes"
 then
@@ -123,8 +123,8 @@ liblock_cv_haslockf="no"
 AC_TRY_LINK([
 #define	LL_OFFSET_TYPE	$LL_OFFSET_TYPE
 #include "${srcdir}/locklockf.c"
-],[
 int n;
+],[
 ], liblock_cv_haslockf="yes"))
 if test "$liblock_cv_haslockf" = "yes"
 then

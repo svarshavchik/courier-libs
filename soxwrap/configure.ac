@@ -124,12 +124,12 @@ AC_TRY_COMPILE( [
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-        ], [
 struct in6_addr in6a;
 struct sockaddr_in6 sain6;
 struct sockaddr_storage soas;
 int x=PF_INET6;
+
+        ], [
 
 	], soxwrap_cv_hasipv6structs=yes,
                 soxwrap_cv_hasipv6structs=no )

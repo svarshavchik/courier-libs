@@ -312,8 +312,13 @@ char	ptrbuf[RFC1035_MAXNAMESIZE+1];
 	{
 		char namebuf[RFC1035_MAXNAMESIZE+1];
 
-		namebuf[0]=0;
-		strncat(namebuf, q_name, RFC1035_MAXNAMESIZE);
+		size_t l=strlen(q_name);
+
+		if (l > RFC1035_MAXNAMESIZE)
+			l=RFC1035_MAXNAMESIZE;
+
+		memcpy(namebuf, q_name, l);
+		namebuf[l]=0;
 
 		if (rfc1035_resolve_cname_multiple(&res, namebuf,
 						   q_type, q_class,

@@ -27,7 +27,7 @@ noinst_DATA=$(DOCS) TIMEZONELIST
 #  bin_PROGRAMS in install-exec-local, otherwise make distcheck will fail.
 #
 
-noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml
+noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../rfc2045/librfc2045.la ../rfc822/librfc822.la \
@@ -71,7 +71,7 @@ EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	 sqwebmail-system-auth2.pamconf\
            strdup.c strcasecmp.c strncasecmp.c sv-make_timezonelist.pl\
            $(ISPELLSOURCES) \
-	testhtml.tst testhtml.txt
+	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.c
 testhtml_LDADD=libwebmail.la
@@ -216,6 +216,8 @@ cache-reminder:
 	@echo '' >>sqwebmail.msg
 	@echo '' >>sqwebmail.msg
 
+testlogindomainlist_SOURCES=testlogindomainlist.c logindomainlist.c
 
 check-am:
 	./testhtml <$(srcdir)/testhtml.tst | diff -U 3 $(srcdir)/testhtml.txt -
+	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -

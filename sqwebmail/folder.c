@@ -1615,7 +1615,7 @@ static void init_smileys(struct msg2html_info *info)
 	FILE *fp=open_langform(sqwebmail_content_language, "smileys.txt", 0);
 	char buf[1024];
 
-	char imgbuf[1024];
+	char imgbuf[3000];
 
 	if (!fp)
 		return;

@@ -35,7 +35,7 @@ dnl Checks for libraries.
 dnl Checks for header files.
 AC_HEADER_STDC
 
-AC_CHECK_HEADERS(sys/types.h)
+AC_CHECK_HEADERS(sys/types.h stdint.h)
 
 
 AC_ARG_WITH(int32,
@@ -49,8 +49,11 @@ AC_ARG_WITH(int32,
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
+#if HAVE_STDINT_H
+#include	<stdint.h>
+#endif
+uint32_t i;
 		],[
-			uint32_t	i=0;
 		], [ AC_MSG_RESULT(yes) ; int32="uint32_t"], [
 
 		AC_MSG_RESULT(no)
@@ -60,8 +63,11 @@ AC_ARG_WITH(int32,
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
+#if HAVE_STDINT_H
+#include	<stdint.h>
+#endif
+u_int32_t	i;
 			],[
-				u_int32_t	i=0;
 			], [AC_MSG_RESULT(yes); int32="u_int32_t"],[
 
 			AC_MSG_RESULT(no)

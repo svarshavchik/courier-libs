@@ -568,11 +568,13 @@ RAND_bytes(dummy, 1);
 
 		AC_TRY_COMPILE( [
 #include <openssl/ssl.h>
+
+SSL *p;
 ],
 [
-SSL_get_servername((SSL *)0, TLSEXT_NAMETYPE_host_name);
+(void)SSL_get_servername(p, TLSEXT_NAMETYPE_host_name);
 ], [
-                AC_DEFINE_UNQUOTED(HAVE_OPENSSL_SNI,1,[ When OpenSSL supports SNI ])
+                AC_DEFINE_UNQUOTED(HAVE_OPENSSL_SNI,1,[ Whether OpenSSL supports SNI ])
 		])
 
 		TLSLIBRARY="$LIBCOURIERTLSOPENSSL"

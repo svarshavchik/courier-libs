@@ -24,6 +24,9 @@ extern "C" {
 #include	<sys/types.h>
 #endif
 
+#if	HAVE_STDINT_H
+#include	<stdint.h>
+#endif
 #define	MD5_DIGEST_SIZE	16
 #define	MD5_BLOCK_SIZE	64
 

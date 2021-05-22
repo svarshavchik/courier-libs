@@ -1,0 +1,8 @@
+<input type="hidden" name="logindomain" value="courier-mta.com" />@courier-mta.com
+<input type="hidden" name="logindomain" value="courier-mta.com" />@courier-mta.com
+<input type="hidden" name="logindomain" value="courier-mta.com" />@courier-mta.com
+@<select name="logindomain"><option value="">&nbsp;</option>
+<option value="courier-mta.com" selected="selected">courier-mta.com</option>
+<option value="courier-mta.net">courier-mta.net</option>
+<option value="courier-mta.org">courier-mta.org</option>
+</select>

@@ -1605,9 +1605,13 @@ static void docheckblocklist(struct blocklist_s *p, const char *nameptr)
 	int found;
 	unsigned char query_A[] = {RFC1035_TYPE_A, 0},
 		query_A_and_TXT[] = {RFC1035_TYPE_A, RFC1035_TYPE_TXT, 0};
+	size_t l=strlen(nameptr);
 
-	hostname[0]=0;
-	strncat(hostname, nameptr, RFC1035_MAXNAMESIZE);
+	if (l > RFC1035_MAXNAMESIZE)
+		l=RFC1035_MAXNAMESIZE;
+
+	memcpy(hostname, nameptr, l);
+	hostname[l]=0;
 
 	if (!varname)	varname="BLOCK";
 
