@@ -2414,16 +2414,6 @@ static void logoutmsg()
 
 void bye()
 {
-	if (current_temp_fd >= 0)
-		close(current_temp_fd);
-	if (current_temp_fn)
-		unlink(current_temp_fn);
-
-	if (current_mailbox)
-		free(current_mailbox);
-	imapscan_free(&current_maildir_info);
-	maildirwatch_cleanup();
-	fetch_free_cached();
 	exit(0);
 }
 
