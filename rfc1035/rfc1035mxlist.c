@@ -382,6 +382,12 @@ int seen_good=0;
 			replyp->allrrs[index]->rr.mx.mx_label, mxname) == 0)
 			continue;
 
+		if (*mxname == 0) /* MX . */
+		{
+			rfc1035_replyfree(replyp);
+			return (RFC1035_MX_NONE);
+		}
+
 		switch (add_arecords(res, list, replyp,
 				     replyp->allrrs[index]->rr.mx.preference,
 				     mxname,

@@ -24,6 +24,7 @@ extern "C" {
 #define	RFC1035_MX_HARDERR	2	/* Hard DNS error */
 #define	RFC1035_MX_INTERNAL	3	/* Internal library error */
 #define	RFC1035_MX_BADDNS	4	/* Bad DNS records */
+#define RFC1035_MX_NONE		5	/* "MX ." record */
 
 struct rfc1035_mxlist {
 	struct rfc1035_mxlist *next;
