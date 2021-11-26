@@ -159,7 +159,7 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_HEADER_DIRENT
-AC_CHECK_HEADERS(fcntl.h memory.h sys/file.h sys/time.h sys/stat.h unistd.h strings.h locale.h pcre.h pcre/pcre.h)
+AC_CHECK_HEADERS(fcntl.h memory.h sys/file.h sys/time.h sys/stat.h unistd.h strings.h locale.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_MODE_T
@@ -299,6 +299,13 @@ then
 	QMAIL="/var/qmail/bin/qmail-inject"
 else
 	AC_CHECK_PROG(QMAIL,qmail-inject,qmail-inject,)
+fi
+
+AC_CHECK_PROG(PCRE2, pcre2-config, yes, no)
+
+if test "$PCRE2" = "no"
+then
+	AC_MSG_ERROR([pcre2 library not found])
 fi
 
 dnl Try to find sendmail.

@@ -12,21 +12,16 @@
 
 void Search::cleanup()
 {
-	if (pcre_regexp_extra)
+	if (match_data)
 	{
-		pcre_free(pcre_regexp_extra);
-		pcre_regexp_extra=NULL;
-	}
-	if (pcre_regexp)
-	{
-		pcre_free(pcre_regexp);
-		pcre_regexp=NULL;
+		pcre2_match_data_free(match_data);
+		match_data=NULL;
 	}
 
-	if (pcre_vectors)
+	if (pcre_regexp)
 	{
-		free(pcre_vectors);
-		pcre_vectors=NULL;
+		pcre2_code_free(pcre_regexp);
+		pcre_regexp=NULL;
 	}
 }
 
@@ -51,69 +46,55 @@ int	Search::init(const char *expr, const char *opts)
 		if (strchr(opts, 'w'))	match_body=1;
 	}
 
-	const char *errptr;
+	int errcode;
 
 	cleanup();
 
-	int errindex;
+	PCRE2_SIZE errindex;
 
-	pcre_regexp=pcre_compile(expr,
-				 PCRE_UTF8 | (strchr(opts, 'D') ? 0:PCRE_CASELESS),
-				 &errptr,
-				 &errindex, 0);
+	pcre_regexp=pcre2_compile((PCRE2_SPTR8)expr,
+				  PCRE2_ZERO_TERMINATED,
+				  PCRE2_UTF | (strchr(opts, 'D') ? 0:PCRE2_CASELESS),
+				  &errcode,
+				  &errindex,
+				  NULL);
 
 	if (!pcre_regexp)
 	{
 		Buffer b;
+
+		PCRE2_UCHAR buffer[256];
+		pcre2_get_error_message(errcode, buffer, sizeof(buffer));
 
 		b="Invalid regular expression, offset ";
 		b.append((unsigned long)errindex);
 		b += " of: ";
 		b += expr;
 		b += ": ";
-		b += errptr;
+		b += (char *)buffer;
 		b += "\n";
 		b += '\0';
 		merr.write(b);
 		return -1;
 	}
 
-	pcre_regexp_extra=pcre_study(pcre_regexp, 0, &errptr);
+	match_data= pcre2_match_data_create_from_pattern(
+		pcre_regexp, NULL
+	);
 
-	if (errptr)
+	if (!match_data)
 	{
 		Buffer b;
 
-		b="Error parsing regular expression: ";
+		b="Failed to create match data for: ";
 		b += expr;
-		b += ": ";
-		b += errptr;
 		b += "\n";
 		b += '\0';
 		merr.write(b);
+		cleanup();
 		return -1;
 	}
-
 	search_expr=expr;
-	int cnt=0;
-
-	pcre_fullinfo(pcre_regexp, pcre_regexp_extra,
-		      PCRE_INFO_CAPTURECOUNT, &cnt);
-
-	pcre_vector_count=(cnt+1)*3;
-
-	pcre_vectors=(int *)malloc(pcre_vector_count*sizeof(int));
-
-	if (!pcre_vectors)
-	{
-		Buffer b;
-
-		b=strerror(errno);
-		b += "\n";
-		b += '\0';
-		merr.write(b);
-		return -1;
-	}
 
 	while (*opts)
 	{
@@ -166,30 +147,40 @@ int Search::find(const char *str, const char *expr, const char *opts,
 
 	int startoffset=0;
 	const char *orig_str=str;
-	int match_count=0;
 
 	for (;;)
 	{
-		match_count=pcre_exec(pcre_regexp, pcre_regexp_extra,
-				      orig_str, strlen(orig_str),
-				      startoffset,
-				      0,
-				      pcre_vectors,
-				      pcre_vector_count);
-		if (match_count <= 0)
+		int rc=pcre2_match(pcre_regexp,
+				   (PCRE2_SPTR8)orig_str,
+				   strlen(orig_str),
+				   startoffset,
+				   0,
+				   match_data,
+				   NULL);
+
+		if (rc < 0 )
 			break;
-		startoffset=pcre_vectors[1];
+
+
+		PCRE2_SIZE *ovector=pcre2_get_ovector_pointer(match_data);
+		uint32_t ovector_count=pcre2_get_ovector_count(match_data);
 
 		score += weight1;
 		weight1 *= weight2;
 
 		if (!scoring_match || foreachp)
 		{
-			init_match_vars(orig_str, match_count,
-					pcre_vectors, foreachp);
+			init_match_vars(orig_str, ovector, ovector_count,
+					foreachp);
 			if (!foreachp)
 				break;
 		}
+
+		if (!ovector || ovector_count <= 0)
+			break;
+
+		startoffset=ovector[1];
+
 	}
 	return (0);
 }
@@ -263,27 +254,32 @@ int Search::search_cb(const char *ptr, size_t cnt)
 			}
 
 			const char *orig_str=current_line;
-			int match_count;
 
-			match_count=pcre_exec(pcre_regexp,
-					      pcre_regexp_extra,
-					      orig_str,
-					      strlen(orig_str),
-					      0,
-					      0,
-					      pcre_vectors,
-					      pcre_vector_count);
+			int rc=pcre2_match(pcre_regexp,
+					   (PCRE2_SPTR8)orig_str,
+					   strlen(orig_str),
+					   0,
+					   0,
+					   match_data,
+					   NULL);
 
-			if (match_count > 0)
+			if (rc >= 0)
 			{
 				score += weight1;
 				weight1 *= weight2;
 
 				if (!scoring_match || foreachp_arg)
 				{
+					PCRE2_SIZE *ovector=
+						pcre2_get_ovector_pointer(
+							match_data);
+					uint32_t ovector_count=
+						pcre2_get_ovector_count(
+							match_data);
+
 					init_match_vars(orig_str,
-							match_count,
-							pcre_vectors,
+							ovector,
+							ovector_count,
 							foreachp_arg);
 					if (!foreachp_arg)
 						// Stop searching now
@@ -311,11 +307,16 @@ int Search::search_cb(const char *ptr, size_t cnt)
 	return (0);
 }
 
-void Search::init_match_vars(const char *str, int nranges, int *offsets,
+void Search::init_match_vars(const char *str,
+			     PCRE2_SIZE *offsets,
+			     uint32_t nranges,
 			     Buffer *foreachp)
 {
 	Buffer varname;
-	int cnt;
+	uint32_t cnt;
+
+	if (!offsets)
+		return;
 
 	for (cnt=0; cnt<nranges; cnt++)
 	{

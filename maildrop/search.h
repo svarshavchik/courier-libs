@@ -4,11 +4,9 @@
 
 #include	"buffer.h"
 
-#if	HAVE_PCRE_H
-#include	<pcre.h>
-#else
-#include	<pcre/pcre.h>
-#endif
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <pcre2.h>
 
 ////////////////////////////////////////////////////////////////////////////
 //
@@ -42,10 +40,8 @@ class Message;
 
 class Search {
 
-	pcre	*pcre_regexp;
-	pcre_extra *pcre_regexp_extra;
-	int	*pcre_vectors;
-	size_t	pcre_vector_count;
+	pcre2_code *pcre_regexp;
+	pcre2_match_data *match_data;
 
 	Buffer	current_line;
 	Buffer	next_line;
@@ -62,8 +58,8 @@ public:
 	double	score;	// For weighted scoring.  Without scoring, this is
 			// either 0, or 1.
 
-	Search() : pcre_regexp(NULL), pcre_regexp_extra(NULL),
-		pcre_vectors(NULL)	{}
+	Search() : pcre_regexp(NULL),
+		   match_data(NULL) {}
 	~Search()	{ cleanup(); }
 	int find(Message &, MessageInfo &, const char *, const char *,
 		Buffer *);
@@ -71,8 +67,10 @@ public:
 private:
 	int findinline(Message &, const char *, Buffer *);
 	int findinsection(Message &, const char *, Buffer *);
-	void init_match_vars(const char *, int, int *, Buffer *);
-
+	void init_match_vars(const char *,
+			     PCRE2_SIZE *,
+			     uint32_t,
+			     Buffer *);
 	Buffer search_expr;
 	Buffer *foreachp_arg;
 	static int search_cb(const char *ptr, size_t cnt, void *arg);

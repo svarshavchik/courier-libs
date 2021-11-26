@@ -3,7 +3,7 @@
 # distribution information.
 
 
-AM_CPPFLAGS=@AUTHINCLUDE@
+AM_CPPFLAGS := @AUTHINCLUDE@ `pcre2-config --cflags`
 
 DISTCLEANFILES=uidgid testmailbot.*
 CLEANFILES=maildrop.html maildrop.1 maildropfilter.7 maildropfilter.html
@@ -46,8 +46,8 @@ maildrop_SOURCES=deliver.C deliverdotlock.C deliverdotlock.h \
 
 maildrop_DEPENDENCIES = libmdcommon.la
 
-maildrop_LDADD = libmdcommon.la @AUTHLDADD@ -lpcre
-maildrop_LDFLAGS=
+maildrop_LDADD = libmdcommon.la @AUTHLDADD@
+maildrop_LDFLAGS= `pcre2-config --libs8`
 
 reformail_SOURCES=reformail.C
 reformail_LDADD = libmdcommon.la
