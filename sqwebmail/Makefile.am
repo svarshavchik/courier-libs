@@ -96,8 +96,8 @@ sqwebmaild_SOURCES=acl.c acl.h \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
 
-sqwebmaild_LDADD=libwebmail.la @NETLIBS@ @LDAUTH@ -lcourierauth -lpcre
-sqwebmaild_DEPENDENCIES=libwebmail.la
+sqwebmaild_LDADD=libwebmail.la @NETLIBS@ @LDAUTH@ -lcourierauth `cat ../maildir/libmaildir.deps`
+sqwebmaild_DEPENDENCIES=libwebmail.la ../maildir/libmaildir.deps
 
 sqwebmail_SOURCES=sqwebmaild.c
 sqwebmail_DEPENDENCIES= ../cgi/libcgi.la

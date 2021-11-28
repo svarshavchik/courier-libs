@@ -26,13 +26,9 @@
 #define	EX_SOFTWARE	70
 #endif
 
-#if	HAVE_PCRE_H
-#include	<pcre.h>
-#else
-#if	HAVE_PCRE_PCRE_H
-#include	<pcre/pcre.h>
-#define HAVE_PCRE_H	1
-#endif
+#if	HAVE_PCRE2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include	<pcre2.h>
 #endif
 
 #if	HAVE_SYS_STAT_H
@@ -331,24 +327,25 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 			++c;
 		}
 
-#if HAVE_PCRE_H
+#if HAVE_PCRE2
 		switch (type) {
 		case contains:
 		case startswith:
 		case endswith:
 			{
-				const char *errptr;
-				int errindex;
+				int errcode;
+				PCRE2_SIZE errindex;
+				pcre2_code *pcre_regexp=
+					pcre2_compile((PCRE2_SPTR8)value,
+						      PCRE2_ZERO_TERMINATED,
+						      PCRE2_UTF,
+						      &errcode,
+						      &errindex,
+						      NULL);
 
-				pcre *p=pcre_compile(value, PCRE_UTF8,
-						     &errptr,
-						     &errindex,
-						     0);
-
-
-				if (p == NULL)
+				if (pcre_regexp == NULL)
 					return -1;
-				pcre_free(p);
+				pcre2_code_free(pcre_regexp);
 			}
 			break;
 		default:

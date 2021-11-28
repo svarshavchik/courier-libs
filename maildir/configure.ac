@@ -47,15 +47,18 @@ dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_HEADERS(sys/stat.h sys/wait.h fcntl.h unistd.h sysexits.h utime.h pcre.h pcre/pcre.h)
+AC_CHECK_HEADERS(sys/stat.h sys/wait.h fcntl.h unistd.h sysexits.h utime.h)
 
-AC_CHECK_HEADER([pcre.h],
-		[LIBPCRE=-lpcre])
+AC_CHECK_PROG(PCRE2, pcre2-config, yes, no)
 
-AC_CHECK_HEADER([pcre/pcre.h],
-		[LIBPCRE=-lpcre])
-
-AC_SUBST(LIBPCRE)
+if test "$PCRE2" = "yes"
+then
+	AC_DEFINE_UNQUOTED(HAVE_PCRE2,1,[Whether the pcre library was detected])
+	PCRE_LDFLAGS="`pcre2-config --libs8`"
+	PCRE_CFLAGS="`pcre2-config --cflags`"
+fi
+AC_SUBST(PCRE_LDFLAGS)
+AC_SUBST(PCRE_CFLAGS)
 
 AC_HEADER_SYS_WAIT
 

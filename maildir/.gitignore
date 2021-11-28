@@ -6,6 +6,7 @@
 /deliverquota.8.in
 /deliverquota.html
 /deliverquota.html.in
+/libmaildir.deps
 /mailbot.h
 /maildir.5
 /maildir.html

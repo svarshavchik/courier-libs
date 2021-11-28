@@ -305,7 +305,7 @@ AC_CHECK_PROG(PCRE2, pcre2-config, yes, no)
 
 if test "$PCRE2" = "no"
 then
-	AC_MSG_ERROR([pcre2 library not found])
+	AC_MSG_ERROR([pcre2-config was not found, please install PCRE2])
 fi
 
 dnl Try to find sendmail.

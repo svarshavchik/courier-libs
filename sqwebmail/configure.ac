@@ -88,6 +88,13 @@ else
 fi
 AC_SUBST(pkglibexecdir)
 
+AC_CHECK_PROG(PCRE2, pcre2-config, yes, no)
+
+if test "$PCRE2" = "no"
+then
+	AC_MSG_ERROR([pcre2-config was not found, please install PCRE2])
+fi
+
 AC_ARG_WITH(ispell,
 [  --without-ispell      Do not compile ispell support
   --with-ispell=prog    Pathname to ispell (if not in default path)],
