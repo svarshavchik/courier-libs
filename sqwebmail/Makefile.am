@@ -122,7 +122,7 @@ sqwebmaild_DEPENDENCIES=libwebmail.la ../maildir/libmaildir.deps \
 	$(COMMONDEPENDENCIES)
 nodist_EXTRA_sqwebmaild_SOURCES=forcecpp.cc
 
-sqwebmail_SOURCES=sqwebmaild.c
+sqwebmail_SOURCES=sqwebmaild.C
 sqwebmail_DEPENDENCIES= ../cgi/libcgi.la
 sqwebmail_LDADD=@NETLIBS@ ../cgi/libcgi.la
 sqwebmail_LDFLAGS=-static

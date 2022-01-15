@@ -14,8 +14,24 @@
 #include <cstring>
 #include <courier-unicode.h>
 
+namespace maildir {
+#if 0
+}
+#endif
+
+struct info {
+	int mailbox_type=MAILBOXTYPE_ERROR;
+	char *homedir;
+	char *maildir;
+	char *owner;
+
+	operator bool() const
+	{
+		return mailbox_type != MAILBOXTYPE_ERROR;
+	}
+};
+
 struct imap_find_shared {
-	struct maildir_info *info;
 	const char *path;
 	size_t path_l;
 
@@ -41,10 +57,12 @@ static int imap_find_cb(struct maildir_newshared_enum_cb *cb)
 	return 0;
 }
 
-extern "C" int maildir_info_imap_find(struct maildir_info *info,
-				      const char *path,
-				      const char *myId)
+info info_imap_find(const char *path,
+		    const char *myId)
 {
+	info ret;
+	info *info=&ret;
+
 	const char *p;
 	imap_find_shared ifs;
 	std::string indexfile;
@@ -58,14 +76,14 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 	if (strchr(path, '/'))
 	{
 		errno=EINVAL;
-		return -1;
+		return ret;
 	}
 
 	for (p=path; *p; p++)
 		if (*p == '.' && p[1] == '.')
 		{
 			errno=EINVAL;
-			return -1;
+			return ret;
 		}
 
 	if (strncmp(path, SHARED, sizeof(SHARED)-1) == 0)
@@ -74,15 +92,15 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 
 		info->homedir=strdup(".");
 		if (!info->homedir)
-			return -1;
+			return ret;
 
 		info->mailbox_type=MAILBOXTYPE_OLDSHARED;
 		info->owner=strdup("anonymous");
 
 		if (!info->owner)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		/* We need to specialcase "shared" and "shared.name".
@@ -96,12 +114,12 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 
 		if (*path && *path != '.')
 		{
-			maildir_info_destroy(info);
 			errno=EINVAL;
-			return -1;
+			ret={};
+			return ret;
 		}
 
-		return 0;
+		return ret;
 	}
 
 	if (strncasecmp(path, INBOX, sizeof(INBOX)-1) == 0)
@@ -112,42 +130,39 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 			break;
 		default:
 			errno=EINVAL;
-			return -1;
+			return ret;
 		}
 
 		info->homedir=strdup(".");
 
 		if (!info->homedir)
-			return -1;
+			return ret;
 
 		info->maildir=strdup(path);
 		if (!info->maildir)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			return ret;
 		}
 
 		info->owner=(char *)malloc(strlen(myId)+sizeof("user="));
 
 		if (!info->owner)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			return ret;
 		}
 
 		info->mailbox_type=MAILBOXTYPE_INBOX;
 		strcat(strcpy(info->owner, "user="), myId);
-		return 0;
+		return ret;
 	}
 
 	if (strncmp(path, NEWSHARED,
 		    sizeof(NEWSHARED)-1) != 0)
 	{
 		errno=EINVAL;
-		return -1;
+		return ret;
 	}
 
-	ifs.info=info;
 	ifs.path=path+sizeof(NEWSHARED)-1;
 
 	info->mailbox_type=MAILBOXTYPE_NEWSHARED;
@@ -156,7 +171,10 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 	info->owner=strdup("vendor=courier.internal");
 
 	if (!info->owner)
-		return -1;
+	{
+		ret={};
+		return ret;
+	}
 
 	curcache=NULL;
 	subhierarchy=NULL;
@@ -245,7 +263,9 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 		{
 			info->maildir=NULL;
 			info->owner=NULL;
-			return -1;
+
+			ret={};
+			return ret;
 		}
 
 		if (!subhierarchy || !*subhierarchy)
@@ -256,7 +276,9 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 				free(info->homedir);
 				info->homedir=NULL;
 				info->maildir=NULL;
-				return -1;
+
+				ret={};
+				return ret;
 			}
 		}
 		else
@@ -272,7 +294,8 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 				info->homedir=NULL;
 				info->maildir=NULL;
 				info->owner=NULL;
-				return -1;
+				ret={};
+				return ret;
 			}
 			strcpy(info->owner, "user=");
 			strcat(info->owner, subhierarchy);
@@ -292,7 +315,7 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 			{
 				free(info->homedir);
 				info->homedir=NULL;
-				return (0);
+				return (ret);
 			}
 
 			free(info->owner);
@@ -308,7 +331,8 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 			free(info->homedir);
 			info->owner=NULL;
 			info->homedir=NULL;
-			return -1;
+			ret={};
+			return ret;
 		}
 		strcat(strcpy(info->maildir, INBOX), ifs.path);
 
@@ -325,14 +349,15 @@ extern "C" int maildir_info_imap_find(struct maildir_info *info,
 			info->owner=strdup("vendor=courier.internal");
 			if (!info->owner)
 			{
-				return -1;
+				ret={};
+				return ret;
 			}
 		}
 
-		return 0;
+		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 struct get_existing_folder_info {
@@ -474,9 +499,12 @@ static char *smap_path(const char *homedir,
 	return n;
 }
 
-int maildir_info_smap_find(struct maildir_info *info, char **folder,
-			   const char *myId)
+info info_smap_find(char **folder,
+		    const char *myId)
 {
+	info ret;
+	info *info=&ret;
+
 	char *p;
 	size_t n;
 	const char *indexfile;
@@ -494,7 +522,8 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 	if (folder[0] == NULL)
 	{
 		errno=EINVAL;
-		return -1;
+		ret={};
+		return ret;
 	}
 
 	if (strcmp(folder[0], PUBLIC))
@@ -502,18 +531,22 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 		if (strcmp(folder[0], INBOX))
 		{
 			errno=EINVAL;
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		info->maildir=smap_path(NULL, folder);
 
 		if (info->maildir == NULL)
-			return -1;
+		{
+			ret={};
+			return ret;
+		}
 		info->homedir=strdup(".");
 		if (!info->homedir)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		info->mailbox_type=MAILBOXTYPE_INBOX;
@@ -522,13 +555,13 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 
 		if (!info->owner)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		strcat(strcpy(info->owner, "user="), myId);
 
-		return 0;
+		return ret;
 	}
 
 	indexfile=NULL;
@@ -600,11 +633,11 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 			info->owner=strdup("vendor=courier.internal");
 			if (!info->owner)
 			{
-				maildir_info_destroy(info);
-				return -1;
+				ret={};
+				return ret;
 			}
 
-			return 0;
+			return ret;
 		}
 
 
@@ -613,8 +646,8 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 			info->owner=strdup("vendor=courier.internal");
 			if (!info->owner)
 			{
-				maildir_info_destroy(info);
-				return -1;
+				ret={};
+				return ret;
 			}
 		}
 		else
@@ -627,7 +660,9 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 				free(info->homedir);
 				info->homedir=NULL;
 				info->maildir=NULL;
-				return -1;
+
+				ret={};
+				return ret;
 			}
 			strcpy(info->owner, "user=");
 			strcat(info->owner, subhierarchy);
@@ -647,11 +682,12 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 			info->homedir=NULL;
 			info->maildir=NULL;
 			info->owner=NULL;
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		info->mailbox_type=MAILBOXTYPE_NEWSHARED;
-		return 0;
+		return ret;
 	}
 
 	if (folder[n] == 0)
@@ -660,13 +696,63 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 		info->owner=strdup("vendor=courier.internal");
 		if (!info->owner)
 		{
-			maildir_info_destroy(info);
-			return -1;
+			ret={};
+			return ret;
 		}
 
 		/* Intermediate shared namespce */
-		return 0;
+		return ret;
 	}
 
-	return -1;
+	ret={};
+	return ret;
+}
+
+#if 0
+{
+#endif
+}
+
+extern "C"
+int maildir_info_imap_find(struct maildir_info *info, const char *path,
+			   const char *myid)
+{
+	memset(info, 0, sizeof(*info));
+
+	maildir::info n=maildir::info_imap_find(path, myid);
+
+	info->mailbox_type=n.mailbox_type;
+	info->homedir=n.homedir;
+	info->maildir=n.maildir;
+	info->owner=n.owner;
+
+	if (!n)
+	{
+		maildir_info_destroy(info);
+		return -1;
+	}
+
+	return 0;
+}
+
+extern "C"
+int maildir_info_smap_find(struct maildir_info *info, char **folder,
+			   const char *myid)
+{
+	memset(info, 0, sizeof(*info));
+
+	maildir::info n=maildir::info_smap_find(folder, myid);
+
+	info->mailbox_type=n.mailbox_type;
+	info->homedir=n.homedir;
+	info->maildir=n.maildir;
+	info->owner=n.owner;
+
+	if (!n)
+	{
+		maildir_info_destroy(info);
+		return -1;
+	}
+
+	return 0;
 }

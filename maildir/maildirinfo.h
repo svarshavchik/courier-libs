@@ -51,6 +51,8 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 
 #define MAILBOXTYPE_IGNORE  255 /* Ignore this mailbox */
 
+#define MAILBOXTYPE_ERROR  -1 /* Internal status, not returned */
+
 /*
 ** The application must define the following callback function that returns
 ** non-zero if the filename refers to the current account's maildir, and

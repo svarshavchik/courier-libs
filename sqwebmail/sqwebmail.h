@@ -3,12 +3,6 @@
 #ifndef	sqwebmail_h
 #define	sqwebmail_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
 /*
 ** Copyright 1998 - 2006 S. Varshavchik.  See COPYING for
 ** distribution information.
@@ -19,6 +13,13 @@ extern "C" {
 #undef	PACKAGE
 #undef	VERSION
 #include	"config.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+}
+#endif
 #endif
 
 extern void error(const char *), error2(const char *, int);
@@ -80,10 +81,6 @@ extern void error3(const char *, int, const char *, const char *, int);
 #define	MYLINESIZE	76
 
 /* Automake dribble */
-
-#ifndef	HAVE_STRDUP
-extern char *strdup(const char *);
-#endif
 
 extern void cleanup();
 
