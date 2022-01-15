@@ -63,7 +63,7 @@ maildir_shared_cache_read(struct maildir_shindex_cache *parent,
 {
 	struct maildir_shindex_cache *p;
 
-	if (parent && parent->next && subhierarchy &&
+	if (parent && parent->next && subhierarchy && *subhierarchy &&
 	    strcmp(parent->next->hierarchy, subhierarchy) == 0)
 	{
 		return parent->next; /* That was easy */
@@ -74,17 +74,18 @@ maildir_shared_cache_read(struct maildir_shindex_cache *parent,
 		return shared_cache;
 	}
 
-	if (!indexfile)
+	if (!indexfile || !*indexfile)
 	{
 		indexfile=maildir_shared_index_file();
 		if (!indexfile)
 			return NULL;
 		subhierarchy="";
 	}
-
-
-	if (!subhierarchy)
-		return NULL;
+	else
+	{
+		if (!subhierarchy || !*subhierarchy)
+			return NULL;
+	}
 	/* Should not happen, bad usage. subhierarchy allowed to be NULL only
 	** when indexfile is also NULL */
 

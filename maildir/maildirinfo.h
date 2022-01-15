@@ -87,20 +87,17 @@ namespace maildir {
 }
 #endif
 
-struct info {
-	int mailbox_type=MAILBOXTYPE_IGNORE;
-	std::string homedir;
-	std::string maildir;
-	std::string owner;
-
-	operator bool() const
-	{
-		return mailbox_type != MAILBOXTYPE_IGNORE;
-	}
-};
+struct info;
 
 info info_imap_find(const std::string &path,
 		    const std::string &myid);
+
+/*
+** The SMAP version:
+*/
+
+info info_smap_find(char **folder, const std::string &myid);
+
 
 #if 0
 {
