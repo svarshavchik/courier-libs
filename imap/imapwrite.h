@@ -1,6 +1,9 @@
 #ifndef	imapwrite_h
 #define	imapwrite_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /*
 ** Copyright 1998 - 2018 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -14,4 +17,7 @@ void writeqs(const char *);
 void writemailbox(const char *);
 void writen(unsigned long n);
 void write_error_exit(const char *);
+#ifdef __cplusplus
+}
+#endif
 #endif

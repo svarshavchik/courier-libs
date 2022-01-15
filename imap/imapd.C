@@ -88,6 +88,9 @@
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 extern void fetchflags(unsigned long);
 extern unsigned long header_count, body_count;
 extern time_t start_time;
@@ -113,11 +116,14 @@ extern void snapshot_save();
 extern void snapshot_needed();
 
 #endif
+#ifdef __cplusplus
+}
+#endif
 
 static const char *protocol;
 
-char *dot_trash = "." TRASH;
-char *trash = TRASH;
+const char *dot_trash = "." TRASH;
+const char *trash = TRASH;
 
 char *current_mailbox=0;	/* .folder */
 FILE *debugfile=0;
@@ -356,7 +362,7 @@ static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 
 		if (q)
 		{
-			r=malloc(strlen(q)+sizeof("/."));
+			r=(char *)malloc(strlen(q)+sizeof("/."));
 			if (!r)	write_error_exit(0);
 			strcat(strcpy(r, q), "/.");
 			if (access(r, 0) == 0)
@@ -413,7 +419,7 @@ static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 	return (NULL);
 }
 
-char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
+extern "C" char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
 {
 	char *p=imap_foldername_to_filename(enabled_utf8, mailbox);
 	char *q;
@@ -443,7 +449,7 @@ unsigned	i;
 	return (rfc822_parsedate_chk(p, tret));
 }
 
-int get_flagname(const char *p, struct imapflags *flags)
+extern "C" int get_flagname(const char *p, struct imapflags *flags)
 {
 	if (strcasecmp(p, "\\SEEN") == 0)
 		flags->seen=1;
@@ -459,7 +465,7 @@ int get_flagname(const char *p, struct imapflags *flags)
 	return (0);
 }
 
-int valid_keyword(const char *kw)
+extern "C" int valid_keyword(const char *kw)
 {
 	const char *p;
 
@@ -477,7 +483,7 @@ int valid_keyword(const char *kw)
 	return 1;
 }
 
-int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
+extern "C" int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
 {
 	if (libmail_kwmSetName(current_maildir_info.keywordList, *kwPtr, kw) < 0)
 		write_error_exit(0);
@@ -486,7 +492,7 @@ int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
 }
 
 
-int get_flagsAndKeywords(struct imapflags *flags,
+extern "C" int get_flagsAndKeywords(struct imapflags *flags,
 			 struct libmail_kwMessage **kwPtr)
 {
 struct imaptoken *t;
@@ -505,7 +511,7 @@ struct imaptoken *t;
 	return (t->tokentype == IT_RPAREN ? 0:-1);
 }
 
-void get_message_flags(
+extern "C" void get_message_flags(
 	struct imapscanmessageinfo *mi,
 	char *buf, struct imapflags *flags)
 {
@@ -623,7 +629,7 @@ char	*mailbox;
 		STORE NEW MESSAGE INTO A MAILBOX
 */
 
-void append_flags(char *buf, struct imapflags *flags)
+extern "C" void append_flags(char *buf, struct imapflags *flags)
 {
 	if (flags->drafts)	strcat(buf, "D");
 	if (flags->flagged)	strcat(buf, "F");
@@ -634,7 +640,7 @@ void append_flags(char *buf, struct imapflags *flags)
 
 	/* First, figure out the filenames used in tmp and new */
 
-FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
+extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 			 unsigned long s, char **tmpname, char **newname)
 {
 	char	*p;
@@ -668,7 +674,7 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 
 	/* Ok, this message will really go to cur, not new */
 
-	p=malloc(strlen(*newname)+strlen(uniqbuf)+1);
+	p=(char *)malloc(strlen(*newname)+strlen(uniqbuf)+1);
 	if (!p)	write_error_exit(0);
 	strcpy(p, *newname);
 	memcpy(strrchr(p, '/')-3, "cur", 3);	/* HACK OF THE MILLENIA */
@@ -678,7 +684,7 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 	return fp;
 }
 
-void set_time(const char *tmpname, time_t timestamp)
+extern "C" void set_time(const char *tmpname, time_t timestamp)
 {
 #if	HAVE_UTIME
 	if (timestamp)
@@ -752,7 +758,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 
 		while (n)
 		{
-			e = memchr(p, '\r', n);
+			e = (char *)memchr(p, '\r', n);
 			if (e && p == e)
 			{
 				rb=1;
@@ -936,7 +942,7 @@ struct	dirent *de;
 }
 #endif
 
-int mddelete(const char *s)
+extern "C" int mddelete(const char *s)
 {
 	int	rc;
 	struct stat stat_buf;
@@ -953,7 +959,7 @@ int mddelete(const char *s)
 	return (rc);
 }
 
-int mdcreate(const char *mailbox)
+extern "C" int mdcreate(const char *mailbox)
 {
 	trap_signals();
 	if (maildir_make(mailbox, 0700, 0700, 1) < 0)
@@ -1198,7 +1204,7 @@ static int noopAddKeyword(struct libmail_keywordEntry *ke, void *vp)
 	return 0;
 }
 
-void doNoop(int real_noop)
+extern "C" void doNoop(int real_noop)
 {
 	struct imapscaninfo new_maildir_info;
 	unsigned long i, j;
@@ -1436,7 +1442,7 @@ void doNoop(int real_noop)
 
 static char *alloc_filename(const char *mbox, const char *name)
 {
-char	*p=malloc(strlen(mbox)+strlen(name)+sizeof("/cur/"));
+	char	*p=(char *)malloc(strlen(mbox)+strlen(name)+sizeof("/cur/"));
 
 	if (!p)	write_error_exit(0);
 
@@ -1554,9 +1560,15 @@ static int doId()
 
 /****************************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 extern int doidle(time_t, int);
+#ifdef __cplusplus
+}
+#endif
 
-int imapenhancedidle(void)
+extern "C" int imapenhancedidle(void)
 {
 	struct maildirwatch *w;
 	struct maildirwatch_contents c;
@@ -1672,7 +1684,7 @@ int imapenhancedidle(void)
 	return (0);
 }
 
-void imapidle(void)
+extern "C" void imapidle(void)
 {
 	const char * envp = getenv("IMAP_IDLE_TIMEOUT");
 	const int idleTimeout = envp ? atoi(envp) : 60;
@@ -1702,7 +1714,7 @@ void imapidle(void)
 
 /****************************************************************************/
 
-void do_expunge(unsigned long from, unsigned long to, int force);
+extern "C" void do_expunge(unsigned long from, unsigned long to, int force);
 
 static int uid_expunge(unsigned long msgnum, int uidflag, void *void_arg)
 {
@@ -1710,7 +1722,7 @@ static int uid_expunge(unsigned long msgnum, int uidflag, void *void_arg)
 	return 0;
 }
 
-void expunge()
+extern "C" void expunge()
 {
 	do_expunge(0, current_maildir_info.nmessages, 0);
 }
@@ -2030,7 +2042,7 @@ struct addremove_info {
 };
 
 
-int addRemoveKeywords(int (*callback_func)(void *, void *),
+extern "C" int addRemoveKeywords(int (*callback_func)(void *, void *),
 		      void *callback_func_arg,
 		      struct storeinfo *storeinfo_s)
 {
@@ -2070,7 +2082,7 @@ static int addRemoveKeywords1(void *void_arg)
 				  ai->tryagain);
 }
 
-int doAddRemoveKeywords(unsigned long, int, void *);
+extern "C" int doAddRemoveKeywords(unsigned long, int, void *);
 
 struct addRemoveKeywordInfo {
 	struct libmail_kwGeneric kwg;
@@ -2379,9 +2391,9 @@ static void uidplus_abort(struct uidplus_info *uidplus_list)
 
 static void rename_callback(const char *old_path, const char *new_path)
 {
-struct imapscaninfo minfo;
+	struct imapscaninfo minfo;
 
-	char *p=malloc(strlen(new_path)+sizeof("/" IMAPDB));
+	char *p=(char *)malloc(strlen(new_path)+sizeof("/" IMAPDB));
 
 	if (!p)
 		write_error_exit(0);
@@ -2406,7 +2418,7 @@ static void logoutmsg()
 	bye_msg("INFO: LOGOUT");
 }
 
-void bye()
+extern "C" void bye()
 {
 	exit(0);
 }
@@ -2607,7 +2619,7 @@ static int acl_read_folder(maildir_aclt_list *aclt_list,
 			}
 			return 0;
 		}
-		q=malloc(strlen(p)+sizeof("/new"));
+		q=(char *)malloc(strlen(p)+sizeof("/new"));
 		if (!q)
 		{
 			free(p);
@@ -2691,7 +2703,7 @@ static int list_acl_cb(const char *ident,
 		       const maildir_aclt *acl,
 		       void *cb_arg);
 
-char *compute_myrights(maildir_aclt_list *l,
+extern "C" char *compute_myrights(maildir_aclt_list *l,
 		       const char *l_owner);
 
 static int get_acllist(maildir_aclt_list *l,
@@ -2945,7 +2957,7 @@ char *compute_myrights(maildir_aclt_list *l, const char *l_owner)
 	return a;
 }
 
-void check_rights(const char *mailbox, char *rights_buf)
+extern "C" void check_rights(const char *mailbox, char *rights_buf)
 {
 	char *r=get_myrightson(mailbox);
 	char *p, *q;
@@ -3010,9 +3022,9 @@ static int aclmailbox_scan(const char *hiersep,
 {
 	struct temp_acl_mailbox_list **p
 		=(struct temp_acl_mailbox_list **)void_arg,
-		*q=malloc(sizeof(struct temp_acl_mailbox_list));
+		*q=(struct temp_acl_mailbox_list *)malloc(sizeof(struct temp_acl_mailbox_list));
 
-	if (!q || !(q->mailbox=malloc(strlen(mailbox)+1)))
+	if (!q || !(q->mailbox=(char *)malloc(strlen(mailbox)+1)))
 	{
 		if (q) free(q);
 		return -1;
@@ -3072,8 +3084,9 @@ static int aclmailbox_merge(struct temp_acl_mailbox_list *l,
 
 	/* Expand the array */
 
-	if ((newa= *mailbox_list == NULL ? malloc( (n+o+1)*sizeof(*l)):
-	     realloc(*mailbox_list, (n+o+1)*sizeof(*l))) == NULL)
+	if ((newa= *mailbox_list == NULL ?
+	     (struct temp_acl_mailbox_list *)malloc( (n+o+1)*sizeof(*l)):
+	     (struct temp_acl_mailbox_list *)realloc(*mailbox_list, (n+o+1)*sizeof(*l))) == NULL)
 		return -1;
 
 	*mailbox_list=newa;
@@ -3245,11 +3258,13 @@ static int aclcmd(const char *tag)
 	{
 		for (i=0; mailboxlist && mailboxlist[i].mailbox; i++)
 		{
+			char arg[]="LIST";
+
 			if (mailboxlist[i].mailbox[0])
 				list_callback(mailboxlist[i].hier,
 					      mailboxlist[i].mailbox,
 					      LIST_ACL | mailboxlist[i].flags,
-					      "LIST");
+					      arg);
 		}
 	}
 	free_mailboxlist(mailboxlist);
@@ -3280,9 +3295,9 @@ static int fix_acl_delete(int (*func)(maildir_aclt *, const char *,
 		return (*func)(newacl, aclstr, NULL);
 
 
-	p=malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
-				       ACL_DELETEMSGS
-				       ACL_EXPUNGE));
+	p=(char *)malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
+					       ACL_DELETEMSGS
+					       ACL_EXPUNGE));
 	if (!p)
 		return -1;
 
@@ -3313,9 +3328,9 @@ static int fix_acl_delete2(maildir_aclt_list *aclt_list,
 					     NULL);
 
 
-	p=malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
-				       ACL_DELETEMSGS
-				       ACL_EXPUNGE));
+	p=(char *)malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
+					       ACL_DELETEMSGS
+					       ACL_EXPUNGE));
 	if (!p)
 		return -1;
 
@@ -3334,7 +3349,7 @@ static int fix_acl_delete2(maildir_aclt_list *aclt_list,
 	return rc;
 }
 
-void aclminimum(const char *identifier)
+extern "C" void aclminimum(const char *identifier)
 {
 	if (strcmp(identifier, "administrators") == 0 ||
 	    strcmp(identifier, "group=administrators") == 0)
@@ -3406,9 +3421,9 @@ static int acl_settable_folder(char *mailbox,
 	return 0;
 }
 
-int acl_lock(const char *homedir,
-	     int (*func)(void *),
-	     void *void_arg)
+extern "C" int acl_lock(const char *homedir,
+			int (*func)(void *),
+			void *void_arg)
 {
 	struct imapscaninfo ii;
 	int rc;
@@ -3876,7 +3891,7 @@ int do_folder_delete(char *mailbox_name)
 	return -1;
 }
 
-int acl_flags_adjust(const char *access_rights,
+extern "C" int acl_flags_adjust(const char *access_rights,
 		     struct imapflags *flags)
 {
 	if (strchr(access_rights, ACL_DELETEMSGS[0]) == NULL)
@@ -4107,7 +4122,7 @@ static char *acl2_identifier(const char *tag,
 		return NULL;
 	}
 
-	p=malloc(sizeof("-user=")+strlen(identifier));
+	p=(char *)malloc(sizeof("-user=")+strlen(identifier));
 
 	if (!p)
 		write_error_exit(0);
@@ -4115,7 +4130,7 @@ static char *acl2_identifier(const char *tag,
 }
 
 
-int folder_rename(struct maildir_info *mi1,
+extern "C" int folder_rename(struct maildir_info *mi1,
 		  struct maildir_info *mi2,
 		  const char **errmsg)
 {
@@ -4252,7 +4267,7 @@ static int validate_charset(const char *tag, char **charset)
 	return (0);
 }
 
-int do_imap_command(const char *tag, int *flushflag)
+extern "C" int do_imap_command(const char *tag, int *flushflag)
 {
 struct	imaptoken *curtoken=nexttoken();
 int	uid=0;
@@ -4481,7 +4496,7 @@ int	uid=0;
 			if (p && (p=maildir_shareddir(".", p+1)) != NULL)
 			{
 				int rc;
-				char	*q=malloc(strlen(p)+sizeof("/shared"));
+				char	*q=(char *)malloc(strlen(p)+sizeof("/shared"));
 
 				if (!q)	write_error_exit(0);
 
@@ -6466,7 +6481,7 @@ int	uid=0;
 		isshared=0;
 		if (is_sharedsubdir(cqinfo.destmailbox))
 		{
-		char	*p=malloc(strlen(cqinfo.destmailbox)+sizeof("/shared"));
+			char	*p=(char *)malloc(strlen(cqinfo.destmailbox)+sizeof("/shared"));
 
 			if (!p)	write_error_exit(0);
 			strcat(strcpy(p, cqinfo.destmailbox), "/shared");
@@ -6865,9 +6880,10 @@ int main(int argc, char **argv)
 	if ((p=getenv("IMAP_TRASHFOLDERNAME")) != 0 && *p)
 	{
 		trash = strdup(p);
-		dot_trash = malloc(strlen(trash) + 2);
-		dot_trash[0] = '.';
-		strcpy(&dot_trash[1], trash);
+		char *new_dot_trash = (char *)malloc(strlen(trash) + 2);
+		new_dot_trash[0] = '.';
+		strcpy(&new_dot_trash[1], trash);
+		dot_trash=new_dot_trash;
 	}
 
 #if 0

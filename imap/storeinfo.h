@@ -9,6 +9,9 @@
 #include	"imaptoken.h"
 #include	"numlib/numlib.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct storeinfo {
 	int plusminus;
@@ -45,5 +48,8 @@ struct copyquotainfo {
 	const char *acls;
 
 	} ;
+#ifdef __cplusplus
+}
+#endif
 
 #endif

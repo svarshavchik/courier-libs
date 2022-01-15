@@ -8,7 +8,7 @@ AC_INIT([courier-imap],[5.3.2],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
-AC_CONFIG_SRCDIR(imapd.c)
+AC_CONFIG_SRCDIR(imapd.C)
 AC_CONFIG_AUX_DIR(../..)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([foreign no-define])
@@ -18,6 +18,7 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S

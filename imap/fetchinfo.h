@@ -6,6 +6,9 @@
 ** See COPYING for distribution information.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct fetchinfo {
 	struct fetchinfo *next;	/* Siblings */
@@ -26,5 +29,9 @@ void fetch_free_cache();
 void save_cached_offsets(off_t, off_t, off_t);
 
 int get_cached_offsets(off_t, off_t *, off_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

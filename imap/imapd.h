@@ -6,6 +6,10 @@
 ** See COPYING for distribution information.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define	HIERCH	'.'		/* Hierarchy separator char */
 #define	HIERCHS	"."		/* Hierarchy separator char */
@@ -23,10 +27,13 @@ extern int enabled_utf8;
 extern void check_rights(const char *mailbox,
 			 char *rights_buf);
 
+#ifdef __cplusplus
+}
+#endif
+
 #define CHECK_RIGHTSM(mailbox, varname, rights) \
 	char varname[sizeof(rights)]; \
 	strcpy(varname, rights); \
 	check_rights(mailbox, varname);
-
 
 #endif

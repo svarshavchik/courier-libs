@@ -4,6 +4,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 ** Copyright 1998 - 2003 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -29,5 +33,9 @@ int mailbox_scan(const char *ref, const char *name,
 				      int flags,
 				      void *void_arg),
 		 void *void_arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

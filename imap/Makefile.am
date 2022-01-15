@@ -67,7 +67,7 @@ imaplogin_DEPENDENCIES=libimapd.la libimaplogin.la
 imaplogin_LDADD=libimapd.la libimaplogin.la \
 	@LDAUTH@ -lcourierauth -lcourierauthsasl
 
-imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.c imapd.h \
+imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.C imapd.h \
 	imapscanclient.c imapscanclient.h \
 	mailboxlist.c mailboxlist.h \
 	msgbodystructure.c msgenvelope.c \

@@ -3,6 +3,10 @@
 
 #include "maildir/maildirsearch.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 ** Copyright 1998 - 2002 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -122,5 +126,9 @@ void search_internal(struct searchinfo *, struct searchinfo *,
 				   unsigned long, void *), void *);
 
 void search_set_charset_conv(struct searchinfo *, const char *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

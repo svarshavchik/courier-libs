@@ -8,6 +8,9 @@
 ** Copyright 1998 - 2003 S. Varshavchik.
 ** See COPYING for distribution information.
 */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
 ** Stuff we want to know about an individual message in the maildir.
@@ -90,5 +93,8 @@ int imapmaildirlock(struct imapscaninfo *scaninfo,
 		    void *void_arg);
 
 char *readline(unsigned, FILE *);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

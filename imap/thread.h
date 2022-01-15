@@ -7,6 +7,10 @@
 ** See COPYING for distribution information.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 struct threadinfo;
 
@@ -29,5 +33,8 @@ struct temp_sort_stack {	/* Temporary stack list of SORT criteria */
 void free_temp_sort_stack(struct temp_sort_stack *);
 void dosortmsgs(struct searchinfo *, struct searchinfo *,
 		const char *, int);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -10,6 +10,9 @@
 #include	<stdlib.h>
 #include	<time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct imaptoken {
 	short	tokentype;
@@ -87,5 +90,9 @@ char *my_strdup(const char *s);
 /* SMAP */
 
 void smap_readline(char *buffer, size_t bufsize);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
