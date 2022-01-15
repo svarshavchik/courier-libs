@@ -79,6 +79,33 @@ extern char *maildir_info_imapmunge(const char *name);
 
 #ifdef  __cplusplus
 }
+
+#include <string>
+
+namespace maildir {
+#if 0
+}
+#endif
+
+struct info {
+	int mailbox_type=MAILBOXTYPE_IGNORE;
+	std::string homedir;
+	std::string maildir;
+	std::string owner;
+
+	operator bool() const
+	{
+		return mailbox_type != MAILBOXTYPE_IGNORE;
+	}
+};
+
+info info_imap_find(const std::string &path,
+		    const std::string &myid);
+
+#if 0
+{
+#endif
+}
 #endif
 
 #endif

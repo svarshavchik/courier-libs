@@ -105,6 +105,7 @@ pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 pop3d_testmock_SOURCES=testpop3dserver.c pop3dcapa.c
 pop3d_testmock_DEPENDENCIES=libpop3d.la
 pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
+nodist_EXTRA_pop3d_testmock_SOURCES=dummy.C
 
 clean-local:
 	rm -rf $(DEPDIR)
