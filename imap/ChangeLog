@@ -1,3 +1,8 @@
+2022-01-15  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* libcouriertls: use ALARM to kill couriertls if the server process
+	terminates but openssl hangs trying to shut down the socket.
+
 5.1.4
 
 2021-08-01  Sam Varshavchik  <mrsam@courier-mta.com>

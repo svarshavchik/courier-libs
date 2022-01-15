@@ -20,6 +20,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<netdb.h>
+#include	<signal.h>
 #if HAVE_DIRENT_H
 #include <dirent.h>
 #define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -526,6 +527,21 @@ static int connect_completed(ssl_handle ssl, int fd)
 	return (1);
 }
 
+static void child_handler()
+{
+	alarm(10);
+}
+
+static void trapexit()
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+
+	sa.sa_handler=child_handler;
+	sigaction(SIGCHLD, &sa, NULL);
+}
+
 static int dossl(int fd, int argn, int argc, char **argv)
 {
 	ssl_context ctx;
@@ -563,6 +579,7 @@ static int dossl(int fd, int argn, int argc, char **argv)
 	}
 
 	startclient(argn, argc, argv, fd, &stdin_fd, &stdout_fd);
+	trapexit();
 
 	if (username)
 		libmail_changeusername(username, 0);
