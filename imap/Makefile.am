@@ -69,7 +69,7 @@ imaplogin_LDADD=libimapd.la libimaplogin.la \
 
 imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.C imapd.h \
 	imapscanclient.c imapscanclient.h \
-	mailboxlist.c mailboxlist.h \
+	mailboxlist.C mailboxlist.h \
 	msgbodystructure.c msgenvelope.c \
 	mysignal.c mysignal.h \
 	outbox.c outbox.h \

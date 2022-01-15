@@ -92,7 +92,7 @@ const char *maildir_shared_index_file()
 
 			if (!q) q="";
 
-			filenamep=malloc(strlen(p)+strlen(q)+1);
+			filenamep=(char *)malloc(strlen(p)+strlen(q)+1);
 
 			if (!filenamep)
 				write_error_exit(0);
@@ -135,7 +135,7 @@ int mailbox_scan(const char *reference, const char *name,
 	int	nullname= *name == 0;
 	int	rc;
 
-	pattern=malloc(strlen(reference)+strlen(name)+2);
+	pattern=(char *)malloc(strlen(reference)+strlen(name)+2);
 
 	strcpy(pattern, reference);
 
@@ -212,7 +212,7 @@ char *subdir;
 	if (is_sharedsubdir(dir))
 		maildir_shared_sync(dir);
 
-	subdir=malloc(strlen(dir)+sizeof("/cur"));
+	subdir=(char *)malloc(strlen(dir)+sizeof("/cur"));
 	if (!subdir)	write_error_exit(0);
 	strcat(strcpy(subdir, dir), "/new");
 	if (hasnewmsgs2(subdir))
@@ -402,7 +402,7 @@ static void list_sharable(const char *n,
 	void *voidp)
 {
 struct list_sharable_info *ip=(struct list_sharable_info *)voidp;
-char	*p=malloc(strlen(n)+sizeof("shared."));
+ char	*p=(char *)malloc(strlen(n)+sizeof("shared."));
 
 	if (!p)	write_error_exit(0);
 
@@ -467,7 +467,7 @@ static void maildir_scan(const char *inbox_dir,
 		    strcmp(de->d_name, "..") == 0)
 			continue;
 
-		if ((p=malloc(strlen(de->d_name)+strlen(inbox_name)+10)) == 0)
+		if ((p=(char *)malloc(strlen(de->d_name)+strlen(inbox_name)+10)) == 0)
 					/* A bit too much, that's OK */
 			write_error_exit(0);
 
@@ -609,7 +609,7 @@ static int list_newshared_shortcut(const char *skipped_pattern,
 			if (!n)
 				write_error_exit(0);
 
-			if (strlen(n) == p-skipped_pattern &&
+			if (strlen(n) == (size_t)(p-skipped_pattern) &&
 			    strncmp(n, skipped_pattern, p-skipped_pattern) == 0)
 			{
 				free(n);
@@ -625,7 +625,7 @@ static int list_newshared_shortcut(const char *skipped_pattern,
 			++p;
 
 
-		q=malloc(strlen(acc_pfix)+(p-skipped_pattern)+1);
+		q=(char *)malloc(strlen(acc_pfix)+(p-skipped_pattern)+1);
 		if (!q)
 		{
 			write_error_exit(0);
@@ -670,7 +670,7 @@ static int list_newshared_cb(struct maildir_newshared_enum_cb *cb)
 	if (homedir == NULL)
 	{
 		struct list_newshared_info new_lni= *lni;
-		char *new_pfix=malloc(strlen(lni->acc_pfix)+
+		char *new_pfix=(char *)malloc(strlen(lni->acc_pfix)+
 				      strlen(n)+2);
 		if (!new_pfix)
 			write_error_exit(0);
@@ -707,7 +707,7 @@ static int list_newshared_cb(struct maildir_newshared_enum_cb *cb)
 		}
 		free(new_pfix);
 
-		new_pfix=malloc(strlen(lni->acc_pfix)+
+		new_pfix=(char *)malloc(strlen(lni->acc_pfix)+
 				      strlen(n)+1);
 		if (!new_pfix)
 			write_error_exit(0);
@@ -717,7 +717,7 @@ static int list_newshared_cb(struct maildir_newshared_enum_cb *cb)
 		free(n);
 		n=new_pfix;
 
-		new_pfix=malloc(strlen(homedir)+strlen(maildir)+2);
+		new_pfix=(char *)malloc(strlen(homedir)+strlen(maildir)+2);
 
 		if (!new_pfix)
 			write_error_exit(0);
@@ -754,7 +754,7 @@ static int list_newshared_skiplevel(struct maildir_newshared_enum_cb *cb)
 		(struct list_newshared_info *)cb->cb_arg;
 	char *n=maildir_info_imapmunge(cb->name);
 
-	char *p=malloc(strlen(lni->acc_pfix)+strlen(n)+sizeof(HIERCHS));
+	char *p=(char *)malloc(strlen(lni->acc_pfix)+strlen(n)+sizeof(HIERCHS));
 	int rc;
 	const char *save_skip;
 
@@ -794,7 +794,7 @@ static int list_newshared_skipcb(struct maildir_newshared_enum_cb *cb)
 	if (dir && dir[1] == 0)
 		*dir=0; /* Strip trailing hier separator */
 
-	dir=malloc(strlen(cb->homedir)+strlen(cb->maildir)+2);
+	dir=(char *)malloc(strlen(cb->homedir)+strlen(cb->maildir)+2);
 
 	if (!dir)
 	{

@@ -419,7 +419,7 @@ static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 	return (NULL);
 }
 
-extern "C" char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
+char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
 {
 	char *p=imap_foldername_to_filename(enabled_utf8, mailbox);
 	char *q;
