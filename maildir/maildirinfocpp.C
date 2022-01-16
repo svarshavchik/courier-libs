@@ -343,9 +343,9 @@ static void get_existing_callback(const char *f, void *vp)
 **
 */
 
-static char *smap_to_utf8(char **ptr)
+static std::string smap_to_utf8(char **ptr)
 {
-	char *f=NULL;
+	std::string f;
 	char *n;
 
 	while ((n=*ptr++) != NULL && *n)
@@ -356,49 +356,37 @@ static char *smap_to_utf8(char **ptr)
 
 		if (!p)
 		{
-			if (f)
-				free(f);
-			return NULL;
+			f.clear();
+			return f;
 		}
 
-		n= f ? (char *)realloc(f, strlen(f)+strlen(p)+2)
-			: (char *)malloc(strlen(p)+1);
-
-		if (!n)
-		{
-			free(p);
-			if (f)
-				free(f);
-			return NULL;
-		}
-		if (f)
-			f=strcat(strcat(n, "."), p);
-		else
-			f=strcpy(n, p);
+		if (!f.empty())
+			f += ".";
+		f += p;
 		free(p);
 	}
 
-	if (!f)
-		errno=EINVAL;
 	return f;
 }
 
-static char *smap_path(const char *homedir,
-		       char **words)  /* words[0] better be INBOX! */
+static std::string smap_path(const char *homedir,
+			     char **words)  /* words[0] better be INBOX! */
 {
 	struct get_existing_folder_info gefi;
-	char *n, *p;
+	char *p;
 	struct stat stat_buf;
 
-	if ((n=smap_to_utf8(words)) == NULL)
-		return NULL;
+	std::string n=smap_to_utf8(words);
 
-	p=maildir_name2dir(homedir, n);
+	if (n.empty())
+		return n;
+
+	p=maildir_name2dir(homedir, n.c_str());
 
 	if (!p)
 	{
-		free(n);
-		return NULL;
+		n.clear();
+		return n;
 	}
 
 	if (stat(p, &stat_buf) == 0)
@@ -414,10 +402,9 @@ static char *smap_path(const char *homedir,
 
 	if (!gefi.pathname.empty())
 	{
-		free(n);
 		free(p);
 
-		return strdup(gefi.pathname.c_str());
+		return gefi.pathname.c_str();
 	}
 
 	free(p);
@@ -457,12 +444,12 @@ info info_smap_find(char **folder,
 			return ret;
 		}
 
+		info->maildir=smap_path(NULL, folder);
+		if (info->maildir.empty())
 		{
-			auto maildir=smap_path(NULL, folder);
-			info->maildir=maildir;
-			free(maildir);
+			ret={};
+			return ret;
 		}
-
 		info->homedir=".";
 
 		info->mailbox_type=MAILBOXTYPE_INBOX;
@@ -564,14 +551,16 @@ info info_smap_find(char **folder,
 
 		static char inbox_s[]="INBOX";
 		folder[n]=inbox_s;
-		{
-			auto maildir=smap_path(info->homedir.c_str(), folder+n);
 
-			info->maildir=maildir;
+		info->maildir=smap_path(info->homedir.c_str(), folder+n);
 
-			free(maildir);
-		}
 		folder[n]=p;
+
+		if (info->maildir.empty())
+		{
+			ret={};
+			return ret;
+		}
 
 		info->mailbox_type=MAILBOXTYPE_NEWSHARED;
 		return ret;
