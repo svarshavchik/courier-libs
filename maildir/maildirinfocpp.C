@@ -22,7 +22,7 @@ namespace maildir {
 struct info {
 	int mailbox_type=MAILBOXTYPE_ERROR;
 	char *homedir;
-	char *maildir;
+	std::string maildir;
 	std::string owner;
 
 	operator bool() const
@@ -70,7 +70,6 @@ info info_imap_find(const char *path,
 	const char *subhierarchy;
 
 	info->homedir=NULL;
-	info->maildir=NULL;
 
 	if (strchr(path, '/'))
 	{
@@ -131,11 +130,7 @@ info info_imap_find(const char *path,
 		if (!info->homedir)
 			return ret;
 
-		info->maildir=strdup(path);
-		if (!info->maildir)
-		{
-			return ret;
-		}
+		info->maildir=path;
 
 		info->mailbox_type=MAILBOXTYPE_INBOX;
 		info->owner=std::string{"user="}+myId;
@@ -154,7 +149,6 @@ info info_imap_find(const char *path,
 
 	info->mailbox_type=MAILBOXTYPE_NEWSHARED;
 	info->homedir=NULL;
-	info->maildir=NULL;
 	info->owner="vendor=courier.internal";
 
 	curcache=NULL;
@@ -240,8 +234,6 @@ info info_imap_find(const char *path,
 
 		if (!info->homedir)
 		{
-			info->maildir=NULL;
-
 			ret={};
 			return ret;
 		}
@@ -280,23 +272,14 @@ info info_imap_find(const char *path,
 
 		ifs.path += ifs.path_l;
 
-		info->maildir=(char *)malloc(strlen(INBOX)+1+strlen(ifs.path));
-		if (!info->maildir)
-		{
-			free(info->homedir);
-			info->homedir=NULL;
-			ret={};
-			return ret;
-		}
-		strcat(strcpy(info->maildir, INBOX), ifs.path);
+		info->maildir=std::string{INBOX}+ifs.path;
 
 		if (maildir_info_suppress(info->homedir))
 		{
 
 			free(info->homedir);
-			free(info->maildir);
 			info->homedir=NULL;
-			info->maildir=NULL;
+			info->maildir.clear();
 			info->mailbox_type=MAILBOXTYPE_IGNORE;
 			info->owner="vendor=courier.internal";
 		}
@@ -462,7 +445,6 @@ info info_smap_find(char **folder,
 	std::string indexfile_cpy;
 
 	info->homedir=NULL;
-	info->maildir=NULL;
 	info->mailbox_type=MAILBOXTYPE_IGNORE;
 
 	if (folder[0] == NULL)
@@ -481,13 +463,12 @@ info info_smap_find(char **folder,
 			return ret;
 		}
 
-		info->maildir=smap_path(NULL, folder);
-
-		if (info->maildir == NULL)
 		{
-			ret={};
-			return ret;
+			auto maildir=smap_path(NULL, folder);
+			info->maildir=maildir;
+			free(maildir);
 		}
+
 		info->homedir=strdup(".");
 		if (!info->homedir)
 		{
@@ -558,14 +539,14 @@ info info_smap_find(char **folder,
 		info->homedir=maildir_location(ifs.homedir.c_str(),
 					       ifs.maildir.c_str());
 
-		info->maildir=NULL;
+		info->maildir.clear();
 
 		if (maildir_info_suppress(info->homedir))
 		{
 
 			free(info->homedir);
 			info->homedir=NULL;
-			info->maildir=NULL;
+			info->maildir.clear();
 			info->mailbox_type=MAILBOXTYPE_IGNORE;
 			info->owner="vendor=courier.internal";
 
@@ -586,15 +567,14 @@ info info_smap_find(char **folder,
 
 		static char inbox_s[]="INBOX";
 		folder[n]=inbox_s;
-		info->maildir=smap_path(info->homedir, folder+n);
-		folder[n]=p;
-
-		if (!info->maildir)
 		{
-			free(info->homedir);
-			ret={};
-			return ret;
+			auto maildir=smap_path(info->homedir, folder+n);
+
+			info->maildir=maildir;
+
+			free(maildir);
 		}
+		folder[n]=p;
 
 		info->mailbox_type=MAILBOXTYPE_NEWSHARED;
 		return ret;
@@ -628,10 +608,12 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 
 	info->mailbox_type=n.mailbox_type;
 	info->homedir=n.homedir;
-	info->maildir=n.maildir;
 
-	if (!n || (!n.owner.empty() &&
-		   !(info->owner=strdup(n.owner.c_str()))))
+	if (!n
+	    || (!n.owner.empty() &&
+		!(info->owner=strdup(n.owner.c_str())))
+	    || (!n.maildir.empty() &&
+		!(info->maildir=strdup(n.maildir.c_str()))))
 	{
 		maildir_info_destroy(info);
 		return -1;
@@ -650,10 +632,12 @@ int maildir_info_smap_find(struct maildir_info *info, char **folder,
 
 	info->mailbox_type=n.mailbox_type;
 	info->homedir=n.homedir;
-	info->maildir=n.maildir;
 
-	if (!n || (!n.owner.empty() &&
-		   !(info->owner=strdup(n.owner.c_str()))))
+	if (!n
+	    || (!n.owner.empty() &&
+		!(info->owner=strdup(n.owner.c_str())))
+	    || (!n.maildir.empty() &&
+		!(info->maildir=strdup(n.maildir.c_str()))))
 	{
 		maildir_info_destroy(info);
 		return -1;
