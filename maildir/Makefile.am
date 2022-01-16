@@ -67,8 +67,8 @@ maildirmake_DEPENDENCIES=libmaildir.la \
 			../rfc822/librfc822.la
 maildirmake_LDADD=libmaildir.la \
 			../numlib/libnumlib.la \
-			../rfc822/librfc822.la -lcourier-unicode
-maildirmake_LDFLAGS=-static @PCRE_LDFLAGS@
+			../rfc822/librfc822.la -lcourier-unicode @PCRE_LDFLAGS@
+maildirmake_LDFLAGS=-static
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
