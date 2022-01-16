@@ -89,7 +89,17 @@ namespace maildir {
 }
 #endif
 
-struct info;
+struct info {
+	int mailbox_type=MAILBOXTYPE_ERROR;
+	std::string homedir;
+	std::string maildir;
+	std::string owner;
+
+	operator bool() const
+	{
+		return mailbox_type != MAILBOXTYPE_ERROR;
+	}
+};
 
 info info_imap_find(const std::string &path,
 		    const std::string &myid);

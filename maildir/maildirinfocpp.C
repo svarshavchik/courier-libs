@@ -14,22 +14,11 @@
 #include <cstring>
 #include <courier-unicode.h>
 
+#include <iostream>
 namespace maildir {
 #if 0
 }
 #endif
-
-struct info {
-	int mailbox_type=MAILBOXTYPE_ERROR;
-	std::string homedir;
-	std::string maildir;
-	std::string owner;
-
-	operator bool() const
-	{
-		return mailbox_type != MAILBOXTYPE_ERROR;
-	}
-};
 
 struct imap_find_shared {
 	const char *path;
@@ -57,11 +46,10 @@ static int imap_find_cb(struct maildir_newshared_enum_cb *cb)
 	return 0;
 }
 
-info info_imap_find(const char *path,
-		    const char *myId)
+info info_imap_find(const std::string &path,
+		    const std::string &myId)
 {
 	info ret;
-	info *info=&ret;
 
 	const char *p;
 	imap_find_shared ifs;
@@ -69,27 +57,31 @@ info info_imap_find(const char *path,
 	struct maildir_shindex_cache *curcache;
 	const char *subhierarchy;
 
-	if (strchr(path, '/'))
+	if (path.find('/') != path.npos)
 	{
 		errno=EINVAL;
 		return ret;
 	}
 
-	for (p=path; *p; p++)
-		if (*p == '.' && p[1] == '.')
+	char prev_char=0;
+
+	for (auto p:path)
+	{
+		if (p == '.' && prev_char == '.')
 		{
 			errno=EINVAL;
 			return ret;
 		}
 
-	if (strncmp(path, SHARED, sizeof(SHARED)-1) == 0)
+		prev_char=p;
+	}
+
+	if (strncmp(path.c_str(), SHARED, sizeof(SHARED)-1) == 0)
 	{
-		path += sizeof(SHARED)-1;
+		ret.homedir=".";
 
-		info->homedir=".";
-
-		info->mailbox_type=MAILBOXTYPE_OLDSHARED;
-		info->owner="anonymous";
+		ret.mailbox_type=MAILBOXTYPE_OLDSHARED;
+		ret.owner="anonymous";
 
 		/* We need to specialcase "shared" and "shared.name".
 		** maildir_shareddir will return NULL for these cases, because
@@ -100,8 +92,11 @@ info info_imap_find(const char *path,
 		** required.
 		*/
 
-		if (*path && *path != '.')
-		{
+		switch (path.c_str()[sizeof(SHARED)-1]) {
+		case '\0':
+		case '.':
+			break;
+		default:
 			errno=EINVAL;
 			ret={};
 			return ret;
@@ -110,7 +105,7 @@ info info_imap_find(const char *path,
 		return ret;
 	}
 
-	if (strncasecmp(path, INBOX, sizeof(INBOX)-1) == 0)
+	if (strncasecmp(path.c_str(), INBOX, sizeof(INBOX)-1) == 0)
 	{
 		switch (path[sizeof(INBOX)-1]) {
 		case 0:
@@ -121,28 +116,28 @@ info info_imap_find(const char *path,
 			return ret;
 		}
 
-		info->homedir=".";
+		ret.homedir=".";
 
-		info->maildir=path;
+		ret.maildir=path;
 
-		info->mailbox_type=MAILBOXTYPE_INBOX;
-		info->owner=std::string{"user="}+myId;
+		ret.mailbox_type=MAILBOXTYPE_INBOX;
+		ret.owner=std::string{"user="}+myId;
 
 		return ret;
 	}
 
-	if (strncmp(path, NEWSHARED,
+	if (strncmp(path.c_str(), NEWSHARED,
 		    sizeof(NEWSHARED)-1) != 0)
 	{
 		errno=EINVAL;
 		return ret;
 	}
 
-	ifs.path=path+sizeof(NEWSHARED)-1;
+	ifs.path=path.c_str()+sizeof(NEWSHARED)-1;
 
-	info->mailbox_type=MAILBOXTYPE_NEWSHARED;
-	info->homedir.clear();
-	info->owner="vendor=courier.internal";
+	ret.mailbox_type=MAILBOXTYPE_NEWSHARED;
+	ret.homedir.clear();
+	ret.owner="vendor=courier.internal";
 
 	curcache=NULL;
 	subhierarchy=NULL;
@@ -232,19 +227,19 @@ info info_imap_find(const char *path,
 				return ret;
 			}
 
-			info->homedir=location;
+			ret.homedir=location;
 			free(location);
 		}
 
 		if (!subhierarchy || !*subhierarchy)
 		{
-			info->owner="vendor=courier.internal";
+			ret.owner="vendor=courier.internal";
 		}
 		else
 		{
 			char *owner_utf8;
 
-			info->owner=std::string{"user="}+subhierarchy;
+			ret.owner=std::string{"user="}+subhierarchy;
 
 			/*
 			** The folder path is in modified-UTF7.  The owner is
@@ -253,30 +248,30 @@ info info_imap_find(const char *path,
 			*/
 
 			owner_utf8=
-				unicode_convert_tobuf(info->owner.c_str(),
-							unicode_x_imap_modutf7,
-							"utf-8", NULL);
+				unicode_convert_tobuf(ret.owner.c_str(),
+						      unicode_x_imap_modutf7,
+						      "utf-8", NULL);
 
 			if (!owner_utf8)
 			{
-				info->homedir.clear();
+				ret.homedir.clear();
 				return (ret);
 			}
 
-			info->owner=owner_utf8;
+			ret.owner=owner_utf8;
 			free(owner_utf8);
 		}
 
 		ifs.path += ifs.path_l;
 
-		info->maildir=std::string{INBOX}+ifs.path;
+		ret.maildir=std::string{INBOX}+ifs.path;
 
-		if (maildir_info_suppress(info->homedir.c_str()))
+		if (maildir_info_suppress(ret.homedir.c_str()))
 		{
-			info->homedir.clear();
-			info->maildir.clear();
-			info->mailbox_type=MAILBOXTYPE_IGNORE;
-			info->owner="vendor=courier.internal";
+			ret.homedir.clear();
+			ret.maildir.clear();
+			ret.mailbox_type=MAILBOXTYPE_IGNORE;
+			ret.owner="vendor=courier.internal";
 		}
 
 		return ret;
@@ -411,11 +406,9 @@ static std::string smap_path(const char *homedir,
 	return n;
 }
 
-info info_smap_find(char **folder,
-		    const char *myId)
+info info_smap_find(char **folder, const std::string &myId)
 {
 	info ret;
-	info *info=&ret;
 
 	char *p;
 	size_t n;
@@ -426,7 +419,7 @@ info info_smap_find(char **folder,
 	int rc, eof;
 	std::string indexfile_cpy;
 
-	info->mailbox_type=MAILBOXTYPE_IGNORE;
+	ret.mailbox_type=MAILBOXTYPE_IGNORE;
 
 	if (folder[0] == NULL)
 	{
@@ -444,17 +437,17 @@ info info_smap_find(char **folder,
 			return ret;
 		}
 
-		info->maildir=smap_path(NULL, folder);
-		if (info->maildir.empty())
+		ret.maildir=smap_path(NULL, folder);
+		if (ret.maildir.empty())
 		{
 			ret={};
 			return ret;
 		}
-		info->homedir=".";
+		ret.homedir=".";
 
-		info->mailbox_type=MAILBOXTYPE_INBOX;
+		ret.mailbox_type=MAILBOXTYPE_INBOX;
 
-		info->owner=std::string{"user="}+myId;
+		ret.owner=std::string{"user="}+myId;
 
 		return ret;
 	}
@@ -521,18 +514,18 @@ info info_smap_find(char **folder,
 				ret={};
 				return ret;
 			}
-			info->homedir=location;
+			ret.homedir=location;
 			free(location);
 		}
 
-		info->maildir.clear();
+		ret.maildir.clear();
 
-		if (maildir_info_suppress(info->homedir.c_str()))
+		if (maildir_info_suppress(ret.homedir.c_str()))
 		{
-			info->homedir.clear();
-			info->maildir.clear();
-			info->mailbox_type=MAILBOXTYPE_IGNORE;
-			info->owner="vendor=courier.internal";
+			ret.homedir.clear();
+			ret.maildir.clear();
+			ret.mailbox_type=MAILBOXTYPE_IGNORE;
+			ret.owner="vendor=courier.internal";
 
 			return ret;
 		}
@@ -540,11 +533,11 @@ info info_smap_find(char **folder,
 
 		if (!subhierarchy || !*subhierarchy)
 		{
-			info->owner="vendor=courier.internal";
+			ret.owner="vendor=courier.internal";
 		}
 		else
 		{
-			info->owner=std::string{"user="}+subhierarchy;
+			ret.owner=std::string{"user="}+subhierarchy;
 		}
 
 		p=folder[n];
@@ -552,24 +545,24 @@ info info_smap_find(char **folder,
 		static char inbox_s[]="INBOX";
 		folder[n]=inbox_s;
 
-		info->maildir=smap_path(info->homedir.c_str(), folder+n);
+		ret.maildir=smap_path(ret.homedir.c_str(), folder+n);
 
 		folder[n]=p;
 
-		if (info->maildir.empty())
+		if (ret.maildir.empty())
 		{
 			ret={};
 			return ret;
 		}
 
-		info->mailbox_type=MAILBOXTYPE_NEWSHARED;
+		ret.mailbox_type=MAILBOXTYPE_NEWSHARED;
 		return ret;
 	}
 
 	if (folder[n] == 0)
 	{
-		info->mailbox_type=MAILBOXTYPE_NEWSHARED;
-		info->owner="vendor=courier.internal";
+		ret.mailbox_type=MAILBOXTYPE_NEWSHARED;
+		ret.owner="vendor=courier.internal";
 
 		/* Intermediate shared namespce */
 		return ret;
