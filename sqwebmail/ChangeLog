@@ -1,3 +1,9 @@
+6.0.9
+
+2022-01-16  Arjen de Korte <build+github@de-korte.org>
+
+	* Fix linking failure on some Linux distributions.
+
 6.0.8
 
 2022-01-16  Sam Varshavchik  <mrsam@courier-mta.com>
