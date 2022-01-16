@@ -1,3 +1,9 @@
+6.0.8
+
+2022-01-16  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix linking failure on some Linux distributions.
+
 6.0.7
 
 2022-01-16  Sam Varshavchik  <mrsam@courier-mta.com>

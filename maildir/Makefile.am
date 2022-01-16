@@ -72,8 +72,8 @@ maildirmake_LDFLAGS=-static @PCRE_LDFLAGS@
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
-testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode
-testmaildirfilter_LDFLAGS=-static @PCRE_LDFLAGS@
+testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
+testmaildirfilter_LDFLAGS=-static
 
 maildirkwtest_SOURCES=maildirkwtest.c
 maildirkwtest_LDADD=libmaildir.la
