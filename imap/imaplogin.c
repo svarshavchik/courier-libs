@@ -481,7 +481,7 @@ int main(int argc, char **argv)
 	writes("* OK [CAPABILITY ");
 	imapcapability();
 	writes("] Courier-IMAP ready. "
-	       "Copyright 1998-2021 Double Precision, Inc.  "
+	       "Copyright 1998-2022 Double Precision, Inc.  "
 	       "See COPYING for distribution information.\r\n");
 	fprintf(stderr, "DEBUG: Connection, ip=[%s], port=[%s]\n", ip, port);
 	writeflush();
