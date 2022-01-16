@@ -13,6 +13,7 @@ CLEANFILES=imapd.8 imapd.html mkimapdcert.html mkimapdcert.8 \
 	courierpop3d.html courierpop3d.8 mkpop3dcert.html mkpop3dcert.8
 
 EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
+	testsuitevalgrind \
 	BUGS BUGS.html README README.html imapd.authpam \
 	pop3d.authpam system-auth.authpam system-auth2.authpam\
 	makeimapaccess.8.in makeimapaccess.html.in \
@@ -212,6 +213,18 @@ check-am:
 	@chmod +x testsuitefix.pl
 	LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
 	LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
+	VALGRIND="`which valgrind`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; \
+		rm -f confmdtesterror; \
+		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
+		@SHELL@ -x $(srcdir)/testsuite 2>&1 | tee confmderror.txt; test -f confmdtesterror || exit 0; exit 1
+	VALGRIND="`which valgrind`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; \
+		rm -f confmdtesterror; \
+		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
+		@SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdtesterror || exit 0; exit 1
+
+	rm -f confmdtesterror confmderror.txt
 	rm -rf confmdtest
 
 testsuite-imap:

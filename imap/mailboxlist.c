@@ -96,7 +96,8 @@ const char *maildir_shared_index_file()
 
 		if (p && *p)
 		{
-			const char *q=auth_getoptionenv("sharedgroup");
+			char *opt=auth_getoptionenv("sharedgroup");
+			const char *q=opt;
 
 			if (!q) q="";
 
@@ -106,6 +107,8 @@ const char *maildir_shared_index_file()
 				write_error_exit(0);
 
 			strcat(strcpy(filenamep, p), q);
+			if (opt)
+				free(opt);
 		}
 	}
 

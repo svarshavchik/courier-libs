@@ -3850,7 +3850,10 @@ int do_folder_delete(char *mailbox_name)
 	}
 
 	if (acl_read_folder(&l, mi.homedir, mi.maildir) < 0)
+	{
+		maildir_info_destroy(&mi);
 		return -1;
+	}
 
 	if (strcasecmp(mi.maildir, INBOX))
 	{
@@ -3875,6 +3878,7 @@ int do_folder_delete(char *mailbox_name)
 			free(p);
 	}
 	maildir_aclt_list_destroy(&l);
+	maildir_info_destroy(&mi);
 	return -1;
 }
 

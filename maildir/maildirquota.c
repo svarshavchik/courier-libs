@@ -500,10 +500,12 @@ static int docheckquota(struct maildirsize *info,
 	if (rename(newmaildirsizename, info->maildirsizefile))
 	{
 		unlink(newmaildirsizename);
+		free(newmaildirsizename);
 		close(maildirsize_fd);
 		errno=EIO;
 		return (-1);
 	}
+	free(newmaildirsizename);
 
 	info->recalculation_needed=0;
 	info->size.nbytes=maildirsize_size;

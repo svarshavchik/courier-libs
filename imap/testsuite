@@ -17,6 +17,11 @@ test ! -d confmdtest2 || chmod -R u+rwx confmdtest2
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 
+if test "$IMAPINVOKE" = ""
+then
+    IMAPINVOKE="./imapd"
+fi
+
 cat >confmdtest/cur/msg1:2,S <<EOF || exit 1
 From: John <john@example.com>
 To: Steve <steve@example.com>, Tom <tom@example.com>
@@ -116,7 +121,7 @@ else
     initinbox="inbox.$initinbox"
 fi
 
-env IMAP_BROKENUIDV=1 MAILDIR=$initdir ./imapd >confmdtest.stdout <<EOF
+env IMAP_BROKENUIDV=1 MAILDIR=$initdir $IMAPINVOKE >confmdtest.stdout <<EOF
 a001 select $initinbox
 a logout
 EOF
@@ -125,7 +130,7 @@ EOF
 
 inituid
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 a001 select inbox
 a002 fetch 1 (bodystructure)
 a003 fetch 1 (body[])
@@ -222,7 +227,7 @@ touch -t 199901010000 confmdtest/new/msg3
 
 inituid
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 b000 status inbox ( MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)
 b001 select inbox
 b001a status inbox ( MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)
@@ -266,7 +271,8 @@ b030 select inbox
 b031 fetch 2 (bodystructure)
 adone logout
 EOF
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 foo select inbox.bozo
 foo store 1 +flags \Deleted
 foo expunge
@@ -278,7 +284,7 @@ mkdir confmdtest/tmp || exit 1
 mkdir confmdtest/cur || exit 1
 mkdir confmdtest/new || exit 1
 echo "10000S,2C" >confmdtest/maildirsize
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 c001 select inbox
 c002 append inbox {5}
 test
@@ -308,7 +314,7 @@ mkdir confmdtest/tmp || exit 1
 mkdir confmdtest/cur || exit 1
 mkdir confmdtest/new || exit 1
 echo "10000S,5C" >confmdtest/maildirsize
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 d001 select inbox
 d002 append inbox {5}
 test
@@ -319,7 +325,7 @@ d005 noop
 ddone logout
 EOF
 cat confmdtest/maildirsize
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 e001 select inbox
 e002 copy 1:2 inbox
 e003 noop
@@ -328,7 +334,7 @@ EOF
 cat confmdtest/maildirsize
 ../maildir/maildirmake -f Trash confmdtest || exit 1
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 f001 select inbox
 f002 copy 1:2 inbox
 f002 copy 1:2 inbox.Trash
@@ -343,7 +349,7 @@ fdone logout
 EOF
 cat confmdtest/maildirsize
 echo "Counts:" `ls confmdtest/cur | wc -l` `ls confmdtest/.Trash/cur | wc -l`
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 g001 select inbox
 g002 select Trash
 g003 select INBOX.Trash
@@ -367,7 +373,7 @@ chmod u-rwx confmdtest2/.b/cur
 
 echo "test `pwd`/confmdtest2" >confmdtest/shared-maildirs
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 h001 list "" "*"
 h002 list "" "%"
 h003 list "" "%.%"
@@ -422,19 +428,19 @@ EOF
 ../maildir/maildirmake -f c confmdtest
 ../maildir/maildirmake -f Trash confmdtest2
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 ii001 list "" "*"
 ii002 list "" "*"
 iidone logout
 EOF
 
-env IMAP_BROKENUIDV=1 IMAP_CHECK_ALL_FOLDERS=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 IMAP_CHECK_ALL_FOLDERS=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 ii003 list "" "*"
 ii004 list "" "*"
 iidone logout
 EOF
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 i001 select shared.test.b
 i002 select shared.test.a
 i003 close
@@ -518,7 +524,7 @@ EOF
 
 inituid
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T001 select INBOX
 T002 fetch 1:* (uid body[header.fields(date)])
 T003 THREAD ORDEREDSUBJECT US-ASCII ALL
@@ -539,7 +545,7 @@ EOF
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 ../maildir/maildirmake -f Trash confmdtest || exit 1
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 J001 list "" "*"
 J002 lsub "" "*"
 J003 SUBSCRIBE INBOX
@@ -624,7 +630,7 @@ EOF
 
 inituid
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 K001 select INBOX
 K002 THREAD REFERENCES US-ASCII ALL
 KDONE logout
@@ -634,7 +640,7 @@ rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 ../maildir/maildirmake -f Trash confmdtest || exit 1
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 L001 CREATE INBOX.a
 L002 CREATE INBOX.a.a
 L003 CREATE INBOX.aa
@@ -676,7 +682,7 @@ rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 ../maildir/maildirmake -q 10C confmdtest || exit 1
 
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 M001 CREATE INBOX.a
 M002 APPEND INBOX \Seen {5}
 test
@@ -690,7 +696,7 @@ M008 RENAME INBOX.a INBOX.b
 MDONE logout
 EOF
 cat confmdtest/maildirsize
-env IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 M009 DELETE INBOX.b
 MDONE logout
 EOF
@@ -699,7 +705,7 @@ cat confmdtest/maildirsize
 rm -rf confmdtest
 
 ../maildir/maildirmake confmdtest || exit 1
-env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 N001 LIST "" "*"
 N002 append inbox \Deleted {11}
 test
@@ -716,7 +722,7 @@ EOF
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 ../maildir/maildirmake -q10C confmdtest
-env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 O001 append inbox NIL {11}
 test
 
@@ -733,7 +739,7 @@ EOF
 cat confmdtest/maildirsize
 rm -f confmdtest/maildirsize
 
-env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 p001 SELECT INBOX
 p002 CREATE INBOX.a
 p003 COPY 1 INBOX.a
@@ -769,7 +775,7 @@ P026 SEARCH KEYWORD -Label2 KEYWORD -Label1
 pDONE LOGOUT
 EOF
 
-env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 Q001 select INBOX
 Q002 fetch 1:* FLAGS
 Q003 status INBOX.Trash MESSAGES
@@ -786,7 +792,7 @@ EOF
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 
-env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 R001 CREATE INBOX.a
 R002 LIST (ACL MYRIGHTS POSTADDRESS) "" "*"
 R003 ACL STORE INBOX owner -t
@@ -893,7 +899,7 @@ Subject: test
 
 test
 EOF
-env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 S001 SELECT INBOX.a
 S002 COPY 1 INBOX.a
 S003 NOOP
@@ -967,7 +973,7 @@ echo "user2	1	1	`pwd`	confmdtest3" >confmdtest4/indexb || exit 1
 IMAP_SHAREDINDEXFILE=`pwd`/confmdtest4/index
 export IMAP_SHAREDINDEXFILE
 
-env AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T001 ACL STORE INBOX user=user0 +l
 T002 CREATE INBOX.a
 T003 ACL STORE INBOX.a anyone +lr
@@ -979,7 +985,7 @@ user1
 T005 LOGOUT
 EOF
 
-env AUTHENTICATED=user2 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest3 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env AUTHENTICATED=user2 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest3 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T010 ACL STORE INBOX anyone +l
 T011 CREATE INBOX.a
 T012 append INBOX.a \Seen {22}
@@ -990,14 +996,14 @@ user2
 T013 LOGOUT
 EOF
 
-env AUTHENTICATED=user0 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env AUTHENTICATED=user0 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T020 list(acl) "" "#shared.*"
 T021 ACL STORE INBOX anyone acdilrsw
 T022 list(acl) "" "#shared.%"
 T023 LOGOUT
 EOF
 
-env AUTHENTICATED=user2 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest3 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env AUTHENTICATED=user2 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest3 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T030 LIST "" "#shared.*"
 T031 LIST "" "#shared.%"
 T032 LIST "" "#shared.a.%"
@@ -1032,7 +1038,7 @@ user.2	1	1	`pwd`	confmdtest3
 usér/3	1	1	`pwd`	confmdtest3
 EOF
 
-env AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 a ENABLE UTF8=ACCEPT
 T055 LIST "" "#shared.b.*"
 T056 LIST "" "#shared.b.%"
@@ -1041,7 +1047,7 @@ T058 LIST "" "#shared.b.use&-2.*"
 TDONE LOGOUT
 EOF
 
-env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 a ENABLE UTF8=ACCEPT
 T055 LIST "" "#shared.b.*"
 T056 LIST "" "#shared.b.%"
@@ -1065,7 +1071,7 @@ EOF
 
 echo "usergroup1	1	1	`pwd`	confmdtest" >confmdtest4/indexgroup1 || exit 1
 
-env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 OPTIONS=sharedgroup=group1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 ./imapd <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
+env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 OPTIONS=sharedgroup=group1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest2 $IMAPINVOKE <<EOF | sed 's/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g'
 T072 LIST "" #shared.*
 T073 LIST(ACL) "" INBOX
 T074 ACL STORE INBOX user=fred lr

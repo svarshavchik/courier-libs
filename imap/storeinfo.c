@@ -221,6 +221,7 @@ int kwAllowed=1;
 	else
 	{
 		struct libmail_kwMessage *kw;
+		struct libmail_kwMessage *si_kw;
 
 		new_flags=si->flags;
 
@@ -229,12 +230,16 @@ int kwAllowed=1;
 		if (kw && kw->firstEntry == NULL)
 			kw=NULL;
 
-		if (si->keywords && si->keywords->firstEntry == NULL)
-			si->keywords=NULL;
+		si_kw=si->keywords;
 
-		if ((si->keywords && !kw) ||
-		    (!si->keywords && kw) ||
-		    (si->keywords && kw && libmail_kwmCmp(si->keywords, kw)))
+		if (si_kw && si_kw->firstEntry == NULL)
+		{
+			si_kw=NULL;
+		}
+
+		if ((si_kw && !kw) ||
+		    (!si_kw && kw) ||
+		    (si_kw && kw && libmail_kwmCmp(si_kw, kw)))
 		{
 			if (kwAllowed)
 			{
