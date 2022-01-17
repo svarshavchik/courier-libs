@@ -70,6 +70,9 @@ DBT	key, value;
 	}
 #endif
 
+	if (!key.data)
+		return 0;
+
 	*keylen=key.size;
 	*vallen=value.size;
 	if ((*val=(char *)malloc(*vallen + 1)) == 0)	return (0);

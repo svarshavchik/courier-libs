@@ -6591,16 +6591,11 @@ int	uid=0;
 
 static void dogethostname()
 {
-char	buf[2048];
-char	*p;
+	char	buf[2048];
 
 	if (gethostname(buf, sizeof(buf)) < 0)
 		strcpy(buf, "courier-imap");
-	p=malloc(strlen(buf)+sizeof("HOSTNAME="));
-	if (!p)
-		write_error_exit(0);
-	strcat(strcpy(p, "HOSTNAME="), buf);
-	putenv(p);
+	setenv("HOSTNAME", buf, 1);
 }
 
 #if 0
@@ -6764,14 +6759,13 @@ int main(int argc, char **argv)
 	{
 		const char *p;
 
-		putenv("TCPREMOTEIP=127.0.0.1");
-		putenv("TCPREMOTEPORT=0");
+		setenv("TCPREMOTEIP", "127.0.0.1", 1);
+		setenv("TCPREMOTEPORT", "0", 1);
 
 		p=getenv("AUTHENTICATED");
 		if (!p || !*p)
 		{
 			struct passwd *pw=getpwuid(getuid());
-			char *me;
 
 			if (!pw)
 			{
@@ -6781,12 +6775,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 
-			me=malloc(sizeof("AUTHENTICATED=")+strlen(pw->pw_name));
-			if (!me)
-				write_error_exit(0);
-
-			strcat(strcpy(me, "AUTHENTICATED="), pw->pw_name);
-			putenv(me);
+			setenv("AUTHENTICATED", pw->pw_name, 1);
 		}
 	}
 
@@ -6805,7 +6794,7 @@ int main(int argc, char **argv)
 	if (!protocol || !*protocol)
 		protocol="IMAP";
 
-	putenv("IMAP_STARTTLS=NO");	/* No longer grok STARTTLS */
+	setenv("IMAP_STARTTLS", "NO", 1);	/* No longer grok STARTTLS */
 
 	/* We use select() with a timeout, so use non-blocking filedescs */
 

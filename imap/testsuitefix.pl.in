@@ -12,6 +12,8 @@ $n=0;
 
 while (<>)
 {
+    s/UIDVALIDITY \d+/UIDVALIDITY/;
+    s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g;
     s/\[COPYUID.*\] //;
     s/\[APPENDUID.*\] //;
     s/^\* ADD \"UID=.*/* ADD UID/;

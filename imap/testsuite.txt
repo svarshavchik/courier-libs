@@ -1699,3 +1699,27 @@
 001413 T086 OK LIST completed
 001414 * BYE Courier-IMAP server shutting down
 001415 TDONE OK LOGOUT completed
+001416 * PREAUTH Ready.
+001417 + OK
+001418 U001 OK APPEND Ok.
+001419 * LIST (\HasNoChildren) "." "shared.another.writable"
+001419 * LIST (\Noselect \HasChildren) "." "shared"
+001419 * LIST (\Noselect \HasChildren) "." "shared.another"
+001419 * LIST (\Unmarked \HasNoChildren) "." "INBOX"
+001419 U002 OK LIST completed
+001420 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001421 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001422 * 1 EXISTS
+001423 * 0 RECENT
+001424 * OK [UIDVALIDITY] Ok
+001425 * OK [MYRIGHTS "acdilrsw"] ACL
+001426 U003 OK [READ-WRITE] Ok
+001427 U004 OK COPY completed.
+001428 U005 NO Mailbox does not exist, or must be subscribed to.
+001429 U006 NO Cannot delete currently-open folder.
+001430 * LISTRIGHTS "INBOX" "user=user1" "" a c d i l p r s w
+001430 U007 OK LISTRIGHTS completed.
+001431 * LISTRIGHTS "shared.another.writable" "user=user1" "" a c d i l p r s w
+001431 U008 OK LISTRIGHTS completed.
+001432 * MYRIGHTS "INBOX" "acdilrsw"
+001433 U009 OK MYRIGHTS completed.
