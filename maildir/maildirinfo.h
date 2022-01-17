@@ -99,6 +99,11 @@ struct info {
 	{
 		return mailbox_type != MAILBOXTYPE_ERROR;
 	}
+
+	bool regular_maildir() const
+	{
+		return !homedir.empty() && !maildir.empty();
+	}
 };
 
 info info_imap_find(const std::string &path,

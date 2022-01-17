@@ -61,7 +61,7 @@
 
 static const char hierchs[]={HIERCH, 0};
 
-extern char *decode_valid_mailbox(const char *, int);
+extern std::string decode_valid_mailbox(const char *, int);
 extern dev_t homedir_dev;
 extern ino_t homedir_ino;
 /*
@@ -204,34 +204,25 @@ struct	dirent *de;
 
 static int hasnewmsgs(const char *folder)
 {
-char *dir=decode_valid_mailbox(folder, 0);
-char *subdir;
+	auto dir=decode_valid_mailbox(folder, 0);
 
-	if (!dir)	return (0);
+	if (dir.empty())	return (0);
 
-	if (is_sharedsubdir(dir))
-		maildir_shared_sync(dir);
+	if (is_sharedsubdir(dir.c_str()))
+		maildir_shared_sync(dir.c_str());
 
-	subdir=(char *)malloc(strlen(dir)+sizeof("/cur"));
-	if (!subdir)	write_error_exit(0);
-	strcat(strcpy(subdir, dir), "/new");
-	if (hasnewmsgs2(subdir))
+	auto subdir=dir+"/new";
+	if (hasnewmsgs2(subdir.c_str()))
 	{
-		free(subdir);
-		free(dir);
 		return (1);
 	}
 
-	strcat(strcpy(subdir, dir), "/cur");
-	if (hasnewmsgs2(subdir))
+	subdir=dir+"/cur";
+	if (hasnewmsgs2(subdir.c_str()))
 	{
-		free(subdir);
-		free(dir);
 		return (1);
 	}
 
-	free(subdir);
-	free(dir);
 	return (0);
 }
 

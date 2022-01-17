@@ -346,36 +346,37 @@ int is_reserved_name(const char *name)
 	return 0;
 }
 
-static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
+static std::string decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 {
-	struct maildir_info mi;
-	char *r;
+	auto mi=maildir::info_imap_find(p, getenv("AUTHENTICATED"));
 
-	if (maildir_info_imap_find(&mi, p, getenv("AUTHENTICATED")) < 0)
+	if (!mi)
 	{
-		return NULL;
+		return "";
 	}
 
-	if (mi.homedir && mi.maildir)
+	if (mi.regular_maildir())
 	{
-		char *q=maildir_name2dir(mi.homedir, mi.maildir);
+		char *q=maildir_name2dir(mi.homedir.c_str(),
+					 mi.maildir.c_str());
 
-		if (q)
+		if (!q)
+			return "";
+
+		std::string r{q};
+		free(q);
+
+		r += "/.";
+
+		if (access(r.c_str(), 0) == 0)
 		{
-			r=(char *)malloc(strlen(q)+sizeof("/."));
-			if (!r)	write_error_exit(0);
-			strcat(strcpy(r, q), "/.");
-			if (access(r, 0) == 0)
-			{
-				free(r);
-				maildir_info_destroy(&mi);
-				return q;
-			}
-			free(r);
-			free(q);
+			r.pop_back();
+			r.pop_back();
+			return r;
 		}
-		maildir_info_destroy(&mi);
-		return NULL;
+
+		r.clear();
+		return r;
 	}
 
 	if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
@@ -385,52 +386,46 @@ static char *decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 
 		if ((q=strchr(p, '.')) == NULL)
 		{
-			maildir_info_destroy(&mi);
 			errno=EINVAL;
-			return NULL;
+			return "";
 		}
 
 		r=maildir_shareddir(".", q+1);
 		if (!r)
 		{
-			maildir_info_destroy(&mi);
 			errno=EINVAL;
-			return NULL;
+			return "";
 		}
 
 		if (access(r, 0) == 0)
 		{
-			maildir_info_destroy(&mi);
-			return r;
+			std::string ret{r};
+			free(r);
+			return ret;
 		}
 
 		maildir_shared_subscribe(".", q+1);
 		if (access(r, 0) == 0)
 		{
-			maildir_info_destroy(&mi);
-			return r;
+			std::string ret{r};
+			free(r);
+			return ret;
 		}
-
-		free(r);
-		maildir_info_destroy(&mi);
-		return NULL;
 	}
-	maildir_info_destroy(&mi);
-	return (NULL);
+	return "";
 }
 
-char *decode_valid_mailbox(const char *mailbox, int autosubscribe)
+std::string decode_valid_mailbox(const char *mailbox, int autosubscribe)
 {
 	char *p=imap_foldername_to_filename(enabled_utf8, mailbox);
-	char *q;
 
 	if (!p)
 	{
 		errno=EINVAL;
-		return NULL;
+		return "";
 	}
 
-	q=decode_valid_mailbox_utf8(p, autosubscribe);
+	auto q=decode_valid_mailbox_utf8(p, autosubscribe);
 	free(p);
 	return q;
 }
@@ -614,18 +609,14 @@ static std::string parse_mailbox_error(
 					     HIERCH)) && mailbox[1] == 0)
 		*mailbox=0;
 
-	mailbox=decode_valid_mailbox(curtoken->tokenbuf,
-				     autosubscribe);
+	auto ret=decode_valid_mailbox(curtoken->tokenbuf, autosubscribe);
 
-	if ( mailbox == 0)
+	if (ret.empty())
 	{
 		writes(tag);
 		writes(" NO Mailbox does not exist, or must be subscribed to.\r\n");
-		return ("");
 	}
 
-	std::string ret{mailbox};
-	free(mailbox);
 	return (ret);
 }
 
@@ -6363,7 +6354,6 @@ int	uid=0;
 	if (strcmp(curtoken->tokenbuf, "COPY") == 0)
 	{
 	struct maildirsize quotainfo;
-	char	*mailbox;
 	char	*msgset;
 	struct copyquotainfo cqinfo;
 	int	has_quota;
@@ -6388,9 +6378,9 @@ int	uid=0;
 			return (0);
 		}
 
-		mailbox=decode_valid_mailbox(curtoken->tokenbuf, 1);
+		auto dest_mailbox=decode_valid_mailbox(curtoken->tokenbuf, 1);
 
-		if (!mailbox)
+		if (dest_mailbox.empty())
 		{
 			struct maildir_info mi;
 
@@ -6441,17 +6431,16 @@ int	uid=0;
 			return (-1);
 		}
 
-		if (access(mailbox, 0))
+		if (access(dest_mailbox.c_str(), 0))
 		{
 			writes(tag);
 			writes(" NO [TRYCREATE] Mailbox does not exist.\r\n");
 			free(msgset);
-			free(mailbox);
 			return (0);
 		}
 
 		fetch_free_cache();
-		cqinfo.destmailbox=mailbox;
+		cqinfo.destmailbox=dest_mailbox.c_str();
 		cqinfo.acls=access_rights;
 
 		/*
@@ -6462,13 +6451,8 @@ int	uid=0;
 		isshared=0;
 		if (is_sharedsubdir(cqinfo.destmailbox))
 		{
-			char	*p=(char *)malloc(strlen(cqinfo.destmailbox)+sizeof("/shared"));
-
-			if (!p)	write_error_exit(0);
-			strcat(strcpy(p, cqinfo.destmailbox), "/shared");
-
-			free(mailbox);
-			cqinfo.destmailbox=mailbox=p;
+			dest_mailbox += "/shared";
+			cqinfo.destmailbox=dest_mailbox.c_str();
 			isshared=1;
 		}
 
@@ -6504,7 +6488,6 @@ int	uid=0;
 				writes(
 			" NO [ALERT] You exceeded your mail quota.\r\n");
 				free(msgset);
-				free(mailbox);
 				return (0);
 			}
 
@@ -6513,7 +6496,7 @@ int	uid=0;
 					      cqinfo.nfiles);
 		}
 
-		if (is_outbox(mailbox))
+		if (is_outbox(dest_mailbox.c_str()))
 		{
 			int counter=0;
 
@@ -6523,12 +6506,11 @@ int	uid=0;
 				writes(tag);
 				writes(" NO [ALERT] Only one message may be sent at a time.\r\n");
 				free(msgset);
-				free(mailbox);
 				return (0);
 			}
 		}
 
-		copy_info.mailbox=mailbox;
+		copy_info.mailbox=dest_mailbox.c_str();
 		copy_info.uidplus_list=NULL;
 		copy_info.uidplus_tail= &copy_info.uidplus_list;
 		copy_info.acls=access_rights;
@@ -6542,11 +6524,10 @@ int	uid=0;
 			writes(tag);
 			writes(" NO [ALERT] COPY failed - no write permission or out of disk space.\r\n");
 			free(msgset);
-			free(mailbox);
 			return (0);
 		}
 
-		dirsync(mailbox);
+		dirsync(dest_mailbox.c_str());
 
 		writes(tag);
 		writes(" OK");
@@ -6564,7 +6545,6 @@ int	uid=0;
 		uidplus_free(copy_info.uidplus_list);
 
 		free(msgset);
-		free(mailbox);
 		return (0);
 	}
 	return (-1);
