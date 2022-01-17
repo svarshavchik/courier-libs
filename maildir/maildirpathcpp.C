@@ -21,7 +21,7 @@
 
 #include	"maildirmisc.h"
 
-
+extern "C"
 char *maildir_name2dir(const char *maildir,	/* DIR location */
 		       const char *foldername) /* INBOX.name */
 {
@@ -54,7 +54,7 @@ char *maildir_name2dir(const char *maildir,	/* DIR location */
 
 			r=strchr(foldername, '.');
 
-			p=malloc(strlen(maildir)+strlen(r) + 2);
+			p=(char *)malloc(strlen(maildir)+strlen(r) + 2);
 
 			if (!p)
 				return NULL;
@@ -68,6 +68,7 @@ char *maildir_name2dir(const char *maildir,	/* DIR location */
 	return NULL;
 }
 
+extern "C"
 char *maildir_location(const char *homedir,
 		       const char *maildir)
 {
@@ -76,7 +77,7 @@ char *maildir_location(const char *homedir,
 	if (*maildir == '/')
 		return strdup(maildir);
 
-	p=malloc(strlen(homedir)+strlen(maildir)+2);
+	p=(char *)malloc(strlen(homedir)+strlen(maildir)+2);
 
 	if (!p)
 		return NULL;
@@ -84,6 +85,7 @@ char *maildir_location(const char *homedir,
 	return p;
 }
 
+extern "C"
 char *maildir_folderdir(const char *maildir, const char *foldername)
 {
 char	*p;
@@ -96,7 +98,7 @@ size_t	l;
 	if (foldername == 0 ||
 		strcasecmp(foldername, INBOX) == 0)
 	{
-		if ((p=malloc(l+1)) == 0)	return (0);
+		if ((p=(char *)malloc(l+1)) == 0)	return (0);
 		strcpy(p, maildir);
 		return(p);
 	}
@@ -118,10 +120,10 @@ size_t	l;
 		}
 	}
 
-	if ((p=malloc(l+strlen(foldername)+3)) == 0)	return (0);
+	if ((p=(char *)malloc(l+strlen(foldername)+3)) == 0)	return (0);
 	*p=0;
 	if (strcmp(maildir, "."))
 		strcat(strcpy(p, maildir), "/");
-	
+
 	return (strcat(strcat(p, "."), foldername));
 }
