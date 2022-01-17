@@ -41,7 +41,7 @@ struct do_copy_info {
 */
 
 struct copyquotainfo {
-	char *destmailbox;
+	const char *destmailbox;
 	int64_t nbytes;
 	int nfiles;
 
