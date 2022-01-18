@@ -248,6 +248,9 @@ libcourier_unicode_la_SOURCES=\
 
 libcourier_unicode_la_LDFLAGS=-version-info 7:0:0
 
+dist-hook:
+	rm -f $(distdir)/courier-unicode.h
+
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	m4/courier-unicode.m4 \
 	packaging/freebsd10/pkg-descr
@@ -472,7 +475,7 @@ docs.stamp:
 	rm -rf man.tmp
 	mkdir man.tmp
 	d=`cd $(srcdir); pwd`; cd man.tmp; xsltproc --nonet --xinclude \
-        http://cdn.docbook.org/release/xsl-nons/current//manpages/docbook.xsl\
+        http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl\
 		$$d/book.xml
 	mkdir -p man
 	rm -f man/*.[123456789]
