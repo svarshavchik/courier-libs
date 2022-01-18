@@ -65,8 +65,8 @@ fi
 
 AC_TRY_COMPILE([
 #include <uchar.h>
+char32_t c;
 ],[
-char32_t c=0;
 ],
 [
 HAVE_UCHAR_H=1
