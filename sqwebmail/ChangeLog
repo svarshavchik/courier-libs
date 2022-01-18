@@ -1,5 +1,9 @@
 2022-01-17  Sam Varshavchik  <mrsam@courier-mta.com>
 
+	* Remove unused parameters to maildir_getnew.
+
+	* maildir.c (maildir_checknew): use maildir_getnew.
+
 	* Fix minor memory leaks.
 
 6.0.9

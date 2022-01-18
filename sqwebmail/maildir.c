@@ -1122,30 +1122,7 @@ static void maildir_checknew(const char *folder, const char *dir)
 
 	/* Move everything from new to cur */
 
-	dirbuf=alloc_filename(dir, "new", "");
-
-	for (dirp=opendir(dirbuf); dirp && (dire=readdir(dirp)) != 0; )
-	{
-	char	*oldname, *newname;
-	char	*p;
-
-		if (dire->d_name[0] == '.')	continue;
-
-		oldname=alloc_filename(dirbuf, dire->d_name, "");
-
-		newname=malloc(strlen(oldname)+4);
-		if (!newname)	enomem();
-
-		strcat(strcat(strcpy(newname, dir), "/cur/"), dire->d_name);
-		p=strrchr(newname, '/');
-		if ((p=strchr(p, ':')) != NULL)	*p=0;	/* Someone screwed up */
-		strcat(newname, ":2,");
-		rename(oldname, newname);
-		free(oldname);
-		free(newname);
-	}
-	if (dirp)	closedir(dirp);
-	free(dirbuf);
+	maildir_getnew(dir, 0);
 
 	/* Look for any messages mark as deleted.  When we delete a message
 	** we link it into the Trash folder, and mark the original with a T,

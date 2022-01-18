@@ -38,13 +38,9 @@
 #include	"maildirmisc.h"
 
 
-static void do_maildir_getnew(const char *, const char *,
-			      void (*)(const char *, void *),
-			      void *);
+static void do_maildir_getnew(const char *, const char *);
 
-void maildir_getnew(const char *maildir, const char *folder,
-		    void (*callback_func)(const char *, void *),
-		    void *callback_arg)
+void maildir_getnew(const char *maildir, const char *folder)
 {
 char	*dir=maildir_folderdir(maildir, folder);
 char	*newd, *curd;
@@ -58,7 +54,7 @@ char	*newd, *curd;
 	{
 		strcat(strcpy(newd, dir), "/new");
 		strcat(strcpy(curd, dir), "/cur");
-		do_maildir_getnew(newd, curd, callback_func, callback_arg);
+		do_maildir_getnew(newd, curd);
 	}
 
 	if (newd)	free(newd);
@@ -66,9 +62,7 @@ char	*newd, *curd;
 	free(dir);
 }
 
-static void do_maildir_getnew(const char *newd, const char *curd,
-			      void (*callback_func)(const char *, void *),
-			      void *callback_arg)
+static void do_maildir_getnew(const char *newd, const char *curd)
 {
 	DIR	*dirp;
 	struct dirent *de;
@@ -143,9 +137,6 @@ static void do_maildir_getnew(const char *newd, const char *curd,
 				/* otherwise we could have infinite loop */
 			}
 
-			if (callback_func)
-				(*callback_func)(strrchr(cp, '/')+1,
-						 callback_arg);
 			free(np);
 			free(cp);
 		}

@@ -722,10 +722,10 @@ struct	stat	stat1, stat2;
 int	fd;
 
 	maildir_purgetmp(dir);	/* clean up after myself */
-	maildir_getnew(dir, 0, NULL, NULL);
+	maildir_getnew(dir, 0);
 
 	maildir_purgetmp(shared);
-	maildir_getnew(shared, 0, NULL, NULL);
+	maildir_getnew(shared, 0);
 
 	/* Figure out if we REALLY need to sync something */
 
@@ -851,7 +851,7 @@ char	*buf=maildir_getlink(filename);
 				}
 				free(cpy);
 			}
-						
+
 			free(buf);
 			return (0);
 		}
