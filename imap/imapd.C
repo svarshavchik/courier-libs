@@ -1445,14 +1445,17 @@ extern "C" void doNoop(int real_noop)
 		mailboxflags(current_mailbox_ro);
 }
 
-static char *alloc_filename(const char *mbox, const char *name)
+static std::string alloc_filename(const std::string &mbox,
+				  const std::string &name)
 {
-	char	*p=(char *)malloc(strlen(mbox)+strlen(name)+sizeof("/cur/"));
+	std::string ret;
 
-	if (!p)	write_error_exit(0);
+	ret.reserve(mbox.size() + name.size() + sizeof("/cur/")-1);
 
-	strcat(strcat(strcpy(p, mbox), "/cur/"), name);
-	return (p);
+	ret += mbox;
+	ret += "/cur/";
+	ret += name;
+	return ret;
 }
 
 /****************************************************************************/
@@ -1738,7 +1741,6 @@ void do_expunge(unsigned long expunge_start,
 {
 unsigned long j;
 struct imapflags flags;
-char	*old_name;
 int	move_to_trash=0;
 struct stat stat_buf;
 const char *cp=getenv("IMAP_LOG_DELETIONS");
@@ -1760,31 +1762,30 @@ int log_deletions= cp && *cp != '0';
 		if (!flags.deleted && !force)
 			continue;
 
-		old_name=alloc_filename(current_mailbox,
+		auto old_name=alloc_filename(
+			current_mailbox,
 			current_maildir_info.msgs[j].filename);
 
-		if (stat(old_name, &stat_buf) < 0)
+		if (stat(old_name.c_str(), &stat_buf) < 0)
 		{
-			free(old_name);
 			continue;
 		}
 
 		if (maildirquota_countfolder(current_mailbox) &&
-		    maildirquota_countfile(old_name))
+		    maildirquota_countfile(old_name.c_str()))
 			file_counted=1;
 
 		if (is_sharedsubdir(current_mailbox))
 		{
-			maildir_unlinksharedmsg(old_name);
+			maildir_unlinksharedmsg(old_name.c_str());
 		}
 		else if (move_to_trash && current_maildir_info
 			 .msgs[j].copiedflag == 0)
 		{
-		char	*new_name;
-		char	*p;
-		int will_count=0;
+			int will_count=0;
 
-			new_name=alloc_filename(dot_trash,
+			auto new_name=alloc_filename(
+				dot_trash,
 				current_maildir_info.msgs[j].filename);
 
 			if (maildirquota_countfolder(dot_trash))
@@ -1794,9 +1795,10 @@ int log_deletions= cp && *cp != '0';
 			{
 				unsigned long filesize=0;
 
-				if (maildir_parsequota(old_name, &filesize))
+				if (maildir_parsequota(old_name.c_str(),
+						       &filesize))
 				{
-					if (stat(old_name, &stat_buf))
+					if (stat(old_name.c_str(), &stat_buf))
 						stat_buf.st_size=0;
 					filesize=(unsigned long)
 						stat_buf.st_size;
@@ -1810,23 +1812,28 @@ int log_deletions= cp && *cp != '0';
 						      -file_counted);
 			}
 
-			if ((p=strrchr(new_name, '/')) &&
-			    (p=strrchr(p, MDIRSEP[0])) &&
-			    strncmp(p, MDIRSEP "2,", 3) == 0)
-			{
-				char *q;
+			auto last=new_name.rfind('/');
 
+			if (last == new_name.npos)
+				last=0;
+
+			last=new_name.find(MDIRSEP[0], last);
+
+			if (last != new_name.npos &&
+			    new_name.substr(last, 3) == MDIRSEP "2,")
+			{
 				/* Don't mark it as deleted in the Trash */
 
-				if ((q=strchr(p, 'T')) != NULL)
-					while ((*q=q[1]) != 0)
-						++q;
+				auto n=new_name.find('T', last);
+
+				if (n != new_name.npos)
+					new_name.erase(n, 1);
 
 				/* Don't mark it as a draft msg in the Trash */
 
-				if ((q=strchr(p, 'D')) != NULL)
-					while ((*q=q[1]) != 0)
-						++q;
+				n=new_name.find('D', last);
+				if (n != new_name.npos)
+					new_name.erase(n, 1);
 			}
 
 			if (log_deletions)
@@ -1834,31 +1841,28 @@ int log_deletions= cp && *cp != '0';
 					getenv("AUTHENTICATED"),
 					getenv("TCPREMOTEIP"),
 					getenv("TCPREMOTEPORT"),
-					old_name, new_name);
+					old_name.c_str(), new_name.c_str());
 
-			if (rename(old_name, new_name))
+			if (rename(old_name.c_str(), new_name.c_str()))
 			{
 				mdcreate(dot_trash);
-				rename(old_name, new_name);
+				rename(old_name.c_str(), new_name.c_str());
 			}
 
-			unlink(old_name);
-			/* triggers linux kernel bug if also moved to Trash by
-			sqwebmail */
-
-			free(new_name);
+			unlink(old_name.c_str());
 		}
 		else
 		{
-			unlink(old_name);
+			unlink(old_name.c_str());
 
 			if (file_counted)
 			{
 				unsigned long filesize=0;
 
-				if (maildir_parsequota(old_name, &filesize))
+				if (maildir_parsequota(old_name.c_str(),
+						       &filesize))
 				{
-					if (stat(old_name, &stat_buf))
+					if (stat(old_name.c_str(), &stat_buf))
 						stat_buf.st_size=0;
 					filesize=(unsigned long)
 						stat_buf.st_size;
@@ -1873,8 +1877,7 @@ int log_deletions= cp && *cp != '0';
 				getenv("AUTHENTICATED"),
 				getenv("TCPREMOTEIP"),
 				getenv("TCPREMOTEPORT"),
-				old_name);
-		free(old_name);
+				old_name.c_str());
 	}
 }
 
