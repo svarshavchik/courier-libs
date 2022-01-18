@@ -1702,10 +1702,11 @@
 001416 * PREAUTH Ready.
 001417 + OK
 001418 U001 OK APPEND Ok.
+001419 * LIST (\HasNoChildren) "." "INBOX.Trash"
 001419 * LIST (\HasNoChildren) "." "shared.another.writable"
 001419 * LIST (\Noselect \HasChildren) "." "shared"
 001419 * LIST (\Noselect \HasChildren) "." "shared.another"
-001419 * LIST (\Unmarked \HasNoChildren) "." "INBOX"
+001419 * LIST (\Unmarked \HasChildren) "." "INBOX"
 001419 U002 OK LIST completed
 001420 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
 001421 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
@@ -1723,3 +1724,16 @@
 001431 U008 OK LISTRIGHTS completed.
 001432 * MYRIGHTS "INBOX" "acdilrsw"
 001433 U009 OK MYRIGHTS completed.
+001434 U010 NO Error in IMAP command received by server.
+001435 U011 NO [TRYCREATE] Mailbox does not exist.
+001436 U012 OK "INBOX.Outbox" created.
+001437 + OK
+001438 U013 OK APPEND Ok.
+001439 * 2 EXISTS
+001440 * 0 RECENT
+001441 U014 OK NOOP completed
+001442 U015 NO [ALERT] Only one message may be sent at a time.
+001443 U016 OK COPY completed.
+001444 ===Sent==
+001445 test
+001446 ===
