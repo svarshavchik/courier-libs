@@ -1703,6 +1703,7 @@
 001417 + OK
 001418 U001 OK APPEND Ok.
 001419 * LIST (\HasNoChildren) "." "INBOX.Trash"
+001419 * LIST (\HasNoChildren) "." "INBOX.folder:with:colonTD"
 001419 * LIST (\HasNoChildren) "." "shared.another.writable"
 001419 * LIST (\Noselect \HasChildren) "." "shared"
 001419 * LIST (\Noselect \HasChildren) "." "shared.another"
@@ -1734,6 +1735,24 @@
 001441 U014 OK NOOP completed
 001442 U015 NO [ALERT] Only one message may be sent at a time.
 001443 U016 OK COPY completed.
-001444 ===Sent==
-001445 test
-001446 ===
+001444 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001445 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001446 * 3 EXISTS
+001447 * 3 RECENT
+001448 * OK [UIDVALIDITY] Ok
+001449 * OK [MYRIGHTS "acdilrsw"] ACL
+001450 U017 OK [READ-WRITE] Ok
+001451 * 1 EXPUNGE
+001452 * 1 EXPUNGE
+001453 * 1 EXPUNGE
+001454 * 0 EXISTS
+001455 * 0 RECENT
+001456 U019 OK EXPUNGE completed
+001457 ===Sent==
+001458 test
+001459 ===Trash=
+001460 001:2,
+001461 002TD:2,
+001462 003:2,AB
+001463 msg:2
+001464 ===

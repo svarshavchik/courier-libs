@@ -1093,6 +1093,7 @@ EOF
 rm -rf confmdtest confmdtest2
 ../maildir/maildirmake confmdtest
 ../maildir/maildirmake -f Trash confmdtest
+../maildir/maildirmake -f folder:with:colonTD confmdtest
 ../maildir/maildirmake -S confmdtest2
 ../maildir/maildirmake -s write -f writable confmdtest2
 ../maildir/maildirmake --add another=`pwd`/confmdtest2 confmdtest
@@ -1104,8 +1105,13 @@ chmod +x confsendmail
 echo >confmdtest/.Trash/cur/msg:2
 touch -t 202001011200 confmdtest/.Trash/cur/msg:2
 
+echo >confmdtest/.folder:with:colonTD/cur/001:2,T
+echo >confmdtest/.folder:with:colonTD/cur/002TD:2,T
+echo >confmdtest/.folder:with:colonTD/cur/003:2,ATDB
+
 env IMAP_BROKENUIDV=1 IMAP_TRASHFOLDERNAME=Trash IMAP_EMPTYTRASH=Trash:7 \
     MAILDIR=confmdtest AUTHENTICATED=user1 OUTBOX=.Outbox \
+    IMAP_MOVE_EXPUNGE_TO_TRASH=1 \
     SENDMAIL=`pwd`/confsendmail $IMAPINVOKE <<EOF
 U001 APPEND INBOX \Seen {5}
 test
@@ -1127,8 +1133,12 @@ test
 U014 NOOP
 U015 COPY 1,2 INBOX.Outbox
 U016 COPY 1 INBOX.Outbox
+U017 SELECT INBOX.folder:with:colonTD
+U019 EXPUNGE
 EOF
 echo "===Sent=="
 cat confsendmail.out
+echo "===Trash="
+ls confmdtest/.Trash/cur
 echo "==="
 rm -f confsendmail confsendmail.out
