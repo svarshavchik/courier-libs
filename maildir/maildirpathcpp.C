@@ -21,68 +21,86 @@
 
 #include	"maildirmisc.h"
 
-extern "C"
-char *maildir_name2dir(const char *maildir,	/* DIR location */
-		       const char *foldername) /* INBOX.name */
+std::string maildir::name2dir(const std::string &maildir,
+			      const std::string &foldername) /* INBOX.name */
 {
-	const char *inbox=INBOX;
-	int l=strlen(inbox);
-	char *p;
+	if (maildir.empty())
+		return name2dir(".", foldername);
+	const auto ll=strlen(INBOX);
 
-	if (!maildir)	maildir=".";
-
-	if (foldername && strncasecmp(foldername, INBOX, l) == 0 &&
-	    strchr(foldername, '/') == NULL)
+	if (strncasecmp(foldername.c_str(), INBOX, ll) == 0 &&
+	    foldername.find('/') == foldername.npos)
 	{
-		if (foldername[l] == 0)
-			return strdup(maildir); /* INBOX: main maildir inbox */
+		if (foldername[ll] == 0)
+			return maildir; /* INBOX: main maildir inbox */
 
-		if (foldername[l] == '.')
+		if (foldername[ll] == '.')
 		{
-			const char *r;
+			char prev_ch=0;
 
-			for (r=foldername; *r; r++)
+			for (auto c:foldername)
 			{
-				if (*r != '.')	continue;
-
-				if (r[1] == 0 || r[1] == '.')
+				if (prev_ch == '.' && c == '.')
 				{
 					errno=EINVAL;
-					return (0);
+					return "";
 				}
+				prev_ch=c;
 			}
 
-			r=strchr(foldername, '.');
+			if (prev_ch == '.')
+			{
+				return "";
+			}
 
-			p=(char *)malloc(strlen(maildir)+strlen(r) + 2);
-
-			if (!p)
-				return NULL;
-
-			return (strcat(strcat(strcpy(p, maildir), "/"),
-				       r));
+			return maildir + "/" + foldername.substr(ll);
 		}
 	}
 
 	errno=EINVAL;
-	return NULL;
+	return "";
+}
+
+extern "C"
+char *maildir_name2dir(const char *maildir,	/* DIR location */
+		       const char *foldername) /* INBOX.name */
+{
+	auto ret=maildir::name2dir(maildir ? maildir:"",
+				   foldername ? foldername:"");
+
+	if (ret.empty())
+	{
+		errno=EINVAL;
+		return NULL;
+	}
+
+	return strdup(ret.c_str());
+}
+
+std::string maildir::location(const std::string &homedir,
+			     const std::string &maildir)
+{
+	if (*maildir.c_str() == '/')
+		return maildir;
+
+	std::string ret;
+
+	ret.reserve(homedir.size()+maildir.size()+1);
+
+	ret += homedir;
+	ret += "/";
+	ret += maildir;
+
+	return ret;
 }
 
 extern "C"
 char *maildir_location(const char *homedir,
 		       const char *maildir)
 {
-	char *p;
+	auto ret=maildir::location(homedir, maildir);
 
-	if (*maildir == '/')
-		return strdup(maildir);
-
-	p=(char *)malloc(strlen(homedir)+strlen(maildir)+2);
-
-	if (!p)
-		return NULL;
-	strcat(strcat(strcpy(p, homedir), "/"), maildir);
-	return p;
+	return strdup(ret.c_str());
 }
 
 extern "C"

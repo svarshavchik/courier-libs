@@ -217,19 +217,7 @@ info info_imap_find(const std::string &path,
 			continue;
 		}
 
-		{
-			auto location=maildir_location(ifs.homedir.c_str(),
-						       ifs.maildir.c_str());
-
-			if (!location)
-			{
-				ret={};
-				return ret;
-			}
-
-			ret.homedir=location;
-			free(location);
-		}
+		ret.homedir=maildir::location(ifs.homedir, ifs.maildir);
 
 		if (!subhierarchy || !*subhierarchy)
 		{
@@ -505,19 +493,7 @@ info info_smap_find(char **folder, const std::string &myId)
 			continue;
 		}
 
-
-		{
-			auto location=maildir_location(ifs.homedir.c_str(),
-							ifs.maildir.c_str());
-			if (!location)
-			{
-				ret={};
-				return ret;
-			}
-			ret.homedir=location;
-			free(location);
-		}
-
+		ret.homedir=maildir::location(ifs.homedir, ifs.maildir);
 		ret.maildir.clear();
 
 		if (maildir_info_suppress(ret.homedir.c_str()))

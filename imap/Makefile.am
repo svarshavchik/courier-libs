@@ -101,6 +101,7 @@ libpop3d_la_LDFLAGS=-static
 pop3d_SOURCES=pop3dserver.c pop3dcapa.c
 pop3d_DEPENDENCIES=libpop3d.la
 pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
+nodist_EXTRA_pop3d_SOURCES=dummy.C
 
 pop3d_testmock_SOURCES=testpop3dserver.c pop3dcapa.c
 pop3d_testmock_DEPENDENCIES=libpop3d.la

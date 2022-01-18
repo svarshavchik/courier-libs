@@ -196,6 +196,16 @@ int maildir_rename(const char *maildir, /* Path to the maildir */
 
 #ifdef  __cplusplus
 }
+
+#include <string>
+
+namespace maildir {
+
+	// C++ bindings
+
+	std::string name2dir(const std::string &, const std::string &);
+	std::string location(const std::string &, const std::string &);
+}
 #endif
 
 #endif

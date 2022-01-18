@@ -70,16 +70,19 @@ maildirmake_LDADD=libmaildir.la \
 			../numlib/libnumlib.la \
 			../rfc822/librfc822.la -lcourier-unicode @PCRE_LDFLAGS@
 maildirmake_LDFLAGS=-static
+nodist_EXTRA_maildirmake_SOURCES=dummy.C
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
 testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
 testmaildirfilter_LDFLAGS=-static
+nodist_EXTRA_testmaildirfilter_SOURCES=dummy.C
 
 maildirkwtest_SOURCES=maildirkwtest.c
 maildirkwtest_LDADD=libmaildir.la
 maildirkwtest_DEPENDENCIES=libmaildir.la
 maildirkwtest_LDFLAGS=-static
+nodist_EXTRA_maildirkwtest_SOURCES=dummy.C
 
 maildirkw_SOURCES=maildirkw.C
 maildirkw_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la

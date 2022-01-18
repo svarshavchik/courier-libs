@@ -13,7 +13,8 @@
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-#include	"maildir/maildirkeywords.h"
+#include	"maildirkeywords.h"
+#include	"maildirmisc.h"
 
 static struct libmail_kwHashtable h;
 
@@ -53,9 +54,46 @@ static int dump()
 
 }
 
+static void name2dir_test()
+{
+	static struct {
+		const char *homedir;
+		const char *maildir;
+
+		const char *path;
+	} tests[]={
+		{ "", "INBOX", "." },
+		{ ".", "INBOX", "." },
+		{ "/home/myself", "INBOX", "/home/myself" },
+		{ NULL, "nope", NULL},
+		{ NULL, "INBOX.x", "./.x" },
+		{ NULL, "INBOX..x", NULL },
+		{ NULL, "INBOX.x.", NULL },
+	};
+
+	int i;
+
+	for (i=0; i<sizeof(tests)/sizeof(tests[0]); ++i)
+	{
+		char *p=maildir_name2dir(tests[i].homedir,
+					 tests[i].maildir);
+
+		if ( (p && !tests[i].path) ||
+		     (!p && tests[i].path) ||
+		     (p && strcmp(p, tests[i].path)))
+		{
+			fprintf(stderr, "name2dir test %d failed\n", i);
+			exit(1);
+		}
+		free(p);
+	}
+}
+
 int main()
 {
 	size_t i;
+
+	name2dir_test();
 
 	libmail_kwhInit(&h);
 

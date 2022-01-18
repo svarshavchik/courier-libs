@@ -251,9 +251,29 @@ int is_trash(const char *m)
 	}
 }
 
+void emptythistrash(const char *folder, unsigned l)
+{
+	maildir_getnew(".", folder, NULL, NULL);
+
+	std::string dir=maildir::name2dir(".", std::string{"INBOX."}+folder);
+
+	if (dir.empty())
+		return;
+
+	const char *p=dir.c_str();
+
+	// TODO: this is not necessary, this avoids a make check failure.
+	// When the C++ branch gets merged this can removed:
+
+	if (strncmp(p, "./", 2) == 0)
+		p += 2;
+
+	maildir_purge(p, l * 24 * 60 * 60);
+}
+
 void emptytrash()
 {
-	char	*dir, *all_settings, *next_folder, *folder, *p;
+	char	*all_settings, *next_folder, *folder, *p;
 	unsigned l;
 
 	all_settings=getenv("IMAP_EMPTYTRASH");
@@ -273,12 +293,7 @@ void emptytrash()
 		if (l <= 0)
 			l=1;
 
-		maildir_getnew(".", trash, NULL, NULL);
-		if ((dir=maildir_folderdir(".", trash)))
-		{
-			maildir_purge(dir, l * 24 * 60 * 60);
-			free(dir);
-		}
+		emptythistrash(trash, l);
 		free(all_settings);
 		return;
 	}
@@ -306,12 +321,7 @@ void emptytrash()
 		l=atoi(p);
 		if (l <= 0)	l=1;
 
-		maildir_getnew(".", folder, NULL, NULL);
-		if ((dir=maildir_folderdir(".", folder)))
-		{
-			maildir_purge(dir, l * 24 * 60 * 60);
-			free(dir);
-		}
+		emptythistrash(folder, l);
 		folder=next_folder;
 	}
 	free(all_settings);
