@@ -69,6 +69,7 @@ static void name2dir_test()
 		{ NULL, "INBOX.x", "./.x" },
 		{ NULL, "INBOX..x", NULL },
 		{ NULL, "INBOX.x.", NULL },
+		{ NULL, "INBOX/x", NULL },
 	};
 
 	int i;
@@ -89,11 +90,52 @@ static void name2dir_test()
 	}
 }
 
+static void folderdir_test()
+{
+	static struct {
+		const char *homedir;
+		const char *maildir;
+
+		const char *path;
+	} tests[]={
+		{ 0, "INBOX", "." },
+		{ ".", "INBOX", "." },
+		{ "/home/myself", "INBOX", "/home/myself" },
+		{ NULL, "yep", ".yep"},
+		{ ".", "x", ".x" },
+		{ NULL, ".x", NULL },
+		{ NULL, "x..x", NULL },
+		{ NULL, "x.", NULL },
+		{ NULL, "yep/nope", NULL},
+		{ "dir", 0, "dir"},
+		{ "dir", "INBOX", "dir"},
+		{ "dir", "x", "dir/.x"},
+	};
+
+	int i;
+
+	for (i=0; i<sizeof(tests)/sizeof(tests[0]); ++i)
+	{
+		char *p=maildir_folderdir(tests[i].homedir,
+					 tests[i].maildir);
+
+		if ( (p && !tests[i].path) ||
+		     (!p && tests[i].path) ||
+		     (p && strcmp(p, tests[i].path)))
+		{
+			fprintf(stderr, "folderdir test %d failed\n", i);
+			exit(1);
+		}
+		free(p);
+	}
+}
+
 int main()
 {
 	size_t i;
 
 	name2dir_test();
+	folderdir_test();
 
 	libmail_kwhInit(&h);
 

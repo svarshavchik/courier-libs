@@ -204,6 +204,7 @@ namespace maildir {
 	// C++ bindings
 
 	std::string name2dir(const std::string &, const std::string &);
+	std::string folderdir(const std::string &, const std::string &);
 	std::string location(const std::string &, const std::string &);
 }
 #endif

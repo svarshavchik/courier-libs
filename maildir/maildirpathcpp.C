@@ -103,45 +103,29 @@ char *maildir_location(const char *homedir,
 	return strdup(ret.c_str());
 }
 
+std::string maildir::folderdir(const std::string &maildir,
+			       const std::string &foldername)
+{
+	auto path=foldername.empty() || foldername == INBOX
+		? name2dir(maildir, INBOX)
+		: name2dir(maildir, std::string{INBOX "."} + foldername);
+
+	if (path.substr(0, 2) == "./")
+	{
+		path.erase(0, 2);
+	}
+
+	return path;
+}
+
 extern "C"
 char *maildir_folderdir(const char *maildir, const char *foldername)
 {
-char	*p;
-const char *r;
-size_t	l;
+	auto dir=maildir::folderdir( maildir ? maildir:"",
+				     foldername ? foldername:"" );
 
-	if (!maildir)	maildir=".";
-	l=strlen(maildir);
+	if (dir.empty())
+		return NULL;
 
-	if (foldername == 0 ||
-		strcasecmp(foldername, INBOX) == 0)
-	{
-		if ((p=(char *)malloc(l+1)) == 0)	return (0);
-		strcpy(p, maildir);
-		return(p);
-	}
-
-	/* Rules: no leading/trailing periods, no /s */
-	if (*foldername == '.' || strchr(foldername, '/'))
-	{
-		errno=EINVAL;
-		return (0);
-	}
-
-	for (r=foldername; *r; r++)
-	{
-		if (*r != '.')	continue;
-		if (r[1] == 0 || r[1] == '.')
-		{
-			errno=EINVAL;
-			return (0);
-		}
-	}
-
-	if ((p=(char *)malloc(l+strlen(foldername)+3)) == 0)	return (0);
-	*p=0;
-	if (strcmp(maildir, "."))
-		strcat(strcpy(p, maildir), "/");
-
-	return (strcat(strcat(p, "."), foldername));
+	return strdup(dir.c_str());
 }
