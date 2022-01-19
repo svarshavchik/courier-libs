@@ -1,7 +1,5 @@
 2022-01-17  Sam Varshavchik  <mrsam@courier-mta.com>
 
-	* Remove unused parameters to maildir_getnew.
-
 	* Fix minor memory leaks.
 
 5.1.7

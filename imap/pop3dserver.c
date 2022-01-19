@@ -1204,7 +1204,7 @@ char	*p;
 	msglist_l=0;
 	msglist_a=0;
 	purgetmp();
-	maildir_getnew(".", INBOX);
+	maildir_getnew(".", INBOX, NULL, NULL);
 	if (scancur())
 	{
 		printed(printf("-ERR Maildir invalid (no 'cur' directory)\r\n"));

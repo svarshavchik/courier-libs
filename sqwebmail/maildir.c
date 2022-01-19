@@ -1122,7 +1122,7 @@ static void maildir_checknew(const char *folder, const char *dir)
 
 	/* Move everything from new to cur */
 
-	maildir_getnew(dir, 0);
+	maildir_getnew(dir, 0, NULL, NULL);
 
 	/* Look for any messages mark as deleted.  When we delete a message
 	** we link it into the Trash folder, and mark the original with a T,

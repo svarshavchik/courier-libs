@@ -119,7 +119,12 @@ void maildir_purge(const char *,		/* directory */
 	unsigned);				/* time_t to purge */
 
 void maildir_getnew(const char *,		/* maildir */
-		    const char *);		/* folder */
+	const char *,				/* folder */
+	void (*)(const char *, void *),		/* Callback function for
+						** every moved msg.
+						*/
+	void *arg);				/* Passthrough callback arg */
+
 	/* move messages from new to cur */
 
 int maildir_deletefolder(const char *,		/* maildir */

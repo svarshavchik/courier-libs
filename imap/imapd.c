@@ -273,7 +273,7 @@ void emptytrash()
 		if (l <= 0)
 			l=1;
 
-		maildir_getnew(".", trash);
+		maildir_getnew(".", trash, NULL, NULL);
 		if ((dir=maildir_folderdir(".", trash)))
 		{
 			maildir_purge(dir, l * 24 * 60 * 60);
@@ -306,7 +306,7 @@ void emptytrash()
 		l=atoi(p);
 		if (l <= 0)	l=1;
 
-		maildir_getnew(".", folder);
+		maildir_getnew(".", folder, NULL, NULL);
 		if ((dir=maildir_folderdir(".", folder)))
 		{
 			maildir_purge(dir, l * 24 * 60 * 60);
