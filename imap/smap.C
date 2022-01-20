@@ -83,8 +83,8 @@ extern int folder_rename(struct maildir_info *mi1,
 extern int current_temp_fd;
 extern const char *current_temp_fn;
 
-extern int snapshot_init(const char *, const char *);
-extern int keywords();
+extern "C" int snapshot_init(const char *, const char *);
+extern "C" int keywords();
 
 extern unsigned long header_count, body_count;
 
@@ -97,19 +97,19 @@ extern int addRemoveKeywords(int (*callback_func)(void *, void *),
 extern int doAddRemoveKeywords(unsigned long n, int uid, void *vp);
 
 
-extern void snapshot_select(int);
+extern "C" void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    struct imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
-extern void set_time(const char *tmpname, time_t timestamp);
+extern "C" void set_time(const char *tmpname, time_t timestamp);
 extern int imapenhancedidle(void);
 extern void imapidle(void);
 
 extern void expunge();
 extern void doNoop(int);
 extern int do_store(unsigned long, int, void *);
-extern int reflag_filename(struct imapscanmessageinfo *mi,
-			   struct imapflags *flags, int fd);
+extern "C" int reflag_filename(struct imapscanmessageinfo *mi,
+			       struct imapflags *flags, int fd);
 
 extern void do_expunge(unsigned long expunge_start,
 		       unsigned long expunge_end,
@@ -119,19 +119,19 @@ extern char *current_mailbox, *current_mailbox_acl;
 static int current_mailbox_shared;
 
 extern struct imapscaninfo current_maildir_info;
-extern void get_message_flags(struct imapscanmessageinfo *,
-			      char *, struct imapflags *);
-extern void fetchflags(unsigned long);
+extern "C" void get_message_flags(struct imapscanmessageinfo *,
+				  char *, struct imapflags *);
+extern "C" void fetchflags(unsigned long);
 extern int acl_lock(const char *homedir,
 		    int (*func)(void *),
 		    void *void_arg);
 extern void aclminimum(const char *);
 
-struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
-FILE *open_cached_fp(unsigned long);
+extern "C" struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
+extern "C" FILE *open_cached_fp(unsigned long);
 void fetch_free_cache();
 
-extern FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
+extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 				unsigned long s, char **tmpname,
 				char **newname);
 
@@ -202,7 +202,7 @@ static void up(char *p)
 */
 static void smapword_s(const char *w);
 
-void smapword(const char *w)
+extern "C" void smapword(const char *w)
 {
 	writes("\"");
 	smapword_s(w);
@@ -249,7 +249,7 @@ static char **fn_fromwords(char **ptr)
 
 	while (*(p=getword(ptr)))
 	{
-		n=malloc(sizeof(struct fn_word_list));
+		n=(fn_word_list *)malloc(sizeof(struct fn_word_list));
 
 		if (!n || !(n->w=strdup(p)))
 		{
@@ -277,7 +277,7 @@ static char **fn_fromwords(char **ptr)
 		return NULL;
 	}
 
-	fn=malloc((cnt+1)*sizeof(char *));
+	fn=(char **)malloc((cnt+1)*sizeof(char *));
 	cnt=0;
 
 	while ((n=h) != NULL)
@@ -313,7 +313,7 @@ struct list_callback_info {
 	struct list_hier *found;
 };
 
-static void list(char *folder, const char *descr, int type)
+static void list(const char *folder, const char *descr, int type)
 {
 	writes("* LIST ");
 
@@ -359,7 +359,7 @@ static void list_callback(const char *f, void *vp)
 	if (maildir_acl_read(&l, utf8->homedir, strchr(f, '.')) == 0)
 	{
 		char *myrights;
-		char *owner=malloc(sizeof("user=")+strlen(utf8->owner));
+		char *owner=(char *)malloc(sizeof("user=")+strlen(utf8->owner));
 
 		if (!owner)
 			write_error_exit(0);
@@ -411,7 +411,7 @@ static void list_utf8_callback(const char *n, char **f, void *vp)
 
 		if (!h)
 		{
-			if ((h=malloc(sizeof(struct list_hier))) == NULL ||
+			if ((h=(list_hier *)malloc(sizeof(struct list_hier))) == NULL ||
 			    (h->hier=strdup(*f)) == NULL)
 			{
 				if (h)
@@ -554,7 +554,9 @@ static void do_listcmd(struct list_hier **head,
 				}
 
 				inbox.next=p->next;
-				inbox.hier=INBOX;
+
+				static char inbox_str[]=INBOX; //TODO
+				inbox.hier=inbox_str;
 
 				d=maildir_location(sfi.homedir, sfi.maildir);
 				free(sfi.homedir);
@@ -608,7 +610,7 @@ static void do_listcmd(struct list_hier **head,
 		for (cnt=0, p= *head; p; p=p->next)
 			++cnt;
 
-		vecs=malloc(sizeof(char *)*(cnt+2));
+		vecs=(char **)malloc(sizeof(char *)*(cnt+2));
 
 		if (!vecs)
 		{
@@ -736,7 +738,7 @@ static int smap_list_cb(struct maildir_newshared_enum_cb *cb)
 
 	if (cb->homedir == NULL)
 	{
-		if ((h=malloc(sizeof(struct list_hier))) == NULL ||
+		if ((h=(list_hier *)malloc(sizeof(struct list_hier))) == NULL ||
 		    (h->hier
 		     =strdup(cb->name)) == NULL)
 		{
@@ -1142,7 +1144,7 @@ static char *markmsgset(char **ptr, int *hasmsgset)
 		if (msgsetp->nranges >=
 		    sizeof(msgsetp->range)/sizeof(msgsetp->range[0]))
 		{
-			if ((msgsetp->next=malloc(sizeof(struct smapmsgset)))
+			if ((msgsetp->next=(smapmsgset *)malloc(sizeof(struct smapmsgset)))
 			    == NULL)
 			{
 				write_error_exit(0);
@@ -2379,7 +2381,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 		n=read(fd, buf, n);
 
-		if (n <= 0 || fwrite(buf, 1, n, fp) != n)
+		if (n <= 0 || (int)fwrite(buf, 1, n, fp) != n)
 		{
 			close(fd);
 			fclose(fp);
@@ -2449,7 +2451,7 @@ static int do_movemsg(unsigned long n, void *voidptr)
 	if (!filename)
 		return 0;
 
-	newfilename=malloc(strlen(cqinfo->destmailbox) + sizeof("/cur")
+	newfilename=(char *)malloc(strlen(cqinfo->destmailbox) + sizeof("/cur")
 			   + strlen(strrchr(filename, '/')));
 
 	if (!newfilename)
@@ -3309,6 +3311,7 @@ void smap()
 				if (strcmp(p, "RCPTTO") == 0 && q)
 				{
 					struct add_rcptlist *rcpt=
+						(add_rcptlist *)
 						malloc(sizeof(struct
 							      add_rcptlist));
 
@@ -3469,7 +3472,7 @@ void smap()
 
 					if (add_rcpt_count > 0 && n)
 					{
-						argvec=malloc(sizeof(char *)
+						argvec=(char **)malloc(sizeof(char *)
 							      * (add_rcpt_count
 								 +10));
 
@@ -3482,9 +3485,12 @@ void smap()
 						int i=1;
 						struct add_rcptlist *l;
 
-						argvec[i++]="-oi";
+						// TODO
+						static char arg1[]="-oi";
+						argvec[i++]=arg1;
 
-						argvec[i++]="-f";
+						static char arg2[]="-f";
+						argvec[i++]=arg2;
 						argvec[i++]=add_from
 							? add_from:
 							(char *)
@@ -3492,7 +3498,8 @@ void smap()
 
 						if (add_notify)
 						{
-							argvec[i++]="-N";
+							static char arg3[]="-N";
+							argvec[i++]=arg3;
 							argvec[i++]=add_notify;
 						}
 
@@ -4242,7 +4249,11 @@ void smap()
 		}
 
 		if (!current_mailbox)
-			p=""; /* FALLTHROUGH */
+		{
+			static char null[]="";
+			// TODO
+			p=null; /* FALLTHROUGH */
+		}
 
 		if (strcmp(p, "EXPUNGE") == 0)
 		{

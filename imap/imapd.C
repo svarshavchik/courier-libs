@@ -94,8 +94,6 @@ extern "C" {
 extern void fetchflags(unsigned long);
 extern unsigned long header_count, body_count;
 extern time_t start_time;
-extern void smap();
-extern void smap_fetchflags(unsigned long);
 
 extern int do_fetch(unsigned long, int, void *);
 extern void fetch_free_cached();
@@ -114,10 +112,14 @@ int smapflag=0;
 
 extern void snapshot_save();
 extern void snapshot_needed();
-
 #endif
 #ifdef __cplusplus
 }
+#endif
+
+#if SMAP
+extern void smap();
+extern void smap_fetchflags(unsigned long);
 #endif
 
 static const char *protocol;
@@ -488,7 +490,7 @@ extern "C" int valid_keyword(const char *kw)
 	return 1;
 }
 
-extern "C" int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
+int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
 {
 	if (libmail_kwmSetName(current_maildir_info.keywordList, *kwPtr, kw) < 0)
 		write_error_exit(0);
@@ -947,7 +949,7 @@ struct	dirent *de;
 }
 #endif
 
-extern "C" int mddelete(const char *s)
+int mddelete(const char *s)
 {
 	int	rc;
 	struct stat stat_buf;
@@ -964,7 +966,7 @@ extern "C" int mddelete(const char *s)
 	return (rc);
 }
 
-extern "C" int mdcreate(const char *mailbox)
+int mdcreate(const char *mailbox)
 {
 	trap_signals();
 	if (maildir_make(mailbox, 0700, 0700, 1) < 0)
@@ -1209,7 +1211,7 @@ static int noopAddKeyword(struct libmail_keywordEntry *ke, void *vp)
 	return 0;
 }
 
-extern "C" void doNoop(int real_noop)
+void doNoop(int real_noop)
 {
 	struct imapscaninfo new_maildir_info;
 	unsigned long i, j;
@@ -1576,7 +1578,7 @@ extern int doidle(time_t, int);
 }
 #endif
 
-extern "C" int imapenhancedidle(void)
+int imapenhancedidle(void)
 {
 	struct maildirwatch *w;
 	struct maildirwatch_contents c;
@@ -1692,7 +1694,7 @@ extern "C" int imapenhancedidle(void)
 	return (0);
 }
 
-extern "C" void imapidle(void)
+void imapidle(void)
 {
 	const char * envp = getenv("IMAP_IDLE_TIMEOUT");
 	const int idleTimeout = envp ? atoi(envp) : 60;
@@ -1722,7 +1724,7 @@ extern "C" void imapidle(void)
 
 /****************************************************************************/
 
-extern "C" void do_expunge(unsigned long from, unsigned long to, int force);
+void do_expunge(unsigned long from, unsigned long to, int force);
 
 static int uid_expunge(unsigned long msgnum, int uidflag, void *void_arg)
 {
@@ -1730,7 +1732,7 @@ static int uid_expunge(unsigned long msgnum, int uidflag, void *void_arg)
 	return 0;
 }
 
-extern "C" void expunge()
+void expunge()
 {
 	do_expunge(0, current_maildir_info.nmessages, 0);
 }
@@ -1882,7 +1884,7 @@ int log_deletions= cp && *cp != '0';
 }
 
 
-static FILE *newsubscribefile(char **tmpname)
+static FILE *newsubscribefile(std::string &tmpname)
 {
 	char    uniqbuf[80];
 	static  unsigned tmpuniqcnt=0;
@@ -1900,8 +1902,7 @@ static FILE *newsubscribefile(char **tmpname)
 	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
 		write_error_exit(0);
 
-	*tmpname=createInfo.tmpname;
-	createInfo.tmpname=NULL;
+	tmpname=createInfo.tmpname;
 	maildir_tmpcreate_free(&createInfo);
 
 	return (fp);
@@ -1920,8 +1921,8 @@ static int sub_strcmp(const char *a, const char *b)
 
 static void subscribe(const char *f)
 {
-	char *newf;
-	FILE *newfp=newsubscribefile(&newf);
+	std::string newf;
+	FILE *newfp=newsubscribefile(newf);
 	FILE *oldfp;
 
 	if ((oldfp=fopen(SUBSCRIBEFILE, "r")) != 0)
@@ -1937,8 +1938,7 @@ static void subscribe(const char *f)
 			{
 				fclose(oldfp);
 				fclose(newfp);
-				unlink(newf);
-				free(newf);
+				unlink(newf.c_str());
 				return;	/* Already subscribed */
 			}
 			fprintf(newfp, "%s\n", buf);
@@ -1949,14 +1949,13 @@ static void subscribe(const char *f)
 	if (fflush(newfp) || ferror(newfp))
 		write_error_exit(0);
 	fclose(newfp);
-	rename(newf, SUBSCRIBEFILE);
-	free(newf);
+	rename(newf.c_str(), SUBSCRIBEFILE);
 }
 
 static void unsubscribe(const char *f)
 {
-	char *newf;
-	FILE *newfp=newsubscribefile(&newf);
+	std::string newf;
+	FILE *newfp=newsubscribefile(newf);
 	FILE *oldfp;
 
 	if ((oldfp=fopen(SUBSCRIBEFILE, "r")) != 0)
@@ -1977,8 +1976,7 @@ static void unsubscribe(const char *f)
 	if (fflush(newfp) || ferror(newfp))
 		write_error_exit(0);
 	fclose(newfp);
-	rename(newf, SUBSCRIBEFILE);
-	free(newf);
+	rename(newf.c_str(), SUBSCRIBEFILE);
 }
 
 /*
@@ -2050,7 +2048,7 @@ struct addremove_info {
 };
 
 
-extern "C" int addRemoveKeywords(int (*callback_func)(void *, void *),
+int addRemoveKeywords(int (*callback_func)(void *, void *),
 		      void *callback_func_arg,
 		      struct storeinfo *storeinfo_s)
 {
@@ -2090,7 +2088,7 @@ static int addRemoveKeywords1(void *void_arg)
 				  ai->tryagain);
 }
 
-extern "C" int doAddRemoveKeywords(unsigned long, int, void *);
+int doAddRemoveKeywords(unsigned long, int, void *);
 
 struct addRemoveKeywordInfo {
 	struct libmail_kwGeneric kwg;
@@ -2711,7 +2709,7 @@ static int list_acl_cb(const char *ident,
 		       const maildir_aclt *acl,
 		       void *cb_arg);
 
-extern "C" char *compute_myrights(maildir_aclt_list *l,
+char *compute_myrights(maildir_aclt_list *l,
 		       const char *l_owner);
 
 static int get_acllist(maildir_aclt_list *l,
@@ -3357,7 +3355,7 @@ static int fix_acl_delete2(maildir_aclt_list *aclt_list,
 	return rc;
 }
 
-extern "C" void aclminimum(const char *identifier)
+void aclminimum(const char *identifier)
 {
 	if (strcmp(identifier, "administrators") == 0 ||
 	    strcmp(identifier, "group=administrators") == 0)
@@ -3429,9 +3427,9 @@ static int acl_settable_folder(char *mailbox,
 	return 0;
 }
 
-extern "C" int acl_lock(const char *homedir,
-			int (*func)(void *),
-			void *void_arg)
+int acl_lock(const char *homedir,
+	     int (*func)(void *),
+	     void *void_arg)
 {
 	struct imapscaninfo ii;
 	int rc;
@@ -4137,8 +4135,7 @@ static char *acl2_identifier(const char *tag,
 	return strcat(strcat(strcpy(p, isneg ? "-":""), "user="), identifier);
 }
 
-
-extern "C" int folder_rename(struct maildir_info *mi1,
+int folder_rename(struct maildir_info *mi1,
 		  struct maildir_info *mi2,
 		  const char **errmsg)
 {
