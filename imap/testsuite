@@ -1142,3 +1142,14 @@ echo "===Trash="
 ls confmdtest/.Trash/cur
 echo "==="
 rm -f confsendmail confsendmail.out
+
+../maildir/maildirmake -q 2C ./confmdtest
+env IMAP_BROKENUIDV=1 IMAP_TRASHFOLDERNAME=Trash IMAP_EMPTYTRASH=Trash:7 \
+    MAILDIR=confmdtest AUTHENTICATED=user1 OUTBOX=.Outbox \
+    IMAP_KEYWORDS=2\
+    IMAP_MOVE_EXPUNGE_TO_TRASH=1 \
+    SENDMAIL=`pwd`/confsendmail $IMAPINVOKE <<EOF
+U021 SELECT INBOX
+U022 STORE 1 +FLAGS(Label1)
+U023 COPY 1 INBOX
+EOF

@@ -1756,3 +1756,16 @@
 001462 003:2,AB
 001463 msg:2
 001464 ===
+001465 * PREAUTH Ready.
+001466 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001467 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001468 * 2 EXISTS
+001469 * 0 RECENT
+001470 * OK [UIDVALIDITY] Ok
+001471 * OK [MYRIGHTS "acdilrsw"] ACL
+001472 U021 OK [READ-WRITE] Ok
+001473 * FLAGS (Label1 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001474 * OK [PERMANENTFLAGS (Label1 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001475 * 1 FETCH (FLAGS (\Seen Label1))
+001476 U022 OK STORE completed.
+001477 U023 NO [ALERT] You exceeded your mail quota.

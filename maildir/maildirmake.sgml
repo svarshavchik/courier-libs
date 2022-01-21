@@ -41,42 +41,68 @@ implemented in the Qmail mail server.</para>
 
     <variablelist>
       <varlistentry><term><literal>-S</literal></term>
-        <listitem><simpara>create a "sharable" maildir.  A sharable maildir has
+        <listitem><para>create a "sharable" maildir.  A sharable maildir has
 slightly different permissions which allows creation of publicly-shared
-folders.</simpara>
+folders.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry><term><literal>-q</literal> <replaceable>quota</replaceable></term>
-        <listitem><simpara>install a quota on the maildir.
+        <listitem>
+	  <para>install a quota on the maildir.
 	    See
 	    <ulink url="maildirquota.html"><citerefentry><refentrytitle>maildirquota</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
 	    for more information.
 	    The specified maildir gets automatically created if it does not
 	    exist; otherwise the existing maildir's quota gets updated.
-	  </simpara>
+	    <replaceable>quota</replaceable> may be:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><replaceable>####S</replaceable></term>
+	      <listitem>
+		<para>
+		  Specifies the quota in the total number of bytes for all
+		  messages.
+		  <quote>10000000S</quote> specifies a quota of ten million
+		  bytes.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><replaceable>####C</replaceable></term>
+	      <listitem>
+		<para>
+		  Specifies the quota in the total number of messages in
+		  the maildir.
+		  <quote>10000S</quote> specifies a quota of ten thousand
+		  messages.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
 	</listitem>
       </varlistentry>
 
       <varlistentry><term><literal>-f</literal> <replaceable>folder</replaceable></term>
-        <listitem><simpara>do not create a maildir, but create a folder in an
-existing maildir.</simpara>
+        <listitem><para>do not create a maildir, but create a folder in an
+existing maildir.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry><term><literal>-F</literal> <replaceable>folder</replaceable></term>
-        <listitem><simpara>Like the <literal>-f</literal> option, except
+        <listitem><para>Like the <literal>-f</literal> option, except
 	    that the folder's name is given using the system locale's
 	    character set. Non-Latin characters in the folder's name
 	    must be given to the <literal>-f</literal> option using IMAP's
 	    UTF8 encoding. The <literal>-F</literal> option
 	    takes the folder name specified using the console's character
-	    set.</simpara>
+	    set.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry><term><literal>-s</literal> <replaceable>mode</replaceable></term>
-        <listitem><simpara>create a publicly accessible folder in an
+        <listitem><para>create a publicly accessible folder in an
 existing sharable maildir.  First, use the <option>-S</option> option to
 create a sharable maildir.
 Then, run <command>maildirmake</command> again with the
@@ -89,38 +115,38 @@ write messages to this folder;
 write messages to this folder;
 <literal>group</literal> - only allow members of
 your own system group to access messages in this folder (instead of
-everyone).</simpara>
+everyone).</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry><term><literal>--add</literal> <replaceable>name</replaceable>=<replaceable>pathname</replaceable>,
 <literal>--del</literal> <replaceable>name</replaceable></term>
-        <listitem><simpara>
+        <listitem><para>
 create or delete the directories and links needed to
-access shared folders.  See below for more information.</simpara>
+access shared folders.  See below for more information.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
 	<term><literal>--checkutf8</literal> <replaceable>maildir</replaceable> <replaceable>maildirfilter</replaceable></term>
 	<listitem>
-	  <simpara>
+	  <para>
 	    Perform a sanity check to verify that a pre-unicode format
 	    maildir can be converted to a unicode-format maildir.
 	    See <quote>Converting pre-unicode format maildirs</quote>, below,
 	    for more information.
-	  </simpara>
+	  </para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><literal>--convutf8</literal> <replaceable>maildir</replaceable> <replaceable>maildirfilter</replaceable></term>
 	<listitem>
-	  <simpara>
+	  <para>
 	    Convert a pre-unicode format
 	    maildir can be converted to a unicode-format maildir.
 	    See <quote>Converting pre-unicode format maildirs</quote>, below,
 	    for more information.
-	  </simpara>
+	  </para>
 	</listitem>
       </varlistentry>
     </variablelist>
