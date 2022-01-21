@@ -85,6 +85,9 @@
 #include	"maildir/maildirkeywords.h"
 #include	"courierauth.h"
 
+#include	<string>
+#include	<functional>
+
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
@@ -985,13 +988,12 @@ int mdcreate(const char *mailbox)
 
 /****************************************************************************/
 
-static int do_msgset(const char *msgset,
-	int (*msgfunc)(unsigned long, int, void *),
-	void *msgfunc_arg, int isuid)
+static bool do_msgset(const char *msgset,
+		      const std::function<bool (unsigned long)> &msgfunc,
+		      bool isuid)
 {
-unsigned long i, j;
-int	rc;
-unsigned long last=0;
+	unsigned long i, j;
+	unsigned long last=0;
 
 	if (current_maildir_info.nmessages > 0)
 	{
@@ -1066,8 +1068,8 @@ unsigned long last=0;
 			else while (k < current_maildir_info.nmessages &&
 				current_maildir_info.msgs[k].uid <= j)
 			{
-				if ((rc=(*msgfunc)(k+1, 1, msgfunc_arg)) != 0)
-					return (rc);
+				if (!msgfunc(k+1))
+					return (false);
 				++k;
 			}
 		}
@@ -1084,14 +1086,14 @@ unsigned long last=0;
 					break;
 				}
 
-				if ((rc=(*msgfunc)(i, 0, msgfunc_arg)) != 0)
-					return (rc);
+				if (!msgfunc(i))
+					return (false);
 			} while (i++ < j);
 		}
 
 		if (*msgset++ != ',')	break;
 	}
-	return (0);
+	return (true);
 }
 
 /** Show currently defined flags and keywords **/
@@ -1726,12 +1728,6 @@ void imapidle(void)
 
 void do_expunge(unsigned long from, unsigned long to, int force);
 
-static int uid_expunge(unsigned long msgnum, int uidflag, void *void_arg)
-{
-	do_expunge(msgnum-1, msgnum, 0);
-	return 0;
-}
-
 void expunge()
 {
 	do_expunge(0, current_maildir_info.nmessages, 0);
@@ -1977,22 +1973,6 @@ static void unsubscribe(const char *f)
 		write_error_exit(0);
 	fclose(newfp);
 	rename(newf.c_str(), SUBSCRIBEFILE);
-}
-
-/*
-** Count selected messages (if there's >1 copy to OUTBOX should fail).
-*/
-
-static int do_count(unsigned long n, int byuid, void *voidptr)
-{
-	const char *p=getenv("OUTBOX_MULTIPLE_SEND");
-
-	++ *(int *)voidptr;
-
-	if (p && atoi(p))
-		*(int *)voidptr=1; /* Suppress the error, below */
-
-	return 0;
 }
 
 static void dirsync(const char *folder)
@@ -2256,15 +2236,8 @@ int doAddRemoveKeywords(unsigned long n, int uid, void *vp)
 
 struct imap_addRemoveKeywordInfo {
 	char *msgset;
-	int uid;
+	bool uid;
 };
-
-static int markmessages(unsigned long n, int i, void *dummy)
-{
-	--n;
-	current_maildir_info.msgs[n].storeflag=1;
-	return 0;
-}
 
 static int imap_addRemoveKeywords(void *myVoidArg, void *addRemoveVoidArg)
 {
@@ -2275,8 +2248,14 @@ static int imap_addRemoveKeywords(void *myVoidArg, void *addRemoveVoidArg)
 	for (j=0; j<current_maildir_info.nmessages; j++)
 		current_maildir_info.msgs[j].storeflag=0;
 
-	do_msgset(i->msgset, markmessages, NULL, i->uid);
-
+	do_msgset(i->msgset,
+		  []
+		  (unsigned long n)
+		  {
+			  --n;
+			  current_maildir_info.msgs[n].storeflag=1;
+			  return true;
+		  }, i->uid);
 	for (j=0; j<current_maildir_info.nmessages; j++)
 	{
 		int rc;
@@ -4274,8 +4253,8 @@ static int validate_charset(const char *tag, char **charset)
 
 extern "C" int do_imap_command(const char *tag, int *flushflag)
 {
-struct	imaptoken *curtoken=nexttoken();
-int	uid=0;
+	struct	imaptoken *curtoken=nexttoken();
+	bool uid=false;
 
 	if (curtoken->tokentype != IT_ATOM)	return (-1);
 
@@ -5852,7 +5831,7 @@ int	uid=0;
 
 	if (strcmp(curtoken->tokenbuf, "UID") == 0)
 	{
-		uid=1;
+		uid=true;
 		if ((curtoken=nexttoken())->tokentype != IT_ATOM)
 			return (-1);
 		if (strcmp(curtoken->tokenbuf, "COPY") &&
@@ -5919,7 +5898,12 @@ int	uid=0;
 			return (-1);
 		}
 
-		do_msgset(msgset, &do_fetch, fi, uid);
+		do_msgset(msgset,
+			  [&]
+			  (unsigned long n)
+			  {
+				  return do_fetch(n, uid, fi) == 0;
+			  }, uid);
 		fetchinfo_free(fi);
 		free(msgset);
 		writes(tag);
@@ -5967,7 +5951,13 @@ int	uid=0;
 
 		current_maildir_info.keywordList->keywordAddedRemoved=0;
 
-		if (do_msgset(msgset, &do_store, &storeinfo_s, uid))
+		if (!do_msgset(msgset,
+			       [&]
+			       (unsigned long n)
+			       {
+				       return do_store(n, uid, &storeinfo_s)
+					       == 0;
+			       }, uid))
 		{
 			if (storeinfo_s.keywords)
 				libmail_kwmDestroy(storeinfo_s.keywords);
@@ -6347,7 +6337,13 @@ int	uid=0;
 			msgset=my_strdup(curtoken->tokenbuf);
 			if (nexttoken()->tokentype != IT_EOL)	return (-1);
 
-			do_msgset(msgset, &uid_expunge, NULL, 1);
+			do_msgset(msgset,
+				  [&]
+				  (unsigned long n)
+				  {
+					  do_expunge(n-1, n, 0);
+					  return true;
+				  }, true);
 			free(msgset);
 		}
 		else
@@ -6481,7 +6477,14 @@ int	uid=0;
 			}
 
 			if (has_quota > 0 &&
-			    do_msgset(msgset, &do_copy_quota_calc, &cqinfo,
+			    !do_msgset(msgset,
+				       [&]
+				       (unsigned long n)
+				       {
+					       return do_copy_quota_calc(
+						       n, uid, &cqinfo
+					       ) == 0;
+				       },
 				      uid))
 				has_quota= -1;
 		}
@@ -6510,7 +6513,27 @@ int	uid=0;
 		{
 			int counter=0;
 
-			if (do_msgset(msgset, &do_count, &counter, uid) ||
+			// Count selected messages (if there's >1
+			// copy to OUTBOX should fail).
+
+			const char *p=getenv("OUTBOX_MULTIPLE_SEND");
+
+			bool allow_multiple=p && atoi(p);
+
+			if (!do_msgset(msgset,
+				      [&]
+				      (unsigned long)
+				      {
+
+					      ++counter;
+
+					      if (allow_multiple)
+						      counter=1;
+
+					      /* Suppress the error, below */
+
+					      return true;
+				      }, uid) ||
 			    counter > 1)
 			{
 				writes(tag);
@@ -6526,7 +6549,14 @@ int	uid=0;
 		copy_info.acls=access_rights;
 
 		if (has_quota < 0 ||
-		    do_msgset(msgset, &do_copy_message, &copy_info, uid) ||
+		    !do_msgset(msgset,
+			       [&]
+			       (unsigned long n)
+			       {
+				       return do_copy_message(
+					       n, uid, &copy_info
+				       ) == 0;
+			       }, uid) ||
 		    uidplus_fill(copy_info.mailbox, copy_info.uidplus_list,
 				 &copy_uidv))
 		{
