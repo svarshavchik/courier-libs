@@ -205,7 +205,7 @@ endif
 
 check-am:
 	@test "@MAKECHECKBROKEN@" = "Y" || exit 0; echo "" ; echo "Error: --with-trashquota or the --enable-workarounds-for-imap-client-bugs" ; echo "option was specified to the configure script."; echo ""; echo "As INSTALL told you, make check fails if these options are used, and I wasn't"; echo "kidding when I wrote it.  Reconfigure and rebuild without these options, then"; echo "rerun make and make check.  If make check passes, reconfigure again with your"; echo "original options, and proceed with installing this server.  Have fun!"; exit 1
-	@cp /dev/null conftest1 ; chmod 000 conftest1 ; test -w conftest1 || \
+	@test "@rootcheck@" = "no" && exit 0; cp /dev/null conftest1 ; chmod 000 conftest1 ; test -w conftest1 || \
 		exit 0; echo "=============================" ; \
 		echo "Do not run make check as root" ; \
 		echo "=============================" ; exit 1
@@ -213,12 +213,12 @@ check-am:
 	@chmod +x testsuitefix.pl
 	LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
 	LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
-	VALGRIND="`which valgrind`"; test "$$VALGRIND" != "" || exit 0; \
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; \
 		rm -f confmdtesterror; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
 		@SHELL@ -x $(srcdir)/testsuite 2>&1 | tee confmderror.txt; test -f confmdtesterror || exit 0; exit 1
-	VALGRIND="`which valgrind`"; test "$$VALGRIND" != "" || exit 0; \
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; \
 		rm -f confmdtesterror; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
@@ -228,7 +228,9 @@ check-am:
 	rm -rf confmdtest
 
 testsuite-imap:
+	@chmod +x testsuitefix.pl
 	@LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort
 
 testsuite-smap:
+	@chmod +x testsuitefix.pl
 	@LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort

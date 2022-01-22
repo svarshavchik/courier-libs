@@ -367,9 +367,12 @@ rm -rf confmdtest2
 ../maildir/maildirmake confmdtest2
 ../maildir/maildirmake -f a confmdtest2
 ../maildir/maildirmake -f b confmdtest2
-chmod u-rwx confmdtest2/.b/tmp
-chmod u-rwx confmdtest2/.b/new
-chmod u-rwx confmdtest2/.b/cur
+
+# This simulates inaccessible permissions. chmod 000 does not work as root.
+rm -rf confmdtest2/.b/*
+ln -s nonexistent confmdtest2/.b/tmp
+ln -s nonexistent confmdtest2/.b/cur
+ln -s nonexistent confmdtest2/.b/new
 
 echo "test `pwd`/confmdtest2" >confmdtest/shared-maildirs
 

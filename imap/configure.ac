@@ -68,6 +68,11 @@ AC_ARG_WITH(mailer,
 )
 AC_SUBST(SENDMAIL)
 
+AC_ARG_ENABLE(root-check, [  --disable-root-check    Allow build as root (make check will fail)],
+	rootcheck="$enableval",
+	rootcheck="yes")
+AC_SUBST(rootcheck)
+
 OPENSSL_PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin
 
 AC_PATH_PROGS(OPENSSL, openssl, , $OPENSSL_PATH)
