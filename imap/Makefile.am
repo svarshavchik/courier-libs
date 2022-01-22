@@ -75,7 +75,7 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.C imapd.h \
 	outbox.c outbox.h \
 	thread.c thread.h \
 	search.c searchinfo.c searchinfo.h \
-	storeinfo.c storeinfo.h
+	storeinfo.C storeinfo.h
 
 imapd_DEPENDENCIES=libimapd.la @dblibrary@
 nodist_EXTRA_imapd_SOURCES=forcecpp1.C

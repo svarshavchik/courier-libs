@@ -86,7 +86,9 @@
 #include	"courierauth.h"
 
 #include	<string>
+#include	<algorithm>
 #include	<functional>
+#include	<vector>
 
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
@@ -135,9 +137,6 @@ FILE *debugfile=0;
 #if 0
 char *imapscanpath;
 #endif
-
-int current_temp_fd=-1;
-const char *current_temp_fn=NULL;
 
 struct imapscaninfo current_maildir_info;
 int current_mailbox_ro;
@@ -502,7 +501,7 @@ int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
 }
 
 
-extern "C" int get_flagsAndKeywords(struct imapflags *flags,
+int get_flagsAndKeywords(struct imapflags *flags,
 			 struct libmail_kwMessage **kwPtr)
 {
 struct imaptoken *t;
@@ -650,10 +649,11 @@ extern "C" void append_flags(char *buf, struct imapflags *flags)
 
 	/* First, figure out the filenames used in tmp and new */
 
-extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
-			 unsigned long s, char **tmpname, char **newname)
+FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
+			 unsigned long s,
+			 std::string &tmpname,
+			 std::string &newname)
 {
-	char	*p;
 	char	uniqbuf[80];
 	static unsigned uniqcnt=0;
 	FILE	*fp;
@@ -672,11 +672,9 @@ extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags
 	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
 		return NULL;
 
-	*tmpname=createInfo.tmpname;
-	*newname=createInfo.newname;
+	tmpname=createInfo.tmpname;
+	newname=createInfo.newname;
 
-	createInfo.tmpname=NULL;
-	createInfo.newname=NULL;
 	maildir_tmpcreate_free(&createInfo);
 
 	strcpy(uniqbuf, MDIRSEP "2,");
@@ -684,13 +682,13 @@ extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags
 
 	/* Ok, this message will really go to cur, not new */
 
-	p=(char *)malloc(strlen(*newname)+strlen(uniqbuf)+1);
-	if (!p)	write_error_exit(0);
-	strcpy(p, *newname);
-	memcpy(strrchr(p, '/')-3, "cur", 3);	/* HACK OF THE MILLENIA */
-	strcat(p, uniqbuf);
-	free(*newname);
-	*newname=p;
+	size_t slash=newname.rfind('/');
+
+	static const char curstr[]="cur";
+
+	std::copy(curstr, curstr+3, newname.begin()+(slash-3));
+	newname += uniqbuf;
+
 	return fp;
 }
 
@@ -728,8 +726,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 			 int *utf8_error)
 {
 	unsigned long nbytes=curtoken->tokennum;
-	char	*tmpname;
-	char	*newname;
+	std::string tmpname, newname;
 	char	*p;
 	char    *e;
 	FILE	*fp;
@@ -741,7 +738,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 	struct rfc2045 *rfc2045_parser;
 	const char *errmsg=nowrite;
 
-	fp=maildir_mkfilename(mailbox, flags, 0, &tmpname, &newname);
+	fp=maildir_mkfilename(mailbox, flags, 0, tmpname, newname);
 
 	if (!fp)
 	{
@@ -753,9 +750,6 @@ static int store_mailbox(const char *tag, const char *mailbox,
 	writes("+ OK\r\n");
 	writeflush();
 	lastnl=0;
-
-	current_temp_fd=fileno(fp);
-	current_temp_fn=tmpname;
 
 	rfc2045_parser=rfc2045_alloc();
 
@@ -793,8 +787,6 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		rfc2045_parse(rfc2045_parser, "\n", 1);
 	}
 
-	current_temp_fd=-1;
-	current_temp_fn=NULL;
 	errflag=0;
 
 	if (fflush(fp) || ferror(fp))
@@ -817,29 +809,23 @@ static int store_mailbox(const char *tag, const char *mailbox,
 	if (errflag)
 	{
 		fclose(fp);
-		unlink(tmpname);
+		unlink(tmpname.c_str());
 		writes(tag);
 		writes(errmsg);
-		free(tmpname);
-		free(newname);
 		return (-1);
 	}
 
 	nbytes=ftell(fp);
 	if (nbytes == (unsigned long)-1 ||
-		(p=maildir_requota(newname, nbytes)) == 0)
+	    (p=maildir_requota(newname.c_str(), nbytes)) == 0)
 
 	{
 		fclose(fp);
-		unlink(tmpname);
+		unlink(tmpname.c_str());
 		writes(tag);
 		writes(nowrite);
-		free(tmpname);
-		free(newname);
 		return (-1);
 	}
-
-	free(newname);
 
 	fclose(fp);
 
@@ -851,8 +837,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		if (maildir_quota_add_start(mailbox, &quotainfo, nbytes, 1,
 					    getenv("MAILDIRQUOTA")))
 		{
-			unlink(tmpname);
-			free(tmpname);
+			unlink(tmpname.c_str());
 			free(p);
 			writes(tag);
 			writes(" NO [ALERT] You exceeded your mail quota.\r\n");
@@ -861,12 +846,11 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		maildir_quota_add_end(&quotainfo, nbytes, 1);
 	}
 
-	if (check_outbox(tmpname, mailbox))
+	if (check_outbox(tmpname.c_str(), mailbox))
 	{
-		unlink(tmpname);
+		unlink(tmpname.c_str());
 		writes(tag);
 		writes(" NO [ALERT] Unable to send E-mail message.\r\n");
-		free(tmpname);
 		free(p);
 		return (-1);
 	}
@@ -880,7 +864,14 @@ static int store_mailbox(const char *tag, const char *mailbox,
 
 		memset(&new_uidplus_info, 0, sizeof(new_uidplus_info));
 
-		new_uidplus_info.tmpfilename=tmpname;
+		std::vector<char> tmpname_buf;
+
+		tmpname_buf.reserve(tmpname.size()+1);
+		tmpname_buf.insert(tmpname_buf.end(),
+				   tmpname.begin(),
+				   tmpname.end());
+		tmpname_buf.push_back(0);
+		new_uidplus_info.tmpfilename=&tmpname_buf[0];
 		new_uidplus_info.curfilename=p;
 		new_uidplus_info.mtime=timestamp;
 
@@ -893,11 +884,10 @@ static int store_mailbox(const char *tag, const char *mailbox,
 					   &new_uidplus_info.newkeywords,
 					   0))
 			{
-				unlink(tmpname);
+				unlink(tmpname.c_str());
 				writes(tag);
 				writes(" NO [ALERT] ");
 				writes(strerror(errno));
-				free(tmpname);
 				free(p);
 				return (-1);
 			}
@@ -914,7 +904,6 @@ static int store_mailbox(const char *tag, const char *mailbox,
 
 		if (rc)
 		{
-			free(tmpname);
 			free(p);
 			writes(tag);
 			writes(nowrite);
@@ -926,7 +915,6 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		imapscan_free(&new_maildir_info);
 	}
 
-	free(tmpname);
 	free(p);
 	return (0);
 }
@@ -3876,7 +3864,7 @@ int do_folder_delete(char *mailbox_name)
 	return -1;
 }
 
-extern "C" int acl_flags_adjust(const char *access_rights,
+int acl_flags_adjust(const char *access_rights,
 		     struct imapflags *flags)
 {
 	if (strchr(access_rights, ACL_DELETEMSGS[0]) == NULL)

@@ -33,31 +33,32 @@
 #if HAVE_SYS_TIME_H
 #include	<sys/time.h>
 #endif
+#include <string>
 
 #if SMAP
 extern int smapflag;
 #endif
 
-extern char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
+extern "C" char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
 extern int is_trash(const char *);
-extern int get_flagname(const char *, struct imapflags *);
+extern "C" int get_flagname(const char *, struct imapflags *);
 extern int get_flagsAndKeywords(struct imapflags *flags,
 				struct libmail_kwMessage **kwPtr);
-extern void get_message_flags( struct imapscanmessageinfo *,
-			       char *, struct imapflags *);
-extern int reflag_filename(struct imapscanmessageinfo *, struct imapflags *,
-	int);
-extern void fetchflags(unsigned long);
-extern void fetchflags_byuid(unsigned long);
+extern "C" void get_message_flags( struct imapscanmessageinfo *,
+				   char *, struct imapflags *);
+extern "C" int reflag_filename(struct imapscanmessageinfo *, struct imapflags *,
+			       int);
+extern "C" void fetchflags(unsigned long);
+extern "C" void fetchflags_byuid(unsigned long);
 extern FILE *maildir_mkfilename(const char *, struct imapflags *,
-				unsigned long, char **, char **);
+				unsigned long, std::string &, std::string &);
 extern int acl_flags_adjust(const char *access_rights,
 			    struct imapflags *flags);
 
 extern struct imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 extern char *current_mailbox_acl;
-extern int fastkeywords();
+extern "C" int fastkeywords();
 
 int storeinfo_init(struct storeinfo *si)
 {
@@ -330,12 +331,11 @@ static int copy_message(int fd,
 			struct libmail_kwMessage *keywords,
 			unsigned long old_uid)
 {
-char	*tmpname;
-char	*newname;
-FILE	*fp;
-struct	stat	stat_buf;
-char	buf[BUFSIZ];
-struct uidplus_info *new_uidplus_info;
+	std::string tmpname, newname;
+	FILE	*fp;
+	struct	stat	stat_buf;
+	char	buf[BUFSIZ];
+	struct uidplus_info *new_uidplus_info;
 
 	if (fstat(fd, &stat_buf) < 0
 	    || (new_uidplus_info=(struct uidplus_info *)
@@ -346,7 +346,7 @@ struct uidplus_info *new_uidplus_info;
 	memset(new_uidplus_info, 0, sizeof(*new_uidplus_info));
 
 	fp=maildir_mkfilename(cpy_info->mailbox, flags, stat_buf.st_size,
-			      &tmpname, &newname);
+			      tmpname, newname);
 
 	if (!fp)
 	{
@@ -363,16 +363,14 @@ struct uidplus_info *new_uidplus_info;
 
 		n=read(fd, buf, n);
 
-		if (n <= 0 || fwrite(buf, 1, n, fp) != n)
+		if (n <= 0 || (int)fwrite(buf, 1, n, fp) != n)
 		{
 			fprintf(stderr,
 			"ERR: error copying a message, user=%s, errno=%d\n",
 				getenv("AUTHENTICATED"), errno);
 
 			fclose(fp);
-			unlink(tmpname);
-			free(tmpname);
-			free(newname);
+			unlink(tmpname.c_str());
 			free(new_uidplus_info);
 			return (-1);
 		}
@@ -382,8 +380,6 @@ struct uidplus_info *new_uidplus_info;
 	if (fflush(fp) || ferror(fp))
 	{
 		fclose(fp);
-		free(tmpname);
-		free(newname);
 		free(new_uidplus_info);
 		return (-1);
 	}
@@ -391,32 +387,33 @@ struct uidplus_info *new_uidplus_info;
 
 	new_uidplus_info->mtime = stat_buf.st_mtime;
 
-	if (check_outbox(tmpname, cpy_info->mailbox))
+	if (check_outbox(tmpname.c_str(), cpy_info->mailbox))
 	{
-		unlink(tmpname);
-		free(tmpname);
-		free(newname);
+		unlink(tmpname.c_str());
 		free(new_uidplus_info);
 		return (-1);
 	}
 
 	if (keywords && keywords->firstEntry &&
 	    maildir_kwSave(cpy_info->mailbox,
-			   strrchr(newname, '/')+1,
+			   strrchr(newname.c_str(), '/')+1,
 			   keywords,
 			   &new_uidplus_info->tmpkeywords,
 			   &new_uidplus_info->newkeywords, 0))
 	{
-		unlink(tmpname);
-		free(tmpname);
-		free(newname);
+		unlink(tmpname.c_str());
 		free(new_uidplus_info);
 		perror("maildir_kwSave");
 		return (-1);
 	}
 
-	new_uidplus_info->tmpfilename=tmpname;
-	new_uidplus_info->curfilename=newname;
+	new_uidplus_info->tmpfilename=strdup(tmpname.c_str());
+	new_uidplus_info->curfilename=strdup(newname.c_str());
+
+	if (!new_uidplus_info->tmpfilename ||
+	    !new_uidplus_info->curfilename)
+		write_error_exit(0);
+
 	new_uidplus_info->next=NULL;
 	new_uidplus_info->old_uid=old_uid;
 	*cpy_info->uidplus_tail=new_uidplus_info;

@@ -58,6 +58,9 @@
 #include	"rfc2045/rfc2045.h"
 #include	"rfc822/rfc822.h"
 
+#include	<string>
+#include	<algorithm>
+
 #define SMAP_BUFSIZ 8192
 
 #define SHARED "shared"
@@ -80,8 +83,6 @@ int mddelete(const char *s);
 extern int folder_rename(struct maildir_info *mi1,
 			 struct maildir_info *mi2,
 			 const char **errmsg);
-extern int current_temp_fd;
-extern const char *current_temp_fn;
 
 extern "C" int snapshot_init(const char *, const char *);
 extern "C" int keywords();
@@ -131,9 +132,10 @@ extern "C" struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
 extern "C" FILE *open_cached_fp(unsigned long);
 void fetch_free_cache();
 
-extern "C" FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
-				unsigned long s, char **tmpname,
-				char **newname);
+FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
+			 unsigned long s,
+			 std::string &tmpname,
+			 std::string &newname);
 
 /*
 ** Parse a word from the current SMAP command.
@@ -2253,22 +2255,22 @@ static unsigned long add_msg(FILE *fp, const char *format,
 	return n;
 }
 
-static void adduid(char *n)
+static void adduid(const std::string &newname)
 {
-	char *q;
+	size_t b=newname.rfind('/');
 
-	q=strrchr(n, '/');
-	if (q)
-		n=q+1;
+	if (b == newname.npos)
+		b=0;
+	else ++b;
 
-	q=strrchr(n, MDIRSEP[0]);
-	if (q)
-		*q=0;
+	size_t e=newname.find(MDIRSEP[0], b);
+
+	if (e == newname.npos)
+		e=newname.size();
+
 	writes("* ADD \"UID=");
-	smapword_s(n);
+	smapword_s(std::string{newname.begin()+b, newname.begin()+e}.c_str());
 	writes("\"\n");
-	if (q)
-		*q=MDIRSEP[0];
 }
 
 static void senderr(char *errmsg)
@@ -2285,20 +2287,20 @@ static int calc_quota(unsigned long n, void *voidptr)
 
 /* Copy msg to another folder */
 
-static void copieduid(unsigned long n, char *newname)
+static void copieduid(unsigned long n, const std::string &newname)
 {
-	char *p, *q;
-
 	writes("* COPY ");
 	writen(n);
 	writes(" \"NEWUID=");
 
-	p=strrchr(newname, '/')+1;
+	size_t b=newname.rfind('/')+1;
 
-	if ((q=strrchr(p, MDIRSEP[0])) != NULL)
-		*q=0;
+	size_t e=newname.find(MDIRSEP[0], b);
 
-	smapword_s(p);
+	if (e == newname.npos)
+		e=newname.size();
+
+	smapword_s(std::string{newname.begin()+b, newname.begin()+e}.c_str());
 	writes("\"\n");
 }
 
@@ -2324,18 +2326,24 @@ static int do_copyKeywords(struct libmail_kwMessage *msg,
 	return 0;
 }
 
-static void fixnewfilename(char *p)
+static void fixnewfilename(std::string &filename)
 {
-	char *q;
-
 	/* Nice hack: */
 
-	q=strrchr(strrchr(p, '/'), MDIRSEP[0]);
+	auto n=filename.rfind('/');
 
-	if (strcmp(q, MDIRSEP "2,") == 0)
+	n=filename.find(MDIRSEP[0], n);
+
+	if (n < filename.size() &&
+	    strcmp(filename.c_str() + n, MDIRSEP "2,") == 0)
 	{
-		*q=0;
-		memcpy(strrchr(p, '/')-3, "new", 3);
+		filename=filename.substr(0, n);
+
+		n=filename.rfind('/');
+
+		static const char new_str[]="new";
+
+		std::copy(new_str, new_str+3, filename.begin()+(n-3));
 	}
 }
 
@@ -2347,7 +2355,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 	int fd;
 	struct stat stat_buf;
 	FILE *fp;
-	char *tmpname, *newname;
+	std::string tmpname, newname;
 
 	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
 	if (fd < 0)	return (0);
@@ -2362,7 +2370,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 	fp=maildir_mkfilename(cqinfo->destmailbox,
 			      &new_flags, stat_buf.st_size,
-			      &tmpname, &newname);
+			      tmpname, newname);
 
 	fixnewfilename(newname);
 
@@ -2385,9 +2393,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 		{
 			close(fd);
 			fclose(fp);
-			unlink(tmpname);
-			free(tmpname);
-			free(newname);
+			unlink(tmpname.c_str());
 			fprintf(stderr,
 			"ERR: error copying a message, user=%s, errno=%d\n",
 				getenv("AUTHENTICATED"), errno);
@@ -2401,9 +2407,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 	if (fflush(fp) || ferror(fp))
 	{
 		fclose(fp);
-		unlink(tmpname);
-		free(tmpname);
-		free(newname);
+		unlink(tmpname.c_str());
 		fprintf(stderr,
 			"ERR: error copying a message, user=%s, errno=%d\n",
 			getenv("AUTHENTICATED"), errno);
@@ -2413,11 +2417,9 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 	if (do_copyKeywords(current_maildir_info.msgs[n].keywordMsg,
 			    cqinfo->destmailbox,
-			    strrchr(newname, '/')+1))
+			    strrchr(newname.c_str(), '/')+1))
 	{
-		unlink(tmpname);
-		free(tmpname);
-		free(newname);
+		unlink(tmpname.c_str());
 		fprintf(stderr,
 			"ERR: error copying keywords, "
 			"user=%s, errno=%d\n",
@@ -2427,12 +2429,10 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 	current_maildir_info.msgs[n].copiedflag=1;
 
-	maildir_movetmpnew(tmpname, newname);
-	set_time(newname, stat_buf.st_mtime);
-	free(tmpname);
+	maildir_movetmpnew(tmpname.c_str(), newname.c_str());
+	set_time(newname.c_str(), stat_buf.st_mtime);
 
 	copieduid(n+1, newname);
-	free(newname);
 	return 0;
 }
 
@@ -3385,7 +3385,7 @@ void smap()
 
 				if (p[0] == '{')
 				{
-					char *tmpname, *newname;
+					std::string tmpname, newname;
 					char *s;
 					char *tmpKeywords=NULL;
 					char *newKeywords=NULL;
@@ -3397,8 +3397,8 @@ void smap()
 							      :".",
 							      &add_flags,
 							      0,
-							      &tmpname,
-							      &newname);
+							      tmpname,
+							      newname);
 
 					if (!fp)
 					{
@@ -3410,36 +3410,35 @@ void smap()
 
 					fixnewfilename(newname);
 
-					current_temp_fd=fileno(fp);
-					current_temp_fn=tmpname;
-
 					n=add_msg(fp, p+1, buffer,
 						  sizeof(buffer));
 
 					if (n)
 					{
-						s=maildir_requota(newname, n);
+						s=maildir_requota(
+							newname.c_str(),
+							n);
 
 						if (!s)
 							n=0;
 						else
 						{
-							free(newname);
 							newname=s;
+							free(s);
 						}
 					}
 
-					current_temp_fd= -1;
-					current_temp_fn= NULL;
-
 					if (n > 0 && add_folder &&
 					    maildirquota_countfolder(add_folder)
-					    && maildirquota_countfile(newname))
+					    && maildirquota_countfile(
+						    newname.c_str()))
 					{
 						struct maildirsize quotainfo;
 
-						if (maildir_quota_add_start(add_folder, &quotainfo, n, 1,
-									    getenv("MAILDIRQUOTA")))
+						if (maildir_quota_add_start(
+							    add_folder,
+							    &quotainfo, n, 1,
+							    getenv("MAILDIRQUOTA")))
 						{
 							errno=ENOSPC;
 							n=0;
@@ -3450,12 +3449,12 @@ void smap()
 
 					fclose(fp);
 
-					chmod(tmpname, 0600);
+					chmod(tmpname.c_str(), 0600);
 
 					if (add_folder && n && addKeywords)
 					{
 						if (maildir_kwSave(add_folder,
-								   strrchr(newname, '/')+1,
+								   strrchr(newname.c_str(), '/')+1,
 								   addKeywords,
 								   &tmpKeywords,
 								   &newKeywords,
@@ -3510,8 +3509,9 @@ void smap()
 						}
 						argvec[i]=0;
 
-						i=imapd_sendmsg(tmpname, argvec,
-								&senderr);
+						i=imapd_sendmsg(
+							tmpname.c_str(), argvec,
+							&senderr);
 						free(argvec);
 						if (i)
 						{
@@ -3530,14 +3530,15 @@ void smap()
 
 					if (add_folder && n)
 					{
-						if (maildir_movetmpnew(tmpname,
-								       newname)
+						if (maildir_movetmpnew(
+							    tmpname.c_str(),
+							    newname.c_str())
 						    )
 							n=0;
 						else
 						{
 							if (add_internaldate)
-								set_time(newname,
+								set_time(newname.c_str(),
 									 add_internaldate);
 							adduid(newname);
 						}
@@ -3545,9 +3546,7 @@ void smap()
 
 					if (n == 0)
 					{
-						unlink(tmpname);
-						free(tmpname);
-						free(newname);
+						unlink(tmpname.c_str());
 						if (!err_sent)
 						{
 							writes("-ERR ");
@@ -3557,10 +3556,7 @@ void smap()
 						break;
 					}
 
-					unlink(tmpname);
-
-					free(tmpname);
-					free(newname);
+					unlink(tmpname.c_str());
 					okmsg="Message saved";
 					p=NULL;
 					break;
