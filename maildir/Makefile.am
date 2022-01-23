@@ -147,6 +147,10 @@ check-am:
 	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | cmp - $(srcdir)/testsuite2.txt
 	LC_ALL=C; export LC_ALL; ./maildirkwtest | cmp -s - $(srcdir)/maildirkwtest.txt
 	LC_ALL=C; export LC_ALL; ./maildiraclttest
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./maildiraclttest
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./maildirkwtest
 	./testmaildirsearch iso-8859-1 needle haystack; test $$? = 2 && exit 0; exit 1
 	./testmaildirsearch iso-8859-1 nEEdle needlE
 	./testmaildirsearch iso-8859-1 "abra  cadAbra" "abra   cadabra"

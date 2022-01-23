@@ -86,7 +86,32 @@ int main()
 			libmail_kwmClearName(msgs[0], flags[1]);
 
 			if (dump() == 0)
+			{
+				if (libmail_kwmClearName(msgs[0], flags[0]) < 0
+				    ||
+				    libmail_kwmClearName(msgs[1], flags[1]) < 0
+				    ||
+				    libmail_kwmClearName(msgs[2], flags[2]) < 0
+				    ||
+				    libmail_kwmClearName(msgs[0], flags[0]) < 0
+				    ||
+				    libmail_kwmClearName(msgs[1], flags[2]) < 0
+				    ||
+				    libmail_kwhCheck(&h))
+				{
+					fprintf(stderr,
+						"kwhCheck test failed.\n");
+					exit(1);
+				}
+
+				for (i=0; i<sizeof(msgs)/sizeof(msgs[0]); i++)
+				{
+					libmail_kwmDestroy(msgs[i]);
+				}
+
+
 				exit(0);
+			}
 		}
 
 	}

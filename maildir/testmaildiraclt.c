@@ -203,6 +203,7 @@ int main()
 		    strcmp(maildir_aclt_ascstr(&a), "l") == 0);
 		maildir_aclt_destroy(&a);
 	}
+	maildir_aclt_list_destroy(&l);
 
 	exit(0);
 	return (0);
