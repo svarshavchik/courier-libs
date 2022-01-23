@@ -359,7 +359,7 @@ static int chk_admin(int (*cb_func)(const char *isme,
 					      info->void_arg))
 
 struct maildir_acl_compute_info {
-	maildir_aclt *aclt;
+	maildir::aclt &aclt;
 	int (*cb_func)(const char *isme, void *void_arg);
 	void *void_arg;
 };
@@ -382,10 +382,8 @@ static int compute_cb_add(const char *identifier,
 		return rc;
 	}
 
-	if (maildir_aclt_add(info->aclt, acl, NULL) < 0)
-	{
-		return -1;
-	}
+	info->aclt += acl;
+
 	return 0;
 }
 
@@ -407,15 +405,12 @@ static int compute_cb_del(const char *identifier,
 		return rc;
 	}
 
-	if (maildir_aclt_del(info->aclt, acl, NULL) < 0)
-	{
-		return -1;
-	}
+	info->aclt -= acl;
 
 	return 0;
 }
 
-static int do_maildir_acl_compute_chkowner(maildir_aclt *aclt,
+static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
 					   maildir_aclt_list *aclt_list,
 					   int (*cb_func)(const char *isme,
 							  void *void_arg),
@@ -423,9 +418,8 @@ static int do_maildir_acl_compute_chkowner(maildir_aclt *aclt,
 					   int chkowner)
 {
 	int rc;
-	struct maildir_acl_compute_info info;
+	struct maildir_acl_compute_info info{aclt};
 
-	info.aclt=aclt;
 	info.cb_func=cb_func;
 	info.void_arg=void_arg;
 
@@ -451,10 +445,7 @@ static int do_maildir_acl_compute_chkowner(maildir_aclt *aclt,
 
 	if (rc)
 	{
-		if (maildir_aclt_add(aclt, ACL_ADMINISTER, NULL) < 0)
-		{
-			return rc;
-		}
+		aclt += ACL_ADMINISTER;
 	}
 	return 0;
 }
@@ -468,16 +459,20 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 {
 	int rc;
 
-	if (maildir_aclt_init(aclt, "", NULL) < 0)
+	if (!(*aclt=new maildir_aclt_impl{""}))
 		return -1;
 
-	rc=do_maildir_acl_compute_chkowner(aclt, aclt_list,
+	rc=do_maildir_acl_compute_chkowner((*aclt)->impl, aclt_list,
 					   cb_func,
 					   void_arg,
 					   chkowner);
 
 	if (rc)
-		maildir_aclt_destroy(aclt);
+	{
+		delete *aclt;
+		*aclt=NULL;
+	}
+
 	return rc;
 }
 
