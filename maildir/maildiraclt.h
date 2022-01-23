@@ -63,6 +63,15 @@ struct aclt_list : std::vector<aclt_node> {
 
 	int compute( aclt &,
 		     const std::function<int (const char *)> &) const;
+
+	int write(const std::string &maildir,
+		  const std::string &path,
+		  const std::string &owner) const;
+
+	int write(const std::string &maildir,
+		  const std::string &path,
+		  const std::string &owner,
+		  std::string &failed_rights) const;
 };
 
 

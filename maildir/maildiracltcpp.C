@@ -357,95 +357,45 @@ static int do_maildir_acl_compute_chkowner(
 	const std::function<int (const char *)> &cb_func,
 	int chkowner);
 
-static int maildir_acl_compute_chkowner(
-	maildir_aclt *aclt,
-	maildir_aclt_list *aclt_list,
-	const std::function<int (const char *)> &cb_func,
-	int chkowner)
+static int check_adminrights(maildir::aclt &list)
 {
-	int rc;
-
-	if (!(*aclt=new maildir_aclt_impl{""}))
-		return -1;
-
-	maildir::aclt_list empty_list;
-
-	rc=do_maildir_acl_compute_chkowner((*aclt)->impl,
-					   *aclt_list ? (*aclt_list)->list
-					   :empty_list,
-					   cb_func,
-					   chkowner);
-
-	if (rc)
+	if (list.find(ACL_LOOKUP[0]) == list.npos ||
+	    list.find(ACL_ADMINISTER[0]) == list.npos)
 	{
-		delete *aclt;
-		*aclt=NULL;
-	}
-
-	return rc;
-}
-
-static int save_acl(const char *identifier, const char *acl,
-		    void *cb_arg)
-{
-	if (fprintf((FILE *)cb_arg, "%s %s\n",
-		    identifier,
-		    acl) < 0)
-		return -1;
-	return 0;
-}
-
-static int is_admin(const char *isme, void *void_arg)
-{
-	return strcmp(isme, "administrators") == 0;
-
-	/* We don't need to check for group=administrators, see chk_admin() */
-}
-
-static int check_adminrights(maildir_aclt *list)
-{
-	if (strchr(maildir_aclt_ascstr(list), ACL_LOOKUP[0]) == NULL ||
-	    strchr(maildir_aclt_ascstr(list), ACL_ADMINISTER[0]) == NULL)
-	{
-		maildir_aclt_destroy(list);
 		return -1;
 	}
 
-	maildir_aclt_destroy(list);
 	return 0;
 }
 
-static int check_allrights(maildir_aclt *list)
+static int check_allrights(maildir::aclt &list)
 {
 	const char *all=ACL_ALL;
 
 	while (*all)
 	{
-		if (strchr(maildir_aclt_ascstr(list), *all) == NULL)
+		if (list.find(*all) == list.npos)
 		{
-			maildir_aclt_destroy(list);
 			return -1;
 		}
 		++all;
 	}
 
-	maildir_aclt_destroy(list);
 	return 0;
 }
 
-int maildir_acl_write(maildir_aclt_list *aclt_list,
-		      const char *maildir,
-		      const char *path,
+static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
+				const char *maildir,
+				const char *path,
 
-		      const char *owner,
-		      const char **err_failedrights)
+				const char *owner,
+				const char **err_failedrights)
 {
 	int trycreate;
 	struct maildir_tmpcreate_info tci;
 	FILE *fp;
 	char *p, *q;
 	const char *dummy_string;
-	maildir_aclt chkacls;
 
 	if (!err_failedrights)
 		err_failedrights= &dummy_string;
@@ -471,22 +421,22 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 				return -1;
 			}
 
+	maildir::aclt chkacls{""};
 
-	if (maildir_acl_compute_chkowner(&chkacls, aclt_list,
-					 []
-					 (const char *identifier)
-					 {
-						 return strcmp(identifier,
-							       "owner")
-							 == 0 ? 1:0;
-					 },
-					 0))
+	if (do_maildir_acl_compute_chkowner(
+		    chkacls, aclt_list,
+		    []
+		    (const char *identifier)
+		    {
+			    return strcmp(identifier, "owner") == 0 ? 1:0;
+		    },
+		    0))
 	{
 		errno=EINVAL;
 		return -1;
 	}
 
-	if (check_adminrights(&chkacls))
+	if (check_adminrights(chkacls))
 	{
 		*err_failedrights="owner";
 		errno=EINVAL;
@@ -495,10 +445,8 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 
 	if (owner)
 	{
-		maildir_aclt_destroy(&chkacls);
-
-		if (maildir_acl_compute_chkowner(
-			    &chkacls, aclt_list,
+		if (do_maildir_acl_compute_chkowner(
+			    chkacls, aclt_list,
 			    [owner]
 			    (const char *identifier)
 			    {
@@ -511,23 +459,29 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 			errno=EINVAL;
 			return -1;
 		}
-		if (check_adminrights(&chkacls))
+		if (check_adminrights(chkacls))
 		{
-			maildir_aclt_destroy(&chkacls);
-
 			*err_failedrights=owner;
 			errno=EINVAL;
 			return -1;
 		}
 	}
 
-	if (maildir_acl_compute(&chkacls, aclt_list, is_admin, NULL))
+
+	/* We don't need to check for group=administrators, see chk_admin() */
+
+	if (aclt_list.compute(
+		    chkacls,
+		    []
+		    (const char *identifier)
+		    {
+			    return strcmp(identifier, "administrators") == 0;
+		    }))
 	{
-		maildir_aclt_destroy(&chkacls);
 		errno=EINVAL;
 		return -1;
 	}
-	if (check_allrights(&chkacls))
+	if (check_allrights(chkacls))
 	{
 		errno=EINVAL;
 		return -1;
@@ -596,8 +550,13 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 		trycreate=1;
 	}
 
-	if (maildir_aclt_list_enum(aclt_list, save_acl, fp) < 0 ||
-	    ferror(fp) || fflush(fp) < 0)
+	for (const auto &node:aclt_list)
+	{
+		fprintf(fp, "%s %s\n", node.identifier.c_str(),
+			node.acl.c_str());
+	}
+
+	if (ferror(fp) || fflush(fp) < 0)
 	{
 		fclose(fp);
 		unlink(tci.tmpname);
@@ -631,6 +590,50 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 	}
 	maildir_tmpcreate_free(&tci);
 	return 0;
+}
+
+int maildir_acl_write(maildir_aclt_list *aclt_list,
+		      const char *maildir,
+		      const char *path,
+
+		      const char *owner,
+		      const char **err_failedrights)
+{
+	maildir::aclt_list default_list;
+
+	return do_maildir_acl_write(
+		*aclt_list ? (*aclt_list)->list:default_list,
+		maildir,
+		path,
+		owner,
+		err_failedrights);
+}
+
+int maildir::aclt_list::write(const std::string &maildir,
+			      const std::string &path,
+			      const std::string &owner) const
+{
+	std::string ignore;
+
+	return write(maildir, path, owner, ignore);
+}
+
+int maildir::aclt_list::write(const std::string &maildir,
+			      const std::string &path,
+			      const std::string &owner,
+			      std::string &failed_rights) const
+{
+	const char *err_failedrights;
+
+	int rc=do_maildir_acl_write(*this, maildir.c_str(), path.c_str(),
+				    owner.c_str(),
+				    &err_failedrights);
+
+	failed_rights.clear();
+	if (err_failedrights)
+		failed_rights=err_failedrights;
+
+	return rc;
 }
 
 int maildir::aclt_list::compute(
