@@ -35,163 +35,6 @@
 
 int maildir_acl_disabled=0;
 
-/* -------------------------------------------------------------------- */
-
-
-void maildir_aclt_list_init(maildir_aclt_list *aclt_list)
-{
-	aclt_list->head=NULL;
-	aclt_list->tail=NULL;
-}
-
-void maildir_aclt_list_destroy(maildir_aclt_list *aclt_list)
-{
-	struct maildir_aclt_node *p;
-
-	for (p=aclt_list->head; p; )
-	{
-		struct maildir_aclt_node *q=p->next;
-
-		free(p->identifier);
-		maildir_aclt_destroy(&p->acl);
-		free(p);
-		p=q;
-	}
-	maildir_aclt_list_init(aclt_list);
-}
-
-
-/* Add an <identifier,acl> pair.  Returns 0 on success, -1 on failure */
-
-int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
-			  const char *identifier,
-			  const char *aclt_str,
-			  maildir_aclt *aclt_cpy)
-{
-	struct maildir_aclt_node *p;
-	const char *q;
-
-	/* Check for valid identifiers */
-
-	for (q=identifier; *q; q++)
-		if ( (int)(unsigned char)*q <= ' ')
-		{
-			errno=EINVAL;
-			return -1;
-		}
-
-	if (*identifier == 0)
-	{
-		errno=EINVAL;
-		return -1;
-	}
-
-	if (aclt_cpy)
-	{
-		const char *str=maildir_aclt_ascstr(aclt_cpy);
-
-		if (*str)
-			aclt_str=str;
-	}
-
-	for (p=aclt_list->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-		{
-			maildir_aclt_destroy(&p->acl);
-			return maildir_aclt_init(&p->acl, aclt_str, NULL);
-		}
-	}
-
-	if ((p=malloc(sizeof(*p))) == NULL ||
-	    (p->identifier=strdup(identifier)) == NULL)
-	{
-		if (p) free(p);
-		return -1;
-	}
-
-	if (maildir_aclt_init(&p->acl, aclt_str, NULL) < 0)
-	{
-		free(p->identifier);
-		free(p);
-		return -1;
-	}
-
-	p->next=NULL;
-	if ((p->prev=aclt_list->tail) != NULL)
-		p->prev->next=p;
-	else
-		aclt_list->head=p;
-	aclt_list->tail=p;
-	return 0;
-}
-
-/*
-** Remove 'identifier' from the ACL list.
-*/
-
-int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
-			  const char *identifier)
-{
-	struct maildir_aclt_node *p;
-
-	for (p=aclt_list->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-		{
-			if (p->prev)
-				p->prev->next=p->next;
-			else aclt_list->head=p->next;
-
-			if (p->next)
-				p->next->prev=p->prev;
-			else aclt_list->tail=p->prev;
-
-			maildir_aclt_destroy(&p->acl);
-			free(p->identifier);
-			free(p);
-			return 0;
-		}
-	}
-	return 0;
-}
-
-/*
-** Generic enumeration.
-*/
-
-int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
-			   int (*cb_func)(const char *identifier,
-					  const maildir_aclt *acl,
-					  void *cb_arg),
-			   void *cb_arg)
-{
-	struct maildir_aclt_node *p;
-	int rc;
-
-	for (p=aclt_list->head; p; p=p->next)
-	{
-		rc= (*cb_func)(p->identifier, &p->acl, cb_arg);
-
-		if (rc)
-			return rc;
-	}
-	return 0;
-}
-
-const maildir_aclt *maildir_aclt_list_find(maildir_aclt_list *aclt_list,
-					   const char *identifier)
-{
-	struct maildir_aclt_node *p;
-
-	for (p=aclt_list->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-			return &p->acl;
-	}
-	return NULL;
-}
-
 /* ---------------------------------------------------------------------- */
 
 static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
@@ -918,7 +761,63 @@ static int chk_admin(int (*cb_func)(const char *isme,
 }
 
 #define ISIDENT(s) \
-	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(cb_func, (s), void_arg))
+	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(info->cb_func, (s),	\
+					      info->void_arg))
+
+struct maildir_acl_compute_info {
+	maildir_aclt *aclt;
+	int (*cb_func)(const char *isme, void *void_arg);
+	void *void_arg;
+};
+
+static int compute_cb_add(const char *identifier,
+			  const maildir_aclt *acl,
+			  void *cb_arg)
+{
+	struct maildir_acl_compute_info *info=cb_arg;
+	int rc;
+
+	if (identifier[0] == '-')
+		return 0;
+
+	rc= ISIDENT(identifier);
+
+	if (rc <= 0)
+	{
+		return rc;
+	}
+
+	if (maildir_aclt_add(info->aclt, maildir_aclt_ascstr(acl), NULL) < 0)
+	{
+		return -1;
+	}
+	return 0;
+}
+
+static int compute_cb_del(const char *identifier,
+			  const maildir_aclt *acl,
+			  void *cb_arg)
+{
+	struct maildir_acl_compute_info *info=cb_arg;
+	int rc;
+
+	if (identifier[0] != '-')
+		return 0;
+
+	rc= ISIDENT(identifier+1);
+
+	if (rc <= 0)
+	{
+		return rc;
+	}
+
+	if (maildir_aclt_del(info->aclt, maildir_aclt_ascstr(acl), NULL) < 0)
+	{
+		return -1;
+	}
+
+	return 0;
+}
 
 static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 					maildir_aclt_list *aclt_list,
@@ -927,56 +826,21 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 					void *void_arg,
 					int chkowner)
 {
-	struct maildir_aclt_node *p;
 	int rc;
+	struct maildir_acl_compute_info info;
+
+	info.aclt=aclt;
+	info.cb_func=cb_func;
+	info.void_arg=void_arg;
 
 	if (maildir_aclt_init(aclt, "", NULL) < 0)
 		return -1;
 
-	for (p=aclt_list->head; p; p=p->next)
+	if ((rc=maildir_aclt_list_enum(aclt_list, compute_cb_add, &info)) ||
+	    (rc=maildir_aclt_list_enum(aclt_list, compute_cb_del, &info)))
 	{
-		if (p->identifier[0] == '-')
-			continue;
-
-		rc= ISIDENT(p->identifier);
-
-		if (rc < 0)
-		{
-			maildir_aclt_destroy(aclt);
-			return rc;
-		}
-
-		if (rc == 0)
-			continue;
-
-		if (maildir_aclt_add(aclt, NULL, &p->acl) < 0)
-		{
-			maildir_aclt_destroy(aclt);
-			return rc;
-		}
-	}
-
-	for (p=aclt_list->head; p; p=p->next)
-	{
-		if (p->identifier[0] != '-')
-			continue;
-
-		rc= ISIDENT(p->identifier+1);
-
-		if (rc < 0)
-		{
-			maildir_aclt_destroy(aclt);
-			return rc;
-		}
-
-		if (rc == 0)
-			continue;
-
-		if (maildir_aclt_del(aclt, NULL, &p->acl) < 0)
-		{
-			maildir_aclt_destroy(aclt);
-			return rc;
-		}
+		maildir_aclt_destroy(aclt);
+		return -1;
 	}
 
 	/*

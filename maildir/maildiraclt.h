@@ -86,18 +86,9 @@ const char *maildir_aclt_ascstr(const maildir_aclt *aclt);
 
 /* Next level up, a list of <identifier,acl>s */
 
-struct maildir_aclt_node {
-	struct maildir_aclt_node *prev;
-	struct maildir_aclt_node *next;
-	char *identifier;
-	maildir_aclt acl;
-};
+struct maildir_aclt_list_impl;
 
-typedef struct {
-	struct maildir_aclt_node *head;
-	struct maildir_aclt_node *tail;
-} maildir_aclt_list;
-
+typedef struct maildir_aclt_list_impl *maildir_aclt_list;
 
 /* Initialize and destroy the list */
 
