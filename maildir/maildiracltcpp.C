@@ -415,12 +415,12 @@ static int compute_cb_del(const char *identifier,
 	return 0;
 }
 
-static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
-					maildir_aclt_list *aclt_list,
-					int (*cb_func)(const char *isme,
-						       void *void_arg),
-					void *void_arg,
-					int chkowner)
+static int do_maildir_acl_compute_chkowner(maildir_aclt *aclt,
+					   maildir_aclt_list *aclt_list,
+					   int (*cb_func)(const char *isme,
+							  void *void_arg),
+					   void *void_arg,
+					   int chkowner)
 {
 	int rc;
 	struct maildir_acl_compute_info info;
@@ -429,13 +429,9 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 	info.cb_func=cb_func;
 	info.void_arg=void_arg;
 
-	if (maildir_aclt_init(aclt, "", NULL) < 0)
-		return -1;
-
 	if ((rc=maildir_aclt_list_enum(aclt_list, compute_cb_add, &info)) ||
 	    (rc=maildir_aclt_list_enum(aclt_list, compute_cb_del, &info)))
 	{
-		maildir_aclt_destroy(aclt);
 		return -1;
 	}
 
@@ -450,7 +446,6 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 
 	if (rc < 0)
 	{
-		maildir_aclt_destroy(aclt);
 		return rc;
 	}
 
@@ -458,13 +453,33 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 	{
 		if (maildir_aclt_add(aclt, ACL_ADMINISTER, NULL) < 0)
 		{
-			maildir_aclt_destroy(aclt);
 			return rc;
 		}
 	}
 	return 0;
 }
 
+static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
+					maildir_aclt_list *aclt_list,
+					int (*cb_func)(const char *isme,
+						       void *void_arg),
+					void *void_arg,
+					int chkowner)
+{
+	int rc;
+
+	if (maildir_aclt_init(aclt, "", NULL) < 0)
+		return -1;
+
+	rc=do_maildir_acl_compute_chkowner(aclt, aclt_list,
+					   cb_func,
+					   void_arg,
+					   chkowner);
+
+	if (rc)
+		maildir_aclt_destroy(aclt);
+	return rc;
+}
 
 static int save_acl(const char *identifier, const char *acl,
 		    void *cb_arg)
@@ -565,7 +580,6 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 	if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner, NULL,
 					 0))
 	{
-		maildir_aclt_destroy(&chkacls);
 		errno=EINVAL;
 		return -1;
 	}
@@ -579,15 +593,18 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 
 	if (owner)
 	{
+		maildir_aclt_destroy(&chkacls);
+
 		if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner,
 						 (void *)owner, 0))
 		{
-			maildir_aclt_destroy(&chkacls);
 			errno=EINVAL;
 			return -1;
 		}
 		if (check_adminrights(&chkacls))
 		{
+			maildir_aclt_destroy(&chkacls);
+
 			*err_failedrights=owner;
 			errno=EINVAL;
 			return -1;
