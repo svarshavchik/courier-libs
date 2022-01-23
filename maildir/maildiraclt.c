@@ -357,7 +357,7 @@ int maildir_acl_delete(const char *maildir,
 	return 0;
 }
 
-static int save_acl(const char *identifier, const maildir_aclt *acl,
+static int save_acl(const char *identifier, const char *acl,
 		    void *cb_arg);
 
 
@@ -597,12 +597,12 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 	return 0;
 }
 
-static int save_acl(const char *identifier, const maildir_aclt *acl,
+static int save_acl(const char *identifier, const char *acl,
 		    void *cb_arg)
 {
 	if (fprintf((FILE *)cb_arg, "%s %s\n",
 		    identifier,
-		    maildir_aclt_ascstr(acl)) < 0)
+		    acl) < 0)
 		return -1;
 	return 0;
 }
@@ -771,7 +771,7 @@ struct maildir_acl_compute_info {
 };
 
 static int compute_cb_add(const char *identifier,
-			  const maildir_aclt *acl,
+			  const char *acl,
 			  void *cb_arg)
 {
 	struct maildir_acl_compute_info *info=cb_arg;
@@ -787,7 +787,7 @@ static int compute_cb_add(const char *identifier,
 		return rc;
 	}
 
-	if (maildir_aclt_add(info->aclt, maildir_aclt_ascstr(acl), NULL) < 0)
+	if (maildir_aclt_add(info->aclt, acl, NULL) < 0)
 	{
 		return -1;
 	}
@@ -795,7 +795,7 @@ static int compute_cb_add(const char *identifier,
 }
 
 static int compute_cb_del(const char *identifier,
-			  const maildir_aclt *acl,
+			  const char *acl,
 			  void *cb_arg)
 {
 	struct maildir_acl_compute_info *info=cb_arg;
@@ -811,7 +811,7 @@ static int compute_cb_del(const char *identifier,
 		return rc;
 	}
 
-	if (maildir_aclt_del(info->aclt, maildir_aclt_ascstr(acl), NULL) < 0)
+	if (maildir_aclt_del(info->aclt, acl, NULL) < 0)
 	{
 		return -1;
 	}

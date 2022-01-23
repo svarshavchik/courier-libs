@@ -26,7 +26,7 @@
 			__FILE__, __LINE__); exit(1);}
 
 static int cb_enum(const char *identifier,
-		   const maildir_aclt *acl,
+		   const char *acl,
 		   void *b)
 {
 	char *cb=(char *)b;
@@ -35,7 +35,7 @@ static int cb_enum(const char *identifier,
 		return -1;
 
 	strcat(strcat(strcat(strcat(b, identifier), "."),
-		      maildir_aclt_ascstr(acl)), ".");
+		      acl), ".");
 	return 0;
 }
 

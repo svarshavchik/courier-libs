@@ -39,10 +39,10 @@ static void usage()
 }
 
 static int acl_list(const char *identifier,
-		    const maildir_aclt *acl,
+		    const char *acl,
 		    void *cb_arg)
 {
-	printf("%s\t%s\n", identifier, maildir_aclt_ascstr(acl));
+	printf("%s\t%s\n", identifier, acl);
 	return (0);
 }
 

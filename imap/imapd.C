@@ -2666,7 +2666,7 @@ static void myrights()
 }
 
 static int list_acl_cb(const char *ident,
-		       const maildir_aclt *acl,
+		       const char *acl,
 		       void *cb_arg);
 
 char *compute_myrights(maildir_aclt_list *l,
@@ -2808,13 +2808,13 @@ static void writeacl(const char *aclstr)
 }
 
 static int list_acl_cb(const char *ident,
-		       const maildir_aclt *acl,
+		       const char *acl,
 		       void *cb_arg)
 {
 	writes("(\"");
 	writeqs(ident);
 	writes("\" \"");
-	writeacl(maildir_aclt_ascstr(acl));
+	writeacl(acl);
 	writes("\")");
 	return 0;
 }
@@ -2846,7 +2846,7 @@ static void writeacl1(char *p)
 }
 
 static int getacl_cb(const char *ident,
-		     const maildir_aclt *acl,
+		     const char *acl,
 		     void *cb_arg)
 {
 	char *p;
@@ -2872,7 +2872,7 @@ static int getacl_cb(const char *ident,
 	writes("\" \"");
 
 
-	p=my_strdup(maildir_aclt_ascstr(acl));
+	p=my_strdup(acl);
 
 	writeacl1(p);
 

@@ -2898,7 +2898,7 @@ static void accessdenied(const char *acl_required)
 }
 
 static int getacl(const char *ident,
-		  const maildir_aclt *acl,
+		  const char *acl,
 		  void *cb_arg)
 {
 	int *n=(int *)cb_arg;
@@ -2915,7 +2915,7 @@ static int getacl(const char *ident,
 	writes(" ");
 	smapword(ident);
 	writes(" ");
-	smapword(maildir_aclt_ascstr(acl));
+	smapword(acl);
 	++*n;
 	return 0;
 }

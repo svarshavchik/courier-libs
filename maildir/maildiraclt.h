@@ -119,7 +119,7 @@ int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
 
 int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 			   int (*cb_func)(const char *identifier,
-					  const maildir_aclt *acl,
+					  const char *acl,
 					  void *cb_arg),
 			   void *cb_arg);
 
