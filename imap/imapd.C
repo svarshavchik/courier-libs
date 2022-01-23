@@ -255,11 +255,11 @@ int is_trash(const char *m)
 	}
 }
 
-void emptythistrash(const char *folder, unsigned l)
+void emptythistrash(const std::string &folder, unsigned l)
 {
-	maildir_getnew(".", folder, NULL, NULL);
+	maildir_getnew(".", folder.c_str(), NULL, NULL);
 
-	std::string dir=maildir::name2dir(".", std::string{"INBOX."}+folder);
+	std::string dir=maildir::name2dir(".", INBOX "."+folder);
 
 	if (dir.empty())
 		return;
@@ -277,20 +277,16 @@ void emptythistrash(const char *folder, unsigned l)
 
 void emptytrash()
 {
-	char	*all_settings, *next_folder, *folder, *p;
 	unsigned l;
 
-	all_settings=getenv("IMAP_EMPTYTRASH");
+	auto all_settings=getenv("IMAP_EMPTYTRASH");
 
 	if (!all_settings)
 		return;
 
-	all_settings=strdup(all_settings);
-	if (!all_settings)
-		return;
+	std::string s=all_settings;
 
-	if (strchr(all_settings, ':') == 0 &&
-	    strchr(all_settings, ',') == 0)
+	if (s.find(':') == s.npos && s.find(',') == s.npos)
 	{
 		l=atoi(all_settings);
 
@@ -298,37 +294,34 @@ void emptytrash()
 			l=1;
 
 		emptythistrash(trash, l);
-		free(all_settings);
 		return;
 	}
 
-	for (folder=all_settings; folder && *folder; )
+	for (auto b=s.begin(), e=s.end(); b != e; )
 	{
-		if (*folder == ',')
+		if (*b == ',')
 		{
-			++folder;
-			continue;
-		}
-		next_folder=strchr(folder, ',');
-		if (next_folder)
-			*next_folder++=0;
-
-		p=strchr(folder, ':');
-		if (!p)
-		{
-			folder=next_folder;
+			++b;
 			continue;
 		}
 
-		*p++=0;
+		auto p=b;
+		b=std::find(b, e, ',');
 
-		l=atoi(p);
+		std::string folder{p, b};
+
+		auto n=folder.find(':');
+
+		if (n == folder.npos)
+		{
+			continue;
+		}
+
+		l=atoi(folder.substr(n+1).c_str());
 		if (l <= 0)	l=1;
 
-		emptythistrash(folder, l);
-		folder=next_folder;
+		emptythistrash(folder.substr(0, n), l);
 	}
-	free(all_settings);
 }
 
 #if 0
