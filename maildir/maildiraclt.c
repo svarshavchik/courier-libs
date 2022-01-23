@@ -86,8 +86,13 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 		return -1;
 	}
 
-	if (aclt_cpy && *aclt_cpy)
-		aclt_str= *aclt_cpy;
+	if (aclt_cpy)
+	{
+		const char *str=maildir_aclt_ascstr(aclt_cpy);
+
+		if (*str)
+			aclt_str=str;
+	}
 
 	for (p=aclt_list->head; p; p=p->next)
 	{

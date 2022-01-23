@@ -4,7 +4,9 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-
+#if 0
+}
+#endif
 
 /*
 ** Copyright 2003-2004 S. Varshavchik.
@@ -23,7 +25,7 @@ extern "C" {
 ** These functions return 0 on success, <0 on error.
 */
 
-typedef char *maildir_aclt;
+typedef struct maildir_aclt_impl *maildir_aclt;
 
 
 /*
@@ -52,8 +54,7 @@ int maildir_aclt_del(maildir_aclt *aclt,
 
 /* return a const char * that contains the acl */
 
-#define maildir_aclt_ascstr(t) (*(t) ? (const char *)*(t):"")
-
+const char *maildir_aclt_ascstr(const maildir_aclt *aclt);
 
 /* Next level up, a list of <identifier,acl>s */
 
@@ -104,7 +105,7 @@ int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 			   void *cb_arg);
 
 /* Find an identifier */
- 
+
 const maildir_aclt *maildir_aclt_list_find(maildir_aclt_list *aclt_list,
 					   const char *identifier);
 
@@ -273,6 +274,9 @@ int maildir_acl_computerights(maildir_aclt *rights,
 
 int maildir_acl_canlistrights(const char *myrights);
 
+#if 0
+{
+#endif
 #ifdef  __cplusplus
 }
 #endif
