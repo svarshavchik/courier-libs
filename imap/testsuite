@@ -1156,3 +1156,17 @@ U021 SELECT INBOX
 U022 STORE 1 +FLAGS(Label1)
 U023 COPY 1 INBOX
 EOF
+
+rm -rf confmdtest*
+
+../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake -f Trash confmdtest || exit 1
+../maildir/maildirmake -f Trash2 confmdtest || exit 1
+
+env IMAP_EMPTYTRASH=2 ./imapd.testmockpurge confmdtest <<EOF | grep maildir_purge
+TRASH1 SELECT INBOX
+TRASH1 LOGOUT
+EOF
+env IMAP_EMPTYTRASH=Trash:2,Trash2:3 ./imapd.testmockpurge confmdtest <<EOF | grep maildir_purge
+TRASH2 LOGOUT
+EOF

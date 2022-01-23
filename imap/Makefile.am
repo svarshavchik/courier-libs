@@ -26,7 +26,7 @@ EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
 	imapd.cnf.gnutls pop3d.cnf.gnutls
 
 noinst_SCRIPTS=mkimapdcert mkpop3dcert mkdhparams
-noinst_PROGRAMS=imaplogin imapd pop3login pop3d
+noinst_PROGRAMS=imaplogin imapd imapd.testmockpurge pop3login pop3d
 
 noinst_DATA=imapd.8 imapd.html imapd.cnf pop3d.cnf \
 	makeimapaccess.html makeimapaccess.8 \
@@ -78,6 +78,10 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.c imapd.h \
 imapd_DEPENDENCIES=libimapd.la @dblibrary@
 
 imapd_LDADD=libimapd.la	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth
+
+imapd_testmockpurge_SOURCES=$(imapd_SOURCES) mockmaildirpurge.c
+imapd_testmockpurge_DEPENDENCIES=$(imapd_DEPENDENCIES)
+imapd_testmockpurge_LDADD=$(imapd_LDADD)
 
 pop3login_SOURCES=pop3login.c pop3dcapa.c proxy.c proxy.h
 pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la
