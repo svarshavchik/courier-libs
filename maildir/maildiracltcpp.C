@@ -329,8 +329,6 @@ const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
 	return iter->acl.c_str();
 }
 
-
-
 /*
 ** An ACL entry for "administrators" or "group=administrators" will match
 ** either one.
@@ -354,101 +352,12 @@ static int chk_admin(int (*cb_func)(const char *isme,
 	return (*cb_func)(identifier, void_arg);
 }
 
-#define ISIDENT(s) \
-	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(info->cb_func, (s),	\
-					      info->void_arg))
-
-struct maildir_acl_compute_info {
-	maildir::aclt &aclt;
-	int (*cb_func)(const char *isme, void *void_arg);
-	void *void_arg;
-};
-
-static int compute_cb_add(const char *identifier,
-			  const char *acl,
-			  void *cb_arg)
-{
-	struct maildir_acl_compute_info *info=
-		(struct maildir_acl_compute_info *)cb_arg;
-	int rc;
-
-	if (identifier[0] == '-')
-		return 0;
-
-	rc= ISIDENT(identifier);
-
-	if (rc <= 0)
-	{
-		return rc;
-	}
-
-	info->aclt += acl;
-
-	return 0;
-}
-
-static int compute_cb_del(const char *identifier,
-			  const char *acl,
-			  void *cb_arg)
-{
-	struct maildir_acl_compute_info *info=
-		(struct maildir_acl_compute_info *)cb_arg;
-	int rc;
-
-	if (identifier[0] != '-')
-		return 0;
-
-	rc= ISIDENT(identifier+1);
-
-	if (rc <= 0)
-	{
-		return rc;
-	}
-
-	info->aclt -= acl;
-
-	return 0;
-}
-
 static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
-					   maildir_aclt_list *aclt_list,
+					   const maildir::aclt_list &aclt_list,
 					   int (*cb_func)(const char *isme,
 							  void *void_arg),
 					   void *void_arg,
-					   int chkowner)
-{
-	int rc;
-	struct maildir_acl_compute_info info{aclt};
-
-	info.cb_func=cb_func;
-	info.void_arg=void_arg;
-
-	if ((rc=maildir_aclt_list_enum(aclt_list, compute_cb_add, &info)) ||
-	    (rc=maildir_aclt_list_enum(aclt_list, compute_cb_del, &info)))
-	{
-		return -1;
-	}
-
-	/*
-	** In our scheme, the owner always gets admin rights.
-	*/
-
-	rc=chkowner ? (*cb_func)("owner", void_arg):0;
-
-	if (maildir_acl_disabled)
-		rc=0;	/* Except when ACLs are disabled */
-
-	if (rc < 0)
-	{
-		return rc;
-	}
-
-	if (rc)
-	{
-		aclt += ACL_ADMINISTER;
-	}
-	return 0;
-}
+					   int chkowner);
 
 static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 					maildir_aclt_list *aclt_list,
@@ -462,7 +371,11 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 	if (!(*aclt=new maildir_aclt_impl{""}))
 		return -1;
 
-	rc=do_maildir_acl_compute_chkowner((*aclt)->impl, aclt_list,
+	maildir::aclt_list empty_list;
+
+	rc=do_maildir_acl_compute_chkowner((*aclt)->impl,
+					   *aclt_list ? (*aclt_list)->list
+					   :empty_list,
 					   cb_func,
 					   void_arg,
 					   chkowner);
@@ -724,4 +637,69 @@ int maildir_acl_compute(maildir_aclt *aclt, maildir_aclt_list *aclt_list,
 {
 	return maildir_acl_compute_chkowner(aclt, aclt_list, cb_func, void_arg,
 					    1);
+}
+
+#define ISIDENT(s)	\
+	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(cb_func, (s), void_arg))
+
+static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
+					   const maildir::aclt_list &aclt_list,
+					   int (*cb_func)(const char *isme,
+							  void *void_arg),
+					   void *void_arg,
+					   int chkowner)
+{
+	for (const auto &node:aclt_list)
+	{
+		auto identifier=node.identifier.c_str();
+
+		if (*identifier == '-')
+			continue;
+
+		int rc=ISIDENT(identifier);
+
+		if (rc < 0)
+			return rc;
+
+		if (rc > 0)
+			aclt += node.acl;
+	}
+
+	for (const auto &node:aclt_list)
+	{
+		auto identifier=node.identifier.c_str();
+
+		if (*identifier != '-')
+			continue;
+
+		++identifier;
+
+		int rc=ISIDENT(identifier);
+
+		if (rc < 0)
+			return rc;
+
+		if (rc > 0)
+			aclt -= node.acl;
+	}
+
+	/*
+	** In our scheme, the owner always gets admin rights.
+	*/
+
+	int rc=chkowner ? (*cb_func)("owner", void_arg):0;
+
+	if (maildir_acl_disabled)
+		rc=0;	/* Except when ACLs are disabled */
+
+	if (rc < 0)
+	{
+		return rc;
+	}
+
+	if (rc)
+	{
+		aclt += ACL_ADMINISTER;
+	}
+	return 0;
 }
