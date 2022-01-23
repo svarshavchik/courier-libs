@@ -334,37 +334,34 @@ const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
 ** either one.
 */
 
-static int chk_admin(int (*cb_func)(const char *isme,
-				    void *void_arg),
-		     const char *identifier,
-		     void *void_arg)
+static int chk_admin(const std::function<int (const char *)> &cb_func,
+		     const char *identifier)
 {
 	if (strcmp(identifier, "administrators") == 0 ||
 	    strcmp(identifier, "group=administrators") == 0)
 	{
-		int rc=(*cb_func)("administrators", void_arg);
+		int rc=cb_func("administrators");
 
 		if (rc == 0)
-			rc=(*cb_func)("group=administrators", void_arg);
+			rc=cb_func("group=administrators");
+
 		return rc;
 	}
 
-	return (*cb_func)(identifier, void_arg);
+	return cb_func(identifier);
 }
 
-static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
-					   const maildir::aclt_list &aclt_list,
-					   int (*cb_func)(const char *isme,
-							  void *void_arg),
-					   void *void_arg,
-					   int chkowner);
+static int do_maildir_acl_compute_chkowner(
+	maildir::aclt &aclt,
+	const maildir::aclt_list &aclt_list,
+	const std::function<int (const char *)> &cb_func,
+	int chkowner);
 
-static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
-					maildir_aclt_list *aclt_list,
-					int (*cb_func)(const char *isme,
-						       void *void_arg),
-					void *void_arg,
-					int chkowner)
+static int maildir_acl_compute_chkowner(
+	maildir_aclt *aclt,
+	maildir_aclt_list *aclt_list,
+	const std::function<int (const char *)> &cb_func,
+	int chkowner)
 {
 	int rc;
 
@@ -377,7 +374,6 @@ static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
 					   *aclt_list ? (*aclt_list)->list
 					   :empty_list,
 					   cb_func,
-					   void_arg,
 					   chkowner);
 
 	if (rc)
@@ -397,15 +393,6 @@ static int save_acl(const char *identifier, const char *acl,
 		    acl) < 0)
 		return -1;
 	return 0;
-}
-
-
-static int is_owner(const char *isme, void *void_arg)
-{
-	if (void_arg && strcmp(isme, (const char *)void_arg) == 0)
-		return 1;
-
-	return strcmp(isme, "owner") == 0;
 }
 
 static int is_admin(const char *isme, void *void_arg)
@@ -485,7 +472,14 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 			}
 
 
-	if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner, NULL,
+	if (maildir_acl_compute_chkowner(&chkacls, aclt_list,
+					 []
+					 (const char *identifier)
+					 {
+						 return strcmp(identifier,
+							       "owner")
+							 == 0 ? 1:0;
+					 },
 					 0))
 	{
 		errno=EINVAL;
@@ -503,8 +497,16 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 	{
 		maildir_aclt_destroy(&chkacls);
 
-		if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner,
-						 (void *)owner, 0))
+		if (maildir_acl_compute_chkowner(
+			    &chkacls, aclt_list,
+			    [owner]
+			    (const char *identifier)
+			    {
+				    return strcmp(identifier, "owner") == 0
+					    || strcmp(identifier, owner) == 0
+					    ? 1:0;
+			    },
+			    0))
 		{
 			errno=EINVAL;
 			return -1;
@@ -631,23 +633,55 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 	return 0;
 }
 
+int maildir::aclt_list::compute(
+	maildir::aclt &ret,
+	const std::function<int (const char *)> &cb
+) const
+{
+	ret={""};
+
+	int rc=do_maildir_acl_compute_chkowner(ret, *this, cb, 1);
+
+	if (rc)
+		ret={""};
+
+	return rc;
+}
+
 int maildir_acl_compute(maildir_aclt *aclt, maildir_aclt_list *aclt_list,
 			int (*cb_func)(const char *isme,
 				       void *void_arg), void *void_arg)
 {
-	return maildir_acl_compute_chkowner(aclt, aclt_list, cb_func, void_arg,
-					    1);
+	if (!(*aclt=new maildir_aclt_impl{""}))
+		return -1;
+
+	maildir::aclt_list default_list;
+
+	int rc=(*aclt_list ? (*aclt_list)->list:default_list).compute(
+		(*aclt)->impl,
+		[cb_func, void_arg]
+		(const char *identifier)
+		{
+			return cb_func(identifier, void_arg);
+		});
+
+	if (rc)
+	{
+		delete *aclt;
+		*aclt=NULL;
+	}
+
+	return rc;
 }
 
 #define ISIDENT(s)	\
-	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(cb_func, (s), void_arg))
+	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(cb_func, (s)))
 
-static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
-					   const maildir::aclt_list &aclt_list,
-					   int (*cb_func)(const char *isme,
-							  void *void_arg),
-					   void *void_arg,
-					   int chkowner)
+static int do_maildir_acl_compute_chkowner(
+	maildir::aclt &aclt,
+	const maildir::aclt_list &aclt_list,
+	const std::function<int (const char *)> &cb_func,
+	int chkowner)
 {
 	for (const auto &node:aclt_list)
 	{
@@ -687,7 +721,7 @@ static int do_maildir_acl_compute_chkowner(maildir::aclt &aclt,
 	** In our scheme, the owner always gets admin rights.
 	*/
 
-	int rc=chkowner ? (*cb_func)("owner", void_arg):0;
+	int rc=chkowner ? cb_func("owner"):0;
 
 	if (maildir_acl_disabled)
 		rc=0;	/* Except when ACLs are disabled */

@@ -15,6 +15,7 @@
 
 #include	<string>
 #include	<vector>
+#include	<functional>
 
 namespace maildir {
 #if 0
@@ -59,6 +60,9 @@ struct aclt_list : std::vector<aclt_node> {
 
 	aclt_list();
 	~aclt_list();
+
+	int compute( aclt &,
+		     const std::function<int (const char *)> &) const;
 };
 
 
