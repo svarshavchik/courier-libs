@@ -1769,10 +1769,10 @@
 001475 * 1 FETCH (FLAGS (\Seen Label1))
 001476 U022 OK STORE completed.
 001477 U023 NO [ALERT] You exceeded your mail quota.
-001478 maildir_purge: ./.Trash (172800)
+001478 maildir_purge: .Trash (172800)
 001479 maildir_purgetmp: .
-001480 maildir_purge: ./.Trash (172800)
-001481 maildir_purge: ./.Trash (172800)
-001482 maildir_purge: ./.Trash2 (259200)
-001483 maildir_purge: ./.Trash (172800)
-001484 maildir_purge: ./.Trash2 (259200)
+001480 maildir_purge: .Trash (172800)
+001481 maildir_purge: .Trash (172800)
+001482 maildir_purge: .Trash2 (259200)
+001483 maildir_purge: .Trash (172800)
+001484 maildir_purge: .Trash2 (259200)
