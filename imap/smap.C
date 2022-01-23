@@ -2991,7 +2991,7 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		if (*action == '+')
 		{
 			maildir_aclt newacl;
-			const maildir_aclt *oldacl;
+			const char *oldacl;
 
 			if (maildir_aclt_init(&newacl,
 					      action+1,
@@ -3005,14 +3005,14 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 			}
 
 
-			oldacl=maildir_aclt_list_find(&aclt_list,
-						      identifier
-						      );
+			oldacl=maildir_aclt_list_lookup(
+				&aclt_list,
+				identifier
+			);
 			if (oldacl)
 			{
 				if (maildir_aclt_add(&newacl,
-						     NULL,
-						     oldacl)
+						     oldacl, NULL)
 				    < 0)
 				{
 					maildir_aclt_destroy(&newacl);
@@ -3044,18 +3044,17 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		if (*action == '-')
 		{
 			maildir_aclt newacl;
-			const maildir_aclt *oldacl;
+			const char *oldacl;
 
-			oldacl=maildir_aclt_list_find(&aclt_list,
-						      identifier
-						      );
+			oldacl=maildir_aclt_list_lookup(&aclt_list,
+							identifier
+			);
 
 			if (!oldacl)
 				continue;
 
 			if (maildir_aclt_init(&newacl,
-					      NULL,
-					      oldacl) < 0)
+					      oldacl, NULL) < 0)
 			{
 				maildir_aclt_list_destroy(&aclt_list);
 				writes("-ERR Error: ");

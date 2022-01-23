@@ -3442,12 +3442,12 @@ static int do_acl_mod_0(void *void_arg)
 	if (newrights[0] == '+')
 	{
 		maildir_aclt newacl;
-		const maildir_aclt *oldacl;
+		const char *oldacl;
 
 		if (fix_acl_delete(&maildir_aclt_init,
 				   &newacl, newrights+1) < 0
-		    || ((oldacl=maildir_aclt_list_find(aclt_list, identifier))
-			!= NULL && maildir_aclt_add(&newacl, NULL, oldacl) < 0)
+		    || ((oldacl=maildir_aclt_list_lookup(aclt_list, identifier))
+			!= NULL && maildir_aclt_add(&newacl, oldacl, NULL) < 0)
 		    || maildir_aclt_list_add(aclt_list, identifier, NULL,
 					     &newacl) < 0 ||
 		    acl_write_folder(aclt_list, mi->homedir,
@@ -3463,12 +3463,12 @@ static int do_acl_mod_0(void *void_arg)
 	else if (newrights[0] == '-')
 	{
 		maildir_aclt newacl;
-		const maildir_aclt *oldacl;
+		const char *oldacl;
 
-		oldacl=maildir_aclt_list_find(aclt_list, identifier);
+		oldacl=maildir_aclt_list_lookup(aclt_list, identifier);
 
-		if (maildir_aclt_init(&newacl, oldacl == NULL ? "":NULL,
-				      oldacl) < 0
+		if (maildir_aclt_init(&newacl,
+				      oldacl, NULL) < 0
 		    || fix_acl_delete(&maildir_aclt_del,
 				      &newacl, newrights+1) < 0
 		    || (strlen(maildir_aclt_ascstr(&newacl)) == 0 ?

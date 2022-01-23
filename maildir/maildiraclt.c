@@ -243,13 +243,14 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 
 static int maildir_aclt_add_default_admin(maildir_aclt_list *aclt_list)
 {
-	const maildir_aclt *old_acl;
+	const char *old_acl;
 
 	static const char * const drop_acls[]={"-administrators",
 					       "-group=administrators"};
 	size_t i;
 
-	if ((old_acl=maildir_aclt_list_find(aclt_list, "group=administrators"))
+	if ((old_acl=maildir_aclt_list_lookup(aclt_list,
+					      "group=administrators"))
 	    != NULL)
 	{
 		maildir_aclt new_acl;
@@ -257,7 +258,7 @@ static int maildir_aclt_add_default_admin(maildir_aclt_list *aclt_list)
 		if (maildir_aclt_init(&new_acl, ACL_ALL, NULL))
 			return -1;
 
-		if (maildir_aclt_add(&new_acl, NULL, old_acl) ||
+		if (maildir_aclt_add(&new_acl, old_acl, NULL) ||
 		    maildir_aclt_list_add(aclt_list, "group=administrators",
 					  NULL, &new_acl))
 		{
@@ -270,12 +271,12 @@ static int maildir_aclt_add_default_admin(maildir_aclt_list *aclt_list)
 	{
 		maildir_aclt new_acl;
 
-		old_acl=maildir_aclt_list_find(aclt_list, "administrators");
+		old_acl=maildir_aclt_list_lookup(aclt_list, "administrators");
 
 		if (maildir_aclt_init(&new_acl, ACL_ALL, NULL))
 			return -1;
 
-		if (maildir_aclt_add(&new_acl, NULL, old_acl) ||
+		if (maildir_aclt_add(&new_acl, old_acl, NULL) ||
 		    maildir_aclt_list_add(aclt_list, "administrators",
 					  NULL, &new_acl))
 		{

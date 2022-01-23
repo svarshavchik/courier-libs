@@ -74,9 +74,8 @@ int main()
 	CHK(maildir_aclt_list_add(&l, "owner", NULL, &b) == 0);
 	CHK(maildir_aclt_list_del(&l, "user1") == 0);
 	CHK(maildir_aclt_list_del(&l, "user3") == 0);
-	CHK(maildir_aclt_list_find(&l, "owner") != NULL &&
-	    strcmp(maildir_aclt_ascstr(maildir_aclt_list_find(&l, "owner")),
-		   "rwy") == 0);
+	CHK(maildir_aclt_list_lookup(&l, "owner") != NULL &&
+	    strcmp(maildir_aclt_list_lookup(&l, "owner"), "rwy") == 0);
 	maildir_aclt_destroy(&a);
 	maildir_aclt_destroy(&b);
 

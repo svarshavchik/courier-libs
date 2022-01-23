@@ -163,19 +163,55 @@ const char *maildir_aclt_ascstr(const maildir_aclt *aclt)
 	return (*aclt)->impl.c_str();
 }
 
-struct maildir_aclt_node {
-	struct maildir_aclt_node *prev;
-	struct maildir_aclt_node *next;
-	char *identifier;
-	maildir_aclt acl;
-};
+/* -------------------------------------------------------------------- */
+
+void maildir::aclt_list::add(const std::string &identifier, const aclt &acl)
+{
+	if (std::find_if(identifier.begin(),
+			 identifier.end(),
+			 []
+			 (unsigned char c)
+			 {
+				 return c < ' ';
+			 }) != identifier.end())
+		return;
+
+	auto iter=std::find_if(begin(), end(),
+			       [&]
+			       (aclt_node &n)
+			       {
+				       return n.identifier == identifier;
+			       });
+
+	if (iter != end())
+	{
+		iter->acl=acl;
+		return;
+	}
+
+	push_back({identifier, acl});
+}
+
+void maildir::aclt_list::del(const std::string &identifier)
+{
+	auto iter=std::find_if(begin(), end(),
+			       [&]
+			       (aclt_node &n)
+			       {
+				       return n.identifier == identifier;
+			       });
+
+	if (iter != end())
+		erase(iter);
+}
+
+maildir::aclt_list::aclt_list()=default;
+
+maildir::aclt_list::~aclt_list()=default;
 
 struct maildir_aclt_list_impl {
-	struct maildir_aclt_node *head;
-	struct maildir_aclt_node *tail;
+	maildir::aclt_list list;
 };
-
-/* -------------------------------------------------------------------- */
 
 
 void maildir_aclt_list_init(maildir_aclt_list *aclt_list)
@@ -188,34 +224,18 @@ static struct maildir_aclt_list_impl *get_impl(maildir_aclt_list *aclt_list)
 	if (*aclt_list)
 		return *aclt_list;
 
-	if (!(*aclt_list=(struct maildir_aclt_list_impl *)
-	      malloc(sizeof(struct maildir_aclt_list_impl))))
+	if (!(*aclt_list=new maildir_aclt_list_impl))
 		return NULL;
-
-	(*aclt_list)->head=NULL;
-	(*aclt_list)->tail=NULL;
 
 	return *aclt_list;
 }
 
 void maildir_aclt_list_destroy(maildir_aclt_list *aclt_list)
 {
-	struct maildir_aclt_node *p;
-
 	if (!*aclt_list)
 		return;
 
-	for (p=(*aclt_list)->head; p; )
-	{
-		struct maildir_aclt_node *q=p->next;
-
-		free(p->identifier);
-		maildir_aclt_destroy(&p->acl);
-		free(p);
-		p=q;
-	}
-
-	free(*aclt_list);
+	delete *aclt_list;
 	*aclt_list=NULL;
 }
 
@@ -227,27 +247,10 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 			  const char *aclt_str,
 			  maildir_aclt *aclt_cpy)
 {
-	struct maildir_aclt_node *p;
-	const char *q;
 	struct maildir_aclt_list_impl *impl=get_impl(aclt_list);
 
 	if (!impl)
 		return -1;
-
-	/* Check for valid identifiers */
-
-	for (q=identifier; *q; q++)
-		if ( (int)(unsigned char)*q <= ' ')
-		{
-			errno=EINVAL;
-			return -1;
-		}
-
-	if (*identifier == 0)
-	{
-		errno=EINVAL;
-		return -1;
-	}
 
 	if (aclt_cpy)
 	{
@@ -257,35 +260,10 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 			aclt_str=str;
 	}
 
-	for (p=impl->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-		{
-			maildir_aclt_destroy(&p->acl);
-			return maildir_aclt_init(&p->acl, aclt_str, NULL);
-		}
-	}
+	if (!aclt_str)
+		aclt_str="";
 
-	if ((p=(maildir_aclt_node *)malloc(sizeof(*p))) == NULL ||
-	    (p->identifier=strdup(identifier)) == NULL)
-	{
-		if (p) free(p);
-		return -1;
-	}
-
-	if (maildir_aclt_init(&p->acl, aclt_str, NULL) < 0)
-	{
-		free(p->identifier);
-		free(p);
-		return -1;
-	}
-
-	p->next=NULL;
-	if ((p->prev=impl->tail) != NULL)
-		p->prev->next=p;
-	else
-		(*aclt_list)->head=p;
-	(*aclt_list)->tail=p;
+	impl->list.add(identifier, {aclt_str});
 	return 0;
 }
 
@@ -296,30 +274,12 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
 			  const char *identifier)
 {
-	struct maildir_aclt_node *p;
 	struct maildir_aclt_list_impl *impl=get_impl(aclt_list);
 
 	if (!impl)
 		return -1;
 
-	for (p=impl->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-		{
-			if (p->prev)
-				p->prev->next=p->next;
-			else impl->head=p->next;
-
-			if (p->next)
-				p->next->prev=p->prev;
-			else impl->tail=p->prev;
-
-			maildir_aclt_destroy(&p->acl);
-			free(p->identifier);
-			free(p);
-			return 0;
-		}
-	}
+	impl->list.del(identifier);
 	return 0;
 }
 
@@ -333,16 +293,15 @@ int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 					  void *cb_arg),
 			   void *cb_arg)
 {
-	struct maildir_aclt_node *p;
 	int rc;
 
 	if (!*aclt_list)
 		return 0;
 
-	for (p=(*aclt_list)->head; p; p=p->next)
+	for (auto &node:(*aclt_list)->list)
 	{
-		rc= (*cb_func)(p->identifier,
-			       maildir_aclt_ascstr(&p->acl), cb_arg);
+		rc= (*cb_func)(node.identifier.c_str(),
+			       node.acl.c_str(), cb_arg);
 
 		if (rc)
 			return rc;
@@ -350,18 +309,22 @@ int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 	return 0;
 }
 
-const maildir_aclt *maildir_aclt_list_find(maildir_aclt_list *aclt_list,
-					   const char *identifier)
+const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
+				     const char *identifier)
 {
-	struct maildir_aclt_node *p;
-
 	if (!*aclt_list)
 		return NULL;
 
-	for (p=(*aclt_list)->head; p; p=p->next)
-	{
-		if (strcmp(p->identifier, identifier) == 0)
-			return &p->acl;
-	}
-	return NULL;
+	auto iter=std::find_if((*aclt_list)->list.begin(),
+			       (*aclt_list)->list.end(),
+			       [&]
+			       (const maildir::aclt_node &n)
+			       {
+				       return n.identifier == identifier;
+			       });
+
+	if (iter == (*aclt_list)->list.end())
+		return NULL;
+
+	return iter->acl.c_str();
 }

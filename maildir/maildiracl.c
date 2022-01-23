@@ -148,10 +148,9 @@ int main(int argc, char *argv[])
 
 		if (*rights == '+')
 		{
-			if (maildir_aclt_init(&a, NULL,
-					      maildir_aclt_list_find(&l,
-								     identifier
-								     )) ||
+			if (maildir_aclt_init(&a,
+					      maildir_aclt_list_lookup
+					      (&l, identifier), NULL) ||
 			    maildir_aclt_add(&a, rights+1, NULL))
 			{
 				perror(argv[0]);
@@ -159,10 +158,9 @@ int main(int argc, char *argv[])
 			}
 		} else if (*rights == '-')
 		{
-			if (maildir_aclt_init(&a, NULL,
-					      maildir_aclt_list_find(&l,
-								     identifier
-								     )) ||
+			if (maildir_aclt_init(&a,
+					      maildir_aclt_list_lookup
+					      (&l, identifier), NULL) ||
 			    maildir_aclt_del(&a, rights+1, NULL))
 			{
 				perror(argv[0]);

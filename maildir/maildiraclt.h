@@ -14,6 +14,7 @@
 #ifdef  __cplusplus
 
 #include	<string>
+#include	<vector>
 
 namespace maildir {
 #if 0
@@ -36,6 +37,30 @@ struct aclt : public std::string {
  private:
 	void fixup();
 };
+
+/*
+** A node in a list of ACLs
+*/
+
+struct aclt_node {
+	std::string    identifier;
+	aclt           acl;
+};
+
+/*
+** The entire ACL is just a vector.
+*/
+
+struct aclt_list : std::vector<aclt_node> {
+
+	void add(const std::string &identifier, const aclt &acl);
+
+	void del(const std::string &identifier);
+
+	aclt_list();
+	~aclt_list();
+};
+
 
 #if 0
 {
@@ -123,10 +148,10 @@ int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 					  void *cb_arg),
 			   void *cb_arg);
 
-/* Find an identifier */
+/* Find an identifier, returns NULL if not found, else its ACL gets returned */
 
-const maildir_aclt *maildir_aclt_list_find(maildir_aclt_list *aclt_list,
-					   const char *identifier);
+const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
+				     const char *identifier);
 
 /* maildir-level acl ops */
 
