@@ -328,3 +328,388 @@ const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
 
 	return iter->acl.c_str();
 }
+
+
+
+/*
+** An ACL entry for "administrators" or "group=administrators" will match
+** either one.
+*/
+
+static int chk_admin(int (*cb_func)(const char *isme,
+				    void *void_arg),
+		     const char *identifier,
+		     void *void_arg)
+{
+	if (strcmp(identifier, "administrators") == 0 ||
+	    strcmp(identifier, "group=administrators") == 0)
+	{
+		int rc=(*cb_func)("administrators", void_arg);
+
+		if (rc == 0)
+			rc=(*cb_func)("group=administrators", void_arg);
+		return rc;
+	}
+
+	return (*cb_func)(identifier, void_arg);
+}
+
+#define ISIDENT(s) \
+	(MAILDIR_ACL_ANYONE(s) ? 1: chk_admin(info->cb_func, (s),	\
+					      info->void_arg))
+
+struct maildir_acl_compute_info {
+	maildir_aclt *aclt;
+	int (*cb_func)(const char *isme, void *void_arg);
+	void *void_arg;
+};
+
+static int compute_cb_add(const char *identifier,
+			  const char *acl,
+			  void *cb_arg)
+{
+	struct maildir_acl_compute_info *info=
+		(struct maildir_acl_compute_info *)cb_arg;
+	int rc;
+
+	if (identifier[0] == '-')
+		return 0;
+
+	rc= ISIDENT(identifier);
+
+	if (rc <= 0)
+	{
+		return rc;
+	}
+
+	if (maildir_aclt_add(info->aclt, acl, NULL) < 0)
+	{
+		return -1;
+	}
+	return 0;
+}
+
+static int compute_cb_del(const char *identifier,
+			  const char *acl,
+			  void *cb_arg)
+{
+	struct maildir_acl_compute_info *info=
+		(struct maildir_acl_compute_info *)cb_arg;
+	int rc;
+
+	if (identifier[0] != '-')
+		return 0;
+
+	rc= ISIDENT(identifier+1);
+
+	if (rc <= 0)
+	{
+		return rc;
+	}
+
+	if (maildir_aclt_del(info->aclt, acl, NULL) < 0)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+static int maildir_acl_compute_chkowner(maildir_aclt *aclt,
+					maildir_aclt_list *aclt_list,
+					int (*cb_func)(const char *isme,
+						       void *void_arg),
+					void *void_arg,
+					int chkowner)
+{
+	int rc;
+	struct maildir_acl_compute_info info;
+
+	info.aclt=aclt;
+	info.cb_func=cb_func;
+	info.void_arg=void_arg;
+
+	if (maildir_aclt_init(aclt, "", NULL) < 0)
+		return -1;
+
+	if ((rc=maildir_aclt_list_enum(aclt_list, compute_cb_add, &info)) ||
+	    (rc=maildir_aclt_list_enum(aclt_list, compute_cb_del, &info)))
+	{
+		maildir_aclt_destroy(aclt);
+		return -1;
+	}
+
+	/*
+	** In our scheme, the owner always gets admin rights.
+	*/
+
+	rc=chkowner ? (*cb_func)("owner", void_arg):0;
+
+	if (maildir_acl_disabled)
+		rc=0;	/* Except when ACLs are disabled */
+
+	if (rc < 0)
+	{
+		maildir_aclt_destroy(aclt);
+		return rc;
+	}
+
+	if (rc)
+	{
+		if (maildir_aclt_add(aclt, ACL_ADMINISTER, NULL) < 0)
+		{
+			maildir_aclt_destroy(aclt);
+			return rc;
+		}
+	}
+	return 0;
+}
+
+
+static int save_acl(const char *identifier, const char *acl,
+		    void *cb_arg)
+{
+	if (fprintf((FILE *)cb_arg, "%s %s\n",
+		    identifier,
+		    acl) < 0)
+		return -1;
+	return 0;
+}
+
+
+static int is_owner(const char *isme, void *void_arg)
+{
+	if (void_arg && strcmp(isme, (const char *)void_arg) == 0)
+		return 1;
+
+	return strcmp(isme, "owner") == 0;
+}
+
+static int is_admin(const char *isme, void *void_arg)
+{
+	return strcmp(isme, "administrators") == 0;
+
+	/* We don't need to check for group=administrators, see chk_admin() */
+}
+
+static int check_adminrights(maildir_aclt *list)
+{
+	if (strchr(maildir_aclt_ascstr(list), ACL_LOOKUP[0]) == NULL ||
+	    strchr(maildir_aclt_ascstr(list), ACL_ADMINISTER[0]) == NULL)
+	{
+		maildir_aclt_destroy(list);
+		return -1;
+	}
+
+	maildir_aclt_destroy(list);
+	return 0;
+}
+
+static int check_allrights(maildir_aclt *list)
+{
+	const char *all=ACL_ALL;
+
+	while (*all)
+	{
+		if (strchr(maildir_aclt_ascstr(list), *all) == NULL)
+		{
+			maildir_aclt_destroy(list);
+			return -1;
+		}
+		++all;
+	}
+
+	maildir_aclt_destroy(list);
+	return 0;
+}
+
+int maildir_acl_write(maildir_aclt_list *aclt_list,
+		      const char *maildir,
+		      const char *path,
+
+		      const char *owner,
+		      const char **err_failedrights)
+{
+	int trycreate;
+	struct maildir_tmpcreate_info tci;
+	FILE *fp;
+	char *p, *q;
+	const char *dummy_string;
+	maildir_aclt chkacls;
+
+	if (!err_failedrights)
+		err_failedrights= &dummy_string;
+
+	if (!maildir || !*maildir)
+		maildir=".";
+	if (!path || !*path)
+		path=".";
+
+	if (strchr(path, '/') || *path != '.')
+	{
+		errno=EINVAL;
+		return -1;
+	}
+
+	if (strcmp(path, ".")) /* Sanity check */
+		for (dummy_string=path; *dummy_string; dummy_string++)
+			if (*dummy_string == '.' &&
+			    (dummy_string[1] == '.' ||
+			     dummy_string[1] == 0))
+			{
+				errno=EINVAL;
+				return -1;
+			}
+
+
+	if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner, NULL,
+					 0))
+	{
+		maildir_aclt_destroy(&chkacls);
+		errno=EINVAL;
+		return -1;
+	}
+
+	if (check_adminrights(&chkacls))
+	{
+		*err_failedrights="owner";
+		errno=EINVAL;
+		return -1;
+	}
+
+	if (owner)
+	{
+		if (maildir_acl_compute_chkowner(&chkacls, aclt_list, is_owner,
+						 (void *)owner, 0))
+		{
+			maildir_aclt_destroy(&chkacls);
+			errno=EINVAL;
+			return -1;
+		}
+		if (check_adminrights(&chkacls))
+		{
+			*err_failedrights=owner;
+			errno=EINVAL;
+			return -1;
+		}
+	}
+
+	if (maildir_acl_compute(&chkacls, aclt_list, is_admin, NULL))
+	{
+		maildir_aclt_destroy(&chkacls);
+		errno=EINVAL;
+		return -1;
+	}
+	if (check_allrights(&chkacls))
+	{
+		errno=EINVAL;
+		return -1;
+	}
+
+	p=(char *)malloc(strlen(maildir)+strlen(path)+2);
+
+	if (!p)
+		return -1;
+
+	strcat(strcat(strcpy(p, maildir), "/"), path);
+
+	maildir_tmpcreate_init(&tci);
+
+	tci.maildir=p;
+	tci.uniq="acl";
+	tci.doordie=1;
+
+	fp=maildir_tmpcreate_fp(&tci);
+
+	trycreate=0;
+
+	if (fp)
+	{
+		q=(char *)malloc(strlen(p) + sizeof("/" ACLFILE));
+		if (!q)
+		{
+			fclose(fp);
+			unlink(tci.tmpname);
+			maildir_tmpcreate_free(&tci);
+			free(p);
+			return -1;
+		}
+		strcat(strcpy(q, p), "/" ACLFILE);
+		free(tci.newname);
+		tci.newname=q;
+		free(p);
+	}
+	else
+	{
+		free(p);
+
+		q=(char *)malloc(strlen(maildir)+sizeof("/" ACLHIERDIR "/") +
+			 strlen(path));
+		if (!q)
+		{
+			maildir_tmpcreate_free(&tci);
+			return -1;
+		}
+		strcat(strcat(strcpy(q, maildir), "/" ACLHIERDIR "/"), path+1);
+
+		tci.maildir=maildir;
+		tci.uniq="acl";
+		tci.doordie=1;
+
+		fp=maildir_tmpcreate_fp(&tci);
+
+		if (!fp)
+		{
+			free(q);
+			maildir_tmpcreate_free(&tci);
+			return -1;
+		}
+		free(tci.newname);
+		tci.newname=q;
+		trycreate=1;
+	}
+
+	if (maildir_aclt_list_enum(aclt_list, save_acl, fp) < 0 ||
+	    ferror(fp) || fflush(fp) < 0)
+	{
+		fclose(fp);
+		unlink(tci.tmpname);
+		maildir_tmpcreate_free(&tci);
+		return -1;
+	}
+	fclose(fp);
+
+	if (rename(tci.tmpname, tci.newname) < 0)
+	{
+		/* Perhaps ACLHIERDIR needs to be created? */
+
+		if (!trycreate)
+		{
+			unlink(tci.tmpname);
+			maildir_tmpcreate_free(&tci);
+			return -1;
+		}
+
+		p=strrchr(tci.newname, '/');
+		*p=0;
+		mkdir(tci.newname, 0755);
+		*p='/';
+
+		if (rename(tci.tmpname, tci.newname) < 0)
+		{
+			unlink(tci.tmpname);
+			maildir_tmpcreate_free(&tci);
+			return -1;
+		}
+	}
+	maildir_tmpcreate_free(&tci);
+	return 0;
+}
+
+int maildir_acl_compute(maildir_aclt *aclt, maildir_aclt_list *aclt_list,
+			int (*cb_func)(const char *isme,
+				       void *void_arg), void *void_arg)
+{
+	return maildir_acl_compute_chkowner(aclt, aclt_list, cb_func, void_arg,
+					    1);
+}
