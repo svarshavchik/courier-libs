@@ -32,81 +32,68 @@
 #include	<stdlib.h>
 #include	<assert.h>
 
+#include	<algorithm>
+
+maildir::aclt::aclt(const char *p) : std::string{p}
+{
+	fixup();
+}
+
+maildir::aclt::~aclt()=default;
+
+maildir::aclt &maildir::aclt::operator+=(const std::string &s)
+{
+	std::string::operator+=(s);
+	fixup();
+
+	return *this;
+}
+
+maildir::aclt &maildir::aclt::operator-=(const std::string &s)
+{
+	erase(std::remove_if(begin(), end(),
+			     [&]
+			     (char c)
+			     {
+				     return s.find(c) != s.npos;
+			     }), end());
+	return *this;
+}
+
+void maildir::aclt::fixup()
+{
+	erase(std::remove_if(begin(), end(),
+			     [&]
+			     (unsigned char c)
+			     {
+				     return c < ' ';
+			     }), end());
+	std::sort(begin(), end());
+	erase(std::unique(begin(), end()), end());
+}
+
 struct maildir_aclt_impl {
-	char *ptr;
+	maildir::aclt impl;
 };
-
-static int compar_aclt(const void *a, const void *b)
-{
-	char ca=*(const char *)a;
-	char cb=*(const char *)b;
-
-	return (int)(unsigned char)ca - (int)(unsigned char)cb;
-}
-
-/* Post-op fixup of an aclt: collate, remove dupes. */
-
-static void fixup(maildir_aclt *aclt)
-{
-	char *a, *b;
-
-	qsort((*aclt)->ptr, strlen((*aclt)->ptr), 1, compar_aclt);
-
-	for (a=b=(*aclt)->ptr; *a; a++)
-	{
-		if (*a == a[1])
-			continue;
-		if ((int)(unsigned char)*a <= ' ')
-			continue; /* Silently drop bad access rights */
-
-		*b++= *a;
-	}
-	*b=0;
-}
-
-static int validacl(const char *p)
-{
-	while (*p)
-	{
-		if ((int)(unsigned char)*p <= ' ')
-		{
-			errno=EINVAL;
-			return -1;
-		}
-		++p;
-	}
-
-	return 0;
-}
 
 int maildir_aclt_init(maildir_aclt *aclt,
 		      const char *initvalue_cstr,
 		      const maildir_aclt *initvalue_cpy)
 {
 	if (initvalue_cpy)
-		initvalue_cstr= (*initvalue_cpy)->ptr;
+		initvalue_cstr= (*initvalue_cpy)->impl.c_str();
 
 	*aclt=NULL;
 
 	if (!initvalue_cstr || !*initvalue_cstr)
 		return 0;
 
-	if (validacl(initvalue_cstr) < 0)
-		return -1;
-
-	if (!(*aclt=(maildir_aclt_impl *)malloc(sizeof(maildir_aclt_impl))))
+	if (!(*aclt=new maildir_aclt_impl{initvalue_cstr}))
 	{
-		return -1;
-	}
-
-	if ( ((*aclt)->ptr=strdup(initvalue_cstr)) == NULL)
-	{
-		free(*aclt);
 		*aclt=NULL;
 		return -1;
 	}
 
-	fixup(aclt);
 	return 0;
 }
 
@@ -117,8 +104,7 @@ void maildir_aclt_destroy(maildir_aclt *aclt)
 	if (!*aclt)
 		return;
 
-	free((*aclt)->ptr);
-	free(*aclt);
+	delete *aclt;
 	*aclt=NULL;
 }
 
@@ -129,31 +115,21 @@ int maildir_aclt_add(maildir_aclt *aclt,
 		     const char *add_strs,
 		     const maildir_aclt *add_aclt)
 {
-	if (add_aclt)
-		add_strs= (*add_aclt)->ptr;
+	if (add_aclt && *add_aclt)
+		add_strs= (*add_aclt)->impl.c_str();
 
 	if (!add_strs || !*add_strs)
 		return 0;
 
-	if (validacl(add_strs) < 0)
-		return -1;
-
 	if (*aclt)
 	{
-		char *p=(char *)realloc((*aclt)->ptr, strlen((*aclt)->ptr)+strlen(add_strs)+1);
-
-		if (!p)
-			return -1;
-		strcat(p, add_strs);
-		(*aclt)->ptr=p;
-
+		(*aclt)->impl += add_strs;
 	}
 	else
 	{
 		return maildir_aclt_init(aclt, add_strs, NULL);
 	}
 
-	fixup(aclt);
 	return 0;
 }
 
@@ -161,10 +137,8 @@ int maildir_aclt_del(maildir_aclt *aclt,
 		     const char *del_strs,
 		     const maildir_aclt *del_aclt)
 {
-	char *a, *b;
-
-	if (del_aclt)
-		del_strs= (*del_aclt)->ptr;
+	if (del_aclt && *del_aclt)
+		del_strs= (*del_aclt)->impl.c_str();
 
 	if (!del_strs)
 		return 0;
@@ -172,15 +146,9 @@ int maildir_aclt_del(maildir_aclt *aclt,
 	if (!*aclt)
 		return 0;
 
-	for (a=b=(*aclt)->ptr; *a; a++)
-	{
-		if (strchr(del_strs, *a))
-			continue;
-		*b++= *a;
-	}
-	*b=0;
+	(*aclt)->impl -= del_strs;
 
-	if (*(*aclt)->ptr == 0)
+	if ((*aclt)->impl.empty())
 	{
 		maildir_aclt_destroy(aclt);
 	}
@@ -192,5 +160,5 @@ const char *maildir_aclt_ascstr(const maildir_aclt *aclt)
 	if (!aclt || !*aclt)
 		return "";
 
-	return (*aclt)->ptr;
+	return (*aclt)->impl.c_str();
 }

@@ -1,15 +1,9 @@
 #ifndef	maildiraclt_h
 #define	maildiraclt_h
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
 
 /*
-** Copyright 2003-2004 S. Varshavchik.
+** Copyright 2003-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -17,10 +11,44 @@ extern "C" {
 #include	"config.h"
 #endif
 
+#ifdef  __cplusplus
+
+#include	<string>
+
+namespace maildir {
+#if 0
+}
+#endif
 
 /*
 ** A basic ACL entity.  Be generic, it's just a character string.
 ** However, we do keep it in collating order.
+*/
+
+struct aclt : public std::string {
+
+	aclt(const char *);
+	~aclt();
+
+	aclt &operator+=(const std::string &);
+	aclt &operator-=(const std::string &);
+
+ private:
+	void fixup();
+};
+
+#if 0
+{
+#endif
+}
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
+/*
+** C wrappers for maildir::aclt
 **
 ** These functions return 0 on success, <0 on error.
 */

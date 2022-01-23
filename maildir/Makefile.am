@@ -106,6 +106,7 @@ maildiracl_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
 maildiracl_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 		../numlib/libnumlib.la
 maildiracl_LDFLAGS=-static
+nodist_EXTRA_maildiracl_SOURCES=dummy.C
 
 maildiraclttest_SOURCES=testmaildiraclt.c
 maildiraclttest_LDADD=libmaildir.la ../liblock/liblock.la \
@@ -113,6 +114,7 @@ maildiraclttest_LDADD=libmaildir.la ../liblock/liblock.la \
 maildiraclttest_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 		../numlib/libnumlib.la
 maildiraclttest_LDFLAGS=-static
+nodist_EXTRA_maildiraclttest_SOURCES=dummy.C
 
 testmaildirsearch_SOURCES=testmaildirsearch.c
 testmaildirsearch_LDADD=libmaildir.la -lcourier-unicode
