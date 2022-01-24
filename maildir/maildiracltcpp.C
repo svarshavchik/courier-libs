@@ -1,5 +1,5 @@
 /*
-** Copyright 2003-2012 S. Varshavchik.
+** Copyright 2003-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -368,22 +368,6 @@ static int check_adminrights(maildir::aclt &list)
 	return 0;
 }
 
-static int check_allrights(maildir::aclt &list)
-{
-	const char *all=ACL_ALL;
-
-	while (*all)
-	{
-		if (list.find(*all) == list.npos)
-		{
-			return -1;
-		}
-		++all;
-	}
-
-	return 0;
-}
-
 static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 				const char *maildir,
 				const char *path,
@@ -394,7 +378,6 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 	int trycreate;
 	struct maildir_tmpcreate_info tci;
 	FILE *fp;
-	char *p, *q;
 	const char *dummy_string;
 
 	if (!err_failedrights)
@@ -421,6 +404,9 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 				return -1;
 			}
 
+	// Sanity check: compute ACLs for "owner", and verify that "owner"
+	// had admin rights.
+
 	maildir::aclt chkacls{""};
 
 	if (do_maildir_acl_compute_chkowner(
@@ -442,6 +428,9 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 		errno=EINVAL;
 		return -1;
 	}
+
+	// Sanity check: if an owner identifier gets passed in, we also
+	// compute the ACLs for the specified owner and "owner".
 
 	if (owner)
 	{
@@ -481,57 +470,63 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 		errno=EINVAL;
 		return -1;
 	}
-	if (check_allrights(chkacls))
+
+	// Administrators should have all ACLs.
+
+	const char *all=ACL_ALL;
+
+	while (*all)
 	{
-		errno=EINVAL;
-		return -1;
+		if (chkacls.find(*all) == chkacls.npos)
+		{
+			errno=EINVAL;
+			return -1;
+		}
+		++all;
 	}
 
-	p=(char *)malloc(strlen(maildir)+strlen(path)+2);
+	std::string p;
 
-	if (!p)
-		return -1;
+	p.reserve(strlen(maildir) + strlen(path)+sizeof(ACLHIERDIR)+10);
 
-	strcat(strcat(strcpy(p, maildir), "/"), path);
+	p=maildir;
+	p += "/";
+	p += path;
 
 	maildir_tmpcreate_init(&tci);
 
-	tci.maildir=p;
+	tci.maildir=p.c_str();
 	tci.uniq="acl";
 	tci.doordie=1;
 
 	fp=maildir_tmpcreate_fp(&tci);
 
+	std::string newname, tmpname;
+
+	if (tci.newname)
+		newname=tci.newname;
+
+	if (tci.tmpname)
+		tmpname=tci.tmpname;
+
+	maildir_tmpcreate_free(&tci);
+
 	trycreate=0;
 
 	if (fp)
 	{
-		q=(char *)malloc(strlen(p) + sizeof("/" ACLFILE));
-		if (!q)
-		{
-			fclose(fp);
-			unlink(tci.tmpname);
-			maildir_tmpcreate_free(&tci);
-			free(p);
-			return -1;
-		}
-		strcat(strcpy(q, p), "/" ACLFILE);
-		free(tci.newname);
-		tci.newname=q;
-		free(p);
+		newname=p;
+		newname += "/" ACLFILE;
 	}
 	else
 	{
-		free(p);
+		// This maildir does not exist, but inferior maildirs may
+		// exist, in this case we record the maildir in the
+		// ACLHIERDIR.
 
-		q=(char *)malloc(strlen(maildir)+sizeof("/" ACLHIERDIR "/") +
-			 strlen(path));
-		if (!q)
-		{
-			maildir_tmpcreate_free(&tci);
-			return -1;
-		}
-		strcat(strcat(strcpy(q, maildir), "/" ACLHIERDIR "/"), path+1);
+		newname=maildir;
+		newname +=  "/" ACLHIERDIR "/";
+		newname += path+1;
 
 		tci.maildir=maildir;
 		tci.uniq="acl";
@@ -539,14 +534,8 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 
 		fp=maildir_tmpcreate_fp(&tci);
 
-		if (!fp)
-		{
-			free(q);
-			maildir_tmpcreate_free(&tci);
-			return -1;
-		}
-		free(tci.newname);
-		tci.newname=q;
+		tmpname=tci.tmpname;
+		maildir_tmpcreate_free(&tci);
 		trycreate=1;
 	}
 
@@ -559,36 +548,31 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 	if (ferror(fp) || fflush(fp) < 0)
 	{
 		fclose(fp);
-		unlink(tci.tmpname);
-		maildir_tmpcreate_free(&tci);
+		unlink(tmpname.c_str());
 		return -1;
 	}
 	fclose(fp);
 
-	if (rename(tci.tmpname, tci.newname) < 0)
+	if (rename(tmpname.c_str(), newname.c_str()) < 0)
 	{
 		/* Perhaps ACLHIERDIR needs to be created? */
 
 		if (!trycreate)
 		{
-			unlink(tci.tmpname);
-			maildir_tmpcreate_free(&tci);
+			unlink(tmpname.c_str());
 			return -1;
 		}
 
-		p=strrchr(tci.newname, '/');
-		*p=0;
-		mkdir(tci.newname, 0755);
-		*p='/';
+		size_t n=newname.rfind('/');
 
-		if (rename(tci.tmpname, tci.newname) < 0)
+		mkdir(newname.substr(0, n).c_str(), 0755);
+
+		if (rename(tmpname.c_str(), newname.c_str()) < 0)
 		{
-			unlink(tci.tmpname);
-			maildir_tmpcreate_free(&tci);
+			unlink(tmpname.c_str());
 			return -1;
 		}
 	}
-	maildir_tmpcreate_free(&tci);
 	return 0;
 }
 
