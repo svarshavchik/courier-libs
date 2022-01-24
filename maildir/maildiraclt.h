@@ -72,6 +72,9 @@ struct aclt_list : std::vector<aclt_node> {
 		  const std::string &path,
 		  const std::string &owner,
 		  std::string &failed_rights) const;
+
+	int read(const std::string &maildir,
+		 const std::string &path);
 };
 
 

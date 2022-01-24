@@ -219,7 +219,7 @@ void maildir_aclt_list_init(maildir_aclt_list *aclt_list)
 	*aclt_list=NULL;
 }
 
-static struct maildir_aclt_list_impl *get_impl(maildir_aclt_list *aclt_list)
+static maildir_aclt_list_impl *get_impl(maildir_aclt_list *aclt_list)
 {
 	if (*aclt_list)
 		return *aclt_list;
@@ -247,7 +247,7 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 			  const char *aclt_str,
 			  maildir_aclt *aclt_cpy)
 {
-	struct maildir_aclt_list_impl *impl=get_impl(aclt_list);
+	auto impl=get_impl(aclt_list);
 
 	if (!impl)
 		return -1;
@@ -274,7 +274,7 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
 			  const char *identifier)
 {
-	struct maildir_aclt_list_impl *impl=get_impl(aclt_list);
+	auto impl=get_impl(aclt_list);
 
 	if (!impl)
 		return -1;
@@ -368,6 +368,37 @@ static int check_adminrights(maildir::aclt &list)
 	return 0;
 }
 
+static bool validate_path(const std::string &path)
+{
+	if (path.find('/') != path.npos || path.substr(0, 1) != ".")
+	{
+		errno=EINVAL;
+		return false;
+	}
+
+	if (path == ".")
+		return true;
+
+	char last_char=0;
+	for (auto c:path)
+	{
+		if (c == '.' && last_char == '.')
+		{
+			errno=EINVAL;
+			return false;
+		}
+
+		last_char=c;
+	}
+
+	if (last_char == '.')
+	{
+		errno=EINVAL;
+		return false;
+	}
+	return true;
+}
+
 static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 				const char *maildir,
 				const char *path,
@@ -383,26 +414,16 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 	if (!err_failedrights)
 		err_failedrights= &dummy_string;
 
+	*err_failedrights=NULL;
 	if (!maildir || !*maildir)
 		maildir=".";
 	if (!path || !*path)
 		path=".";
 
-	if (strchr(path, '/') || *path != '.')
+	if (!validate_path(path))
 	{
-		errno=EINVAL;
 		return -1;
 	}
-
-	if (strcmp(path, ".")) /* Sanity check */
-		for (dummy_string=path; *dummy_string; dummy_string++)
-			if (*dummy_string == '.' &&
-			    (dummy_string[1] == '.' ||
-			     dummy_string[1] == 0))
-			{
-				errno=EINVAL;
-				return -1;
-			}
 
 	// Sanity check: compute ACLs for "owner", and verify that "owner"
 	// had admin rights.
@@ -432,7 +453,7 @@ static int do_maildir_acl_write(const maildir::aclt_list &aclt_list,
 	// Sanity check: if an owner identifier gets passed in, we also
 	// compute the ACLs for the specified owner and "owner".
 
-	if (owner)
+	if (owner && *owner)
 	{
 		if (do_maildir_acl_compute_chkowner(
 			    chkacls, aclt_list,
@@ -727,19 +748,41 @@ static int do_maildir_acl_compute_chkowner(
 
 /* ---------------------------------------------------------------------- */
 
-static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
-				 const char *maildir,
-				 const char *path);
+static int maildir_acl_read_check(maildir::aclt_list &aclt_list,
+				  std::string maildir,
+				  std::string path);
 
 int maildir_acl_read(maildir_aclt_list *aclt_list,
 		     const char *maildir,
 		     const char *path)
 {
-	int rc=maildir_acl_read_check(aclt_list, maildir, path);
-	char *p, *q;
+	*aclt_list=NULL;
+
+	auto impl=get_impl(aclt_list);
+
+	if (!maildir)
+		maildir="";
+	if (!path)
+		path="";
+
+	int rc=impl->list.read(maildir, path);
 
 	if (rc)
-		maildir_aclt_list_destroy(aclt_list);
+	{
+		delete impl;
+		*aclt_list=nullptr;
+	}
+
+	return rc;
+}
+
+int maildir::aclt_list::read(const std::string &maildir,
+			     const std::string &path)
+{
+	int rc=maildir_acl_read_check(*this, maildir, path);
+
+	if (rc)
+		clear();
 
 	if (rc <= 0)
 		return rc;
@@ -749,34 +792,26 @@ int maildir_acl_read(maildir_aclt_list *aclt_list,
 	** check for the ACL config file for its parent folder.
 	*/
 
-	if ((p=strdup(path)) == NULL)
-		return -1;
+	auto n=path.rfind('.');
 
-	strcpy(p, path);
-
-	q=strrchr(p, '.');
-
-	if (!q)
+	if (n == path.npos)
 	{
-		free(p);
 		errno=EIO; /* Should not happen */
 		return -1;
 	}
 
-	*q=0;
+	rc=read(maildir, path.substr(0, n));
 
-	rc=maildir_acl_read(aclt_list, maildir, p);
 	if (rc == 0)
 	{
 		/* Make sure to save the default acl list */
 
-		rc=maildir_acl_write(aclt_list, maildir, path, NULL, NULL);
+		rc=write(maildir, path, "");
 		if (rc >= 0) /* Ok if rc=1 */
 			rc=0;
 		if (rc)
-			maildir_aclt_list_destroy(aclt_list);
+			clear();
 	}
-	free(p);
 	return rc;
 }
 
@@ -788,95 +823,79 @@ int maildir_acl_read(maildir_aclt_list *aclt_list,
 ** Returns 1 if the ACL configuration file does not exist.
 */
 
-static int maildir_aclt_add_default_admin(maildir_aclt_list *aclt_list);
+static int add_default_admin(maildir::aclt_list &aclt_list);
 
-static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
-				  const char *maildir,
-				  const char *path)
+static int maildir_acl_read_check(maildir::aclt_list &aclt_list,
+				  std::string maildir,
+				  std::string path)
 {
-	char *p, *q;
 	FILE *fp;
 	char buffer[BUFSIZ];
 
-	maildir_aclt_list_init(aclt_list);
+	aclt_list.clear();
 
-	if (!maildir || !*maildir)
+	if (maildir.empty())
 		maildir=".";
-	if (!path || !*path)
+	if (path.empty())
 		path=".";
 
-	if (strchr(path, '/') || *path != '.')
-	{
-		errno=EINVAL;
+	if (!validate_path(path))
 		return -1;
-	}
 
 	if (maildir_acl_disabled)
 	{
-		if (maildir_aclt_list_add(aclt_list, "owner",
-					  ACL_LOOKUP ACL_READ
-					  ACL_SEEN ACL_WRITE ACL_INSERT
-					  ACL_CREATE
-					  ACL_DELETEFOLDER
-					  ACL_DELETEMSGS ACL_EXPUNGE,
-					  NULL) < 0 ||
-		    maildir_aclt_add_default_admin(aclt_list))
-		{
-			maildir_aclt_list_destroy(aclt_list);
-			return -1;
-		}
+		aclt_list.add("owner",
+			      ACL_LOOKUP ACL_READ
+			      ACL_SEEN ACL_WRITE ACL_INSERT
+			      ACL_CREATE
+			      ACL_DELETEFOLDER
+			      ACL_DELETEMSGS ACL_EXPUNGE);
 		return 0;
 	}
 
-	p=(char *)malloc(strlen(maildir)+strlen(path)+2);
+	std::string p;
 
-	if (!p)
-		return -1;
+	p.reserve(maildir.size() + path.size() + 1);
 
-	strcat(strcat(strcpy(p, maildir), "/"), path);
+	p=maildir;
+	p += "/";
+	p += path;
 
-	q=(char *)malloc(strlen(p)+sizeof("/" ACLFILE));
-	if (!q)
-	{
-		free(p);
-		return -1;
-	}
-	fp=fopen(strcat(strcpy(q, p), "/" ACLFILE), "r");
-	free(p);
+	std::string q;
+
+	q.reserve(p.size()+sizeof("/" ACLFILE));
+
+	q=p;
+	q += "/" ACLFILE;
+
+	fp=fopen(q.c_str(), "r");
 
 	if (fp == NULL)
 	{
-		char *r;
-
-		if (strcmp(path, ".") == 0)
+		if (path == ".")
 		{
-			free(q);
 			/* INBOX ACL default */
 
-			if (maildir_aclt_list_add(aclt_list, "owner",
-						  ACL_ALL, NULL) < 0 ||
-			    maildir_aclt_add_default_admin(aclt_list))
-			{
-				return -1;
-			}
+			aclt_list.add("owner",
+				      ACL_ALL);
+
+			add_default_admin(aclt_list);
 			return 0;
 		}
 
-		r=(char *)malloc(strlen(maildir)+sizeof("/" ACLHIERDIR "/") +
-			 strlen(path));
-		if (!r)
-			return -1;
+		std::string r;
 
-		strcat(strcat(strcpy(r, maildir), "/" ACLHIERDIR "/"),
-		       path+1);
+		r.reserve(maildir.size()+path.size()+sizeof("/" ACLHIERDIR "/"));
 
-		rename(r, q);
-		fp=fopen(q, "r");
+		r=maildir;
+		r += "/" ACLHIERDIR "/";
+		r += path.substr(1);
+
+		rename(r.c_str(), q.c_str());
+		fp=fopen(q.c_str(), "r");
 		if (!fp)
-			fp=fopen(r, "r");
-		free(r);
+			fp=fopen(r.c_str(), "r");
 	}
-	free(q);
 
 	if (!fp && errno != ENOENT)
 		return -1;
@@ -903,12 +922,7 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 				break;
 			}
 
-		if (maildir_aclt_list_add(aclt_list, buffer, p, NULL) < 0)
-		{
-			if (errno != EINVAL)
-				return -1;
-			/* Sweep crap in the ACL file under the carpet */
-		}
+		aclt_list.add(buffer, maildir::aclt{p});
 	}
 	if (ferror(fp))
 	{
@@ -916,7 +930,8 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 		return -1;
 	}
 	fclose(fp);
-	if (maildir_aclt_add_default_admin(aclt_list))
+
+	if (add_default_admin(aclt_list))
 		return -1;
 	return 0;
 }
@@ -931,56 +946,64 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 ** "-group=administrators" do not have LOOKUP and ADMIN.
 */
 
-static int maildir_aclt_add_default_admin(maildir_aclt_list *aclt_list)
+static int add_default_admin(maildir::aclt_list &aclt_list)
 {
-	const char *old_acl;
+	static const char * const drop_acls[]={
+		"-administrators",
+		"-group=administrators"
+	};
 
-	static const char * const drop_acls[]={"-administrators",
-					       "-group=administrators"};
-	size_t i;
-
-	if ((old_acl=maildir_aclt_list_lookup(aclt_list,
-					      "group=administrators"))
-	    != NULL)
-	{
-		maildir_aclt new_acl;
-
-		if (maildir_aclt_init(&new_acl, ACL_ALL, NULL))
-			return -1;
-
-		if (maildir_aclt_add(&new_acl, old_acl, NULL) ||
-		    maildir_aclt_list_add(aclt_list, "group=administrators",
-					  NULL, &new_acl))
+	auto iter=std::find_if(
+		aclt_list.begin(), aclt_list.end(),
+		[&]
+		(maildir::aclt_node &n)
 		{
-			maildir_aclt_destroy(&new_acl);
-			return -1;
-		}
-		maildir_aclt_destroy(&new_acl);
+			return n.identifier == "group=administrators";
+		});
+
+	if (iter != aclt_list.end())
+	{
+		maildir::aclt new_acl{ACL_ALL};
+
+		new_acl += iter->acl; // Should already be there
+
+		aclt_list.add("group=administrators", new_acl);
+		aclt_list.del("administrators");
 	}
 	else
 	{
-		maildir_aclt new_acl;
+		maildir::aclt new_acl{ACL_ALL};
 
-		old_acl=maildir_aclt_list_lookup(aclt_list, "administrators");
+		iter=std::find_if(
+			aclt_list.begin(), aclt_list.end(),
+			[&]
+			(maildir::aclt_node &n)
+			{
+				return n.identifier == "administrators";
+			});
 
-		if (maildir_aclt_init(&new_acl, ACL_ALL, NULL))
-			return -1;
+		if (iter != aclt_list.end())
+			new_acl += iter->acl;
 
-		if (maildir_aclt_add(&new_acl, old_acl, NULL) ||
-		    maildir_aclt_list_add(aclt_list, "administrators",
-					  NULL, &new_acl))
-		{
-			maildir_aclt_destroy(&new_acl);
-			return -1;
-		}
-		maildir_aclt_destroy(&new_acl);
+		aclt_list.add("administrators", new_acl);
 	}
 
-	for (i=0; i<2; i++)
+	for (auto &identifier:drop_acls)
 	{
-		const char *n=drop_acls[i];
-		if (maildir_aclt_list_del(aclt_list, n) < 0)
-			return -1;
+		auto iter=std::find_if(
+			aclt_list.begin(), aclt_list.end(),
+			[&]
+			(maildir::aclt_node &n)
+			{
+				return n.identifier == identifier;
+			});
+
+		if (iter != aclt_list.end())
+		{
+			iter->acl -= ACL_LOOKUP ACL_ADMINISTER;
+			if (iter->acl.empty())
+				aclt_list.erase(iter);
+		}
 	}
 
 	return 0;
