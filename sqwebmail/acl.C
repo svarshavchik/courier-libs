@@ -211,7 +211,8 @@ void acl_computeRights(maildir_aclt_list *l, char *rights,
 
 	maildir_aclt a;
 
-	if (maildir_acl_computerights(&a, l, login_returnaddr(), owner) < 0)
+	if (maildir_acl_computerights(&a, l, login_returnaddr(), owner,
+				      getenv("OPTIONS")) < 0)
 	{
 		*rights=0;
 		return;

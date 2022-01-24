@@ -1037,3 +1037,83 @@ int maildir_acl_compute_array(maildir_aclt *aclt,
 	}
 	return 0;
 }
+
+/* --------------------------------------------------------------------- */
+
+/*
+** Compute owner ACL identifiers applicable to a mailbox that's owned by
+** 'mailbox_owner'.
+*/
+
+int maildir_acl_computerights(maildir_aclt *aclt,
+			      maildir_aclt_list *aclt_list,
+			      const char *me,
+			      const char *folder_owner,
+			      const char *options)
+{
+	if (!(*aclt=new maildir_aclt_impl{""}))
+		return -1;
+
+	maildir::aclt_list default_list;
+
+	int rc= (*aclt_list ? (*aclt_list)->list:default_list).computerights(
+		(*aclt)->impl,
+		me,
+		folder_owner,
+		options ? options:"");
+	if (rc)
+	{
+		delete *aclt;
+		*aclt=nullptr;
+	}
+	return rc;
+}
+
+int maildir::aclt_list::computerights(aclt &ret,
+				      const std::string &me,
+				      const std::string &owner,
+				      const std::string &options)
+{
+	std::vector<std::string> owner_array;
+
+	owner_array.reserve(2);
+	std::string user;
+
+	user.reserve(me.size()+5);
+
+	user="user=";
+	user+=me;
+
+	if (user == owner)
+		owner_array.emplace_back("owner");
+
+	owner_array.push_back(std::move(user));
+
+	for (auto b=options.begin(), e=options.end(); b != e; )
+	{
+		if (*b == ',')
+		{
+			++b;
+			continue;
+		}
+
+		auto p=b;
+		while (b != e && *b != ',')
+			++b;
+
+		if (b-p>5 && std::equal(p, p+6, "group="))
+		{
+			owner_array.emplace_back(p, b);
+		}
+	}
+
+	return compute(ret,
+		       [&]
+		       (const std::string &identifier)
+		       {
+			       return std::find(owner_array.begin(),
+						owner_array.end(),
+						identifier) == owner_array.end()
+				       ? 0:1;
+		       });
+}

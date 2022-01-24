@@ -2915,7 +2915,7 @@ char *compute_myrights(maildir_aclt_list *l, const char *l_owner)
 	char *a;
 
 	if (maildir_acl_computerights(&aa, l, getenv("AUTHENTICATED"),
-				      l_owner) < 0)
+				      l_owner, getenv("OPTIONS")) < 0)
 		return NULL;
 
 	a=my_strdup(maildir_aclt_ascstr(&aa));

@@ -64,6 +64,11 @@ struct aclt_list : std::vector<aclt_node> {
 	int compute( aclt &,
 		     const std::function<int (const char *)> &) const;
 
+	int computerights(aclt &,
+			  const std::string &me,
+			  const std::string &owner,
+			  const std::string &options);
+
 	int write(const std::string &maildir,
 		  const std::string &path,
 		  const std::string &owner) const;
@@ -309,10 +314,12 @@ int maildir_acl_compute_array(maildir_aclt *aclt,
 **
 ** me: my login identifier.
 **
-** folder_owner: the owner of the mailbox folder whose rights are computed
+** folder_owner: the owner of the mailbox folder whose rights are computed,
+** should also take the form of "user=<n>".
 **
-** OTHER: The "OPTIONS" environment variable is parsed to obtain a list of
-** account groups 'me' belongs to.
+** options: This is parsed as a comma-separated string. All strings of the
+** from "group=" are also added to the ACL lookup. This typically comes from
+** the "OPTIONS" environment variable.
 **
 ** Returns 0 upon success, after placing the computed access rights in
 ** 'rights'.
@@ -321,7 +328,8 @@ int maildir_acl_compute_array(maildir_aclt *aclt,
 int maildir_acl_computerights(maildir_aclt *rights,
 			      maildir_aclt_list *acl_list,
 			      const char *me,
-			      const char *folder_owner);
+			      const char *folder_owner,
+			      const char *options);
 
 /*
 ** Convenience functions:
