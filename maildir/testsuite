@@ -39,3 +39,13 @@ $VALGRIND ./maildirkw -r md one Label1
 echo ""
 $VALGRIND ./maildirkw -L md | sort
 rm -rf md testmd
+
+maildirmake ./testmd
+
+$VALGRIND ./maildiracl -set testmd INBOX.Folder user1 rw
+$VALGRIND ./maildiracl -list testmd INBOX.Folder | sort
+$VALGRIND ./maildiracl -list testmd INBOX.Folder.Subfolder | sort
+$VALGRIND ./maildirmake -f Folder testmd
+$VALGRIND ./maildiracl -list testmd INBOX.Folder | sort
+ls testmd/courierimaphieracl
+rm -rf testmd

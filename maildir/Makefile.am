@@ -144,7 +144,7 @@ clean-local:
 	rm -rf testmd
 
 check-am:
-	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | cmp - $(srcdir)/testsuite.txt
+	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | diff -U 3 $(srcdir)/testsuite.txt -
 	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | cmp - $(srcdir)/testsuite2.txt
 	LC_ALL=C; export LC_ALL; ./maildirkwtest | cmp -s - $(srcdir)/maildirkwtest.txt
 	LC_ALL=C; export LC_ALL; ./maildiraclttest

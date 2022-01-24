@@ -1,3 +1,10 @@
+2022-01-23  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Adjust behavior of inherited ACLs. After deleting and recreating
+	a folder, have the recreated folder inherit its parent folder's ACLs,
+	normally, instead of mysteriously restoring whatever ACLs the folder
+	had when it was deleted.
+
 2022-01-22  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fixes to Makefile to workaround test suite failures related to

@@ -441,12 +441,14 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 	}
 	fp=fopen(strcat(strcpy(q, p), "/" ACLFILE), "r");
 	free(p);
-	free(q);
 
 	if (fp == NULL)
 	{
+		char *r;
+
 		if (strcmp(path, ".") == 0)
 		{
+			free(q);
 			/* INBOX ACL default */
 
 			if (maildir_aclt_list_add(aclt_list, "owner",
@@ -458,17 +460,21 @@ static int maildir_acl_read_check(maildir_aclt_list *aclt_list,
 			return 0;
 		}
 
-		q=malloc(strlen(maildir)+sizeof("/" ACLHIERDIR "/") +
+		r=malloc(strlen(maildir)+sizeof("/" ACLHIERDIR "/") +
 			 strlen(path));
-		if (!q)
+		if (!r)
 			return -1;
 
-		strcat(strcat(strcpy(q, maildir), "/" ACLHIERDIR "/"),
+		strcat(strcat(strcpy(r, maildir), "/" ACLHIERDIR "/"),
 		       path+1);
 
+		rename(r, q);
 		fp=fopen(q, "r");
-		free(q);
+		if (!fp)
+			fp=fopen(r, "r");
+		free(r);
 	}
+	free(q);
 
 	if (!fp && errno != ENOENT)
 		return -1;
