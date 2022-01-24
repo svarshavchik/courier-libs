@@ -229,27 +229,6 @@ int maildir_acl_reset(const char *maildir)
 	return 0;
 }
 
-static int chk_array(const char *identifier, void *void_arg);
-
-int maildir_acl_compute_array(maildir_aclt *aclt,
-			      maildir_aclt_list *aclt_list,
-			      const char * const *identifiers)
-{
-	return maildir_acl_compute(aclt, aclt_list, chk_array,
-				   (void *)identifiers);
-}
-
-static int chk_array(const char *identifier, void *void_arg)
-{
-	const char * const *p=(const char * const *)void_arg;
-	size_t i;
-
-	for (i=0; p[i]; i++)
-		if (strcmp(identifier, p[i]) == 0)
-			return 1;
-	return 0;
-}
-
 /* -------------------------------------------------------------------- */
 
 int maildir_acl_canlistrights(const char *myrights)

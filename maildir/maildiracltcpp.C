@@ -1008,3 +1008,32 @@ static int add_default_admin(maildir::aclt_list &aclt_list)
 
 	return 0;
 }
+
+int maildir_acl_compute_array(maildir_aclt *aclt,
+			      maildir_aclt_list *aclt_list,
+			      const char * const *identifiers)
+{
+	if (!(*aclt=new maildir_aclt_impl{""}))
+		return -1;
+
+	maildir::aclt_list default_list;
+
+	int rc= (*aclt_list ? (*aclt_list)->list:default_list).compute(
+		(*aclt)->impl,
+		[&]
+		(const char *identifier)
+		{
+			for (size_t i=0; identifiers[i]; ++i)
+			{
+				if (strcmp(identifier, identifiers[i]) == 0)
+					return 1;
+			}
+			return 0;
+		});
+	if (rc)
+	{
+		delete *aclt;
+		*aclt=nullptr;
+	}
+	return 0;
+}
