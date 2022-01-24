@@ -173,6 +173,8 @@ static int doit_locked(const char *maildir,
 			}
 		}
 
+		free(tmpname);
+		free(newname);
 		if (kwm_alloced)
 			libmail_kwmDestroy(kwm_alloced);
 		libmail_kwgDestroy(&g);
@@ -210,6 +212,7 @@ static int list_locked(const char *maildir)
 			printf(" %s", keywordName(k->libmail_keywordEntryPtr));
 		printf("\n");
 	}
+	libmail_kwgDestroy(&g);
 	return 0;
 }
 

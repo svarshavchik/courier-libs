@@ -1,0 +1,10 @@
+#! /bin/bash
+
+valgrind --tool=memcheck --leak-check=yes --error-exitcode=57 "$@" && exit 0
+if test "$?" != 57
+then
+    exit $?
+fi
+
+echo "$@" >>confmdtesterror
+exit 0

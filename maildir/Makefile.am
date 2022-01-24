@@ -110,6 +110,7 @@ testmaildirsearch_LDADD=libmaildir.la -lcourier-unicode
 testmaildirsearch_DEPENDENCIES=libmaildir.la
 
 EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
+	testsuitevalgrind \
 	README.imapkeywords.html \
 	README.maildirfilter.html \
 	README.sharedfolders.html README.sharedfolders.txt \
@@ -143,7 +144,7 @@ clean-local:
 	rm -rf testmd
 
 check-am:
-	@SHELL@ $(srcdir)/testsuite 2>&1 | cmp - $(srcdir)/testsuite.txt
+	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | cmp - $(srcdir)/testsuite.txt
 	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | cmp - $(srcdir)/testsuite2.txt
 	LC_ALL=C; export LC_ALL; ./maildirkwtest | cmp -s - $(srcdir)/maildirkwtest.txt
 	LC_ALL=C; export LC_ALL; ./maildiraclttest
@@ -156,6 +157,9 @@ check-am:
 	./testmaildirsearch iso-8859-1 "abra  cadAbra" "abra   cadabra"
 	./testmaildirsearch iso-8859-1 "  abra  cadAbra  " " abra   cadabra"
 	./testmaildirsearch iso-8859-1 "  abra  cadAbra  " " abra   cadabra  "
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; export VALGRIND="@SHELL@ $(srcdir)/testsuitevalgrind"; rm -f confmdtesterror; @SHELL@ $(srcdir)/testsuite 2>&1 | tee testsuite.out; test ! -f confmdtesterror
+	rm -rf testsuite.out
 
 if HAVE_SGML
 
