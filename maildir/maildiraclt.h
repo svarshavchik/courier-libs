@@ -82,6 +82,7 @@ struct aclt_list : std::vector<aclt_node> {
 		 const std::string &path);
 };
 
+void acl_reset(const std::string &maildir);
 
 #if 0
 {
@@ -267,7 +268,7 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 
 /* Remove stale ACL entries */
 
-int maildir_acl_reset(const char *maildir);
+void maildir_acl_reset(const char *maildir);
 
 /* Remove a particular ACL entry */
 

@@ -85,11 +85,7 @@ int main(int argc, char *argv[])
 
 	if (strcmp(cmd, resetcmd) == 0)
 	{
-		if (maildir_acl_reset(maildir))
-		{
-			perror(maildir);
-			exit(1);
-		}
+		maildir_acl_reset(maildir);
 		exit(0);
 	}
 

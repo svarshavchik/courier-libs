@@ -1117,3 +1117,109 @@ int maildir::aclt_list::computerights(aclt &ret,
 				       ? 0:1;
 		       });
 }
+
+/*
+** When a maildir is opened check for stale entries in Maildir/ACLHIERDIR.
+**
+** Maildir/ACLHIERDIR/folder.subfolder should be removed unless there exists
+** Maildir/.folder.subfolder.subsubfolder
+**
+**
+** acl_check_cb is the callback function for maildir_list, which receives
+** INBOX.folder.subfolder.subsubfolder.  It goes through the link list with
+** Maildir/ACLHIERDIR's contents, and removes folder.subfolder if its found.
+**
+** After maildir_list is done, anything that's left in the list can be safely
+** removed.
+*/
+
+static void acl_check_cb(const char *mbox, void *voidarg)
+{
+	std::vector<std::string> &aclhierdirlist=
+		*reinterpret_cast<std::vector<std::string> *>(voidarg);
+
+	if (strncmp(mbox, INBOX ".", sizeof(INBOX ".")-1))
+		return; /* Just "INBOX" */
+
+	mbox += sizeof(INBOX ".")-1;
+
+	auto l=strlen(mbox);
+
+	aclhierdirlist.erase(
+		std::remove_if(
+			aclhierdirlist.begin(),
+			aclhierdirlist.end(),
+			[&]
+			(const std::string &aclhierdir)
+			{
+				return aclhierdir.size() < l &&
+					std::equal(aclhierdir.begin(),
+						   aclhierdir.end(),
+						   mbox) &&
+					mbox[aclhierdir.size()] == '.';
+			}),
+		aclhierdirlist.end());
+}
+
+
+
+void maildir_acl_reset(const char *maildir)
+{
+	maildir::acl_reset(maildir);
+}
+
+void maildir::acl_reset(const std::string &maildir)
+{
+
+	DIR *dirp;
+	struct dirent *de;
+	time_t now;
+	struct stat stat_buf;
+	std::vector<std::string> aclhierdirlist;
+
+	std::string aclhierdir;
+
+	aclhierdir.reserve(maildir.size() + sizeof("/" ACLHIERDIR)-1);
+
+	aclhierdir=maildir;
+
+	aclhierdir += "/" ACLHIERDIR;
+
+	dirp=opendir(aclhierdir.c_str());
+
+	if (!dirp)
+	{
+		mkdir(aclhierdir.c_str(), 0755);
+		dirp=opendir(aclhierdir.c_str());
+	}
+
+	while (dirp && (de=readdir(dirp)) != NULL)
+	{
+		if (de->d_name[0] == '.')
+			continue;
+
+		aclhierdirlist.push_back(de->d_name);
+	}
+	if (dirp) closedir(dirp);
+
+	maildir_list(maildir.c_str(), acl_check_cb, &aclhierdirlist);
+
+	time(&now);
+
+	for (auto &mbox:aclhierdirlist)
+	{
+		std::string p;
+
+		p.reserve(aclhierdir.size() + 1 + mbox.size());
+
+		p=aclhierdir;
+		p+= "/";
+		p+= mbox;
+
+		/* Only unlink stale entries after 1 hour (race) */
+
+		if (stat(p.c_str(), &stat_buf) == 0 &&
+		    stat_buf.st_mtime < now - 60*60)
+			unlink(p.c_str());
+	}
+}
