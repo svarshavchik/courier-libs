@@ -34,6 +34,8 @@
 
 #include	<algorithm>
 
+int maildir_acl_disabled=0;
+
 maildir::aclt::aclt(const char *p) : std::string{p}
 {
 	fixup();
@@ -1222,4 +1224,64 @@ void maildir::acl_reset(const std::string &maildir)
 		    stat_buf.st_mtime < now - 60*60)
 			unlink(p.c_str());
 	}
+}
+/* ---------------------------------------------------------------------- */
+
+int maildir_acl_delete(const char *maildir,
+			const char *path)
+{
+	return maildir::acl_delete(maildir ? maildir:"",
+				   path ? path:"") ? 0:-1;
+}
+
+bool maildir::acl_delete(const std::string &maildir,
+			 const std::string &path)
+{
+	if (maildir.empty())
+		return acl_delete(".", path);
+
+	if (path.empty())
+		return acl_delete(maildir, ".");
+
+	if (!validate_path(path))
+		return false;
+
+	std::string p;
+
+	p.reserve(maildir.size()+path.size()+sizeof("/" ACLHIERDIR "/"
+						    ACLFILE));
+
+	p=maildir;
+	p += "/";
+	p += path;
+	p += "/" ACLFILE;
+
+	unlink(p.c_str());
+
+	if (path == ".")
+	{
+		/* INBOX ACL default */
+
+		return 0;
+	}
+
+	p=maildir;
+	p += "/" ACLHIERDIR "/";
+	p += path.substr(1);
+
+	unlink(p.c_str());
+	return true;
+}
+
+/* -------------------------------------------------------------------- */
+
+int maildir_acl_canlistrights(const char *myrights)
+{
+	return (strchr(myrights, ACL_LOOKUP[0]) ||
+		strchr(myrights, ACL_READ[0]) ||
+		strchr(myrights, ACL_INSERT[0]) ||
+		strchr(myrights, ACL_CREATE[0]) ||
+		strchr(myrights, ACL_DELETEFOLDER[0]) ||
+		strchr(myrights, ACL_EXPUNGE[0]) ||
+		strchr(myrights, ACL_ADMINISTER[0]));
 }

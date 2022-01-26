@@ -29,7 +29,7 @@ libmaildir.deps: config.status
 	echo "$(PCRE_LDFLAGS)" >libmaildir.deps
 
 libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
-	maildiraclt.c maildiraclt.h maildiracltcpp.C \
+	maildiraclt.h maildiracltcpp.C \
 	maildircache.c maildircache.h \
 	maildircreate.c maildircreate.h \
 	maildirfilename.c maildirgetnew.c \

@@ -83,6 +83,7 @@ struct aclt_list : std::vector<aclt_node> {
 };
 
 void acl_reset(const std::string &maildir);
+bool acl_delete(const std::string &maildir, const std::string &path);
 
 #if 0
 {
