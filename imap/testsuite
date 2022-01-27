@@ -1170,3 +1170,16 @@ EOF
 env IMAP_EMPTYTRASH=Trash:2,Trash2:3 ./imapd.testmockpurge confmdtest <<EOF | grep maildir_purge
 TRASH2 LOGOUT
 EOF
+
+rm -rf confmdtest
+../maildir/maildirmake confmdtest || exit 1
+env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
+V001 ACL STORE INBOX user=user2 +w
+V002 CREATE INBOX.Folder.Subfolder
+V003 ACL STORE INBOX.Folder user=user2 +r
+V004 LIST (ACL) "" "INBOX.Folder"
+V005 CREATE INBOX.Folder
+V006 LIST (ACL) "" "INBOX.Folder"
+EOF
+ls confmdtest/courierimaphieracl 2>&1
+rm -rf confmdtest

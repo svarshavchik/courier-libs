@@ -4905,6 +4905,8 @@ int	uid=0;
 
 			if ((did_exist=folder_exists(orig_mailbox)) != 0)
 			{
+				const char *p;
+
 				if (acl_read_folder(&l,
 						    mi.homedir,
 						    mi.maildir) < 0)
@@ -4917,8 +4919,13 @@ int	uid=0;
 					maildir_info_destroy(&mi);
 					return (0);
 				}
-				maildir_acl_delete(mi.homedir, mi.maildir);
-				/* Clear out fluff */
+
+				p=strchr(mi.maildir, '.');
+				if (p)
+				{
+					maildir_acl_delete(mi.homedir, p);
+					/* Clear out fluff */
+				}
 			}
 
 			if (mdcreate(mailbox))

@@ -1776,3 +1776,14 @@
 001482 maildir_purge: .Trash2 (259200)
 001483 maildir_purge: .Trash (172800)
 001484 maildir_purge: .Trash2 (259200)
+001485 * PREAUTH Ready.
+001486 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "w"))))
+001486 V001 OK ACL STORE completed.
+001487 V002 OK "INBOX.Folder.Subfolder" created.
+001488 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001488 V003 OK ACL STORE completed.
+001489 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001489 V004 OK LIST completed
+001490 V005 OK "INBOX.Folder" created.
+001491 * LIST (\HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001491 V006 OK LIST completed
