@@ -4843,9 +4843,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "CREATE") == 0)
 	{
-		char	*mailbox, *orig_mailbox, *p;
+		char	*orig_mailbox, *p;
 		int	isdummy;
-		struct maildir_info mi;
 		struct imapscaninfo minfo;
 
 		curtoken=nexttoken_nouc();
@@ -4868,54 +4867,49 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			isdummy=1;	/* Ignore hierarchy creation */
 		}
 
-		mailbox=imap_foldername_to_filename(enabled_utf8,
-						    curtoken->tokenbuf);
-		if (!mailbox)
+		auto mailboxstr=imap_foldername_to_filename(enabled_utf8,
+							    curtoken->tokenbuf);
+		if (!mailboxstr)
 			return -1;
 
-		if (maildir_info_imap_find(&mi, mailbox,
-					   getenv("AUTHENTICATED")))
+		auto mi=maildir::info_imap_find(mailboxstr,
+						getenv("AUTHENTICATED"));
+
+		if (!mi)
 		{
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
-			free(mailbox);
+			free(mailboxstr);
 			return (0);
 		}
-		free(mailbox);
+		free(mailboxstr);
 
-		if (!mi.homedir || !mi.maildir)
+		if (mi.homedir.empty() || mi.maildir.empty())
 		{
-			maildir_info_destroy(&mi);
 			writes(tag);
 			accessdenied("CREATE",
 				     curtoken->tokenbuf,
 				     ACL_CREATE);
-			maildir_info_destroy(&mi);
 			return (0);
 		}
 
-		mailbox=maildir_name2dir(mi.homedir, mi.maildir);
-		if (!mailbox)
+		auto mailbox=maildir::name2dir(mi.homedir, mi.maildir);
+		if (mailbox.empty())
 		{
 			writes(tag);
 			writes(" NO Invalid mailbox name\r\n");
-			maildir_info_destroy(&mi);
 			return (0);
 		}
 
-		if (strcmp(mailbox, ".") == 0)
+		if (mailbox == ".")
 		{
 			writes(tag);
 			writes(" NO INBOX already exists!\r\n");
-			free(mailbox);
-			maildir_info_destroy(&mi);
 			return (0);
 		}
 
 		if (check_parent_create(tag, "CREATE", curtoken->tokenbuf))
 		{
-			free(mailbox);
-			maildir_info_destroy(&mi);
 			return (0);
 		}
 
@@ -4925,68 +4919,59 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!orig_mailbox)
 		{
-			free(mailbox);
-			maildir_info_destroy(&mi);
 			return (-1);
 		}
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
-			free(mailbox);
 			free(orig_mailbox);
-			maildir_info_destroy(&mi);
 			return (-1);
 		}
 
 		if (!isdummy)
 		{
 			int did_exist;
-			maildir_aclt_list l;
+			maildir::aclt_list l;
 
 			if ((did_exist=folder_exists(orig_mailbox)) != 0)
 			{
-				const char *p;
-
-				if (acl_read_folder(&l,
-						    mi.homedir,
-						    mi.maildir) < 0)
+				if (!acl_read_folder(l,
+						     mi.homedir,
+						     mi.maildir))
 				{
-					free(mailbox);
 					free(orig_mailbox);
 					writes(tag);
 					writes(" NO Cannot create this folder"
 					       ".\r\n");
-					maildir_info_destroy(&mi);
 					return (0);
 				}
 
-				p=strchr(mi.maildir, '.');
-				if (p)
+				size_t p=mi.maildir.find('.');
+
+				if (p != mi.maildir.npos)
 				{
-					maildir_acl_delete(mi.homedir, p);
+					maildir::acl_delete(
+						mi.homedir,
+						mi.maildir.c_str()+p
+					);
 					/* Clear out fluff */
 				}
 			}
 
-			if (mdcreate(mailbox))
+			if (mdcreate(mailbox.c_str()))
 			{
-				if (did_exist)
-					maildir_aclt_list_destroy(&l);
-				free(mailbox);
 				free(orig_mailbox);
 				writes(tag);
 				writes(" NO Cannot create this folder.\r\n");
-				maildir_info_destroy(&mi);
 				return (0);
 			}
 			if (did_exist)
 			{
-				const char *acl_error;
+				std::string acl_error;
 
-				acl_write_folder(&l, mi.homedir,
-						 mi.maildir, NULL,
-						 &acl_error);
-				maildir_aclt_list_destroy(&l);
+				acl_write_folder(l, mi.homedir,
+						 mi.maildir, "",
+						 acl_error);
 			}
 		}
 		writes(tag);
@@ -5005,12 +4990,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		imapscan_init(&minfo);
-		imapscan_maildir(&minfo, mailbox, 0,0, NULL);
+		imapscan_maildir(&minfo, mailbox.c_str(), 0,0, NULL);
 		imapscan_free(&minfo);
 
-		free(mailbox);
 		free(orig_mailbox);
-		maildir_info_destroy(&mi);
 		return (0);
 	}
 
