@@ -78,7 +78,7 @@ extern dev_t homedir_dev;
 extern ino_t homedir_ino;
 
 int mdcreate(const char *mailbox);
-int mddelete(const char *s);
+bool mddelete(const std::string &s);
 
 extern int folder_rename(struct maildir_info *mi1,
 			 struct maildir_info *mi2,
@@ -3923,7 +3923,7 @@ void smap()
 
 			if (t)
 			{
-				if (mddelete(t) == 0)
+				if (mddelete(t))
 				{
 					maildir_quota_recalculate(".");
 					writes("+OK Folder deleted");

@@ -15,9 +15,30 @@
 #endif
 
 #ifdef  __cplusplus
-extern "C" {
+#include	<string>
+
+namespace maildir {
+#if 0
+}
 #endif
 
+// Validate and return a path to a shared folder.  folderdir must be
+// a name of a valid shared folder.
+//
+// Returns an empty string to indicate an error.
+
+std::string shareddir(const std::string &,		/* maildir */
+		      const std::string &);		/* folder */
+
+#if 0
+{
+#endif
+}
+extern "C" {
+#endif
+#if 0
+}
+#endif
 
 /*
 **
@@ -153,12 +174,9 @@ int maildir_shared_unsubscribe(const char *,	/* maildir */
 		const char *);			/* folder */
 	/* unsubscribe from a shared folder */
 
-char *maildir_shareddir(const char *,		/* maildir */
-	const char *);				/* folder */
-	/*
-	** Validate and return a path to a shared folder.  folderdir must be
-	** a name of a valid shared folder.
-	*/
+	/* Wrapper for maildir::shareddir */
+char *maildir_shareddir(const char *,
+			const char *);
 
 void maildir_shared_sync(const char *);		/* maildir */
 	/* "sync" the shared folder */
@@ -195,6 +213,9 @@ int maildir_rename(const char *maildir, /* Path to the maildir */
 		   );
 
 #ifdef  __cplusplus
+#if 0
+{
+#endif
 }
 
 #include <string>

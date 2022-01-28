@@ -338,12 +338,15 @@ int is_draft(const char *m)
 }
 #endif
 
-int is_reserved(const char *m)
+static bool is_reserved(const std::string &m)
 {
-	if (strncmp(m, "./", 2) == 0) m += 2;
+	size_t p=0;
 
-	if (is_trash(m))	return (1);
-	return (0);
+	if (m.size() > 2 && m[0] == '.' && m[1] == '/')
+		p += 2;
+
+	if (is_trash(m.substr(p).c_str()))	return (true);
+	return (false);
 }
 
 int is_reserved_name(const char *name)
@@ -933,21 +936,20 @@ struct	dirent *de;
 }
 #endif
 
-int mddelete(const char *s)
+bool mddelete(const std::string &s)
 {
-	int	rc;
 	struct stat stat_buf;
 
 	/* If the top level maildir is a sym link, don't delete it */
 
-	if (stat(s, &stat_buf) < 0 &&
+	if (stat(s.c_str(), &stat_buf) < 0 &&
 	    S_ISLNK(stat_buf.st_mode))
-		return -1;
+		return false;
 
 	trap_signals();
-	rc=maildir_del(s);
+	int rc=maildir_del(s.c_str());
 	if (release_signals())	_exit(0);
-	return (rc);
+	return (rc == 0);
 }
 
 int mdcreate(const char *mailbox)
@@ -2609,6 +2611,58 @@ static int acl_read_folder(maildir_aclt_list *aclt_list,
 	return rc;
 }
 
+bool acl_read_folder(
+	// Freshly constructed list
+	maildir::aclt_list &aclt_list,
+	const std::string &maildir,
+	const std::string &path)
+{
+	/* Handle legacy shared. namespace */
+
+	if (path == SHARED)
+	{
+		aclt_list.add("anyone", ACL_LOOKUP);
+		return true;
+	}
+
+	if (strncmp(path.c_str(), SHARED ".", sizeof(SHARED)) == 0)
+	{
+		if (strchr(path.c_str()+sizeof(SHARED), '.') == 0)
+		{
+			aclt_list.add("anyone", ACL_LOOKUP);
+		}
+
+		auto p=maildir::shareddir(maildir, path.substr(sizeof(SHARED)));
+		if (p.empty())
+		{
+			aclt_list.add("anyone", ACL_LOOKUP);
+			return true;
+		}
+
+		p += "/new";
+
+		aclt_list.add("anyone",
+			      access(p.c_str(), W_OK) == 0 ?
+			      ACL_LOOKUP ACL_READ
+			      ACL_SEEN ACL_WRITE ACL_INSERT
+
+			      ACL_DELETEFOLDER /* Wrong, but needed for ACL1 compatibility */
+
+			      ACL_DELETEMSGS ACL_EXPUNGE:
+			      ACL_LOOKUP ACL_READ ACL_SEEN
+			      ACL_WRITE);
+		return true;
+	}
+
+	auto p=maildir::name2dir(".", path);
+
+	if (p.empty())
+		return false;
+
+	aclt_list.read(maildir, p[0] == '.' && p[1] == '/' ? p.substr(2):p);
+	return true;
+}
+
 static int acl_write_folder(maildir_aclt_list *aclt_list,
 			    const char *maildir,
 			    const char *path,
@@ -2639,6 +2693,30 @@ static int acl_write_folder(maildir_aclt_list *aclt_list,
 	return rc;
 }
 
+static bool acl_write_folder(maildir::aclt_list &aclt_list,
+			     const std::string &maildir,
+			     const std::string &path,
+			     const std::string &owner,
+			     std::string &err_failedrights)
+{
+	if (path == SHARED ||
+	    path.substr(0, sizeof(SHARED)) == SHARED ".")
+	{
+		/* Legacy */
+
+		return 1;
+	}
+
+	auto p=maildir::name2dir(".", path);
+
+	if (p.empty())
+		return false;
+
+	return aclt_list.write(maildir, p[0] == '.' && p[1] == '/'
+			       ? p.substr(2):p,
+			       owner, err_failedrights) == 0;
+}
+
 static void writeacl(const char *);
 
 static void myrights()
@@ -2660,23 +2738,23 @@ static int get_acllist(maildir_aclt_list *l,
 		       char **computed_mailbox_owner)
 {
 	int rc;
-	char *v;
 
-	struct maildir_info mi;
 	char *dummy_mailbox_owner=NULL;
 
 	if (!computed_mailbox_owner)
 		computed_mailbox_owner= &dummy_mailbox_owner;
 
-	if (maildir_info_imap_find(&mi, p, getenv("AUTHENTICATED")) < 0)
+	auto mi=maildir::info_imap_find(p, getenv("AUTHENTICATED"));
+
+	if (!mi)
 		return -1;
 
-	v=NULL;
+	std::string v;
 
-	if (mi.homedir && mi.maildir)
+	if (!mi.homedir.empty() && !mi.maildir.empty())
 	{
-		rc=acl_read_folder(l, mi.homedir, mi.maildir);
-		v=maildir_name2dir(mi.homedir, mi.maildir);
+		rc=acl_read_folder(l, mi.homedir.c_str(), mi.maildir.c_str());
+		v=maildir::name2dir(mi.homedir, mi.maildir);
 	}
 	else if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
@@ -2702,15 +2780,10 @@ static int get_acllist(maildir_aclt_list *l,
 
 	if (rc)
 	{
-		if (v)
-			free(v);
-		maildir_info_destroy(&mi);
 		return -1;
 	}
 
-	*computed_mailbox_owner=my_strdup(mi.owner);
-
-	maildir_info_destroy(&mi);
+	*computed_mailbox_owner=my_strdup(mi.owner.c_str());
 
 	/* Detect if ACLs on the currently-open folder have changed */
 
@@ -2719,7 +2792,7 @@ static int get_acllist(maildir_aclt_list *l,
 	    !smapflag &&
 #endif
 
-	    v && strcmp(v, current_mailbox) == 0)
+	    !v.empty() && v == current_mailbox)
 	{
 		char *new_acl=compute_myrights(l, *computed_mailbox_owner);
 
@@ -2734,8 +2807,6 @@ static int get_acllist(maildir_aclt_list *l,
 		if (new_acl)
 			free(new_acl);
 	}
-	if (v)
-		free(v);
 	if (dummy_mailbox_owner)
 		free(dummy_mailbox_owner);
 	return rc;
@@ -3835,50 +3906,37 @@ static int folder_exists(const char *folder)
 
 int do_folder_delete(char *mailbox_name)
 {
-	maildir_aclt_list l;
-	const char *acl_error;
-	struct maildir_info mi;
+	maildir::aclt_list l;
+	std::string acl_error;
 
-	if (maildir_info_imap_find(&mi, mailbox_name, getenv("AUTHENTICATED"))
-	    < 0)
+	auto mi=maildir::info_imap_find(mailbox_name, getenv("AUTHENTICATED"));
+
+	if (!mi)
 		return -1;
 
-	if (mi.homedir == NULL || mi.maildir == NULL)
-	{
-		maildir_info_destroy(&mi);
+	if (mi.homedir.empty() || mi.maildir.empty())
 		return -1;
-	}
 
-	if (acl_read_folder(&l, mi.homedir, mi.maildir) < 0)
-	{
-		maildir_info_destroy(&mi);
+	if (!acl_read_folder(l, mi.homedir, mi.maildir))
 		return -1;
-	}
 
-	if (strcasecmp(mi.maildir, INBOX))
+	if (mi.maildir != INBOX)
 	{
-		char *p=maildir_name2dir(mi.homedir, mi.maildir);
+		auto p=maildir::name2dir(mi.homedir, mi.maildir);
 
-		if (p && is_reserved(p) == 0 && mddelete(p) == 0)
+		if (!p.empty() && !is_reserved(p) && mddelete(p))
 		{
 			if (folder_exists(mailbox_name))
 			{
-				acl_write_folder(&l, mi.homedir,
-						 mi.maildir, NULL,
-						 &acl_error);
+				acl_write_folder(l, mi.homedir,
+						 mi.maildir,
+						 getenv("AUTHENTICATED"),
+						 acl_error);
 			}
-			maildir_aclt_list_destroy(&l);
-			maildir_quota_recalculate(mi.homedir);
-			free(p);
-			maildir_info_destroy(&mi);
+			maildir_quota_recalculate(mi.homedir.c_str());
 			return 0;
 		}
-
-		if (p)
-			free(p);
 	}
-	maildir_aclt_list_destroy(&l);
-	maildir_info_destroy(&mi);
 	return -1;
 }
 
