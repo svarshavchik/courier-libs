@@ -93,9 +93,11 @@
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
-#ifdef __cplusplus
 extern "C" {
+#if 0
+}
 #endif
+
 extern void fetchflags(unsigned long);
 extern unsigned long header_count, body_count;
 extern time_t start_time;
@@ -112,9 +114,10 @@ extern void initcapability();
 extern void imapcapability();
 extern int magictrash();
 
-#ifdef __cplusplus
-}
+#if 0
+{
 #endif
+}
 
 #if SMAP
 extern "C" {
@@ -166,6 +169,26 @@ void writemailbox(const char *mailbox)
 	}
 	writeqs(encoded);
 	free(encoded);
+}
+
+// C++ wrapper for imapmaildirlock
+
+static int do_imapmaildirlock(void *p)
+{
+	auto closure=*reinterpret_cast<const std::function<bool ()> **>(p);
+
+	return (*closure)() ? 0:-1;
+}
+
+bool imapmaildirlock(struct imapscaninfo *scaninfo,
+		     const std::string &maildir,
+		     const std::function< bool() >&callback)
+{
+	const std::function< bool () > *ptr=&callback;
+
+	return imapmaildirlock(scaninfo, maildir.c_str(),
+			       do_imapmaildirlock, &ptr) == 0
+		? true:false;
 }
 
 extern int maildirsize_read(const char *,int *,off_t *,unsigned *,unsigned *,struct stat *);
@@ -1996,27 +2019,16 @@ static void dirsync(const char *folder)
 ** Keyword updates for +FLAGS and -FLAGS
 */
 
-static int addRemoveKeywords1(void *);
-
-static int addRemoveKeywords2(int (*callback_func)(void *, void *),
-			      void *callback_func_arg,
-			      struct storeinfo *storeinfo_s,
-			      int *tryagain);
-
-struct addremove_info {
-	int (*callback_func)(void *, void *);
-	void *callback_func_arg;
-	struct storeinfo *storeinfo_s;
-	int *tryagain;
-};
-
+static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
+			       void *callback_func_arg,
+			       struct storeinfo *storeinfo_s,
+			       int *tryagain);
 
 int addRemoveKeywords(int (*callback_func)(void *, void *),
 		      void *callback_func_arg,
 		      struct storeinfo *storeinfo_s)
 {
 	int tryagain;
-	struct addremove_info ai;
 
 	if (!keywords())
 		return 0;
@@ -2026,29 +2038,21 @@ int addRemoveKeywords(int (*callback_func)(void *, void *),
 		return 0; /* No permission */
 	do
 	{
-		ai.callback_func=callback_func;
-		ai.callback_func_arg=callback_func_arg;
-		ai.storeinfo_s=storeinfo_s;
-		ai.tryagain= &tryagain;
-
-		if (imapmaildirlock(&current_maildir_info,
-				    current_mailbox,
-				    addRemoveKeywords1,
-				    &ai))
+		if (!imapmaildirlock(&current_maildir_info,
+				     current_mailbox,
+				     [&]
+				     {
+					     return addRemoveKeywords2(
+						     callback_func,
+						     callback_func_arg,
+						     storeinfo_s,
+						     &tryagain
+					     );
+				     }))
 			return -1;
 	} while (tryagain);
 
 	return 0;
-}
-
-static int addRemoveKeywords1(void *void_arg)
-{
-	struct addremove_info *ai=(struct addremove_info *)void_arg;
-
-	return addRemoveKeywords2(ai->callback_func,
-				  ai->callback_func_arg,
-				  ai->storeinfo_s,
-				  ai->tryagain);
 }
 
 int doAddRemoveKeywords(unsigned long, int, void *);
@@ -2058,10 +2062,10 @@ struct addRemoveKeywordInfo {
 	struct storeinfo *storeinfo;
 };
 
-static int addRemoveKeywords2(int (*callback_func)(void *, void *),
-			      void *callback_func_arg,
-			      struct storeinfo *storeinfo_s,
-			      int *tryagain)
+static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
+			       void *callback_func_arg,
+			       struct storeinfo *storeinfo_s,
+			       int *tryagain)
 {
 	struct addRemoveKeywordInfo arki;
 	int rc;
@@ -2080,18 +2084,18 @@ static int addRemoveKeywords2(int (*callback_func)(void *, void *),
 	if (rc < 0)
 	{
 		libmail_kwgDestroy(&arki.kwg);
-		return -1;
+		return false;
 	}
 
 	if (rc > 0) /* Race */
 	{
 		libmail_kwgDestroy(&arki.kwg);
 		*tryagain=1;
-		return 0;
+		return true;
 	}
 
 	libmail_kwgDestroy(&arki.kwg);
-	return 0;
+	return true;
 }
 
 int doAddRemoveKeywords(unsigned long n, int uid, void *vp)
@@ -3449,6 +3453,17 @@ static int acl_settable_folder(char *mailbox,
 	return 0;
 }
 
+bool acl_lock(const std::string &maildir,
+	      const std::function< bool() >&callback)
+{
+	struct imapscaninfo ii;
+
+	imapscan_init(&ii);
+	auto rc=imapmaildirlock(&ii, maildir, callback);
+	imapscan_free(&ii);
+	return rc;
+}
+
 int acl_lock(const char *homedir,
 	     int (*func)(void *),
 	     void *void_arg)
@@ -3462,45 +3477,37 @@ int acl_lock(const char *homedir,
 	return rc;
 }
 
-static int do_acl_mod_0(void *);
+static bool do_acl_mod_0(maildir_aclt_list *aclt_list,
+			 struct maildir_info *mi,
+			 const char *identifier,
+			 const char *newrights,
+			 const char **acl_error);
 
-struct do_acl_info {
-	maildir_aclt_list *aclt_list;
-	struct maildir_info *mi;
-	const char *identifier;
-	const char *newrights;
-	const char **acl_error;
-};
-
-
-static int do_acl_mod(maildir_aclt_list *aclt_list,
-		      struct maildir_info *mi,
-		      const char *identifier,
-		      const char *newrights,
-		      const char **acl_error)
+static bool do_acl_mod(maildir_aclt_list *aclt_list,
+		       struct maildir_info *mi,
+		       const char *identifier,
+		       const char *newrights,
+		       const char **acl_error)
 {
-	struct do_acl_info dai;
-
 	*acl_error=NULL;
 
-	dai.aclt_list=aclt_list;
-	dai.mi=mi;
-	dai.identifier=identifier;
-	dai.newrights=newrights;
-	dai.acl_error=acl_error;
-	return acl_lock(mi->homedir, do_acl_mod_0, &dai);
+	return acl_lock(mi->homedir,
+			[&]
+			{
+				return do_acl_mod_0(aclt_list,
+						    mi,
+						    identifier,
+						    newrights,
+						    acl_error);
+			});
 }
 
-static int do_acl_mod_0(void *void_arg)
+static bool do_acl_mod_0(maildir_aclt_list *aclt_list,
+			 struct maildir_info *mi,
+			 const char *identifier,
+			 const char *newrights,
+			 const char **acl_error)
 {
-	struct do_acl_info *dai=
-		(struct do_acl_info *)void_arg;
-	maildir_aclt_list *aclt_list=dai->aclt_list;
-	struct maildir_info *mi=dai->mi;
-	const char *identifier=dai->identifier;
-	const char *newrights=dai->newrights;
-	const char **acl_error=dai->acl_error;
-
 	if (newrights[0] == '+')
 	{
 		maildir_aclt newacl;
@@ -3510,7 +3517,7 @@ static int do_acl_mod_0(void *void_arg)
 				   &newacl, newrights+1) < 0)
 		{
 			maildir_aclt_destroy(&newacl);
-			return -1;
+			return false;
 		}
 
 		if ((oldacl=maildir_aclt_list_lookup(aclt_list, identifier))
@@ -3527,7 +3534,7 @@ static int do_acl_mod_0(void *void_arg)
 
 		{
 			maildir_aclt_destroy(&newacl);
-			return -1;
+			return false;
 		}
 		maildir_aclt_destroy(&newacl);
 	}
@@ -3542,7 +3549,7 @@ static int do_acl_mod_0(void *void_arg)
 				      oldacl, NULL) < 0)
 		{
 			maildir_aclt_destroy(&newacl);
-			return -1;
+			return false;
 		}
 
 		std::string s{newrights+1};
@@ -3567,7 +3574,7 @@ static int do_acl_mod_0(void *void_arg)
 				     acl_error) < 0)
 		{
 			maildir_aclt_destroy(&newacl);
-			return -1;
+			return false;
 		}
 		maildir_aclt_destroy(&newacl);
 	}
@@ -3583,7 +3590,7 @@ static int do_acl_mod_0(void *void_arg)
 		{
 			if (fix_acl_delete2(aclt_list, identifier, newrights)<0)
 			{
-				return -1;
+				return false;
 			}
 		}
 
@@ -3591,11 +3598,11 @@ static int do_acl_mod_0(void *void_arg)
 				     mi->maildir, mi->owner,
 				     acl_error) < 0)
 		{
-			return -1;
+			return false;
 		}
 	}
 
-	return 0;
+	return true;
 }
 
 static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
@@ -3654,8 +3661,8 @@ static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			continue;
 		}
 
-		if (do_acl_mod(&aclt_list, &mi, identifier, curtoken->tokenbuf,
-			       &acl_error) < 0)
+		if (!do_acl_mod(&aclt_list, &mi, identifier, curtoken->tokenbuf,
+				&acl_error))
 		{
 			aclfailed(mailboxes[i].mailbox, acl_error);
 
@@ -5624,9 +5631,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return 0;
 		}
 
-		if (do_acl_mod(&aclt_list, &mi, identifier,
-			       doset ? curtoken->tokenbuf:"",
-			       &acl_error) < 0)
+		if (!do_acl_mod(&aclt_list, &mi, identifier,
+				doset ? curtoken->tokenbuf:"",
+				&acl_error))
 		{
 			writes(tag);
 			writes(acl_error ?
