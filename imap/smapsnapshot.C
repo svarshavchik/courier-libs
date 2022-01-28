@@ -92,9 +92,9 @@ extern void smapword(const char *);
 struct snapshot_list {
 	struct snapshot_list *next;
 
-	char *filename;
-	char *prev;
-	time_t mtime;
+	std::string filename;
+	std::string prev;
+	time_t mtime=0;
 };
 
 /*
@@ -107,7 +107,7 @@ struct snapshot_list {
 static struct snapshot_list *find_next_snapshot(struct snapshot_list *s,
 						const char *n)
 {
-	const char *p, *q;
+	const char *p;
 
 	p=strrchr(n, '/');
 
@@ -116,12 +116,15 @@ static struct snapshot_list *find_next_snapshot(struct snapshot_list *s,
 
 	while (s)
 	{
-		p=s->prev;
-		q=p ? strrchr(p, '/'):NULL;
+		size_t i=s->prev.rfind('/');
 
-		if (q && strcmp(q+1, n) == 0)
-			return s;
+		if (i != s->prev.npos)
+		{
+			++i;
 
+			if (s->prev.substr(i) == n)
+				return s;
+		}
 		s=s->next;
 	}
 	return NULL;
@@ -133,18 +136,15 @@ static struct snapshot_list *find_next_snapshot(struct snapshot_list *s,
 
 static void delete_snapshot(struct snapshot_list *snn)
 {
-	char *p=(char *)malloc(strlen(snapshot_dir)+strlen(snn->filename)+2);
+	std::string n;
 
-	if (p)
-	{
-		strcat(strcat(strcpy(p, snapshot_dir), "/"), snn->filename);
-		unlink(p);
-		free(p);
-	}
+	n.reserve(strlen(snapshot_dir)+snn->filename.size()+1);
 
-	free(snn->filename);
-	free(snn->prev);
-	free(snn);
+	n=snapshot_dir;
+	n+="/";
+	n+=snn->filename;
+	unlink(n.c_str());
+	delete snn;
 }
 
 /*
@@ -519,41 +519,27 @@ int snapshot_init(const char *folder, const char *snapshot)
 				if (sscanf(buf, "%d", &fmt) == 1 &&
 				    fmt == SNAPSHOTVERSION)
 				{
-					snn=(snapshot_list *)malloc(sizeof(*sl));
+					snn=new snapshot_list;
 
-					if (snn) memset(snn, 0, sizeof(*snn));
+					snn->filename=de->d_name;
+					if (p)
+						snn->prev=p;
 
-					if (snn == NULL ||
-					    (snn->filename=strdup(de->d_name))
-					    == NULL ||
-					    (snn->prev=strdup(p ? p:""))
-					    == NULL)
+					snn->mtime=stat_buf.st_mtime;
+
+					for (ptr= &sl; *ptr;
+					     ptr=&(*ptr)->next)
 					{
-						if (snn && snn->filename)
-							free(snn->filename);
-						if (snn)
-							free(snn);
-
-						snn=NULL;
+						if ( (*ptr)->mtime >
+						     snn->mtime)
+							break;
 					}
 
-					if (snn)
-					{
-						snn->mtime=stat_buf.st_mtime;
-
-						for (ptr= &sl; *ptr;
-						     ptr=&(*ptr)->next)
-						{
-							if ( (*ptr)->mtime >
-							     snn->mtime)
-								break;
-						}
-
-						snn->next= *ptr;
-						*ptr=snn;
-					}
 					free(n);
 					n=NULL;
+
+					snn->next= *ptr;
+					*ptr=snn;
 				}
 
 			}
@@ -572,8 +558,8 @@ int snapshot_init(const char *folder, const char *snapshot)
 
 	for (ptr= &sl; *ptr; )
 	{
-		if ((snn=find_next_snapshot(sl, (*ptr)->filename)) &&
-		    find_next_snapshot(sl, snn->filename))
+		if ((snn=find_next_snapshot(sl, (*ptr)->filename.c_str())) &&
+		    find_next_snapshot(sl, snn->filename.c_str()))
 		{
 			snn= *ptr;
 
@@ -620,9 +606,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 	{
 		snn=sl;
 		sl=sl->next;
-		free(snn->filename);
-		free(snn->prev);
-		free(snn);
+		delete snn;
 	}
 	return rc;
 }
