@@ -61,7 +61,7 @@
 #endif
 
 
-extern int keywords();
+extern "C" int keywords();
 
 /*
 ** Implement SMAP snapshots.  A snapshot is implemented, essentially, by
@@ -86,7 +86,7 @@ static char *snapshot_cur;  /* Current snapshot */
 static int index_dirty;
 static int snapshots_enabled;
 
-extern void set_time(const char *tmpname, time_t timestamp);
+extern "C" void set_time(const char *tmpname, time_t timestamp);
 extern void smapword(const char *);
 
 struct snapshot_list {
@@ -133,7 +133,7 @@ static struct snapshot_list *find_next_snapshot(struct snapshot_list *s,
 
 static void delete_snapshot(struct snapshot_list *snn)
 {
-	char *p=malloc(strlen(snapshot_dir)+strlen(snn->filename)+2);
+	char *p=(char *)malloc(strlen(snapshot_dir)+strlen(snn->filename)+2);
 
 	if (p)
 	{
@@ -186,7 +186,7 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 
 	if (p)
 	{
-		*last_snapshot=malloc(strlen(dir)+strlen(p)+2);
+		*last_snapshot=(char *)malloc(strlen(dir)+strlen(p)+2);
 
 		if (!last_snapshot)
 		{
@@ -239,7 +239,7 @@ static int restore_snapshot2(const char *snapshot_dir,
 			     struct imapscaninfo *new_index)
 {
 	unsigned long i;
-	char *p=malloc(strlen(snapshot_dir) + sizeof("/../" IMAPDB));
+	char *p=(char *)malloc(strlen(snapshot_dir) + sizeof("/../" IMAPDB));
 	FILE *courierimapuiddb;
 	int version;
 	unsigned long uidv;
@@ -317,7 +317,7 @@ static int restore_snapshot2(const char *snapshot_dir,
 			    (uid_line=strchr(uid_line, ' ')) != NULL)
 				/* Jackpot */
 			{
-				new_index->msgs[i].filename=
+				new_index->msgs[i].filename=(char *)
 					malloc(strlen(uid_line)+
 					       strlen(flag_buf)+2);
 
@@ -409,7 +409,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 	char *new_snapshot_cur=NULL;
 	char *new_snapshot_last=NULL;
 
-	if ((new_dir=malloc(strlen(folder)+sizeof("/" SNAPSHOTDIR)))
+	if ((new_dir=(char *)malloc(strlen(folder)+sizeof("/" SNAPSHOTDIR)))
 	    == NULL)
 	{
 		write_error_exit(0);
@@ -430,7 +430,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 			return 0;
 		}
 
-		new_snapshot_cur=malloc(strlen(new_dir) +
+		new_snapshot_cur=(char *)malloc(strlen(new_dir) +
 					strlen(snapshot) + 2);
 
 		if (!new_snapshot_cur)
@@ -491,7 +491,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 
 		if (de->d_name[0] == '.') continue;
 
-		n=malloc(strlen(snapshot_dir)+strlen(de->d_name)+2);
+		n=(char *)malloc(strlen(snapshot_dir)+strlen(de->d_name)+2);
 		if (!n) break; /* Furrfu */
 
 		strcat(strcat(strcpy(n, snapshot_dir), "/"), de->d_name);
@@ -519,7 +519,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 				if (sscanf(buf, "%d", &fmt) == 1 &&
 				    fmt == SNAPSHOTVERSION)
 				{
-					snn=malloc(sizeof(*sl));
+					snn=(snapshot_list *)malloc(sizeof(*sl));
 
 					if (snn) memset(snn, 0, sizeof(*snn));
 
@@ -632,7 +632,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 ** take a snapshot.
 */
 
-void snapshot_needed()
+extern "C" void snapshot_needed()
 {
 	index_dirty=1;
 }
@@ -671,7 +671,7 @@ void snapshot_save()
 	q=strrchr(createInfo.tmpname, '/'); /* Always there */
 
 	free(createInfo.newname);
-	createInfo.newname=malloc(strlen(snapshot_dir)+strlen(q)+2);
+	createInfo.newname=(char *)malloc(strlen(snapshot_dir)+strlen(q)+2);
 
 	if (!createInfo.newname)
 	{

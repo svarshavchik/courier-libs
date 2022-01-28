@@ -84,7 +84,7 @@ extern int folder_rename(struct maildir_info *mi1,
 			 struct maildir_info *mi2,
 			 const char **errmsg);
 
-extern "C" int snapshot_init(const char *, const char *);
+extern int snapshot_init(const char *, const char *);
 extern "C" int keywords();
 
 extern unsigned long header_count, body_count;
@@ -98,7 +98,7 @@ extern int addRemoveKeywords(int (*callback_func)(void *, void *),
 extern int doAddRemoveKeywords(unsigned long n, int uid, void *vp);
 
 
-extern "C" void snapshot_select(int);
+void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    struct imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
@@ -204,7 +204,7 @@ static void up(char *p)
 */
 static void smapword_s(const char *w);
 
-extern "C" void smapword(const char *w)
+void smapword(const char *w)
 {
 	writes("\"");
 	smapword_s(w);

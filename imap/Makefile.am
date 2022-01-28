@@ -56,7 +56,7 @@ libimaplogin_la_LIBADD=../tcpd/libspipe.la ../tcpd/libtlsclient.la \
 libimaplogin_la_LDFLAGS=-static
 
 libimapd_la_SOURCES=mainloop.c imaptoken.c imaptoken.h imapwrite.c \
-	imapwrite.h capability.c externalauth.c smap.C smapsnapshot.c
+	imapwrite.h capability.c externalauth.c smap.C smapsnapshot.C
 libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la ../numlib/libnumlib.la \
 	-lcourier-unicode

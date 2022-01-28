@@ -112,17 +112,17 @@ extern void initcapability();
 extern void imapcapability();
 extern int magictrash();
 
-#if SMAP
-int smapflag=0;
-
-extern void snapshot_save();
-extern void snapshot_needed();
-#endif
 #ifdef __cplusplus
 }
 #endif
 
 #if SMAP
+extern "C" {
+	int smapflag=0;
+	extern void snapshot_needed();
+}
+
+extern void snapshot_save();
 extern void smap();
 extern void smap_fetchflags(unsigned long);
 #endif
