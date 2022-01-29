@@ -653,64 +653,54 @@ static void do_listcmd(struct list_hier **head,
 		while (lci.found)
 		{
 			struct list_hier *h=lci.found;
-			struct maildir_info minfo;
-			maildir_aclt_list aclt_list;
+			maildir::aclt_list aclt_list;
 
 			lci.found=h->next;
 
 			vecs[cnt]=h->hier;
 			vecs[cnt+1]=0;
 
-			if (maildir_info_smap_find(&minfo, vecs,
-						   getenv("AUTHENTICATED")) == 0)
+			auto minfo=maildir::info_smap_find(
+				vecs,
+				getenv("AUTHENTICATED")
+			);
+
+			if (minfo)
 			{
-				if (read_acls(&aclt_list, &minfo) == 0)
+				if (read_acls(aclt_list, minfo))
 				{
-					char *acl;
+					auto acl=compute_myrights(aclt_list,
+								  minfo.owner);
 
-					acl=compute_myrights(&aclt_list,
-							     minfo.owner);
-
-					if (acl)
+					if (acl.find(ACL_LOOKUP[0])
+					    == acl.npos)
 					{
-						if (strchr(acl, ACL_LOOKUP[0])
-						    == NULL)
-						{
-							h->flags=LIST_DIRECTORY;
+						h->flags=LIST_DIRECTORY;
 
-							if (hierlist)
-								list(h->hier,
-								     h->hier,
-								     h->flags);
-
-						}
-						else
-							list(h->hier, h->hier,
+						if (hierlist)
+							list(h->hier,
+							     h->hier,
 							     h->flags);
-						free(acl);
+
 					}
 					else
 					{
-						fprintf(stderr,
-							"ERR: Cannot compute"
-							" my access rights"
-							" for %s: %s\n",
-							h->hier,
-							strerror(errno));
+						list(h->hier, h->hier,
+						     h->flags);
 					}
-
-					maildir_aclt_list_destroy(&aclt_list);
-					maildir_info_destroy(&minfo);
 				}
 				else
 				{
 					fprintf(stderr,
 						"ERR: Cannot read ACLs"
 						" for %s(%s): %s\n",
-						minfo.homedir ? minfo.homedir
-						: ".",
-						minfo.maildir ? minfo.maildir
-						: "unknown",
+						(!minfo.homedir.empty()
+						 ? minfo.homedir
+						 : std::string{"."}).c_str(),
+						(!minfo.maildir.empty()
+						 ? minfo.maildir
+						 : std::string{"unknown"}
+						).c_str(),
 						strerror(errno));
 				}
 			}
