@@ -145,6 +145,7 @@ static void delete_snapshot(struct snapshot_list *snn)
 	{
 		strcat(strcat(strcpy(p, snapshot_dir), "/"), snn->filename);
 		unlink(p);
+		free(p);
 	}
 
 	free(snn->filename);
@@ -621,6 +622,14 @@ int snapshot_init(const char *folder, const char *snapshot)
 		--cnt;
 	}
 
+	while (sl)
+	{
+		snn=sl;
+		sl=sl->next;
+		free(snn->filename);
+		free(snn->prev);
+		free(snn);
+	}
 	return rc;
 }
 

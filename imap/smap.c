@@ -687,6 +687,7 @@ static void do_listcmd(struct list_hier **head,
 					}
 
 					maildir_aclt_list_destroy(&aclt_list);
+					maildir_info_destroy(&minfo);
 				}
 				else
 				{
@@ -3141,6 +3142,7 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		maildir_aclt_list_destroy(&aclt_list);
 		return 0;
 	}
+	free(path);
 
 	cnt=0;
 	maildir_aclt_list_enum(&aclt_list,
@@ -3905,6 +3907,8 @@ void smap()
 				if (maildir_info_smap_find(&minfo, fn,
 							   getenv("AUTHENTICATED")) == 0)
 				{
+					maildir_smapfn_free(fn);
+
 					if (minfo.homedir && minfo.maildir)
 					{
 						maildir_aclt_list list;
@@ -3938,6 +3942,7 @@ void smap()
 						{
 							if (q)
 								free(q);
+							maildir_aclt_list_destroy(&list);
 							maildir_info_destroy(&minfo);
 							accessdenied(ACL_DELETEFOLDER);
 							continue;
@@ -3948,6 +3953,10 @@ void smap()
 								   minfo.maildir);
 					}
 					maildir_info_destroy(&minfo);
+				}
+				else
+				{
+					maildir_smapfn_free(fn);
 				}
 			}
 

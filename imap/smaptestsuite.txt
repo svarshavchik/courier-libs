@@ -2059,5 +2059,25 @@
 002053 * EXPUNGE 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202
 002054 * EXPUNGE 103 105 107 109 111 113 115 117 119 121 123 125 127 129 131 133 135 137 139 141 143 145 147 149 151 153 155
 002055 +OK Folder updated
-002056 * BYE Courier-SMAP server shutting down
-002057 +OK LOGOUT completed
+002056 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "c"
+002057 +OK Updated ACLs
+002058 -ERR --error--
+002059 -ERR --error--
+002060 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002061 +OK Updated ACLs
+002062 +OK Folder created
+002063 +OK Folder created
+002064 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
+002065 +OK Updated ACLs
+002066 -ERR --error--
+002067 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002068 +OK Updated ACLs
+002069 +OK Folder deleted
+002070 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
+002071 +OK Updated ACLs
+002072 -ERR --error--
+002073 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002074 +OK Updated ACLs
+002075 +OK Folder deleted
+002076 * BYE Courier-SMAP server shutting down
+002077 +OK LOGOUT completed
