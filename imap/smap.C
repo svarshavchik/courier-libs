@@ -473,6 +473,8 @@ static int smap_find_cb(struct maildir_newshared_enum_cb *cb);
 static int smap_list_cb(struct maildir_newshared_enum_cb *cb);
 static int read_acls(maildir_aclt_list *aclt_list,
 		     struct maildir_info *minfo);
+static bool read_acls(maildir::aclt_list &aclt_list,
+		      maildir::info &minfo);
 
 static void do_listcmd(struct list_hier **head,
 		       struct list_hier **tail,
@@ -830,19 +832,16 @@ static int smap_list_cb(struct maildir_newshared_enum_cb *cb)
 ** for immediate creation.
 */
 
-static char *getCreateFolder_int(char **ptr, char *need_perms)
+static std::string getCreateFolder_int(char **ptr, char *need_perms)
 {
 	char **fn;
-	char *n;
-	struct maildir_info minfo;
 	size_t i;
 	char *save;
-	maildir_aclt_list aclt_list;
+	maildir::aclt_list aclt_list;
 
 	fn=fn_fromwords(ptr);
 	if (!fn)
-		return NULL;
-
+		return "";
 
 	if (need_perms)
 	{
@@ -854,91 +853,72 @@ static char *getCreateFolder_int(char **ptr, char *need_perms)
 			*need_perms=0;
 			maildir_smapfn_free(fn);
 			errno=EINVAL;
-			return NULL;
+			return "";
 		}
 
 		save=fn[--i];
 		fn[i]=NULL;
-		if (maildir_info_smap_find(&minfo, fn,
-					   getenv("AUTHENTICATED")) < 0)
+
+		auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
+
+		if (!minfo)
 		{
 			fn[i]=save;
 			maildir_smapfn_free(fn);
-			return NULL;
+			return "";
 		}
 
 		fn[i]=save;
 
-		if (read_acls(&aclt_list, &minfo))
+		if (!read_acls(aclt_list, minfo))
 		{
 			maildir_smapfn_free(fn);
-			maildir_info_destroy(&minfo);
-			return NULL;
+			return "";
 		}
 
-		save=compute_myrights(&aclt_list, minfo.owner);
-		maildir_aclt_list_destroy(&aclt_list);
+		auto save=compute_myrights(aclt_list, minfo.owner);
 
 		for (i=0; need_perms[i]; i++)
-			if (save == NULL || strchr(save, need_perms[i])==NULL)
+			if (save.find(need_perms[i]) == save.npos)
 			{
-				if (save)
-					free(save);
 				maildir_smapfn_free(fn);
-				maildir_info_destroy(&minfo);
 				*need_perms=0;
 				errno=EPERM;
-				return NULL;
+				return "";
 			}
-
-		if (save)
-			free(save);
-
-		maildir_info_destroy(&minfo);
 	}
 
-
-	if (maildir_info_smap_find(&minfo, fn, getenv("AUTHENTICATED")) < 0)
-	{
-		maildir_smapfn_free(fn);
-		return NULL;
-	}
-
+	auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
 	maildir_smapfn_free(fn);
 
-	if (minfo.homedir == NULL || minfo.maildir == NULL)
+	if (!minfo)
+		return "";
+
+	if (minfo.homedir.empty() || minfo.maildir.empty())
 	{
-		maildir_info_destroy(&minfo);
 		errno=ENOENT;
-		return NULL;
+		return "";
 	}
 
-	n=maildir_name2dir(minfo.homedir, minfo.maildir);
+	auto n=maildir::name2dir(minfo.homedir, minfo.maildir);
 
 	if (need_perms && strchr(need_perms, ACL_CREATE[0]))
 	{
 		/* Initialize the ACL structures */
 
-		if (read_acls(&aclt_list, &minfo) == 0)
-			maildir_aclt_list_destroy(&aclt_list);
+		(void)read_acls( aclt_list, minfo);
 	}
-
-	maildir_info_destroy(&minfo);
 
 	return n;
 }
 
-static char *getCreateFolder(char **ptr, char *perms)
+static std::string getCreateFolder(char **ptr, char *perms)
 {
-	char *p=getCreateFolder_int(ptr, perms);
+	auto p=getCreateFolder_int(ptr, perms);
 
-	if (p && strncmp(p, "./", 2) == 0)
-	{
-		char *q=p+2;
+	if (p.substr(0, 2) == "./")
+		p=p.substr(2);
 
-		while ((q[-2]=*q) != 0)
-			q++;
-	}
 	return p;
 }
 
@@ -1003,6 +983,58 @@ static int read_acls(maildir_aclt_list *aclt_list,
 		}
 	}
 	return rc;
+}
+
+
+static bool read_acls(maildir::aclt_list &aclt_list,
+		      maildir::info &minfo)
+{
+	if (minfo.homedir.empty() || minfo.maildir.empty())
+	{
+		if (minfo.mailbox_type == MAILBOXTYPE_NEWSHARED)
+		{
+			/* Intermediate node in public hier */
+
+			aclt_list.add("anyone", ACL_LOOKUP);
+			return true;
+		}
+
+		return false;
+	}
+
+	auto q=maildir::name2dir(".", minfo.maildir);
+	if (q.empty())
+	{
+		fprintf(stderr, "ERR: Internal error"
+			" in read_acls(%s)\n", minfo.maildir.c_str());
+		return false;
+	}
+
+	auto rc=aclt_list.read(minfo.homedir,
+			       q.substr(0, 2) == "./"
+			       ? q.substr(2):q);
+
+	if (current_mailbox)
+	{
+		q=maildir::name2dir(minfo.homedir, minfo.maildir);
+
+		if (!q.empty())
+		{
+			if (q == current_mailbox)
+			{
+				auto r=compute_myrights(aclt_list,
+							minfo.owner);
+
+				if (r != current_mailbox_acl)
+				{
+					free(current_mailbox_acl);
+					current_mailbox_acl=
+						my_strdup(r.c_str());
+				}
+			}
+		}
+	}
+	return rc == 0;
 }
 
 static char *getExistingFolder_int(char **ptr,
@@ -3785,14 +3817,13 @@ void smap()
 
 		if (strcmp(p, "CREATE") == 0)
 		{
-			char *t;
-
 			strcpy(rights_buf, ACL_CREATE);
-			t=getCreateFolder(&ptr, rights_buf);
 
-			if (t)
+			auto t=getCreateFolder(&ptr, rights_buf);
+
+			if (!t.empty())
 			{
-				if (mdcreate(t))
+				if (mdcreate(t.c_str()))
 				{
 					writes("-ERR Cannot create folder: ");
 					writes(strerror(errno));
@@ -3802,7 +3833,6 @@ void smap()
 				{
 					writes("+OK Folder created\n");
 				}
-				free(t);
 			}
 			else
 			{
@@ -3820,15 +3850,12 @@ void smap()
 
 		if (strcmp(p, "MKDIR") == 0)
 		{
-			char *t;
-
 			strcpy(rights_buf, ACL_CREATE);
-			t=getCreateFolder(&ptr, rights_buf);
+			auto t=getCreateFolder(&ptr, rights_buf);
 
-			if (t)
+			if (!t.empty())
 			{
 				writes("+OK Folder created\n");
-				free(t);
 			}
 			else if (rights_buf[0] == 0)
 				accessdenied(ACL_CREATE);
@@ -3843,15 +3870,12 @@ void smap()
 
 		if (strcmp(p, "RMDIR") == 0)
 		{
-			char *t;
-
 			strcpy(rights_buf, ACL_DELETEFOLDER);
-			t=getCreateFolder(&ptr, rights_buf);
+			auto t=getCreateFolder(&ptr, rights_buf);
 
-			if (t)
+			if (!t.empty())
 			{
 				writes("+OK Folder deleted\n");
-				free(t);
 			}
 			else if (rights_buf[0] == 0)
 				accessdenied(ACL_DELETEFOLDER);
