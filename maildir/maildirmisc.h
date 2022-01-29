@@ -16,6 +16,7 @@
 
 #ifdef  __cplusplus
 #include	<string>
+#include	<functional>
 
 namespace maildir {
 #if 0
@@ -29,6 +30,9 @@ namespace maildir {
 
 std::string shareddir(const std::string &,		/* maildir */
 		      const std::string &);		/* folder */
+
+void list(const std::string &maildir,
+	  const std::function<void (const std::string &)> &callback);
 
 #if 0
 {

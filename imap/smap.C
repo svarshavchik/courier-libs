@@ -91,6 +91,8 @@ extern unsigned long header_count, body_count;
 
 extern char *compute_myrights(maildir_aclt_list *l,
 			      const char *l_owner);
+extern std::string compute_myrights(maildir::aclt_list &l,
+				    const std::string &l_owner);
 
 extern int addRemoveKeywords(int (*callback_func)(void *, void *),
 			     void *callback_func_arg,
@@ -345,10 +347,10 @@ struct list_callback_utf8 {
 	const char *owner;
 };
 
-static void list_callback(const char *f, void *vp)
+static void list_callback(const char *f,
+			  list_callback_utf8 *utf8)
 {
-	struct list_callback_utf8 *utf8=(struct list_callback_utf8 *)vp;
-	maildir_aclt_list l;
+	maildir::aclt_list l;
 
 	char **fn=maildir_smapfn_fromutf8(f);
 
@@ -358,24 +360,23 @@ static void list_callback(const char *f, void *vp)
 		return;
 	}
 
-	if (maildir_acl_read(&l, utf8->homedir, strchr(f, '.')) == 0)
+	f=strchr(f, '.');
+	if (!f)
+		f="";
+
+	if (l.read(utf8->homedir, f) == 0)
 	{
-		char *myrights;
-		char *owner=(char *)malloc(sizeof("user=")+strlen(utf8->owner));
+		std::string owner;
 
-		if (!owner)
-			write_error_exit(0);
+		owner.reserve(strlen(utf8->owner)+5);
 
-		strcat(strcpy(owner, "user="), utf8->owner);
-		myrights=compute_myrights(&l, owner);
-		free(owner);
+		owner="user=";
+		owner += utf8->owner;
 
-		if (myrights && strchr(myrights, ACL_LOOKUP[0]) != NULL)
+		auto myrights=compute_myrights(l, owner);
+
+		if (myrights.find(ACL_LOOKUP[0]) != myrights.npos)
 			(*utf8->callback_func)(f, fn, utf8->callback_arg);
-		if (myrights)
-			free(myrights);
-
-		maildir_aclt_list_destroy(&l);
 	}
 	maildir_smapfn_free(fn);
 }
@@ -568,8 +569,15 @@ static void do_listcmd(struct list_hier **head,
 				list_utf8_info.homedir=d;
 				list_utf8_info.owner=p->hier;
 
-				maildir_list(d, &list_callback,
-					     &list_utf8_info);
+				maildir::list(d,
+					      [&]
+					      (const std::string &name)
+					      {
+						      list_callback(
+							      name.c_str(),
+							      &list_utf8_info
+						      );
+					      });
 				free(d);
 				curcache=NULL;
 				break;
@@ -605,8 +613,13 @@ static void do_listcmd(struct list_hier **head,
 		{
 			list_utf8_info.homedir=".";
 			list_utf8_info.owner=getenv("AUTHENTICATED");
-			maildir_list(".", &list_callback,
-				     &list_utf8_info);
+			maildir::list(".",
+				      [&]
+				      (const std::string &name)
+				      {
+					      list_callback(name.c_str(),
+							    &list_utf8_info);
+				      });
 		}
 
 		for (cnt=0, p= *head; p; p=p->next)
@@ -777,7 +790,13 @@ static int smap_list_cb(struct maildir_newshared_enum_cb *cb)
 	lci->hier=NULL;
 	h=lci->found;
 	lci->found=NULL;
-	maildir_list(d, &list_callback, list_utf8_info);
+	maildir::list(d,
+		      [&]
+		      (const std::string &name)
+		      {
+			      list_callback(name.c_str(),
+					    list_utf8_info);
+		      });
 	free(d);
 
 	if (!lci->found)

@@ -1,5 +1,5 @@
 /*
-** Copyright 2002 S. Varshavchik.
+** Copyright 2002-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -39,44 +39,53 @@
 
 #include	"maildirmisc.h"
 
-void maildir_list(const char *maildir,
-		  void (*func)(const char *, void *),
-		  void *voidp)
+void maildir::list(const std::string &maildir,
+		   const std::function<void (const std::string &)> &callback)
 {
-	DIR *dirp=opendir(maildir);
+	DIR *dirp=opendir(maildir.c_str());
 	struct dirent *de;
 
 	while (dirp && (de=readdir(dirp)) != NULL)
 	{
-		char *p;
-
 		if (strcmp(de->d_name, "..") == 0)
 			continue;
 
 		if (de->d_name[0] != '.')
 			continue;
 
-		if ((p=malloc(strlen(maildir) + strlen(de->d_name)+20))
-		    == NULL)
-			continue;
+		std::string p;
 
-		strcat(strcat(strcat(strcpy(p, maildir), "/"), de->d_name),
-		       "/cur/.");
+		p.reserve(maildir.size()+strlen(de->d_name)+20);
 
-		if (access(p, X_OK))
+		p=maildir;
+		p+="/";
+		p+=de->d_name;
+		p+="/cur/.";
+
+		if (access(p.c_str(), X_OK))
 		{
-			free(p);
 			continue;
 		}
 
-		strcpy(p, INBOX);
+		p=INBOX;
 
 		if (strcmp(de->d_name, "."))
-			strcat(p, de->d_name);
+			p += de->d_name;
 
-		(*func)(p, voidp);
-		free(p);
+		callback(p);
 	}
 	if (dirp)
 		closedir(dirp);
+}
+
+void maildir_list(const char *maildir,
+		  void (*func)(const char *, void *),
+		  void *voidp)
+{
+	maildir::list(maildir,
+		      [&]
+		      (const std::string &s)
+		      {
+			      (*func)(s.c_str(), voidp);
+		      });
 }

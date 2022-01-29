@@ -41,7 +41,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirinfocpp.C \
 	maildirkeywords.c maildirkeywords2.c maildirkeywords3.c \
 	maildirkeywords4.cpp \
-	maildirkeywords.h maildirlist.c maildirlock.c \
+	maildirkeywords.h maildirlist.C maildirlock.c \
 	maildirmake2.c \
 	maildirnewshared.c maildirnewshared.h maildirnewshared2.c \
 	maildiropen.c maildirparsequota.c \
