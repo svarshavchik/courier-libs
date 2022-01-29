@@ -2397,11 +2397,11 @@ extern "C" void bye()
 
 char *get_myrightson(const char *mailbox);
 
-static void list_acl(const char *mailbox,
-		     maildir_aclt_list *);
-static int get_acllist(maildir_aclt_list *l,
-		       const char *mailbox,
-		       char **computed_mailbox_owner);
+static void list_acl(const std::string &,
+		     maildir::aclt_list &);
+
+static bool get_acllist(maildir::aclt_list &l,
+			const std::string &mailbox);
 
 static void list_myrights(const char *mailbox,
 			  const char *myrights);
@@ -2417,7 +2417,7 @@ static int list_callback(const char *hiersep,
 {
 	const char *sep="";
 	const char *cmd=(const char *)void_arg;
-	maildir_aclt_list l;
+	maildir::aclt_list l;
 
 	char *myrights=NULL;
 
@@ -2482,7 +2482,7 @@ static int list_callback(const char *hiersep,
 
 	if (flags & LIST_ACL)
 	{
-		if (get_acllist(&l, mailbox, NULL) < 0)
+		if (!get_acllist(l, mailbox))
 		{
 			fprintf(stderr,
 				"ERR: Error reading ACLs for %s: %s\n",
@@ -2517,7 +2517,7 @@ static int list_callback(const char *hiersep,
 	{
 		writes(" (");
 		if (flags & LIST_ACL)
-			list_acl(mailbox, &l);
+			list_acl(mailbox, l);
 		if (flags & LIST_MYRIGHTS)
 			list_myrights(mailbox, myrights);
 		if (flags & LIST_POSTADDRESS)
@@ -2528,8 +2528,6 @@ static int list_callback(const char *hiersep,
 	writes("\r\n");
 	if (myrights)
 		free(myrights);
-	if (flags & LIST_ACL)
-		maildir_aclt_list_destroy(&l);
 
 	return 0;
 }
@@ -2730,97 +2728,94 @@ static void myrights()
 	writes("\"] ACL\r\n");
 }
 
-static int list_acl_cb(const char *ident,
-		       const char *acl,
-		       void *cb_arg);
-
 char *compute_myrights(maildir_aclt_list *l,
 		       const char *l_owner);
+std::string compute_myrights(maildir::aclt_list &l,
+			     const std::string &l_owner);
 
-static int get_acllist(maildir_aclt_list *l,
-		       const char *p,
-		       char **computed_mailbox_owner)
+static bool get_acllist(maildir::aclt_list &l,
+			const std::string &folder,
+			std::string &computed_mailbox_owner)
 {
-	int rc;
-
-	char *dummy_mailbox_owner=NULL;
-
-	if (!computed_mailbox_owner)
-		computed_mailbox_owner= &dummy_mailbox_owner;
-
-	auto mi=maildir::info_imap_find(p, getenv("AUTHENTICATED"));
+	auto mi=maildir::info_imap_find(folder, getenv("AUTHENTICATED"));
 
 	if (!mi)
-		return -1;
+		return false;
 
 	std::string v;
 
 	if (!mi.homedir.empty() && !mi.maildir.empty())
 	{
-		rc=acl_read_folder(l, mi.homedir.c_str(), mi.maildir.c_str());
+		if (!acl_read_folder(l, mi.homedir, mi.maildir))
+			return false;
+
 		v=maildir::name2dir(mi.homedir, mi.maildir);
 	}
 	else if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
-		rc=acl_read_folder(l, ".", p); /* It handles it */
+		if (!acl_read_folder(l, ".", folder)) /* It handles it */
+			return false;
 	}
 	else if (mi.mailbox_type == MAILBOXTYPE_NEWSHARED)
 	{
 		/* Intermediate #shared node.  Punt */
 
-		maildir_aclt_list_init(l);
-		rc=0;
+		l.clear();
 
-		maildir_aclt_list_add(l, "anyone",
-				      ACL_LOOKUP, NULL);
+		l.add("anyone", ACL_LOOKUP);
 	}
 	else
 	{
 		/* Unknown mailbox type, no ACLs */
 
-		maildir_aclt_list_init(l);
-		rc=0;
+		l.clear();
 	}
 
-	if (rc)
-	{
-		return -1;
-	}
-
-	*computed_mailbox_owner=my_strdup(mi.owner.c_str());
+	computed_mailbox_owner=mi.owner;
 
 	/* Detect if ACLs on the currently-open folder have changed */
 
-	if (rc == 0 && current_mailbox &&
+	if (current_mailbox &&
 #if SMAP
 	    !smapflag &&
 #endif
 
 	    !v.empty() && v == current_mailbox)
 	{
-		char *new_acl=compute_myrights(l, *computed_mailbox_owner);
+		auto new_acl=compute_myrights(l, computed_mailbox_owner);
 
-		if (new_acl && strcmp(new_acl, current_mailbox_acl))
+		if (new_acl != current_mailbox_acl)
 		{
-			free(current_mailbox_acl);
-			current_mailbox_acl=new_acl;
-			new_acl=NULL;
+			if (current_mailbox_acl)
+				free(current_mailbox_acl);
+			if (!(current_mailbox_acl=strdup(new_acl.c_str())))
+				write_error_exit(0);
 			myrights();
 		}
-
-		if (new_acl)
-			free(new_acl);
 	}
-	if (dummy_mailbox_owner)
-		free(dummy_mailbox_owner);
-	return rc;
+	return true;
 }
 
-static void list_acl(const char *mailbox,
-		     maildir_aclt_list *l)
+static bool get_acllist(maildir::aclt_list &l,
+			const std::string &folder)
+{
+	std::string ignore;
+
+	return get_acllist(l, folder, ignore);
+}
+
+static void list_acl(const std::string &mailbox,
+		     maildir::aclt_list &l)
 {
 	writes("(\"ACL\" (");
-	maildir_aclt_list_enum(l, list_acl_cb, NULL);
+	for (auto &acl:l)
+	{
+		writes("(\"");
+		writeqs(acl.identifier.c_str());
+		writes("\" \"");
+		writeacl(acl.acl.c_str());
+		writes("\")");
+	}
 	writes("))");
 }
 
@@ -2861,18 +2856,6 @@ static void writeacl(const char *aclstr)
 	free(p);
 }
 
-static int list_acl_cb(const char *ident,
-		       const char *acl,
-		       void *cb_arg)
-{
-	writes("(\"");
-	writeqs(ident);
-	writes("\" \"");
-	writeacl(acl);
-	writes("\")");
-	return 0;
-}
-
 static void writeacl1(char *p)
 {
 	char *q, *r;
@@ -2899,55 +2882,15 @@ static void writeacl1(char *p)
 	writeqs(p);
 }
 
-static int getacl_cb(const char *ident,
-		     const char *acl,
-		     void *cb_arg)
-{
-	char *p;
-	int isneg=0;
-
-	if (*ident == '-')
-	{
-		isneg=1;
-		++ident;
-	}
-
-	if (strchr(ident, '='))
-	{
-		if (strncmp(ident, "user=", 5))
-			return 0; /* Hear no evil */
-		ident += 5;
-	}
-
-	writes(" \"");
-	if (isneg)
-		writes("-");
-	writeqs(ident);
-	writes("\" \"");
-
-
-	p=my_strdup(acl);
-
-	writeacl1(p);
-
-	free(p);
-	writes("\"");
-	return 0;
-}
-
 char *get_myrightson(const char *mailbox)
 {
-	maildir_aclt_list l;
-	char *mailbox_owner;
-	char *rights;
+	maildir::aclt_list l;
+	std::string mailbox_owner;
 
-	if (get_acllist(&l, mailbox, &mailbox_owner) < 0)
+	if (!get_acllist(l, mailbox, mailbox_owner))
 		return NULL;
 
-	rights=compute_myrights(&l, mailbox_owner);
-	free(mailbox_owner);
-	maildir_aclt_list_destroy(&l);
-	return rights;
+	return my_strdup(compute_myrights(l, mailbox_owner).c_str());
 }
 
 char *get_myrightson_folder(const char *folder)
@@ -2975,6 +2918,25 @@ char *compute_myrights(maildir_aclt_list *l, const char *l_owner)
 	a=my_strdup(maildir_aclt_ascstr(&aa));
 	maildir_aclt_destroy(&aa);
 	return a;
+}
+
+std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
+{
+	maildir::aclt aa{""};
+
+	const char *user=getenv("AUTHENTICATED");
+	const char *options=getenv("OPTIONS");
+
+	if (!options)
+		options="";
+
+	if (!user)
+		user="";
+
+	if (l.computerights(aa, user, l_owner, options) < 0)
+		return "";
+
+	return aa;
 }
 
 extern "C" void check_rights(const char *mailbox, char *rights_buf)
@@ -5660,8 +5622,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "GETACL") == 0)
 	{
-		maildir_aclt_list l;
-		char *mailbox_owner;
+		maildir::aclt_list l;
 		char *f;
 
 		curtoken=nexttoken_nouc();
@@ -5688,32 +5649,61 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 		}
 
-		if (get_acllist(&l, f,
-				&mailbox_owner) < 0)
+		if (!get_acllist(l, f))
 		{
 			free(f);
 			writes(tag);
 			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
 			return 0;
 		}
-		free(mailbox_owner);
 
 		writes("* ACL \"");
 		writemailbox(f);
 		writes("\"");
-		maildir_aclt_list_enum(&l, getacl_cb, NULL);
+		for (const auto &acl:l)
+		{
+			auto ident=acl.identifier.c_str();
+			bool isneg=false;
+
+			if (*ident == '-')
+			{
+				isneg=true;
+				++ident;
+			}
+
+			if (strchr(ident, '='))
+			{
+				if (strncmp(ident, "user=", 5))
+					continue; /* Hear no evil */
+				ident += 5;
+			}
+
+			writes(" \"");
+			if (isneg)
+				writes("-");
+			writeqs(ident);
+			writes("\" \"");
+
+
+			auto p=my_strdup(acl.acl.c_str());
+
+			writeacl1(p);
+
+			free(p);
+			writes("\"");
+		}
+
 		writes("\r\n");
 		writes(tag);
 		writes(" OK GETACL completed.\r\n");
-		maildir_aclt_list_destroy(&l);
 		free(f);
 		return 0;
 	}
 
 	if (strcmp(curtoken->tokenbuf, "LISTRIGHTS") == 0)
 	{
-		maildir_aclt_list l;
-		char *mailbox_owner;
+		maildir::aclt_list l;
+		std::string mailbox_owner;
 
 		curtoken=nexttoken_nouc();
 
@@ -5749,8 +5739,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			free(myrights);
 		}
 
-		if (get_acllist(&l, mb.c_str(),
-				&mailbox_owner) < 0)
+		if (!get_acllist(l, mb, mailbox_owner))
 		{
 			writes(tag);
 			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
@@ -5763,8 +5752,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		case IT_NUMBER:
 			break;
 		default:
-			free(mailbox_owner);
-			maildir_aclt_list_destroy(&l);
 			return -1;
 		}
 
@@ -5776,8 +5763,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (curtoken->tokenbuf[0] == '-' &&
 		    (MAILDIR_ACL_ANYONE(curtoken->tokenbuf+1) ||
-		     (strncmp(mailbox_owner, "user=", 5) == 0 &&
-		      strcmp(curtoken->tokenbuf+1, mailbox_owner+5) == 0)))
+		     (mailbox_owner.substr(0, 5) == "user=" &&
+		      mailbox_owner.substr(5) == curtoken->tokenbuf+1)))
 		{
 			writes(" \"\" "
 			       ACL_CREATE " "
@@ -5788,8 +5775,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			       ACL_SEEN " "
 			       ACL_WRITE "\r\n");
 		}
-		else if (strncmp(mailbox_owner, "user=", 5) == 0 &&
-			 strcmp(curtoken->tokenbuf, mailbox_owner+5) == 0)
+		else if (mailbox_owner.substr(0, 5) == "user=" &&
+			 mailbox_owner.substr(5) == curtoken->tokenbuf)
 		{
 			writes(" \""
 			       ACL_ADMINISTER
@@ -5817,8 +5804,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 		writes(tag);
 		writes(" OK LISTRIGHTS completed.\r\n");
-		free(mailbox_owner);
-		maildir_aclt_list_destroy(&l);
 		return 0;
 	}
 
