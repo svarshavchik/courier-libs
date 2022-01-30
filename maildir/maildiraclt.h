@@ -16,6 +16,7 @@
 #include	<string>
 #include	<vector>
 #include	<functional>
+#include	<utility>
 
 namespace maildir {
 #if 0
@@ -29,7 +30,21 @@ namespace maildir {
 
 struct aclt : public std::string {
 
-	aclt(const char *);
+	template<typename ...Args>
+	aclt(Args && ...args)
+		: std::string{std::forward<Args>(args)...}
+	{
+		fixup();
+	}
+
+	aclt(const aclt &)=default;
+
+	aclt(aclt &&)=default;
+
+	aclt &operator=(const aclt &)=default;
+
+	aclt &operator=(aclt &&)=default;
+
 	~aclt();
 
 	// Add or remove access chars.
@@ -65,9 +80,12 @@ struct aclt_list : std::vector<aclt_node> {
 
 	void add(const std::string &identifier, const aclt &acl);
 
-	/* Remove an identifier */
+	// Remove an identifier
 
 	void del(const std::string &identifier);
+
+	// Find an entry for the identifier
+	iterator lookup(const std::string &identifier);
 
 	aclt_list();
 	~aclt_list();

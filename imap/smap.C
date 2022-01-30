@@ -126,7 +126,7 @@ extern "C" void fetchflags(unsigned long);
 extern bool acl_lock(const std::string &maildir,
 		     const std::function< bool() >&callback);
 
-extern void aclminimum(const char *);
+extern void aclminimum(const std::string &);
 
 extern "C" struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
 extern "C" FILE *open_cached_fp(unsigned long);
@@ -2924,14 +2924,7 @@ static void dosetdeleteacl(setacl_info &sainfo, bool dodelete)
 		{
 			maildir::aclt newacl{action+1};
 
-			auto iter=std::find_if(
-				aclt_list.begin(),
-				aclt_list.end(),
-				[&]
-				(const maildir::aclt_node &n)
-				{
-					return n.identifier == identifier;
-				});
+			auto iter=aclt_list.lookup(identifier);
 
 			if (iter != aclt_list.end())
 			{
@@ -2944,14 +2937,7 @@ static void dosetdeleteacl(setacl_info &sainfo, bool dodelete)
 
 		if (*action == '-')
 		{
-			auto iter=std::find_if(
-				aclt_list.begin(),
-				aclt_list.end(),
-				[&]
-				(const maildir::aclt_node &n)
-				{
-					return n.identifier == identifier;
-				});
+			auto iter=aclt_list.lookup(identifier);
 
 			if (iter == aclt_list.end())
 				continue;
@@ -2994,7 +2980,7 @@ static void dosetdeleteacl(setacl_info &sainfo, bool dodelete)
 			writes("* ACLMINIMUM ");
 			writes(err_failedrights.c_str());
 			writes(" ");
-			aclminimum(err_failedrights.c_str());
+			aclminimum(err_failedrights);
 			writes("\n");
 		}
 		writes("-ERR ACL update failed\n");

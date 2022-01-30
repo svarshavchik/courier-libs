@@ -36,11 +36,6 @@
 
 int maildir_acl_disabled=0;
 
-maildir::aclt::aclt(const char *p) : std::string{p}
-{
-	fixup();
-}
-
 maildir::aclt::~aclt()=default;
 
 maildir::aclt &maildir::aclt::operator+=(const std::string &s)
@@ -164,6 +159,18 @@ const char *maildir_aclt_ascstr(const maildir_aclt *aclt)
 }
 
 /* -------------------------------------------------------------------- */
+
+maildir::aclt_list::iterator maildir::aclt_list::lookup(
+	const std::string &identifier
+)
+{
+	return std::find_if(begin(), end(),
+			    [&]
+			    (const aclt_node &n)
+			    {
+				    return n.identifier == identifier;
+			    });
+}
 
 void maildir::aclt_list::add(const std::string &identifier, const aclt &acl)
 {
