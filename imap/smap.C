@@ -2940,8 +2940,17 @@ static int getacl(const char *ident,
 }
 
 struct setacl_info {
-	struct maildir_info minfo;
+	maildir::info minfo;
 	char **ptr;
+
+	setacl_info(char **fn, char **ptr)
+		: minfo{
+				maildir::info_smap_find(
+					fn, getenv("AUTHENTICATED")
+				)
+			}, ptr{ptr}
+	{
+	}
 };
 
 static int dosetdeleteacl(void *cb_arg, int);
@@ -2958,17 +2967,14 @@ static int deleteacl(void *cb_arg)
 
 static int dosetdeleteacl(void *cb_arg, int dodelete)
 {
-	struct setacl_info *sainfo=(struct setacl_info *)cb_arg;
-	char *q;
+	setacl_info *sainfo=reinterpret_cast<setacl_info *>(cb_arg);
 	int cnt;
 	const char *identifier;
 	const char *action;
-	const char *err_failedrights;
-	char *path;
 
-	maildir_aclt_list aclt_list;
+	maildir::aclt_list aclt_list;
 
-	if (read_acls(&aclt_list, &sainfo->minfo) < 0)
+	if (!read_acls(aclt_list, sainfo->minfo))
 	{
 		writes("-ERR Unable to read existing ACLS: ");
 		writes(strerror(errno));
@@ -2976,24 +2982,20 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		return 0;
 	}
 
-	q=compute_myrights(&aclt_list,
-			   sainfo->minfo.owner);
+	auto q=compute_myrights(aclt_list,
+				sainfo->minfo.owner);
 
-	if (!q || !strchr(q, ACL_ADMINISTER[0]))
+	if (q.find(ACL_ADMINISTER[0]) == q.npos)
 	{
-		if (q) free(q);
-		maildir_aclt_list_destroy(&aclt_list);
 		accessdenied(ACL_ADMINISTER);
 		return 0;
 	}
-
-	free(q);
 
 	while (*(identifier=getword(sainfo->ptr)))
 	{
 		if (dodelete)
 		{
-			maildir_aclt_list_del(&aclt_list, identifier);
+			aclt_list.del(identifier);
 			continue;
 		}
 
@@ -3001,130 +3003,97 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 
 		if (*action == '+')
 		{
-			maildir_aclt newacl;
-			const char *oldacl;
+			maildir::aclt newacl{action+1};
 
-			if (maildir_aclt_init(&newacl,
-					      action+1,
-					      NULL) < 0)
+			auto iter=std::find_if(
+				aclt_list.begin(),
+				aclt_list.end(),
+				[&]
+				(const maildir::aclt_node &n)
+				{
+					return n.identifier == identifier;
+				});
+
+			if (iter != aclt_list.end())
 			{
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
+				newacl += iter->acl;
 			}
 
-
-			oldacl=maildir_aclt_list_lookup(
-				&aclt_list,
-				identifier
-			);
-			if (oldacl)
-			{
-				maildir_aclt_add(&newacl,
-						 oldacl, NULL);
-			}
-
-			maildir_aclt_list_add(&aclt_list, identifier, NULL,
-					      &newacl);
-
-			maildir_aclt_destroy(&newacl);
+			aclt_list.add(identifier, newacl);
 			continue;
 		}
 
 		if (*action == '-')
 		{
-			maildir_aclt newacl;
-			const char *oldacl;
+			auto iter=std::find_if(
+				aclt_list.begin(),
+				aclt_list.end(),
+				[&]
+				(const maildir::aclt_node &n)
+				{
+					return n.identifier == identifier;
+				});
 
-			oldacl=maildir_aclt_list_lookup(&aclt_list,
-							identifier
-			);
-
-			if (!oldacl)
+			if (iter == aclt_list.end())
 				continue;
 
-			if (maildir_aclt_init(&newacl,
-					      oldacl, NULL) < 0)
-			{
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
-			}
+			maildir::aclt newacl{iter->acl};
 
+			newacl -= action+1;
 
-			maildir_aclt_del(&newacl, action+1, NULL);
-
-			if (strlen(maildir_aclt_ascstr(&newacl))
-			    == 0)
-			{
-				maildir_aclt_list_del(&aclt_list, identifier);
-			}
+			if (newacl.empty())
+				aclt_list.del(identifier);
 			else
-			{
-				maildir_aclt_list_add(&aclt_list,
-						      identifier,
-						      NULL,
-						      &newacl);
-			}
+				aclt_list.add(identifier, newacl);
 
-			maildir_aclt_destroy(&newacl);
 			continue;
 		}
 
 		if (strlen(action) == 0)
 		{
-			maildir_aclt_list_del(&aclt_list,
-					      identifier);
+			aclt_list.del(identifier);
 		}
 		else
 		{
-			maildir_aclt_list_add(&aclt_list,
-					      identifier,
-					      action, NULL);
+			aclt_list.add(identifier, action);
 		}
 	}
 
-	path=maildir_name2dir(".", sainfo->minfo.maildir);
+	auto path=maildir::name2dir(".", sainfo->minfo.maildir);
 
-	err_failedrights=NULL;
-	if (!path ||
-	    maildir_acl_write(&aclt_list, sainfo->minfo.homedir,
-			      path[0] == '.' && path[1] == '/'
-			      ? path+2:path,
-			      sainfo->minfo.owner,
-			      &err_failedrights))
+	std::string err_failedrights;
+
+	if (!path.empty() &&
+	    aclt_list.write(sainfo->minfo.homedir,
+			    path.substr(0, 2) == "./"
+			    ? path.substr(2):path,
+			    sainfo->minfo.owner,
+			    err_failedrights))
 	{
-		if (path)
-			free(path);
-
-		if (err_failedrights)
+		if (!err_failedrights.empty())
 		{
 			writes("* ACLMINIMUM ");
-			writes(err_failedrights);
+			writes(err_failedrights.c_str());
 			writes(" ");
-			aclminimum(err_failedrights);
+			aclminimum(err_failedrights.c_str());
 			writes("\n");
 		}
 		writes("-ERR ACL update failed\n");
-		maildir_aclt_list_destroy(&aclt_list);
 		return 0;
 	}
-	free(path);
 
 	cnt=0;
-	maildir_aclt_list_enum(&aclt_list,
-			       getacl, &cnt);
+	for (const auto &acl:aclt_list)
+	{
+		getacl(acl.identifier.c_str(),
+		       acl.acl.c_str(), &cnt);
+	}
 	if (cnt)
 		writes("\n");
-	maildir_aclt_list_destroy(&aclt_list);
 
 	/* Reread ACLs if the current mailbox's ACLs have changed */
 
-	if (read_acls(&aclt_list, &sainfo->minfo) < 0)
+	if (!read_acls(aclt_list, sainfo->minfo))
 	{
 		writes("-ERR Unable to re-read ACLS: ");
 		writes(strerror(errno));
@@ -3132,7 +3101,6 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		return 0;
 	}
 
-	maildir_aclt_list_destroy(&aclt_list);
 	writes("+OK Updated ACLs\n");
 	return 0;
 }
@@ -3671,7 +3639,6 @@ void smap()
 		    strcmp(p, "DELETEACL") == 0)
 		{
 			char **fn=fn_fromwords(&ptr);
-			struct setacl_info sainfo;
 
 			if (!fn)
 			{
@@ -3681,9 +3648,9 @@ void smap()
 				continue;
 			}
 
-			if (maildir_info_smap_find(&sainfo.minfo,
-						   fn, getenv("AUTHENTICATED"))
-			    < 0)
+			setacl_info sainfo{fn, &ptr};
+
+			if (!sainfo.minfo)
 			{
 				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
@@ -3692,15 +3659,11 @@ void smap()
 				continue;
 			}
 
-
-			sainfo.ptr= &ptr;
-
-			acl_lock(sainfo.minfo.homedir,
+			acl_lock(sainfo.minfo.homedir.c_str(),
 				 *p == 'S' ? setacl:deleteacl,
 				 &sainfo);
 
 			maildir_smapfn_free(fn);
-			maildir_info_destroy(&sainfo.minfo);
 			continue;
 		}
 
