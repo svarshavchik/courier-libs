@@ -3377,28 +3377,6 @@ static void aclfailed(const std::string &mailbox,
 	writes("\r\n");
 }
 
-static int acl_settable_folder(char *mailbox,
-			       struct maildir_info *mi)
-{
-	if (maildir_info_imap_find(mi, mailbox, getenv("AUTHENTICATED")) < 0)
-	{
-		aclfailed(mailbox);
-		*mailbox=0;
-		return (-1);
-	}
-
-	if (mi->homedir == NULL || mi->maildir == NULL)
-	{
-		writes("* ACLFAILED \"");
-		writemailbox(mailbox);
-		writes("\" ACLs may not be modified for special mailbox\r\n");
-		maildir_info_destroy(mi);
-		*mailbox=0;
-		return -1;
-	}
-	return 0;
-}
-
 static maildir::info acl_settable_folder(const std::string &mailbox)
 {
 	auto mi=maildir::info_imap_find(mailbox, getenv("AUTHENTICATED"));
@@ -3801,13 +3779,9 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 	return 0;
 }
 
-struct acldelete_info {
-	const char *mailbox;
-	const char *identifier;
-	struct maildir_info *mi;
-};
-
-static int do_acldelete(void *);
+static bool do_acldelete(const char *mailbox,
+			 const char *identifier,
+			 maildir::info &info);
 
 static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 {
@@ -3824,10 +3798,9 @@ static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 
 	for (i=0; mailboxes && mailboxes[i].mailbox; i++)
 	{
-		struct maildir_info mi;
-		struct acldelete_info ai;
+		auto mi=acl_settable_folder(mailboxes[i].mailbox);
 
-		if (acl_settable_folder(mailboxes[i].mailbox, &mi))
+		if (!mi)
 			continue;
 
 		{
@@ -3842,55 +3815,51 @@ static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 				accessdenied("ACL DELETE",
 					     mailboxes[i].mailbox,
 					     ACL_ADMINISTER);
-				maildir_info_destroy(&mi);
 				mailboxes[i].mailbox[0]=0;
 				continue;
 			}
 		}
 
-		ai.mailbox=mailboxes[i].mailbox;
-		ai.mi= &mi;
-		ai.identifier=identifier;
-		if (acl_lock(mi.homedir, do_acldelete, &ai))
+		if (!acl_lock(
+			    mi.homedir,
+			    [&]
+			    {
+				    return do_acldelete(
+					    mailboxes[i].mailbox,
+					    identifier,
+					    mi);
+			    }))
 			mailboxes[i].mailbox[0]=0;
-		maildir_info_destroy(&mi);
 	}
 	return 0;
 }
 
-static int do_acldelete(void *void_arg)
+static bool do_acldelete(const char *mailbox,
+			 const char *identifier,
+			 maildir::info &mi)
 {
-	struct acldelete_info *ai=
-		(struct acldelete_info *)void_arg;
-	const char *mailbox=ai->mailbox;
-	struct maildir_info *mi=ai->mi;
+	maildir::aclt_list aclt_list;
+	std::string acl_error;
 
-	maildir_aclt_list aclt_list;
-	const char *acl_error;
-
-	if (acl_read_folder(&aclt_list, mi->homedir, mi->maildir) < 0)
+	if (!acl_read_folder(aclt_list, mi.homedir, mi.maildir))
 	{
 		writes("* NO Error reading ACLs for ");
 		writes(mailbox);
 		writes(": ");
 		writes(strerror(errno));
 		writes("\r\n");
-		return -1;
+		return false;
 	}
 
-	acl_error=NULL;
+	aclt_list.del(identifier);
 
-	maildir_aclt_list_del(&aclt_list, ai->identifier);
-
-	if (acl_write_folder(&aclt_list, mi->homedir, mi->maildir,
-			     mi->owner, &acl_error) < 0)
+	if (!acl_write_folder(aclt_list, mi.homedir, mi.maildir,
+			      mi.owner, acl_error))
 	{
 		aclfailed(mailbox, acl_error);
-		maildir_aclt_list_destroy(&aclt_list);
-		return -1;
+		return false;
 	}
-	maildir_aclt_list_destroy(&aclt_list);
-	return 0;
+	return true;
 }
 
 
