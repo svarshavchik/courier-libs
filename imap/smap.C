@@ -80,9 +80,8 @@ extern ino_t homedir_ino;
 int mdcreate(const char *mailbox);
 bool mddelete(const std::string &s);
 
-extern int folder_rename(struct maildir_info *mi1,
-			 struct maildir_info *mi2,
-			 const char **errmsg);
+extern const char *folder_rename(maildir::info &mi1,
+				 maildir::info &mi2);
 
 extern int snapshot_init(const char *, const char *);
 extern "C" int keywords();
@@ -3105,38 +3104,32 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 	return 0;
 }
 
-static int checkacl(char **folder, struct maildir_info *minfo,
-		    const char *acls)
+static maildir::info checkacl(char **folder,
+			      const char *acls)
 {
-	char *q;
+	auto minfo=maildir::info_smap_find(folder, getenv("AUTHENTICATED"));
 
-	maildir_aclt_list aclt_list;
+	if (!minfo)
+		return minfo;
 
-	if (maildir_info_smap_find(minfo, folder, getenv("AUTHENTICATED")) < 0)
-		return -1;
+	maildir::aclt_list aclt_list;
 
-	if (read_acls(&aclt_list, minfo) < 0)
+	if (!read_acls(aclt_list, minfo))
 	{
-		maildir_info_destroy(minfo);
-		return -1;
+		return {};
 	}
 
-	q=compute_myrights(&aclt_list, minfo->owner);
-	maildir_aclt_list_destroy(&aclt_list);
+	auto q=compute_myrights(aclt_list, minfo.owner);
 
 	while (*acls)
 	{
-		if (q == NULL || strchr(q, *acls) == NULL)
+		if (q.find(*acls) == q.npos)
 		{
-			if (q) free(q);
-			maildir_info_destroy(minfo);
-			return -1;
+			return {};
 		}
 		++acls;
 	}
-	if (q)
-		free(q);
-	return 0;
+	return minfo;
 }
 
 void smap()
@@ -3926,7 +3919,6 @@ void smap()
 
 		if (strcmp(p, "RENAME") == 0)
 		{
-			struct maildir_info msrc, mdst;
 			char **fnsrc, **fndst;
 			size_t i;
 			char *save;
@@ -3960,7 +3952,9 @@ void smap()
 				continue;
 			}
 
-			if (checkacl(fnsrc, &msrc, ACL_DELETEFOLDER))
+			auto msrc=checkacl(fnsrc, ACL_DELETEFOLDER);
+
+			if (!msrc)
 			{
 				maildir_smapfn_free(fnsrc);
 				maildir_smapfn_free(fndst);
@@ -3970,33 +3964,35 @@ void smap()
 			save=fndst[--i];
 			fndst[i]=NULL;
 
-			if (checkacl(fndst, &mdst, ACL_CREATE))
+			auto mdst=checkacl(fndst, ACL_CREATE);
+
+			if (!mdst)
 			{
 				fndst[i]=save;
 				maildir_smapfn_free(fnsrc);
 				maildir_smapfn_free(fndst);
-				maildir_info_destroy(&msrc);
 				accessdenied(ACL_CREATE);
 				continue;
 			}
 
 			fndst[i]=save;
 
-			maildir_info_destroy(&mdst);
+			mdst=maildir::info_smap_find(fndst,
+						     getenv("AUTHENTICATED"));
 
-			if (maildir_info_smap_find(&mdst, fndst,
-						   getenv("AUTHENTICATED")) < 0)
+			if (!mdst)
 			{
 				maildir_smapfn_free(fnsrc);
 				maildir_smapfn_free(fndst);
-				maildir_info_destroy(&msrc);
 				writes("-ERR Internal error in RENAME: ");
 				writes(strerror(errno));
 				writes("\n");
 				continue;
 			}
 
-			if (folder_rename(&msrc, &mdst, &errmsg))
+			errmsg=folder_rename(msrc, mdst);
+
+			if (errmsg)
 			{
 				writes("-ERR ");
 				writes(*errmsg == '@' ? errmsg+1:errmsg);
@@ -4008,10 +4004,9 @@ void smap()
 			{
 				writes("+OK Folder renamed.\n");
 			}
+
 			maildir_smapfn_free(fnsrc);
 			maildir_smapfn_free(fndst);
-			maildir_info_destroy(&msrc);
-			maildir_info_destroy(&mdst);
 			continue;
 		}
 

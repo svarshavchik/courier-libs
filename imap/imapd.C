@@ -2365,14 +2365,10 @@ static void rename_callback(const char *old_path, const char *new_path)
 {
 	struct imapscaninfo minfo;
 
-	char *p=(char *)malloc(strlen(new_path)+sizeof("/" IMAPDB));
+	std::string p=new_path;
 
-	if (!p)
-		write_error_exit(0);
-
-	strcat(strcpy(p, new_path), "/" IMAPDB);
-	unlink(p);
-	free(p);
+	p += "/" IMAPDB;
+	unlink(p.c_str());
 	imapscan_init(&minfo);
 	imapscan_maildir(&minfo, new_path, 0,0, NULL);
 	imapscan_free(&minfo);
@@ -4147,112 +4143,93 @@ static char *acl2_identifier(const char *tag,
 	return strcat(strcat(strcpy(p, isneg ? "-":""), "user="), identifier);
 }
 
-int folder_rename(struct maildir_info *mi1,
-		  struct maildir_info *mi2,
-		  const char **errmsg)
+const char *folder_rename(maildir::info &mi1,
+			  maildir::info &mi2)
 {
-	char *old_mailbox, *new_mailbox;
-
-	if (mi1->homedir == NULL || mi1->maildir == NULL)
+	if (mi1.homedir.empty() || mi1.maildir.empty())
 	{
-		*errmsg="Invalid mailbox name";
-		return -1;
+		return "Invalid mailbox name";
 	}
 
-	if (mi2->homedir == NULL || mi2->maildir == NULL)
+	if (mi2.homedir.empty() || mi2.maildir.empty())
 	{
-		*errmsg="Invalid new mailbox name";
-		return -1;
+		return "Invalid new mailbox name";
 	}
 
 	if (current_mailbox)
 	{
-		char *mailbox=maildir_name2dir(mi1->homedir,
-					       mi1->maildir);
-		size_t l;
+		auto mailbox=maildir::name2dir(mi1.homedir,
+					       mi1.maildir);
 
-		if (!mailbox)
+		if (mailbox.empty())
 		{
-			*errmsg="Invalid mailbox name";
-			return -1;
+			return "Invalid mailbox name";
 		}
 
-		l=strlen(mailbox);
+		auto l=mailbox.size();
 
-		if (strncmp(mailbox, current_mailbox, l) == 0 &&
+		if (strncmp(mailbox.c_str(), current_mailbox, l) == 0 &&
 		    (current_mailbox[l] == 0 ||
 		     current_mailbox[l] == HIERCH))
 		{
-			free(mailbox);
-			*errmsg="Can't RENAME the currently-open folder";
-			return -1;
+			return "Can't RENAME the currently-open folder";
 		}
-		free(mailbox);
 	}
 
-	if (strcmp(mi1->homedir, mi2->homedir))
+	if (mi1.homedir != mi2.homedir)
 	{
-		*errmsg="Cannot move a folder to a different account.";
-		return -1;
+		return "Cannot move a folder to a different account.";
 	}
 
-	if (strcmp(mi1->maildir, INBOX) == 0 ||
-	    strcmp(mi2->maildir, INBOX) == 0)
+	if (mi1.maildir == INBOX ||
+	    mi2.maildir == INBOX)
 	{
-		*errmsg="INBOX rename not implemented.";
-		return -1;
+		return "INBOX rename not implemented.";
 	}
 
-	if (is_reserved_name(mi1->maildir) ||
-	    is_reserved_name(mi2->maildir))
+	if (is_reserved_name(mi1.maildir.c_str()) ||
+	    is_reserved_name(mi2.maildir.c_str()))
 	{
-		*errmsg="Reserved folder name - cannot rename.";
-		return -1;
+		return "Reserved folder name - cannot rename.";
 	}
 
 	/* Depend on maildir_name2dir returning ./.folder, see
 	** maildir_rename() call. */
 
-	if ((old_mailbox=maildir_name2dir(".", mi1->maildir)) == NULL ||
-	    strncmp(old_mailbox, "./", 2))
+	auto old_mailbox=maildir::name2dir(".", mi1.maildir);
+
+	if (old_mailbox.empty() ||
+	    old_mailbox.substr(0, 2) != "./")
 	{
-		if (old_mailbox)
-			free(old_mailbox);
-		*errmsg="Internal error in RENAME: maildir_name2dir failed"
+		return "Internal error in RENAME: maildir_name2dir failed"
 			" for the old folder rename.";
-		return -1;
 	}
 
-	if ((new_mailbox=maildir_name2dir(".", mi2->maildir)) == NULL ||
-	    strncmp(new_mailbox, "./", 2))
+	auto new_mailbox=maildir::name2dir(".", mi2.maildir);
+
+	if (new_mailbox.empty() ||
+	    new_mailbox.substr(0, 2) != "./")
 	{
-		free(old_mailbox);
-		if (new_mailbox)
-			free(new_mailbox);
-		*errmsg="Internal error in RENAME: maildir_name2dir failed"
+		return "Internal error in RENAME: maildir_name2dir failed"
 			" for the new folder rename.";
-		return -1;
 	}
 
 	fetch_free_cache();
 
-	if (maildir_rename(mi1->homedir,
-			   old_mailbox+2, new_mailbox+2,
+	old_mailbox=old_mailbox.substr(2);
+	new_mailbox=new_mailbox.substr(2);
+	if (maildir_rename(mi1.homedir.c_str(),
+			   old_mailbox.c_str(), new_mailbox.c_str(),
 			   MAILDIR_RENAME_FOLDER |
 			   MAILDIR_RENAME_SUBFOLDERS,
 			   &rename_callback))
 	{
-		free(old_mailbox);
-		free(new_mailbox);
-
-		*errmsg="@RENAME failed: ";
-		return -1;
+		return "@RENAME failed: ";
 	}
 
-	maildir_quota_recalculate(mi1->homedir);
-	free(old_mailbox);
-	free(new_mailbox);
-	return 0;
+	maildir_quota_recalculate(mi1.homedir.c_str());
+
+	return NULL;
 }
 
 static int validate_charset(const char *tag, char **charset)
@@ -5069,8 +5046,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "RENAME") == 0)
 	{
 		char *p;
-		struct maildir_info mi1, mi2;
-		const char *errmsg;
 		char *mailbox;
 
 		curtoken=nexttoken_nouc();
@@ -5093,8 +5068,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (!mailbox)
 			return -1;
 
-		if (maildir_info_imap_find(&mi1, mailbox,
-					   getenv("AUTHENTICATED")) < 0)
+		auto mi1=maildir::info_imap_find(
+			mailbox,
+			getenv("AUTHENTICATED"));
+
+		if (!mi1)
 		{
 			free(mailbox);
 			writes(tag);
@@ -5102,10 +5080,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		if (mi1.homedir == NULL || mi1.maildir == NULL)
+		if (mi1.homedir.empty() || mi1.maildir.empty())
 		{
 			free(mailbox);
-			maildir_info_destroy(&mi1);
 			writes(tag);
 			writes(" NO Invalid mailbox\r\n");
 			return (0);
@@ -5118,7 +5095,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			if (rename_rights[0] == 0)
 			{
 				free(mailbox);
-				maildir_info_destroy(&mi1);
 				writes(tag);
 				accessdenied("RENAME", curtoken->tokenbuf,
 					     ACL_DELETEFOLDER);
@@ -5132,7 +5108,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
 		{
-			maildir_info_destroy(&mi1);
 			writes(tag);
 			writes(" BAD Invalid command\r\n");
 			return (0);
@@ -5148,15 +5123,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!mailbox)
 		{
-			maildir_info_destroy(&mi1);
 			return -1;
 		}
 
-		if (maildir_info_imap_find(&mi2, mailbox,
-					   getenv("AUTHENTICATED")) < 0)
+		auto mi2=maildir::info_imap_find(mailbox,
+						 getenv("AUTHENTICATED"));
+
+		if (!mi2)
 		{
 			free(mailbox);
-			maildir_info_destroy(&mi1);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -5165,24 +5140,21 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (check_parent_create(tag, "RENAME", mailbox))
 		{
 			free(mailbox);
-			maildir_info_destroy(&mi1);
-			maildir_info_destroy(&mi2);
 			return 0;
 		}
 		free(mailbox);
 
 		if (nexttoken()->tokentype != IT_EOL)
-		{
-			maildir_info_destroy(&mi1);
-			maildir_info_destroy(&mi2);
 			return (-1);
-		}
 
 		if (!broken_uidvs())
 			sleep(2);
 		/* Make sure IMAP uidvs are not recycled */
 
-		if (folder_rename(&mi1, &mi2, &errmsg))
+
+		auto errmsg=folder_rename(mi1, mi2);
+
+		if (errmsg)
 		{
 			writes(tag);
 			writes(" NO ");
@@ -5197,8 +5169,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			writes(" OK Folder renamed.\r\n");
 		}
 
-		maildir_info_destroy(&mi1);
-		maildir_info_destroy(&mi2);
 		return (0);
 	}
 
