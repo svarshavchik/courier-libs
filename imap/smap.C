@@ -122,9 +122,10 @@ extern struct imapscaninfo current_maildir_info;
 extern "C" void get_message_flags(struct imapscanmessageinfo *,
 				  char *, struct imapflags *);
 extern "C" void fetchflags(unsigned long);
-extern int acl_lock(const char *homedir,
-		    int (*func)(void *),
-		    void *void_arg);
+
+extern bool acl_lock(const std::string &maildir,
+		     const std::function< bool() >&callback);
+
 extern void aclminimum(const char *);
 
 extern "C" struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
@@ -2884,45 +2885,32 @@ struct setacl_info {
 	}
 };
 
-static int dosetdeleteacl(void *cb_arg, int);
-
-static int setacl(void *cb_arg)
+static void dosetdeleteacl(setacl_info &sainfo, bool dodelete)
 {
-	return dosetdeleteacl(cb_arg, 0);
-}
-
-static int deleteacl(void *cb_arg)
-{
-	return dosetdeleteacl(cb_arg, 1);
-}
-
-static int dosetdeleteacl(void *cb_arg, int dodelete)
-{
-	setacl_info *sainfo=reinterpret_cast<setacl_info *>(cb_arg);
 	int cnt;
 	const char *identifier;
 	const char *action;
 
 	maildir::aclt_list aclt_list;
 
-	if (!read_acls(aclt_list, sainfo->minfo))
+	if (!read_acls(aclt_list, sainfo.minfo))
 	{
 		writes("-ERR Unable to read existing ACLS: ");
 		writes(strerror(errno));
 		writes("\n");
-		return 0;
+		return;
 	}
 
 	auto q=compute_myrights(aclt_list,
-				sainfo->minfo.owner);
+				sainfo.minfo.owner);
 
 	if (q.find(ACL_ADMINISTER[0]) == q.npos)
 	{
 		accessdenied(ACL_ADMINISTER);
-		return 0;
+		return;
 	}
 
-	while (*(identifier=getword(sainfo->ptr)))
+	while (*(identifier=getword(sainfo.ptr)))
 	{
 		if (dodelete)
 		{
@@ -2930,7 +2918,7 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 			continue;
 		}
 
-		action=getword(sainfo->ptr);
+		action=getword(sainfo.ptr);
 
 		if (*action == '+')
 		{
@@ -2990,15 +2978,15 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 		}
 	}
 
-	auto path=maildir::name2dir(".", sainfo->minfo.maildir);
+	auto path=maildir::name2dir(".", sainfo.minfo.maildir);
 
 	std::string err_failedrights;
 
 	if (!path.empty() &&
-	    aclt_list.write(sainfo->minfo.homedir,
+	    aclt_list.write(sainfo.minfo.homedir,
 			    path.substr(0, 2) == "./"
 			    ? path.substr(2):path,
-			    sainfo->minfo.owner,
+			    sainfo.minfo.owner,
 			    err_failedrights))
 	{
 		if (!err_failedrights.empty())
@@ -3010,7 +2998,7 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 			writes("\n");
 		}
 		writes("-ERR ACL update failed\n");
-		return 0;
+		return;
 	}
 
 	cnt=0;
@@ -3024,16 +3012,16 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 
 	/* Reread ACLs if the current mailbox's ACLs have changed */
 
-	if (!read_acls(aclt_list, sainfo->minfo))
+	if (!read_acls(aclt_list, sainfo.minfo))
 	{
 		writes("-ERR Unable to re-read ACLS: ");
 		writes(strerror(errno));
 		writes("\n");
-		return 0;
+		return;
 	}
 
 	writes("+OK Updated ACLs\n");
-	return 0;
+	return;
 }
 
 static maildir::info checkacl(char **folder,
@@ -3579,9 +3567,15 @@ void smap()
 				continue;
 			}
 
-			acl_lock(sainfo.minfo.homedir.c_str(),
-				 *p == 'S' ? setacl:deleteacl,
-				 &sainfo);
+			acl_lock(sainfo.minfo.homedir,
+				 [&]
+				 {
+					 dosetdeleteacl(
+						 sainfo,
+						 *p == 'S' ? false:true
+					 );
+					 return true;
+				 });
 
 			maildir_smapfn_free(fn);
 			continue;
