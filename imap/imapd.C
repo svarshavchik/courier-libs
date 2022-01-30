@@ -2538,78 +2538,6 @@ static void list_postaddress(const char *mailbox)
 ** Wrapper for maildir_aclt_read and maildir_aclt_write
 */
 
-static int acl_read_folder(maildir_aclt_list *aclt_list,
-			   const char *maildir,
-			   const char *path)
-{
-	char *p, *q;
-	int rc;
-
-	/* Handle legacy shared. namespace */
-
-	if (strcmp(path, SHARED) == 0)
-	{
-		maildir_aclt_list_init(aclt_list);
-		maildir_aclt_list_add(aclt_list, "anyone",
-				      ACL_LOOKUP, NULL);
-		return 0;
-	}
-
-	if (strncmp(path, SHARED ".", sizeof(SHARED)) == 0)
-	{
-		maildir_aclt_list_init(aclt_list);
-
-		if (strchr(path+sizeof(SHARED), '.') == 0)
-		{
-			maildir_aclt_list_add(aclt_list,
-					      "anyone",
-					      ACL_LOOKUP, NULL);
-		}
-
-		p=maildir_shareddir(maildir, path+sizeof(SHARED));
-		if (!p)
-		{
-			maildir_aclt_list_add(aclt_list,
-					      "anyone",
-					      ACL_LOOKUP, NULL);
-			return 0;
-		}
-		q=(char *)malloc(strlen(p)+sizeof("/new"));
-		if (!q)
-		{
-			free(p);
-			maildir_aclt_list_destroy(aclt_list);
-			return -1;
-		}
-		strcat(strcpy(q, p), "/new");
-		free(p);
-
-		maildir_aclt_list_add(aclt_list,
-				      "anyone",
-				      access(q, W_OK) == 0 ?
-				      ACL_LOOKUP ACL_READ
-				      ACL_SEEN ACL_WRITE ACL_INSERT
-
-				      ACL_DELETEFOLDER /* Wrong, but needed for ACL1 compatibility */
-
-				      ACL_DELETEMSGS ACL_EXPUNGE:
-				      ACL_LOOKUP ACL_READ ACL_SEEN
-				      ACL_WRITE, NULL);
-		free(q);
-		return 0;
-	}
-
-	p=maildir_name2dir(".", path);
-
-	if (!p)
-		return -1;
-
-	rc=maildir_acl_read(aclt_list, maildir, p[0] == '.' && p[1] == '/'
-			    ? p+2:p);
-	free(p);
-	return rc;
-}
-
 bool acl_read_folder(
 	// Freshly constructed list
 	maildir::aclt_list &aclt_list,
@@ -2660,36 +2588,6 @@ bool acl_read_folder(
 
 	aclt_list.read(maildir, p[0] == '.' && p[1] == '/' ? p.substr(2):p);
 	return true;
-}
-
-static int acl_write_folder(maildir_aclt_list *aclt_list,
-			    const char *maildir,
-			    const char *path,
-
-			    const char *owner,
-			    const char **err_failedrights)
-{
-	char *p;
-	int rc;
-
-	if (strcmp(path, SHARED) == 0 ||
-	    strncmp(path, SHARED ".", sizeof(SHARED ".")-1) == 0)
-	{
-		/* Legacy */
-
-		return 1;
-	}
-
-	p=maildir_name2dir(".", path);
-
-	if (!p)
-		return -1;
-
-	rc=maildir_acl_write(aclt_list, maildir, p[0] == '.' && p[1] == '/'
-			     ? p+2:p,
-			     owner, err_failedrights);
-	free(p);
-	return rc;
 }
 
 static bool acl_write_folder(maildir::aclt_list &aclt_list,
@@ -3246,40 +3144,7 @@ static int aclcmd(const char *tag)
 	return rc;
 }
 
-static int fix_acl_delete(int (*func)(maildir_aclt *, const char *,
-				      const maildir_aclt *),
-			  maildir_aclt *newacl,
-			  const char *aclstr)
-{
-	char *p, *q;
-	int rc;
-
-	if (strchr(aclstr, ACL_DELETE_SPECIAL[0]) == NULL)
-		return (*func)(newacl, aclstr, NULL);
-
-
-	p=(char *)malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
-					       ACL_DELETEMSGS
-					       ACL_EXPUNGE));
-	if (!p)
-		return -1;
-
-	q=p;
-	while (*aclstr)
-	{
-		if (*aclstr != ACL_DELETE_SPECIAL[0])
-			*q++ = *aclstr;
-		++aclstr;
-	}
-
-	strcpy(q, ACL_DELETEFOLDER ACL_DELETEMSGS ACL_EXPUNGE);
-
-	rc=(*func)(newacl, p, NULL);
-	free(p);
-	return rc;
-}
-
-static maildir::aclt new_fix_acl_delete(std::string s)
+static maildir::aclt fix_acl_delete(std::string s)
 {
 	auto iter=std::remove(s.begin(), s.end(), ACL_DELETE_SPECIAL[0]);
 
@@ -3291,39 +3156,6 @@ static maildir::aclt new_fix_acl_delete(std::string s)
 	s += ACL_DELETEFOLDER ACL_DELETEMSGS ACL_EXPUNGE;
 
 	return maildir::aclt{s};
-}
-
-static int fix_acl_delete2(maildir_aclt_list *aclt_list,
-			   const char *identifier,
-			   const char *aclstr)
-{
-	char *p, *q;
-
-	if (strchr(aclstr, ACL_DELETE_SPECIAL[0]) == NULL)
-	{
-		maildir_aclt_list_add(aclt_list, identifier, aclstr, NULL);
-		return 0;
-	}
-
-	p=(char *)malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
-					       ACL_DELETEMSGS
-					       ACL_EXPUNGE));
-	if (!p)
-		return -1;
-
-	q=p;
-	while (*aclstr)
-	{
-		if (*aclstr != ACL_DELETE_SPECIAL[0])
-			*q++ = *aclstr;
-		++aclstr;
-	}
-
-	strcpy(q, ACL_DELETEFOLDER ACL_DELETEMSGS ACL_EXPUNGE);
-
-	maildir_aclt_list_add(aclt_list, identifier, p, NULL);
-	free(p);
-	return 0;
 }
 
 void aclminimum(const std::string &identifier)
@@ -3421,132 +3253,6 @@ int acl_lock(const char *homedir,
 	return rc;
 }
 
-static bool do_acl_mod_0(maildir_aclt_list *aclt_list,
-			 struct maildir_info *mi,
-			 const char *identifier,
-			 const char *newrights,
-			 const char **acl_error);
-
-static bool do_acl_mod(maildir_aclt_list *aclt_list,
-		       struct maildir_info *mi,
-		       const char *identifier,
-		       const char *newrights,
-		       const char **acl_error)
-{
-	*acl_error=NULL;
-
-	return acl_lock(mi->homedir,
-			[&]
-			{
-				return do_acl_mod_0(aclt_list,
-						    mi,
-						    identifier,
-						    newrights,
-						    acl_error);
-			});
-}
-
-static bool do_acl_mod_0(maildir_aclt_list *aclt_list,
-			 struct maildir_info *mi,
-			 const char *identifier,
-			 const char *newrights,
-			 const char **acl_error)
-{
-	if (newrights[0] == '+')
-	{
-		maildir_aclt newacl;
-		const char *oldacl;
-
-		if (fix_acl_delete(&maildir_aclt_init,
-				   &newacl, newrights+1) < 0)
-		{
-			maildir_aclt_destroy(&newacl);
-			return false;
-		}
-
-		if ((oldacl=maildir_aclt_list_lookup(aclt_list, identifier))
-		    != NULL)
-		{
-			maildir_aclt_add(&newacl, oldacl, NULL);
-		}
-
-		maildir_aclt_list_add(aclt_list, identifier, NULL, &newacl);
-
-		if (acl_write_folder(aclt_list, mi->homedir,
-				     mi->maildir,
-				     mi->owner, acl_error) < 0)
-
-		{
-			maildir_aclt_destroy(&newacl);
-			return false;
-		}
-		maildir_aclt_destroy(&newacl);
-	}
-	else if (newrights[0] == '-')
-	{
-		maildir_aclt newacl;
-		const char *oldacl;
-
-		oldacl=maildir_aclt_list_lookup(aclt_list, identifier);
-
-		if (maildir_aclt_init(&newacl,
-				      oldacl, NULL) < 0)
-		{
-			maildir_aclt_destroy(&newacl);
-			return false;
-		}
-
-		auto s=new_fix_acl_delete(newrights+1);
-
-		maildir_aclt_del(&newacl, s.c_str(), NULL);
-
-		if (strlen(maildir_aclt_ascstr(&newacl)) == 0)
-		{
-			maildir_aclt_list_del(aclt_list, identifier);
-		}
-		else
-		{
-			maildir_aclt_list_add(aclt_list, identifier,
-					      NULL, &newacl);
-		}
-
-		if (acl_write_folder(aclt_list, mi->homedir,
-				     mi->maildir,
-				     mi->owner,
-				     acl_error) < 0)
-		{
-			maildir_aclt_destroy(&newacl);
-			return false;
-		}
-		maildir_aclt_destroy(&newacl);
-	}
-	else
-	{
-		acl_error=NULL;
-
-		if (newrights[0] == 0)
-		{
-			maildir_aclt_list_del(aclt_list, identifier);
-		}
-		else
-		{
-			if (fix_acl_delete2(aclt_list, identifier, newrights)<0)
-			{
-				return false;
-			}
-		}
-
-		if (acl_write_folder(aclt_list, mi->homedir,
-				     mi->maildir, mi->owner,
-				     acl_error) < 0)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static bool acl_update(maildir::aclt_list &aclt_list,
 		       maildir::info &mi,
 		       const std::string &identifier,
@@ -3560,7 +3266,7 @@ static bool acl_update(maildir::aclt_list &aclt_list,
 		if (newrights[1] == 0)
 			return true;
 
-		maildir::aclt newacl=new_fix_acl_delete(newrights+1);
+		maildir::aclt newacl=fix_acl_delete(newrights+1);
 
 		auto iter=aclt_list.lookup(identifier);
 
@@ -3579,7 +3285,7 @@ static bool acl_update(maildir::aclt_list &aclt_list,
 		{
 			auto oldacl=iter->acl;
 
-			oldacl -= new_fix_acl_delete(newrights+1);
+			oldacl -= fix_acl_delete(newrights+1);
 
 			if (oldacl.empty())
 			{
@@ -3600,7 +3306,7 @@ static bool acl_update(maildir::aclt_list &aclt_list,
 		else
 		{
 			aclt_list.add(identifier,
-				      new_fix_acl_delete(newrights));
+				      fix_acl_delete(newrights));
 		}
 	}
 
@@ -3723,7 +3429,7 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 
 		newlist.add(
 			identifier,
-			new_fix_acl_delete(curtoken->tokenbuf)
+			fix_acl_delete(curtoken->tokenbuf)
 		);
 
 		free(identifier);
@@ -3773,7 +3479,6 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			mailboxes[i].mailbox[0]=0;
 			continue;
 		}
-		fclose(fopen("/tmp/z1", "w"));
 	}
 
 	return 0;
@@ -4137,12 +3842,10 @@ static int check_parent_create(const char *tag,
 
 /* Convert ACL1 identifiers to ACL2 */
 
-static char *acl2_identifier(const char *tag,
-			     const char *identifier)
+static std::string acl2_identifier(const char *tag,
+				   const char *identifier)
 {
 	const char *ident_orig=identifier;
-
-	char *p;
 	int isneg=0;
 
 	if (*identifier == '-')
@@ -4154,22 +3857,31 @@ static char *acl2_identifier(const char *tag,
 	if (strcmp(identifier, "anyone") == 0 ||
 	    strcmp(identifier, "anonymous") == 0 ||
 	    strcmp(identifier, "authuser") == 0 ||
-	    strcmp(identifier, "owner") == 0 ||
-	    strcmp(identifier, "administrators") == 0)
-		return my_strdup(ident_orig);
+	    strcmp(identifier, "owner") == 0)
+	{
+		return ident_orig;
+	}
 
 	if (strchr(identifier, '='))
 	{
 		writes(tag);
 		writes(" NO Invalid ACL identifier.\r\n");
-		return NULL;
+		return "";
 	}
 
-	p=(char *)malloc(sizeof("-user=")+strlen(identifier));
+	auto pfix=strcmp(identifier, "administrators") == 0 ? "group=":"user=";
 
-	if (!p)
-		write_error_exit(0);
-	return strcat(strcat(strcpy(p, isneg ? "-":""), "user="), identifier);
+	std::string s;
+
+	s.reserve(strlen(identifier)+strlen(pfix)+isneg);
+
+	if (isneg)
+		s="-";
+
+	s += pfix;
+	s += identifier;
+
+	return s;
 }
 
 const char *folder_rename(maildir::info &mi1,
@@ -5500,10 +5212,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "SETACL") == 0 ||
 	    strcmp(curtoken->tokenbuf, "DELETEACL") == 0)
 	{
-		char *identifier;
-		struct maildir_info mi;
-		maildir_aclt_list aclt_list;
-		const char *acl_error;
 		int doset=curtoken->tokenbuf[0] == 'S';
 		const char *origcmd=doset ? "SETACL":"DELETEACL";
 
@@ -5520,17 +5228,18 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		std::string mailbox=new_mailbox;
 		free(new_mailbox);
 
-		if (maildir_info_imap_find(&mi, mailbox.c_str(),
-					   getenv("AUTHENTICATED")) < 0)
+		auto mi=maildir::info_imap_find(mailbox,
+						getenv("AUTHENTICATED"));
+
+		if (!mi)
 		{
 			writes(tag);
 			writes(" NO Invalid mailbox.\r\n");
 			return 0;
 		}
 
-		if (mi.homedir == NULL || mi.maildir == NULL)
+		if (mi.homedir.empty() || mi.maildir.empty())
 		{
-			maildir_info_destroy(&mi);
 			writes(tag);
 			writes(" NO Cannot set ACLs for this mailbox\r\n");
 			return 0;
@@ -5542,17 +5251,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		case IT_NUMBER:
 			break;
 		default:
-			maildir_info_destroy(&mi);
 			return -1;
 		}
 
-		identifier=acl2_identifier(tag, curtoken->tokenbuf);
+		auto identifier=acl2_identifier(tag, curtoken->tokenbuf);
 
-		if (identifier == NULL)
-		{
-			maildir_info_destroy(&mi);
+		if (identifier.empty())
 			return 0;
-		}
 
 		if (doset)
 		{
@@ -5562,8 +5267,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			case IT_NUMBER:
 				break;
 			default:
-				free(identifier);
-				maildir_info_destroy(&mi);
 				return -1;
 			}
 		}
@@ -5577,27 +5280,26 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				writes(tag);
 				accessdenied(origcmd, mailbox.c_str(),
 					     ACL_ADMINISTER);
-				free(identifier);
-				maildir_info_destroy(&mi);
 				return 0;
 			}
 		}
 
-		if (acl_read_folder(&aclt_list, mi.homedir, mi.maildir))
+		maildir::aclt_list aclt_list;
+
+		if (!acl_read_folder(aclt_list, mi.homedir, mi.maildir))
 		{
 			writes(tag);
 			writes(" NO Cannot read existing ACLs.\r\n");
-			free(identifier);
-			maildir_info_destroy(&mi);
 			return 0;
 		}
 
-		if (!do_acl_mod(&aclt_list, &mi, identifier,
+		std::string acl_error;
+		if (!acl_update(aclt_list, mi, identifier,
 				doset ? curtoken->tokenbuf:"",
-				&acl_error))
+				acl_error))
 		{
 			writes(tag);
-			writes(acl_error ?
+			writes(!acl_error.empty() ?
 			       " NO Cannot modify ACLs as requested.\r\n" :
 			       " NO Cannot modify ACLs on this mailbox.\r\n");
 		}
@@ -5612,10 +5314,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			writes(tag);
 			writes(" OK ACLs updated.\r\n");
 		}
-
-		maildir_aclt_list_destroy(&aclt_list);
-		maildir_info_destroy(&mi);
-		free(identifier);
 		return 0;
 	}
 
