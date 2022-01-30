@@ -1027,78 +1027,60 @@ static bool read_acls(maildir::aclt_list &aclt_list,
 	return rc == 0;
 }
 
-static char *getExistingFolder_int(char **ptr,
-				   char *rightsWanted)
+static std::string getExistingFolder_int(char **ptr, char *rightsWanted)
 {
 	char **fn;
-	char *n;
-	struct maildir_info minfo;
 
 	fn=fn_fromwords(ptr);
 	if (!fn)
-		return NULL;
+		return "";
 
-	if (maildir_info_smap_find(&minfo, fn, getenv("AUTHENTICATED")) < 0)
+	auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
+
+	if (!minfo)
 	{
 		maildir_smapfn_free(fn);
-		return NULL;
+		return "";
 	}
 	maildir_smapfn_free(fn);
 
-	if (minfo.homedir == NULL || minfo.maildir == NULL)
+	if (minfo.homedir.empty() || minfo.maildir.empty())
 	{
-		maildir_info_destroy(&minfo);
 		errno=ENOENT;
-		return NULL;
+		return "";
 	}
 
-	n=maildir_name2dir(minfo.homedir, minfo.maildir);
+	auto n=maildir::name2dir(minfo.homedir, minfo.maildir);
 
-	if (n && rightsWanted)
+	if (!n.empty() && rightsWanted)
 	{
-		maildir_aclt_list aclt_list;
-		char *q, *r, *s;
+		maildir::aclt_list aclt_list;
 
-		if (read_acls(&aclt_list, &minfo) < 0)
+		if (!read_acls(aclt_list, minfo))
 		{
-			free(n);
-			maildir_info_destroy(&minfo);
-			return NULL;
-
+			return "";
 		}
 
-		q=compute_myrights(&aclt_list, minfo.owner);
+		auto q=compute_myrights(aclt_list, minfo.owner);
 
-		maildir_aclt_list_destroy(&aclt_list);
-
-		if (q == NULL)
-		{
-			free(n);
-			maildir_info_destroy(&minfo);
-			return NULL;
-		}
+		char *r, *s;
 
 		for (r=s=rightsWanted; *r; r++)
-			if (strchr(q, *r))
+			if (q.find(*r) != q.npos)
 				*s++ = *r;
 		*s=0;
-		free(q);
 	}
 
-	maildir_info_destroy(&minfo);
 	return n;
 }
 
-static char *getAccessToFolder(char **ptr, char *rightsWanted)
+static std::string getAccessToFolder(char **ptr, char *rightsWanted)
 {
-	char *p=getExistingFolder_int(ptr, rightsWanted);
+	auto p=getExistingFolder_int(ptr, rightsWanted);
 
-	if (p && strncmp(p, "./", 2) == 0)
+	if (p.substr(0, 2) == "./")
 	{
-		char *q=p+2;
-
-		while ((q[-2]=*q) != 0)
-			q++;
+		p.erase(p.begin(), p.begin()+2);
 	}
 
 	return p;
@@ -2803,7 +2785,7 @@ static struct searchinfo *createSearch2(char *w,
 	return n;
 }
 
-static int do_copyto(char *toFolder,
+static int do_copyto(const char *toFolder,
 		     int (*do_func)(unsigned long, void *),
 		     const char *acls)
 {
@@ -2848,7 +2830,7 @@ static int do_copyto(char *toFolder,
 	return applymsgset(do_func, &cqinfo);
 }
 
-static int copyto(char *toFolder, int do_move, const char *acls)
+static int copyto(const char *toFolder, int do_move, const char *acls)
 {
 	if (!do_move)
 		return do_copyto(toFolder, &do_copymsg, acls);
@@ -3196,7 +3178,7 @@ void smap()
 	struct imapflags add_flags;
 	int in_add=0;
 	char *add_from=NULL;
-	char *add_folder=NULL;
+	std::string add_folder;
 	time_t add_internaldate=0;
 	char *add_notify=NULL;
 	unsigned add_rcpt_count=0;
@@ -3244,15 +3226,12 @@ void smap()
 
 				if (strcmp(p, "FOLDER") == 0)
 				{
-					if (add_folder)
-						free(add_folder);
-
 					add_folder=
 						GETFOLDER(ACL_INSERT
 							  ACL_DELETEMSGS
 							  ACL_SEEN
 							  ACL_WRITE);
-					if (!add_folder)
+					if (add_folder.empty())
 					{
 						writes("-ERR Invalid folder: ");
 						writes(strerror(errno));
@@ -3265,8 +3244,7 @@ void smap()
 					    == NULL)
 					{
 						accessdenied(ACL_INSERT);
-						free(add_folder);
-						add_folder=NULL;
+						add_folder.clear();
 						break;
 					}
 
@@ -3385,13 +3363,13 @@ void smap()
 					FILE *fp;
 					unsigned long n;
 
-					fp=maildir_mkfilename(add_folder
-							      ?add_folder
-							      :".",
-							      &add_flags,
-							      0,
-							      tmpname,
-							      newname);
+					fp=maildir_mkfilename(
+						add_folder.empty()
+						? "." : add_folder.c_str(),
+						&add_flags,
+						0,
+						tmpname,
+						newname);
 
 					if (!fp)
 					{
@@ -3421,15 +3399,17 @@ void smap()
 						}
 					}
 
-					if (n > 0 && add_folder &&
-					    maildirquota_countfolder(add_folder)
+					if (n > 0 && !add_folder.empty() &&
+					    maildirquota_countfolder(
+						    add_folder.c_str()
+					    )
 					    && maildirquota_countfile(
 						    newname.c_str()))
 					{
 						struct maildirsize quotainfo;
 
 						if (maildir_quota_add_start(
-							    add_folder,
+							    add_folder.c_str(),
 							    &quotainfo, n, 1,
 							    getenv("MAILDIRQUOTA")))
 						{
@@ -3444,14 +3424,16 @@ void smap()
 
 					chmod(tmpname.c_str(), 0600);
 
-					if (add_folder && n && addKeywords)
+					if (!add_folder.empty() && n
+					    && addKeywords)
 					{
-						if (maildir_kwSave(add_folder,
-								   strrchr(newname.c_str(), '/')+1,
-								   addKeywords,
-								   &tmpKeywords,
-								   &newKeywords,
-								   0))
+						if (maildir_kwSave(
+							    add_folder.c_str(),
+							    strrchr(newname.c_str(), '/')+1,
+							    addKeywords,
+							    &tmpKeywords,
+							    &newKeywords,
+							    0))
 						{
 							tmpKeywords=NULL;
 							newKeywords=NULL;
@@ -3521,7 +3503,7 @@ void smap()
 						free(newKeywords);
 					}
 
-					if (add_folder && n)
+					if (!add_folder.empty() && n)
 					{
 						if (maildir_movetmpnew(
 							    tmpname.c_str(),
@@ -3580,8 +3562,7 @@ void smap()
 			memset(&add_flags, 0, sizeof(add_flags));
 			if (add_from)
 				free(add_from);
-			if (add_folder)
-				free(add_folder);
+			add_folder.clear();
 			if (add_notify)
 				free(add_notify);
 
@@ -3590,7 +3571,6 @@ void smap()
 
 			in_add=0;
 			add_from=NULL;
-			add_folder=NULL;
 			add_internaldate=0;
 			add_notify=NULL;
 			addKeywords=NULL;
@@ -3734,16 +3714,15 @@ void smap()
 
 		if (strcmp(p, "STATUS") == 0)
 		{
-			char *t;
 			struct imapscaninfo other_info, *loaded_infoptr,
 				*infoptr;
 			unsigned long n, i;
 
 			getword(&ptr);
 
-			t=GETFOLDER(ACL_LOOKUP);
+			auto t=GETFOLDER(ACL_LOOKUP);
 
-			if (!t)
+			if (t.empty())
 			{
 				writes("-ERR Cannot read folder status: ");
 				writes(strerror(errno));
@@ -3753,13 +3732,11 @@ void smap()
 
 			if (strchr(rights_buf, ACL_LOOKUP[0]) == NULL)
 			{
-				free(t);
 				accessdenied(ACL_LOOKUP);
 				continue;
 			}
 
-			if (current_mailbox &&
-			    strcmp(current_mailbox, t) == 0)
+			if (current_mailbox && t == current_mailbox)
 			{
 				loaded_infoptr=0;
 				infoptr= &current_maildir_info;
@@ -3771,9 +3748,9 @@ void smap()
 
 				imapscan_init(loaded_infoptr);
 
-				if (imapscan_maildir(infoptr, t, 1, 1, NULL))
+				if (imapscan_maildir(infoptr,
+						     t.c_str(), 1, 1, NULL))
 				{
-					free(t);
 					writes("-ERR Cannot read"
 					       " folder status: ");
 					writes(strerror(errno));
@@ -3781,7 +3758,6 @@ void smap()
 					continue;
 				}
 			}
-			free(t);
 
 			writes("* STATUS EXISTS=");
 			writen(infoptr->nmessages+infoptr->left_unseen);
@@ -4479,29 +4455,27 @@ void smap()
 
 			if (dummy && *p == 0)
 			{
-				p=GETFOLDER(ACL_INSERT
-					    ACL_DELETEMSGS
-					    ACL_SEEN
-					    ACL_WRITE);
+				auto p=GETFOLDER(ACL_INSERT
+						 ACL_DELETEMSGS
+						 ACL_SEEN
+						 ACL_WRITE);
 
-				if (p)
+				if (!p.empty())
 				{
 					if (strchr(rights_buf, ACL_INSERT[0])
 					    == NULL)
 					{
-						free(p);
 						accessdenied(ACL_INSERT);
 						continue;
 					}
 
-					if (copyto(p, domove, rights_buf) == 0)
+					if (copyto(p.c_str(), domove,
+						   rights_buf) == 0)
 					{
-						free(p);
 						writes("+OK Messages copied.\n"
 						       );
 						continue;
 					}
-					free(p);
 				}
 
 				writes("-ERR Cannot copy messages: ");
