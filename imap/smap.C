@@ -88,8 +88,6 @@ extern "C" int keywords();
 
 extern unsigned long header_count, body_count;
 
-extern char *compute_myrights(maildir_aclt_list *l,
-			      const char *l_owner);
 extern std::string compute_myrights(maildir::aclt_list &l,
 				    const std::string &l_owner);
 
@@ -470,8 +468,6 @@ struct smap_find_info {
 
 static int smap_find_cb(struct maildir_newshared_enum_cb *cb);
 static int smap_list_cb(struct maildir_newshared_enum_cb *cb);
-static int read_acls(maildir_aclt_list *aclt_list,
-		     struct maildir_info *minfo);
 static bool read_acls(maildir::aclt_list &aclt_list,
 		      maildir::info &minfo);
 
@@ -910,70 +906,6 @@ static std::string getCreateFolder(char **ptr, char *perms)
 
 	return p;
 }
-
-
-static int read_acls(maildir_aclt_list *aclt_list,
-		     struct maildir_info *minfo)
-{
-	char *q;
-	int rc;
-
-	if (minfo->homedir == NULL || minfo->maildir == NULL)
-	{
-		if (minfo->mailbox_type == MAILBOXTYPE_NEWSHARED)
-		{
-			/* Intermediate node in public hier */
-
-			maildir_aclt_list_init(aclt_list);
-
-			maildir_aclt_list_add(aclt_list,
-					      "anyone",
-					      ACL_LOOKUP,
-					      NULL);
-			return 0;
-		}
-
-		return -1;
-	}
-
-	q=maildir_name2dir(".", minfo->maildir);
-	if (!q)
-	{
-		fprintf(stderr, "ERR: Internal error"
-			" in read_acls(%s)\n", minfo->maildir);
-		return -1;
-	}
-
-	rc=maildir_acl_read(aclt_list, minfo->homedir,
-			    q[0] == '.' &&
-			    q[1] == '/' ? q+2:q);
-	free(q);
-
-	if (current_mailbox)
-	{
-		q=maildir_name2dir(minfo->homedir, minfo->maildir);
-
-		if (q)
-		{
-			if (strcmp(q, current_mailbox) == 0)
-			{
-				char *r=compute_myrights(aclt_list,
-							 minfo->owner);
-
-				if (r && strcmp(current_mailbox_acl, r))
-				{
-					free(current_mailbox_acl);
-					current_mailbox_acl=r;
-					r=NULL;
-				}
-				if (r) free(r);
-			}
-			free(q);
-		}
-	}
-	return rc;
-}
-
 
 static bool read_acls(maildir::aclt_list &aclt_list,
 		      maildir::info &minfo)
@@ -3553,9 +3485,6 @@ void smap()
 		    strcmp(p, "ACL") == 0)
 		{
 			char **fn=fn_fromwords(&ptr);
-			struct maildir_info minfo;
-			maildir_aclt_list aclt_list;
-			char *q;
 			int cnt;
 
 			if (!fn)
@@ -3566,9 +3495,11 @@ void smap()
 				continue;
 			}
 
-			if (maildir_info_smap_find(&minfo, fn,
-						   getenv("AUTHENTICATED"))
-			    < 0)
+			auto minfo=maildir::info_smap_find(
+				fn,
+				getenv("AUTHENTICATED"));
+
+			if (!minfo)
 			{
 				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
@@ -3577,9 +3508,10 @@ void smap()
 				continue;
 			}
 
-			if (read_acls(&aclt_list, &minfo) < 0)
+			maildir::aclt_list aclt_list;
+
+			if (!read_acls(aclt_list, minfo))
 			{
-				maildir_info_destroy(&minfo);
 				maildir_smapfn_free(fn);
 				writes("-ERR Unable to read"
 				       " existing ACLS: ");
@@ -3588,19 +3520,14 @@ void smap()
 				continue;
 			}
 
-			q=compute_myrights(&aclt_list,
-					   minfo.owner);
+			auto q=compute_myrights(aclt_list,
+						minfo.owner);
 
-			if (!q ||
-			    strcmp(p, "ACL") ?
-			    !strchr(q, ACL_ADMINISTER[0])
+			if (strcmp(p, "ACL") ?
+			    q.find(ACL_ADMINISTER[0]) == q.npos
 			    :
-			    !maildir_acl_canlistrights(q)
-			    )
+			    !maildir_acl_canlistrights(q.c_str()))
 			{
-				if (q) free(q);
-				maildir_aclt_list_destroy(&aclt_list);
-				maildir_info_destroy(&minfo);
 				maildir_smapfn_free(fn);
 				accessdenied(ACL_ADMINISTER);
 				continue;
@@ -3608,21 +3535,21 @@ void smap()
 			if (strcmp(p, "ACL") == 0)
 			{
 				writes("* ACL ");
-				smapword(q);
+				smapword(q.c_str());
 				writes("\n");
-				free(q);
 			}
 			else
 			{
-				free(q);
 				cnt=0;
-				maildir_aclt_list_enum(&aclt_list,
-						       getacl, &cnt);
+
+				for (const auto &acl:aclt_list)
+				{
+					getacl(acl.identifier.c_str(),
+					       acl.acl.c_str(), &cnt);
+				}
 				if (cnt)
 					writes("\n");
 			}
-			maildir_aclt_list_destroy(&aclt_list);
-			maildir_info_destroy(&minfo);
 			maildir_smapfn_free(fn);
 			writes("+OK ACLs retrieved\n");
 			continue;
@@ -3813,63 +3740,57 @@ void smap()
 		if (strcmp(p, "DELETE") == 0)
 		{
 			char **fn;
-			char *t=NULL;
+			std::string t;
 
 			fn=fn_fromwords(&ptr);
 
 			if (fn)
 			{
-				struct maildir_info minfo;
+				auto minfo=maildir::info_smap_find(
+					fn, getenv("AUTHENTICATED"));
 
-				if (maildir_info_smap_find(&minfo, fn,
-							   getenv("AUTHENTICATED")) == 0)
+				if (minfo)
 				{
 					maildir_smapfn_free(fn);
 
-					if (minfo.homedir && minfo.maildir)
+					if (!minfo.homedir.empty() &&
+					    !minfo.maildir.empty())
 					{
-						maildir_aclt_list list;
-						char *q;
+						maildir::aclt_list list;
 
-						if (strcmp(minfo.maildir,
-							   INBOX) == 0)
+						if (minfo.maildir == INBOX)
 						{
 							writes("-ERR INBOX may"
-							       " not be deleted\n");
-							maildir_info_destroy(&minfo);
+							       " not be"
+							       " deleted\n");
 							continue;
 						}
 
-						if (read_acls(&list, &minfo)
-						    < 0)
+						if (!read_acls(list, minfo))
 						{
-							maildir_info_destroy(&minfo);
-							accessdenied(ACL_DELETEFOLDER);
+							accessdenied(
+								ACL_DELETEFOLDER
+							);
 							continue;
 						}
 
-						q=compute_myrights(&list,
-								   minfo.owner
-								   );
+						auto q=compute_myrights(
+							list,
+							minfo.owner);
 
-						if (!q ||
-						    strchr(q,
-							   ACL_DELETEFOLDER[0])
-						    == NULL)
+						if (q.find(ACL_DELETEFOLDER[0])
+						    == q.npos)
 						{
-							if (q)
-								free(q);
-							maildir_aclt_list_destroy(&list);
-							maildir_info_destroy(&minfo);
-							accessdenied(ACL_DELETEFOLDER);
+							accessdenied(
+								ACL_DELETEFOLDER
+							);
 							continue;
 						}
-						free(q);
-						maildir_aclt_list_destroy(&list);
-						t=maildir_name2dir(minfo.homedir,
-								   minfo.maildir);
+						t=maildir::name2dir(
+							minfo.homedir,
+							minfo.maildir
+						);
 					}
-					maildir_info_destroy(&minfo);
 				}
 				else
 				{
@@ -3877,18 +3798,18 @@ void smap()
 				}
 			}
 
-			if (t && current_mailbox &&
-			    strcmp(t, current_mailbox) == 0)
+			if (!t.empty() && current_mailbox &&
+			    t == current_mailbox)
 			{
-				writes("-ERR Cannot DELETE currently open folder.\n");
-				free(t);
+				writes("-ERR Cannot DELETE currently open"
+				       " folder.\n");
 				continue;
 			}
 
 
-			if (t)
+			if (!t.empty())
 			{
-				if (mddelete(t))
+				if (mddelete(t.c_str()))
 				{
 					maildir_quota_recalculate(".");
 					writes("+OK Folder deleted");
@@ -3899,17 +3820,9 @@ void smap()
 					writes(strerror(errno));
 				}
 				writes("\n");
-				free(t);
-
 			}
 			else
 			{
-				if (t)
-				{
-					free(t);
-					errno=EINVAL;
-				}
-
 				writes("-ERR Unable to delete folder: ");
 				writes(strerror(errno));
 				writes("\n");
@@ -4014,10 +3927,7 @@ void smap()
 		    strcmp(p, "SOPEN") == 0)
 		{
 			char **fn;
-			char *q;
 			const char *snapshot=0;
-			struct maildir_info minfo;
-			maildir_aclt_list aclt_list;
 
 			if (current_mailbox)
 			{
@@ -4046,9 +3956,11 @@ void smap()
 				continue;
 			}
 
-			if (maildir_info_smap_find(&minfo, fn,
-						   getenv("AUTHENTICATED"))
-			    < 0)
+			auto minfo=maildir::info_smap_find(
+				fn,
+				getenv("AUTHENTICATED"));
+
+			if (!minfo)
 			{
 				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
@@ -4057,9 +3969,10 @@ void smap()
 				continue;
 			}
 
-			if (read_acls(&aclt_list, &minfo) < 0)
+			maildir::aclt_list aclt_list;
+
+			if (!read_acls(aclt_list, minfo))
 			{
-				maildir_info_destroy(&minfo);
 				maildir_smapfn_free(fn);
 				writes("-ERR Unable to read"
 				       " existing ACLS: ");
@@ -4068,32 +3981,20 @@ void smap()
 				continue;
 			}
 
-			q=compute_myrights(&aclt_list, minfo.owner);
-			maildir_aclt_list_destroy(&aclt_list);
+			auto q=compute_myrights(aclt_list, minfo.owner);
 			maildir_smapfn_free(fn);
 
-			if (!q || strchr(q, ACL_READ[0]) == NULL)
+			if (q.find(ACL_READ[0]) == q.npos)
 			{
-				if (q) free(q);
-				maildir_info_destroy(&minfo);
 				accessdenied(ACL_READ);
-				maildir_info_destroy(&minfo);
 				continue;
 			}
-			current_mailbox_acl=q;
-			current_mailbox=maildir_name2dir(minfo.homedir,
-							 minfo.maildir);
-
-			if (current_mailbox == NULL)
-			{
-				fprintf(stderr, "ERR: Internal error"
-					" in maildir_name2dir(%s,%s)\n",
-					minfo.homedir,
-					minfo.maildir);
-				maildir_info_destroy(&minfo);
-				continue;
-			}
-			maildir_info_destroy(&minfo);
+			current_mailbox_acl=my_strdup(q.c_str());
+			current_mailbox=my_strdup(
+				maildir::name2dir(minfo.homedir,
+						  minfo.maildir
+				).c_str()
+			);
 
 			snapshot_select(snapshot != NULL);
 

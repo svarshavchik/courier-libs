@@ -2724,8 +2724,6 @@ static void myrights()
 	writes("\"] ACL\r\n");
 }
 
-char *compute_myrights(maildir_aclt_list *l,
-		       const char *l_owner);
 std::string compute_myrights(maildir::aclt_list &l,
 			     const std::string &l_owner);
 
@@ -2900,20 +2898,6 @@ char *get_myrightson_folder(const char *folder)
 	r=get_myrightson(p);
 	free(p);
 	return r;
-}
-
-char *compute_myrights(maildir_aclt_list *l, const char *l_owner)
-{
-	maildir_aclt aa;
-	char *a;
-
-	if (maildir_acl_computerights(&aa, l, getenv("AUTHENTICATED"),
-				      l_owner, getenv("OPTIONS")) < 0)
-		return NULL;
-
-	a=my_strdup(maildir_aclt_ascstr(&aa));
-	maildir_aclt_destroy(&aa);
-	return a;
 }
 
 std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
