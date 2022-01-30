@@ -3717,16 +3717,13 @@ struct aclset_info {
 	const char **acl_error;
 };
 
-static int do_aclset(void *);
-
 static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 {
 	struct imaptoken *curtoken;
 	char *identifier;
-	maildir_aclt_list newlist;
-	size_t i;
+	maildir::aclt_list newlist;
 
-	maildir_aclt_list_init(&newlist);
+	size_t i;
 
 	while ((curtoken=nexttoken_nouc())->tokentype != IT_EOL)
 	{
@@ -3743,34 +3740,28 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 		    curtoken->tokentype != IT_NUMBER)
 		{
 			free(identifier);
-			maildir_aclt_list_destroy(&newlist);
 			return -1;
 		}
 
-		if (fix_acl_delete2(&newlist, identifier,
-				    curtoken->tokenbuf) < 0)
-		{
-			maildir_aclt_list_destroy(&newlist);
-			writes(tag);
-			writes(" NO ACL SET <");
-			writes(identifier);
-			writes(", ");
-			writes(curtoken->tokenbuf);
-			writes("> failed.\r\n");
-			free(identifier);
-			return 0;
-		}
+		newlist.add(
+			identifier,
+			new_fix_acl_delete(curtoken->tokenbuf)
+		);
+
 		free(identifier);
 	}
 
 	for (i=0; mailboxes && mailboxes[i].mailbox; i++)
 	{
-		const char *acl_error;
-		struct maildir_info mi;
-		struct aclset_info ai;
+		std::string acl_error;
 
-		if (acl_settable_folder(mailboxes[i].mailbox, &mi))
+		auto mi=acl_settable_folder(mailboxes[i].mailbox);
+
+		if (!mi)
+		{
+			mailboxes[i].mailbox[0]=0;
 			continue;
+		}
 
 		{
 			CHECK_RIGHTSM(mailboxes[i].mailbox,
@@ -3778,7 +3769,6 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 				      ACL_ADMINISTER);
 			if (acl_rights[0] == 0)
 			{
-				maildir_info_destroy(&mi);
 				writes("* ACLFAILED \"");
 				writemailbox(mailboxes[i].mailbox);
 				writes("\"");
@@ -3789,31 +3779,26 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			}
 		}
 
-		acl_error=NULL;
-		ai.mi=&mi;
-		ai.acl_error= &acl_error;
-		ai.newlist= &newlist;
-
-		if (acl_lock(mi.homedir, do_aclset, &ai))
+		if (!acl_lock(mi.homedir,
+			      [&]
+			      {
+				      return acl_write_folder(
+					      newlist,
+					      mi.homedir,
+					      mi.maildir,
+					      mi.owner,
+					      acl_error
+				      );
+			      }))
 		{
 			aclfailed(mailboxes[i].mailbox, acl_error);
-			maildir_info_destroy(&mi);
 			mailboxes[i].mailbox[0]=0;
 			continue;
 		}
-		maildir_info_destroy(&mi);
+		fclose(fopen("/tmp/z1", "w"));
 	}
-	maildir_aclt_list_destroy(&newlist);
+
 	return 0;
-}
-
-static int do_aclset(void *void_arg)
-{
-	struct aclset_info *ai=(struct aclset_info *)void_arg;
-
-	return acl_write_folder(ai->newlist, ai->mi->homedir,
-				ai->mi->maildir,
-				ai->mi->owner, ai->acl_error);
 }
 
 struct acldelete_info {
