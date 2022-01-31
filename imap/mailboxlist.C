@@ -72,47 +72,44 @@ static bool do_mailbox_list(
 	int do_lsub, char *qq, int isnullname,
 	const mailbox_scan_cb_t &callback_func);
 
-static int shared_index_err_reported=0;
-
-const char *maildir_shared_index_file()
+static std::string create_maildir_shared_index_file()
 {
-	static char *filenamep=NULL;
+	std::string s;
 
-	if (filenamep == NULL)
+	const char *p=getenv("IMAP_SHAREDINDEXFILE");
+
+	if (p && *p)
 	{
-		const char *p=getenv("IMAP_SHAREDINDEXFILE");
+		auto q=auth_getoptionenv("sharedgroup");
 
-		if (p && *p)
-		{
-			char *opt=auth_getoptionenv("sharedgroup");
-			const char *q=opt;
+		s.reserve(strlen(p)+strlen(q ? q:""));
 
-			if (!q) q="";
+		s=p;
+		if (q)
+			s += q;
 
-			filenamep=(char *)malloc(strlen(p)+strlen(q)+1);
-
-			if (!filenamep)
-				write_error_exit(0);
-
-			strcat(strcpy(filenamep, p), q);
-			if (opt)
-				free(opt);
-		}
+		if (q) free(q);
 	}
 
-	if (filenamep && !shared_index_err_reported) /* Bitch just once */
+	if (!s.empty())
 	{
 		struct stat stat_buf;
 
-		shared_index_err_reported=1;
-		if (stat(filenamep, &stat_buf))
+		if (stat(s.c_str(), &stat_buf))
 		{
 			fprintf(stderr, "ERR: ");
-			perror(filenamep);
+			perror(s.c_str());
 		}
 	}
 
-	return filenamep;
+	return s;
+}
+
+const char *maildir_shared_index_file()
+{
+	static std::string filenamep=create_maildir_shared_index_file();
+
+	return filenamep.c_str();
 }
 
 /*
@@ -164,7 +161,7 @@ bool mailbox_scan(const char *reference, const char *name,
 	return (rc);
 }
 
-static int match_mailbox(char *, char *, int flags);
+static bool match_mailbox(const std::string &, const std::string &, int flags);
 static void match_mailbox_prep(char *);
 
 /* Check if a folder has any new messages */
@@ -310,7 +307,7 @@ static void folder_entry(char *folder, char *pattern,
 
 	need_add_folders=0;
 
-	if (match_mailbox(folder, pattern, list_options) == 0)
+	if (match_mailbox(folder, pattern, list_options))
 		need_add_folders=1;
 
 	need_add_hier=0;
@@ -921,7 +918,7 @@ char hiersepbuf[8];
 
 		match_mailbox_prep(hp->hier);
 
-		if (match_mailbox(hp->hier, pattern, list_options) == 0
+		if (match_mailbox(hp->hier, pattern, list_options)
 		    && hp->flag == 0)
 		{
 			int mb_flags=MAILBOX_NOSELECT;
@@ -967,7 +964,9 @@ char hiersepbuf[8];
 	return callback_rc;
 }
 
-static int match_recursive(char *, char *, int);
+static bool match_recursive(std::string::const_iterator, std::string::const_iterator,
+			    std::string::const_iterator, std::string::const_iterator,
+			    int);
 
 static void match_mailbox_prep(char *name)
 {
@@ -985,43 +984,65 @@ static void match_mailbox_prep(char *name)
 		memcpy(name, "shared", 6);
 }
 
-static int match_mailbox(char *name, char *pattern, int list_options)
+static bool match_mailbox(const std::string &name,
+			  const std::string &pattern, int list_options)
 {
         if (list_options & LIST_CHECK1FOLDER)
-                return strcmp(name, pattern);
+                return name==pattern;
 
-	return (match_recursive(name, pattern, HIERCH));
+	return (match_recursive(name.begin(), name.end(),
+				pattern.begin(), pattern.end(), HIERCH));
 }
 
-static int match_recursive(char *name, char *pattern, int hierch)
+static bool match_recursive(std::string::const_iterator nameb,
+			    std::string::const_iterator namee,
+			    std::string::const_iterator patternb,
+			    std::string::const_iterator patterne,
+			    int hierch)
 {
 	for (;;)
 	{
-		if (*pattern == '*')
+		if (patternb != patterne && *patternb == '*')
 		{
-			do
+			while (1)
 			{
-				if (match_recursive(name, pattern+1,
-					hierch) == 0)
-					return (0);
-			} while (*name++);
-			return (-1);
+				if (match_recursive(nameb, namee,
+						    patternb+1, patterne,
+						    hierch))
+					return true;
+
+				if (nameb == namee)
+					break;
+				++nameb;
+			}
+			return false;
 		}
-		if (*pattern == '%')
+		if (patternb != patterne && *patternb == '%')
 		{
-			do
+			while (1)
 			{
-				if (match_recursive(name, pattern+1, hierch)
-					== 0) return (0);
-				if (*name == hierch)	break;
-			} while (*name++);
-			return (-1);
+				if (match_recursive(nameb, namee,
+						    patternb+1, patterne,
+						    hierch))
+					return true;
+
+				if (*nameb == hierch)
+					break;
+
+				if (nameb == namee)
+					break;
+				++nameb;
+			}
+			return false;
 		}
-		if (*name == 0 && *pattern == 0)	break;
-		if (*name == 0 || *pattern == 0)	return (-1);
-		if (*name != *pattern)	return (-1);
-		++name;
-		++pattern;
+		if (nameb == namee && patternb == patterne)
+			break;
+		if (nameb == namee || patternb == patterne)
+			return false;
+
+		if (*nameb != *patternb)	return false;
+		++nameb;
+		++patternb;
 	}
-	return (0);
+	return true;
 }
