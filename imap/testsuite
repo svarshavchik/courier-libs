@@ -401,6 +401,7 @@ h021 lsub "" "*"
 h022 subscribe shared.test.a
 h023 list "" "*"
 h024 lsub "" "*"
+h025 delete shared.test.a
 hdone logout
 EOF
 
