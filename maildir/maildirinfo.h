@@ -115,6 +115,20 @@ info info_imap_find(const std::string &path,
 
 info info_smap_find(char **folder, const std::string &myid);
 
+/*
+** Conversions between IMAP folder names to filenames.
+**
+** Filenames are in UTF-8.
+**
+** If utf8_format, the same string gets returned, else the folder name
+** gets translated from modified-UTF7.
+*/
+
+std::string imap_foldername_to_filename(bool utf8_format,
+					const std::string &foldername);
+
+std::string imap_filename_to_foldername(bool utf8_format,
+					const std::string &filename);
 
 #if 0
 {
