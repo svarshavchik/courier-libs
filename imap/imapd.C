@@ -2423,20 +2423,17 @@ static void list_acl(const std::string &,
 static bool get_acllist(maildir::aclt_list &l,
 			const std::string &mailbox);
 
-static void list_myrights(const char *mailbox,
+static void list_myrights(const std::string &mailbox,
 			  const char *myrights);
-static void list_postaddress(const char *mailbox);
+static void list_postaddress(const std::string &mailbox);
 
 static void accessdenied(const char *cmd, const std::string &folder,
 			 const char *acl_required);
 
-static int list_callback(const char *hiersep,
-			 const char *mailbox,
-			 int flags,
-			 void *void_arg)
+static int list_callback(const mailbox_scan_info &info,
+			 const char *cmd)
 {
 	const char *sep="";
-	const char *cmd=(const char *)void_arg;
 	maildir::aclt_list l;
 
 	char *myrights=NULL;
@@ -2447,9 +2444,11 @@ static int list_callback(const char *hiersep,
 	** its own output.
 	*/
 
+	auto flags=info.flags;
+
 	if (flags & (LIST_MYRIGHTS | LIST_ACL))
 	{
-		myrights=get_myrightson(mailbox);
+		myrights=get_myrightson(info.mailbox);
 
 		if (flags & LIST_MYRIGHTS)
 		{
@@ -2502,11 +2501,11 @@ static int list_callback(const char *hiersep,
 
 	if (flags & LIST_ACL)
 	{
-		if (!get_acllist(l, mailbox))
+		if (!get_acllist(l, info.mailbox))
 		{
 			fprintf(stderr,
 				"ERR: Error reading ACLs for %s: %s\n",
-				mailbox, strerror(errno));
+				info.mailbox.c_str(), strerror(errno));
 			flags &= ~LIST_ACL;
 		}
 	}
@@ -2528,20 +2527,20 @@ static int list_callback(const char *hiersep,
 #undef DO_FLAG
 
 	writes(") ");
-	writes(hiersep);
+	writes(info.hiersep.c_str());
 	writes(" \"");
-	writemailbox(mailbox);
+	writemailbox(info.mailbox.c_str());
 	writes("\"");
 
 	if (flags & (LIST_ACL|LIST_MYRIGHTS|LIST_POSTADDRESS))
 	{
 		writes(" (");
 		if (flags & LIST_ACL)
-			list_acl(mailbox, l);
+			list_acl(info.mailbox, l);
 		if (flags & LIST_MYRIGHTS)
-			list_myrights(mailbox, myrights);
+			list_myrights(info.mailbox, myrights);
 		if (flags & LIST_POSTADDRESS)
-			list_postaddress(mailbox);
+			list_postaddress(info.mailbox);
 		writes(")");
 	}
 
@@ -2552,7 +2551,7 @@ static int list_callback(const char *hiersep,
 	return 0;
 }
 
-static void list_postaddress(const char *mailbox)
+static void list_postaddress(const std::string &mailbox)
 {
 	writes("(POSTADDRESS NIL)");
 }
@@ -2862,7 +2861,7 @@ void check_rights(const std::string &mailbox, char *rights_buf)
 	free(r);
 }
 
-static void list_myrights(const char *mailbox,
+static void list_myrights(const std::string &mailbox,
 			  const char *r)
 {
 
@@ -2871,7 +2870,7 @@ static void list_myrights(const char *mailbox,
 	if (r == NULL)
 	{
 		fprintf(stderr, "ERR: Error reading ACLs for %s: %s\n",
-			mailbox, strerror(errno));
+			mailbox.c_str(), strerror(errno));
 		writes(" NIL");
 	}
 	else
@@ -2896,29 +2895,26 @@ struct temp_acl_mailbox_list {
 ** a temporary link list.
 */
 
-static int aclmailbox_scan(const char *hiersep,
-			   const char *mailbox,
-			   int flags,
-			   void *void_arg)
+static int aclmailbox_scan(const mailbox_scan_info &info,
+			   temp_acl_mailbox_list **p)
 {
-	struct temp_acl_mailbox_list **p
-		=(struct temp_acl_mailbox_list **)void_arg,
+	struct temp_acl_mailbox_list
 		*q=(struct temp_acl_mailbox_list *)malloc(sizeof(struct temp_acl_mailbox_list));
 
-	if (!q || !(q->mailbox=(char *)malloc(strlen(mailbox)+1)))
+	if (!q || !(q->mailbox=(char *)malloc(info.mailbox.size()+1)))
 	{
 		if (q) free(q);
 		return -1;
 	}
-	if (!(q->hier=strdup(hiersep)))
+	if (!(q->hier=strdup(info.hiersep.c_str())))
 	{
 		free(q->mailbox);
 		free(q);
 		return -1;
 	}
-	strcpy(q->mailbox, mailbox);
+	strcpy(q->mailbox, info.mailbox.c_str());
 	q->next= *p;
-	q->flags=flags;
+	q->flags=info.flags;
 	*p=q;
 	return 0;
 }
@@ -3084,8 +3080,14 @@ static int aclcmd(const char *tag)
 			}
 			mblist=NULL;
 
-			if (mailbox_scan("", p.c_str(), 0,
-					 aclmailbox_scan, &mblist) ||
+			if (!mailbox_scan("", p.c_str(), 0,
+					  [&]
+					  (const mailbox_scan_info &info)
+					  {
+						  return aclmailbox_scan(
+							  info,
+							  &mblist) == 0;
+					  }) ||
 			    aclmailbox_merge(mblist, &mailboxlist))
 			{
 				free_tempmailboxlist(mblist);
@@ -3108,8 +3110,14 @@ static int aclcmd(const char *tag)
 				curtoken->tokenbuf);
 
 			if (p.empty() ||
-			    mailbox_scan("", p.c_str(), LIST_CHECK1FOLDER,
-					 aclmailbox_scan, &mblist) ||
+			    !mailbox_scan("", p.c_str(), LIST_CHECK1FOLDER,
+					  [&]
+					  (const mailbox_scan_info &info)
+					  {
+						  return aclmailbox_scan(
+							  info,
+							  &mblist) == 0;
+					  }) ||
 			    aclmailbox_merge(mblist, &mailboxlist))
 			{
 				free_tempmailboxlist(mblist);
@@ -3140,10 +3148,11 @@ static int aclcmd(const char *tag)
 			char arg[]="LIST";
 
 			if (mailboxlist[i].mailbox[0])
-				list_callback(mailboxlist[i].hier,
-					      mailboxlist[i].mailbox,
-					      LIST_ACL | mailboxlist[i].flags,
-					      arg);
+				list_callback({
+						mailboxlist[i].hier,
+						mailboxlist[i].mailbox,
+						LIST_ACL | mailboxlist[i].flags,
+					}, arg);
 		}
 	}
 	free_mailboxlist(mailboxlist);
@@ -3602,21 +3611,17 @@ static void accessdenied(const char *cmd, const std::string &folder,
 ** virtually.
 */
 
-static int folder_exists_cb(const char *hiersep,
-			    const char *mailbox,
-			    int flags,
-			    void *void_arg)
-{
-	*(int *)void_arg=1;
-	return 0;
-}
-
 static int folder_exists(const std::string &folder)
 {
 	int flag=0;
 
-	if (mailbox_scan("", folder.c_str(), LIST_CHECK1FOLDER,
-			 folder_exists_cb, &flag))
+	if (!mailbox_scan("", folder.c_str(), LIST_CHECK1FOLDER,
+			  [&]
+			  (const mailbox_scan_info &info)
+			  {
+				  flag=1;
+				  return true;
+			  }))
 		return 0;
 	return flag;
 }
@@ -4166,7 +4171,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		rc=mailbox_scan(reference.c_str(), name.c_str(),
 				list_flags,
-				list_callback, cmdbuf);
+				[&]
+				(const mailbox_scan_info &info)
+				{
+					return list_callback(
+						info,
+						cmdbuf) == 0;
+				}) == true ? 0:-1;
 
 		if (rc == 0)
 		{

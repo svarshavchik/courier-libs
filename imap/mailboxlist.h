@@ -4,12 +4,11 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <functional>
+#include <string>
 
 /*
-** Copyright 1998 - 2003 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -26,16 +25,16 @@ extern "C" {
 #define LIST_POSTADDRESS	0x0800
 #define LIST_CHECK1FOLDER	0x1000
 
-int mailbox_scan(const char *ref, const char *name,
-		 int list_options,
-		 int (*callback_func)(const char *hiersep,
-				      const char *mailbox,
-				      int flags,
-				      void *void_arg),
-		 void *void_arg);
+struct mailbox_scan_info {
+	std::string hiersep;
+	std::string mailbox;
+	int flags;
+};
 
-#ifdef __cplusplus
-}
-#endif
+typedef std::function<bool (const mailbox_scan_info &)> mailbox_scan_cb_t;
+
+bool mailbox_scan(const char *reference, const char *name,
+		  int list_options,
+		  const mailbox_scan_cb_t &callback_func);
 
 #endif

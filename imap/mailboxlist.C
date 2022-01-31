@@ -68,12 +68,9 @@ extern ino_t homedir_ino;
 		LIST MAILBOXES
 */
 
-static int do_mailbox_list(int do_lsub, char *qq, int isnullname,
-			   int (*callback_func)(const char *hiersep,
-						const char *mailbox,
-						int flags,
-						void *void_arg),
-			   void *void_arg);
+static bool do_mailbox_list(
+	int do_lsub, char *qq, int isnullname,
+	const mailbox_scan_cb_t &callback_func);
 
 static int shared_index_err_reported=0;
 
@@ -123,17 +120,12 @@ const char *maildir_shared_index_file()
 */
 
 
-int mailbox_scan(const char *reference, const char *name,
-		 int list_options,
-		 int (*callback_func)(const char *hiersep,
-				      const char *mailbox,
-				      int flags,
-				      void *void_arg),
-		 void *void_arg)
+bool mailbox_scan(const char *reference, const char *name,
+		  int list_options,
+		  const mailbox_scan_cb_t &callback_func)
 {
 	char	*pattern, *p;
 	int	nullname= *name == 0;
-	int	rc;
 
 	pattern=(char *)malloc(strlen(reference)+strlen(name)+2);
 
@@ -147,7 +139,7 @@ int mailbox_scan(const char *reference, const char *name,
 					     getenv("AUTHENTICATED")))
 		{
 			free(pattern);
-			return (0); /* Invalid reference */
+			return (true); /* Invalid reference */
 		}
 	}
 
@@ -166,8 +158,8 @@ int mailbox_scan(const char *reference, const char *name,
 
 	/* Now, do the list */
 
-	rc=do_mailbox_list(list_options, pattern, nullname,
-			   callback_func, void_arg);
+	auto rc=do_mailbox_list(list_options, pattern, nullname,
+				callback_func);
 	free(pattern);
 	return (rc);
 }
@@ -379,11 +371,7 @@ struct list_sharable_info {
 	char *pattern;
 	struct hierlist **folders, **hierarchies;
 	int flags;
-	int (*callback_func)(const char *hiersep,
-			     const char *mailbox,
-			     int flags,
-			     void *void_arg);
-	void *cb_arg;
+	mailbox_scan_cb_t callback_func;
 	} ;
 
 static void list_sharable(const char *n,
@@ -801,12 +789,9 @@ static int list_newshared_skipcb(struct maildir_newshared_enum_cb *cb)
 	return 0;
 }
 
-static int do_mailbox_list(int list_options, char *pattern, int isnullname,
-			   int (*callback_func)(const char *hiersep,
-						const char *mailbox,
-						int flags,
-						void *void_arg),
-			   void *void_arg)
+static bool do_mailbox_list(
+	int list_options, char *pattern, int isnullname,
+	const mailbox_scan_cb_t &callback_func)
 {
 int	found_hier=MAILBOX_NOSELECT;
 int	is_interesting;
@@ -817,7 +802,7 @@ struct list_sharable_info shared_info;
 const char *obsolete;
 int check_all_folders=0;
 char hiersepbuf[8];
-int callback_rc=0;
+ bool callback_rc=true;
 
 	obsolete=getenv("IMAP_CHECK_ALL_FOLDERS");
 	if (obsolete && atoi(obsolete))
@@ -840,7 +825,7 @@ int callback_rc=0;
 	if (bad_pattern)
 	{
 		errno=EINVAL;
-		return -1;
+		return false;
 	}
 
 	hierarchies=0;
@@ -853,7 +838,6 @@ int callback_rc=0;
 	shared_info.hierarchies= &hierarchies;
 	shared_info.flags=list_options;
 	shared_info.callback_func=callback_func;
-	shared_info.cb_arg=void_arg;
 
 	if (!(list_options & LIST_SUBSCRIBED))
 	{
@@ -924,10 +908,10 @@ int callback_rc=0;
 		if (isnullname)
 			found_hier=mb_flags;
 		else
-			if (callback_rc == 0)
-				callback_rc=(*callback_func)
-					(hiersepbuf, hp->hier,
-					 mb_flags | list_options, void_arg);
+			if (callback_rc)
+				callback_rc=callback_func
+					({hiersepbuf, hp->hier,
+						 mb_flags | list_options});
 		free(hp);
 	}
 
@@ -952,12 +936,12 @@ int callback_rc=0;
 				strcat(strcat(strcpy(hiersepbuf, "\""),
 					      hierchs), "\"");
 
-				if (callback_rc == 0)
-					callback_rc=(*callback_func)
-						(hiersepbuf,
-						 hp->hier,
-						 mb_flags | list_options,
-						 void_arg);
+				if (callback_rc)
+					callback_rc=callback_func
+						({hiersepbuf,
+							 hp->hier,
+							 mb_flags |
+							 list_options});
 			}
 		}
 		free(hp);
@@ -972,10 +956,13 @@ int callback_rc=0;
 
 		strcat(strcat(strcpy(hiersepbuf, "\""), hierchs), "\"");
 
-		if (callback_rc == 0)
-			callback_rc=(*callback_func)
-				(hiersepbuf, namesp, found_hier | list_options,
-				 void_arg);
+		if (callback_rc)
+			callback_rc=callback_func(
+				{
+					hiersepbuf,
+					namesp,
+					found_hier | list_options
+				});
 	}
 	return callback_rc;
 }
