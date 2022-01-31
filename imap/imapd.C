@@ -2882,167 +2882,57 @@ static void list_myrights(const std::string &mailbox,
 	writes(")");
 }
 
-
-struct temp_acl_mailbox_list {
-	struct temp_acl_mailbox_list *next;
-	char *mailbox;
-	char *hier;
-	int flags;
-};
-
-/*
-** Callback function from aclmailbox_scan that saves the listed mailboxes into
-** a temporary link list.
-*/
-
-static int aclmailbox_scan(const mailbox_scan_info &info,
-			   temp_acl_mailbox_list **p)
-{
-	struct temp_acl_mailbox_list
-		*q=(struct temp_acl_mailbox_list *)malloc(sizeof(struct temp_acl_mailbox_list));
-
-	if (!q || !(q->mailbox=(char *)malloc(info.mailbox.size()+1)))
-	{
-		if (q) free(q);
-		return -1;
-	}
-	if (!(q->hier=strdup(info.hiersep.c_str())))
-	{
-		free(q->mailbox);
-		free(q);
-		return -1;
-	}
-	strcpy(q->mailbox, info.mailbox.c_str());
-	q->next= *p;
-	q->flags=info.flags;
-	*p=q;
-	return 0;
-}
-
-static void free_temp_acl_mailbox(struct temp_acl_mailbox_list *p)
-{
-	free(p->mailbox);
-	free(p->hier);
-}
-
-static int cmp_mb(const void *a, const void *b)
-{
-	return (strcmp ( ((struct temp_acl_mailbox_list *)a)->mailbox,
-			 ((struct temp_acl_mailbox_list *)b)->mailbox));
-}
-
 /*
 ** Combine mailbox patterns; remove duplicate mailboxes.
 **
-** mailbox_merge takes the temp_acl_mailbox_list generated from a pattern,
+** mailbox_merge takes the mailbox_scan_info generated from a pattern,
 ** combines it with the current mailbox list (kept as an array), sorts the
 ** end result, then removes dupes.
 */
 
-static int aclmailbox_merge(struct temp_acl_mailbox_list *l,
-			    struct temp_acl_mailbox_list **mailbox_list)
+static int aclmailbox_merge(const std::vector<mailbox_scan_info> &l,
+			    std::vector<mailbox_scan_info> &mailbox_list)
 {
-	size_t n, o;
-	struct temp_acl_mailbox_list *p;
-	struct temp_acl_mailbox_list *newa;
+	mailbox_list.insert(mailbox_list.end(),
+			    l.begin(), l.end());
 
-	/* Count # of mailboxes so far */
-
-	for (n=0; *mailbox_list && (*mailbox_list)[n].mailbox; n++)
-		;
-
-	/* Count # of new mailboxes */
-
-	for (p=l, o=0; p; p=p->next)
-		++o;
-
-	if (n + o == 0)
-		return 0; /* The list is empty */
-
-	/* Expand the array */
-
-	if ((newa= *mailbox_list == NULL ?
-	     (struct temp_acl_mailbox_list *)malloc( (n+o+1)*sizeof(*l)):
-	     (struct temp_acl_mailbox_list *)realloc(*mailbox_list, (n+o+1)*sizeof(*l))) == NULL)
-		return -1;
-
-	*mailbox_list=newa;
-	while (l)
-	{
-		newa[n]= *l;
-
-		if ((newa[n].mailbox=strdup(l->mailbox)) == NULL)
-			return -1;
-
-		if ((newa[n].hier=strdup(l->hier)) == NULL)
-		{
-			free(newa[n].mailbox);
-			newa[n].mailbox=NULL;
-			return -1;
-		}
-
-		++n;
-		memset(&newa[n], 0, sizeof(newa[n]));
-
-		l=l->next;
-	}
-	qsort(newa, n, sizeof(*l), cmp_mb);
+	std::sort(mailbox_list.begin(),
+		  mailbox_list.end(),
+		  []
+		  (const mailbox_scan_info &a,
+		   const mailbox_scan_info &b)
+		  {
+			  return a.mailbox < b.mailbox;
+		  });
 
 	/* Remove dupes */
 
-	for (n=o=0; newa[n].mailbox; n++)
-	{
-		if (newa[n+1].mailbox &&
-		    strcmp(newa[n].mailbox, newa[n+1].mailbox) == 0)
-		{
-			free_temp_acl_mailbox(&newa[n]);
-			continue;
-		}
-		newa[o]=newa[n];
-		++o;
-	}
-	memset(&newa[o], 0, sizeof(newa[o]));
+	mailbox_list.erase(
+		std::unique(
+			mailbox_list.begin(),
+			mailbox_list.end(),
+			[]
+			(const mailbox_scan_info &a,
+			 const mailbox_scan_info &b)
+			{
+				return a.mailbox == b.mailbox;
+			}), mailbox_list.end());
 
 	return 0;
 }
 
-static int aclstore(const char *, struct temp_acl_mailbox_list *);
-static int aclset(const char *, struct temp_acl_mailbox_list *);
-static int acldelete(const char *, struct temp_acl_mailbox_list *);
-
-static void free_mailboxlist(struct temp_acl_mailbox_list *mailboxlist)
-{
-	size_t i;
-	for (i=0; mailboxlist && mailboxlist[i].mailbox; i++)
-	{
-		free(mailboxlist[i].hier);
-		free(mailboxlist[i].mailbox);
-	}
-	if (mailboxlist)
-		free(mailboxlist);
-}
-
-static void free_tempmailboxlist(struct temp_acl_mailbox_list *mailboxlist)
-{
-	struct temp_acl_mailbox_list *p;
-
-	while ((p=mailboxlist) != NULL)
-	{
-		mailboxlist=p->next;
-		free_temp_acl_mailbox(p);
-		free(p);
-	}
-}
+static int aclstore(const char *, std::vector<mailbox_scan_info> &);
+static int aclset(const char *, std::vector<mailbox_scan_info> &);
+static int acldelete(const char *, std::vector<mailbox_scan_info> &);
 
 static int aclcmd(const char *tag)
 {
 	char aclcmd[11];
-	struct temp_acl_mailbox_list *mailboxlist;
-	struct temp_acl_mailbox_list *mblist;
+	std::vector<mailbox_scan_info> mailboxlist;
 	struct	imaptoken *curtoken;
-	size_t i;
 	int rc;
-	int (*aclfunc)(const char *, struct temp_acl_mailbox_list *);
+	int (*aclfunc)(const char *,
+		       std::vector<mailbox_scan_info> &mblist);
 
 	/* Expect ACL followed only by: STORE/DELETE/SET */
 
@@ -3054,8 +2944,6 @@ static int aclcmd(const char *tag)
 	}
 
 	strcpy(aclcmd, curtoken->tokenbuf);
-
-	mailboxlist=NULL;
 
 	switch ((curtoken=nexttoken_nouc())->tokentype) {
 	case IT_LPAREN:
@@ -3078,33 +2966,33 @@ static int aclcmd(const char *tag)
 				errno=EINVAL;
 				return -1;
 			}
-			mblist=NULL;
+
+			std::vector<mailbox_scan_info> mblist;
 
 			if (!mailbox_scan("", p.c_str(), 0,
 					  [&]
 					  (const mailbox_scan_info &info)
 					  {
-						  return aclmailbox_scan(
-							  info,
-							  &mblist) == 0;
-					  }) ||
-			    aclmailbox_merge(mblist, &mailboxlist))
-			{
-				free_tempmailboxlist(mblist);
-				free_mailboxlist(mailboxlist);
-				return -1;
+						  mblist.push_back(
+							  {
+								  info
+							  });
 
+						  return true;
+					  }) ||
+			    aclmailbox_merge(mblist, mailboxlist))
+			{
+				return -1;
 			}
-			free_tempmailboxlist(mblist);
 		}
 		break;
 	case IT_QUOTED_STRING:
 	case IT_ATOM:
 	case IT_NUMBER:
 
-		mblist=NULL;
-
 		{
+			std::vector<mailbox_scan_info> mblist;
+
 			auto p=maildir::imap_foldername_to_filename(
 				enabled_utf8,
 				curtoken->tokenbuf);
@@ -3114,17 +3002,16 @@ static int aclcmd(const char *tag)
 					  [&]
 					  (const mailbox_scan_info &info)
 					  {
-						  return aclmailbox_scan(
-							  info,
-							  &mblist) == 0;
+						  mblist.push_back(
+							  {
+								  info
+							  });
+						  return true;
 					  }) ||
-			    aclmailbox_merge(mblist, &mailboxlist))
+			    aclmailbox_merge(mblist, mailboxlist))
 			{
-				free_tempmailboxlist(mblist);
-				free_mailboxlist(mailboxlist);
 				return -1;
 			}
-			free_tempmailboxlist(mblist);
 		}
 		break;
 	case IT_ERROR:
@@ -3143,19 +3030,16 @@ static int aclcmd(const char *tag)
 
 	if (rc == 0)
 	{
-		for (i=0; mailboxlist && mailboxlist[i].mailbox; i++)
+		for (auto &m:mailboxlist)
 		{
-			char arg[]="LIST";
-
-			if (mailboxlist[i].mailbox[0])
+			if (!m.mailbox.empty())
 				list_callback({
-						mailboxlist[i].hier,
-						mailboxlist[i].mailbox,
-						LIST_ACL | mailboxlist[i].flags,
-					}, arg);
+						m.hiersep,
+						m.mailbox,
+						LIST_ACL | m.flags,
+					}, "LIST");
 		}
 	}
-	free_mailboxlist(mailboxlist);
 
 	if (rc == 0)
 	{
@@ -3341,11 +3225,11 @@ static bool acl_update(maildir::aclt_list &aclt_list,
 				mi.owner, acl_error);
 }
 
-static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
+static int aclstore(const char *tag,
+		    std::vector<mailbox_scan_info> &mailboxes)
 {
 	struct imaptoken *curtoken;
 	char *identifier;
-	size_t i;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
 	    curtoken->tokentype != IT_ATOM &&
@@ -3363,40 +3247,40 @@ static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 		return -1;
 	}
 
-	for (i=0; mailboxes && mailboxes[i].mailbox; i++)
+	for (auto &mailbox:mailboxes)
 	{
 		maildir::aclt_list aclt_list;
 
 		std::string acl_error;
 
-		auto mi=acl_settable_folder(mailboxes[i].mailbox);
+		auto mi=acl_settable_folder(mailbox.mailbox);
 
 		if (!mi)
 		{
-			mailboxes[i].mailbox[0]=0;
+			mailbox.mailbox.clear();
 			continue;
 		}
 
 		{
-			CHECK_RIGHTSM(mailboxes[i].mailbox,
+			CHECK_RIGHTSM(mailbox.mailbox,
 				      acl_rights,
 				      ACL_ADMINISTER);
 			if (acl_rights[0] == 0)
 			{
 				writes("* ACLFAILED \"");
-				writemailbox(mailboxes[i].mailbox);
+				writemailbox(mailbox.mailbox);
 				writes("\"");
 				accessdenied("ACL STORE",
-					     mailboxes[i].mailbox,
+					     mailbox.mailbox,
 					     ACL_ADMINISTER);
-				mailboxes[i].mailbox[0]=0;
+				mailbox.mailbox.clear();
 				continue;
 			}
 		}
 
 		if (!acl_read_folder(aclt_list, mi.homedir, mi.maildir))
 		{
-			aclfailed(mailboxes[i].mailbox);
+			aclfailed(mailbox.mailbox);
 			continue;
 		}
 
@@ -3413,7 +3297,7 @@ static int aclstore(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 				    );
 			    }))
 		{
-			aclfailed(mailboxes[i].mailbox, acl_error);
+			aclfailed(mailbox.mailbox, acl_error);
 			continue;
 		}
 	}
@@ -3428,13 +3312,12 @@ struct aclset_info {
 	const char **acl_error;
 };
 
-static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
+static int aclset(const char *tag,
+		  std::vector<mailbox_scan_info> &mailboxes)
 {
 	struct imaptoken *curtoken;
 	char *identifier;
 	maildir::aclt_list newlist;
-
-	size_t i;
 
 	while ((curtoken=nexttoken_nouc())->tokentype != IT_EOL)
 	{
@@ -3462,30 +3345,30 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 		free(identifier);
 	}
 
-	for (i=0; mailboxes && mailboxes[i].mailbox; i++)
+	for (auto &mailbox:mailboxes)
 	{
 		std::string acl_error;
 
-		auto mi=acl_settable_folder(mailboxes[i].mailbox);
+		auto mi=acl_settable_folder(mailbox.mailbox);
 
 		if (!mi)
 		{
-			mailboxes[i].mailbox[0]=0;
+			mailbox.mailbox.clear();
 			continue;
 		}
 
 		{
-			CHECK_RIGHTSM(mailboxes[i].mailbox,
+			CHECK_RIGHTSM(mailbox.mailbox,
 				      acl_rights,
 				      ACL_ADMINISTER);
 			if (acl_rights[0] == 0)
 			{
 				writes("* ACLFAILED \"");
-				writemailbox(mailboxes[i].mailbox);
+				writemailbox(mailbox.mailbox);
 				writes("\"");
-				accessdenied("ACL SET", mailboxes[i].mailbox,
+				accessdenied("ACL SET", mailbox.mailbox,
 					     ACL_ADMINISTER);
-				mailboxes[i].mailbox[0]=0;
+				mailbox.mailbox.clear();
 				continue;
 			}
 		}
@@ -3502,8 +3385,8 @@ static int aclset(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 				      );
 			      }))
 		{
-			aclfailed(mailboxes[i].mailbox, acl_error);
-			mailboxes[i].mailbox[0]=0;
+			aclfailed(mailbox.mailbox, acl_error);
+			mailbox.mailbox.clear();
 			continue;
 		}
 	}
@@ -3515,11 +3398,11 @@ static bool do_acldelete(const char *mailbox,
 			 const char *identifier,
 			 maildir::info &info);
 
-static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
+static int acldelete(const char *tag,
+		     std::vector<mailbox_scan_info> &mailboxes)
 {
 	struct imaptoken *curtoken;
 	const char *identifier;
-	size_t i;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
 	    curtoken->tokentype != IT_ATOM &&
@@ -3528,26 +3411,26 @@ static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 
 	identifier=curtoken->tokenbuf;
 
-	for (i=0; mailboxes && mailboxes[i].mailbox; i++)
+	for (auto &mailbox:mailboxes)
 	{
-		auto mi=acl_settable_folder(mailboxes[i].mailbox);
+		auto mi=acl_settable_folder(mailbox.mailbox);
 
 		if (!mi)
 			continue;
 
 		{
-			CHECK_RIGHTSM(mailboxes[i].mailbox,
+			CHECK_RIGHTSM(mailbox.mailbox,
 				      acl_rights,
 				      ACL_ADMINISTER);
 			if (acl_rights[0] == 0)
 			{
 				writes("* ACLFAILED \"");
-				writemailbox(mailboxes[i].mailbox);
+				writemailbox(mailbox.mailbox);
 				writes("\"");
 				accessdenied("ACL DELETE",
-					     mailboxes[i].mailbox,
+					     mailbox.mailbox,
 					     ACL_ADMINISTER);
-				mailboxes[i].mailbox[0]=0;
+				mailbox.mailbox.clear();
 				continue;
 			}
 		}
@@ -3557,11 +3440,11 @@ static int acldelete(const char *tag, struct temp_acl_mailbox_list *mailboxes)
 			    [&]
 			    {
 				    return do_acldelete(
-					    mailboxes[i].mailbox,
+					    mailbox.mailbox.c_str(),
 					    identifier,
 					    mi);
 			    }))
-			mailboxes[i].mailbox[0]=0;
+			mailbox.mailbox.clear();
 	}
 	return 0;
 }
