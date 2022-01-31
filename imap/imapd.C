@@ -2714,7 +2714,6 @@ static void list_acl(const std::string &mailbox,
 
 static void writeacl(const char *aclstr)
 {
-	char *p, *q, *r;
 	const char *cp;
 	int n=0;
 
@@ -2732,21 +2731,20 @@ static void writeacl(const char *aclstr)
 		return;
 	}
 
-	p=my_strdup(aclstr);
+	std::string p{aclstr};
 
-	*strchr(p, ACL_EXPUNGE[0])= ACL_DELETE_SPECIAL[0];
+	p[p.find(ACL_EXPUNGE[0])]=ACL_DELETE_SPECIAL[0];
 
-	q=r=p;
-	while (*q)
-	{
-		if (*q != ACL_EXPUNGE[0] && *q != ACL_DELETEMSGS[0] &&
-		    *q != ACL_DELETEFOLDER[0])
-			*r++= *q;
-		++q;
-	}
-	*r=0;
-	writeqs(p);
-	free(p);
+	p.erase(std::remove_if(p.begin(), p.end(),
+			       []
+			       (char c)
+			       {
+				       return c == ACL_EXPUNGE[0] ||
+					       c == ACL_DELETEMSGS[0] ||
+					       c == ACL_DELETEFOLDER[0];
+			       }), p.end());
+
+	writeqs(p.c_str());
 }
 
 static void writeacl1(char *p)
@@ -3654,7 +3652,7 @@ int acl_flags_adjust(const char *access_rights,
 	return 0;
 }
 
-static int append(const char *tag, const char *mailbox, const char *path)
+static int append(const char *tag, const char *mailbox, const std::string &path)
 {
 
 	struct	imapflags flags;
@@ -3666,7 +3664,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	int need_rparen;
 	int utf8_error=0;
 
-	if (access(path, 0))
+	if (access(path.c_str(), 0))
 	{
 		writes(tag);
 		writes(" NO [TRYCREATE] Must create mailbox before append\r\n");
@@ -3692,7 +3690,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	}
 
 	if (current_mailbox &&
-	    strcmp(path, current_mailbox) == 0 && current_mailbox_ro)
+	    path == current_mailbox && current_mailbox_ro)
 	{
 		writes(tag);
 		writes(" NO Current box is selected READ-ONLY.\r\n");
@@ -3764,7 +3762,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 
 	acl_flags_adjust(access_rights, &flags);
 
-	if (store_mailbox(tag, path, &flags,
+	if (store_mailbox(tag, path.c_str(), &flags,
 			  acl_flags_adjust(access_rights, &flags)
 			  ? NULL:keywords,
 			  timestamp,
@@ -3789,7 +3787,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 		return (-1);
 	}
 
-	dirsync(path);
+	dirsync(path.c_str());
 	if (utf8_error) {
 		writes("* OK [ALERT] Your IMAP client does not appear to "
 		       "correctly implement Unicode messages, "
@@ -4177,7 +4175,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "APPEND") == 0)
 	{
 		struct	imaptoken *tok=nexttoken_nouc();
-		struct maildir_info mi;
 		char *mailbox;
 
 		if (tok->tokentype != IT_NUMBER &&
@@ -4191,9 +4188,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		mailbox=imap_foldername_to_filename(enabled_utf8,
 						    tok->tokenbuf);
-		if (!mailbox ||
-		    maildir_info_imap_find(&mi, mailbox,
-					   getenv("AUTHENTICATED")) < 0)
+
+		maildir::info mi;
+
+		if (mailbox)
+			mi=maildir::info_imap_find(
+				mailbox,
+				getenv("AUTHENTICATED"));
+
+		if (!mi)
 		{
 			if (mailbox)
 				free(mailbox);
@@ -4202,14 +4205,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		if (mi.homedir && mi.maildir)
+		if (!mi.homedir.empty() && !mi.maildir.empty())
 		{
-			char *p=maildir_name2dir(mi.homedir, mi.maildir);
+			auto p=maildir::name2dir(mi.homedir, mi.maildir);
 			int rc;
 
-			if (!p)
+			if (p.empty())
 			{
-				maildir_info_destroy(&mi);
 				writes(tag);
 				accessdenied("APPEND",
 					     mailbox,
@@ -4219,28 +4221,25 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 
 			rc=append(tag, mailbox, p);
-			free(p);
-			maildir_info_destroy(&mi);
 			free(mailbox);
 			return (rc);
 		}
 		else if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 		{
-			char *p=strchr(mailbox, '.');
+			char *q=strchr(mailbox, '.');
 
-			if (p && (p=maildir_shareddir(".", p+1)) != NULL)
+			std::string p;
+
+			if (q)
+				p=maildir::shareddir(".", q+1);
+
+			if (!p.empty())
 			{
 				int rc;
-				char	*q=(char *)malloc(strlen(p)+sizeof("/shared"));
 
-				if (!q)	write_error_exit(0);
-
-				strcat(strcpy(q, p), "/shared");
-				free(p);
-				rc=append(tag, mailbox, q);
-				free(q);
+				p += "/shared";
+				rc=append(tag, mailbox, p);
 				free(mailbox);
-				maildir_info_destroy(&mi);
 				return rc;
 			}
 		}
