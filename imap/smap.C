@@ -79,6 +79,7 @@ extern ino_t homedir_ino;
 
 int mdcreate(const char *mailbox);
 bool mddelete(const std::string &s);
+void dirsync(std::string folder);
 
 extern const char *folder_rename(maildir::info &mi1,
 				 maildir::info &mi2);
@@ -3230,9 +3231,12 @@ void smap()
 					FILE *fp;
 					unsigned long n;
 
-					fp=maildir_mkfilename(
+					std::string dest_folder=
 						add_folder.empty()
-						? "." : add_folder.c_str(),
+						? "." : add_folder.c_str();
+
+					fp=maildir_mkfilename(
+						dest_folder.c_str(),
 						&add_flags,
 						0,
 						tmpname,
@@ -3401,6 +3405,7 @@ void smap()
 					unlink(tmpname.c_str());
 					okmsg="Message saved";
 					p=NULL;
+					dirsync(dest_folder);
 					break;
 				}
 			}
@@ -4311,6 +4316,7 @@ void smap()
 					if (copyto(p.c_str(), domove,
 						   rights_buf) == 0)
 					{
+						dirsync(p);
 						writes("+OK Messages copied.\n"
 						       );
 						continue;

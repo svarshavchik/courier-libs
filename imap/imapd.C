@@ -2011,19 +2011,12 @@ static void unsubscribe(const char *f)
 	rename(newf.c_str(), SUBSCRIBEFILE);
 }
 
-static void dirsync(const char *folder)
+void dirsync(std::string folder)
 {
 #if EXPLICITDIRSYNC
+	folder += "/new";
 
-	char *p=malloc(strlen(folder)+sizeof("/new"));
-	int fd;
-
-	if (!p)
-		write_error_exit(0);
-
-	p=strcat(strcpy(p, folder), "/new");
-
-	fd=open(p, O_RDONLY);
+	int fd=open(folder.c_str(), O_RDONLY);
 
 	if (fd >= 0)
 	{
@@ -2031,9 +2024,11 @@ static void dirsync(const char *folder)
 		close(fd);
 	}
 
-	p=strcat(strcpy(p, folder), "/cur");
+	folder.erase(folder.end()-3, folder.end());
 
-	fd=open(p, O_RDONLY);
+	folder += "/cur";
+
+	fd=open(folder.c_str(), O_RDONLY);
 
 	if (fd >= 0)
 	{
@@ -2041,7 +2036,6 @@ static void dirsync(const char *folder)
 		close(fd);
 	}
 
-	free(p);
 #endif
 }
 
