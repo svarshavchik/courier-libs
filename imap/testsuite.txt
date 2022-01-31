@@ -1787,3 +1787,6 @@
 001490 V005 OK "INBOX.Folder" created.
 001491 * LIST (\HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
 001491 V006 OK LIST completed
+001492 * QUOTAROOT "INBOX" "ROOT"
+001493 * QUOTA "ROOT"
+001494 V007 OK GETQUOTAROOT Ok.

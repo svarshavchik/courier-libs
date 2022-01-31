@@ -1180,6 +1180,7 @@ V003 ACL STORE INBOX.Folder user=user2 +r
 V004 LIST (ACL) "" "INBOX.Folder"
 V005 CREATE INBOX.Folder
 V006 LIST (ACL) "" "INBOX.Folder"
+V007 GETQUOTAROOT INBOX
 EOF
 ls confmdtest/courierimaphieracl 2>&1
 rm -rf confmdtest
