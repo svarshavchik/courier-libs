@@ -360,1435 +360,1437 @@
 000359 b030 OK [READ-WRITE] Ok
 000360 * 2 FETCH (BODYSTRUCTURE (("text" "plain" NIL "<foo@bar>" "MIME test message" "8bit" 6 1 "aaaabbbb" NIL NIL) "mixed" ("boundary" "c1") NIL "en"))
 000361 b031 OK FETCH completed.
-000362 * BYE Courier-IMAP server shutting down
-000363 adone OK LOGOUT completed
-000364 * PREAUTH Ready.
-000365 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000366 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000367 * 3 EXISTS
-000368 * 0 RECENT
-000369 * OK [UIDVALIDITY] Ok
-000370 * OK [MYRIGHTS "acdilrsw"] ACL
-000371 foo OK [READ-WRITE] Ok
-000372 * 1 FETCH (FLAGS (\Flagged \Deleted))
-000373 foo OK STORE completed.
-000374 * 1 EXPUNGE
-000375 * 2 EXISTS
-000376 * 0 RECENT
-000377 foo OK EXPUNGE completed
-000378 * BYE Courier-IMAP server shutting down
-000379 foo OK LOGOUT completed
-000380 * PREAUTH Ready.
-000381 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000382 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000383 * 0 EXISTS
-000384 * 0 RECENT
-000385 * OK [UIDVALIDITY] Ok
-000386 * OK [MYRIGHTS "acdilrsw"] ACL
-000387 c001 OK [READ-WRITE] Ok
-000388 + OK
-000389 c002 OK APPEND Ok.
+000362 * SEARCH 1
+000363 b032 OK SEARCH done.
+000364 * BYE Courier-IMAP server shutting down
+000365 adone OK LOGOUT completed
+000366 * PREAUTH Ready.
+000367 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000368 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000369 * 3 EXISTS
+000370 * 0 RECENT
+000371 * OK [UIDVALIDITY] Ok
+000372 * OK [MYRIGHTS "acdilrsw"] ACL
+000373 foo OK [READ-WRITE] Ok
+000374 * 1 FETCH (FLAGS (\Flagged \Deleted))
+000375 foo OK STORE completed.
+000376 * 1 EXPUNGE
+000377 * 2 EXISTS
+000378 * 0 RECENT
+000379 foo OK EXPUNGE completed
+000380 * BYE Courier-IMAP server shutting down
+000381 foo OK LOGOUT completed
+000382 * PREAUTH Ready.
+000383 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000384 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000385 * 0 EXISTS
+000386 * 0 RECENT
+000387 * OK [UIDVALIDITY] Ok
+000388 * OK [MYRIGHTS "acdilrsw"] ACL
+000389 c001 OK [READ-WRITE] Ok
 000390 + OK
-000391 c003 OK APPEND Ok.
+000391 c002 OK APPEND Ok.
 000392 + OK
-000393 c004 NO [ALERT] You exceeded your mail quota.
-000394 * NO Error in IMAP command received by server.
-000395 * 2 EXISTS
-000396 * 0 RECENT
-000397 c005 OK NOOP completed
-000398 * 1 FETCH (FLAGS (\Deleted))
-000399 c006 OK STORE completed.
-000400 + OK
-000401 c007 OK APPEND Ok.
-000402 * 3 EXISTS
-000403 * 0 RECENT
-000404 c008 OK NOOP completed
-000405 + OK
-000406 c009 NO [ALERT] You exceeded your mail quota.
-000407 * NO Error in IMAP command received by server.
-000408 c010 NO [ALERT] You exceeded your mail quota.
-000409 * BYE Courier-IMAP server shutting down
-000410 cdone OK LOGOUT completed
-000411 10000S,2C
-000412           10            2
-000413 * PREAUTH Ready.
-000414 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000415 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000416 * 0 EXISTS
-000417 * 0 RECENT
-000418 * OK [UIDVALIDITY] Ok
-000419 * OK [MYRIGHTS "acdilrsw"] ACL
-000420 d001 OK [READ-WRITE] Ok
-000421 + OK
-000422 d002 OK APPEND Ok.
-000423 * 1 EXISTS
-000424 * 0 RECENT
-000425 d003 OK NOOP completed
-000426 d004 OK COPY completed.
-000427 * 2 EXISTS
-000428 * 0 RECENT
-000429 d005 OK NOOP completed
-000430 * BYE Courier-IMAP server shutting down
-000431 ddone OK LOGOUT completed
-000432 10000S,5C
-000433            5            1
-000434            5            1
-000435 * PREAUTH Ready.
-000436 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000437 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000438 * 2 EXISTS
-000439 * 0 RECENT
-000440 * OK [UIDVALIDITY] Ok
-000441 * OK [MYRIGHTS "acdilrsw"] ACL
-000442 e001 OK [READ-WRITE] Ok
-000443 e002 OK COPY completed.
-000444 * 4 EXISTS
-000445 * 0 RECENT
-000446 e003 OK NOOP completed
-000447 * BYE Courier-IMAP server shutting down
-000448 edone OK LOGOUT completed
-000449 10000S,5C
-000450            5            1
-000451            5            1
-000452           10            2
-000453 * PREAUTH Ready.
-000454 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000455 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000456 * 4 EXISTS
-000457 * 0 RECENT
-000458 * OK [UIDVALIDITY] Ok
-000459 * OK [MYRIGHTS "acdilrsw"] ACL
-000460 f001 OK [READ-WRITE] Ok
-000461 f002 NO [ALERT] You exceeded your mail quota.
-000462 f002 OK COPY completed.
-000463 f003 OK NOOP completed
-000464 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000465 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000466 * 2 EXISTS
-000467 * 0 RECENT
-000468 * OK [UIDVALIDITY] Ok
-000469 * OK [MYRIGHTS "acdilrsw"] ACL
-000470 f004 OK [READ-WRITE] Ok
-000471 f005 NO [ALERT] You exceeded your mail quota.
-000472 f006 OK COPY completed.
-000473 * 4 EXISTS
-000474 * 0 RECENT
-000475 f007 OK NOOP completed
-000476 f008 OK COPY completed.
-000477 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000478 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000479 * 5 EXISTS
-000480 * 0 RECENT
-000481 * OK [UIDVALIDITY] Ok
-000482 * OK [MYRIGHTS "acdilrsw"] ACL
-000483 f009 OK [READ-WRITE] Ok
-000484 * BYE Courier-IMAP server shutting down
-000485 fdone OK LOGOUT completed
-000486 10000S,5C
-000487           20            4
-000488            5            1
-000489 Counts: 5 4
-000490 * PREAUTH Ready.
-000491 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000492 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000493 * 5 EXISTS
-000494 * 0 RECENT
-000495 * OK [UIDVALIDITY] Ok
-000496 * OK [MYRIGHTS "acdilrsw"] ACL
-000497 g001 OK [READ-WRITE] Ok
-000498 g002 NO Mailbox does not exist, or must be subscribed to.
-000499 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000500 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000501 * 4 EXISTS
-000502 * 0 RECENT
-000503 * OK [UIDVALIDITY] Ok
-000504 * OK [MYRIGHTS "acdilrsw"] ACL
-000505 g003 OK [READ-WRITE] Ok
-000506 g004 NO Cannot delete currently-open folder.
-000507 g005 OK mailbox closed.
-000508 g006 NO Cannot delete this folder.
-000509 g007 OK "INBOX.a" created.
-000510 g008 NO Mailbox does not exist, or must be subscribed to.
-000511 g009 OK Folder deleted.
-000512 g010 NO Invalid mailbox name.
-000513 * BYE Courier-IMAP server shutting down
-000514 gdone OK LOGOUT completed
-000515 * PREAUTH Ready.
-000516 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000516 * LIST (\HasNoChildren) "." "shared.test.a"
-000516 * LIST (\Marked \HasChildren) "." "INBOX"
-000516 * LIST (\Noselect \HasChildren) "." "shared"
-000516 * LIST (\Noselect \HasChildren) "." "shared.test"
-000516 h001 OK LIST completed
-000517 * LIST (\Marked \HasChildren) "." "INBOX"
-000517 * LIST (\Noselect \HasChildren) "." "shared"
-000517 h002 OK LIST completed
+000393 c003 OK APPEND Ok.
+000394 + OK
+000395 c004 NO [ALERT] You exceeded your mail quota.
+000396 * NO Error in IMAP command received by server.
+000397 * 2 EXISTS
+000398 * 0 RECENT
+000399 c005 OK NOOP completed
+000400 * 1 FETCH (FLAGS (\Deleted))
+000401 c006 OK STORE completed.
+000402 + OK
+000403 c007 OK APPEND Ok.
+000404 * 3 EXISTS
+000405 * 0 RECENT
+000406 c008 OK NOOP completed
+000407 + OK
+000408 c009 NO [ALERT] You exceeded your mail quota.
+000409 * NO Error in IMAP command received by server.
+000410 c010 NO [ALERT] You exceeded your mail quota.
+000411 * BYE Courier-IMAP server shutting down
+000412 cdone OK LOGOUT completed
+000413 10000S,2C
+000414           10            2
+000415 * PREAUTH Ready.
+000416 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000417 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000418 * 0 EXISTS
+000419 * 0 RECENT
+000420 * OK [UIDVALIDITY] Ok
+000421 * OK [MYRIGHTS "acdilrsw"] ACL
+000422 d001 OK [READ-WRITE] Ok
+000423 + OK
+000424 d002 OK APPEND Ok.
+000425 * 1 EXISTS
+000426 * 0 RECENT
+000427 d003 OK NOOP completed
+000428 d004 OK COPY completed.
+000429 * 2 EXISTS
+000430 * 0 RECENT
+000431 d005 OK NOOP completed
+000432 * BYE Courier-IMAP server shutting down
+000433 ddone OK LOGOUT completed
+000434 10000S,5C
+000435            5            1
+000436            5            1
+000437 * PREAUTH Ready.
+000438 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000439 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000440 * 2 EXISTS
+000441 * 0 RECENT
+000442 * OK [UIDVALIDITY] Ok
+000443 * OK [MYRIGHTS "acdilrsw"] ACL
+000444 e001 OK [READ-WRITE] Ok
+000445 e002 OK COPY completed.
+000446 * 4 EXISTS
+000447 * 0 RECENT
+000448 e003 OK NOOP completed
+000449 * BYE Courier-IMAP server shutting down
+000450 edone OK LOGOUT completed
+000451 10000S,5C
+000452            5            1
+000453            5            1
+000454           10            2
+000455 * PREAUTH Ready.
+000456 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000457 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000458 * 4 EXISTS
+000459 * 0 RECENT
+000460 * OK [UIDVALIDITY] Ok
+000461 * OK [MYRIGHTS "acdilrsw"] ACL
+000462 f001 OK [READ-WRITE] Ok
+000463 f002 NO [ALERT] You exceeded your mail quota.
+000464 f002 OK COPY completed.
+000465 f003 OK NOOP completed
+000466 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000467 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000468 * 2 EXISTS
+000469 * 0 RECENT
+000470 * OK [UIDVALIDITY] Ok
+000471 * OK [MYRIGHTS "acdilrsw"] ACL
+000472 f004 OK [READ-WRITE] Ok
+000473 f005 NO [ALERT] You exceeded your mail quota.
+000474 f006 OK COPY completed.
+000475 * 4 EXISTS
+000476 * 0 RECENT
+000477 f007 OK NOOP completed
+000478 f008 OK COPY completed.
+000479 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000480 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000481 * 5 EXISTS
+000482 * 0 RECENT
+000483 * OK [UIDVALIDITY] Ok
+000484 * OK [MYRIGHTS "acdilrsw"] ACL
+000485 f009 OK [READ-WRITE] Ok
+000486 * BYE Courier-IMAP server shutting down
+000487 fdone OK LOGOUT completed
+000488 10000S,5C
+000489           20            4
+000490            5            1
+000491 Counts: 5 4
+000492 * PREAUTH Ready.
+000493 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000494 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000495 * 5 EXISTS
+000496 * 0 RECENT
+000497 * OK [UIDVALIDITY] Ok
+000498 * OK [MYRIGHTS "acdilrsw"] ACL
+000499 g001 OK [READ-WRITE] Ok
+000500 g002 NO Mailbox does not exist, or must be subscribed to.
+000501 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000502 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000503 * 4 EXISTS
+000504 * 0 RECENT
+000505 * OK [UIDVALIDITY] Ok
+000506 * OK [MYRIGHTS "acdilrsw"] ACL
+000507 g003 OK [READ-WRITE] Ok
+000508 g004 NO Cannot delete currently-open folder.
+000509 g005 OK mailbox closed.
+000510 g006 NO Cannot delete this folder.
+000511 g007 OK "INBOX.a" created.
+000512 g008 NO Mailbox does not exist, or must be subscribed to.
+000513 g009 OK Folder deleted.
+000514 g010 NO Invalid mailbox name.
+000515 * BYE Courier-IMAP server shutting down
+000516 gdone OK LOGOUT completed
+000517 * PREAUTH Ready.
 000518 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000518 * LIST (\HasNoChildren) "." "shared.test.a"
+000518 * LIST (\Marked \HasChildren) "." "INBOX"
+000518 * LIST (\Noselect \HasChildren) "." "shared"
 000518 * LIST (\Noselect \HasChildren) "." "shared.test"
-000518 h003 OK LIST completed
-000519 * LIST (\HasNoChildren) "." "shared.test.a"
-000519 h004 OK LIST completed
-000520 * LIST (\HasNoChildren) "." "shared.test.a"
+000518 h001 OK LIST completed
+000519 * LIST (\Marked \HasChildren) "." "INBOX"
+000519 * LIST (\Noselect \HasChildren) "." "shared"
+000519 h002 OK LIST completed
+000520 * LIST (\HasNoChildren) "." "INBOX.Trash"
 000520 * LIST (\Noselect \HasChildren) "." "shared.test"
-000520 h005 OK LIST completed
+000520 h003 OK LIST completed
 000521 * LIST (\HasNoChildren) "." "shared.test.a"
-000521 h006 OK LIST completed
-000522 * LIST (\Marked \HasChildren) "." ""
-000522 h007 OK LIST completed
-000523 * LIST (\Noselect \HasChildren) "." ""
-000523 h008 OK LIST completed
-000524 * LIST (\Noselect \HasChildren) "." ""
-000524 h009 OK LIST completed
-000525 h010 OK Folder subscribed.
-000526 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000526 * LIST (\HasNoChildren) "." "shared.test.a"
-000526 * LIST (\Marked \HasChildren) "." "INBOX"
-000526 * LIST (\Noselect \HasChildren) "." "shared"
-000526 * LIST (\Noselect \HasChildren) "." "shared.test"
-000526 h011 OK LIST completed
-000527 * LSUB (\Marked \HasNoChildren) "." "INBOX"
-000527 h012 OK LSUB completed
-000528 h013 OK SUBSCRIBE completed.
-000529 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000529 * LIST (\HasNoChildren) "." "shared.test.a"
-000529 * LIST (\Marked \HasChildren) "." "INBOX"
-000529 * LIST (\Noselect \HasChildren) "." "shared"
-000529 * LIST (\Noselect \HasChildren) "." "shared.test"
-000529 h014 OK LIST completed
-000530 * LSUB (\HasNoChildren) "." "shared.test.a"
-000530 * LSUB (\Marked \HasNoChildren) "." "INBOX"
-000530 * LSUB (\Noselect \HasChildren) "." "shared"
-000530 * LSUB (\Noselect \HasChildren) "." "shared.test"
-000530 h015 OK LSUB completed
-000531 h016 OK SUBSCRIBE completed.
-000532 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000532 * LIST (\HasNoChildren) "." "shared.test.a"
-000532 * LIST (\Marked \HasChildren) "." "INBOX"
-000532 * LIST (\Noselect \HasChildren) "." "shared"
-000532 * LIST (\Noselect \HasChildren) "." "shared.test"
-000532 h017 OK LIST completed
-000533 * LSUB (\HasNoChildren) "." "shared.test.a"
-000533 * LSUB (\HasNoChildren) "." "shared.test.b"
-000533 * LSUB (\Marked \HasNoChildren) "." "INBOX"
-000533 * LSUB (\Noselect \HasChildren) "." "shared"
-000533 * LSUB (\Noselect \HasChildren) "." "shared.test"
-000533 h018 OK LSUB completed
-000534 h019 OK UNSUBSCRIBE completed.
-000535 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000535 * LIST (\HasNoChildren) "." "shared.test.a"
-000535 * LIST (\Marked \HasChildren) "." "INBOX"
-000535 * LIST (\Noselect \HasChildren) "." "shared"
-000535 * LIST (\Noselect \HasChildren) "." "shared.test"
-000535 h020 OK LIST completed
-000536 * LSUB (\HasNoChildren) "." "shared.test.b"
-000536 * LSUB (\Marked \HasNoChildren) "." "INBOX"
-000536 * LSUB (\Noselect \HasChildren) "." "shared"
-000536 * LSUB (\Noselect \HasChildren) "." "shared.test"
-000536 h021 OK LSUB completed
-000537 h022 OK SUBSCRIBE completed.
-000538 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000538 * LIST (\HasNoChildren) "." "shared.test.a"
-000538 * LIST (\Marked \HasChildren) "." "INBOX"
-000538 * LIST (\Noselect \HasChildren) "." "shared"
-000538 * LIST (\Noselect \HasChildren) "." "shared.test"
-000538 h023 OK LIST completed
-000539 * LSUB (\HasNoChildren) "." "shared.test.a"
-000539 * LSUB (\HasNoChildren) "." "shared.test.b"
-000539 * LSUB (\Marked \HasNoChildren) "." "INBOX"
-000539 * LSUB (\Noselect \HasChildren) "." "shared"
-000539 * LSUB (\Noselect \HasChildren) "." "shared.test"
-000539 h024 OK LSUB completed
-000540 h025 OK UNSUBSCRIBEd a shared folder.
-000541 * BYE Courier-IMAP server shutting down
-000542 hdone OK LOGOUT completed
-000543 * PREAUTH Ready.
-000544 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000544 * LIST (\HasNoChildren) "." "INBOX.c"
-000544 * LIST (\HasNoChildren) "." "shared.test.Trash"
-000544 * LIST (\HasNoChildren) "." "shared.test.a"
-000544 * LIST (\Marked \HasChildren) "." "INBOX"
-000544 * LIST (\Noselect \HasChildren) "." "shared"
-000544 * LIST (\Noselect \HasChildren) "." "shared.test"
-000544 ii001 OK LIST completed
-000545 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000545 * LIST (\HasNoChildren) "." "INBOX.c"
-000545 * LIST (\HasNoChildren) "." "shared.test.Trash"
-000545 * LIST (\HasNoChildren) "." "shared.test.a"
-000545 * LIST (\Marked \HasChildren) "." "INBOX"
-000545 * LIST (\Noselect \HasChildren) "." "shared"
-000545 * LIST (\Noselect \HasChildren) "." "shared.test"
-000545 ii002 OK LIST completed
-000546 * BYE Courier-IMAP server shutting down
-000547 iidone OK LOGOUT completed
-000548 * PREAUTH Ready.
-000549 * LIST (\Marked \HasChildren) "." "INBOX"
-000549 * LIST (\Marked \HasNoChildren) "." "INBOX.Trash"
-000549 * LIST (\Marked \HasNoChildren) "." "shared.test.a"
-000549 * LIST (\Noselect \HasChildren) "." "shared"
-000549 * LIST (\Noselect \HasChildren) "." "shared.test"
-000549 * LIST (\Unmarked \HasNoChildren) "." "INBOX.c"
-000549 * LIST (\Unmarked \HasNoChildren) "." "shared.test.Trash"
-000549 ii003 OK LIST completed
-000550 * LIST (\Marked \HasChildren) "." "INBOX"
-000550 * LIST (\Marked \HasNoChildren) "." "INBOX.Trash"
-000550 * LIST (\Marked \HasNoChildren) "." "shared.test.a"
-000550 * LIST (\Noselect \HasChildren) "." "shared"
-000550 * LIST (\Noselect \HasChildren) "." "shared.test"
-000550 * LIST (\Unmarked \HasNoChildren) "." "INBOX.c"
-000550 * LIST (\Unmarked \HasNoChildren) "." "shared.test.Trash"
-000550 ii004 OK LIST completed
-000551 * BYE Courier-IMAP server shutting down
-000552 iidone OK LOGOUT completed
-000553 * PREAUTH Ready.
-000554 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000555 * OK [PERMANENTFLAGS ()] No permanent flags permitted
-000556 * 0 EXISTS
-000557 * 0 RECENT
-000558 * OK [UIDVALIDITY] Ok
-000559 * OK [MYRIGHTS "dilrsw"] ACL
-000560 i001 OK [READ-ONLY] Ok
-000561 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000562 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000563 * 2 EXISTS
-000564 * 2 RECENT
-000565 * OK [UIDVALIDITY] Ok
-000566 * OK [MYRIGHTS "dilrsw"] ACL
-000567 i002 OK [READ-WRITE] Ok
-000568 i003 OK mailbox closed.
-000569 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000570 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000571 * 2 EXISTS
-000572 * 0 RECENT
-000573 * OK [UIDVALIDITY] Ok
-000574 * OK [MYRIGHTS "dilrsw"] ACL
-000575 i004 OK [READ-WRITE] Ok
-000576 + OK
-000577 i005 OK APPEND Ok.
-000578 * 3 EXISTS
-000579 * 1 RECENT
-000580 i006 OK NOOP completed
-000581 * 1 FETCH (FLAGS ())
-000582 * 2 FETCH (FLAGS ())
-000583 * 3 FETCH (FLAGS (\Recent))
-000584 i007 OK FETCH completed.
-000585 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000586 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000587 * 6 EXISTS
-000588 * 1 RECENT
-000589 * OK [UIDVALIDITY] Ok
-000590 * OK [MYRIGHTS "acdilrsw"] ACL
-000591 i008 OK [READ-WRITE] Ok
-000592 i009 OK COPY completed.
-000593 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000594 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000595 * 5 EXISTS
-000596 * 2 RECENT
-000597 * OK [UIDVALIDITY] Ok
-000598 * OK [MYRIGHTS "dilrsw"] ACL
-000599 i010 OK [READ-WRITE] Ok
-000600 * 1 FETCH (FLAGS ())
-000601 * 2 FETCH (FLAGS ())
-000602 * 3 FETCH (FLAGS ())
-000603 * 4 FETCH (FLAGS (\Recent))
-000604 * 5 FETCH (FLAGS (\Recent))
-000605 i011 OK FETCH completed.
-000606 i012 NO [ALERT] Cannot create message - no write permission or out of disk space.
-000607 i013 NO [ALERT] COPY failed - no write permission or out of disk space.
-000608 * 1 FETCH (FLAGS (\Deleted))
-000609 * 2 FETCH (FLAGS (\Deleted))
-000610 i014 OK STORE completed.
-000611 * 1 EXPUNGE
-000612 * 1 EXPUNGE
-000613 * 3 EXISTS
-000614 * 2 RECENT
-000615 i015 OK EXPUNGE completed
-000616 * BYE Courier-IMAP server shutting down
-000617 idone OK LOGOUT completed
-000618 * PREAUTH Ready.
-000619 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000620 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000621 * 4 EXISTS
-000622 * 0 RECENT
-000623 * OK [UIDVALIDITY] Ok
-000624 * OK [MYRIGHTS "acdilrsw"] ACL
-000625 T001 OK [READ-WRITE] Ok
-000626 * 1 FETCH (UID 7 BODY[HEADER.FIELDS ("date")] {41}
-000627 Date: Wed, 22 Sep 1999 15:41:09 -0200
-000628 
-000629 )
-000630 * 1 FETCH (FLAGS (\Seen))
-000631 * 2 FETCH (UID 8 BODY[HEADER.FIELDS ("date")] {41}
-000632 Date: Wed, 22 Sep 1999 15:41:00 -0200
-000633 
-000634 )
-000635 * 2 FETCH (FLAGS (\Seen))
-000636 * 3 FETCH (UID 9 BODY[HEADER.FIELDS ("date")] {41}
-000637 Date: Wed, 22 Sep 1999 15:41:00 -0200
-000638 
-000639 )
-000640 * 3 FETCH (FLAGS (\Seen))
-000641 * 4 FETCH (UID 10 BODY[HEADER.FIELDS ("date")] {41}
-000642 Date: Wed, 15 Sep 1999 15:41:00 -0200
-000643 
-000644 )
-000645 * 4 FETCH (FLAGS (\Seen))
-000646 T002 OK FETCH completed.
-000647 * THREAD (4 3 1)(2)
-000648 T003 OK THREAD done.
-000649 * THREAD (3 1)(2)
-000650 T004 OK THREAD done.
-000651 * SORT 4 3 1 2
-000652 S001 OK SORT done.
-000653 * SORT 1 3 4 2
-000654 S002 OK SORT done.
-000655 * SORT 2 4 3 1
-000656 S003 OK SORT done.
-000657 * SORT 1 2 3 4
-000658 S004 OK SORT done.
-000659 * SORT 4 3 2 1
-000660 S005 OK SORT done.
-000661 * SORT 1 2 3
-000662 S006 OK SORT done.
-000663 * SORT 3 2 1
-000664 S007 OK SORT done.
-000665 * SORT 4 3 2 1
-000666 S008 OK SORT done.
-000667 * SORT 1 2 3 4
-000668 S009 OK SORT done.
-000669 * SORT 4 3 2 1
-000670 S010 OK SORT done.
-000671 * BYE Courier-IMAP server shutting down
-000672 TDONE OK LOGOUT completed
-000673 * PREAUTH Ready.
-000674 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000674 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000674 J001 OK LIST completed
-000675 J002 OK LSUB completed
-000676 J003 OK Folder subscribed.
-000677 J004 OK Folder subscribed.
-000678 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000678 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000678 J005 OK LIST completed
-000679 * LSUB (\HasNoChildren) "." "INBOX.Trash"
-000679 * LSUB (\Unmarked \HasChildren) "." "INBOX"
-000679 J006 OK LSUB completed
-000680 J007 OK Folder unsubscribed.
-000681 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000681 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000681 J008 OK LIST completed
-000682 * LSUB (\HasNoChildren) "." "INBOX.Trash"
-000682 * LSUB (\Noselect \HasChildren) "." "INBOX"
-000682 J009 OK LSUB completed
-000683 * BYE Courier-IMAP server shutting down
-000684 JDONE OK LOGOUT completed
-000685 * PREAUTH Ready.
-000686 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000687 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000688 * 6 EXISTS
-000689 * 0 RECENT
-000690 * OK [UIDVALIDITY] Ok
-000691 * OK [MYRIGHTS "acdilrsw"] ACL
-000692 K001 OK [READ-WRITE] Ok
-000693 * THREAD ((6)(5))(1 (2 3)(4))
-000694 K002 OK THREAD done.
-000695 * BYE Courier-IMAP server shutting down
-000696 KDONE OK LOGOUT completed
-000697 * PREAUTH Ready.
-000698 L001 OK "INBOX.a" created.
-000699 L002 OK "INBOX.a.a" created.
-000700 L003 OK "INBOX.aa" created.
-000701 L004 OK Folder renamed.
-000702 * LIST (\HasChildren) "." "INBOX.b"
-000702 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000702 * LIST (\HasNoChildren) "." "INBOX.aa"
-000702 * LIST (\HasNoChildren) "." "INBOX.b.a"
-000702 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000702 L005 OK LIST completed
-000703 L006 OK Folder renamed.
-000704 * LIST (\HasChildren) "." "INBOX.a"
+000521 h004 OK LIST completed
+000522 * LIST (\HasNoChildren) "." "shared.test.a"
+000522 * LIST (\Noselect \HasChildren) "." "shared.test"
+000522 h005 OK LIST completed
+000523 * LIST (\HasNoChildren) "." "shared.test.a"
+000523 h006 OK LIST completed
+000524 * LIST (\Marked \HasChildren) "." ""
+000524 h007 OK LIST completed
+000525 * LIST (\Noselect \HasChildren) "." ""
+000525 h008 OK LIST completed
+000526 * LIST (\Noselect \HasChildren) "." ""
+000526 h009 OK LIST completed
+000527 h010 OK Folder subscribed.
+000528 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000528 * LIST (\HasNoChildren) "." "shared.test.a"
+000528 * LIST (\Marked \HasChildren) "." "INBOX"
+000528 * LIST (\Noselect \HasChildren) "." "shared"
+000528 * LIST (\Noselect \HasChildren) "." "shared.test"
+000528 h011 OK LIST completed
+000529 * LSUB (\Marked \HasNoChildren) "." "INBOX"
+000529 h012 OK LSUB completed
+000530 h013 OK SUBSCRIBE completed.
+000531 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000531 * LIST (\HasNoChildren) "." "shared.test.a"
+000531 * LIST (\Marked \HasChildren) "." "INBOX"
+000531 * LIST (\Noselect \HasChildren) "." "shared"
+000531 * LIST (\Noselect \HasChildren) "." "shared.test"
+000531 h014 OK LIST completed
+000532 * LSUB (\HasNoChildren) "." "shared.test.a"
+000532 * LSUB (\Marked \HasNoChildren) "." "INBOX"
+000532 * LSUB (\Noselect \HasChildren) "." "shared"
+000532 * LSUB (\Noselect \HasChildren) "." "shared.test"
+000532 h015 OK LSUB completed
+000533 h016 OK SUBSCRIBE completed.
+000534 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000534 * LIST (\HasNoChildren) "." "shared.test.a"
+000534 * LIST (\Marked \HasChildren) "." "INBOX"
+000534 * LIST (\Noselect \HasChildren) "." "shared"
+000534 * LIST (\Noselect \HasChildren) "." "shared.test"
+000534 h017 OK LIST completed
+000535 * LSUB (\HasNoChildren) "." "shared.test.a"
+000535 * LSUB (\HasNoChildren) "." "shared.test.b"
+000535 * LSUB (\Marked \HasNoChildren) "." "INBOX"
+000535 * LSUB (\Noselect \HasChildren) "." "shared"
+000535 * LSUB (\Noselect \HasChildren) "." "shared.test"
+000535 h018 OK LSUB completed
+000536 h019 OK UNSUBSCRIBE completed.
+000537 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000537 * LIST (\HasNoChildren) "." "shared.test.a"
+000537 * LIST (\Marked \HasChildren) "." "INBOX"
+000537 * LIST (\Noselect \HasChildren) "." "shared"
+000537 * LIST (\Noselect \HasChildren) "." "shared.test"
+000537 h020 OK LIST completed
+000538 * LSUB (\HasNoChildren) "." "shared.test.b"
+000538 * LSUB (\Marked \HasNoChildren) "." "INBOX"
+000538 * LSUB (\Noselect \HasChildren) "." "shared"
+000538 * LSUB (\Noselect \HasChildren) "." "shared.test"
+000538 h021 OK LSUB completed
+000539 h022 OK SUBSCRIBE completed.
+000540 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000540 * LIST (\HasNoChildren) "." "shared.test.a"
+000540 * LIST (\Marked \HasChildren) "." "INBOX"
+000540 * LIST (\Noselect \HasChildren) "." "shared"
+000540 * LIST (\Noselect \HasChildren) "." "shared.test"
+000540 h023 OK LIST completed
+000541 * LSUB (\HasNoChildren) "." "shared.test.a"
+000541 * LSUB (\HasNoChildren) "." "shared.test.b"
+000541 * LSUB (\Marked \HasNoChildren) "." "INBOX"
+000541 * LSUB (\Noselect \HasChildren) "." "shared"
+000541 * LSUB (\Noselect \HasChildren) "." "shared.test"
+000541 h024 OK LSUB completed
+000542 h025 OK UNSUBSCRIBEd a shared folder.
+000543 * BYE Courier-IMAP server shutting down
+000544 hdone OK LOGOUT completed
+000545 * PREAUTH Ready.
+000546 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000546 * LIST (\HasNoChildren) "." "INBOX.c"
+000546 * LIST (\HasNoChildren) "." "shared.test.Trash"
+000546 * LIST (\HasNoChildren) "." "shared.test.a"
+000546 * LIST (\Marked \HasChildren) "." "INBOX"
+000546 * LIST (\Noselect \HasChildren) "." "shared"
+000546 * LIST (\Noselect \HasChildren) "." "shared.test"
+000546 ii001 OK LIST completed
+000547 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000547 * LIST (\HasNoChildren) "." "INBOX.c"
+000547 * LIST (\HasNoChildren) "." "shared.test.Trash"
+000547 * LIST (\HasNoChildren) "." "shared.test.a"
+000547 * LIST (\Marked \HasChildren) "." "INBOX"
+000547 * LIST (\Noselect \HasChildren) "." "shared"
+000547 * LIST (\Noselect \HasChildren) "." "shared.test"
+000547 ii002 OK LIST completed
+000548 * BYE Courier-IMAP server shutting down
+000549 iidone OK LOGOUT completed
+000550 * PREAUTH Ready.
+000551 * LIST (\Marked \HasChildren) "." "INBOX"
+000551 * LIST (\Marked \HasNoChildren) "." "INBOX.Trash"
+000551 * LIST (\Marked \HasNoChildren) "." "shared.test.a"
+000551 * LIST (\Noselect \HasChildren) "." "shared"
+000551 * LIST (\Noselect \HasChildren) "." "shared.test"
+000551 * LIST (\Unmarked \HasNoChildren) "." "INBOX.c"
+000551 * LIST (\Unmarked \HasNoChildren) "." "shared.test.Trash"
+000551 ii003 OK LIST completed
+000552 * LIST (\Marked \HasChildren) "." "INBOX"
+000552 * LIST (\Marked \HasNoChildren) "." "INBOX.Trash"
+000552 * LIST (\Marked \HasNoChildren) "." "shared.test.a"
+000552 * LIST (\Noselect \HasChildren) "." "shared"
+000552 * LIST (\Noselect \HasChildren) "." "shared.test"
+000552 * LIST (\Unmarked \HasNoChildren) "." "INBOX.c"
+000552 * LIST (\Unmarked \HasNoChildren) "." "shared.test.Trash"
+000552 ii004 OK LIST completed
+000553 * BYE Courier-IMAP server shutting down
+000554 iidone OK LOGOUT completed
+000555 * PREAUTH Ready.
+000556 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000557 * OK [PERMANENTFLAGS ()] No permanent flags permitted
+000558 * 0 EXISTS
+000559 * 0 RECENT
+000560 * OK [UIDVALIDITY] Ok
+000561 * OK [MYRIGHTS "dilrsw"] ACL
+000562 i001 OK [READ-ONLY] Ok
+000563 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000564 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000565 * 2 EXISTS
+000566 * 2 RECENT
+000567 * OK [UIDVALIDITY] Ok
+000568 * OK [MYRIGHTS "dilrsw"] ACL
+000569 i002 OK [READ-WRITE] Ok
+000570 i003 OK mailbox closed.
+000571 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000572 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000573 * 2 EXISTS
+000574 * 0 RECENT
+000575 * OK [UIDVALIDITY] Ok
+000576 * OK [MYRIGHTS "dilrsw"] ACL
+000577 i004 OK [READ-WRITE] Ok
+000578 + OK
+000579 i005 OK APPEND Ok.
+000580 * 3 EXISTS
+000581 * 1 RECENT
+000582 i006 OK NOOP completed
+000583 * 1 FETCH (FLAGS ())
+000584 * 2 FETCH (FLAGS ())
+000585 * 3 FETCH (FLAGS (\Recent))
+000586 i007 OK FETCH completed.
+000587 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000588 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000589 * 6 EXISTS
+000590 * 1 RECENT
+000591 * OK [UIDVALIDITY] Ok
+000592 * OK [MYRIGHTS "acdilrsw"] ACL
+000593 i008 OK [READ-WRITE] Ok
+000594 i009 OK COPY completed.
+000595 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000596 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000597 * 5 EXISTS
+000598 * 2 RECENT
+000599 * OK [UIDVALIDITY] Ok
+000600 * OK [MYRIGHTS "dilrsw"] ACL
+000601 i010 OK [READ-WRITE] Ok
+000602 * 1 FETCH (FLAGS ())
+000603 * 2 FETCH (FLAGS ())
+000604 * 3 FETCH (FLAGS ())
+000605 * 4 FETCH (FLAGS (\Recent))
+000606 * 5 FETCH (FLAGS (\Recent))
+000607 i011 OK FETCH completed.
+000608 i012 NO [ALERT] Cannot create message - no write permission or out of disk space.
+000609 i013 NO [ALERT] COPY failed - no write permission or out of disk space.
+000610 * 1 FETCH (FLAGS (\Deleted))
+000611 * 2 FETCH (FLAGS (\Deleted))
+000612 i014 OK STORE completed.
+000613 * 1 EXPUNGE
+000614 * 1 EXPUNGE
+000615 * 3 EXISTS
+000616 * 2 RECENT
+000617 i015 OK EXPUNGE completed
+000618 * BYE Courier-IMAP server shutting down
+000619 idone OK LOGOUT completed
+000620 * PREAUTH Ready.
+000621 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000622 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000623 * 4 EXISTS
+000624 * 0 RECENT
+000625 * OK [UIDVALIDITY] Ok
+000626 * OK [MYRIGHTS "acdilrsw"] ACL
+000627 T001 OK [READ-WRITE] Ok
+000628 * 1 FETCH (UID 7 BODY[HEADER.FIELDS ("date")] {41}
+000629 Date: Wed, 22 Sep 1999 15:41:09 -0200
+000630 
+000631 )
+000632 * 1 FETCH (FLAGS (\Seen))
+000633 * 2 FETCH (UID 8 BODY[HEADER.FIELDS ("date")] {41}
+000634 Date: Wed, 22 Sep 1999 15:41:00 -0200
+000635 
+000636 )
+000637 * 2 FETCH (FLAGS (\Seen))
+000638 * 3 FETCH (UID 9 BODY[HEADER.FIELDS ("date")] {41}
+000639 Date: Wed, 22 Sep 1999 15:41:00 -0200
+000640 
+000641 )
+000642 * 3 FETCH (FLAGS (\Seen))
+000643 * 4 FETCH (UID 10 BODY[HEADER.FIELDS ("date")] {41}
+000644 Date: Wed, 15 Sep 1999 15:41:00 -0200
+000645 
+000646 )
+000647 * 4 FETCH (FLAGS (\Seen))
+000648 T002 OK FETCH completed.
+000649 * THREAD (4 3 1)(2)
+000650 T003 OK THREAD done.
+000651 * THREAD (3 1)(2)
+000652 T004 OK THREAD done.
+000653 * SORT 4 3 1 2
+000654 S001 OK SORT done.
+000655 * SORT 1 3 4 2
+000656 S002 OK SORT done.
+000657 * SORT 2 4 3 1
+000658 S003 OK SORT done.
+000659 * SORT 1 2 3 4
+000660 S004 OK SORT done.
+000661 * SORT 4 3 2 1
+000662 S005 OK SORT done.
+000663 * SORT 1 2 3
+000664 S006 OK SORT done.
+000665 * SORT 3 2 1
+000666 S007 OK SORT done.
+000667 * SORT 4 3 2 1
+000668 S008 OK SORT done.
+000669 * SORT 1 2 3 4
+000670 S009 OK SORT done.
+000671 * SORT 4 3 2 1
+000672 S010 OK SORT done.
+000673 * BYE Courier-IMAP server shutting down
+000674 TDONE OK LOGOUT completed
+000675 * PREAUTH Ready.
+000676 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000676 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000676 J001 OK LIST completed
+000677 J002 OK LSUB completed
+000678 J003 OK Folder subscribed.
+000679 J004 OK Folder subscribed.
+000680 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000680 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000680 J005 OK LIST completed
+000681 * LSUB (\HasNoChildren) "." "INBOX.Trash"
+000681 * LSUB (\Unmarked \HasChildren) "." "INBOX"
+000681 J006 OK LSUB completed
+000682 J007 OK Folder unsubscribed.
+000683 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000683 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000683 J008 OK LIST completed
+000684 * LSUB (\HasNoChildren) "." "INBOX.Trash"
+000684 * LSUB (\Noselect \HasChildren) "." "INBOX"
+000684 J009 OK LSUB completed
+000685 * BYE Courier-IMAP server shutting down
+000686 JDONE OK LOGOUT completed
+000687 * PREAUTH Ready.
+000688 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000689 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000690 * 6 EXISTS
+000691 * 0 RECENT
+000692 * OK [UIDVALIDITY] Ok
+000693 * OK [MYRIGHTS "acdilrsw"] ACL
+000694 K001 OK [READ-WRITE] Ok
+000695 * THREAD ((6)(5))(1 (2 3)(4))
+000696 K002 OK THREAD done.
+000697 * BYE Courier-IMAP server shutting down
+000698 KDONE OK LOGOUT completed
+000699 * PREAUTH Ready.
+000700 L001 OK "INBOX.a" created.
+000701 L002 OK "INBOX.a.a" created.
+000702 L003 OK "INBOX.aa" created.
+000703 L004 OK Folder renamed.
+000704 * LIST (\HasChildren) "." "INBOX.b"
 000704 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000704 * LIST (\HasNoChildren) "." "INBOX.a.a"
 000704 * LIST (\HasNoChildren) "." "INBOX.aa"
+000704 * LIST (\HasNoChildren) "." "INBOX.b.a"
 000704 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000704 L007 OK LIST completed
-000705 L008 OK Folder renamed.
-000706 * LIST (\HasChildren) "." "INBOX.b"
+000704 L005 OK LIST completed
+000705 L006 OK Folder renamed.
+000706 * LIST (\HasChildren) "." "INBOX.a"
 000706 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000706 * LIST (\HasNoChildren) "." "INBOX.a.a"
 000706 * LIST (\HasNoChildren) "." "INBOX.aa"
-000706 * LIST (\HasNoChildren) "." "INBOX.b.a"
 000706 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000706 L009 OK LIST completed
-000707 L010 OK Folder renamed.
-000708 * LIST (\HasChildren) "." "INBOX.a"
+000706 L007 OK LIST completed
+000707 L008 OK Folder renamed.
+000708 * LIST (\HasChildren) "." "INBOX.b"
 000708 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000708 * LIST (\HasNoChildren) "." "INBOX.a.a"
 000708 * LIST (\HasNoChildren) "." "INBOX.aa"
+000708 * LIST (\HasNoChildren) "." "INBOX.b.a"
 000708 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000708 L011 OK LIST completed
-000709 L012 OK "INBOX.b.a" created.
-000710 L013 OK Folder deleted.
-000711 L014 NO Cannot create this folder.
-000712 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000712 * LIST (\HasNoChildren) "." "INBOX.a.a"
-000712 * LIST (\HasNoChildren) "." "INBOX.aa"
-000712 * LIST (\HasNoChildren) "." "INBOX.b.a"
-000712 * LIST (\Noselect \HasChildren) "." "INBOX.a"
-000712 * LIST (\Noselect \HasChildren) "." "INBOX.b"
-000712 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000712 L015 OK LIST completed
-000713 L016 NO RENAME failed: File exists
-000714 L017 NO RENAME failed: File exists
-000715 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000716 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000717 * 0 EXISTS
-000718 * 0 RECENT
-000719 * OK [UIDVALIDITY] Ok
-000720 * OK [MYRIGHTS "acdilrsw"] ACL
-000721 L018 OK [READ-WRITE] Ok
-000722 + OK
-000723 L019 OK APPEND Ok.
-000724 * 1 EXISTS
-000725 * 0 RECENT
-000726 L020 OK NOOP completed
-000727 L021 OK COPY completed.
-000728 L022 OK COPY completed.
-000729 L023 OK COPY completed.
-000730 L024 OK COPY completed.
-000731 L025 OK COPY completed.
-000732 L026 OK COPY completed.
-000733 * 7 EXISTS
-000734 * 0 RECENT
-000735 L027 OK NOOP completed
-000736 * 2 FETCH (FLAGS (\Seen \Deleted))
-000737 * 3 FETCH (FLAGS (\Seen \Deleted))
-000738 * 5 FETCH (FLAGS (\Seen \Deleted))
-000739 * 6 FETCH (FLAGS (\Seen \Deleted))
-000740 * 7 FETCH (FLAGS (\Seen \Deleted))
-000741 L028 OK STORE completed.
-000742 * 1 FETCH (UID 1 FLAGS (\Seen))
-000743 * 2 FETCH (UID 2 FLAGS (\Seen \Deleted))
-000744 * 3 FETCH (UID 3 FLAGS (\Seen \Deleted))
-000745 * 4 FETCH (UID 4 FLAGS (\Seen))
-000746 * 5 FETCH (UID 5 FLAGS (\Seen \Deleted))
-000747 * 6 FETCH (UID 6 FLAGS (\Seen \Deleted))
-000748 * 7 FETCH (UID 7 FLAGS (\Seen \Deleted))
-000749 L029 OK FETCH completed.
-000750 * 2 EXPUNGE
-000751 * 2 EXPUNGE
-000752 * 3 EXPUNGE
-000753 * 4 EXISTS
-000754 * 0 RECENT
-000755 L030 OK EXPUNGE completed
-000756 * 1 FETCH (UID 1 FLAGS (\Seen))
-000757 * 2 FETCH (UID 4 FLAGS (\Seen))
-000758 * 3 FETCH (UID 6 FLAGS (\Seen \Deleted))
-000759 * 4 FETCH (UID 7 FLAGS (\Seen \Deleted))
-000760 L031 OK FETCH completed.
-000761 * BYE Courier-IMAP server shutting down
-000762 LDONE OK LOGOUT completed
-000763 * PREAUTH Ready.
-000764 M001 OK "INBOX.a" created.
-000765 + OK
-000766 M002 OK APPEND Ok.
-000767 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000768 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000769 * 1 EXISTS
-000770 * 0 RECENT
-000771 * OK [UIDVALIDITY] Ok
-000772 * OK [MYRIGHTS "acdilrsw"] ACL
-000773 M003 OK [READ-WRITE] Ok
-000774 M004 OK COPY completed.
-000775 M005 OK COPY completed.
-000776 * 3 EXISTS
-000777 * 0 RECENT
-000778 M006 OK NOOP completed
-000779 M007 OK COPY completed.
-000780 M008 OK Folder renamed.
-000781 * BYE Courier-IMAP server shutting down
-000782 MDONE OK LOGOUT completed
-000783 10C
-000784           30            6
-000785 * PREAUTH Ready.
-000786 M009 OK Folder deleted.
-000787 * BYE Courier-IMAP server shutting down
-000788 MDONE OK LOGOUT completed
-000789 10C
-000790           15            3
-000791 * PREAUTH Ready.
-000792 * LIST (\Unmarked \HasNoChildren) "." "INBOX"
-000792 N001 OK LIST completed
-000793 + OK
-000794 N002 OK APPEND Ok.
-000795 * LIST (\Marked \HasNoChildren) "." "INBOX"
-000795 N003 OK LIST completed
-000796 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000797 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000798 * 1 EXISTS
-000799 * 0 RECENT
-000800 * OK [UIDVALIDITY] Ok
-000801 * OK [MYRIGHTS "acdilrsw"] ACL
-000802 N004 OK [READ-WRITE] Ok
-000803 * 1 EXPUNGE
-000804 * 0 EXISTS
-000805 * 0 RECENT
-000806 N005 OK EXPUNGE completed
-000807 * LIST (\HasNoChildren) "." "INBOX.Trash"
-000807 * LIST (\Unmarked \HasChildren) "." "INBOX"
-000807 N006 OK LIST completed
-000808 * BYE Courier-IMAP server shutting down
-000809 NDONE OK LOGOUT completed
-000810 * PREAUTH Ready.
-000811 + OK
-000812 O001 OK APPEND Ok.
-000813 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000814 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-000815 * 1 EXISTS
-000816 * 0 RECENT
-000817 * OK [UIDVALIDITY] Ok
-000818 * OK [MYRIGHTS "acdilrsw"] ACL
-000819 o002 OK [READ-WRITE] Ok
-000820 o003 OK COPY completed.
-000821 * 2 EXISTS
-000822 * 0 RECENT
-000823 o004 OK NOOP completed
-000824 * 1 FETCH (FLAGS (\Deleted))
-000825 o005 OK STORE completed.
-000826 o006 OK COPY completed.
-000827 * 4 EXISTS
-000828 * 0 RECENT
-000829 o007 OK NOOP completed
-000830 * BYE Courier-IMAP server shutting down
-000831 o008 OK LOGOUT completed
-000832 10C
-000833            0            0
-000834           11            1
-000835           11            1
-000836          -11           -1
+000708 L009 OK LIST completed
+000709 L010 OK Folder renamed.
+000710 * LIST (\HasChildren) "." "INBOX.a"
+000710 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000710 * LIST (\HasNoChildren) "." "INBOX.a.a"
+000710 * LIST (\HasNoChildren) "." "INBOX.aa"
+000710 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000710 L011 OK LIST completed
+000711 L012 OK "INBOX.b.a" created.
+000712 L013 OK Folder deleted.
+000713 L014 NO Cannot create this folder.
+000714 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000714 * LIST (\HasNoChildren) "." "INBOX.a.a"
+000714 * LIST (\HasNoChildren) "." "INBOX.aa"
+000714 * LIST (\HasNoChildren) "." "INBOX.b.a"
+000714 * LIST (\Noselect \HasChildren) "." "INBOX.a"
+000714 * LIST (\Noselect \HasChildren) "." "INBOX.b"
+000714 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000714 L015 OK LIST completed
+000715 L016 NO RENAME failed: File exists
+000716 L017 NO RENAME failed: File exists
+000717 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000718 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000719 * 0 EXISTS
+000720 * 0 RECENT
+000721 * OK [UIDVALIDITY] Ok
+000722 * OK [MYRIGHTS "acdilrsw"] ACL
+000723 L018 OK [READ-WRITE] Ok
+000724 + OK
+000725 L019 OK APPEND Ok.
+000726 * 1 EXISTS
+000727 * 0 RECENT
+000728 L020 OK NOOP completed
+000729 L021 OK COPY completed.
+000730 L022 OK COPY completed.
+000731 L023 OK COPY completed.
+000732 L024 OK COPY completed.
+000733 L025 OK COPY completed.
+000734 L026 OK COPY completed.
+000735 * 7 EXISTS
+000736 * 0 RECENT
+000737 L027 OK NOOP completed
+000738 * 2 FETCH (FLAGS (\Seen \Deleted))
+000739 * 3 FETCH (FLAGS (\Seen \Deleted))
+000740 * 5 FETCH (FLAGS (\Seen \Deleted))
+000741 * 6 FETCH (FLAGS (\Seen \Deleted))
+000742 * 7 FETCH (FLAGS (\Seen \Deleted))
+000743 L028 OK STORE completed.
+000744 * 1 FETCH (UID 1 FLAGS (\Seen))
+000745 * 2 FETCH (UID 2 FLAGS (\Seen \Deleted))
+000746 * 3 FETCH (UID 3 FLAGS (\Seen \Deleted))
+000747 * 4 FETCH (UID 4 FLAGS (\Seen))
+000748 * 5 FETCH (UID 5 FLAGS (\Seen \Deleted))
+000749 * 6 FETCH (UID 6 FLAGS (\Seen \Deleted))
+000750 * 7 FETCH (UID 7 FLAGS (\Seen \Deleted))
+000751 L029 OK FETCH completed.
+000752 * 2 EXPUNGE
+000753 * 2 EXPUNGE
+000754 * 3 EXPUNGE
+000755 * 4 EXISTS
+000756 * 0 RECENT
+000757 L030 OK EXPUNGE completed
+000758 * 1 FETCH (UID 1 FLAGS (\Seen))
+000759 * 2 FETCH (UID 4 FLAGS (\Seen))
+000760 * 3 FETCH (UID 6 FLAGS (\Seen \Deleted))
+000761 * 4 FETCH (UID 7 FLAGS (\Seen \Deleted))
+000762 L031 OK FETCH completed.
+000763 * BYE Courier-IMAP server shutting down
+000764 LDONE OK LOGOUT completed
+000765 * PREAUTH Ready.
+000766 M001 OK "INBOX.a" created.
+000767 + OK
+000768 M002 OK APPEND Ok.
+000769 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000770 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000771 * 1 EXISTS
+000772 * 0 RECENT
+000773 * OK [UIDVALIDITY] Ok
+000774 * OK [MYRIGHTS "acdilrsw"] ACL
+000775 M003 OK [READ-WRITE] Ok
+000776 M004 OK COPY completed.
+000777 M005 OK COPY completed.
+000778 * 3 EXISTS
+000779 * 0 RECENT
+000780 M006 OK NOOP completed
+000781 M007 OK COPY completed.
+000782 M008 OK Folder renamed.
+000783 * BYE Courier-IMAP server shutting down
+000784 MDONE OK LOGOUT completed
+000785 10C
+000786           30            6
+000787 * PREAUTH Ready.
+000788 M009 OK Folder deleted.
+000789 * BYE Courier-IMAP server shutting down
+000790 MDONE OK LOGOUT completed
+000791 10C
+000792           15            3
+000793 * PREAUTH Ready.
+000794 * LIST (\Unmarked \HasNoChildren) "." "INBOX"
+000794 N001 OK LIST completed
+000795 + OK
+000796 N002 OK APPEND Ok.
+000797 * LIST (\Marked \HasNoChildren) "." "INBOX"
+000797 N003 OK LIST completed
+000798 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000799 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000800 * 1 EXISTS
+000801 * 0 RECENT
+000802 * OK [UIDVALIDITY] Ok
+000803 * OK [MYRIGHTS "acdilrsw"] ACL
+000804 N004 OK [READ-WRITE] Ok
+000805 * 1 EXPUNGE
+000806 * 0 EXISTS
+000807 * 0 RECENT
+000808 N005 OK EXPUNGE completed
+000809 * LIST (\HasNoChildren) "." "INBOX.Trash"
+000809 * LIST (\Unmarked \HasChildren) "." "INBOX"
+000809 N006 OK LIST completed
+000810 * BYE Courier-IMAP server shutting down
+000811 NDONE OK LOGOUT completed
+000812 * PREAUTH Ready.
+000813 + OK
+000814 O001 OK APPEND Ok.
+000815 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000816 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+000817 * 1 EXISTS
+000818 * 0 RECENT
+000819 * OK [UIDVALIDITY] Ok
+000820 * OK [MYRIGHTS "acdilrsw"] ACL
+000821 o002 OK [READ-WRITE] Ok
+000822 o003 OK COPY completed.
+000823 * 2 EXISTS
+000824 * 0 RECENT
+000825 o004 OK NOOP completed
+000826 * 1 FETCH (FLAGS (\Deleted))
+000827 o005 OK STORE completed.
+000828 o006 OK COPY completed.
+000829 * 4 EXISTS
+000830 * 0 RECENT
+000831 o007 OK NOOP completed
+000832 * BYE Courier-IMAP server shutting down
+000833 o008 OK LOGOUT completed
+000834 10C
+000835            0            0
+000836           11            1
 000837           11            1
-000838 * PREAUTH Ready.
-000839 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000840 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000841 * 4 EXISTS
-000842 * 0 RECENT
-000843 * OK [UIDVALIDITY] Ok
-000844 * OK [MYRIGHTS "acdilrsw"] ACL
-000845 p001 OK [READ-WRITE] Ok
-000846 p002 OK "INBOX.a" created.
-000847 p003 OK COPY completed.
-000848 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000849 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000850 * 1 EXISTS
-000851 * 0 RECENT
-000852 * OK [UIDVALIDITY] Ok
-000853 * OK [MYRIGHTS "acdilrsw"] ACL
-000854 p004 OK [READ-WRITE] Ok
-000855 * FLAGS (-Label1 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-000856 * OK [PERMANENTFLAGS (-Label1 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000857 * 1 FETCH (FLAGS (\Deleted -Label1))
-000858 p005 OK STORE completed.
-000859 + OK
-000860 p006 OK APPEND Ok.
-000861 * 1 EXPUNGE
-000862 * FLAGS (-Label1 -Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-000863 * OK [PERMANENTFLAGS (-Label1 -Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000864 * 1 EXISTS
-000865 * 0 RECENT
-000866 * FLAGS (-Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-000867 * OK [PERMANENTFLAGS (-Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000868 p007 OK EXPUNGE completed
-000869 * 1 FETCH (FLAGS (-Label2))
-000870 p008 OK FETCH completed.
-000871 p009 OK COPY completed.
-000872 * 2 EXISTS
-000873 * 0 RECENT
-000874 p010 OK NOOP completed
-000875 * 1 FETCH (FLAGS (-Label2))
-000876 * 2 FETCH (FLAGS (-Label2))
-000877 P011 OK FETCH completed.
-000878 * 1 FETCH (FLAGS ())
-000879 P012 OK STORE completed.
-000880 * 1 FETCH (FLAGS (\Seen))
-000881 P013 OK STORE completed.
+000838          -11           -1
+000839           11            1
+000840 * PREAUTH Ready.
+000841 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000842 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000843 * 4 EXISTS
+000844 * 0 RECENT
+000845 * OK [UIDVALIDITY] Ok
+000846 * OK [MYRIGHTS "acdilrsw"] ACL
+000847 p001 OK [READ-WRITE] Ok
+000848 p002 OK "INBOX.a" created.
+000849 p003 OK COPY completed.
+000850 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000851 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000852 * 1 EXISTS
+000853 * 0 RECENT
+000854 * OK [UIDVALIDITY] Ok
+000855 * OK [MYRIGHTS "acdilrsw"] ACL
+000856 p004 OK [READ-WRITE] Ok
+000857 * FLAGS (-Label1 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+000858 * OK [PERMANENTFLAGS (-Label1 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000859 * 1 FETCH (FLAGS (\Deleted -Label1))
+000860 p005 OK STORE completed.
+000861 + OK
+000862 p006 OK APPEND Ok.
+000863 * 1 EXPUNGE
+000864 * FLAGS (-Label1 -Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+000865 * OK [PERMANENTFLAGS (-Label1 -Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000866 * 1 EXISTS
+000867 * 0 RECENT
+000868 * FLAGS (-Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+000869 * OK [PERMANENTFLAGS (-Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000870 p007 OK EXPUNGE completed
+000871 * 1 FETCH (FLAGS (-Label2))
+000872 p008 OK FETCH completed.
+000873 p009 OK COPY completed.
+000874 * 2 EXISTS
+000875 * 0 RECENT
+000876 p010 OK NOOP completed
+000877 * 1 FETCH (FLAGS (-Label2))
+000878 * 2 FETCH (FLAGS (-Label2))
+000879 P011 OK FETCH completed.
+000880 * 1 FETCH (FLAGS ())
+000881 P012 OK STORE completed.
 000882 * 1 FETCH (FLAGS (\Seen))
-000883 * 2 FETCH (FLAGS (-Label2))
-000884 P013 OK FETCH completed.
-000885 * SEARCH 1
-000886 P014 OK SEARCH done.
-000887 * SEARCH 2
-000888 P015 OK SEARCH done.
-000889 * SEARCH 1
-000890 P016 OK SEARCH done.
-000891 * SEARCH
-000892 P017 OK SEARCH done.
-000893 P018 OK COPY completed.
-000894 P019 OK COPY completed.
-000895 * 6 EXISTS
-000896 * 0 RECENT
-000897 P020 OK NOOP completed
-000898 P021 OK COPY completed.
-000899 P022 OK COPY completed.
-000900 * 18 EXISTS
-000901 * 0 RECENT
-000902 P023 OK NOOP completed
-000903 * FLAGS (-Label1 -Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-000904 * OK [PERMANENTFLAGS (-Label1 -Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000905 * 4 FETCH (FLAGS (-Label1 -Label2))
-000906 P025 OK STORE completed.
-000907 * 1 FETCH (FLAGS (\Seen))
-000908 * 2 FETCH (FLAGS (-Label2))
-000909 * 3 FETCH (FLAGS (\Seen))
-000910 * 4 FETCH (FLAGS (-Label1 -Label2))
-000911 * 5 FETCH (FLAGS (\Seen))
-000912 * 6 FETCH (FLAGS (-Label2))
-000913 * 7 FETCH (FLAGS (\Seen))
-000914 * 8 FETCH (FLAGS (-Label2))
-000915 * 9 FETCH (FLAGS (\Seen))
-000916 * 10 FETCH (FLAGS (-Label2))
-000917 * 11 FETCH (FLAGS (\Seen))
-000918 * 12 FETCH (FLAGS (-Label2))
-000919 * 13 FETCH (FLAGS (\Seen))
-000920 * 14 FETCH (FLAGS (-Label2))
-000921 * 15 FETCH (FLAGS (\Seen))
-000922 * 16 FETCH (FLAGS (-Label2))
-000923 * 17 FETCH (FLAGS (\Seen))
-000924 * 18 FETCH (FLAGS (-Label2))
-000925 P024 OK FETCH completed.
-000926 * SEARCH 2 4 6 8 10 12 14 16 18
-000927 P025 OK SEARCH done.
-000928 * SEARCH 4
-000929 P026 OK SEARCH done.
-000930 * BYE Courier-IMAP server shutting down
-000931 pDONE OK LOGOUT completed
-000932 * PREAUTH Ready.
-000933 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-000934 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-000935 * 4 EXISTS
-000936 * 0 RECENT
-000937 * OK [UIDVALIDITY] Ok
-000938 * OK [MYRIGHTS "acdilrsw"] ACL
-000939 Q001 OK [READ-WRITE] Ok
-000940 * 1 FETCH (FLAGS (\Deleted))
-000941 * 2 FETCH (FLAGS ())
-000942 * 3 FETCH (FLAGS (\Deleted))
-000943 * 4 FETCH (FLAGS ())
-000944 Q002 OK FETCH completed.
-000945 * STATUS "INBOX.Trash" (MESSAGES 1)
-000946 Q003 OK STATUS Completed.
-000947 * 1 EXPUNGE
-000948 * 2 EXPUNGE
-000949 * 2 EXISTS
-000950 * 0 RECENT
-000951 Q004 OK EXPUNGE completed
-000952 * STATUS "INBOX.Trash" (MESSAGES 3)
-000953 Q005 OK STATUS Completed.
-000954 Q006 OK COPY completed.
-000955 * 1 FETCH (FLAGS (\Deleted))
-000956 * 2 FETCH (FLAGS (\Deleted))
-000957 Q007 OK STORE completed.
-000958 Q008 OK NOOP completed
-000959 * 1 EXPUNGE
-000960 * 1 EXPUNGE
-000961 * 0 EXISTS
-000962 * 0 RECENT
-000963 Q009 OK EXPUNGE completed
-000964 * STATUS "INBOX.Trash" (MESSAGES 4)
-000965 Q005 OK STATUS Completed.
-000966 * BYE Courier-IMAP server shutting down
-000967 qDONE OK LOGOUT completed
-000968 * PREAUTH Ready.
-000969 R001 OK "INBOX.a" created.
-000970 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")))("MYRIGHTS" "acdilrsw")(POSTADDRESS NIL))
-000970 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")))("MYRIGHTS" "acdilrsw")(POSTADDRESS NIL))
-000970 R002 OK LIST completed
-000971 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw"))))
-000971 R003 OK ACL STORE completed.
-000972 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000972 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000972 R004 OK ACL STORE completed.
-000973 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alr"))))
-000973 R005 OK ACL STORE completed.
-000974 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alrw"))))
-000974 R006 OK ACL STORE completed.
+000883 P013 OK STORE completed.
+000884 * 1 FETCH (FLAGS (\Seen))
+000885 * 2 FETCH (FLAGS (-Label2))
+000886 P013 OK FETCH completed.
+000887 * SEARCH 1
+000888 P014 OK SEARCH done.
+000889 * SEARCH 2
+000890 P015 OK SEARCH done.
+000891 * SEARCH 1
+000892 P016 OK SEARCH done.
+000893 * SEARCH
+000894 P017 OK SEARCH done.
+000895 P018 OK COPY completed.
+000896 P019 OK COPY completed.
+000897 * 6 EXISTS
+000898 * 0 RECENT
+000899 P020 OK NOOP completed
+000900 P021 OK COPY completed.
+000901 P022 OK COPY completed.
+000902 * 18 EXISTS
+000903 * 0 RECENT
+000904 P023 OK NOOP completed
+000905 * FLAGS (-Label1 -Label2 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+000906 * OK [PERMANENTFLAGS (-Label1 -Label2 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000907 * 4 FETCH (FLAGS (-Label1 -Label2))
+000908 P025 OK STORE completed.
+000909 * 1 FETCH (FLAGS (\Seen))
+000910 * 2 FETCH (FLAGS (-Label2))
+000911 * 3 FETCH (FLAGS (\Seen))
+000912 * 4 FETCH (FLAGS (-Label1 -Label2))
+000913 * 5 FETCH (FLAGS (\Seen))
+000914 * 6 FETCH (FLAGS (-Label2))
+000915 * 7 FETCH (FLAGS (\Seen))
+000916 * 8 FETCH (FLAGS (-Label2))
+000917 * 9 FETCH (FLAGS (\Seen))
+000918 * 10 FETCH (FLAGS (-Label2))
+000919 * 11 FETCH (FLAGS (\Seen))
+000920 * 12 FETCH (FLAGS (-Label2))
+000921 * 13 FETCH (FLAGS (\Seen))
+000922 * 14 FETCH (FLAGS (-Label2))
+000923 * 15 FETCH (FLAGS (\Seen))
+000924 * 16 FETCH (FLAGS (-Label2))
+000925 * 17 FETCH (FLAGS (\Seen))
+000926 * 18 FETCH (FLAGS (-Label2))
+000927 P024 OK FETCH completed.
+000928 * SEARCH 2 4 6 8 10 12 14 16 18
+000929 P025 OK SEARCH done.
+000930 * SEARCH 4
+000931 P026 OK SEARCH done.
+000932 * BYE Courier-IMAP server shutting down
+000933 pDONE OK LOGOUT completed
+000934 * PREAUTH Ready.
+000935 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+000936 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000937 * 4 EXISTS
+000938 * 0 RECENT
+000939 * OK [UIDVALIDITY] Ok
+000940 * OK [MYRIGHTS "acdilrsw"] ACL
+000941 Q001 OK [READ-WRITE] Ok
+000942 * 1 FETCH (FLAGS (\Deleted))
+000943 * 2 FETCH (FLAGS ())
+000944 * 3 FETCH (FLAGS (\Deleted))
+000945 * 4 FETCH (FLAGS ())
+000946 Q002 OK FETCH completed.
+000947 * STATUS "INBOX.Trash" (MESSAGES 1)
+000948 Q003 OK STATUS Completed.
+000949 * 1 EXPUNGE
+000950 * 2 EXPUNGE
+000951 * 2 EXISTS
+000952 * 0 RECENT
+000953 Q004 OK EXPUNGE completed
+000954 * STATUS "INBOX.Trash" (MESSAGES 3)
+000955 Q005 OK STATUS Completed.
+000956 Q006 OK COPY completed.
+000957 * 1 FETCH (FLAGS (\Deleted))
+000958 * 2 FETCH (FLAGS (\Deleted))
+000959 Q007 OK STORE completed.
+000960 Q008 OK NOOP completed
+000961 * 1 EXPUNGE
+000962 * 1 EXPUNGE
+000963 * 0 EXISTS
+000964 * 0 RECENT
+000965 Q009 OK EXPUNGE completed
+000966 * STATUS "INBOX.Trash" (MESSAGES 4)
+000967 Q005 OK STATUS Completed.
+000968 * BYE Courier-IMAP server shutting down
+000969 qDONE OK LOGOUT completed
+000970 * PREAUTH Ready.
+000971 R001 OK "INBOX.a" created.
+000972 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")))("MYRIGHTS" "acdilrsw")(POSTADDRESS NIL))
+000972 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")))("MYRIGHTS" "acdilrsw")(POSTADDRESS NIL))
+000972 R002 OK LIST completed
+000973 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw"))))
+000973 R003 OK ACL STORE completed.
+000974 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+000974 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+000974 R004 OK ACL STORE completed.
 000975 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alr"))))
-000975 R007 OK ACL STORE completed.
-000976 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000976 R008 OK ACL STORE completed.
+000975 R005 OK ACL STORE completed.
+000976 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alrw"))))
+000976 R006 OK ACL STORE completed.
 000977 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alr"))))
-000977 R009 OK ACL STORE completed.
+000977 R007 OK ACL STORE completed.
 000978 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000978 R010 OK ACL STORE completed.
+000978 R008 OK ACL STORE completed.
 000979 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alr"))))
-000979 R011 OK ACL STORE completed.
-000980 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000980 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000980 R012 OK ACL SET completed.
-000981 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000981 R013 OK ACL DELETE completed.
-000982 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000982 R014 OK ACL DELETE completed.
-000983 * RIGHTS-INFO "INBOX.a" "owner" al c e i p r s t w x
+000979 R009 OK ACL STORE completed.
+000980 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+000980 R010 OK ACL STORE completed.
+000981 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser1" "alr"))))
+000981 R011 OK ACL STORE completed.
+000982 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+000982 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+000982 R012 OK ACL SET completed.
+000983 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+000983 R013 OK ACL DELETE completed.
 000984 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000984 R015 OK ACL STORE completed.
-000985 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("-owner" "tw"))))
-000985 R016 OK ACL STORE completed.
-000986 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("-owner" "t"))))
-000986 R017 OK ACL STORE completed.
-000987 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000987 R018 OK ACL DELETE completed.
-000988 * RIGHTS-INFO "INBOX.a" "owner" al c e i p r s t w x
+000984 R014 OK ACL DELETE completed.
+000985 * RIGHTS-INFO "INBOX.a" "owner" al c e i p r s t w x
+000986 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+000986 R015 OK ACL STORE completed.
+000987 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("-owner" "tw"))))
+000987 R016 OK ACL STORE completed.
+000988 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("-owner" "t"))))
+000988 R017 OK ACL STORE completed.
 000989 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-000989 R019 OK ACL STORE completed.
-000990 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "adlrsw")("administrators" "acdilrsw"))))
-000990 R020 OK ACL STORE completed.
-000991 R021 NO Access denied for CREATE on INBOX.a (ACL "c" required)
-000992 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-000992 R022 OK ACL STORE completed.
-000993 R023 OK "INBOX.a.b" created.
-000994 * LIST (\HasNoChildren) "." "INBOX.a.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-000994 R024 OK LIST completed
-000995 R025 OK "INBOX.c.d" created.
-000996 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000996 * LIST (\Noselect \HasChildren) "." "INBOX.c" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000996 R026 OK LIST completed
-000997 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr")("-owner" "x"))))
-000997 * LIST (\Noselect \HasChildren) "." "INBOX.c" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr")("-owner" "x"))))
-000997 R027 OK ACL STORE completed.
-000998 R028 NO Access denied for DELETE on INBOX.c.d (ACL "x" required)
-000999 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-000999 R029 OK ACL DELETE completed.
-001000 R030 OK Folder deleted.
-001001 R031 OK Folder directory delete punted.
-001002 * LIST (\HasChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-001002 * LIST (\HasNoChildren) "." "INBOX.a.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-001002 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001002 R032 OK LIST completed
-001003 R033 OK Folder deleted.
+000989 R018 OK ACL DELETE completed.
+000990 * RIGHTS-INFO "INBOX.a" "owner" al c e i p r s t w x
+000991 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+000991 R019 OK ACL STORE completed.
+000992 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "adlrsw")("administrators" "acdilrsw"))))
+000992 R020 OK ACL STORE completed.
+000993 R021 NO Access denied for CREATE on INBOX.a (ACL "c" required)
+000994 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+000994 R022 OK ACL STORE completed.
+000995 R023 OK "INBOX.a.b" created.
+000996 * LIST (\HasNoChildren) "." "INBOX.a.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+000996 R024 OK LIST completed
+000997 R025 OK "INBOX.c.d" created.
+000998 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+000998 * LIST (\Noselect \HasChildren) "." "INBOX.c" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+000998 R026 OK LIST completed
+000999 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr")("-owner" "x"))))
+000999 * LIST (\Noselect \HasChildren) "." "INBOX.c" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr")("-owner" "x"))))
+000999 R027 OK ACL STORE completed.
+001000 R028 NO Access denied for DELETE on INBOX.c.d (ACL "x" required)
+001001 * LIST (\HasNoChildren) "." "INBOX.c.d" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001001 R029 OK ACL DELETE completed.
+001002 R030 OK Folder deleted.
+001003 R031 OK Folder directory delete punted.
+001004 * LIST (\HasChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
 001004 * LIST (\HasNoChildren) "." "INBOX.a.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-001004 * LIST (\Noselect \HasChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
 001004 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001004 R034 OK LIST completed
-001005 R035 OK Folder renamed.
-001006 * LIST (\HasNoChildren) "." "INBOX.f.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
-001006 * LIST (\Noselect \HasChildren) "." "INBOX.f" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001004 R032 OK LIST completed
+001005 R033 OK Folder deleted.
+001006 * LIST (\HasNoChildren) "." "INBOX.a.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001006 * LIST (\Noselect \HasChildren) "." "INBOX.a" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
 001006 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001006 R036 OK LIST completed
-001007 R037 OK "INBOX.f" created.
-001008 * LIST (\HasChildren) "." "INBOX.f" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001006 R034 OK LIST completed
+001007 R035 OK Folder renamed.
 001008 * LIST (\HasNoChildren) "." "INBOX.f.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001008 * LIST (\Noselect \HasChildren) "." "INBOX.f" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
 001008 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001008 R038 OK LIST completed
-001009 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001009 R039 OK ACL STORE completed.
-001010 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001011 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001012 * 0 EXISTS
-001013 * 0 RECENT
-001014 * OK [UIDVALIDITY] Ok
-001015 * OK [MYRIGHTS "acdlrsw"] ACL
-001016 R040 OK [READ-WRITE] Ok
-001017 R041 NO Access denied for APPEND on INBOX (ACL "i" required)
-001018 * OK [MYRIGHTS "acdilrsw"] ACL
-001019 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001019 R042 OK ACL STORE completed.
-001020 + OK
-001021 R043 OK APPEND Ok.
-001022 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001023 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001024 * 1 EXISTS
-001025 * 0 RECENT
-001026 R043 OK NOOP completed
-001027 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
-001028 R044 OK FETCH completed.
-001029 * OK [MYRIGHTS "aceilrsx"] ACL
-001030 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "aceilrsx")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001030 R045 OK ACL STORE completed.
-001031 + OK
-001032 R046 OK APPEND Ok.
-001033 * 2 EXISTS
-001034 * 0 RECENT
-001035 R047 OK NOOP completed
-001036 * 2 FETCH (FLAGS (\Seen))
-001037 R048 OK FETCH completed.
-001038 * OK [MYRIGHTS "acdilrsw"] ACL
-001039 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001039 R049 OK ACL STORE completed.
-001040 * OK [MYRIGHTS "acdilrw"] ACL
-001041 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001041 R050 OK ACL STORE completed.
-001042 + OK
-001043 R051 OK APPEND Ok.
-001044 * 3 EXISTS
-001045 * 0 RECENT
-001046 R052 OK NOOP completed
-001047 * 3 FETCH (FLAGS (\Answered \Deleted Foo))
-001048 R053 OK FETCH completed.
-001049 * 2 FETCH (FLAGS (\Seen \Deleted))
-001050 * 3 FETCH (FLAGS (\Answered \Deleted Foo))
-001051 R054 OK STORE completed.
-001052 * 1 FETCH (FLAGS (\Answered \Seen Foo))
-001053 R055 OK STORE completed.
-001054 * 2 EXPUNGE
-001055 * 2 EXPUNGE
-001056 * 1 EXISTS
-001057 * 0 RECENT
-001058 R056 OK EXPUNGE completed
-001059 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
-001060 R057 OK STORE completed.
-001061 * OK [MYRIGHTS "acdilrsw"] ACL
-001062 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001062 R058 OK ACL STORE completed.
-001063 R059 OK "INBOX.x" created.
-001064 R060 OK COPY completed.
-001065 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001066 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001067 * 1 EXISTS
-001068 * 0 RECENT
-001069 * OK [UIDVALIDITY] Ok
-001070 * OK [MYRIGHTS "acdilrsw"] ACL
-001071 R061 OK [READ-WRITE] Ok
-001072 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
-001073 R062 OK FETCH completed.
-001074 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001075 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001076 * 1 EXISTS
-001077 * 0 RECENT
-001078 * OK [UIDVALIDITY] Ok
-001079 * OK [MYRIGHTS "acdilrsw"] ACL
-001080 R063 OK [READ-WRITE] Ok
-001081 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001081 R064 OK ACL STORE completed.
-001082 R065 OK COPY completed.
-001083 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001084 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001085 * 2 EXISTS
-001086 * 0 RECENT
-001087 * OK [UIDVALIDITY] Ok
-001088 * OK [MYRIGHTS "acdilrw"] ACL
-001089 R066 OK [READ-WRITE] Ok
-001090 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
-001091 R067 OK FETCH completed.
-001092 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001093 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001094 * 1 EXISTS
-001095 * 0 RECENT
-001096 * OK [UIDVALIDITY] Ok
-001097 * OK [MYRIGHTS "acdilrsw"] ACL
-001098 R068 OK [READ-WRITE] Ok
-001099 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001099 R069 OK ACL STORE completed.
-001100 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrs")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001100 R070 OK ACL STORE completed.
-001101 R071 OK COPY completed.
-001102 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001103 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001104 * 3 EXISTS
-001105 * 0 RECENT
-001106 * OK [UIDVALIDITY] Ok
-001107 * OK [MYRIGHTS "acdilrs"] ACL
-001108 R072 OK [READ-WRITE] Ok
-001109 * 3 FETCH (FLAGS (\Seen \Deleted))
-001110 R073 OK FETCH completed.
-001111 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001112 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001113 * 1 EXISTS
-001114 * 0 RECENT
-001115 * OK [UIDVALIDITY] Ok
-001116 * OK [MYRIGHTS "acdilrsw"] ACL
-001117 R074 OK [READ-WRITE] Ok
-001118 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001118 R075 OK ACL STORE completed.
-001119 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
-001119 R076 OK ACL STORE completed.
-001120 R077 OK COPY completed.
-001121 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001122 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001123 * 4 EXISTS
-001124 * 0 RECENT
-001125 * OK [UIDVALIDITY] Ok
-001126 * OK [MYRIGHTS "aceilrswx"] ACL
-001127 R078 OK [READ-WRITE] Ok
-001128 * 4 FETCH (FLAGS (\Answered \Seen Foo))
-001129 R079 OK FETCH completed.
-001130 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001131 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001132 * 1 EXISTS
-001133 * 0 RECENT
-001134 * OK [UIDVALIDITY] Ok
-001135 * OK [MYRIGHTS "acdilrsw"] ACL
-001136 R080 OK [READ-WRITE] Ok
-001137 * BYE Courier-IMAP server shutting down
-001138 RDONE OK LOGOUT completed
-001139 * PREAUTH Ready.
-001140 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001141 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001142 * 1 EXISTS
-001143 * 1 RECENT
-001144 * OK [UIDVALIDITY] Ok
-001145 * OK [MYRIGHTS "acdilrsw"] ACL
-001146 S001 OK [READ-WRITE] Ok
-001147 S002 OK COPY completed.
-001148 * 2 EXISTS
-001149 * 1 RECENT
-001150 S003 OK NOOP completed
-001151 S004 OK COPY completed.
-001152 * 4 EXISTS
-001153 * 1 RECENT
-001154 S005 OK NOOP completed
-001155 * OK [MYRIGHTS "acilrstwx"] ACL
-001156 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acilrstwx")("administrators" "acdilrsw"))))
-001156 S006 OK ACL STORE completed.
-001157 * 1 FETCH (FLAGS (\Seen \Deleted \Recent))
-001158 S007 OK STORE completed.
-001159 S008 NO Access denied for EXPUNGE on current mailbox (ACL "e" required)
-001160 S009 OK mailbox closed.
-001161 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001162 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001163 * 4 EXISTS
-001164 * 0 RECENT
-001165 * OK [UIDVALIDITY] Ok
-001166 * OK [MYRIGHTS "acilrstwx"] ACL
-001167 S010 OK [READ-WRITE] Ok
-001168 * OK [MYRIGHTS "acdilrsw"] ACL
-001169 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-001169 S011 OK ACL STORE completed.
-001170 * 1 EXPUNGE
-001171 * 3 EXISTS
-001172 * 0 RECENT
-001173 S012 OK EXPUNGE completed
-001174 * 1 FETCH (FLAGS (\Seen \Deleted))
-001175 S013 OK STORE completed.
-001176 S014 OK mailbox closed.
-001177 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001178 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001179 * 2 EXISTS
-001180 * 0 RECENT
-001181 * OK [UIDVALIDITY] Ok
-001182 * OK [MYRIGHTS "acdilrsw"] ACL
-001183 S015 OK [READ-WRITE] Ok
-001184 S016 OK mailbox closed.
-001185 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilsw")("administrators" "acdilrsw"))))
-001185 S017 OK ACL STORE completed.
-001186 S018 NO Access denied for SELECT/EXAMINE on INBOX.a (ACL "r" required)
-001187 S019 NO Access denied for SELECT/EXAMINE on INBOX.a (ACL "r" required)
-001188 S020 NO Access denied for STATUS on INBOX.a (ACL "r" required)
-001189 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-001189 S021 OK ACL STORE completed.
-001190 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001191 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001192 * 2 EXISTS
-001193 * 0 RECENT
-001194 * OK [UIDVALIDITY] Ok
-001195 * OK [MYRIGHTS "acdilrsw"] ACL
-001196 S022 OK [READ-WRITE] Ok
-001197 + OK
-001198 S023 OK APPEND Ok.
-001199 * 3 EXISTS
-001200 * 0 RECENT
-001201 S024 OK NOOP completed
-001202 * 1 FETCH (FLAGS ())
-001203 * 2 FETCH (FLAGS ())
-001204 * 3 FETCH (FLAGS ())
-001205 S025 OK STORE completed.
-001206 * OK [MYRIGHTS "acdilrw"] ACL
-001207 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw"))))
-001207 S027 OK ACL STORE completed.
-001208 * 1 FETCH (BODY[] {83}
-001209 From: John <john@example.com>
-001210 To: john <john@example.com>
-001211 Subject: test
-001212 
-001213 test
-001214 )
-001215 S028 OK FETCH completed.
-001216 * OK [MYRIGHTS "acdilrsw"] ACL
-001217 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-001217 S029 OK ACL STORE completed.
-001218 * 1 FETCH (BODY[] {83}
-001219 From: John <john@example.com>
-001220 To: john <john@example.com>
-001221 Subject: test
-001222 
-001223 test
-001224 )
-001225 * 1 FETCH (FLAGS (\Seen))
-001226 S030 OK FETCH completed.
-001227 * OK [MYRIGHTS "acdilrw"] ACL
-001228 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw"))))
-001228 S031 OK ACL STORE completed.
-001229 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001230 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001231 * 1 FETCH (FLAGS (\Seen \Deleted Foo))
-001232 * 2 FETCH (FLAGS (\Deleted Foo))
-001233 S032 OK STORE completed.
-001234 * 1 FETCH (FLAGS (\Seen))
-001235 * 2 FETCH (FLAGS ())
-001236 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001237 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001238 S033 OK STORE completed.
-001239 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001240 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001241 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
-001242 S034 OK STORE completed.
-001243 * 1 FETCH (FLAGS (\Seen))
-001244 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
-001245 S035 OK FETCH completed.
-001246 * OK [MYRIGHTS "acdilrsw"] ACL
-001247 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-001247 S036 OK ACL STORE completed.
-001248 * OK [MYRIGHTS "acdilrs"] ACL
-001249 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrs")("administrators" "acdilrsw"))))
-001249 S037 OK ACL STORE completed.
-001250 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001251 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001252 * 1 FETCH (FLAGS (\Seen \Deleted))
-001253 * 2 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
-001254 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001255 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001256 S038 OK STORE completed.
-001257 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001258 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001259 * 1 FETCH (FLAGS ())
-001260 * 2 FETCH (FLAGS (\Answered Foo))
-001261 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001262 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001263 S039 OK STORE completed.
-001264 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001265 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001266 * 1 FETCH (FLAGS (\Seen \Deleted))
-001267 * 2 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
-001268 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001269 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001270 S040 OK STORE completed.
-001271 * OK [MYRIGHTS "acdilrsw"] ACL
-001272 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
-001272 S041 OK ACL STORE completed.
-001273 * 2 FETCH (FLAGS (\Answered \Seen Foo))
-001274 S042 OK STORE completed.
-001275 * OK [MYRIGHTS "aceilrswx"] ACL
-001276 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw"))))
-001276 S043 OK ACL STORE completed.
-001277 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001278 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001279 * 1 FETCH (FLAGS (\Seen \Deleted Bar))
-001280 * 2 FETCH (FLAGS (\Seen Bar))
-001281 * FLAGS (Bar \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001282 * OK [PERMANENTFLAGS (Bar \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001283 S044 OK STORE completed.
-001284 * 1 FETCH (FLAGS (\Deleted))
-001285 * 2 FETCH (FLAGS ())
-001286 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001287 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001288 S045 OK STORE completed.
-001289 * FLAGS (Bar \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001290 * OK [PERMANENTFLAGS (Bar \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001291 * 1 FETCH (FLAGS (\Seen \Deleted Bar))
-001292 * 2 FETCH (FLAGS (\Seen Bar))
-001293 S046 OK STORE completed.
-001294 S047 OK mailbox closed.
-001295 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr"))))
-001295 S048 OK ACL STORE completed.
-001296 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr")("user=courierimaptestuser2" "lr"))))
-001296 S049 OK ACL STORE completed.
-001297 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr")("user=courierimaptestuser2" "lr"))))
-001297 S050 OK LIST completed
-001298 * BYE Courier-IMAP server shutting down
-001299 SDONE OK LOGOUT completed
-001300 * PREAUTH Ready.
-001301 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l"))))
-001301 T001 OK ACL STORE completed.
-001302 T002 OK "INBOX.a" created.
-001303 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("anyone" "lr"))))
-001303 T003 OK ACL STORE completed.
-001304 + OK
-001305 T004 OK APPEND Ok.
-001306 * BYE Courier-IMAP server shutting down
-001307 T005 OK LOGOUT completed
-001308 * PREAUTH Ready.
-001309 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "l"))))
-001309 T010 OK ACL STORE completed.
-001310 T011 OK "INBOX.a" created.
-001311 + OK
-001312 T012 OK APPEND Ok.
-001313 * BYE Courier-IMAP server shutting down
-001314 T013 OK LOGOUT completed
-001315 * PREAUTH Ready.
-001316 * LIST (\HasChildren) "." "#shared.a.user1"
-001316 * LIST (\HasChildren) "." "#shared.b.user2"
-001316 * LIST (\HasNoChildren) "." "#shared.a.user1.a"
-001316 * LIST (\HasNoChildren) "." "#shared.b.user2.a"
-001316 * LIST (\Noselect \HasChildren) "." "#shared.a"
-001316 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001316 T020 OK LIST completed
-001317 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
-001317 T021 OK ACL STORE completed.
+001008 R036 OK LIST completed
+001009 R037 OK "INBOX.f" created.
+001010 * LIST (\HasChildren) "." "INBOX.f" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001010 * LIST (\HasNoChildren) "." "INBOX.f.b" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw"))))
+001010 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001010 R038 OK LIST completed
+001011 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdlrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001011 R039 OK ACL STORE completed.
+001012 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001013 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001014 * 0 EXISTS
+001015 * 0 RECENT
+001016 * OK [UIDVALIDITY] Ok
+001017 * OK [MYRIGHTS "acdlrsw"] ACL
+001018 R040 OK [READ-WRITE] Ok
+001019 R041 NO Access denied for APPEND on INBOX (ACL "i" required)
+001020 * OK [MYRIGHTS "acdilrsw"] ACL
+001021 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001021 R042 OK ACL STORE completed.
+001022 + OK
+001023 R043 OK APPEND Ok.
+001024 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001025 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001026 * 1 EXISTS
+001027 * 0 RECENT
+001028 R043 OK NOOP completed
+001029 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
+001030 R044 OK FETCH completed.
+001031 * OK [MYRIGHTS "aceilrsx"] ACL
+001032 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "aceilrsx")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001032 R045 OK ACL STORE completed.
+001033 + OK
+001034 R046 OK APPEND Ok.
+001035 * 2 EXISTS
+001036 * 0 RECENT
+001037 R047 OK NOOP completed
+001038 * 2 FETCH (FLAGS (\Seen))
+001039 R048 OK FETCH completed.
+001040 * OK [MYRIGHTS "acdilrsw"] ACL
+001041 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001041 R049 OK ACL STORE completed.
+001042 * OK [MYRIGHTS "acdilrw"] ACL
+001043 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001043 R050 OK ACL STORE completed.
+001044 + OK
+001045 R051 OK APPEND Ok.
+001046 * 3 EXISTS
+001047 * 0 RECENT
+001048 R052 OK NOOP completed
+001049 * 3 FETCH (FLAGS (\Answered \Deleted Foo))
+001050 R053 OK FETCH completed.
+001051 * 2 FETCH (FLAGS (\Seen \Deleted))
+001052 * 3 FETCH (FLAGS (\Answered \Deleted Foo))
+001053 R054 OK STORE completed.
+001054 * 1 FETCH (FLAGS (\Answered \Seen Foo))
+001055 R055 OK STORE completed.
+001056 * 2 EXPUNGE
+001057 * 2 EXPUNGE
+001058 * 1 EXISTS
+001059 * 0 RECENT
+001060 R056 OK EXPUNGE completed
+001061 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
+001062 R057 OK STORE completed.
+001063 * OK [MYRIGHTS "acdilrsw"] ACL
+001064 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001064 R058 OK ACL STORE completed.
+001065 R059 OK "INBOX.x" created.
+001066 R060 OK COPY completed.
+001067 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001068 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001069 * 1 EXISTS
+001070 * 0 RECENT
+001071 * OK [UIDVALIDITY] Ok
+001072 * OK [MYRIGHTS "acdilrsw"] ACL
+001073 R061 OK [READ-WRITE] Ok
+001074 * 1 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
+001075 R062 OK FETCH completed.
+001076 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001077 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001078 * 1 EXISTS
+001079 * 0 RECENT
+001080 * OK [UIDVALIDITY] Ok
+001081 * OK [MYRIGHTS "acdilrsw"] ACL
+001082 R063 OK [READ-WRITE] Ok
+001083 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001083 R064 OK ACL STORE completed.
+001084 R065 OK COPY completed.
+001085 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001086 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001087 * 2 EXISTS
+001088 * 0 RECENT
+001089 * OK [UIDVALIDITY] Ok
+001090 * OK [MYRIGHTS "acdilrw"] ACL
+001091 R066 OK [READ-WRITE] Ok
+001092 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
+001093 R067 OK FETCH completed.
+001094 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001095 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001096 * 1 EXISTS
+001097 * 0 RECENT
+001098 * OK [UIDVALIDITY] Ok
+001099 * OK [MYRIGHTS "acdilrsw"] ACL
+001100 R068 OK [READ-WRITE] Ok
+001101 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001101 R069 OK ACL STORE completed.
+001102 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrs")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001102 R070 OK ACL STORE completed.
+001103 R071 OK COPY completed.
+001104 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001105 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001106 * 3 EXISTS
+001107 * 0 RECENT
+001108 * OK [UIDVALIDITY] Ok
+001109 * OK [MYRIGHTS "acdilrs"] ACL
+001110 R072 OK [READ-WRITE] Ok
+001111 * 3 FETCH (FLAGS (\Seen \Deleted))
+001112 R073 OK FETCH completed.
+001113 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001114 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001115 * 1 EXISTS
+001116 * 0 RECENT
+001117 * OK [UIDVALIDITY] Ok
+001118 * OK [MYRIGHTS "acdilrsw"] ACL
+001119 R074 OK [READ-WRITE] Ok
+001120 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001120 R075 OK ACL STORE completed.
+001121 * LIST (\HasNoChildren) "." "INBOX.x" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw")("user=systemuser2" "alr"))))
+001121 R076 OK ACL STORE completed.
+001122 R077 OK COPY completed.
+001123 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001124 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001125 * 4 EXISTS
+001126 * 0 RECENT
+001127 * OK [UIDVALIDITY] Ok
+001128 * OK [MYRIGHTS "aceilrswx"] ACL
+001129 R078 OK [READ-WRITE] Ok
+001130 * 4 FETCH (FLAGS (\Answered \Seen Foo))
+001131 R079 OK FETCH completed.
+001132 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001133 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001134 * 1 EXISTS
+001135 * 0 RECENT
+001136 * OK [UIDVALIDITY] Ok
+001137 * OK [MYRIGHTS "acdilrsw"] ACL
+001138 R080 OK [READ-WRITE] Ok
+001139 * BYE Courier-IMAP server shutting down
+001140 RDONE OK LOGOUT completed
+001141 * PREAUTH Ready.
+001142 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001143 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001144 * 1 EXISTS
+001145 * 1 RECENT
+001146 * OK [UIDVALIDITY] Ok
+001147 * OK [MYRIGHTS "acdilrsw"] ACL
+001148 S001 OK [READ-WRITE] Ok
+001149 S002 OK COPY completed.
+001150 * 2 EXISTS
+001151 * 1 RECENT
+001152 S003 OK NOOP completed
+001153 S004 OK COPY completed.
+001154 * 4 EXISTS
+001155 * 1 RECENT
+001156 S005 OK NOOP completed
+001157 * OK [MYRIGHTS "acilrstwx"] ACL
+001158 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acilrstwx")("administrators" "acdilrsw"))))
+001158 S006 OK ACL STORE completed.
+001159 * 1 FETCH (FLAGS (\Seen \Deleted \Recent))
+001160 S007 OK STORE completed.
+001161 S008 NO Access denied for EXPUNGE on current mailbox (ACL "e" required)
+001162 S009 OK mailbox closed.
+001163 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001164 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001165 * 4 EXISTS
+001166 * 0 RECENT
+001167 * OK [UIDVALIDITY] Ok
+001168 * OK [MYRIGHTS "acilrstwx"] ACL
+001169 S010 OK [READ-WRITE] Ok
+001170 * OK [MYRIGHTS "acdilrsw"] ACL
+001171 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+001171 S011 OK ACL STORE completed.
+001172 * 1 EXPUNGE
+001173 * 3 EXISTS
+001174 * 0 RECENT
+001175 S012 OK EXPUNGE completed
+001176 * 1 FETCH (FLAGS (\Seen \Deleted))
+001177 S013 OK STORE completed.
+001178 S014 OK mailbox closed.
+001179 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001180 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001181 * 2 EXISTS
+001182 * 0 RECENT
+001183 * OK [UIDVALIDITY] Ok
+001184 * OK [MYRIGHTS "acdilrsw"] ACL
+001185 S015 OK [READ-WRITE] Ok
+001186 S016 OK mailbox closed.
+001187 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilsw")("administrators" "acdilrsw"))))
+001187 S017 OK ACL STORE completed.
+001188 S018 NO Access denied for SELECT/EXAMINE on INBOX.a (ACL "r" required)
+001189 S019 NO Access denied for SELECT/EXAMINE on INBOX.a (ACL "r" required)
+001190 S020 NO Access denied for STATUS on INBOX.a (ACL "r" required)
+001191 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+001191 S021 OK ACL STORE completed.
+001192 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001193 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001194 * 2 EXISTS
+001195 * 0 RECENT
+001196 * OK [UIDVALIDITY] Ok
+001197 * OK [MYRIGHTS "acdilrsw"] ACL
+001198 S022 OK [READ-WRITE] Ok
+001199 + OK
+001200 S023 OK APPEND Ok.
+001201 * 3 EXISTS
+001202 * 0 RECENT
+001203 S024 OK NOOP completed
+001204 * 1 FETCH (FLAGS ())
+001205 * 2 FETCH (FLAGS ())
+001206 * 3 FETCH (FLAGS ())
+001207 S025 OK STORE completed.
+001208 * OK [MYRIGHTS "acdilrw"] ACL
+001209 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw"))))
+001209 S027 OK ACL STORE completed.
+001210 * 1 FETCH (BODY[] {83}
+001211 From: John <john@example.com>
+001212 To: john <john@example.com>
+001213 Subject: test
+001214 
+001215 test
+001216 )
+001217 S028 OK FETCH completed.
+001218 * OK [MYRIGHTS "acdilrsw"] ACL
+001219 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+001219 S029 OK ACL STORE completed.
+001220 * 1 FETCH (BODY[] {83}
+001221 From: John <john@example.com>
+001222 To: john <john@example.com>
+001223 Subject: test
+001224 
+001225 test
+001226 )
+001227 * 1 FETCH (FLAGS (\Seen))
+001228 S030 OK FETCH completed.
+001229 * OK [MYRIGHTS "acdilrw"] ACL
+001230 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrw")("administrators" "acdilrsw"))))
+001230 S031 OK ACL STORE completed.
+001231 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001232 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001233 * 1 FETCH (FLAGS (\Seen \Deleted Foo))
+001234 * 2 FETCH (FLAGS (\Deleted Foo))
+001235 S032 OK STORE completed.
+001236 * 1 FETCH (FLAGS (\Seen))
+001237 * 2 FETCH (FLAGS ())
+001238 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001239 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001240 S033 OK STORE completed.
+001241 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001242 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001243 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
+001244 S034 OK STORE completed.
+001245 * 1 FETCH (FLAGS (\Seen))
+001246 * 2 FETCH (FLAGS (\Answered \Deleted Foo))
+001247 S035 OK FETCH completed.
+001248 * OK [MYRIGHTS "acdilrsw"] ACL
+001249 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+001249 S036 OK ACL STORE completed.
+001250 * OK [MYRIGHTS "acdilrs"] ACL
+001251 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrs")("administrators" "acdilrsw"))))
+001251 S037 OK ACL STORE completed.
+001252 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001253 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001254 * 1 FETCH (FLAGS (\Seen \Deleted))
+001255 * 2 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
+001256 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001257 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001258 S038 OK STORE completed.
+001259 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001260 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001261 * 1 FETCH (FLAGS ())
+001262 * 2 FETCH (FLAGS (\Answered Foo))
+001263 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001264 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001265 S039 OK STORE completed.
+001266 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001267 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001268 * 1 FETCH (FLAGS (\Seen \Deleted))
+001269 * 2 FETCH (FLAGS (\Answered \Seen \Deleted Foo))
+001270 * FLAGS (Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001271 * OK [PERMANENTFLAGS (Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001272 S040 OK STORE completed.
+001273 * OK [MYRIGHTS "acdilrsw"] ACL
+001274 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw"))))
+001274 S041 OK ACL STORE completed.
+001275 * 2 FETCH (FLAGS (\Answered \Seen Foo))
+001276 S042 OK STORE completed.
+001277 * OK [MYRIGHTS "aceilrswx"] ACL
+001278 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "aceilrswx")("administrators" "acdilrsw"))))
+001278 S043 OK ACL STORE completed.
+001279 * FLAGS (Bar Foo \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001280 * OK [PERMANENTFLAGS (Bar Foo \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001281 * 1 FETCH (FLAGS (\Seen \Deleted Bar))
+001282 * 2 FETCH (FLAGS (\Seen Bar))
+001283 * FLAGS (Bar \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001284 * OK [PERMANENTFLAGS (Bar \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001285 S044 OK STORE completed.
+001286 * 1 FETCH (FLAGS (\Deleted))
+001287 * 2 FETCH (FLAGS ())
+001288 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001289 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001290 S045 OK STORE completed.
+001291 * FLAGS (Bar \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001292 * OK [PERMANENTFLAGS (Bar \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001293 * 1 FETCH (FLAGS (\Seen \Deleted Bar))
+001294 * 2 FETCH (FLAGS (\Seen Bar))
+001295 S046 OK STORE completed.
+001296 S047 OK mailbox closed.
+001297 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr"))))
+001297 S048 OK ACL STORE completed.
+001298 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr")("user=courierimaptestuser2" "lr"))))
+001298 S049 OK ACL STORE completed.
+001299 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=courierimaptestuser1" "alr")("user=courierimaptestuser2" "lr"))))
+001299 S050 OK LIST completed
+001300 * BYE Courier-IMAP server shutting down
+001301 SDONE OK LOGOUT completed
+001302 * PREAUTH Ready.
+001303 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l"))))
+001303 T001 OK ACL STORE completed.
+001304 T002 OK "INBOX.a" created.
+001305 * LIST (\HasNoChildren) "." "INBOX.a" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("anyone" "lr"))))
+001305 T003 OK ACL STORE completed.
+001306 + OK
+001307 T004 OK APPEND Ok.
+001308 * BYE Courier-IMAP server shutting down
+001309 T005 OK LOGOUT completed
+001310 * PREAUTH Ready.
+001311 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "l"))))
+001311 T010 OK ACL STORE completed.
+001312 T011 OK "INBOX.a" created.
+001313 + OK
+001314 T012 OK APPEND Ok.
+001315 * BYE Courier-IMAP server shutting down
+001316 T013 OK LOGOUT completed
+001317 * PREAUTH Ready.
+001318 * LIST (\HasChildren) "." "#shared.a.user1"
+001318 * LIST (\HasChildren) "." "#shared.b.user2"
+001318 * LIST (\HasNoChildren) "." "#shared.a.user1.a"
+001318 * LIST (\HasNoChildren) "." "#shared.b.user2.a"
 001318 * LIST (\Noselect \HasChildren) "." "#shared.a"
 001318 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001318 T022 OK LIST completed
-001319 * BYE Courier-IMAP server shutting down
-001320 T023 OK LOGOUT completed
-001321 * PREAUTH Ready.
-001322 * LIST (\HasNoChildren) "." "#shared.a.user1.a"
-001322 * LIST (\HasNoChildren) "." "#shared.user0"
-001322 * LIST (\Noselect \HasChildren) "." "#shared.a"
-001322 * LIST (\Noselect \HasChildren) "." "#shared.a.user1"
-001322 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001322 T030 OK LIST completed
-001323 * LIST (\HasNoChildren) "." "#shared.user0"
-001323 * LIST (\Noselect \HasChildren) "." "#shared.a"
-001323 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001323 T031 OK LIST completed
+001318 T020 OK LIST completed
+001319 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
+001319 T021 OK ACL STORE completed.
+001320 * LIST (\Noselect \HasChildren) "." "#shared.a"
+001320 * LIST (\Noselect \HasChildren) "." "#shared.b"
+001320 T022 OK LIST completed
+001321 * BYE Courier-IMAP server shutting down
+001322 T023 OK LOGOUT completed
+001323 * PREAUTH Ready.
+001324 * LIST (\HasNoChildren) "." "#shared.a.user1.a"
+001324 * LIST (\HasNoChildren) "." "#shared.user0"
+001324 * LIST (\Noselect \HasChildren) "." "#shared.a"
 001324 * LIST (\Noselect \HasChildren) "." "#shared.a.user1"
-001324 T032 OK LIST completed
-001325 T033 OK LIST completed
-001326 T034 NO Access denied for SELECT/EXAMINE on #shared.a.user1 (ACL "r" required)
-001327 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001328 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001329 * 1 EXISTS
-001330 * 0 RECENT
-001331 * OK [UIDVALIDITY] Ok
-001332 * OK [MYRIGHTS "lr"] ACL
-001333 T035 OK [READ-ONLY] Ok
-001334 * 1 FETCH (ENVELOPE (NIL "user1" NIL NIL NIL NIL NIL NIL NIL NIL))
-001335 T036 OK FETCH completed.
-001336 T037 NO Access denied for STATUS on #shared.a.user1 (ACL "r" required)
-001337 T038 OK COPY completed.
-001338 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001339 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001340 * 1 EXISTS
-001341 * 0 RECENT
-001342 * OK [UIDVALIDITY] Ok
-001343 * OK [MYRIGHTS "acdilrsw"] ACL
-001344 T039 OK [READ-WRITE] Ok
-001345 T040 NO Access denied for CREATE on #shared.a.user1 (ACL "c" required)
-001346 T041 NO Access denied for CREATE on #shared.c (ACL "c" required)
-001347 T042 OK "#shared.user0.foo" created.
-001348 T043 OK Folder renamed.
-001349 * LIST (\HasChildren) "." "#shared.user0" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
-001349 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
-001349 T044 OK LIST completed
-001350 * ACLFAILED "#shared.a.user1.a" NO Access denied for ACL STORE on #shared.a.user1.a (ACL "a" required)
-001351 T045 OK ACL STORE completed.
-001352 T046 OK "#shared.user0.foo" created.
-001353 * LIST (\HasNoChildren) "." "#shared.user0.foo" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "alr"))))
-001353 T047 OK ACL STORE completed.
-001354 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "aceilrstw"))))
-001354 T048 OK ACL STORE completed.
-001355 T049 NO Access denied for RENAME on #shared.user0.bar (ACL "x" required)
-001356 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
-001356 T050 OK ACL STORE completed.
-001357 T051 NO Access denied for RENAME on #shared.user0.foo (ACL "c" required)
-001358 * LIST (\HasNoChildren) "." "#shared.user0.foo" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "aclr"))))
-001358 T052 OK ACL STORE completed.
-001359 T053 OK Folder renamed.
-001360 * LIST (\HasChildren) "." "#shared.user0"
-001360 * LIST (\HasChildren) "." "#shared.user0.foo"
-001360 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
-001360 T054 OK LIST completed
-001361 * BYE Courier-IMAP server shutting down
-001362 TDONE OK LOGOUT completed
-001363 * PREAUTH Ready.
-001364 * ENABLED UTF8=ACCEPT
-001364 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
-001364 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001364 * LIST (\HasChildren) "." "#shared.b.user 2"
-001364 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r 3.a"
-001364 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001364 * LIST (\HasNoChildren) "." "#shared.b.user 2.a"
-001364 T055 OK LIST completed
-001364 a OK Options enabled
-001365 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
-001365 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001365 * LIST (\HasChildren) "." "#shared.b.user 2"
-001365 T056 OK LIST completed
+001324 * LIST (\Noselect \HasChildren) "." "#shared.b"
+001324 T030 OK LIST completed
+001325 * LIST (\HasNoChildren) "." "#shared.user0"
+001325 * LIST (\Noselect \HasChildren) "." "#shared.a"
+001325 * LIST (\Noselect \HasChildren) "." "#shared.b"
+001325 T031 OK LIST completed
+001326 * LIST (\Noselect \HasChildren) "." "#shared.a.user1"
+001326 T032 OK LIST completed
+001327 T033 OK LIST completed
+001328 T034 NO Access denied for SELECT/EXAMINE on #shared.a.user1 (ACL "r" required)
+001329 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001330 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001331 * 1 EXISTS
+001332 * 0 RECENT
+001333 * OK [UIDVALIDITY] Ok
+001334 * OK [MYRIGHTS "lr"] ACL
+001335 T035 OK [READ-ONLY] Ok
+001336 * 1 FETCH (ENVELOPE (NIL "user1" NIL NIL NIL NIL NIL NIL NIL NIL))
+001337 T036 OK FETCH completed.
+001338 T037 NO Access denied for STATUS on #shared.a.user1 (ACL "r" required)
+001339 T038 OK COPY completed.
+001340 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001341 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001342 * 1 EXISTS
+001343 * 0 RECENT
+001344 * OK [UIDVALIDITY] Ok
+001345 * OK [MYRIGHTS "acdilrsw"] ACL
+001346 T039 OK [READ-WRITE] Ok
+001347 T040 NO Access denied for CREATE on #shared.a.user1 (ACL "c" required)
+001348 T041 NO Access denied for CREATE on #shared.c (ACL "c" required)
+001349 T042 OK "#shared.user0.foo" created.
+001350 T043 OK Folder renamed.
+001351 * LIST (\HasChildren) "." "#shared.user0" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
+001351 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
+001351 T044 OK LIST completed
+001352 * ACLFAILED "#shared.a.user1.a" NO Access denied for ACL STORE on #shared.a.user1.a (ACL "a" required)
+001353 T045 OK ACL STORE completed.
+001354 T046 OK "#shared.user0.foo" created.
+001355 * LIST (\HasNoChildren) "." "#shared.user0.foo" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "alr"))))
+001355 T047 OK ACL STORE completed.
+001356 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "aceilrstw"))))
+001356 T048 OK ACL STORE completed.
+001357 T049 NO Access denied for RENAME on #shared.user0.bar (ACL "x" required)
+001358 * LIST (\HasNoChildren) "." "#shared.user0.bar" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "acdilrsw"))))
+001358 T050 OK ACL STORE completed.
+001359 T051 NO Access denied for RENAME on #shared.user0.foo (ACL "c" required)
+001360 * LIST (\HasNoChildren) "." "#shared.user0.foo" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("anyone" "aclr"))))
+001360 T052 OK ACL STORE completed.
+001361 T053 OK Folder renamed.
+001362 * LIST (\HasChildren) "." "#shared.user0"
+001362 * LIST (\HasChildren) "." "#shared.user0.foo"
+001362 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
+001362 T054 OK LIST completed
+001363 * BYE Courier-IMAP server shutting down
+001364 TDONE OK LOGOUT completed
+001365 * PREAUTH Ready.
+001366 * ENABLED UTF8=ACCEPT
+001366 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
+001366 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001366 * LIST (\HasChildren) "." "#shared.b.user 2"
+001366 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r 3.a"
+001366 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
 001366 * LIST (\HasNoChildren) "." "#shared.b.user 2.a"
-001366 T057 OK LIST completed
-001367 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001367 T058 OK LIST completed
-001368 * BYE Courier-IMAP server shutting down
-001369 TDONE OK LOGOUT completed
-001370 * PREAUTH Ready.
-001371 * ENABLED UTF8=ACCEPT
-001371 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
-001371 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001371 * LIST (\HasChildren) "." "#shared.b.user\\:2"
-001371 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
-001371 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001371 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
-001371 T055 OK LIST completed
-001371 a OK Options enabled
-001372 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
-001372 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001372 * LIST (\HasChildren) "." "#shared.b.user\\:2"
-001372 T056 OK LIST completed
+001366 T055 OK LIST completed
+001366 a OK Options enabled
+001367 * LIST (\HasChildren) "." "#shared.b.us&AOk-r 3"
+001367 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001367 * LIST (\HasChildren) "." "#shared.b.user 2"
+001367 T056 OK LIST completed
+001368 * LIST (\HasNoChildren) "." "#shared.b.user 2.a"
+001368 T057 OK LIST completed
+001369 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
+001369 T058 OK LIST completed
+001370 * BYE Courier-IMAP server shutting down
+001371 TDONE OK LOGOUT completed
+001372 * PREAUTH Ready.
+001373 * ENABLED UTF8=ACCEPT
+001373 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
+001373 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001373 * LIST (\HasChildren) "." "#shared.b.user\\:2"
+001373 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
+001373 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
 001373 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
-001373 T057 OK LIST completed
-001374 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001374 T058 OK LIST completed
-001375 T059 OK "INBOX.a.b" created.
-001376 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001377 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001378 * 0 EXISTS
-001379 * 0 RECENT
-001380 * OK [UIDVALIDITY] Ok
-001381 * OK [MYRIGHTS "acdilrsw"] ACL
-001382 T060 OK [READ-WRITE] Ok
-001383 T061 NO Can't RENAME the currently-open folder
-001384 T062 OK mailbox closed.
-001385 T063 OK Folder renamed.
-001386 T064 NO INBOX rename not implemented.
-001387 T065 NO Cannot move a folder to a different account.
-001388 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
-001388 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001388 * LIST (\HasChildren) "." "#shared.b.user\\:2"
-001388 * LIST (\HasChildren) "." "#shared.user0"
-001388 * LIST (\HasChildren) "." "#shared.user0.foo"
-001388 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
-001388 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001388 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
-001388 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
-001388 * LIST (\Noselect \HasChildren) "." "#shared.a"
-001388 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001388 T066 OK LIST completed
-001389 * LIST (\HasChildren) "." "#shared.user0"
-001389 * LIST (\Noselect \HasChildren) "." "#shared.a"
-001389 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001389 T067 OK LIST completed
+001373 T055 OK LIST completed
+001373 a OK Options enabled
+001374 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
+001374 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001374 * LIST (\HasChildren) "." "#shared.b.user\\:2"
+001374 T056 OK LIST completed
+001375 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
+001375 T057 OK LIST completed
+001376 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
+001376 T058 OK LIST completed
+001377 T059 OK "INBOX.a.b" created.
+001378 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001379 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001380 * 0 EXISTS
+001381 * 0 RECENT
+001382 * OK [UIDVALIDITY] Ok
+001383 * OK [MYRIGHTS "acdilrsw"] ACL
+001384 T060 OK [READ-WRITE] Ok
+001385 T061 NO Can't RENAME the currently-open folder
+001386 T062 OK mailbox closed.
+001387 T063 OK Folder renamed.
+001388 T064 NO INBOX rename not implemented.
+001389 T065 NO Cannot move a folder to a different account.
+001390 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
+001390 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001390 * LIST (\HasChildren) "." "#shared.b.user\\:2"
 001390 * LIST (\HasChildren) "." "#shared.user0"
+001390 * LIST (\HasChildren) "." "#shared.user0.foo"
+001390 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
+001390 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
+001390 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
+001390 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
 001390 * LIST (\Noselect \HasChildren) "." "#shared.a"
 001390 * LIST (\Noselect \HasChildren) "." "#shared.b"
-001390 T068 OK LIST completed
-001391 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
-001391 * LIST (\HasChildren) "." "#shared.b.use&-2"
-001391 * LIST (\HasChildren) "." "#shared.b.user\\:2"
-001391 * LIST (\HasChildren) "." "#shared.user0.foo"
-001391 T069 OK LIST completed
-001392 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
-001392 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
-001392 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
-001392 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
-001392 T070 OK LIST completed
-001393 T071 OK LIST completed
-001394 * BYE Courier-IMAP server shutting down
-001395 TDONE OK LOGOUT completed
-001396 * PREAUTH Ready.
-001397 * LIST (\HasChildren) "." "#shared.usergroup1"
-001397 * LIST (\HasChildren) "." "#shared.usergroup1.foo"
-001397 * LIST (\HasNoChildren) "." "#shared.usergroup1.foo.bar"
-001397 T072 OK LIST completed
-001398 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l"))))
-001398 T073 OK LIST completed
-001399 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr"))))
-001399 T074 OK ACL STORE completed.
-001400 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr")("-user=john" "lr"))))
-001400 T075 OK ACL STORE completed.
-001401 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr")("-user=john" "lr")("-authuser" "lr"))))
-001401 T076 OK ACL STORE completed.
-001402 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "fred" "lr" "-john" "lr" "-authuser" "lr"
-001403 T077 OK GETACL completed.
-001404 T078 OK ACLs updated.
-001405 T079 OK ACLs updated.
-001406 T080 OK ACLs updated.
-001407 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "fred" "cr" "-john" "clr" "-authuser" "clr"
-001408 T081 OK GETACL completed.
-001409 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "cr")("-user=john" "clr")("-authuser" "clr"))))
-001409 T082 OK LIST completed
-001410 T083 OK ACLs updated.
-001411 T084 OK ACLs updated.
-001412 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "-authuser" "clr"
-001413 T085 OK GETACL completed.
-001414 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("-authuser" "clr"))))
-001414 T086 OK LIST completed
-001415 * BYE Courier-IMAP server shutting down
-001416 TDONE OK LOGOUT completed
-001417 * PREAUTH Ready.
-001418 + OK
-001419 U001 OK APPEND Ok.
-001420 * LIST (\HasNoChildren) "." "INBOX.Trash"
-001420 * LIST (\HasNoChildren) "." "INBOX.folder:with:colonTD"
-001420 * LIST (\HasNoChildren) "." "shared.another.writable"
-001420 * LIST (\Noselect \HasChildren) "." "shared"
-001420 * LIST (\Noselect \HasChildren) "." "shared.another"
-001420 * LIST (\Unmarked \HasChildren) "." "INBOX"
-001420 U002 OK LIST completed
-001421 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001422 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-001423 * 1 EXISTS
-001424 * 0 RECENT
-001425 * OK [UIDVALIDITY] Ok
-001426 * OK [MYRIGHTS "acdilrsw"] ACL
-001427 U003 OK [READ-WRITE] Ok
-001428 U004 OK COPY completed.
-001429 U005 NO Mailbox does not exist, or must be subscribed to.
-001430 U006 NO Cannot delete currently-open folder.
-001431 * LISTRIGHTS "INBOX" "user=user1" "" a c d i l p r s w
-001431 U007 OK LISTRIGHTS completed.
-001432 * LISTRIGHTS "shared.another.writable" "user=user1" "" a c d i l p r s w
-001432 U008 OK LISTRIGHTS completed.
-001433 * MYRIGHTS "INBOX" "acdilrsw"
-001434 U009 OK MYRIGHTS completed.
-001435 U010 NO Error in IMAP command received by server.
-001436 U011 NO [TRYCREATE] Mailbox does not exist.
-001437 U012 OK "INBOX.Outbox" created.
-001438 + OK
-001439 U013 OK APPEND Ok.
-001440 * 2 EXISTS
-001441 * 0 RECENT
-001442 U014 OK NOOP completed
-001443 U015 NO [ALERT] Only one message may be sent at a time.
-001444 U016 OK COPY completed.
-001445 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001446 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
-001447 * 3 EXISTS
-001448 * 3 RECENT
-001449 * OK [UIDVALIDITY] Ok
-001450 * OK [MYRIGHTS "acdilrsw"] ACL
-001451 U017 OK [READ-WRITE] Ok
-001452 * 1 EXPUNGE
-001453 * 1 EXPUNGE
+001390 T066 OK LIST completed
+001391 * LIST (\HasChildren) "." "#shared.user0"
+001391 * LIST (\Noselect \HasChildren) "." "#shared.a"
+001391 * LIST (\Noselect \HasChildren) "." "#shared.b"
+001391 T067 OK LIST completed
+001392 * LIST (\HasChildren) "." "#shared.user0"
+001392 * LIST (\Noselect \HasChildren) "." "#shared.a"
+001392 * LIST (\Noselect \HasChildren) "." "#shared.b"
+001392 T068 OK LIST completed
+001393 * LIST (\HasChildren) "." "#shared.b.us&AOk-r\\;3"
+001393 * LIST (\HasChildren) "." "#shared.b.use&-2"
+001393 * LIST (\HasChildren) "." "#shared.b.user\\:2"
+001393 * LIST (\HasChildren) "." "#shared.user0.foo"
+001393 T069 OK LIST completed
+001394 * LIST (\HasNoChildren) "." "#shared.b.us&AOk-r\\;3.a"
+001394 * LIST (\HasNoChildren) "." "#shared.b.use&-2.a"
+001394 * LIST (\HasNoChildren) "." "#shared.b.user\\:2.a"
+001394 * LIST (\HasNoChildren) "." "#shared.user0.foo.bar"
+001394 T070 OK LIST completed
+001395 T071 OK LIST completed
+001396 * BYE Courier-IMAP server shutting down
+001397 TDONE OK LOGOUT completed
+001398 * PREAUTH Ready.
+001399 * LIST (\HasChildren) "." "#shared.usergroup1"
+001399 * LIST (\HasChildren) "." "#shared.usergroup1.foo"
+001399 * LIST (\HasNoChildren) "." "#shared.usergroup1.foo.bar"
+001399 T072 OK LIST completed
+001400 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l"))))
+001400 T073 OK LIST completed
+001401 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr"))))
+001401 T074 OK ACL STORE completed.
+001402 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr")("-user=john" "lr"))))
+001402 T075 OK ACL STORE completed.
+001403 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "lr")("-user=john" "lr")("-authuser" "lr"))))
+001403 T076 OK ACL STORE completed.
+001404 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "fred" "lr" "-john" "lr" "-authuser" "lr"
+001405 T077 OK GETACL completed.
+001406 T078 OK ACLs updated.
+001407 T079 OK ACLs updated.
+001408 T080 OK ACLs updated.
+001409 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "fred" "cr" "-john" "clr" "-authuser" "clr"
+001410 T081 OK GETACL completed.
+001411 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("user=fred" "cr")("-user=john" "clr")("-authuser" "clr"))))
+001411 T082 OK LIST completed
+001412 T083 OK ACLs updated.
+001413 T084 OK ACLs updated.
+001414 * ACL "INBOX" "owner" "acdilrsw" "administrators" "acdilrsw" "user0" "l" "-authuser" "clr"
+001415 T085 OK GETACL completed.
+001416 * LIST (\Unmarked \HasChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user0" "l")("-authuser" "clr"))))
+001416 T086 OK LIST completed
+001417 * BYE Courier-IMAP server shutting down
+001418 TDONE OK LOGOUT completed
+001419 * PREAUTH Ready.
+001420 + OK
+001421 U001 OK APPEND Ok.
+001422 * LIST (\HasNoChildren) "." "INBOX.Trash"
+001422 * LIST (\HasNoChildren) "." "INBOX.folder:with:colonTD"
+001422 * LIST (\HasNoChildren) "." "shared.another.writable"
+001422 * LIST (\Noselect \HasChildren) "." "shared"
+001422 * LIST (\Noselect \HasChildren) "." "shared.another"
+001422 * LIST (\Unmarked \HasChildren) "." "INBOX"
+001422 U002 OK LIST completed
+001423 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001424 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001425 * 1 EXISTS
+001426 * 0 RECENT
+001427 * OK [UIDVALIDITY] Ok
+001428 * OK [MYRIGHTS "acdilrsw"] ACL
+001429 U003 OK [READ-WRITE] Ok
+001430 U004 OK COPY completed.
+001431 U005 NO Mailbox does not exist, or must be subscribed to.
+001432 U006 NO Cannot delete currently-open folder.
+001433 * LISTRIGHTS "INBOX" "user=user1" "" a c d i l p r s w
+001433 U007 OK LISTRIGHTS completed.
+001434 * LISTRIGHTS "shared.another.writable" "user=user1" "" a c d i l p r s w
+001434 U008 OK LISTRIGHTS completed.
+001435 * MYRIGHTS "INBOX" "acdilrsw"
+001436 U009 OK MYRIGHTS completed.
+001437 U010 NO Error in IMAP command received by server.
+001438 U011 NO [TRYCREATE] Mailbox does not exist.
+001439 U012 OK "INBOX.Outbox" created.
+001440 + OK
+001441 U013 OK APPEND Ok.
+001442 * 2 EXISTS
+001443 * 0 RECENT
+001444 U014 OK NOOP completed
+001445 U015 NO [ALERT] Only one message may be sent at a time.
+001446 U016 OK COPY completed.
+001447 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001448 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001449 * 3 EXISTS
+001450 * 3 RECENT
+001451 * OK [UIDVALIDITY] Ok
+001452 * OK [MYRIGHTS "acdilrsw"] ACL
+001453 U017 OK [READ-WRITE] Ok
 001454 * 1 EXPUNGE
-001455 * 0 EXISTS
-001456 * 0 RECENT
-001457 U019 OK EXPUNGE completed
-001458 ===Sent==
-001459 test
-001460 ===Trash=
-001461 001:2,
-001462 002TD:2,
-001463 003:2,AB
-001464 msg:2
-001465 ===
-001466 * PREAUTH Ready.
-001467 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001468 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001469 * 2 EXISTS
-001470 * 0 RECENT
-001471 * OK [UIDVALIDITY] Ok
-001472 * OK [MYRIGHTS "acdilrsw"] ACL
-001473 U021 OK [READ-WRITE] Ok
-001474 * FLAGS (Label1 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-001475 * OK [PERMANENTFLAGS (Label1 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-001476 * 1 FETCH (FLAGS (\Seen Label1))
-001477 U022 OK STORE completed.
-001478 U023 NO [ALERT] You exceeded your mail quota.
-001479 maildir_purge: .Trash (172800)
-001480 maildir_purgetmp: .
+001455 * 1 EXPUNGE
+001456 * 1 EXPUNGE
+001457 * 0 EXISTS
+001458 * 0 RECENT
+001459 U019 OK EXPUNGE completed
+001460 ===Sent==
+001461 test
+001462 ===Trash=
+001463 001:2,
+001464 002TD:2,
+001465 003:2,AB
+001466 msg:2
+001467 ===
+001468 * PREAUTH Ready.
+001469 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001470 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001471 * 2 EXISTS
+001472 * 0 RECENT
+001473 * OK [UIDVALIDITY] Ok
+001474 * OK [MYRIGHTS "acdilrsw"] ACL
+001475 U021 OK [READ-WRITE] Ok
+001476 * FLAGS (Label1 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+001477 * OK [PERMANENTFLAGS (Label1 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001478 * 1 FETCH (FLAGS (\Seen Label1))
+001479 U022 OK STORE completed.
+001480 U023 NO [ALERT] You exceeded your mail quota.
 001481 maildir_purge: .Trash (172800)
-001482 maildir_purge: .Trash (172800)
-001483 maildir_purge: .Trash2 (259200)
+001482 maildir_purgetmp: .
+001483 maildir_purge: .Trash (172800)
 001484 maildir_purge: .Trash (172800)
 001485 maildir_purge: .Trash2 (259200)
-001486 * PREAUTH Ready.
-001487 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "w"))))
-001487 V001 OK ACL STORE completed.
-001488 V002 OK "INBOX.Folder.Subfolder" created.
-001489 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
-001489 V003 OK ACL STORE completed.
-001490 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
-001490 V004 OK LIST completed
-001491 V005 OK "INBOX.Folder" created.
-001492 * LIST (\HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
-001492 V006 OK LIST completed
-001493 * QUOTAROOT "INBOX" "ROOT"
-001494 * QUOTA "ROOT"
-001495 V007 OK GETQUOTAROOT Ok.
-001496 V008 OK LIST completed
+001486 maildir_purge: .Trash (172800)
+001487 maildir_purge: .Trash2 (259200)
+001488 * PREAUTH Ready.
+001489 * LIST (\Unmarked \HasNoChildren) "." "INBOX" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "w"))))
+001489 V001 OK ACL STORE completed.
+001490 V002 OK "INBOX.Folder.Subfolder" created.
+001491 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001491 V003 OK ACL STORE completed.
+001492 * LIST (\Noselect \HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001492 V004 OK LIST completed
+001493 V005 OK "INBOX.Folder" created.
+001494 * LIST (\HasChildren) "." "INBOX.Folder" (("ACL" (("owner" "acdilrsw")("administrators" "acdilrsw")("user=user2" "rw"))))
+001494 V006 OK LIST completed
+001495 * QUOTAROOT "INBOX" "ROOT"
+001496 * QUOTA "ROOT"
+001497 V007 OK GETQUOTAROOT Ok.
+001498 V008 OK LIST completed

@@ -269,6 +269,7 @@ b028 fetch 1 flags
 b029 fetch 1 flags
 b030 select inbox
 b031 fetch 2 (bodystructure)
+b032 search from todd@example.org all
 adone logout
 EOF
 
