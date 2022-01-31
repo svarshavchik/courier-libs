@@ -2747,30 +2747,30 @@ static void writeacl(const char *aclstr)
 	writeqs(p.c_str());
 }
 
-static void writeacl1(char *p)
+static void writeacl1(std::string p)
 {
-	char *q, *r;
+	if (p.find(ACL_DELETEFOLDER[0]) != p.npos &&
+	    p.find(ACL_DELETEMSGS[0]) != p.npos)
+	{
+		auto n=p.find(ACL_EXPUNGE[0]);
 
-	if (strchr(p, ACL_EXPUNGE[0]) &&
-	    strchr(p, ACL_DELETEMSGS[0]) &&
-	    strchr(p, ACL_DELETEFOLDER[0]))
-		*strchr(p, ACL_EXPUNGE[0])=ACL_DELETE_SPECIAL[0];
+		if (n != p.npos)
+		{
+			p[n]=ACL_DELETE_SPECIAL[0];
+		}
+	}
 	/* See no evil */
 
+	p.erase(std::remove_if(p.begin(), p.end(),
+			       []
+			       (char c)
+			       {
+				       return (c == ACL_EXPUNGE[0] ||
+					       c == ACL_DELETEMSGS[0] ||
+					       c == ACL_DELETEFOLDER[0]);
+			       }), p.end());
 
-	for (q=r=p; *q; q++)
-	{
-		if (*q == ACL_EXPUNGE[0] ||
-		    *q == ACL_DELETEMSGS[0] ||
-		    *q == ACL_DELETEFOLDER[0])
-		{
-			continue;
-		}
-
-		*r++= *q;
-	}
-	*r=0;
-	writeqs(p);
+	writeqs(p.c_str());
 }
 
 char *get_myrightson(const char *mailbox)
@@ -5380,12 +5380,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			writeqs(ident);
 			writes("\" \"");
 
-
-			auto p=my_strdup(acl.acl.c_str());
-
-			writeacl1(p);
-
-			free(p);
+			writeacl1(acl.acl);
 			writes("\"");
 		}
 
