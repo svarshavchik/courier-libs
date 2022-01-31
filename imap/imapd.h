@@ -24,11 +24,12 @@ extern int enabled_utf8;
 
 #define	SUBSCRIBEFILE	"courierimapsubscribed"
 
-extern void check_rights(const char *mailbox,
-			 char *rights_buf);
-
 #ifdef __cplusplus
 }
+#include <string>
+
+extern void check_rights(const std::string &mailbox,
+			 char *rights_buf);
 #endif
 
 #define CHECK_RIGHTSM(mailbox, varname, rights) \

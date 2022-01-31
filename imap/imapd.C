@@ -391,14 +391,7 @@ static std::string decode_valid_mailbox_utf8(const char *p, int autosubscribe)
 
 	if (mi.regular_maildir())
 	{
-		char *q=maildir_name2dir(mi.homedir.c_str(),
-					 mi.maildir.c_str());
-
-		if (!q)
-			return "";
-
-		std::string r{q};
-		free(q);
+		auto r=maildir::name2dir(mi.homedir, mi.maildir);
 
 		r += "/.";
 
@@ -462,6 +455,38 @@ std::string decode_valid_mailbox(const char *mailbox, int autosubscribe)
 	auto q=decode_valid_mailbox_utf8(p, autosubscribe);
 	free(p);
 	return q;
+}
+
+class maildir_info_and_mailbox : public maildir::info {
+
+public:
+	std::string mailbox;
+
+	maildir_info_and_mailbox() = default;
+	maildir_info_and_mailbox(maildir::info &&info,
+				 const char *mailbox)
+		: maildir::info{std::move(info)},
+		  mailbox{mailbox}
+	{
+	}
+
+	using maildir::info::operator bool;
+};
+
+maildir_info_and_mailbox get_maildir_info_and_mailbox(const char *str)
+{
+	auto mailbox=imap_foldername_to_filename(enabled_utf8, str);
+
+	if (!mailbox)
+		return {};
+
+	maildir_info_and_mailbox ret{maildir::info_imap_find(
+			mailbox, getenv("AUTHENTICATED")),
+		mailbox};
+
+	free(mailbox);
+
+	return ret;
 }
 
 static int decode_date_time(char *p, time_t *tret)
@@ -2404,7 +2429,7 @@ static void list_myrights(const char *mailbox,
 			  const char *myrights);
 static void list_postaddress(const char *mailbox);
 
-static void accessdenied(const char *cmd, const char *folder,
+static void accessdenied(const char *cmd, const std::string &folder,
 			 const char *acl_required);
 
 static int list_callback(const char *hiersep,
@@ -2816,15 +2841,15 @@ std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
 	return aa;
 }
 
-extern "C" void check_rights(const char *mailbox, char *rights_buf)
+void check_rights(const std::string &mailbox, char *rights_buf)
 {
-	char *r=get_myrightson(mailbox);
+	char *r=get_myrightson(mailbox.c_str());
 	char *p, *q;
 
 	if (!r)
 	{
 		fprintf(stderr, "ERR: Error reading ACLs for %s: %s\n",
-			mailbox, strerror(errno));
+			mailbox.c_str(), strerror(errno));
 		*rights_buf=0;
 		return;
 	}
@@ -3566,13 +3591,13 @@ static bool do_acldelete(const char *mailbox,
 }
 
 
-static void accessdenied(const char *cmd, const char *folder,
+static void accessdenied(const char *cmd, const std::string &folder,
 			 const char *acl_required)
 {
 	writes(" NO Access denied for ");
 	writes(cmd);
 	writes(" on ");
-	writes(folder);
+	writes(folder.c_str());
 	writes(" (ACL \"");
 	writes(acl_required);
 	writes("\" required)\r\n");
@@ -3652,7 +3677,8 @@ int acl_flags_adjust(const char *access_rights,
 	return 0;
 }
 
-static int append(const char *tag, const char *mailbox, const std::string &path)
+static int append(const char *tag, const std::string &mailbox,
+		  const std::string &path)
 {
 
 	struct	imapflags flags;
@@ -4175,7 +4201,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "APPEND") == 0)
 	{
 		struct	imaptoken *tok=nexttoken_nouc();
-		char *mailbox;
 
 		if (tok->tokentype != IT_NUMBER &&
 			tok->tokentype != IT_ATOM &&
@@ -4186,20 +4211,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		mailbox=imap_foldername_to_filename(enabled_utf8,
-						    tok->tokenbuf);
-
-		maildir::info mi;
-
-		if (mailbox)
-			mi=maildir::info_imap_find(
-				mailbox,
-				getenv("AUTHENTICATED"));
+		auto mi=get_maildir_info_and_mailbox(tok->tokenbuf);
 
 		if (!mi)
 		{
-			if (mailbox)
-				free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -4214,19 +4229,17 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			{
 				writes(tag);
 				accessdenied("APPEND",
-					     mailbox,
+					     mi.mailbox,
 					     ACL_INSERT);
-				free(mailbox);
 				return 0;
 			}
 
-			rc=append(tag, mailbox, p);
-			free(mailbox);
+			rc=append(tag, mi.mailbox, p);
 			return (rc);
 		}
 		else if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 		{
-			char *q=strchr(mailbox, '.');
+			auto q=strchr(mi.mailbox.c_str(), '.');
 
 			std::string p;
 
@@ -4238,12 +4251,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				int rc;
 
 				p += "/shared";
-				rc=append(tag, mailbox, p);
-				free(mailbox);
+				rc=append(tag, mi.mailbox, p);
 				return rc;
 			}
 		}
-		free(mailbox);
 		writes(tag);
 		accessdenied("APPEND", "folder", ACL_INSERT);
 		return (0);
@@ -4252,8 +4263,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "GETQUOTAROOT") == 0)
 	{
 		char	qroot[20];
-		struct maildir_info minfo;
-		char *mailbox;
 		curtoken=nexttoken_nouc();
 
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -4265,15 +4274,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		mailbox=imap_foldername_to_filename(enabled_utf8,
-						    curtoken->tokenbuf);
+		auto minfo=get_maildir_info_and_mailbox(curtoken->tokenbuf);
 
-		if (!mailbox ||
-		    maildir_info_imap_find(&minfo, mailbox,
-					   getenv("AUTHENTICATED")))
+		if (!minfo)
 		{
-			if (mailbox)
-				free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
@@ -4290,18 +4294,16 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			strcpy(qroot, "PUBLIC");
 			break;
 		}
-		maildir_info_destroy(&minfo);
 
 		writes("*");
 		writes(" QUOTAROOT \"");
-		writemailbox(mailbox);
+		writemailbox(minfo.mailbox);
 		writes("\" \"");
 		writes(qroot);
 		writes("\"\r\n");
 		quotainfo_out(qroot);
 		writes(tag);
 		writes(" OK GETQUOTAROOT Ok.\r\n");
-		free(mailbox);
 		return(0);
 	}
 
@@ -5010,9 +5012,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "SUBSCRIBE") == 0)
 	{
-	char	*mailbox;
-	char	*p;
-	struct maildir_info mi;
+		const char	*p;
 
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -5034,59 +5034,47 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		mailbox=imap_foldername_to_filename(enabled_utf8,
-						    curtoken->tokenbuf);
-		if (!mailbox)
-			return -1;
-		if (nexttoken()->tokentype != IT_EOL)
-			return (-1);
+		auto mi=get_maildir_info_and_mailbox(curtoken->tokenbuf);
 
-		if (maildir_info_imap_find(&mi, mailbox,
-					   getenv("AUTHENTICATED")) < 0)
+		if (!mi)
 		{
-			free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
 		}
+		if (nexttoken()->tokentype != IT_EOL)
+			return (-1);
 
 		if (mi.mailbox_type != MAILBOXTYPE_OLDSHARED)
 		{
-			maildir_info_destroy(&mi);
-			subscribe(mailbox);
-			free(mailbox);
+			subscribe(mi.mailbox.c_str());
 			writes(tag);
 			writes(" OK Folder subscribed.\r\n");
 			return (0);
 		}
-		maildir_info_destroy(&mi);
 
-		p=strchr(mailbox, '.');
+		p=strchr(mi.mailbox.c_str(), '.');
 
-		p=p ? maildir_shareddir(".", p+1):NULL;
+		std::string s;
 
-		if (p == NULL || access(p, 0) == 0)
+		if (p)
+			s=maildir::shareddir(".", p+1);
+
+		if (s.empty() || access(s.c_str(), 0) == 0)
 		{
-			if (p)
-				free(p);
-			free(mailbox);
 			writes(tag);
 			writes(" OK Already subscribed.\r\n");
 			return (0);
 		}
 
-		if (!p || maildir_shared_subscribe(0, strchr(mailbox, '.')+1))
+		if (s.empty() ||
+		    maildir_shared_subscribe(0, strchr(mi.mailbox.c_str(),
+						       '.')+1))
 		{
-			if (p)
-				free(p);
-			free(mailbox);
 			writes(tag);
 			writes(" NO Cannot subscribe to this folder.\r\n");
 			return (0);
 		}
-		if (p)
-			free(p);
-		free(mailbox);
 		writes(tag);
 		writes(" OK SUBSCRIBE completed.\r\n");
 		return (0);
@@ -5094,9 +5082,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "UNSUBSCRIBE") == 0)
 	{
-	char	*mailbox;
-	char	*p;
-	struct maildir_info mi;
+		const char	*p;
 
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -5118,45 +5104,35 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		mailbox=imap_foldername_to_filename(enabled_utf8,
-						    curtoken->tokenbuf);
+		auto mi=get_maildir_info_and_mailbox(curtoken->tokenbuf);
 
-		if (!mailbox)
-			return -1;
-
-		if (nexttoken()->tokentype != IT_EOL)
-			return (-1);
-
-		if (maildir_info_imap_find(&mi, mailbox,
-					   getenv("AUTHENTICATED")) < 0)
+		if (!mi)
 		{
-			free(mailbox);
 			writes(tag);
 			writes(" NO Invalid mailbox name.\r\n");
 			return (0);
 		}
 
+		if (nexttoken()->tokentype != IT_EOL)
+			return (-1);
+
 		if (mi.mailbox_type != MAILBOXTYPE_OLDSHARED)
 		{
-			maildir_info_destroy(&mi);
-			unsubscribe(mailbox);
-			free(mailbox);
+			unsubscribe(mi.mailbox.c_str());
 			writes(tag);
 			writes(" OK Folder unsubscribed.\r\n");
 			return (0);
 		}
-		maildir_info_destroy(&mi);
 
-		p=strchr(mailbox, '.');
+		p=strchr(mi.mailbox.c_str(), '.');
 
-		p=p ? maildir_shareddir(".", p+1):NULL;
+		std::string s;
 
+		if (p)
+			s=maildir::shareddir(".", p+1);
 
-		if (p == NULL || access(p, 0))
+		if (s.empty() || access(s.c_str(), 0))
 		{
-			if (p)
-				free(p);
-			free(mailbox);
 			writes(tag);
 			writes(" OK Already unsubscribed.\r\n");
 			return (0);
@@ -5164,19 +5140,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		fetch_free_cache();
 
-		if (!p || maildir_shared_unsubscribe(0,
-						     strchr(mailbox, '.')+1))
+		if (s.empty() ||
+		    maildir_shared_unsubscribe(
+			    0,
+			    strchr(mi.mailbox.c_str(), '.')+1))
 		{
-			if (p)
-				free(p);
-			free(mailbox);
 			writes(tag);
 			writes(" NO Cannot subscribe to this folder.\r\n");
 			return (0);
 		}
-		if (p)
-			free(p);
-		free(mailbox);
 		writes(tag);
 		writes(" OK UNSUBSCRIBE completed.\r\n");
 		return (0);
