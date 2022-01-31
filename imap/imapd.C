@@ -6090,22 +6090,17 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (dest_mailbox.empty())
 		{
-			struct maildir_info mi;
-
 			free(msgset);
 
-			if (maildir_info_imap_find(&mi, curtoken->tokenbuf,
-						   getenv("AUTHENTICATED"))
-			    == 0)
+			if (maildir::info_imap_find(curtoken->tokenbuf,
+						    getenv("AUTHENTICATED")))
 			{
 				if (nexttoken()->tokentype == IT_EOL)
 				{
-					maildir_info_destroy(&mi);
 					writes(tag);
 					writes(" NO [TRYCREATE] Mailbox does not exist.\r\n");
 					return (0);
 				}
-				maildir_info_destroy(&mi);
 			}
 			return (-1);
 		}

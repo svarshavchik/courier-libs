@@ -143,15 +143,12 @@ int mailbox_scan(const char *reference, const char *name,
 	if (p && p[1] == 0)	*p=0; /* Strip trailing . for now */
 	if (*pattern)
 	{
-		struct maildir_info mi;
-
-		if (maildir_info_imap_find(&mi, pattern,
-					   getenv("AUTHENTICATED")))
+		if (!maildir::info_imap_find(pattern,
+					     getenv("AUTHENTICATED")))
 		{
 			free(pattern);
 			return (0); /* Invalid reference */
 		}
-		maildir_info_destroy(&mi);
 	}
 
 	/* Combine reference and name. */
