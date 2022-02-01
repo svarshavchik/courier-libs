@@ -111,7 +111,8 @@ static void printos(struct os_threadinfo **array, size_t cnt)
 		if (i > 0 && strcmp(array[i-1]->subj, array[i]->subj) == 0)
 			continue;
 
-		threadptr=malloc(sizeof(struct os_threadinfo_list));
+		threadptr=(os_threadinfo_list *)
+			malloc(sizeof(struct os_threadinfo_list));
 		if (!threadptr)
 			write_error_exit(0);
 		threadptr->thread_start=i;
@@ -468,7 +469,7 @@ size_t	i;
 
 	for (ss=sihead; ss; ss=ss->a)
 	{
-	char	*p;
+		const char *p;
 
 		if (i >= sm->nfields)
 			break;	/* Something's fucked up, better handle it

@@ -73,7 +73,7 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.C imapd.h \
 	msgbodystructure.c msgenvelope.c \
 	mysignal.c mysignal.h \
 	outbox.c outbox.h \
-	thread.c thread.h \
+	thread.C thread.h \
 	search.c searchinfo.c searchinfo.h \
 	storeinfo.C storeinfo.h
 
