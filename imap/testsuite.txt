@@ -1794,3 +1794,21 @@
 001496 * QUOTA "ROOT"
 001497 V007 OK GETQUOTAROOT Ok.
 001498 V008 OK LIST completed
+001499 * PREAUTH Ready.
+001500 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001501 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001502 * 1 EXISTS
+001503 * 1 RECENT
+001504 * OK [UIDVALIDITY] Ok
+001505 * OK [MYRIGHTS "acdilrsw"] ACL
+001506 V010 OK [READ-WRITE] Ok
+001507 * PREAUTH Ready.
+001508 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001509 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001510 * 2 EXISTS
+001511 * 1 RECENT
+001512 * OK [UIDVALIDITY] Ok
+001513 * OK [MYRIGHTS "acdilrsw"] ACL
+001514 V010 OK [READ-WRITE] Ok
+001515 * THREAD (2 1)
+001516 V010 OK THREAD done.

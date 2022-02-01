@@ -1175,6 +1175,7 @@ EOF
 
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
+
 env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
 V001 ACL STORE INBOX user=user2 +w
 V002 CREATE INBOX.Folder.Subfolder
@@ -1186,4 +1187,42 @@ V007 GETQUOTAROOT INBOX
 V008 LIST "invalid" "%"
 EOF
 ls confmdtest/courierimaphieracl 2>&1
+
+cat >confmdtest/cur/msg1:2,S <<EOF || exit 1
+From: John <john@example.com>
+To: Steve <steve@example.com>, Tom <tom@example.com>
+Subject: thread1
+Mime-Version: 1.0
+Date: Sat, 05 Feb 2000 13:34:03 -0800
+Content-Type: multipart/mixed; boundary="b1"
+Message-Id: <1@example.com>
+Subject: This is the message
+
+message
+EOF
+
+env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
+V010 SELECT INBOX
+EOF
+
+cat >confmdtest/cur/msg2:2,S <<EOF || exit 1
+From: John <john@example.com>
+To: Steve <steve@example.com>, Tom <tom@example.com>
+Subject: thread1
+Mime-Version: 1.0
+Date: Sat, 05 Feb 2000 13:34:01 -0800
+Content-Type: multipart/mixed; boundary="b1"
+Message-Id: <2@example.com>
+References: <1@example.com>
+Subject: This is the message
+
+message
+EOF
+
+env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
+V010 SELECT INBOX
+V010 THREAD ORDEREDSUBJECT US-ASCII ALL
+EOF
+
+
 rm -rf confmdtest
