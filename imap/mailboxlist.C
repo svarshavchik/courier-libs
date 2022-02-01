@@ -69,10 +69,6 @@ extern ino_t homedir_ino;
 		LIST MAILBOXES
 */
 
-static bool do_mailbox_list(
-	int do_lsub, char *qq, int isnullname,
-	const mailbox_scan_cb_t &callback_func);
-
 static std::string create_maildir_shared_index_file()
 {
 	std::string s;
@@ -113,57 +109,7 @@ const char *maildir_shared_index_file()
 	return filenamep.c_str();
 }
 
-/*
-**	IMAP sucks.  Here's why.
-*/
-
-
-bool mailbox_scan(const char *reference, const char *name,
-		  int list_options,
-		  const mailbox_scan_cb_t &callback_func)
-{
-	char	*pattern, *p;
-	int	nullname= *name == 0;
-
-	pattern=(char *)malloc(strlen(reference)+strlen(name)+2);
-
-	strcpy(pattern, reference);
-
-	p=strrchr(pattern, HIERCH);
-	if (p && p[1] == 0)	*p=0; /* Strip trailing . for now */
-	if (*pattern)
-	{
-		if (!maildir::info_imap_find(pattern,
-					     getenv("AUTHENTICATED")))
-		{
-			free(pattern);
-			return (true); /* Invalid reference */
-		}
-	}
-
-	/* Combine reference and name. */
-	if (*pattern && *name)
-		strcat(pattern, hierchs);
-	strcat(pattern, name);
-
-	if (name && *name)
-	{
-	char *s=strrchr(pattern, HIERCH);
-
-		if (s && s[1] == 0)	*s=0;	/* strip trailing . */
-
-	}
-
-	/* Now, do the list */
-
-	auto rc=do_mailbox_list(list_options, pattern, nullname,
-				callback_func);
-	free(pattern);
-	return (rc);
-}
-
 static bool match_mailbox(const std::string &, const std::string &, int flags);
-static void match_mailbox_prep(char *);
 static void match_mailbox_prep(std::string &);
 
 /* Check if a folder has any new messages */
@@ -366,7 +312,7 @@ static bool has_hier_entry(const std::string &folder,
 }
 
 struct list_sharable_info {
-	char *pattern;
+	std::string pattern;
 	std::vector<hierlist> folders, hierarchies;
 	int flags;
 	mailbox_scan_cb_t callback_func;
@@ -388,7 +334,7 @@ struct list_sharable_info *ip=(struct list_sharable_info *)voidp;
 	free(p);
 }
 
-static void list_subscribed(char *hier,
+static void list_subscribed(const std::string &hier,
 			    int flags,
 			    std::vector<hierlist> &folders,
 			    std::vector<hierlist> &hierarchies)
@@ -405,7 +351,7 @@ FILE	*fp;
 
 			if (q)	*q=0;
 
-			if (*hier == '#')
+			if (*hier.c_str() == '#')
 			{
 				if (*buf != '#')
 					continue;
@@ -786,20 +732,56 @@ static int list_newshared_skipcb(struct maildir_newshared_enum_cb *cb)
 	free(inbox_name);
 	return 0;
 }
+/*
+**	IMAP sucks.  Here's why.
+*/
 
-static bool do_mailbox_list(
-	int list_options, char *pattern, int isnullname,
-	const mailbox_scan_cb_t &callback_func)
+
+bool mailbox_scan(const char *reference, const char *name,
+		  int list_options,
+		  const mailbox_scan_cb_t &callback_func)
 {
-int	found_hier=MAILBOX_NOSELECT;
-int	is_interesting;
-int	i,j,bad_pattern;
-struct list_sharable_info shared_info;
+	list_sharable_info shared_info;
+	int	isnullname= *name == 0;
 
-const char *obsolete;
-int check_all_folders=0;
-char hiersepbuf[8];
- bool callback_rc=true;
+	shared_info.pattern.reserve(strlen(reference)+strlen(name)+2);
+
+	shared_info.pattern=reference;
+
+	if (!shared_info.pattern.empty() &&
+	    shared_info.pattern.back() == HIERCH)
+		shared_info.pattern.pop_back(); /* Strip trailing . for now */
+
+	if (!shared_info.pattern.empty())
+	{
+		if (!maildir::info_imap_find(shared_info.pattern,
+					     getenv("AUTHENTICATED")))
+		{
+			return (true); /* Invalid reference */
+		}
+	}
+
+	/* Combine reference and name. */
+	if (!shared_info.pattern.empty() && *name)
+		shared_info.pattern += hierchs;
+
+	shared_info.pattern += name;
+
+	if (*name)
+	{
+		if (shared_info.pattern.back() == HIERCH)
+			shared_info.pattern.pop_back();	/* strip trailing . */
+
+	}
+
+	int	found_hier=MAILBOX_NOSELECT;
+	int	is_interesting;
+	int	j,bad_pattern;
+
+	const char *obsolete;
+	int check_all_folders=0;
+	char hiersepbuf[8];
+	bool callback_rc=true;
 
 	obsolete=getenv("IMAP_CHECK_ALL_FOLDERS");
 	if (obsolete && atoi(obsolete))
@@ -812,8 +794,9 @@ char hiersepbuf[8];
 
 	/* Allow up to ten wildcards */
 
-	for (i=j=0; pattern[i]; i++)
-		if (pattern[i] == '*' || pattern[i] == '%')	++j;
+	j=0;
+	for (auto c:shared_info.pattern)
+		if (c == '*' || c == '%')	++j;
 	bad_pattern= j > 10;
 
 	if (list_options & LIST_CHECK1FOLDER)
@@ -825,18 +808,17 @@ char hiersepbuf[8];
 		return false;
 	}
 
-	match_mailbox_prep(pattern);
+	match_mailbox_prep(shared_info.pattern);
 
-	shared_info.pattern=pattern;
 	shared_info.flags=list_options;
 	shared_info.callback_func=callback_func;
 
 	if (!(list_options & LIST_SUBSCRIBED))
 	{
-		if (strncmp(pattern, NEWSHARED,
+		if (strncmp(shared_info.pattern.c_str(), NEWSHARED,
 			    sizeof(NEWSHARED)-1) == 0)
 		{
-			list_newshared(pattern +
+			list_newshared(shared_info.pattern.c_str() +
 				       sizeof(NEWSHARED)-1,
 				       &shared_info);
 		}
@@ -852,7 +834,7 @@ char hiersepbuf[8];
 	}
 	else
 	{
-		list_subscribed(pattern, list_options,
+		list_subscribed(shared_info.pattern, list_options,
 				shared_info.folders,
 				shared_info.hierarchies);
 
@@ -910,7 +892,7 @@ char hiersepbuf[8];
 	{
 		match_mailbox_prep(hp.hier);
 
-		if (match_mailbox(hp.hier, pattern, list_options)
+		if (match_mailbox(hp.hier, shared_info.pattern, list_options)
 		    && hp.flag == 0)
 		{
 			int mb_flags=MAILBOX_NOSELECT;
@@ -939,7 +921,8 @@ char hiersepbuf[8];
 	{
 		const char *namesp="";
 
-		if (strncmp(pattern, NEWSHARED, sizeof(NEWSHARED)-1) == 0)
+		if (strncmp(shared_info.pattern.c_str(), NEWSHARED,
+			    sizeof(NEWSHARED)-1) == 0)
 			namesp=NEWSHARED;
 
 		strcat(strcat(strcpy(hiersepbuf, "\""), hierchs), "\"");
@@ -958,22 +941,6 @@ char hiersepbuf[8];
 static bool match_recursive(std::string::const_iterator, std::string::const_iterator,
 			    std::string::const_iterator, std::string::const_iterator,
 			    int);
-
-static void match_mailbox_prep(char *name)
-{
-	size_t	i;
-
-	/* First component, INBOX, is case insensitive */
-
-	if (strncasecmp(name, INBOX, sizeof(INBOX)-1) == 0)
-		for (i=0; name[i] && name[i] != HIERCH; i++)
-			name[i]=toupper( (int)(unsigned char)name[i] );
-
-	/* ... except that "shared" should be lowercase ... */
-
-	if (strncmp(name, "SHARED", 6) == 0)
-		memcpy(name, "shared", 6);
-}
 
 static void match_mailbox_prep(std::string &name)
 {
