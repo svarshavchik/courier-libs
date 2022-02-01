@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2007 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -368,37 +368,34 @@ FILE	*fp;
 	}
 }
 
-static void maildir_scan(const char *inbox_dir,
-			 const char *inbox_name,
-			 struct list_sharable_info *shared_info)
+static void maildir_scan(const std::string &inbox_dir,
+			 const std::string &inbox_name,
+			 list_sharable_info &shared_info)
 {
 	DIR	*dirp;
 	struct	dirent *de;
 
 	/* Scan maildir, looking for .subdirectories */
 
-	dirp=opendir(inbox_dir && inbox_dir ? inbox_dir:".");
+	dirp=opendir(inbox_dir.size() ? inbox_dir.c_str():".");
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
-	char	*p;
 
 		if (de->d_name[0] != '.' ||
 		    strcmp(de->d_name, "..") == 0)
 			continue;
 
-		if ((p=(char *)malloc(strlen(de->d_name)+strlen(inbox_name)+10)) == 0)
-					/* A bit too much, that's OK */
-			write_error_exit(0);
+		std::string p;
 
-		strcpy(p, inbox_name);
+		p.reserve(strlen(de->d_name)+inbox_name.size()+10);
+		p=inbox_name;
 
 		if (strcmp(de->d_name, "."))
-			strcat(p, de->d_name);
+			p += de->d_name;
 
-		folder_entry(p, shared_info->pattern, shared_info->flags,
-			     shared_info->folders,
-			     shared_info->hierarchies);
-		free(p);
+		folder_entry(p, shared_info.pattern, shared_info.flags,
+			     shared_info.folders,
+			     shared_info.hierarchies);
 	}
 
 	if (dirp)	closedir(dirp);
@@ -457,7 +454,6 @@ static int list_newshared_shortcut(const char *skipped_pattern,
 	{
 		const char *p;
 		size_t i;
-		char *q;
 		int eof;
 
 		if (strcmp(skipped_pattern, "%") == 0)
@@ -544,15 +540,14 @@ static int list_newshared_shortcut(const char *skipped_pattern,
 			++p;
 
 
-		q=(char *)malloc(strlen(acc_pfix)+(p-skipped_pattern)+1);
-		if (!q)
-		{
-			write_error_exit(0);
-		}
-		strcpy(q, acc_pfix);
-		strncat(q, skipped_pattern, p-skipped_pattern);
+		std::string q;
 
-		lni.acc_pfix=q;
+		q.reserve(strlen(acc_pfix)+(p-skipped_pattern)+1);
+
+		q=acc_pfix;
+		q.insert(q.end(), skipped_pattern, p);
+
+		lni.acc_pfix=q.c_str();
 		lni.skipped_pattern=p;
 		lni.parentCache=curcache;
 
@@ -560,7 +555,6 @@ static int list_newshared_shortcut(const char *skipped_pattern,
 
 		rc=maildir_newshared_nextAt(&curcache->indexfile, &eof,
 					    list_newshared_skipcb, &lni);
-		free(q);
 		return rc;
 
 	}
@@ -580,76 +574,74 @@ static int list_newshared_cb(struct maildir_newshared_enum_cb *cb)
 	const char *maildir=cb->maildir;
 	struct list_newshared_info *lni=
 		(struct list_newshared_info *)cb->cb_arg;
-	char *n=maildir_info_imapmunge(name);
+	char *munged_name=maildir_info_imapmunge(name);
 	int rc;
 
-	if (!n)
+	if (!munged_name)
 		write_error_exit(0);
+
+	std::string n{munged_name};
+	free(munged_name);
 
 	if (homedir == NULL)
 	{
 		struct list_newshared_info new_lni= *lni;
-		char *new_pfix=(char *)malloc(strlen(lni->acc_pfix)+
-				      strlen(n)+2);
-		if (!new_pfix)
-			write_error_exit(0);
 
-		strcat(strcpy(new_pfix, lni->acc_pfix), n);
+		std::string new_pfix;
 
-		free(n);
+		new_pfix.reserve(strlen(lni->acc_pfix)+n.size()+1);
+
+		new_pfix=lni->acc_pfix;
+		new_pfix += n;
+
 		n=new_pfix;
-		new_lni.acc_pfix=n;
+		new_lni.acc_pfix=n.c_str();
 		add_hier(lni->shared_info->hierarchies, n);
 		hier_entry(n, lni->shared_info->hierarchies);
-		strcat(n, hierchs);
+		n += hierchs;
 		rc=lni->dorecurse ?
 			maildir_newshared_enum(maildir, list_newshared_cb,
 					       &new_lni):0;
 	}
 	else
 	{
-		char *new_pfix;
+		std::string new_pfix;
 		struct stat stat_buf;
 
-		new_pfix=maildir_location(homedir, maildir);
+		new_pfix=maildir::location(homedir, maildir);
 
-		if (stat(new_pfix, &stat_buf) < 0 ||
+		if (stat(new_pfix.c_str(), &stat_buf) < 0 ||
 		    /* maildir inaccessible, perhaps another server? */
 
 		    (stat_buf.st_dev == homedir_dev &&
 		     stat_buf.st_ino == homedir_ino))
 		    /* Exclude ourselves from the shared list */
 		{
-			free(new_pfix);
-			free(n);
 			return 0;
 		}
-		free(new_pfix);
 
-		new_pfix=(char *)malloc(strlen(lni->acc_pfix)+
-				      strlen(n)+1);
-		if (!new_pfix)
-			write_error_exit(0);
+		new_pfix.reserve(strlen(lni->acc_pfix)+n.size());
 
-		strcat(strcpy(new_pfix, lni->acc_pfix), n);
+		new_pfix=lni->acc_pfix;
+		new_pfix+= n;
 
-		free(n);
 		n=new_pfix;
 
-		new_pfix=(char *)malloc(strlen(homedir)+strlen(maildir)+2);
+		new_pfix.reserve(strlen(homedir)+strlen(maildir)+1);
 
-		if (!new_pfix)
-			write_error_exit(0);
 
 		if (*maildir == '/')
-			strcpy(new_pfix, maildir);
+			new_pfix=maildir;
 		else
-			strcat(strcat(strcpy(new_pfix, homedir), "/"),
-			       maildir);
+		{
+			new_pfix=homedir;
+			new_pfix += "/";
+			new_pfix += maildir;
+		}
 
 		/*		if (lni->dorecurse) */
 
-		maildir_scan(new_pfix, n, lni->shared_info);
+		maildir_scan(new_pfix, n, *lni->shared_info);
 #if 0
 		else
 		{
@@ -659,11 +651,8 @@ static int list_newshared_cb(struct maildir_newshared_enum_cb *cb)
 				     lni->shared_info->hierarchies);
 		}
 #endif
-
-		free(new_pfix);
 		rc=0;
 	}
-	free(n);
 	return rc;
 }
 
@@ -671,24 +660,26 @@ static int list_newshared_skiplevel(struct maildir_newshared_enum_cb *cb)
 {
 	struct list_newshared_info *lni=
 		(struct list_newshared_info *)cb->cb_arg;
-	char *n=maildir_info_imapmunge(cb->name);
+	char *munged_name=maildir_info_imapmunge(cb->name);
+	std::string n{munged_name};
+	free(munged_name);
 
-	char *p=(char *)malloc(strlen(lni->acc_pfix)+strlen(n)+sizeof(HIERCHS));
+	std::string p;
+
+	p.reserve(strlen(lni->acc_pfix)+n.size()+sizeof(HIERCHS)-1);
+
 	int rc;
 	const char *save_skip;
 
-	if (!n || !p)
-		write_error_exit(0);
-
-	strcat(strcat(strcpy(p, lni->acc_pfix), n), HIERCHS);
-	free(n);
+	p=lni->acc_pfix;
+	p += n;
+	p += HIERCHS;
 
 	save_skip=lni->acc_pfix;
-	lni->acc_pfix=p;
+	lni->acc_pfix=p.c_str();
 
 	rc=list_newshared_skipcb(cb);
 	lni->acc_pfix=save_skip;
-	free(p);
 	return rc;
 }
 
@@ -696,8 +687,7 @@ static int list_newshared_skipcb(struct maildir_newshared_enum_cb *cb)
 {
 	struct list_newshared_info *lni=
 		(struct list_newshared_info *)cb->cb_arg;
-	char *dir;
-	char *inbox_name;
+	std::string dir, inbox_name;
 
 	if (cb->homedir == NULL)
 		return list_newshared_shortcut(lni->skipped_pattern,
@@ -707,28 +697,23 @@ static int list_newshared_skipcb(struct maildir_newshared_enum_cb *cb)
 					       cb->maildir,
 					       cb->name);
 
-	inbox_name=my_strdup(lni->acc_pfix);
+	inbox_name=lni->acc_pfix;
 
-	dir=strrchr(inbox_name, HIERCH);
-	if (dir && dir[1] == 0)
-		*dir=0; /* Strip trailing hier separator */
+	if (!inbox_name.empty() && inbox_name.back() == HIERCH)
+		inbox_name.pop_back();/* Strip trailing hier separator */
 
-	dir=(char *)malloc(strlen(cb->homedir)+strlen(cb->maildir)+2);
-
-	if (!dir)
-	{
-		free(inbox_name);
-		write_error_exit(0);
-	}
+	dir.reserve(strlen(cb->homedir)+strlen(cb->maildir)+2);
 
 	if (*cb->maildir == '/')
-		strcpy(dir, cb->maildir);
+		dir=cb->maildir;
 	else
-		strcat(strcat(strcpy(dir, cb->homedir), "/"), cb->maildir);
+	{
+		dir=cb->homedir;
+		dir += "/";
+		dir += cb->maildir;
+	}
 
-	maildir_scan(dir, inbox_name, lni->shared_info);
-	free(dir);
-	free(inbox_name);
+	maildir_scan(dir, inbox_name, *lni->shared_info);
 	return 0;
 }
 /*
@@ -823,7 +808,7 @@ bool mailbox_scan(const char *reference, const char *name,
 		}
 		else
 		{
-			maildir_scan(".", INBOX, &shared_info);
+			maildir_scan(".", INBOX, shared_info);
 
 			/* List sharable maildirs */
 
