@@ -450,7 +450,7 @@ static std::string decode_valid_mailbox_utf8(const std::string &p,
 	return "";
 }
 
-std::string decode_valid_mailbox(const char *mailbox, int autosubscribe)
+std::string decode_valid_mailbox(const std::string &mailbox, int autosubscribe)
 {
 	auto p=maildir::imap_foldername_to_filename(enabled_utf8, mailbox);
 

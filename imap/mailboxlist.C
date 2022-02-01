@@ -57,11 +57,12 @@
 #include	"maildir/maildirinfo.h"
 #include	<courier-unicode.h>
 #include	"courierauth.h"
+#include	<algorithm>
 
 
 static const char hierchs[]={HIERCH, 0};
 
-extern std::string decode_valid_mailbox(const char *, int);
+extern std::string decode_valid_mailbox(const std::string &, int);
 extern dev_t homedir_dev;
 extern ino_t homedir_ino;
 /*
@@ -163,6 +164,7 @@ bool mailbox_scan(const char *reference, const char *name,
 
 static bool match_mailbox(const std::string &, const std::string &, int flags);
 static void match_mailbox_prep(char *);
+static void match_mailbox_prep(std::string &);
 
 /* Check if a folder has any new messages */
 
@@ -188,7 +190,7 @@ struct	dirent *de;
 	return (0);
 }
 
-static int hasnewmsgs(const char *folder)
+static int hasnewmsgs(const std::string &folder)
 {
 	auto dir=decode_valid_mailbox(folder, 0);
 
@@ -219,53 +221,55 @@ static int hasnewmsgs(const char *folder)
 */
 
 struct hierlist {
-	struct hierlist *next;
 	int flag;
-	char *hier;
+	std::string hier;
 	} ;
 
-static int add_hier(struct hierlist **h, const char *s)
+static bool add_hier(std::vector<hierlist> &h, const std::string &s)
 {
-struct hierlist *p;
+	if (std::find_if(h.begin(), h.end(),
+			 [&]
+			 (const hierlist &h)
+			 {
+				 return h.hier == s;
+			 }) != h.end())
+	{
+		return true;
+		/* Seen this one already */
+	}
 
-	for (p= *h; p; p=p->next)
-		if (strcmp(p->hier, s) == 0)	return (1);
-			/* Seen this one already */
-
-	if ((p=(struct hierlist *)
-		malloc( sizeof(struct hierlist)+1+strlen(s))) == 0)
-			/* HACK!!!! */
-		write_error_exit(0);
-	p->flag=0;
-	p->hier=(char *)(p+1);
-	strcpy(p->hier, s);
-	p->next= *h;
-	*h=p;
-	return (0);
+	h.push_back({0, s});
+	return (false);
 }
 
-static struct hierlist *search_hier(struct hierlist *h, const char *s)
+static hierlist *search_hier(std::vector<hierlist> &h,
+			     const std::string &s)
 {
-struct hierlist *p;
+	auto iter=std::find_if(h.begin(), h.end(),
+			       [&]
+			       (const hierlist &h)
+			       {
+				       return h.hier == s;
+			       });
 
-	for (p= h; p; p=p->next)
-		if (strcmp(p->hier, s) == 0)	return (p);
-	return (0);
+	if (iter == h.end())
+		return nullptr;
+
+	return &*iter;
 }
 
-static void hier_entry(char *folder,
-		       struct hierlist **hierarchies);
+static void hier_entry(const std::string &folder,
+		       std::vector<hierlist> &hierarchies);
 
-static int has_hier_entry(char *folder,
-			  struct hierlist **hierarchies);
+static bool has_hier_entry(const std::string &folder,
+			   std::vector<hierlist> &hierarchies);
 
-static void folder_entry(char *folder, char *pattern,
+static void folder_entry(std::string folder, const std::string &pattern,
 			 int list_options,
-			 struct hierlist **folders,
-			 struct hierlist **hierarchies)
+			 std::vector<hierlist> &folders,
+			 std::vector<hierlist> &hierarchies)
 {
 	size_t i;
-	size_t folder_l=strlen(folder);
 
 	int need_add_hier;
 	int need_add_folders;
@@ -274,7 +278,7 @@ static void folder_entry(char *folder, char *pattern,
 
 	/* Optimize away folders we don't care about */
 
-	for (i=0; pattern[i]; i++)
+	for (i=0; i < pattern.size(); i++)
 	{
 		if ((!(list_options & LIST_CHECK1FOLDER)) &&
 		    (pattern[i] == '%' || pattern[i] == '*'))
@@ -289,17 +293,18 @@ static void folder_entry(char *folder, char *pattern,
 		}
 	}
 
-	if (folder_l <= i)
+	if (folder.size() <= i)
 	{
-		if (memcmp(folder, pattern, folder_l))
+		if (!std::equal(folder.begin(), folder.end(), pattern.begin()))
 			return;
 
-		if (folder_l != i && pattern[folder_l] != HIERCH)
+		if (folder.size() != i && pattern[folder.size()] != HIERCH)
 			return;
 	}
 	else if (i)
 	{
-		if (memcmp(folder, pattern, i))
+		if (!std::equal(folder.begin(), folder.begin()+i,
+				pattern.begin()))
 			return;
 		if (folder[i] != HIERCH)
 			return;
@@ -331,42 +336,38 @@ static void folder_entry(char *folder, char *pattern,
 		hier_entry(folder, hierarchies);
 }
 
-static void hier_entry(char *folder,
-		       struct hierlist **hierarchies)
+static void hier_entry(const std::string &folder,
+		       std::vector<hierlist> &hierarchies)
 {
-	unsigned i;
+	size_t i;
 
-	for (i=0; folder[i]; i++)
+	for (i=0; i<folder.size(); i++)
 	{
 		if (folder[i] != HIERCH)	continue;
-		folder[i]=0;
-		(void)add_hier(hierarchies, folder);
-		folder[i]=HIERCH;
+		(void)add_hier(hierarchies, folder.substr(0, i));
 	}
 }
 
-static int has_hier_entry(char *folder,
-			  struct hierlist **hierarchies)
+static bool has_hier_entry(const std::string &folder,
+			   std::vector<hierlist> &hierarchies)
 {
-	unsigned i;
+	size_t i;
 
-	for (i=0; folder[i]; i++)
+	for (i=0; i < folder.size(); i++)
 	{
 		if (folder[i] != HIERCH)	continue;
-		folder[i]=0;
-		if (!search_hier(*hierarchies, folder))
+
+		if (!search_hier(hierarchies, folder.substr(0, i)))
 		{
-			folder[i]=HIERCH;
-			return (0);
+			return false;
 		}
-		folder[i]=HIERCH;
 	}
-	return (1);
+	return true;
 }
 
 struct list_sharable_info {
 	char *pattern;
-	struct hierlist **folders, **hierarchies;
+	std::vector<hierlist> folders, hierarchies;
 	int flags;
 	mailbox_scan_cb_t callback_func;
 	} ;
@@ -389,8 +390,8 @@ struct list_sharable_info *ip=(struct list_sharable_info *)voidp;
 
 static void list_subscribed(char *hier,
 			    int flags,
-			    struct hierlist **folders,
-			    struct hierlist **hierarchies)
+			    std::vector<hierlist> &folders,
+			    std::vector<hierlist> &hierarchies)
 {
 char	buf[BUFSIZ];
 FILE	*fp;
@@ -793,7 +794,6 @@ static bool do_mailbox_list(
 int	found_hier=MAILBOX_NOSELECT;
 int	is_interesting;
 int	i,j,bad_pattern;
-struct	hierlist *hierarchies, *folders, *hp;
 struct list_sharable_info shared_info;
 
 const char *obsolete;
@@ -825,14 +825,9 @@ char hiersepbuf[8];
 		return false;
 	}
 
-	hierarchies=0;
-	folders=0;
-
 	match_mailbox_prep(pattern);
 
 	shared_info.pattern=pattern;
-	shared_info.folders= &folders;
-	shared_info.hierarchies= &hierarchies;
 	shared_info.flags=list_options;
 	shared_info.callback_func=callback_func;
 
@@ -857,7 +852,9 @@ char hiersepbuf[8];
 	}
 	else
 	{
-		list_subscribed(pattern, list_options, &folders, &hierarchies);
+		list_subscribed(pattern, list_options,
+				shared_info.folders,
+				shared_info.hierarchies);
 
 		/* List shared folders */
 
@@ -865,17 +862,15 @@ char hiersepbuf[8];
 				     &shared_info );
 	}
 
-	while ((hp=folders) != 0)
+	for (auto &hp : shared_info.folders)
 	{
 		struct hierlist *d;
 		int mb_flags;
 
-		folders=hp->next;
-
 		is_interesting= -1;
 
-		if (strcmp(hp->hier, INBOX) == 0 || check_all_folders)
-			is_interesting=hasnewmsgs(hp->hier);
+		if (hp.hier == INBOX || check_all_folders)
+			is_interesting=hasnewmsgs(hp.hier);
 
 		strcat(strcat(strcpy(hiersepbuf, "\""), hierchs), "\"");
 
@@ -890,7 +885,7 @@ char hiersepbuf[8];
 			mb_flags|=MAILBOX_MARKED;
 		}
 
-		if ((d=search_hier(hierarchies, hp->hier)) == 0)
+		if (!(d=search_hier(shared_info.hierarchies, hp.hier)))
 		{
 			mb_flags |=
 				obsolete ? MAILBOX_NOINFERIORS:MAILBOX_NOCHILDREN;
@@ -907,19 +902,16 @@ char hiersepbuf[8];
 		else
 			if (callback_rc)
 				callback_rc=callback_func
-					({hiersepbuf, hp->hier,
+					({hiersepbuf, hp.hier,
 						 mb_flags | list_options});
-		free(hp);
 	}
 
-	while ((hp=hierarchies) != 0)
+	for (auto &hp:shared_info.hierarchies)
 	{
-		hierarchies=hp->next;
+		match_mailbox_prep(hp.hier);
 
-		match_mailbox_prep(hp->hier);
-
-		if (match_mailbox(hp->hier, pattern, list_options)
-		    && hp->flag == 0)
+		if (match_mailbox(hp.hier, pattern, list_options)
+		    && hp.flag == 0)
 		{
 			int mb_flags=MAILBOX_NOSELECT;
 
@@ -936,12 +928,11 @@ char hiersepbuf[8];
 				if (callback_rc)
 					callback_rc=callback_func
 						({hiersepbuf,
-							 hp->hier,
+							 hp.hier,
 							 mb_flags |
 							 list_options});
 			}
 		}
-		free(hp);
 	}
 
 	if (isnullname)
@@ -982,6 +973,25 @@ static void match_mailbox_prep(char *name)
 
 	if (strncmp(name, "SHARED", 6) == 0)
 		memcpy(name, "shared", 6);
+}
+
+static void match_mailbox_prep(std::string &name)
+{
+	/* First component, INBOX, is case insensitive */
+
+	static const char inbox[]="INBOX";
+
+	if (strncasecmp(name.c_str(), inbox, sizeof(inbox)-1) == 0)
+		std::copy(inbox, inbox+sizeof(inbox)-1,
+			  name.begin());
+
+	/* ... except that "shared" should be lowercase ... */
+
+	static const char shared[]="shared";
+
+	if (strncasecmp(name.c_str(), shared, sizeof(shared)-1) == 0)
+		std::copy(shared, shared+sizeof(shared)-1,
+			  name.begin());
 }
 
 static bool match_mailbox(const std::string &name,
