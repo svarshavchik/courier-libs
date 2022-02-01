@@ -19,10 +19,7 @@
 
 struct searchinfo *alloc_search(struct searchinfo **head)
 {
-struct searchinfo *si=(struct searchinfo *)malloc(sizeof(**head));
-
-	if (si == 0)	write_error_exit(0);
-	memset(si, 0, sizeof(*si));
+	auto si=new searchinfo;
 	maildir_search_init(&si->sei);
 	si->next= *head;
 	*head=si;
@@ -31,7 +28,7 @@ struct searchinfo *si=(struct searchinfo *)malloc(sizeof(**head));
 
 void free_search(struct searchinfo *si)
 {
-struct searchinfo *p;
+	struct searchinfo *p;
 
 	while (si)
 	{
@@ -42,7 +39,7 @@ struct searchinfo *p;
 
 		maildir_search_destroy(&si->sei);
 
-		free(si);
+		delete si;
 		si=p;
 	}
 }
@@ -427,7 +424,7 @@ const char *keyword;
 
 		si=alloc_search(head);
 		si->type=search_msgflag;
-		if ((si->as=malloc(strlen(keyword)+2)) == 0)
+		if ((si->as=(char *)malloc(strlen(keyword)+2)) == 0)
 			write_error_exit(0);
 		si->as[0]='\\';
 		strcpy(si->as+1, keyword);
@@ -446,7 +443,7 @@ const char *keyword;
 
 		si=alloc_search(head);
 		si->type=search_msgflag;
-		if ((si->as=malloc(strlen(keyword))) == 0)
+		if ((si->as=(char *)malloc(strlen(keyword))) == 0)
 			write_error_exit(0);
 		si->as[0]='\\';
 		strcpy(si->as+1, keyword+2);

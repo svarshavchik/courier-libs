@@ -1154,7 +1154,6 @@ static void parseflags(char *q, struct imapflags *flags)
 }
 
 extern int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw);
-extern int valid_keyword(const char *kw);
 
 static void parsekeywords(char *q, struct libmail_kwMessage **msgp)
 {

@@ -34,10 +34,10 @@ extern time_t rfc822_parsedt(const char *);
 extern struct imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 
-extern int get_flagname(const char *, struct imapflags *);
-extern void get_message_flags( struct imapscanmessageinfo *,
-	char *, struct imapflags *);
-extern int valid_keyword(const char *kw);
+extern "C" int get_flagname(const char *, struct imapflags *);
+extern "C" void get_message_flags( struct imapscanmessageinfo *,
+				   char *, struct imapflags *);
+extern "C" int valid_keyword(const char *kw);
 
 static void fill_search_preparse(struct searchinfo *);
 
@@ -304,7 +304,7 @@ unsigned long i, j;
 
 static int decode_date(char *p, time_t *tret)
 {
-	char	*s=malloc(strlen(p)+sizeof(" 00:00:00"));
+	char	*s=(char *)malloc(strlen(p)+sizeof(" 00:00:00"));
 	unsigned        i;
 	int ret;
 
@@ -374,7 +374,7 @@ static void fill_search_preparse(struct searchinfo *p)
 
 			if (get_flagname(p->as, &flags) == 0)
 			{
-				p->bs=malloc(sizeof(flags));
+				p->bs=(char *)malloc(sizeof(flags));
 
 				if (!p->bs)
 					write_error_exit(0);
@@ -507,20 +507,20 @@ static void fill_search_quick(struct searchinfo *p,
 	case search_smaller:
 		p->value=0;
 		{
-		unsigned long n;
+			unsigned long n;
 
 			if (sscanf(p->as, "%lu", &n) > 0 &&
-				stat_buf->st_size < n)
+			    (unsigned long)stat_buf->st_size < n)
 				p->value=1;
 		}
 		break;
 	case search_larger:
 		p->value=0;
 		{
-		unsigned long n;
+			unsigned long n;
 
 			if (sscanf(p->as, "%lu", &n) > 0 &&
-				stat_buf->st_size > n)
+			    (unsigned long)stat_buf->st_size > n)
 				p->value=1;
 		}
 		break;
@@ -768,7 +768,7 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 			if (sip->type == search_references1)
 			{
-				sip->bs=malloc(strlen(s)+3);
+				sip->bs=(char *)malloc(strlen(s)+3);
 				if (!sip->bs)
 					write_error_exit(0);
 				strcat(strcat(strcpy(sip->bs, "<"), s), ">");
@@ -869,8 +869,8 @@ static int fill_search_header_utf8(const char *str, size_t cnt, void *arg)
 	{
 		size_t newsize=decodeinfo->utf8buflen + cnt*2;
 		char *p=decodeinfo->utf8buf
-			? realloc(decodeinfo->utf8buf, newsize):
-			malloc(newsize);
+			? (char *)realloc(decodeinfo->utf8buf, newsize):
+			(char *)malloc(newsize);
 
 		if (!p)
 			write_error_exit(0);

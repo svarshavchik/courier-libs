@@ -3,10 +3,6 @@
 
 #include "maildir/maildirsearch.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
 ** Copyright 1998 - 2002 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -85,25 +81,25 @@ typedef enum {
 /* A SEARCH request gets parsed into the following structure */
 
 struct searchinfo {
-	struct searchinfo *next;	/* Link list of all searchinfos */
+	struct searchinfo *next=nullptr;	/* Link list of all searchinfos */
 
-	struct searchinfo *a, *b;	/* Nested search requests */
+	struct searchinfo *a=nullptr, *b=nullptr;	/* Nested search requests */
 
 	search_type	type;
 
-	char	*as, *bs, *cs;		/* As needed */
+	char	*as=nullptr, *bs=nullptr, *cs=nullptr;		/* As needed */
 
-	const struct unicode_info *bs_charset;
+	const struct unicode_info *bs_charset=nullptr;
 	/* search_text: text string in orig charset is as, text string in
 	   bs_charset charset is in bs */
 
 
-	int	value;	/* When evaluating: 0 - false, 1 - true, -1 - unknown */
+	int	value=0;/* When evaluating: 0 - false, 1 - true, -1 - unknown */
 			/* Not used in AND, OR, and NOT nodes */
 
 	struct maildir_searchengine sei;	/* Used when searching */
 
-	struct libmail_keywordEntry *ke;
+	struct libmail_keywordEntry *ke=nullptr;
 	} ;
 
 void free_search(struct searchinfo *);
@@ -126,9 +122,5 @@ void search_internal(struct searchinfo *, struct searchinfo *,
 				   unsigned long, void *), void *);
 
 void search_set_charset_conv(struct searchinfo *, const char *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

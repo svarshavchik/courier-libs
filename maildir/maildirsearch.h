@@ -148,7 +148,7 @@ class Search {
 		return maildir_search_len(&sei);
 	}
 
-	bool setString(std::string s, std::string chset)
+	bool setString(const std::string &s, const std::string &chset)
 	{
 		String=s;
 		return maildir_search_start_str_chset(&sei, s.c_str(),
@@ -172,10 +172,9 @@ class Search {
 
 	bool operator !() { return ! operator bool(); }
 
- private:
-	Search(const Search &); /* UNDEFINED */
+	Search(const Search &)=delete;
 
-	Search &operator=(const Search &); /* UNDEFINED */
+	Search &operator=(const Search &)=delete;
 
 };
 

@@ -74,7 +74,7 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.C imapd.h \
 	mysignal.c mysignal.h \
 	outbox.c outbox.h \
 	thread.C thread.h \
-	search.c searchinfo.c searchinfo.h \
+	search.C searchinfo.C searchinfo.h \
 	storeinfo.C storeinfo.h
 
 imapd_DEPENDENCIES=libimapd.la @dblibrary@
