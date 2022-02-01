@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2009 S. Varshavchik.
+** Copyright 2000-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -18,6 +18,8 @@
 #include	"rfc822/rfc2047.h"
 #include	"rfc822/imaprefs.h"
 #include	<courier-unicode.h>
+#include	<list>
+#include	<algorithm>
 
 static void thread_os_callback(struct searchinfo *, struct searchinfo *, int,
 	unsigned long, void *);
@@ -28,119 +30,56 @@ extern struct imapscaninfo current_maildir_info;
 
 
 struct os_threadinfo {
-	struct os_threadinfo *next;
-	char *subj;
+	std::string subj;
 	time_t sent_date;
 	unsigned long n;
 	} ;
 
-struct os_threadinfo_list {
-	struct os_threadinfo_list *next;
-	size_t thread_start;
-} ;
-
-struct os_struct {
-	struct os_threadinfo *list;
-	unsigned nmsgs;
-	struct os_threadinfo **msgs;
-	} ;
-
-static void os_init(struct os_struct *os)
-{
-	memset(os, 0, sizeof(*os));
-}
-
-static void os_add(struct os_struct *os, unsigned long n, const char *s,
+static void os_add(std::vector<os_threadinfo> &v,
+		   unsigned long n, const char *s,
 		   time_t sent_date)
 {
-struct os_threadinfo *osi=(struct os_threadinfo *)
-	malloc(sizeof(struct os_threadinfo));
-
-	if (!osi)	write_error_exit(0);
-	osi->subj=strdup(s);
-			/* This decodes the MIME encoding */
-	if (!osi->subj)	write_error_exit(0);
-	osi->sent_date=sent_date;
-	osi->n=n;
-	osi->next=os->list;
-	os->list=osi;
-	++os->nmsgs;
-}
-
-static void os_free(struct os_struct *os)
-{
-struct os_threadinfo *p;
-
-	while ((p=os->list) != 0)
-	{
-		os->list=p->next;
-		free(p->subj);
-		free(p);
-	}
-	if (os->msgs) free(os->msgs);
-}
-
-static int cmpsubjs(const void *a, const void *b)
-{
-	const struct os_threadinfo *ap=*(const struct os_threadinfo **)a;
-	const struct os_threadinfo *bp=*(const struct os_threadinfo **)b;
-	int rc=strcmp( ap->subj, bp->subj);
-
-	if (rc)	return (rc);
-
-	return (ap->sent_date < bp->sent_date ? -1:
-		ap->sent_date > bp->sent_date ? 1:0);
+	v.push_back({s, sent_date, n});
 }
 
 /* Print the meat of the THREAD ORDEREDSUBJECT response */
 
-static void printos(struct os_threadinfo **array, size_t cnt)
+static void printos(const std::vector<os_threadinfo> &array)
 {
 	size_t	i;
-	struct os_threadinfo_list *thread_list=NULL, *threadptr, **tptr;
+
+	std::list<size_t> thread_start;
 
 	/*
-	** thread_list - indexes to start of each thread, sort indexes by
+	** thread_start - indexes to start of each thread, sort indexes by
 	** sent_date
 	*/
 
-	for (i=0; i<cnt; i++)
+	for (i=0; i<array.size(); i++)
 	{
 		/* Find start of next thread */
 
-		if (i > 0 && strcmp(array[i-1]->subj, array[i]->subj) == 0)
+		if (i > 0 && array[i-1].subj == array[i].subj)
 			continue;
-
-		threadptr=(os_threadinfo_list *)
-			malloc(sizeof(struct os_threadinfo_list));
-		if (!threadptr)
-			write_error_exit(0);
-		threadptr->thread_start=i;
 
 		/* Insert into the list, sorted by sent date */
 
-		for (tptr= &thread_list; *tptr; tptr=&(*tptr)->next)
-			if ( array[(*tptr)->thread_start]->sent_date
-			     > array[i]->sent_date)
+		auto tptr=thread_start.begin();
+		for (auto e=thread_start.end(); tptr != e; ++tptr)
+			if ( array[*tptr].sent_date > array[i].sent_date)
 				break;
 
-		threadptr->next= *tptr;
-		*tptr=threadptr;
+		thread_start.insert(tptr, i);
 	}
 
-	while ( (threadptr=thread_list) != NULL)
+	for (size_t i : thread_start)
 	{
-		size_t	i, j;
+		size_t	j;
 		const char *p;
 
-		thread_list=threadptr->next;
-
-		i=threadptr->thread_start;
-		free(threadptr);
-
-		for (j=i+1; j<cnt; j++)
+		for (j=i+1; j<array.size(); j++)
 		{
-			if (strcmp(array[i]->subj, array[j]->subj))
+			if (array[i].subj != array[j].subj)
 				break;
 		}
 
@@ -149,7 +88,7 @@ static void printos(struct os_threadinfo **array, size_t cnt)
 		{
 			writes(p);
 			p=" ";
-			writen(array[i]->n);
+			writen(array[i].n);
 			++i;
 		}
 		writes(")");
@@ -159,33 +98,30 @@ static void printos(struct os_threadinfo **array, size_t cnt)
 void dothreadorderedsubj(struct searchinfo *si, struct searchinfo *sihead,
 			 const char *charset, int isuid)
 {
-struct	os_struct	os;
+	std::vector<os_threadinfo> os;
 
-	os_init(&os);
 	search_internal(si, sihead, charset, isuid, thread_os_callback, &os);
 
-	if (os.nmsgs > 0)	/* Found some messages */
-	{
-	size_t	i;
-	struct os_threadinfo *o;
+	std::sort(os.begin(), os.end(),
+		  [&]
+		  (const os_threadinfo &a, const os_threadinfo &b)
+		  {
+			  auto rc=a.subj.compare(b.subj);
 
-		/* Convert it to an array */
+			  if (rc < 0)
+				  return true;
 
-		os.msgs= (struct os_threadinfo **)
-			malloc(os.nmsgs * sizeof(struct os_threadinfo *));
-		if (!os.msgs)	write_error_exit(0);
-		for (o=os.list, i=0; o; o=o->next, i++)
-			os.msgs[i]=o;
+			  if (rc > 0)
+				  return false;
 
-		/* Sort the array */
+			  return (a.sent_date < b.sent_date ? true:
+				  a.sent_date > b.sent_date ? false:
+				  a.n < b.n);
+		  });
 
-		qsort(os.msgs, os.nmsgs, sizeof(*os.msgs), cmpsubjs);
+	/* Print the array */
 
-		/* Print the array */
-
-		printos(os.msgs, os.nmsgs);
-	}
-	os_free(&os);
+	printos(os);
 }
 
 /*
@@ -206,7 +142,10 @@ static void thread_os_callback(struct searchinfo *si,
 		if (sihead->bs)
 			rfc822_parsedate_chk(sihead->bs, &t);
 
-		os_add( (struct os_struct *)voidarg,
+		os_add(
+			*reinterpret_cast<std::vector<os_threadinfo> *>(
+				voidarg
+			),
 			isuid ? current_maildir_info.msgs[i].uid:i+1,
 			sihead->as ? sihead->as:"",
 			t);
@@ -316,17 +255,6 @@ static void printthread(struct imap_refmsg *msg, int isuid)
 			break;
 		}
 		msg=msg->firstchild;
-	}
-}
-
-void free_temp_sort_stack(struct temp_sort_stack *t)
-{
-	while (t)
-	{
-	struct temp_sort_stack *u=t->next;
-
-		free(t);
-		t=u;
 	}
 }
 

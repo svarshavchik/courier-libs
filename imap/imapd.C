@@ -5728,7 +5728,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	char *charset=0;
 	struct searchinfo *si, *sihead;
 	unsigned long i;
-	struct temp_sort_stack *ts=0;
+	std::vector<search_type> ts;
 
 		{
 		const char *p=getenv("IMAP_DISABLETHREADSORT");
@@ -5746,13 +5746,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (curtoken->tokentype != IT_LPAREN)	return (-1);
 		while ((curtoken=nexttoken())->tokentype != IT_RPAREN)
 		{
-		search_type st;
-		struct temp_sort_stack *newts;
+			search_type st;
 
 			if (curtoken->tokentype != IT_ATOM &&
 				curtoken->tokentype != IT_QUOTED_STRING)
 			{
-				free_temp_sort_stack(ts);
 				return (-1);
 			}
 
@@ -5790,23 +5788,16 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 			else
 			{
-				free_temp_sort_stack(ts);
 				return (-1);
 			}
 
-			newts=(struct temp_sort_stack *)malloc(
-				sizeof(struct temp_sort_stack));
-			if (!newts)	write_error_exit(0);
-			newts->next=ts;
-			newts->type=st;
-			ts=newts;
+			ts.push_back(st);
 		}
 
-		if (ts == 0	/* No criteria */
-			|| ts->type == search_reverse)
+		if (ts.empty()	/* No criteria */
+		    || ts.back() == search_reverse)
 				/* Can't end with the REVERSE keyword */
 		{
-			free_temp_sort_stack(ts);
 			return (-1);
 		}
 
@@ -5814,7 +5805,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
 		{
-			free_temp_sort_stack(ts);
 			return (-1);
 		}
 
@@ -5824,18 +5814,16 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if ((si=alloc_parsesearch(&sihead)) == 0)
 		{
 			if (charset)	free(charset);
-			free_temp_sort_stack(ts);
 			return (-1);
 		}
 
-		while (ts)
+		for (auto b=ts.begin(), e=ts.end(); b != e;)
 		{
-		struct temp_sort_stack *cts=ts;
+			--e;
 
-			ts=cts->next;
-			si=alloc_searchextra(si, &sihead, cts->type);
-			free(cts);
+			si=alloc_searchextra(si, &sihead, *e);
 		}
+		ts.clear();
 
 		if (currenttoken()->tokentype != IT_EOL)
 		{

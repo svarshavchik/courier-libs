@@ -18,14 +18,6 @@ void dothreadorderedsubj(struct searchinfo *, struct searchinfo *,
 void dothreadreferences(struct searchinfo *, struct searchinfo *,
 			const char *, int);
 
-/* While we're at it, some support for SORT */
-
-struct temp_sort_stack {	/* Temporary stack list of SORT criteria */
-	struct temp_sort_stack *next;
-	search_type type;
-	} ;
-
-void free_temp_sort_stack(struct temp_sort_stack *);
 void dosortmsgs(struct searchinfo *, struct searchinfo *,
 		const char *, int);
 
