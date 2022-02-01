@@ -263,69 +263,30 @@ static void printthread(struct imap_refmsg *msg, int isuid)
 /* sortmsginfo holds the sorting information for a message. */
 
 struct sortmsginfo {
-	struct sortmsginfo *next;	/* next msg */
 	unsigned long n;		/* msg number/uid */
-	char **sortfields;		/* array of sorting fields */
-	char *sortorder;		/* [x]=0 - normal, [x]=1 - reversed */
-	size_t nfields;
-	} ;
+	std::vector<std::string> sortfields; /* array of sorting fields */
+	};
 
 struct sortmsgs {
-	struct sortmsginfo *list;	/* The actual list */
-	struct sortmsginfo **array;	/* In array form */
-	size_t	nmsgs;			/* Array size/count of msgs */
-	size_t	nfields;		/* From the SORT() arg */
+	std::vector<sortmsginfo> array;
+	std::vector<char> reverse_sort_order;
 	} ;
-
-static void free_sortmsgs(struct sortmsgs *p)
-{
-struct sortmsginfo *q;
-
-	if (p->array)	free(p->array);
-	while ((q=p->list) != 0)
-	{
-	size_t	i;
-
-		p->list=q->next;
-		for (i=0; i<p->nfields; i++)
-			if (q->sortfields[i])
-				free(q->sortfields[i]);
-		if (q->sortfields)	free(q->sortfields);
-		if (q->sortorder)	free(q->sortorder);
-		free(q);
-	}
-}
 
 static void sort_callback(struct searchinfo *, struct searchinfo *, int,
 	unsigned long, void *);
 
-static int cmpsort(const void *a, const void *b)
-{
-const struct sortmsginfo *ap=*(const struct sortmsginfo **)a;
-const struct sortmsginfo *bp=*(const struct sortmsginfo **)b;
-size_t	i;
-
-	for (i=0; i<ap->nfields; i++)
-	{
-	int	n=strcmp(ap->sortfields[i], bp->sortfields[i]);
-
-		if (n < 0)
-			return (ap->sortorder[i] ? 1:-1);
-		if (n > 0)
-			return (ap->sortorder[i] ? -1:1);
-	}
-	return (0);
-}
-
 void dosortmsgs(struct searchinfo *si, struct searchinfo *sihead,
 		const char *charset, int isuid)
 {
-struct	sortmsgs sm;
-struct	searchinfo *p;
+	sortmsgs sm;
 
-	memset(&sm, 0, sizeof(sm));
-	for (p=sihead; p; p=p->a)
+	char rev=0;
+
+	for (auto p=sihead; p; p=p->a)
 		switch (p->type)	{
+		case search_reverse:
+			rev=1-rev;
+			break;
 		case search_orderedsubj:
 		case search_arrival:
 		case search_cc:
@@ -333,65 +294,59 @@ struct	searchinfo *p;
 		case search_from:
 		case search_size:
 		case search_to:
-			++sm.nfields;
+			sm.reverse_sort_order.push_back(rev);
+			rev=0;
 			break;
 		default:
 			break;
 		}
+
 	search_internal(si, sihead, charset, isuid, sort_callback, &sm);
-	if (sm.nmsgs > 0)
+
+	std::sort(sm.array.begin(), sm.array.end(),
+		  [&]
+		  (const sortmsginfo &a, const sortmsginfo &b)
+		  {
+			  auto ap=a.sortfields.begin(),
+				  bp=b.sortfields.begin();
+
+			  for (auto reverse:sm.reverse_sort_order)
+			  {
+				  int	n=ap->compare(*bp);
+				  ++ap;
+				  ++bp;
+
+				  if (n < 0)
+					  return reverse == 0;
+
+				  if (n > 0)
+					  return reverse != 0;
+			  }
+
+			  return a.n < b.n;
+		  });
+
+	for (const auto &msg:sm.array)
 	{
-	size_t	i;
-	struct sortmsginfo *o;
-
-		/* Convert it to an array */
-
-		sm.array= (struct sortmsginfo **)
-			malloc(sm.nmsgs * sizeof(struct sortmsginfo *));
-		if (!sm.array)	write_error_exit(0);
-		for (o=sm.list, i=0; o; o=o->next, i++)
-			sm.array[i]=o;
-
-		/* Sort the array */
-
-		qsort(sm.array, sm.nmsgs, sizeof(*sm.array), cmpsort);
-
-		/* Print the array */
-
-		for (i=0; i<sm.nmsgs; i++)
-		{
-			writes(" ");
-			writen(sm.array[i]->n);
-		}
+		writes(" ");
+		writen(msg.n);
 	}
-	free_sortmsgs(&sm);
 }
 
 static void sort_callback(struct searchinfo *si, struct searchinfo *sihead,
 	int isuid, unsigned long n, void *voidarg)
 {
-struct sortmsgs *sm=(struct sortmsgs *)voidarg;
-struct sortmsginfo *msg=(struct sortmsginfo *)
-		malloc(sizeof(struct sortmsginfo));
-struct searchinfo *ss;
-int rev;
-size_t	i;
+	struct sortmsgs *sm=(struct sortmsgs *)voidarg;
+	struct searchinfo *ss;
 
-	if (msg)	memset(msg, 0, sizeof(*msg));
-	if (!msg || (sm->nfields && ((msg->sortfields=(char **)
-				malloc(sizeof(char *)*sm->nfields)) == 0 ||
-					(msg->sortorder=(char *)
-				malloc(sm->nfields)) == 0)))
-		write_error_exit(0);
+	sm->array.push_back({});
 
-	if (sm->nfields)
-	{
-		memset(msg->sortfields, 0, sizeof(char *)*sm->nfields);
-		memset(msg->sortorder, 0, sm->nfields);
-	}
+	sortmsginfo &msg=sm->array.back();
 
-	rev=0;
-	i=0;
+	auto s=sm->reverse_sort_order.size();
+	msg.sortfields.resize(s);
+
+	size_t i=0;
 
 /* fprintf(stderr, "--\n"); */
 
@@ -399,13 +354,12 @@ size_t	i;
 	{
 		const char *p;
 
-		if (i >= sm->nfields)
+		if (i >= s)
 			break;	/* Something's fucked up, better handle it
 				** gracefully, instead of dumping core.
 				*/
 		switch (ss->type)	{
 		case search_reverse:
-			rev=1-rev;
 			continue;
 		case search_orderedsubj:
 		case search_arrival:
@@ -416,11 +370,9 @@ size_t	i;
 		case search_to:
 			p=ss->as;
 			if (!p)	p="";
-			msg->sortfields[i]=my_strdup(p);
-			msg->sortorder[i]=rev;
+			msg.sortfields[i]=p;
 			/* fprintf(stderr, "%d %s\n", msg->sortorder[i], msg->sortfields[i]); */
 			++i;
-			rev=0;
 			continue;
 		default:
 			break;
@@ -428,9 +380,5 @@ size_t	i;
 		break;
 	}
 
-	msg->nfields=sm->nfields;
-	msg->n=isuid ? current_maildir_info.msgs[n].uid:n+1;
-	msg->next=sm->list;
-	sm->list=msg;
-	++sm->nmsgs;
+	msg.n=isuid ? current_maildir_info.msgs[n].uid:n+1;
 }
