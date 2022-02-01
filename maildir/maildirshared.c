@@ -58,80 +58,8 @@
 
 #include	"dbobj.h"
 
-static void list_sharable(const char *, const char *,
-	void (*)(const char *, void *),
-	void *);
-
 extern FILE *maildir_shared_fopen(const char *, const char *);
 extern void maildir_shared_fparse(char *, char **, char **);
-
-void maildir_list_sharable(const char *maildir,
-	void (*func)(const char *, void *),
-	void *voidp)
-{
-char	buf[BUFSIZ];
-FILE	*fp;
-char	*p;
-int	pass;
-
-	if (!maildir)	maildir=".";
-
-	for (pass=0; pass<2; pass++)
-	{
-		fp=pass ? maildir_shared_fopen(maildir, "r")
-			: fopen (MAILDIRSHAREDRC, "r");
-
-		if (!fp)	continue;
-
-		while ((p=fgets(buf, sizeof(buf), fp)) != 0)
-		{
-		char	*name, *dir;
-
-			maildir_shared_fparse(p, &name, &dir);
-			if (name)
-				list_sharable(name, dir, func, voidp);
-		}
-		fclose(fp);
-	}
-}
-
-static void list_sharable(const char *pfix, const char *path,
-	void (*func)(const char *, void *),
-	void *voidp)
-{
-DIR	*dirp;
-struct	dirent *de;
-struct	stat	stat_buf;
-
-	dirp=opendir(path);
-	while (dirp && (de=readdir(dirp)) != 0)
-	{
-	char	*z;
-
-		if (de->d_name[0] != '.')	continue;
-		if (strcmp(de->d_name, ".") == 0 ||
-			strcmp(de->d_name, "..") == 0)	continue;
-
-		z=malloc(strlen(path)+strlen(de->d_name)+12);
-		if (!z)	continue;
-
-		strcat(strcat(strcat(strcpy(z, path),
-			"/"), de->d_name), "/cur/.");
-
-		if (stat(z, &stat_buf))
-		{
-			free(z);
-			continue;
-		}
-		free(z);
-		z=malloc(strlen(pfix)+strlen(de->d_name)+1);
-		if (!z)	continue;
-		strcat(strcpy(z, pfix), de->d_name);
-		(*func)(z, voidp);
-		free(z);
-	}
-	if (dirp)	closedir(dirp);
-}
 
 int maildir_shared_subscribe(const char *maildir, const char *folder)
 {
@@ -260,52 +188,6 @@ int	pass;
 	}
 	errno=ENOENT;
 	return (-1);
-}
-
-void maildir_list_shared(const char *maildir,
-	void (*func)(const char *, void *),
-	void *voidp)
-{
-char	*sh;
-DIR	*dirp;
-struct	dirent *de;
-
-	if (!maildir)	maildir=".";
-	sh=malloc(strlen(maildir)+sizeof("/" SHAREDSUBDIR));
-	if (!sh)	return;
-
-	strcat(strcpy(sh, maildir), "/" SHAREDSUBDIR);
-
-	dirp=opendir(sh);
-	while (dirp && (de=readdir(dirp)) != 0)
-	{
-	DIR	*dirp2;
-	struct	dirent *de2;
-	char	*z;
-
-		if (de->d_name[0] == '.')	continue;
-
-		z=malloc(strlen(sh)+strlen(de->d_name)+2);
-		if (!z)	continue;
-		strcat(strcat(strcpy(z, sh), "/"), de->d_name);
-		dirp2=opendir(z);
-		free(z);
-
-		while (dirp2 && (de2=readdir(dirp2)) != 0)
-		{
-		char	*s;
-
-			if (de2->d_name[0] == '.')	continue;
-			s=malloc(strlen(de->d_name)+strlen(de2->d_name)+2);
-			if (!s)	continue;
-			strcat(strcat(strcpy(s, de->d_name), "."), de2->d_name);
-			(*func)(s, voidp);
-			free(s);
-		}
-		if (dirp2)	closedir(dirp2);
-	}
-	free(sh);
-	if (dirp)	closedir(dirp);
 }
 
 int maildir_shared_unsubscribe(const char *maildir, const char *folder)
@@ -851,7 +733,7 @@ char	*buf=maildir_getlink(filename);
 				}
 				free(cpy);
 			}
-						
+
 			free(buf);
 			return (0);
 		}
@@ -866,22 +748,10 @@ char	*buf=maildir_getlink(filename);
 
 /* We cannot implement sharing */
 
-void maildir_list_sharable(const char *maildir,
-	void (*func)(const char *, void *),
-	void *voidp)
-{
-}
-
 int maildir_shared_subscribe(const char *maildir, const char *folder)
 {
 	errno=EINVAL;
 	return (-1);
-}
-
-void maildir_list_shared(const char *maildir,
-	void (*func)(const char *, void *),
-	void *voidp)
-{
 }
 
 int maildir_shared_unsubscribe(const char *maildir, const char *folder)

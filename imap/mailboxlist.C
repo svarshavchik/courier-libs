@@ -318,20 +318,19 @@ struct list_sharable_info {
 	mailbox_scan_cb_t callback_func;
 	} ;
 
-static void list_sharable(const char *n,
-	void *voidp)
+static void list_sharable(const std::string &n,
+			  list_sharable_info &ip)
+
 {
-struct list_sharable_info *ip=(struct list_sharable_info *)voidp;
- char	*p=(char *)malloc(strlen(n)+sizeof("shared."));
+	std::string p;
 
-	if (!p)	write_error_exit(0);
+	p.reserve(n.size()+sizeof("shared"));
 
-	strcat(strcpy(p, "shared."), n);
+	p="shared.";
+	p+=n;
 
-	folder_entry(p, ip->pattern, ip->flags,
-		     ip->folders, ip->hierarchies);
-
-	free(p);
+	folder_entry(p, ip.pattern, ip.flags,
+		     ip.folders, ip.hierarchies);
 }
 
 static void list_subscribed(const std::string &hier,
@@ -828,8 +827,13 @@ bool mailbox_scan(const char *reference, const char *name,
 
 			/* List sharable maildirs */
 
-			maildir_list_sharable( ".", &list_sharable,
-					       &shared_info );
+			maildir::list_sharable(
+				".",
+				[&]
+				(const std::string &n)
+				{
+					list_sharable(n, shared_info);
+				});
 		}
 	}
 	else
@@ -840,8 +844,13 @@ bool mailbox_scan(const char *reference, const char *name,
 
 		/* List shared folders */
 
-		maildir_list_shared( ".", &list_sharable,
-				     &shared_info );
+		maildir::list_shared(
+			".",
+			[&]
+			(const std::string &n)
+			{
+				list_sharable(n, shared_info);
+			});
 	}
 
 	for (auto &hp : shared_info.folders)

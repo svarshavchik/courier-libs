@@ -11,44 +11,82 @@
 #include	<ctype.h>
 #include	<errno.h>
 #include	<string>
+#include	<algorithm>
+
+namespace maildir {
+	std::string shared_filename(const std::string &maildir)
+	{
+		std::string m;
+
+		m.reserve(maildir.size() + sizeof("shared-maildirs"));
+
+		m=maildir;
+		m += "/shared-maildirs";
+
+		return m;
+	}
+}
 
 extern "C"
 FILE *maildir_shared_fopen(const char *maildir, const char *mode)
 {
-	FILE	*fp;
+	return fopen(maildir::shared_filename(maildir).c_str(), mode);
+}
 
-	std::string m;
+void maildir::shared_fparse(char *b, char *e,
+			    char * &nameb, char * &namee,
+			    char * &dirb, char * &dire)
+{
+	nameb=namee=dirb=dire=e;
 
-	m.reserve(strlen(maildir) + sizeof("/shared-maildirs"));
+	e=std::find(b, e, '\n');
+	e=std::find(b, e, '#');
 
-	m=maildir;
-	m += "/shared-maildirs";
+	nameb=b;
 
-	fp=fopen(m.c_str(), mode);
-	return (fp);
+	while (b != e)
+	{
+		if (isspace((int)(unsigned char)*b))	break;
+		++b;
+	}
+	if (b == e)
+	{
+		nameb=namee;
+		return;
+	}
+
+	namee=b;
+
+	while (b != e && isspace((int)(unsigned char)*b))
+		++b;
+
+	if (b != e)
+	{
+		dirb=b;
+		dire=e;
+		return;
+	}
+
+	nameb=namee=dirb=dire=e;
 }
 
 extern "C"
 void maildir_shared_fparse(char *p, char **name, char **dir)
 {
-char	*q;
+	char *nameb, *namee, *dirb, *dire;
 
-	*name=0;
-	*dir=0;
+	maildir::shared_fparse(p, p+strlen(p), nameb, namee, dirb, dire);
 
-	if ((q=strchr(p, '\n')) != 0)	*q=0;
-	if ((q=strchr(p, '#')) != 0)	*q=0;
-
-	for (q=p; *q; q++)
-		if (isspace((int)(unsigned char)*q))	break;
-	if (!*q)	return;
-	*q++=0;
-	while (*q && isspace((int)(unsigned char)*q))
-		++q;
-	if (*q)
+	if (nameb != namee)
 	{
-		*name=p;
-		*dir=q;
+		*name=nameb;
+		*namee=0;
+		*dir=dirb;
+		*dire=0;
+	}
+	else
+	{
+		*name=*dir=0;
 	}
 }
 

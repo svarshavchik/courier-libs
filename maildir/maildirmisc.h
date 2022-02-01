@@ -34,6 +34,16 @@ std::string shareddir(const std::string &,		/* maildir */
 void list(const std::string &maildir,
 	  const std::function<void (const std::string &)> &callback);
 
+void shared_fparse(char *b, char *e,
+		   char * &nameb, char * &namee,
+		   char * &dirb, char * &dire);
+
+void list_sharable(const std::string &maildir,
+		   const std::function<void (const std::string &)> &callback);
+
+void list_shared(const std::string &maildir,
+		 const std::function<void (const std::string &)> &callback);
+
 #if 0
 {
 #endif
@@ -160,6 +170,7 @@ void maildir_list(const char *maildir,
 		  void (*func)(const char *, void *),
 		  void *voidp);
 
+/* Wrapper for maildir::list_sharable */
 void maildir_list_sharable(const char *,	/* maildir */
 	void (*)(const char *, void *),		/* callback function */
 	void *);				/* 2nd arg to callback func */
@@ -169,6 +180,7 @@ int maildir_shared_subscribe(const char *,	/* maildir */
 		const char *);			/* folder */
 	/* subscribe to a shared folder */
 
+/* Wrapper for maildir::list_shared */
 void maildir_list_shared(const char *,		/* maildir */
 	void (*)(const char *, void *),		/* callback function */
 	void *);			/* 2nd arg to the callback func */
