@@ -3763,6 +3763,7 @@ void smap()
 
 			if (strchr(rights_buf, ACL_LOOKUP[0]) == NULL)
 			{
+				free(t);
 				accessdenied(ACL_LOOKUP);
 				continue;
 			}
@@ -3782,6 +3783,7 @@ void smap()
 
 				if (imapscan_maildir(infoptr, t, 1, 1, NULL))
 				{
+					free(t);
 					writes("-ERR Cannot read"
 					       " folder status: ");
 					writes(strerror(errno));
@@ -3789,6 +3791,7 @@ void smap()
 					continue;
 				}
 			}
+			free(t);
 
 			writes("* STATUS EXISTS=");
 			writen(infoptr->nmessages+infoptr->left_unseen);
@@ -4084,6 +4087,8 @@ void smap()
 			{
 				writes("+OK Folder renamed.\n");
 			}
+			maildir_smapfn_free(fnsrc);
+			maildir_smapfn_free(fndst);
 			maildir_info_destroy(&msrc);
 			maildir_info_destroy(&mdst);
 			continue;

@@ -219,16 +219,16 @@ check-am:
 	LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; \
-		rm -f confmdtesterror; \
+		rm -f confmdmemleak; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
-		@SHELL@ -x $(srcdir)/testsuite 2>&1 | tee confmderror.txt; test -f confmdtesterror || exit 0; exit 1
+		@SHELL@ -x $(srcdir)/testsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; \
-		rm -f confmdtesterror; \
+		rm -f confmdmemleak; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
-		@SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdtesterror || exit 0; exit 1
+		@SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
 
-	rm -f confmdtesterror confmderror.txt
+	rm -f confmderror.txt
 	rm -rf confmdtest
 
 testsuite-imap:
