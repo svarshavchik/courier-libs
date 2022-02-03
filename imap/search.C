@@ -625,11 +625,9 @@ int	rc, rc2;
 
 struct fill_search_header_info {
 
-	struct searchinfo *si;
+	struct searchinfo *si=nullptr;
 
-	char *utf8buf;
-	size_t utf8buflen;
-	size_t utf8bufsize;
+	std::string utf8buf;
 };
 
 static int headerfilter_func(const char *name, const char *value, void *arg);
@@ -673,7 +671,6 @@ static void fill_search_header(struct searchinfo *si,
 		return;
 
 	memset(&decodecb, 0, sizeof(decodecb));
-	memset(&decodeinfo, 0, sizeof(decodeinfo));
 
 	decodeinfo.si=si;
 
@@ -686,8 +683,6 @@ static void fill_search_header(struct searchinfo *si,
 
 	rfc2045_decodemsgtoutf8(src, rfcp, &decodecb);
 	rfc2045src_deinit(src);
-	if (decodeinfo.utf8buf)
-		free(decodeinfo.utf8buf);
 }
 
 static int headerfilter_func(const char *name, const char *value, void *arg)
@@ -838,7 +833,7 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			break;
 		}
 	}
-	decodeinfo->utf8buflen=0;
+	decodeinfo->utf8buf.clear();
 	return 1;
 }
 
@@ -847,22 +842,8 @@ static int fill_search_header_utf8(const char *str, size_t cnt, void *arg)
 	struct fill_search_header_info *decodeinfo=
 		(struct fill_search_header_info *)arg;
 
-	if (decodeinfo->utf8bufsize - decodeinfo->utf8buflen < cnt)
-	{
-		size_t newsize=decodeinfo->utf8buflen + cnt*2;
-		char *p=decodeinfo->utf8buf
-			? (char *)realloc(decodeinfo->utf8buf, newsize):
-			(char *)malloc(newsize);
-
-		if (!p)
-			write_error_exit(0);
-		decodeinfo->utf8buf=p;
-		decodeinfo->utf8bufsize=newsize;
-	}
-
-	if (cnt)
-		memcpy(decodeinfo->utf8buf+decodeinfo->utf8buflen, str, cnt);
-	decodeinfo->utf8buflen += cnt;
+	decodeinfo->utf8buf.insert(decodeinfo->utf8buf.end(),
+				   str, str+cnt);
 	return 0;
 }
 
@@ -872,17 +853,10 @@ static int fill_search_header_done(const char *name, void *arg)
 		(struct fill_search_header_info *)arg;
 	struct searchinfo *sip;
 	int issubject=rfc822hdr_namecmp(name, "subject");
-	size_t j;
-	unicode_convert_handle_t conv;
-	char32_t *ucptr;
-	size_t ucsize;
-	int rc;
 
-	if (decodeinfo->utf8buflen &&
-	    decodeinfo->utf8buf[decodeinfo->utf8buflen-1] == '\n')
-		--decodeinfo->utf8buflen;
-
-	fill_search_header_utf8("", 1, arg);
+	if (!decodeinfo->utf8buf.empty() &&
+	    decodeinfo->utf8buf.back() == '\n')
+		decodeinfo->utf8buf.pop_back();
 
 	for (sip=decodeinfo->si; sip; sip=sip->next)
 		switch (sip->type) {
@@ -898,8 +872,10 @@ static int fill_search_header_done(const char *name, void *arg)
 			{
 				int dummy;
 
-				char *p=rfc822_coresubj(decodeinfo->utf8buf,
-							&dummy);
+				char *p=rfc822_coresubj(
+					decodeinfo->utf8buf.c_str(),
+					&dummy
+				);
 				if (!p)
 					write_error_exit(0);
 				sip->as=p;
@@ -920,37 +896,33 @@ static int fill_search_header_done(const char *name, void *arg)
 
 			maildir_search_reset(&sip->sei);
 
-			conv=unicode_convert_tou_init("utf-8", &ucptr,
-							&ucsize, 0);
-
-			if (!conv)
-				break;
-
-			rc=unicode_convert(conv, decodeinfo->utf8buf,
-					     decodeinfo->utf8buflen-1);
-
-			if (unicode_convert_deinit(conv, NULL))
-				break;
-
-			if (rc)
 			{
-				free(ucptr);
-				break;
-			}
+				auto ret=unicode::iconvert::tou::convert(
+					decodeinfo->utf8buf,
+					unicode::utf_8
+				);
 
-			for (j=0; j<=ucsize; ++j)
-			{
-				maildir_search_step_unicode_lc(&sip->sei,
-							       j == ucsize
-							       ? ' ':
-							       ucptr[j]);
+				if (std::get<bool>(ret))
+					break;
+
+				for (auto uc:std::get<std::u32string>(ret))
+				{
+					maildir_search_step_unicode_lc(
+						&sip->sei,
+						uc
+					);
+				}
+
+				maildir_search_step_unicode_lc(
+					&sip->sei,
+					' '
+				);
+
 				if (maildir_search_found(&sip->sei))
 				{
 					sip->value=1;
-					break;
 				}
 			}
-			free(ucptr);
 			break;
 		default:
 			break;
