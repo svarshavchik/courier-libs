@@ -17,75 +17,62 @@
 #include	"imaptoken.h"
 
 
-struct searchinfo *alloc_search(struct searchinfo **head)
+static searchiter alloc_search_andlist(std::list<searchinfo> &);
+static searchiter alloc_search_notkey(std::list<searchinfo> &);
+static searchiter alloc_search_key(std::list<searchinfo> &);
+
+searchinfo::searchinfo(std::list<searchinfo> &searchlist)
+	: a{searchlist.end()}, b{searchlist.end()}
 {
-	auto si=new searchinfo;
-	si->next= *head;
-	*head=si;
-	return (si);
 }
 
-void free_search(struct searchinfo *si)
+searchiter alloc_search(std::list<searchinfo> &searchlist)
 {
-	struct searchinfo *p;
+	searchlist.emplace_front(searchlist);
 
-	while (si)
-	{
-		p=si->next;
-
-		delete si;
-		si=p;
-	}
+	return searchlist.begin();
 }
 
-static struct searchinfo *alloc_search_andlist(struct searchinfo **);
-static struct searchinfo *alloc_search_notkey(struct searchinfo **);
-static struct searchinfo *alloc_search_key(struct searchinfo **);
-
-struct searchinfo *alloc_parsesearch(struct searchinfo **head)
+searchiter alloc_parsesearch(std::list<searchinfo> &searchlist)
 {
-struct	searchinfo *si;
-
-	*head=0;
-	if ((si=alloc_search_andlist(head)) == 0)
-	{
-		free_search(*head);
-		return (0);
-	}
-	return (si);
+	return alloc_search_andlist(searchlist);
 }
 
-struct searchinfo *alloc_searchextra(struct searchinfo *top,
-	struct searchinfo **head, search_type t)
+searchiter alloc_searchextra(searchiter top,
+			     std::list<searchinfo> &searchlist,
+			     search_type t)
 {
-	struct searchinfo *si;
+	searchiter si;
 
 	if (t == search_references1)
 	{
 		/* Automatically add third and second dummy node */
 
-		top=alloc_searchextra(top, head, search_references4);
-		top=alloc_searchextra(top, head, search_references3);
-		top=alloc_searchextra(top, head, search_references2);
+		top=alloc_searchextra(top, searchlist, search_references4);
+		top=alloc_searchextra(top, searchlist, search_references3);
+		top=alloc_searchextra(top, searchlist, search_references2);
 	}
-	si=alloc_search(head);
+	si=alloc_search(searchlist);
 	si->type=t;
 	si->a=top;
 	return (si);
 }
 
-static struct searchinfo *alloc_search_andlist(struct searchinfo **head)
+static searchiter alloc_search_andlist(std::list<searchinfo> &searchlist)
 {
-struct searchinfo *si, *a, *b;
-struct imaptoken *t;
+	searchiter si, a, b;
+	struct imaptoken *t;
 
-	si=alloc_search_notkey(head);
-	if (!si)	return (0);
+	si=alloc_search_notkey(searchlist);
+	if (si == searchlist.end())
+		return si;
+
 	while ((t=currenttoken())->tokentype != IT_RPAREN && t->tokentype !=
 		IT_EOL)
 	{
-		if ((a=alloc_search_notkey(head)) == 0)	return (0);
-		b=alloc_search(head);
+		if ((a=alloc_search_notkey(searchlist)) == searchlist.end())
+			return searchlist.end();
+		b=alloc_search(searchlist);
 		b->type=search_and;
 		b->a=si;
 		b->b=a;
@@ -94,83 +81,85 @@ struct imaptoken *t;
 	return (si);
 }
 
-static struct searchinfo *alloc_search_notkey(struct searchinfo **head)
+static searchiter alloc_search_notkey(std::list<searchinfo> &searchlist)
 {
-struct imaptoken *t=currenttoken();
+	struct imaptoken *t=currenttoken();
 
 	if (t->tokentype == IT_ATOM && strcmp(t->tokenbuf, "NOT") == 0)
 	{
-	struct searchinfo *si=alloc_search(head);
+		searchiter si=alloc_search(searchlist);
 
 		si->type=search_not;
 		nexttoken();
-		if ((si->a=alloc_search_key(head)) == 0)
-			return (0);
+		if ((si->a=alloc_search_key(searchlist)) == searchlist.end())
+			return (searchlist.end());
 		return (si);
 	}
-	return (alloc_search_key(head));
+	return (alloc_search_key(searchlist));
 }
 
-static struct searchinfo *alloc_search_key(struct searchinfo **head)
+static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 {
-struct imaptoken *t=currenttoken();
-struct searchinfo *si;
-const char *keyword;
+	struct imaptoken *t=currenttoken();
+	searchiter si;
+	const char *keyword;
 
 	if (t->tokentype == IT_LPAREN)
 	{
 		nexttoken();
-		if ((si=alloc_search_andlist(head)) == 0 ||
+		if ((si=alloc_search_andlist(searchlist)) == searchlist.end() ||
 			currenttoken()->tokentype != IT_RPAREN)
-			return (0);
+			return (searchlist.end());
 		nexttoken();
 		return (si);
 	}
 
 	if (t->tokentype != IT_ATOM && t->tokentype != IT_NUMBER)
-		return (0);
+		return (searchlist.end());
 
 	keyword=t->tokenbuf;
 
 	if (strcmp(keyword, "ALL") == 0)
 	{
-	struct searchinfo *si;
+	searchiter si;
 
-		(si=alloc_search(head))->type=search_all;
+		(si=alloc_search(searchlist))->type=search_all;
 		nexttoken();
 		return (si);
 	}
 
 	if (strcmp(keyword, "OR") == 0)
 	{
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_or;
 		nexttoken();
-		if ((si->a=alloc_search_notkey(head)) == 0 ||
-			(si->b=alloc_search_notkey(head)) == 0)	return (0);
+		if ((si->a=alloc_search_notkey(searchlist)) == searchlist.end()
+		    ||
+		    (si->b=alloc_search_notkey(searchlist)) == searchlist.end())
+			return (searchlist.end());
 		return (si);
 	}
 
 	if (strcmp(keyword, "HEADER") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_header;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->cs=t->tokenbuf;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -183,16 +172,16 @@ const char *keyword;
 		strcmp(keyword, "SUBJECT") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_header;
 		si->cs=keyword;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -201,15 +190,15 @@ const char *keyword;
 	if (strcmp(keyword, "BEFORE") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_before;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -218,15 +207,15 @@ const char *keyword;
 	if (strcmp(keyword, "BODY") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_body;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -234,13 +223,13 @@ const char *keyword;
 	if (strcmp(keyword, "LARGER") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_larger;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -249,15 +238,15 @@ const char *keyword;
 	if (strcmp(keyword, "ON") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_on;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -266,15 +255,15 @@ const char *keyword;
 	if (strcmp(keyword, "SENTBEFORE") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_sentbefore;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -283,15 +272,15 @@ const char *keyword;
 	if (strcmp(keyword, "SENTON") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_senton;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=keyword;
 		nexttoken();
 		return (si);
@@ -300,15 +289,15 @@ const char *keyword;
 	if (strcmp(keyword, "SENTSINCE") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_sentsince;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -317,15 +306,15 @@ const char *keyword;
 	if (strcmp(keyword, "SINCE") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_since;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -334,13 +323,13 @@ const char *keyword;
 	if (strcmp(keyword, "SMALLER") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_smaller;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -349,15 +338,15 @@ const char *keyword;
 	if (strcmp(keyword, "TEXT") == 0)
 	{
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_text;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -365,14 +354,14 @@ const char *keyword;
 
 	if (strcmp(keyword, "UID") == 0)
 	{
-	struct searchinfo *si;
+	searchiter si;
 	struct imaptoken *t;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_uid;
 		t=nexttoken();
 		if (!ismsgset(t))
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
@@ -383,21 +372,21 @@ const char *keyword;
 	{
 	int	isnot= *keyword == 'U';
 	struct imaptoken *t;
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_msgkeyword;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
-			return (0);
+			return (searchlist.end());
 		si->as=t->tokenbuf;
 		nexttoken();
 
 		if (isnot)
 		{
-		struct searchinfo *si2=alloc_search(head);
+		searchiter si2=alloc_search(searchlist);
 
 			si2->type=search_not;
 			si2->a=si;
@@ -412,9 +401,9 @@ const char *keyword;
 		strcmp(keyword, "RECENT") == 0 ||
 		strcmp(keyword, "SEEN") == 0)
 	{
-	struct searchinfo *si;
+	searchiter si;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_msgflag;
 		si->as.reserve(strlen(keyword)+1);
 		si->as="\\";
@@ -429,17 +418,17 @@ const char *keyword;
 		strcmp(keyword, "UNFLAGGED") == 0 ||
 		strcmp(keyword, "UNSEEN") == 0)
 	{
-	struct searchinfo *si;
-	struct searchinfo *si2;
+	searchiter si;
+	searchiter si2;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_msgflag;
 		si->as.reserve(strlen(keyword));
 		si->as="\\";
 		si->as += keyword+2;
 		nexttoken();
 
-		si2=alloc_search(head);
+		si2=alloc_search(searchlist);
 		si2->type=search_not;
 		si2->a=si;
 		return (si2);
@@ -447,16 +436,16 @@ const char *keyword;
 
 	if (strcmp(keyword, "NEW") == 0)
 	{
-	struct searchinfo *si, *si2;
+		searchiter si, si2;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_and;
-		si2=si->a=alloc_search(head);
+		si2=si->a=alloc_search(searchlist);
 		si2->type=search_msgflag;
 		si2->as="\\RECENT";
-		si2=si->b=alloc_search(head);
+		si2=si->b=alloc_search(searchlist);
 		si2->type=search_not;
-		si2=si2->a=alloc_search(head);
+		si2=si2->a=alloc_search(searchlist);
 		si2->type=search_msgflag;
 		si2->as="\\SEEN";
 		nexttoken();
@@ -465,11 +454,11 @@ const char *keyword;
 
 	if (strcmp(keyword, "OLD") == 0)
 	{
-	struct searchinfo *si, *si2;
+		searchiter si, si2;
 
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_not;
-		si2=si->a=alloc_search(head);
+		si2=si->a=alloc_search(searchlist);
 		si2->type=search_msgflag;
 		si2->as="\\RECENT";
 		nexttoken();
@@ -478,14 +467,14 @@ const char *keyword;
 
 	if (ismsgset(t))
 	{
-		si=alloc_search(head);
+		si=alloc_search(searchlist);
 		si->type=search_messageset;
 		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
 
-	return (0);
+	return searchlist.end();
 }
 
 /*
@@ -493,19 +482,20 @@ const char *keyword;
 ** search_text nodes in the search string are in that character set.
 */
 
-void search_set_charset_conv(struct searchinfo *si, const char *charset)
+void search_set_charset_conv(std::list<searchinfo> &searchlist,
+			     const std::string &charset)
 {
-	for (; si; si=si->next)
+	for (auto &si:searchlist)
 	{
-		if (si->type != search_text && si->type != search_body
-		    && si->type != search_header)
+		if (si.type != search_text && si.type != search_body
+		    && si.type != search_header)
 			continue;
-		if (si->value > 0)
+		if (si.value > 0)
 			continue; /* Already found, no need to do this again */
 
-		if (!si->sei.setString(si->as, charset))
+		if (!si.sei.setString(si.as, charset))
 		{
-			si->value=0;
+			si.value=0;
 			continue;
 		}
 	}
@@ -514,7 +504,7 @@ void search_set_charset_conv(struct searchinfo *si, const char *charset)
 
 #if 0
 
-void debug_search(struct searchinfo *si)
+void debug_search(searchiter si)
 {
 	if (!si)	return;
 

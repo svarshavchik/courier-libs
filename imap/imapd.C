@@ -3883,33 +3883,33 @@ const char *folder_rename(maildir::info &mi1,
 	return NULL;
 }
 
-static int validate_charset(const char *tag, char **charset)
+static bool validate_charset(const char *tag, std::string &charset)
 {
 	unicode_convert_handle_t conv;
 	char32_t *ucptr;
 	size_t ucsize;
 
-	if (*charset == NULL)
-		*charset=my_strdup("UTF-8");
+	if (charset.empty())
+		charset="UTF-8";
 
-	if (enabled_utf8 && strcmp(*charset, "UTF-8"))
+	if (enabled_utf8 && charset != "UTF-8")
 	{
 		writes(tag);
 		writes(" BAD [BADCHARSET] Only UTF-8 charset is valid after enabling RFC 6855 support\r\n");
-		return (-1);
+		return false;
 	}
 
-	conv=unicode_convert_tou_init(*charset, &ucptr, &ucsize, 1);
+	conv=unicode_convert_tou_init(charset.c_str(), &ucptr, &ucsize, 1);
 
 	if (!conv)
 	{
 		writes(tag);
 		writes(" NO [BADCHARSET] The requested character set is not supported.\r\n");
-		return (-1);
+		return false;
 	}
 	if (unicode_convert_deinit(conv, NULL) == 0)
 		free(ucptr);
-	return (0);
+	return true;
 }
 
 extern "C" int do_imap_command(const char *tag, int *flushflag)
@@ -5583,8 +5583,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "SEARCH") == 0)
 	{
-		char *charset=0;
-		struct searchinfo *si, *sihead;
+		std::string charset;
+		std::list<searchinfo> searchlist;
 		unsigned long i;
 
 		curtoken=nexttoken_okbracket();
@@ -5604,26 +5604,23 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				curtoken->tokentype != IT_QUOTED_STRING)
 				return (-1);
 
-			charset=my_strdup(curtoken->tokenbuf);
+			charset=curtoken->tokenbuf;
 			curtoken=nexttoken();
 		}
 
-		if (validate_charset(tag, &charset))
+		if (!validate_charset(tag, charset))
 		{
-			if (charset)
-				free(charset);
 			return (0);
 		}
 
-		if ((si=alloc_parsesearch(&sihead)) == 0)
+		auto si=alloc_parsesearch(searchlist);
+
+		if (si == searchlist.end())
 		{
-			free(charset);
 			return (-1);
 		}
 		if (currenttoken()->tokentype != IT_EOL)
 		{
-			free(charset);
-			free_search(sihead);
 			return (-1);
 		}
 
@@ -5633,34 +5630,32 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes("\r\n");
 #endif
 		writes("* SEARCH");
-		dosearch(si, sihead, charset, uid);
+		dosearch(si, searchlist, charset, uid);
 		writes("\r\n");
-		free(charset);
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);
 		writes(" OK SEARCH done.\r\n");
-		free_search(sihead);
 		return (0);
 	}
 
 	if (strcmp(curtoken->tokenbuf, "THREAD") == 0)
 	{
-	char *charset=0;
-	struct searchinfo *si, *sihead;
-	unsigned long i;
+		std::string charset;
+		std::list<searchinfo> searchlist;
+		unsigned long i;
 
 		/* The following jazz is mainly for future extensions */
 
-	void (*thread_func)(struct searchinfo *, struct searchinfo *,
-			    const char *, int);
-	search_type thread_type;
+		void (*thread_func)(searchiter, std::list<searchinfo> &,
+				    const std::string &, int);
+		search_type thread_type;
 
 		{
-		const char *p=getenv("IMAP_DISABLETHREADSORT");
-		int n= p ? atoi(p):0;
+			const char *p=getenv("IMAP_DISABLETHREADSORT");
+			int n= p ? atoi(p):0;
 
 			if (n > 0)
 			{
@@ -5695,51 +5690,46 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			curtoken->tokentype != IT_QUOTED_STRING)
 			return (-1);
 
-		charset=my_strdup(curtoken->tokenbuf);
+		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		if ((si=alloc_parsesearch(&sihead)) == 0)
+		auto si=alloc_parsesearch(searchlist);
+
+		if (si == searchlist.end())
 		{
-			if (charset)	free(charset);
 			return (-1);
 		}
 
-		si=alloc_searchextra(si, &sihead, thread_type);
+		si=alloc_searchextra(si, searchlist, thread_type);
 
 		if (currenttoken()->tokentype != IT_EOL)
 		{
-			if (charset)	free(charset);
-			free_search(sihead);
 			return (-1);
 		}
 
-		if (validate_charset(tag, &charset))
+		if (!validate_charset(tag, charset))
 		{
-			if (charset)
-				free(charset);
 			return (0);
 		}
 
 		writes("* THREAD ");
-		(*thread_func)(si, sihead, charset, uid);
+		(*thread_func)(si, searchlist, charset, uid);
 		writes("\r\n");
-		free(charset);
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);
 		writes(" OK THREAD done.\r\n");
-		free_search(sihead);
 		return (0);
 	}
 
 	if (strcmp(curtoken->tokenbuf, "SORT") == 0)
 	{
-	char *charset=0;
-	struct searchinfo *si, *sihead;
-	unsigned long i;
-	std::vector<search_type> ts;
+		std::string charset;
+		std::list<searchinfo> searchlist;
+		unsigned long i;
+		std::vector<search_type> ts;
 
 		{
 		const char *p=getenv("IMAP_DISABLETHREADSORT");
@@ -5819,12 +5809,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
-		charset=my_strdup(curtoken->tokenbuf);
+		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		if ((si=alloc_parsesearch(&sihead)) == 0)
+		auto si=alloc_parsesearch(searchlist);
+
+		if (si == searchlist.end())
 		{
-			if (charset)	free(charset);
 			return (-1);
 		}
 
@@ -5832,35 +5823,29 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			--e;
 
-			si=alloc_searchextra(si, &sihead, *e);
+			si=alloc_searchextra(si, searchlist, *e);
 		}
 		ts.clear();
 
 		if (currenttoken()->tokentype != IT_EOL)
 		{
-			if (charset)	free(charset);
-			free_search(sihead);
 			return (-1);
 		}
 
-		if (validate_charset(tag, &charset))
+		if (!validate_charset(tag, charset))
 		{
-			if (charset) free(charset);
-			free_search(sihead);
 			return (0);
 		}
 
 		writes("* SORT");
-		dosortmsgs(si, sihead, charset, uid);
+		dosortmsgs(si, searchlist, charset, uid);
 		writes("\r\n");
-		free(charset);
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);
 		writes(" OK SORT done.\r\n");
-		free_search(sihead);
 		return (0);
 	}
 

@@ -4,8 +4,10 @@
 #include "maildir/maildirsearch.h"
 
 #include <string>
+#include <list>
+
 /*
-** Copyright 1998 - 2002 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -75,16 +77,18 @@ typedef enum {
 
 	} search_type;
 
+struct searchinfo;
+
 /* This structure is used when doing content searching */
 
-
+typedef std::list<searchinfo>::iterator searchiter;
 
 /* A SEARCH request gets parsed into the following structure */
 
 struct searchinfo {
-	struct searchinfo *next=nullptr;	/* Link list of all searchinfos */
+	searchiter a, b;	/* Nested search requests */
 
-	struct searchinfo *a=nullptr, *b=nullptr;	/* Nested search requests */
+	searchinfo(std::list<searchinfo> &searchlist);
 
 	search_type	type;
 
@@ -103,25 +107,24 @@ struct searchinfo {
 	struct libmail_keywordEntry *ke=nullptr;
 	} ;
 
-void free_search(struct searchinfo *);
-struct searchinfo *alloc_search(struct searchinfo **);
-
-struct searchinfo *alloc_parsesearch(struct searchinfo **);
-struct searchinfo *alloc_searchextra(struct searchinfo *,
-	struct searchinfo **, search_type);
-void debug_search(struct searchinfo *);
+searchiter alloc_search(std::list<searchinfo> &);
+searchiter alloc_parsesearch(std::list<searchinfo> &);
+searchiter alloc_searchextra(searchiter,
+	std::list<searchinfo> &, search_type);
+void debug_search(searchiter );
 
 struct unicode_info;
 
-void dosearch(struct searchinfo *, struct searchinfo *,
-	      const char *, int);
+void dosearch(searchiter, std::list<searchinfo> &,
+	      const std::string &, int);
 
-void search_internal(struct searchinfo *, struct searchinfo *,
-		     const char *,
-		     int, void (*)(struct searchinfo *,
-				   struct searchinfo *, int,
+void search_internal(searchiter, std::list<searchinfo> &,
+		     const std::string &,
+		     int, void (*)(searchiter,
+				   std::list<searchinfo> &, int,
 				   unsigned long, void *), void *);
 
-void search_set_charset_conv(struct searchinfo *, const char *);
+void search_set_charset_conv(std::list<searchinfo> &,
+			     const std::string &);
 
 #endif

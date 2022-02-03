@@ -2454,13 +2454,13 @@ static int do_movemsg(unsigned long n, void *voidptr)
 	return 0;
 }
 
-static struct searchinfo *createSearch2(char *w,
-					struct searchinfo **head, char **ptr);
+static searchiter createSearch2(char *w,
+				 std::list<searchinfo> &searchlist, char **ptr);
 
-static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
+static searchiter createSearch(std::list<searchinfo> &searchlist, char **ptr)
 {
 	char *w=getword(ptr);
-	struct searchinfo *siAnd, *n;
+	searchiter siAnd, n;
 
 	up(w);
 
@@ -2469,17 +2469,17 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		w=getword(ptr);
 		up(w);
 
-		n=createSearch2(w, head, ptr);
+		n=createSearch2(w, searchlist, ptr);
 
-		if (!n)
-			return NULL;
+		if (n == searchlist.end())
+			return n;
 
-		siAnd=alloc_search(head);
+		siAnd=alloc_search(searchlist);
 		siAnd->type=search_and;
 
 		siAnd->b=n;
 
-		siAnd->a=n=alloc_search(head);
+		siAnd->a=n=alloc_search(searchlist);
 
 		n->type=search_msgflag;
 		n->as="\\FLAGGED";
@@ -2492,21 +2492,21 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		w=getword(ptr);
 		up(w);
 
-		n=createSearch2(w, head, ptr);
+		n=createSearch2(w, searchlist, ptr);
 
-		if (!n)
-			return NULL;
+		if (n == searchlist.end())
+			return n;
 
-		siAnd=alloc_search(head);
+		siAnd=alloc_search(searchlist);
 		siAnd->type=search_and;
 
 		siAnd->b=n;
 
-		siAnd->a=n=alloc_search(head);
+		siAnd->a=n=alloc_search(searchlist);
 
 		n->type=search_not;
 
-		n=n->a=alloc_search(head);
+		n=n->a=alloc_search(searchlist);
 
 		n->type=search_msgflag;
 		n->as="\\FLAGGED";
@@ -2518,23 +2518,23 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 	{
 		w=getword(ptr);
 		up(w);
-		return createSearch2(w, head, ptr);
+		return createSearch2(w, searchlist, ptr);
 	}
 
 	{
 		char *ww=getword(ptr);
 		up(ww);
-		n=createSearch2(ww, head, ptr);
+		n=createSearch2(ww, searchlist, ptr);
 
-		if (!n)
-			return NULL;
+		if (n == searchlist.end())
+			return n;
 
-		siAnd=alloc_search(head);
+		siAnd=alloc_search(searchlist);
 		siAnd->type=search_and;
 
 		siAnd->b=n;
 
-		siAnd->a=n=alloc_search(head);
+		siAnd->a=n=alloc_search(searchlist);
 
 		n->type=search_messageset;
 		n->as=w;
@@ -2546,17 +2546,18 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		if (!ismsgset_str(n->as.c_str()))
 		{
 			errno=EINVAL;
-			return NULL;
+			return searchlist.end();
 		}
 	}
 	return siAnd;
 }
 
-static struct searchinfo *createSearch2(char *w,
-					struct searchinfo **head, char **ptr)
+static searchiter createSearch2(char *w,
+				std::list<searchinfo> &searchlist,
+				char **ptr)
 {
 	int notflag=0;
-	struct searchinfo *n;
+	searchiter n;
 
 	if (strcmp(w, "NOT") == 0)
 	{
@@ -2567,31 +2568,31 @@ static struct searchinfo *createSearch2(char *w,
 
 	if (strcmp(w, "REPLIED") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_msgflag;
 		n->as="\\ANSWERED";
 	}
 	else if (strcmp(w, "DELETED") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_msgflag;
 		n->as="\\DELETED";
 	}
 	else if (strcmp(w, "DRAFT") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_msgflag;
 		n->as="\\DRAFT";
 	}
 	else if (strcmp(w, "SEEN") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_msgflag;
 		n->as="\\SEEN";
 	}
 	else if (strcmp(w, "KEYWORD") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_msgkeyword;
 		n->as=getword(ptr);
 	}
@@ -2601,14 +2602,14 @@ static struct searchinfo *createSearch2(char *w,
 		 strcmp(w, "BCC") == 0 ||
 		 strcmp(w, "SUBJECT") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_header;
 		n->cs=w;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "HEADER") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_header;
 		n->cs=getword(ptr);
 		up(n->cs);
@@ -2616,74 +2617,74 @@ static struct searchinfo *createSearch2(char *w,
 	}
 	else if (strcmp(w, "BODY") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_body;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "TEXT") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_text;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "BEFORE") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_before;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "ON") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_on;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SINCE") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_since;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SENTBEFORE") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_sentbefore;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SENTON") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_senton;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SINCE") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_sentsince;
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SMALLER") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_smaller;
 		n->as=getword(ptr);
 
 	}
 	else if (strcmp(w, "LARGER") == 0)
 	{
-		n=alloc_search(head);
+		n=alloc_search(searchlist);
 		n->type=search_larger;
 		n->as=getword(ptr);
 	}
 	else
 	{
 		errno=EINVAL;
-		return NULL;
+		return searchlist.end();
 	}
 
 	if (notflag)
 	{
-		struct searchinfo *p=alloc_search(head);
+		searchiter p=alloc_search(searchlist);
 
 		p->type=search_not;
 		p->a=n;
@@ -2791,8 +2792,8 @@ static void smap1_search_cb_range(struct smap1_search_results *searchResults)
 	++searchResults->prev_runs;
 }
 
-static void smap1_search_cb(struct searchinfo *si,
-			    struct searchinfo *sihead,
+static void smap1_search_cb(searchiter si,
+			    std::list<searchinfo> &searchlist,
 			    int isuid, unsigned long i, void *dummy)
 {
 	struct smap1_search_results *searchResults=
@@ -4308,16 +4309,16 @@ void smap()
 
 		if (strcmp(p, "SEARCH") == 0)
 		{
-			struct searchinfo *searchInfo=NULL;
-			struct searchinfo *si;
+			std::list<searchinfo> searchlist;
 			struct smap1_search_results searchResults;
 
-			if ((si=createSearch(&searchInfo, &ptr)) == NULL)
+			auto si=createSearch(searchlist, &ptr);
+
+			if (si == searchlist.end())
 			{
 				writes("-ERR SEARCH failed: ");
 				writes(strerror(errno));
 				writes("\n");
-				free_search(searchInfo);
 				continue;
 			}
 
@@ -4325,7 +4326,7 @@ void smap()
 			searchResults.prev_search_hit=0;
 			searchResults.prev_search_hit_start=0;
 
-			search_internal(si, searchInfo, "utf-8", 0,
+			search_internal(si, searchlist, "utf-8", 0,
 					smap1_search_cb, &searchResults);
 
 			if (searchResults.prev_search_hit)
@@ -4335,7 +4336,6 @@ void smap()
 				writes("\n");
 
 			writes("+OK Search completed.\n");
-			free_search(searchInfo);
 			continue;
 		}
 
