@@ -41,7 +41,7 @@ extern int smapflag;
 
 extern "C" char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
 extern int is_trash(const char *);
-extern "C" int get_flagname(const char *, struct imapflags *);
+extern bool get_flagname(std::string s, struct imapflags *flags);
 extern int get_flagsAndKeywords(struct imapflags *flags,
 				struct libmail_kwMessage **kwPtr);
 extern "C" void get_message_flags( struct imapscanmessageinfo *,
@@ -100,7 +100,7 @@ const char *p;
 		nexttoken();
 	else if (t->tokentype == IT_ATOM)
 	{
-		if (get_flagname(t->tokenbuf, &si->flags))
+		if (!get_flagname(t->tokenbuf, &si->flags))
 			libmail_kwmSetName(current_maildir_info
 				       .keywordList,
 				       si->keywords,

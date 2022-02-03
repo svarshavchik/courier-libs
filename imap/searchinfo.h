@@ -3,6 +3,7 @@
 
 #include "maildir/maildirsearch.h"
 
+#include <string>
 /*
 ** Copyright 1998 - 2002 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -87,7 +88,7 @@ struct searchinfo {
 
 	search_type	type;
 
-	char	*as=nullptr, *bs=nullptr, *cs=nullptr;		/* As needed */
+	std::string as, bs, cs;		/* As needed */
 
 	const struct unicode_info *bs_charset=nullptr;
 	/* search_text: text string in orig charset is as, text string in

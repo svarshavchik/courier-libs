@@ -200,6 +200,14 @@ static void up(char *p)
 	}
 }
 
+static void up(std::string &p)
+{
+	for (auto &c:p)
+	{
+		UC(c);
+	}
+}
+
 /*
 ** Write a WORD reply.
 */
@@ -2474,8 +2482,7 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		siAnd->a=n=alloc_search(head);
 
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\FLAGGED")))
-			write_error_exit(0);
+		n->as="\\FLAGGED";
 
 		return siAnd;
 	}
@@ -2502,8 +2509,7 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		n=n->a=alloc_search(head);
 
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\FLAGGED")))
-			write_error_exit(0);
+		n->as="\\FLAGGED";
 
 		return siAnd;
 	}
@@ -2531,14 +2537,13 @@ static struct searchinfo *createSearch(struct searchinfo **head, char **ptr)
 		siAnd->a=n=alloc_search(head);
 
 		n->type=search_messageset;
-		if (!(n->as=strdup(w)))
-			write_error_exit(0);
+		n->as=w;
 
-		for (ww=n->as; *ww; ww++)
-			if (*ww == '-')
-				*ww=':';
+		for (auto &c:n->as)
+			if (c == '-')
+				c=':';
 
-		if (!ismsgset_str(n->as))
+		if (!ismsgset_str(n->as.c_str()))
 		{
 			errno=EINVAL;
 			return NULL;
@@ -2564,36 +2569,31 @@ static struct searchinfo *createSearch2(char *w,
 	{
 		n=alloc_search(head);
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\ANSWERED")))
-			write_error_exit(0);
+		n->as="\\ANSWERED";
 	}
 	else if (strcmp(w, "DELETED") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\DELETED")))
-			write_error_exit(0);
+		n->as="\\DELETED";
 	}
 	else if (strcmp(w, "DRAFT") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\DRAFT")))
-			write_error_exit(0);
+		n->as="\\DRAFT";
 	}
 	else if (strcmp(w, "SEEN") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_msgflag;
-		if (!(n->as=strdup("\\SEEN")))
-			write_error_exit(0);
+		n->as="\\SEEN";
 	}
 	else if (strcmp(w, "KEYWORD") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_msgkeyword;
-		if (!(n->as=strdup(getword(ptr))))
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "FROM") == 0 ||
 		 strcmp(w, "TO") == 0 ||
@@ -2603,102 +2603,77 @@ static struct searchinfo *createSearch2(char *w,
 	{
 		n=alloc_search(head);
 		n->type=search_header;
-		if (!(n->cs=strdup(w)))
-			write_error_exit(0);
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->cs=w;
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "HEADER") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_header;
-		if (!(n->cs=strdup(getword(ptr))))
-			write_error_exit(0);
+		n->cs=getword(ptr);
 		up(n->cs);
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "BODY") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_body;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "TEXT") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_text;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "BEFORE") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_before;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "ON") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_on;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SINCE") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_since;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SENTBEFORE") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_sentbefore;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SENTON") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_senton;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SINCE") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_sentsince;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "SMALLER") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_smaller;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
+
 	}
 	else if (strcmp(w, "LARGER") == 0)
 	{
 		n=alloc_search(head);
 		n->type=search_larger;
-		n->as=strdup(getword(ptr));
-		if (!n->as)
-			write_error_exit(0);
+		n->as=getword(ptr);
 	}
 	else
 	{

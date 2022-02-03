@@ -33,9 +33,6 @@ void free_search(struct searchinfo *si)
 	while (si)
 	{
 		p=si->next;
-		if (si->as)	free(si->as);
-		if (si->bs)	free(si->bs);
-		if (si->cs)	free(si->cs);
 
 		maildir_search_destroy(&si->sei);
 
@@ -171,15 +168,13 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->cs=strdup(t->tokenbuf);
-		if (!si->cs)
-			write_error_exit(0);
+		si->cs=t->tokenbuf;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -195,13 +190,13 @@ const char *keyword;
 
 		si=alloc_search(head);
 		si->type=search_header;
-		si->cs=my_strdup(keyword);
+		si->cs=keyword;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -218,7 +213,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -235,7 +230,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -249,7 +244,7 @@ const char *keyword;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -266,7 +261,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -283,7 +278,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -300,7 +295,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(keyword);
+		si->as=keyword;
 		nexttoken();
 		return (si);
 	}
@@ -317,7 +312,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -334,7 +329,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -349,7 +344,7 @@ const char *keyword;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -366,7 +361,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -381,7 +376,7 @@ const char *keyword;
 		t=nexttoken();
 		if (!ismsgset(t))
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -400,7 +395,7 @@ const char *keyword;
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (0);
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 
 		if (isnot)
@@ -424,10 +419,9 @@ const char *keyword;
 
 		si=alloc_search(head);
 		si->type=search_msgflag;
-		if ((si->as=(char *)malloc(strlen(keyword)+2)) == 0)
-			write_error_exit(0);
-		si->as[0]='\\';
-		strcpy(si->as+1, keyword);
+		si->as.reserve(strlen(keyword)+1);
+		si->as="\\";
+		si->as += keyword;
 		nexttoken();
 		return (si);
 	}
@@ -443,10 +437,9 @@ const char *keyword;
 
 		si=alloc_search(head);
 		si->type=search_msgflag;
-		if ((si->as=(char *)malloc(strlen(keyword))) == 0)
-			write_error_exit(0);
-		si->as[0]='\\';
-		strcpy(si->as+1, keyword+2);
+		si->as.reserve(strlen(keyword));
+		si->as="\\";
+		si->as += keyword+2;
 		nexttoken();
 
 		si2=alloc_search(head);
@@ -463,12 +456,12 @@ const char *keyword;
 		si->type=search_and;
 		si2=si->a=alloc_search(head);
 		si2->type=search_msgflag;
-		si2->as=my_strdup("\\RECENT");
+		si2->as="\\RECENT";
 		si2=si->b=alloc_search(head);
 		si2->type=search_not;
 		si2=si2->a=alloc_search(head);
 		si2->type=search_msgflag;
-		si2->as=my_strdup("\\SEEN");
+		si2->as="\\SEEN";
 		nexttoken();
 		return (si);
 	}
@@ -481,7 +474,7 @@ const char *keyword;
 		si->type=search_not;
 		si2=si->a=alloc_search(head);
 		si2->type=search_msgflag;
-		si2->as=my_strdup("\\RECENT");
+		si2->as="\\RECENT";
 		nexttoken();
 		return (si);
 	}
@@ -490,7 +483,7 @@ const char *keyword;
 	{
 		si=alloc_search(head);
 		si->type=search_messageset;
-		si->as=my_strdup(t->tokenbuf);
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
@@ -514,7 +507,7 @@ void search_set_charset_conv(struct searchinfo *si, const char *charset)
 			continue; /* Already found, no need to do this again */
 
 		if (maildir_search_start_str_chset(&si->sei,
-						   si->as ? si->as:"",
+						   si->as.c_str(),
 						   charset))
 		{
 			si->value=0;

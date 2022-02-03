@@ -507,38 +507,49 @@ unsigned	i;
 	return (rfc822_parsedate_chk(p, tret));
 }
 
-extern "C" int get_flagname(const char *p, struct imapflags *flags)
+bool get_flagname(std::string s, struct imapflags *flags)
 {
-	if (strcasecmp(p, "\\SEEN") == 0)
+	if (s.empty() || s[0] != '\\')
+		return false;
+
+	std::transform(s.begin(), s.end(),
+		       s.begin(),
+		       []
+		       (char c)
+		       {
+			       if (c >= 'a' && c <= 'z')
+				       c += 'A'-'a';
+			       return c;
+		       });
+
+	if (s == "\\SEEN")
 		flags->seen=1;
-	else if (strcasecmp(p, "\\ANSWERED") == 0)
+	else if (s == "\\ANSWERED")
 		flags->answered=1;
-	else if (strcasecmp(p, "\\DRAFT") == 0)
+	else if (s == "\\DRAFT")
 		flags->drafts=1;
-	else if (strcasecmp(p, "\\DELETED") == 0)
+	else if (s == "\\DELETED")
 		flags->deleted=1;
-	else if (strcasecmp(p, "\\FLAGGED") == 0)
+	else if (s == "\\FLAGGED")
 		flags->flagged=1;
-	else return (-1);
-	return (0);
+	else return false;
+	return true;
 }
 
-extern "C" int valid_keyword(const char *kw)
+bool valid_keyword(const std::string &kw)
 {
-	const char *p;
-
 	if (!keywords())
-		return 0;
+		return false;
 
 	/* Check for valid keyword names */
 
-	for (p=kw; *p; p++)
+	for (auto p:kw)
 	{
-		if ((unsigned char)*p <= ' '
-		    || strchr(KEYWORD_IMAPVERBOTTEN, *p))
-			return 0;
+		if ((unsigned char)p <= ' '
+		    || strchr(KEYWORD_IMAPVERBOTTEN, p))
+			return false;
 	}
-	return 1;
+	return true;
 }
 
 int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
@@ -557,7 +568,7 @@ struct imaptoken *t;
 
 	while ((t=nexttoken_nouc())->tokentype == IT_ATOM)
 	{
-		if (get_flagname(t->tokenbuf, flags))
+		if (!get_flagname(t->tokenbuf, flags))
 		{
 			if (!valid_keyword(t->tokenbuf))
 				return -1;

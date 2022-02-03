@@ -34,10 +34,10 @@ extern time_t rfc822_parsedt(const char *);
 extern struct imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 
-extern "C" int get_flagname(const char *, struct imapflags *);
+extern bool get_flagname(std::string s, struct imapflags *flags);
 extern "C" void get_message_flags( struct imapscanmessageinfo *,
 				   char *, struct imapflags *);
-extern "C" int valid_keyword(const char *kw);
+extern bool valid_keyword(const std::string &kw);
 
 static void fill_search_preparse(struct searchinfo *);
 
@@ -116,11 +116,11 @@ void search_internal(struct searchinfo *si, struct searchinfo *sihead,
 
 	/* Shortcuts for keyword-based searches */
 
-	if (si->type == search_msgkeyword && si->bs == NULL && si->ke)
+	if (si->type == search_msgkeyword && si->bs.empty() && si->ke)
 		search_byKeyword(NULL, si, sihead, charset, isuid,
 			       callback_func, voidarg);
 	else if (si->type == search_and &&
-		 si->a->type == search_msgkeyword && si->a->bs == NULL
+		 si->a->type == search_msgkeyword && si->a->bs.empty()
 		 && si->a->ke)
 		search_byKeyword(si->b, si->a, sihead, charset, isuid,
 			       callback_func, voidarg);
@@ -256,7 +256,7 @@ int	rc;
 
 /* Check if the given index is included in the specified message set */
 
-static int is_in_set(const char *msgset, unsigned long n)
+static bool is_in_set(const char *msgset, unsigned long n)
 {
 unsigned long i, j;
 
@@ -290,10 +290,10 @@ unsigned long i, j;
 					j=j*10 + (*msgset++-'0');
 				}
 		}
-		if (n >= i && n <= j)	return (1);
+		if (n >= i && n <= j)	return (true);
 		if (*msgset == 0 || *msgset++ != ',')	break;
 	}
-	return (0);
+	return (false);
 }
 
 /*
@@ -302,31 +302,28 @@ unsigned long i, j;
 ** Use convenient RFC822 functions for that purpose.
 */
 
-static int decode_date(char *p, time_t *tret)
+static bool decode_date(const std::string &p, time_t &tret)
 {
-	char	*s=(char *)malloc(strlen(p)+sizeof(" 00:00:00"));
-	unsigned        i;
-	int ret;
-
-	if (!s)	write_error_exit(0);
+	std::string s;
 
         /* Convert to format rfc822_parsedt likes */
 
-        for (i=1; p[i] != ' '; i++)
-        {
-                if (!p[i])	break;
-        }
-	memcpy(s, p, i);
-	strcpy(s+i, " 00:00:00");
+	auto i=p.find(' ');
+
+	if (i == p.npos)
+		i=p.size();
+
+	s.reserve(i+sizeof("00:00:00"));
+
+	s=p.substr(0, i);
+	s += " 00:00:00";
 	while (i)
 	{
 		if (s[--i] == '-')
 			s[i]=' ';
 	}
 
-	ret=rfc822_parsedate_chk(s, tret);
-	free(s);
-	return (ret);
+	return rfc822_parsedate_chk(s.c_str(), &tret) == 0;
 }
 
 /* Given a time_t that falls on, say, 3-Aug-1999 9:50:43 local time,
@@ -351,15 +348,16 @@ char	buf1[60], buf2[80];
 	return t;
 }
 
-static char *timestamp_for_sorting(time_t t)
+static std::string timestamp_for_sorting(time_t t)
 {
-struct tm *tm=localtime(&t);
-char	buf[200];
+	struct tm *tm=localtime(&t);
+	char	buf[200];
 
 	buf[0]=0;
 	if ( strftime(buf, sizeof(buf), "%Y.%m.%d.%H.%M.%S", tm) == 0)
 		buf[0]=0;
-	return (my_strdup(buf));
+
+	return buf;
 }
 
 static void fill_search_preparse(struct searchinfo *p)
@@ -372,14 +370,13 @@ static void fill_search_preparse(struct searchinfo *p)
 			memset(&flags, 0, sizeof(flags));
 			p->ke=NULL;
 
-			if (get_flagname(p->as, &flags) == 0)
+			if (get_flagname(p->as, &flags))
 			{
-				p->bs=(char *)malloc(sizeof(flags));
-
-				if (!p->bs)
-					write_error_exit(0);
-
-				memcpy(p->bs, &flags, sizeof(flags));
+				p->bs.clear();
+				p->bs.insert(p->bs.end(),
+					     reinterpret_cast<char *>(&flags),
+					     reinterpret_cast<char *>(&flags+1)
+				);
 			}
 		}
 		break;
@@ -387,9 +384,8 @@ static void fill_search_preparse(struct searchinfo *p)
 	case search_msgkeyword:
 		p->ke=NULL;
 		if (valid_keyword(p->as))
-			p->ke=libmail_kweFind(current_maildir_info
-					       .keywordList,
-					       p->as, 0);
+			p->ke=libmail_kweFind(current_maildir_info.keywordList,
+					      p->as.c_str(), 0);
 		break;
 	default:
 		break;
@@ -404,15 +400,17 @@ static void fill_search_veryquick(struct searchinfo *p,
 	switch (p->type) {
 	case search_msgflag:
 		{
-			struct imapflags *f=(struct imapflags *)p->bs;
-
 			p->value=0;
-			if (strcmp(p->as, "\\RECENT") == 0 &&
+			if (p->as == "\\RECENT" &&
 				current_maildir_info.msgs[msgnum].recentflag)
 				p->value=1;
 
-			if (f)
+			if (!p->bs.empty())
 			{
+				imapflags *f=reinterpret_cast<imapflags *>(
+					&p->bs[0]
+				);
+
 				if (f->seen && flags->seen)
 					p->value=1;
 				if (f->answered && flags->answered)
@@ -448,7 +446,7 @@ static void fill_search_veryquick(struct searchinfo *p,
 		}
 		break;
 	case search_messageset:
-		if (is_in_set(p->as, msgnum+1))
+		if (is_in_set(p->as.c_str(), msgnum+1))
 			p->value=1;
 		else
 			p->value=0;
@@ -457,7 +455,8 @@ static void fill_search_veryquick(struct searchinfo *p,
 		p->value=1;
 		break;
 	case search_uid:
-		if (is_in_set(p->as, current_maildir_info.msgs[msgnum].uid))
+		if (is_in_set(p->as.c_str(),
+			      current_maildir_info.msgs[msgnum].uid))
 			p->value=1;
 		else
 			p->value=0;
@@ -479,7 +478,7 @@ static void fill_search_quick(struct searchinfo *p,
 		{
 			time_t t;
 
-			if (decode_date(p->as, &t) == 0 &&
+			if (decode_date(p->as, t) &&
 			    timestamp_to_day(stat_buf->st_mtime) < t)
 				p->value=1;
 		}
@@ -489,7 +488,7 @@ static void fill_search_quick(struct searchinfo *p,
 		{
 			time_t t;
 
-			if (decode_date(p->as, &t) == 0 &&
+			if (decode_date(p->as, t) &&
 			    timestamp_to_day(stat_buf->st_mtime) >= t)
 				p->value=1;
 		}
@@ -499,7 +498,7 @@ static void fill_search_quick(struct searchinfo *p,
 		{
 			time_t t;
 
-			if (decode_date(p->as, &t) == 0 &&
+			if (decode_date(p->as, t) &&
 			    timestamp_to_day(stat_buf->st_mtime) == t)
 				p->value=1;
 		}
@@ -509,7 +508,7 @@ static void fill_search_quick(struct searchinfo *p,
 		{
 			unsigned long n;
 
-			if (sscanf(p->as, "%lu", &n) > 0 &&
+			if (sscanf(p->as.c_str(), "%lu", &n) > 0 &&
 			    (unsigned long)stat_buf->st_size < n)
 				p->value=1;
 		}
@@ -519,7 +518,7 @@ static void fill_search_quick(struct searchinfo *p,
 		{
 			unsigned long n;
 
-			if (sscanf(p->as, "%lu", &n) > 0 &&
+			if (sscanf(p->as.c_str(), "%lu", &n) > 0 &&
 			    (unsigned long)stat_buf->st_size > n)
 				p->value=1;
 		}
@@ -540,17 +539,8 @@ static void fill_search_quick(struct searchinfo *p,
 		/* DUMMY nodes for SORT/THREAD.  Make sure that the
 		** dummy node is CLEARed */
 
-		if (p->as)
-		{
-			free(p->as);
-			p->as=0;
-		}
-
-		if (p->bs)
-		{
-			free(p->bs);
-			p->bs=0;
-		}
+		p->as.clear();
+		p->bs.clear();
 
 		switch (p->type)	{
 		case search_arrival:
@@ -566,7 +556,7 @@ static void fill_search_quick(struct searchinfo *p,
 				sprintf(buf2, "%*s", (int)(sizeof(buf2)-1), buf);
 				for (q=buf2; *q == ' '; *q++='0')
 					;
-				p->as=my_strdup(buf2);
+				p->as=buf2;
 				p->value=1;
 			}
 			break;
@@ -744,14 +734,14 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			}
 		}
 
-		if ( (sip->type == search_cc && iscc == 0 && sip->as == 0)
+		if ( (sip->type == search_cc && iscc == 0 && sip->as.empty())
 		     ||
-		     (sip->type == search_from && isfrom == 0 && sip->as == 0)
+		     (sip->type == search_from && isfrom == 0 && sip->as.empty())
 		     ||
-		     (sip->type == search_to && isto == 0 && sip->as == 0)
+		     (sip->type == search_to && isto == 0 && sip->as.empty())
 		     ||
 		     (sip->type == search_references1 && isinreplyto == 0
-		      && sip->bs == 0))
+		      && sip->bs.empty()))
 		{
 			struct rfc822t *t;
 			struct rfc822a *a;
@@ -768,30 +758,28 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 			if (sip->type == search_references1)
 			{
-				sip->bs=(char *)malloc(strlen(s)+3);
-				if (!sip->bs)
-					write_error_exit(0);
-				strcat(strcat(strcpy(sip->bs, "<"), s), ">");
-				free(s);
+				sip->bs.reserve(strlen(s)+2);
+				sip->bs="<";
+				sip->bs += s;
+				sip->bs += ">";
 			}
 			else
 				sip->as=s;
+			free(s);
 		}
 
 		switch (sip->type) {
 		case search_orderedsubj:
 
-			if (isdate == 0 && sip->bs == 0)
+			if (isdate == 0 && sip->bs.empty())
 			{
-				sip->bs=strdup(value);
-				if (!sip->bs)
-					write_error_exit(0);
+				sip->bs=value;
 			}
 			break;
 
 		case search_date:
 
-			if (isdate == 0 && sip->as == 0)
+			if (isdate == 0 && sip->as.empty())
 			{
 				time_t msg_time;
 
@@ -812,7 +800,7 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 				time_t given_time;
 				time_t msg_time;
 
-				if (decode_date(sip->as, &given_time)
+				if (!decode_date(sip->as, given_time)
 				    || rfc822_parsedate_chk(value, &msg_time))
 					break;
 
@@ -829,27 +817,21 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			break;
 
 		case search_references1:
-			if (isreferences == 0 && sip->as == 0)
+			if (isreferences == 0 && sip->as.empty())
 			{
-				sip->as=strdup(value);
-				if (!sip->as)
-					write_error_exit(0);
+				sip->as=value;
 			}
 			break;
 		case search_references2:
-			if (isdate == 0 && sip->as == 0)
+			if (isdate == 0 && sip->as.empty())
 			{
-				sip->as=strdup(value);
-				if (!sip->as)
-					write_error_exit(0);
+				sip->as=value;
 			}
 			break;
 		case search_references4:
-			if (ismessageid == 0 && sip->as == 0)
+			if (ismessageid == 0 && sip->as.empty())
 			{
-				sip->as=strdup(value);
-				if (!sip->as)
-					write_error_exit(0);
+				sip->as=value;
 			}
 			break;
 		default:
@@ -905,28 +887,29 @@ static int fill_search_header_done(const char *name, void *arg)
 	for (sip=decodeinfo->si; sip; sip=sip->next)
 		switch (sip->type) {
 		case search_references3:
-			if (issubject == 0 && sip->as == 0)
+			if (issubject == 0 && sip->as.empty())
 			{
-				sip->as=strdup(decodeinfo->utf8buf);
-				if (!sip->as)
-					write_error_exit(0);
+				sip->as=decodeinfo->utf8buf;
 			}
 			break;
 		case search_orderedsubj:
 
-			if (issubject == 0 && sip->as == 0)
+			if (issubject == 0 && sip->as.empty())
 			{
 				int dummy;
 
-				sip->as=rfc822_coresubj(decodeinfo->utf8buf,
+				char *p=rfc822_coresubj(decodeinfo->utf8buf,
 							&dummy);
-				if (!sip->as)
+				if (!p)
 					write_error_exit(0);
+				sip->as=p;
+				free(p);
 			}
 			break;
 		case search_header:
 
-			if (sip->cs == NULL || rfc822hdr_namecmp(sip->cs, name))
+			if (sip->cs.empty() ||
+			    rfc822hdr_namecmp(sip->cs.c_str(), name))
 				break;
 
 			/* FALLTHRU */

@@ -36,7 +36,7 @@ struct os_threadinfo {
 	} ;
 
 static void os_add(std::vector<os_threadinfo> &v,
-		   unsigned long n, const char *s,
+		   unsigned long n, const std::string &s,
 		   time_t sent_date)
 {
 	v.push_back({s, sent_date, n});
@@ -139,15 +139,14 @@ static void thread_os_callback(struct searchinfo *si,
 		/* SHOULD BE ALWAYS TRUE */
 		time_t t=0;
 
-		if (sihead->bs)
-			rfc822_parsedate_chk(sihead->bs, &t);
+		rfc822_parsedate_chk(sihead->bs.c_str(), &t);
 
 		os_add(
 			*reinterpret_cast<std::vector<os_threadinfo> *>(
 				voidarg
 			),
 			isuid ? current_maildir_info.msgs[i].uid:i+1,
-			sihead->as ? sihead->as:"",
+			sihead->as,
 			t);
 	}
 }
@@ -185,7 +184,8 @@ static void thread_ref_callback(struct searchinfo *si,
 	    sihead->a->a->type == search_references3 && sihead->a->a->a &&
 	    sihead->a->a->a->type == search_references4)
 	{
-		const char *ref, *inreplyto, *subject, *date, *msgid;
+		std::string inreplyto;
+		std::string ref, subject, date, msgid;
 
 		ref=sihead->as;
 		inreplyto=sihead->bs;
@@ -203,8 +203,9 @@ static void thread_ref_callback(struct searchinfo *si,
 #endif
 
 		if (!rfc822_threadmsg( (struct imap_refmsgtable *)voidarg,
-				       msgid, ref && *ref ? ref:inreplyto,
-				       subject, date, 0, i))
+				       msgid.c_str(),
+				       (!ref.empty() ? ref:inreplyto).c_str(),
+				       subject.c_str(), date.c_str(), 0, i))
 			write_error_exit(0);
 	}
 }
@@ -352,8 +353,6 @@ static void sort_callback(struct searchinfo *si, struct searchinfo *sihead,
 
 	for (ss=sihead; ss; ss=ss->a)
 	{
-		const char *p;
-
 		if (i >= s)
 			break;	/* Something's fucked up, better handle it
 				** gracefully, instead of dumping core.
@@ -368,9 +367,7 @@ static void sort_callback(struct searchinfo *si, struct searchinfo *sihead,
 		case search_from:
 		case search_size:
 		case search_to:
-			p=ss->as;
-			if (!p)	p="";
-			msg.sortfields[i]=p;
+			msg.sortfields[i]=ss->as;
 			/* fprintf(stderr, "%d %s\n", msg->sortorder[i], msg->sortfields[i]); */
 			++i;
 			continue;
