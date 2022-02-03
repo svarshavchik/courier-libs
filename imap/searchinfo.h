@@ -98,7 +98,7 @@ struct searchinfo {
 	int	value=0;/* When evaluating: 0 - false, 1 - true, -1 - unknown */
 			/* Not used in AND, OR, and NOT nodes */
 
-	struct maildir_searchengine sei;	/* Used when searching */
+	mail::Search sei;	/* Used when searching */
 
 	struct libmail_keywordEntry *ke=nullptr;
 	} ;

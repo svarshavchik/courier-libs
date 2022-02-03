@@ -20,7 +20,6 @@
 struct searchinfo *alloc_search(struct searchinfo **head)
 {
 	auto si=new searchinfo;
-	maildir_search_init(&si->sei);
 	si->next= *head;
 	*head=si;
 	return (si);
@@ -33,8 +32,6 @@ void free_search(struct searchinfo *si)
 	while (si)
 	{
 		p=si->next;
-
-		maildir_search_destroy(&si->sei);
 
 		delete si;
 		si=p;
@@ -506,9 +503,7 @@ void search_set_charset_conv(struct searchinfo *si, const char *charset)
 		if (si->value > 0)
 			continue; /* Already found, no need to do this again */
 
-		if (maildir_search_start_str_chset(&si->sei,
-						   si->as.c_str(),
-						   charset))
+		if (!si->sei.setString(si->as, charset))
 		{
 			si->value=0;
 			continue;

@@ -709,24 +709,20 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			** feed it "Headername: "
 			*/
 
-			maildir_search_reset(&sip->sei);
+			sip->sei.reset();
 
 			for (p=name; *p; p++)
 			{
-				maildir_search_step_unicode_lc(&sip->sei,
-							       (unsigned char)
-							       *p);
-				if (maildir_search_found(&sip->sei))
+				sip->sei << (char32_t)(unsigned char)*p;
+				if (sip->sei)
 					sip->value=1;
 			}
-			for (p=": "; *p; p++)
-			{
-				maildir_search_step_unicode_lc(&sip->sei,
-							       (unsigned char)
-							       *p);
-				if (maildir_search_found(&sip->sei))
-					sip->value=1;
-			}
+			sip->sei << ':';
+			sip->sei << ' ';
+
+
+			if (sip->sei)
+				sip->value=1;
 		}
 
 		if ( (sip->type == search_cc && iscc == 0 && sip->as.empty())
@@ -894,7 +890,7 @@ static int fill_search_header_done(const char *name, void *arg)
 			if (sip->value > 0)
 				break;
 
-			maildir_search_reset(&sip->sei);
+			sip->sei.reset();
 
 			{
 				auto ret=unicode::iconvert::tou::convert(
@@ -907,18 +903,12 @@ static int fill_search_header_done(const char *name, void *arg)
 
 				for (auto uc:std::get<std::u32string>(ret))
 				{
-					maildir_search_step_unicode_lc(
-						&sip->sei,
-						uc
-					);
+					sip->sei << uc;
 				}
 
-				maildir_search_step_unicode_lc(
-					&sip->sei,
-					' '
-				);
+				sip->sei << ' ';
 
-				if (maildir_search_found(&sip->sei))
+				if (sip->sei)
 				{
 					sip->value=1;
 				}
@@ -1015,9 +1005,9 @@ static int fill_search_body_ucs4(const char *str, size_t n, void *arg)
 
 			for (i=0; i<n; i++)
 			{
-				maildir_search_step_unicode_lc(&sip->sei, u[i]);
+				sip->sei << u[i];
 
-				if (maildir_search_found(&sip->sei))
+				if (sip->sei)
 				{
 					sip->value=1;
 					break;
