@@ -21,11 +21,15 @@
 #include	<list>
 #include	<algorithm>
 
-static void thread_os_callback(contentsearch &cs, searchiter, int,
-			       unsigned long, void *);
+struct os_threadinfo;
 
-static void thread_ref_callback(contentsearch &cs, searchiter, int,
-				unsigned long, void *);
+static void thread_os_callback(contentsearch &cs,
+			       bool isuid, unsigned long i,
+			       std::vector<os_threadinfo> &os);
+
+static void thread_ref_callback(contentsearch &cs,
+				bool isuid, unsigned long i,
+				imap_refmsgtable *reftable);
 
 extern struct imapscaninfo current_maildir_info;
 
@@ -97,11 +101,16 @@ static void printos(const std::vector<os_threadinfo> &array)
 }
 
 void contentsearch::dothreadorderedsubj(searchiter si,
-					const std::string &charset, int isuid)
+					const std::string &charset, bool isuid)
 {
 	std::vector<os_threadinfo> os;
 
-	search_internal(si, charset, isuid, thread_os_callback, &os);
+	search_internal(si, charset,
+			[&]
+			(unsigned long i)
+			{
+				thread_os_callback(*this, isuid, i, os);
+			});
 
 	std::sort(os.begin(), os.end(),
 		  [&]
@@ -130,9 +139,9 @@ This callback function is called once search finds a qualifying message.
 We save its message number and subject in a link list.
 */
 
-static void thread_os_callback(contentsearch &cs, searchiter si,
-			       int isuid, unsigned long i,
-			       void *voidarg)
+static void thread_os_callback(contentsearch &cs,
+			       bool isuid, unsigned long i,
+			       std::vector<os_threadinfo> &os)
 {
 	if (cs.searchlist.front().type == search_orderedsubj)
 	{
@@ -141,13 +150,10 @@ static void thread_os_callback(contentsearch &cs, searchiter si,
 
 		rfc822_parsedate_chk(cs.searchlist.front().bs.c_str(), &t);
 
-		os_add(
-			*reinterpret_cast<std::vector<os_threadinfo> *>(
-				voidarg
-			),
-			isuid ? current_maildir_info.msgs[i].uid:i+1,
-			cs.searchlist.front().as,
-			t);
+		os_add(os,
+		       isuid ? current_maildir_info.msgs[i].uid:i+1,
+		       cs.searchlist.front().as,
+		       t);
 	}
 }
 
@@ -155,7 +161,7 @@ static void printthread(struct imap_refmsg *, int);
 
 void contentsearch::dothreadreferences(searchiter si,
 				       const std::string &charset,
-				       int isuid)
+				       bool isuid)
 {
 	struct imap_refmsgtable *reftable;
 	struct imap_refmsg *root;
@@ -166,8 +172,13 @@ void contentsearch::dothreadreferences(searchiter si,
 		return;
 	}
 
-	search_internal(si, charset, 0,
-			thread_ref_callback, reftable);
+	search_internal(
+		si, charset,
+		[&]
+		(unsigned long i)
+		{
+			thread_ref_callback(*this, isuid, i, reftable);
+		});
 
 	root=rfc822_thread(reftable);
 	printthread(root, isuid);
@@ -175,9 +186,8 @@ void contentsearch::dothreadreferences(searchiter si,
 }
 
 static void thread_ref_callback(contentsearch &cs,
-				searchiter si,
-				int isuid, unsigned long i,
-				void *voidarg)
+				bool isuid, unsigned long i,
+				imap_refmsgtable *reftable)
 {
 	auto &first=cs.searchlist.front();
 
@@ -207,7 +217,7 @@ static void thread_ref_callback(contentsearch &cs,
 			msgid ? msgid:"");
 #endif
 
-		if (!rfc822_threadmsg( (struct imap_refmsgtable *)voidarg,
+		if (!rfc822_threadmsg( reftable,
 				       msgid.c_str(),
 				       (!ref.empty() ? ref:inreplyto).c_str(),
 				       subject.c_str(), date.c_str(), 0, i))
@@ -278,12 +288,11 @@ struct sortmsgs {
 	std::vector<char> reverse_sort_order;
 	} ;
 
-static void sort_callback(contentsearch &,
-			  searchiter, int,
-			  unsigned long, void *);
+static void sort_callback(contentsearch &cs, bool isuid, unsigned long n,
+			  sortmsgs &sm);
 
 void contentsearch::dosortmsgs(searchiter si,
-			       const std::string &charset, int isuid)
+			       const std::string &charset, bool isuid)
 {
 	sortmsgs sm;
 
@@ -308,7 +317,13 @@ void contentsearch::dosortmsgs(searchiter si,
 			break;
 		}
 
-	search_internal(si, charset, isuid, sort_callback, &sm);
+	search_internal(si, charset,
+			[&]
+			(unsigned long i)
+			{
+				sort_callback(*this, isuid, i, sm);
+			});
+
 
 	std::sort(sm.array.begin(), sm.array.end(),
 		  [&]
@@ -340,17 +355,17 @@ void contentsearch::dosortmsgs(searchiter si,
 	}
 }
 
-static void sort_callback(contentsearch &cs, searchiter si,
-			  int isuid, unsigned long n, void *voidarg)
+static void sort_callback(contentsearch &cs,
+			  bool isuid, unsigned long n,
+			  sortmsgs &sm)
 {
-	struct sortmsgs *sm=(struct sortmsgs *)voidarg;
 	searchiter ss;
 
-	sm->array.push_back({});
+	sm.array.push_back({});
 
-	sortmsginfo &msg=sm->array.back();
+	sortmsginfo &msg=sm.array.back();
 
-	auto s=sm->reverse_sort_order.size();
+	auto s=sm.reverse_sort_order.size();
 	msg.sortfields.resize(s);
 
 	size_t i=0;

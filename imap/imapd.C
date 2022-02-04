@@ -5630,7 +5630,17 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes("\r\n");
 #endif
 		writes("* SEARCH");
-		cs.dosearch(si, charset, uid);
+
+		cs.search_internal(
+			si, charset,
+			[uid]
+			(unsigned long i)
+			{
+				writes(" ");
+				writen(uid ? current_maildir_info.msgs[i].uid
+				       :i+1);
+			});
+
 		writes("\r\n");
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
@@ -5650,7 +5660,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		/* The following jazz is mainly for future extensions */
 
 		void (contentsearch::*thread_func)(searchiter,
-						   const std::string &, int);
+						   const std::string &, bool);
 		search_type thread_type;
 
 		{

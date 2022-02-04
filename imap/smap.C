@@ -2768,51 +2768,47 @@ struct smap1_search_results {
 	unsigned long prev_search_hit_start;
 };
 
-static void smap1_search_cb_range(struct smap1_search_results *searchResults)
+static void smap1_search_cb_range(smap1_search_results &searchResults)
 {
-	if (searchResults->prev_runs > 100)
+	if (searchResults.prev_runs > 100)
 	{
 		writes("\n");
-		searchResults->prev_runs=0;
+		searchResults.prev_runs=0;
 	}
 
-	if (searchResults->prev_runs == 0)
+	if (searchResults.prev_runs == 0)
 		writes("* SEARCH");
 
 	writes(" ");
-	writen(searchResults->prev_search_hit_start);
-	if (searchResults->prev_search_hit_start !=
-	    searchResults->prev_search_hit)
+	writen(searchResults.prev_search_hit_start);
+	if (searchResults.prev_search_hit_start !=
+	    searchResults.prev_search_hit)
 	{
 		writes("-");
-		writen(searchResults->prev_search_hit);
+		writen(searchResults.prev_search_hit);
 	}
-	++searchResults->prev_runs;
+	++searchResults.prev_runs;
 }
 
-static void smap1_search_cb(contentsearch &cs,
-			    searchiter si,
-			    int isuid, unsigned long i, void *dummy)
+static void smap1_search_cb(unsigned long i,
+			    smap1_search_results &searchResults)
 {
-	struct smap1_search_results *searchResults=
-		(struct smap1_search_results *)dummy;
-
 	++i;
 
-	if (searchResults->prev_search_hit == 0)
+	if (searchResults.prev_search_hit == 0)
 	{
-		searchResults->prev_search_hit=
-			searchResults->prev_search_hit_start=i;
+		searchResults.prev_search_hit=
+			searchResults.prev_search_hit_start=i;
 		return;
 	}
 
-	if (i != searchResults->prev_search_hit+1)
+	if (i != searchResults.prev_search_hit+1)
 	{
 		smap1_search_cb_range(searchResults);
-		searchResults->prev_search_hit_start=i;
+		searchResults.prev_search_hit_start=i;
 	}
 
-	searchResults->prev_search_hit=i;
+	searchResults.prev_search_hit=i;
 }
 
 static void accessdenied(const char *acl_required)
@@ -4324,11 +4320,16 @@ void smap()
 			searchResults.prev_search_hit=0;
 			searchResults.prev_search_hit_start=0;
 
-			cs.search_internal(si, "utf-8", 0,
-					   smap1_search_cb, &searchResults);
+			cs.search_internal(
+				si, "utf-8",
+				[&]
+				(unsigned long i)
+				{
+					smap1_search_cb(i, searchResults);
+				});
 
 			if (searchResults.prev_search_hit)
-				smap1_search_cb_range(&searchResults);
+				smap1_search_cb_range(searchResults);
 
 			if (searchResults.prev_runs)
 				writes("\n");

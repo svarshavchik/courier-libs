@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2009 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -46,9 +46,6 @@ static void fill_search_quick(searchiter, unsigned long, struct stat *);
 
 static int search_evaluate(searchiter);
 
-static void search_callback(contentsearch &,
-			    searchiter, int, unsigned long, void *);
-
 /*
 **	search_internal() does the main heavylifting of searching the
 **	maildir for qualifying messages.  It calls a callback function
@@ -58,23 +55,9 @@ static void search_callback(contentsearch &,
 **	number.
 */
 
-void contentsearch::dosearch(searchiter si,
-			     const std::string &charset, int isuid)
-{
-	search_internal(si, charset, isuid, search_callback, 0);
-}
-
-static void search_callback(contentsearch &, searchiter si,
-			    int isuid, unsigned long i, void *dummy)
-{
-	writes(" ");
-	writen(isuid ? current_maildir_info.msgs[i].uid:i+1);
-}
-
 void contentsearch::search_internal(searchiter si,
-				    const std::string &charset, int isuid,
-				    search_callback_t callback_func,
-				    void *voidarg)
+				    const std::string &charset,
+				    search_callback_t callback_func)
 {
 	unsigned long i;
 	searchiter p;
@@ -86,27 +69,22 @@ void contentsearch::search_internal(searchiter si,
 
 	if (si->type == search_msgkeyword && si->bs.empty() && si->ke)
 	{
-		search_byKeyword(searchlist.end(), si, charset,
-				 isuid,
-				 callback_func, voidarg);
+		search_byKeyword(searchlist.end(), si, charset, callback_func);
 	}
 	else if (si->type == search_and &&
 		 si->a->type == search_msgkeyword && si->a->bs.empty()
 		 && si->a->ke)
 	{
-		search_byKeyword(si->b, si->a, charset, isuid,
-				 callback_func, voidarg);
+		search_byKeyword(si->b, si->a, charset, callback_func);
 	}
 	else for (i=0; i<current_maildir_info.nmessages; i++)
-		search_oneatatime(si, i, charset, isuid,
-				  callback_func, voidarg);
+		search_oneatatime(si, i, charset, callback_func);
 }
 
 void contentsearch::search_byKeyword(searchiter tree,
 				     searchiter keyword,
-				     const std::string &charset, int isuid,
-				     search_callback_t callback_func,
-				     void *voidarg)
+				     const std::string &charset,
+				     search_callback_t callback_func)
 {
 	struct libmail_kwMessageEntry *kme;
 
@@ -115,12 +93,11 @@ void contentsearch::search_byKeyword(searchiter tree,
 		unsigned long n=kme->libmail_kwMessagePtr->u.userNum;
 		if (tree==searchlist.end())
 		{
-			(*callback_func)(*this, keyword, isuid, n, voidarg);
+			callback_func(n);
 			continue;
 		}
 
-		search_oneatatime(tree, n, charset, isuid,
-				  callback_func, voidarg);
+		search_oneatatime(tree, n, charset, callback_func);
 	}
 }
 
@@ -130,9 +107,8 @@ void contentsearch::search_byKeyword(searchiter tree,
 
 void contentsearch::search_oneatatime(searchiter si,
 				      unsigned long i,
-				      const std::string &charset, int isuid,
-				      search_callback_t callback_func,
-				      void *voidarg)
+				      const std::string &charset,
+				      search_callback_t callback_func)
 {
 	searchiter p;
 	imapflags	flags;
@@ -155,7 +131,7 @@ void contentsearch::search_oneatatime(searchiter si,
 		if ((rc=search_evaluate(si)) >= 0)
 		{
 			if (rc > 0)
-				(*callback_func)(*this, si, isuid, i, voidarg);
+				callback_func(i);
 			return;
 		}
 
@@ -214,7 +190,7 @@ void contentsearch::search_oneatatime(searchiter si,
 
 		if (rc > 0)
 		{
-			(*callback_func)(*this, si, isuid, i, voidarg);
+			callback_func(i);
 		}
 		fclose(fp);
 		close(fd);

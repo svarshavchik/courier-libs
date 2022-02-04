@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string>
 #include <list>
+#include <functional>
 
 /*
 ** Copyright 1998 - 2022 S. Varshavchik.
@@ -123,14 +124,11 @@ public:
 
 	static void debug_search(searchiter);
 
-	void dosearch(searchiter, const std::string &, int);
-
-	typedef void (*search_callback_t)(contentsearch &, searchiter, int,
-					  unsigned long, void *);
+	typedef std::function<void (unsigned long)> search_callback_t;
 
 	void search_internal(searchiter,
 			     const std::string &,
-			     int, search_callback_t, void *);
+			     search_callback_t);
 
 	void search_set_charset_conv(const std::string &);
 
@@ -141,15 +139,13 @@ private:
 
 	void search_oneatatime(searchiter si,
 			       unsigned long i,
-			       const std::string &charset, int isuid,
-			       search_callback_t callback_func,
-			       void *voidarg);
+			       const std::string &charset,
+			       search_callback_t callback_func);
 
 	void search_byKeyword(searchiter tree,
 			      searchiter keyword,
-			      const std::string &charset, int isuid,
-			      search_callback_t callback_func,
-			      void *voidarg);
+			      const std::string &charset,
+			      search_callback_t callback_func);
 
 	void fill_search_header(const std::string &,
 				struct rfc2045 *, FILE *,
@@ -160,9 +156,9 @@ private:
 
 public:
 
-	void dothreadorderedsubj(searchiter, const std::string &, int);
-	void dothreadreferences(searchiter, const std::string &, int);
-	void dosortmsgs(searchiter, const std::string &, int);
+	void dothreadorderedsubj(searchiter, const std::string &, bool);
+	void dothreadreferences(searchiter, const std::string &, bool);
+	void dosortmsgs(searchiter, const std::string &, bool);
 
 
 };
