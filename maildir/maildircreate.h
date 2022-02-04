@@ -15,9 +15,11 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
+#if 0
+}
+#endif
 
-
-	/* Create messages in maildirs */
+/* Create messages in maildirs */
 
 struct maildir_tmpcreate_info {
 	const char *maildir;
@@ -46,7 +48,45 @@ void maildir_tmpcreate_free(struct maildir_tmpcreate_info *);
 int maildir_movetmpnew(const char *tmpname, const char *newname);
 
 #ifdef  __cplusplus
+#if 0
+{
+#endif
 }
+
+#include <string>
+
+namespace maildir {
+#if 0
+}
+#endif
+
+/* Create messages in maildirs */
+
+struct tmpcreate_info {
+	std::string maildir;
+	unsigned long msgsize=0;  /* If known, 0 otherwise (must use requota later)*/
+	std::string uniq;	/* You need when creating multiple msgs */
+	std::string hostname;	/* If known, empty string otherwise */
+	int openmode=0644;     	/* Default open mode */
+	bool doordie=true;    	/* Loop until we get it right. */
+	std::string tmpname;	/* On exit, filename in tmp */
+	std::string newname; /* On exit, filename in new */
+	std::string curname; /* On exit, filename in cur */
+
+	// Create a file descript
+	int fd();
+
+	// Open a FILE
+	FILE *fp();
+};
+
+int movetmpnew(const std::string &tmpname, const std::string &newname);
+
+#if 0
+{
+#endif
+}
+
 #endif
 
 #endif
