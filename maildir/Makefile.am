@@ -79,7 +79,7 @@ testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  
 testmaildirfilter_LDFLAGS=-static
 nodist_EXTRA_testmaildirfilter_SOURCES=dummy.C
 
-maildirkwtest_SOURCES=maildirkwtest.c
+maildirkwtest_SOURCES=maildirkwtest.C
 maildirkwtest_LDADD=libmaildir.la
 maildirkwtest_DEPENDENCIES=libmaildir.la
 maildirkwtest_LDFLAGS=-static

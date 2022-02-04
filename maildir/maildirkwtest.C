@@ -72,7 +72,7 @@ static void name2dir_test()
 		{ NULL, "INBOX/x", NULL },
 	};
 
-	int i;
+	size_t i;
 
 	for (i=0; i<sizeof(tests)/sizeof(tests[0]); ++i)
 	{
@@ -83,7 +83,8 @@ static void name2dir_test()
 		     (!p && tests[i].path) ||
 		     (p && strcmp(p, tests[i].path)))
 		{
-			fprintf(stderr, "name2dir test %d failed\n", i);
+			fprintf(stderr, "name2dir test %u failed\n",
+				(unsigned)i);
 			exit(1);
 		}
 		free(p);
@@ -112,7 +113,7 @@ static void folderdir_test()
 		{ "dir", "x", "dir/.x"},
 	};
 
-	int i;
+	size_t i;
 
 	for (i=0; i<sizeof(tests)/sizeof(tests[0]); ++i)
 	{
@@ -123,7 +124,8 @@ static void folderdir_test()
 		     (!p && tests[i].path) ||
 		     (p && strcmp(p, tests[i].path)))
 		{
-			fprintf(stderr, "folderdir test %d failed\n", i);
+			fprintf(stderr, "folderdir test %u failed\n",
+				(unsigned)i);
 			exit(1);
 		}
 		free(p);
