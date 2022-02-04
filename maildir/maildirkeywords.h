@@ -433,6 +433,13 @@ libmail_kwgFindByIndex(struct libmail_kwGeneric *g, size_t n);
 
 #include <set>
 #include <string>
+#include <unordered_set>
+#include <unordered_map>
+#include <tuple>
+#include <list>
+#include <utility>
+#include <memory>
+#include <stdexcept>
 
 /* Some C++ wrappers */
 
@@ -512,6 +519,359 @@ namespace mail {
 				}
 
 		};
+
+		// New implementation of keywords for C++11
+
+		typedef std::unordered_set<std::string> list;
+
+		// mail::keywords::hashtable<> hashtable;
+		//
+		// mail::keyword::message<> message;
+		//
+		// hashtable<>'s and message<>'s optional template parameter
+		// a metadata class that's associated with the keywords.
+		//
+		// message.keywords(hashtable, {"keyword1", "keyword2"});
+		//
+		// Defines the message's keywords. The 2nd parameter may be
+		// an empty unordered_set, defining no keywords. Additional
+		// variadic parameters get forwarded to the optional metadata
+		// class's constructor. Any associated keywords, and metadata
+		// get destroyed.
+		//
+		// hashtable->enumerate_keywords([](const std::string &s){});
+		//
+		// Enumerates all keywords in the hash table.
+		//
+		// hashtable->enumerate_messages([](const T &metadata){});
+		//
+		// Enumerates all messages in the hash table.
+		//
+		// hashtable->messages("$Sent", [](const T &metadata){});
+		//
+		// Enumerates all messages in the hash table that have this
+		// keyword.
+		//
+		// message.enumerate([](const std::string &s){});
+		// mail::keywords::list keywords=message.keywords();
+		//
+		// Enumerates or returns the message's keywords.
+
+		struct no_metadata {
+			bool operator==(const no_metadata &) const
+			{
+				return true;
+			}
+
+			bool operator!=(const no_metadata &) const
+			{
+				return false;
+			}
+		};
+
+		template<typename T> struct hashtable_entry;
+
+		template<typename T>
+		using keywordtable=std::unordered_map<
+			std::string,
+			std::list<hashtable_entry<T> *>>;
+
+		template<typename T> struct metadata_entry {
+			T value;
+			std::list<hashtable_entry<T>> entries;
+			size_t refcnt;
+
+			template<typename ...Args>
+			metadata_entry(Args && ...args)
+				: value{std::forward<Args>(args)...}, refcnt{0}
+			{
+			}
+		};
+
+		template<typename T>
+		using metadatatable=std::list<metadata_entry<T>>;
+
+		template<typename T=no_metadata> struct hashtable;
+
+		template<typename T> struct hashtable_entry {
+
+			typename keywordtable<T>::iterator keyword;
+			typename std::list<hashtable_entry<T> *
+					   >::iterator keyword_entry;
+
+			typename metadatatable<T>::iterator metadata;
+			typename std::list<hashtable_entry<T>
+					   >::iterator metadata_entry;
+
+
+			void removing(const hashtable<T> &installed_hashtable)
+			{
+				keyword->second.erase(keyword_entry);
+
+				if (keyword->second.empty())
+					installed_hashtable->keywords
+						.erase(keyword);
+			}
+		};
+
+		template<typename T>
+		struct hashtable_base {
+
+			keywordtable<T> keywords;
+
+			metadatatable<T> metadata;
+
+			template<typename Callback>
+			void enumerate_keywords(Callback &&callback)
+			{
+				for (auto &v: keywords)
+					callback(v.first);
+			}
+
+			template<typename Callback>
+			void enumerate_messages(Callback &&callback)
+			{
+				for (auto &v: metadata)
+					callback(v.value);
+			}
+
+			template<typename Key, typename Callback>
+			void messages(Key &&key, Callback &&callback)
+			{
+				auto iter=keywords.find(
+					std::forward<Key>(key)
+				);
+
+				if (iter == keywords.end())
+					return;
+
+				for (auto &e: iter->second)
+					callback(e->metadata->value);
+			}
+		};
+
+		template<typename T>
+		struct hashtable : std::shared_ptr<hashtable_base<T>> {
+
+			hashtable() : std::shared_ptr<hashtable_base<T>>{
+				std::make_shared<hashtable_base<T>>()
+					}
+			{
+			}
+
+			using std::shared_ptr<hashtable_base<T>>::shared_ptr;
+
+			using std::shared_ptr<hashtable_base<T>>::operator->;
+			using std::shared_ptr<hashtable_base<T>>::operator bool;
+		};
+
+		template<typename T=no_metadata> struct message {
+
+		protected:
+			hashtable<T> installed_hashtable{nullptr};
+
+			typename metadatatable<T>::iterator installed_metadata;
+
+		public:
+			message()=default;
+
+			template<typename ...Args> message(
+				const hashtable<T> &h,
+				const list &strings={},
+				Args &&...args)
+			{
+				keywords(h, strings,
+					 std::forward<Args>(args)...);
+			}
+
+			message(const message<T> &m) : message()
+			{
+				operator=(m);
+			}
+
+			message &operator=(const message<T> &o)
+			{
+				auto h=o.installed_hashtable;
+				auto m=o.installed_metadata;
+
+				if (h)
+					++m->refcnt;
+
+				remove();
+
+				installed_hashtable=h;
+				installed_metadata=m;
+				return *this;
+			}
+
+			~message()
+			{
+				remove();
+			}
+
+			void remove()
+			{
+				if (!installed_hashtable)
+					return;
+
+				if (--installed_metadata->refcnt)
+				{
+					installed_hashtable=nullptr;
+					return;
+				}
+
+				for (auto b=installed_metadata->entries.begin(),
+					     e=installed_metadata->entries.end()
+					     ;
+				     b != e; ++b)
+				{
+					b->removing(installed_hashtable);
+				}
+
+				installed_hashtable->metadata.erase(
+					installed_metadata
+				);
+
+				installed_hashtable=nullptr;
+			}
+
+			list keywords() const
+			{
+			       list s;
+
+			       enumerate(
+				       [&]
+				       (const std::string &kw)
+				       {
+					       s.insert(kw);
+				       });
+
+				return s;
+			}
+
+			template<typename Callback>
+			void enumerate(Callback &&callback) const
+			{
+				if (!installed_hashtable)
+					return;
+
+				for (auto &entry:installed_metadata->entries)
+				{
+					callback(entry.keyword->first);
+				}
+			}
+
+			template<typename ...Args>
+		        void keywords(const hashtable<T> &h,
+				      const list &strings,
+				      Args &&...args)
+			{
+				remove();
+
+				installed_hashtable=h;
+
+				if (!h)
+					throw std::runtime_error(
+						"null hashtable"
+					);
+
+				installed_hashtable->metadata.emplace_back(
+					std::forward<Args>(args)...
+				);
+				installed_metadata=
+					--installed_hashtable->metadata.end();
+
+				++installed_metadata->refcnt;
+
+				for (const auto &s:strings)
+					doadd(s);
+			}
+
+			void add(const std::string &s)
+			{
+				if (!installed_hashtable)
+					throw std::runtime_error(
+						"keywords not installed"
+					);
+
+				remove(s);
+				doadd(s);
+			}
+
+		private:
+			void doadd(const std::string &s)
+			{
+				installed_metadata->entries.emplace_back();
+
+				auto new_entry=
+					--installed_metadata->entries.end();
+
+				auto keyword=installed_hashtable
+					->keywords.emplace(
+						s,
+						std::list<hashtable_entry<T> *>
+						{}).first;
+
+				keyword->second.push_back(&*new_entry);
+
+				new_entry->keyword=keyword;
+				new_entry->keyword_entry=
+					--keyword->second.end();
+
+				new_entry->metadata=installed_metadata;
+				new_entry->metadata_entry=new_entry;
+			}
+		public:
+			void remove(const std::string &s)
+			{
+				if (!installed_hashtable)
+					return;
+
+				auto &list=installed_metadata->entries;
+
+				for (auto b=list.begin(), e=list.end();
+				     b != e; ++b)
+				{
+					if (b->keyword->first != s)
+						continue;
+
+					b->removing(installed_hashtable);
+
+					installed_metadata->entries.erase(b);
+					break;
+				}
+			}
+
+			bool empty() const {
+
+				return !installed_hashtable ||
+					installed_metadata->second.empty();
+			}
+
+			bool operator!=(const message<T> &o) const
+			{
+				return !operator==(o);
+			}
+
+			bool operator==(const message<T> &o) const
+			{
+				if (!installed_hashtable)
+				{
+					return !o.installed_hashtable;
+				}
+
+				if (!o.installed_hashtable)
+					return false;
+
+				return installed_metadata->value ==
+					o.installed_metadata->value;
+			}
+		};
+
+#if 0
+		typedef hashtable<> Hashtable;
+		typedef message<> Message;
+#endif
 	}
 }
 
@@ -520,7 +880,7 @@ namespace mail {
 
 int maildir_kwSave(const char *maildir,
 		   const char *filename,
-		   std::set<std::string> keywords,
+		   const std::set<std::string> &keywords,
 
 		   char **tmpname,
 		   char **newname,

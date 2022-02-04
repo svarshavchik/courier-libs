@@ -160,7 +160,7 @@ bool mail::keywords::Message::remFlag(std::string s)
 
 int maildir_kwSave(const char *maildir,
 		   const char *filename,
-		   set<string> keywords,
+		   const set<string> &keywords,
 
 		   char **tmpname,
 		   char **newname,

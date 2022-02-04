@@ -132,12 +132,9 @@ static void folderdir_test()
 	}
 }
 
-int main()
+void keywordtest1()
 {
 	size_t i;
-
-	name2dir_test();
-	folderdir_test();
 
 	libmail_kwhInit(&h);
 
@@ -190,9 +187,7 @@ int main()
 				{
 					libmail_kwmDestroy(msgs[i]);
 				}
-
-
-				exit(0);
+				return;
 			}
 		}
 
@@ -200,5 +195,114 @@ int main()
 
 	perror("ERROR");
 	exit(1);
+}
+
+void keywordtest2()
+{
+	mail::keywords::hashtable<size_t> hashtable;
+
+	mail::keywords::message<size_t> m{
+		hashtable, {"alpha", "beta"}, size_t{3}
+	};
+
+	if (m.keywords() != std::unordered_set<std::string>{"alpha", "beta"})
+	{
+		fprintf(stderr, "keywordtest2 failed (1)\n");
+		exit(1);
+	}
+
+	m.remove("beta");
+
+	if (m.keywords() != std::unordered_set<std::string>{"alpha"})
+	{
+		fprintf(stderr, "keywordtest2 failed (2)\n");
+		exit(1);
+	}
+
+	std::unordered_set<std::string> all_keywords;
+
+	hashtable->enumerate_keywords([&]
+				      (const std::string &kw)
+	{
+		all_keywords.insert(kw);
+	});
+
+	if (all_keywords != std::unordered_set<std::string>{"alpha"})
+	{
+		fprintf(stderr, "keywordtest2 failed (3)\n");
+		exit(1);
+	}
+
+	std::unordered_set<size_t> all_messages;
+
+	hashtable->enumerate_messages([&]
+				      (size_t n)
+	{
+		all_messages.insert(n);
+	});
+
+	if (all_messages != std::unordered_set<size_t>{3})
+	{
+		fprintf(stderr, "keywordtest2 failed (4)\n");
+		exit(1);
+	}
+
+	m=mail::keywords::message<size_t>{};
+
+	all_keywords.clear();
+	all_messages.clear();
+	hashtable->enumerate_keywords([&]
+				      (const std::string &kw)
+	{
+		all_keywords.insert(kw);
+	});
+	hashtable->enumerate_messages([&]
+				      (size_t n)
+	{
+		all_messages.insert(n);
+	});
+
+	if (!all_keywords.empty() || !all_messages.empty())
+	{
+		fprintf(stderr, "keywordtest2 failed (5)\n");
+		exit(1);
+	}
+	m=m;
+
+	m.keywords(hashtable, {"gamma"}, size_t{3});
+
+	hashtable->messages("alpha",
+			    [&]
+			    (size_t n)
+	{
+		all_messages.insert(n);
+	});
+
+	if (!all_messages.empty())
+	{
+		fprintf(stderr, "keywordtest2 failed (6)\n");
+		exit(1);
+	}
+
+	hashtable->messages("gamma",
+			    [&]
+			    (size_t n)
+	{
+		all_messages.insert(n);
+	});
+
+	if (all_messages != std::unordered_set<size_t>{3})
+	{
+		fprintf(stderr, "keywordtest2 failed (7)\n");
+		exit(1);
+	}
+}
+
+int main()
+{
+	name2dir_test();
+	folderdir_test();
+	keywordtest1();
+	keywordtest2();
 	return 0;
 }
