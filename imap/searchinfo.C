@@ -16,31 +16,24 @@
 #include	"imapwrite.h"
 #include	"imaptoken.h"
 
-
-static searchiter alloc_search_andlist(std::list<searchinfo> &);
-static searchiter alloc_search_notkey(std::list<searchinfo> &);
-static searchiter alloc_search_key(std::list<searchinfo> &);
-
 searchinfo::searchinfo(std::list<searchinfo> &searchlist)
 	: a{searchlist.end()}, b{searchlist.end()}
 {
 }
 
-searchiter alloc_search(std::list<searchinfo> &searchlist)
+searchiter contentsearch::alloc_search()
 {
 	searchlist.emplace_front(searchlist);
 
 	return searchlist.begin();
 }
 
-searchiter alloc_parsesearch(std::list<searchinfo> &searchlist)
+searchiter contentsearch::alloc_parsesearch()
 {
-	return alloc_search_andlist(searchlist);
+	return alloc_search_andlist();
 }
 
-searchiter alloc_searchextra(searchiter top,
-			     std::list<searchinfo> &searchlist,
-			     search_type t)
+searchiter contentsearch::alloc_searchextra(searchiter top, search_type t)
 {
 	searchiter si;
 
@@ -48,31 +41,31 @@ searchiter alloc_searchextra(searchiter top,
 	{
 		/* Automatically add third and second dummy node */
 
-		top=alloc_searchextra(top, searchlist, search_references4);
-		top=alloc_searchextra(top, searchlist, search_references3);
-		top=alloc_searchextra(top, searchlist, search_references2);
+		top=alloc_searchextra(top, search_references4);
+		top=alloc_searchextra(top, search_references3);
+		top=alloc_searchextra(top, search_references2);
 	}
-	si=alloc_search(searchlist);
+	si=alloc_search();
 	si->type=t;
 	si->a=top;
 	return (si);
 }
 
-static searchiter alloc_search_andlist(std::list<searchinfo> &searchlist)
+searchiter contentsearch::alloc_search_andlist()
 {
 	searchiter si, a, b;
 	struct imaptoken *t;
 
-	si=alloc_search_notkey(searchlist);
+	si=alloc_search_notkey();
 	if (si == searchlist.end())
 		return si;
 
 	while ((t=currenttoken())->tokentype != IT_RPAREN && t->tokentype !=
 		IT_EOL)
 	{
-		if ((a=alloc_search_notkey(searchlist)) == searchlist.end())
+		if ((a=alloc_search_notkey()) == searchlist.end())
 			return searchlist.end();
-		b=alloc_search(searchlist);
+		b=alloc_search();
 		b->type=search_and;
 		b->a=si;
 		b->b=a;
@@ -81,24 +74,24 @@ static searchiter alloc_search_andlist(std::list<searchinfo> &searchlist)
 	return (si);
 }
 
-static searchiter alloc_search_notkey(std::list<searchinfo> &searchlist)
+searchiter contentsearch::alloc_search_notkey()
 {
 	struct imaptoken *t=currenttoken();
 
 	if (t->tokentype == IT_ATOM && strcmp(t->tokenbuf, "NOT") == 0)
 	{
-		searchiter si=alloc_search(searchlist);
+		searchiter si=alloc_search();
 
 		si->type=search_not;
 		nexttoken();
-		if ((si->a=alloc_search_key(searchlist)) == searchlist.end())
+		if ((si->a=alloc_search_key()) == searchlist.end())
 			return (searchlist.end());
 		return (si);
 	}
-	return (alloc_search_key(searchlist));
+	return (alloc_search_key());
 }
 
-static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
+searchiter contentsearch::alloc_search_key()
 {
 	struct imaptoken *t=currenttoken();
 	searchiter si;
@@ -107,7 +100,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	if (t->tokentype == IT_LPAREN)
 	{
 		nexttoken();
-		if ((si=alloc_search_andlist(searchlist)) == searchlist.end() ||
+		if ((si=alloc_search_andlist()) == searchlist.end() ||
 			currenttoken()->tokentype != IT_RPAREN)
 			return (searchlist.end());
 		nexttoken();
@@ -123,7 +116,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	{
 	searchiter si;
 
-		(si=alloc_search(searchlist))->type=search_all;
+		(si=alloc_search())->type=search_all;
 		nexttoken();
 		return (si);
 	}
@@ -132,12 +125,12 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	{
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_or;
 		nexttoken();
-		if ((si->a=alloc_search_notkey(searchlist)) == searchlist.end()
+		if ((si->a=alloc_search_notkey()) == searchlist.end()
 		    ||
-		    (si->b=alloc_search_notkey(searchlist)) == searchlist.end())
+		    (si->b=alloc_search_notkey()) == searchlist.end())
 			return (searchlist.end());
 		return (si);
 	}
@@ -147,7 +140,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_header;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
@@ -174,7 +167,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_header;
 		si->cs=keyword;
 		t=nexttoken_okbracket();
@@ -192,7 +185,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_before;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -209,7 +202,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_body;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
@@ -225,7 +218,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_larger;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
@@ -240,7 +233,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_on;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -257,7 +250,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_sentbefore;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -274,7 +267,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_senton;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -291,7 +284,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_sentsince;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -308,7 +301,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_since;
 		t=nexttoken();
 		if (t->tokentype != IT_ATOM &&
@@ -325,7 +318,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_smaller;
 		t=nexttoken();
 		if (t->tokentype != IT_NUMBER)
@@ -340,7 +333,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_text;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
@@ -357,7 +350,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	searchiter si;
 	struct imaptoken *t;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_uid;
 		t=nexttoken();
 		if (!ismsgset(t))
@@ -374,7 +367,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	struct imaptoken *t;
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_msgkeyword;
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
@@ -386,7 +379,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 
 		if (isnot)
 		{
-		searchiter si2=alloc_search(searchlist);
+		searchiter si2=alloc_search();
 
 			si2->type=search_not;
 			si2->a=si;
@@ -403,7 +396,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	{
 	searchiter si;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_msgflag;
 		si->as.reserve(strlen(keyword)+1);
 		si->as="\\";
@@ -421,14 +414,14 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	searchiter si;
 	searchiter si2;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_msgflag;
 		si->as.reserve(strlen(keyword));
 		si->as="\\";
 		si->as += keyword+2;
 		nexttoken();
 
-		si2=alloc_search(searchlist);
+		si2=alloc_search();
 		si2->type=search_not;
 		si2->a=si;
 		return (si2);
@@ -438,14 +431,14 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	{
 		searchiter si, si2;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_and;
-		si2=si->a=alloc_search(searchlist);
+		si2=si->a=alloc_search();
 		si2->type=search_msgflag;
 		si2->as="\\RECENT";
-		si2=si->b=alloc_search(searchlist);
+		si2=si->b=alloc_search();
 		si2->type=search_not;
-		si2=si2->a=alloc_search(searchlist);
+		si2=si2->a=alloc_search();
 		si2->type=search_msgflag;
 		si2->as="\\SEEN";
 		nexttoken();
@@ -456,9 +449,9 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 	{
 		searchiter si, si2;
 
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_not;
-		si2=si->a=alloc_search(searchlist);
+		si2=si->a=alloc_search();
 		si2->type=search_msgflag;
 		si2->as="\\RECENT";
 		nexttoken();
@@ -467,7 +460,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 
 	if (ismsgset(t))
 	{
-		si=alloc_search(searchlist);
+		si=alloc_search();
 		si->type=search_messageset;
 		si->as=t->tokenbuf;
 		nexttoken();
@@ -482,8 +475,7 @@ static searchiter alloc_search_key(std::list<searchinfo> &searchlist)
 ** search_text nodes in the search string are in that character set.
 */
 
-void search_set_charset_conv(std::list<searchinfo> &searchlist,
-			     const std::string &charset)
+void contentsearch::search_set_charset_conv(const std::string &charset)
 {
 	for (auto &si:searchlist)
 	{

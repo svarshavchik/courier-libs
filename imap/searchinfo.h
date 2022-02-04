@@ -2,7 +2,9 @@
 #define	searchinfo_h
 
 #include "maildir/maildirsearch.h"
-
+#include	"imapscanclient.h"
+#include	"rfc2045/rfc2045.h"
+#include <stdio.h>
 #include <string>
 #include <list>
 
@@ -94,11 +96,6 @@ struct searchinfo {
 
 	std::string as, bs, cs;		/* As needed */
 
-	const struct unicode_info *bs_charset=nullptr;
-	/* search_text: text string in orig charset is as, text string in
-	   bs_charset charset is in bs */
-
-
 	int	value=0;/* When evaluating: 0 - false, 1 - true, -1 - unknown */
 			/* Not used in AND, OR, and NOT nodes */
 
@@ -107,24 +104,67 @@ struct searchinfo {
 	struct libmail_keywordEntry *ke=nullptr;
 	} ;
 
-searchiter alloc_search(std::list<searchinfo> &);
-searchiter alloc_parsesearch(std::list<searchinfo> &);
-searchiter alloc_searchextra(searchiter,
-	std::list<searchinfo> &, search_type);
-void debug_search(searchiter );
+class contentsearch {
 
-struct unicode_info;
+public:
 
-void dosearch(searchiter, std::list<searchinfo> &,
-	      const std::string &, int);
+	std::list<searchinfo> searchlist;
 
-void search_internal(searchiter, std::list<searchinfo> &,
-		     const std::string &,
-		     int, void (*)(searchiter,
-				   std::list<searchinfo> &, int,
-				   unsigned long, void *), void *);
+	contentsearch()=default;
 
-void search_set_charset_conv(std::list<searchinfo> &,
-			     const std::string &);
+	contentsearch(const contentsearch &)=delete;
+
+	contentsearch &operator=(const contentsearch &)=delete;
+
+	searchiter alloc_search();
+	searchiter alloc_parsesearch();
+	searchiter alloc_searchextra(searchiter, search_type);
+
+
+	static void debug_search(searchiter);
+
+	void dosearch(searchiter, const std::string &, int);
+
+	typedef void (*search_callback_t)(contentsearch &, searchiter, int,
+					  unsigned long, void *);
+
+	void search_internal(searchiter,
+			     const std::string &,
+			     int, search_callback_t, void *);
+
+	void search_set_charset_conv(const std::string &);
+
+private:
+	searchiter alloc_search_andlist();
+	searchiter alloc_search_notkey();
+	searchiter alloc_search_key();
+
+	void search_oneatatime(searchiter si,
+			       unsigned long i,
+			       const std::string &charset, int isuid,
+			       search_callback_t callback_func,
+			       void *voidarg);
+
+	void search_byKeyword(searchiter tree,
+			      searchiter keyword,
+			      const std::string &charset, int isuid,
+			      search_callback_t callback_func,
+			      void *voidarg);
+
+	void fill_search_header(const std::string &,
+				struct rfc2045 *, FILE *,
+				struct imapscanmessageinfo *);
+
+	void fill_search_body(struct rfc2045 *, FILE *,
+			      struct imapscanmessageinfo *);
+
+public:
+
+	void dothreadorderedsubj(searchiter, const std::string &, int);
+	void dothreadreferences(searchiter, const std::string &, int);
+	void dosortmsgs(searchiter, const std::string &, int);
+
+
+};
 
 #endif

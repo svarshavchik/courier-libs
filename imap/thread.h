@@ -11,14 +11,4 @@ struct threadinfo;
 
 extern int thread_orderedsubj(struct threadinfo *, struct threadinfo *);
 
-struct unicode_info;
-
-void dothreadorderedsubj(searchiter, std::list<searchinfo> &,
-			 const std::string &, int);
-void dothreadreferences(searchiter, std::list<searchinfo> &,
-			const std::string &, int);
-
-void dosortmsgs(searchiter, std::list<searchinfo> &,
-		const std::string &, int);
-
 #endif

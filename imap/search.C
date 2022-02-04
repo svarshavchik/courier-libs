@@ -21,13 +21,11 @@
 #include	"rfc822/rfc822.h"
 #include	"rfc822/rfc822hdr.h"
 #include	"rfc822/rfc2047.h"
-#include	"rfc2045/rfc2045.h"
 #include	<courier-unicode.h>
 #include	"numlib/numlib.h"
 #include	"searchinfo.h"
 #include	"imapwrite.h"
 #include	"imaptoken.h"
-#include	"imapscanclient.h"
 
 
 extern time_t rfc822_parsedt(const char *);
@@ -39,28 +37,17 @@ extern "C" void get_message_flags( struct imapscanmessageinfo *,
 				   char *, struct imapflags *);
 extern bool valid_keyword(const std::string &kw);
 
-static void fill_search_preparse(searchiter );
+static void fill_search_preparse(searchiter);
 
 static void fill_search_veryquick(searchiter,
-	unsigned long, struct imapflags *);
+				  unsigned long, struct imapflags *);
 
-static void fill_search_quick(searchiter,
-	unsigned long, struct stat *);
-
-static void fill_search_header(std::list<searchinfo> &searchlist,
-			       const std::string &,
-			       struct rfc2045 *, FILE *,
-			       struct imapscanmessageinfo *);
-
-static void fill_search_body(std::list<searchinfo> &searchlist,
-			     struct rfc2045 *, FILE *,
-			     struct imapscanmessageinfo *);
+static void fill_search_quick(searchiter, unsigned long, struct stat *);
 
 static int search_evaluate(searchiter);
 
-static void search_callback(searchiter,
-			    std::list<searchinfo> &, int,
-			    unsigned long, void *);
+static void search_callback(contentsearch &,
+			    searchiter, int, unsigned long, void *);
 
 /*
 **	search_internal() does the main heavylifting of searching the
@@ -71,44 +58,23 @@ static void search_callback(searchiter,
 **	number.
 */
 
-void dosearch(searchiter si, std::list<searchinfo> &searchlist,
-	      const std::string &charset, int isuid)
+void contentsearch::dosearch(searchiter si,
+			     const std::string &charset, int isuid)
 {
-	search_internal(si, searchlist, charset, isuid, search_callback, 0);
+	search_internal(si, charset, isuid, search_callback, 0);
 }
 
-static void search_callback(searchiter si, std::list<searchinfo> &searchlist,
-	int isuid, unsigned long i, void *dummy)
+static void search_callback(contentsearch &, searchiter si,
+			    int isuid, unsigned long i, void *dummy)
 {
 	writes(" ");
 	writen(isuid ? current_maildir_info.msgs[i].uid:i+1);
 }
 
-static void search_oneatatime(searchiter si,
-			      unsigned long i,
-			      std::list<searchinfo> &searchlist,
-			      const std::string &charset, int isuid,
-			      void (*callback_func)(searchiter,
-						    std::list<searchinfo> &,
-						    int,
-						    unsigned long, void *),
-			      void *voidarg);
-
-static void search_byKeyword(searchiter tree,
-			   searchiter keyword,
-			   std::list<searchinfo> &searchlist,
-			   const std::string &charset, int isuid,
-			   void (*callback_func)(searchiter,
-						 std::list<searchinfo> &, int,
-						 unsigned long, void *),
-			   void *voidarg);
-
-void search_internal(searchiter si, std::list<searchinfo> &searchlist,
-		     const std::string &charset, int isuid,
-		     void (*callback_func)(searchiter,
-					   std::list<searchinfo> &, int,
-					   unsigned long, void *),
-		     void *voidarg)
+void contentsearch::search_internal(searchiter si,
+				    const std::string &charset, int isuid,
+				    search_callback_t callback_func,
+				    void *voidarg)
 {
 	unsigned long i;
 	searchiter p;
@@ -120,7 +86,7 @@ void search_internal(searchiter si, std::list<searchinfo> &searchlist,
 
 	if (si->type == search_msgkeyword && si->bs.empty() && si->ke)
 	{
-		search_byKeyword(searchlist.end(), si, searchlist, charset,
+		search_byKeyword(searchlist.end(), si, charset,
 				 isuid,
 				 callback_func, voidarg);
 	}
@@ -128,23 +94,19 @@ void search_internal(searchiter si, std::list<searchinfo> &searchlist,
 		 si->a->type == search_msgkeyword && si->a->bs.empty()
 		 && si->a->ke)
 	{
-		search_byKeyword(si->b, si->a, searchlist, charset, isuid,
+		search_byKeyword(si->b, si->a, charset, isuid,
 				 callback_func, voidarg);
 	}
 	else for (i=0; i<current_maildir_info.nmessages; i++)
-		search_oneatatime(si, i, searchlist, charset, isuid,
+		search_oneatatime(si, i, charset, isuid,
 				  callback_func, voidarg);
 }
 
-static void search_byKeyword(searchiter tree,
-			     searchiter keyword,
-			     std::list<searchinfo> &searchlist,
-			     const std::string &charset, int isuid,
-			     void (*callback_func)(searchiter,
-						   std::list<searchinfo> &,
-						   int,
-						   unsigned long, void *),
-			     void *voidarg)
+void contentsearch::search_byKeyword(searchiter tree,
+				     searchiter keyword,
+				     const std::string &charset, int isuid,
+				     search_callback_t callback_func,
+				     void *voidarg)
 {
 	struct libmail_kwMessageEntry *kme;
 
@@ -153,12 +115,11 @@ static void search_byKeyword(searchiter tree,
 		unsigned long n=kme->libmail_kwMessagePtr->u.userNum;
 		if (tree==searchlist.end())
 		{
-			(*callback_func)(keyword,
-					 searchlist, isuid, n, voidarg);
+			(*callback_func)(*this, keyword, isuid, n, voidarg);
 			continue;
 		}
 
-		search_oneatatime(tree, n, searchlist, charset, isuid,
+		search_oneatatime(tree, n, charset, isuid,
 				  callback_func, voidarg);
 	}
 }
@@ -167,15 +128,11 @@ static void search_byKeyword(searchiter tree,
 ** Evaluate the search tree for a given message.
 */
 
-static void search_oneatatime(searchiter si,
-			      unsigned long i,
-			      std::list<searchinfo> &searchlist,
-			      const std::string &charset, int isuid,
-			      void (*callback_func)(searchiter,
-						    std::list<searchinfo> &,
-						    int,
-						    unsigned long, void *),
-			      void *voidarg)
+void contentsearch::search_oneatatime(searchiter si,
+				      unsigned long i,
+				      const std::string &charset, int isuid,
+				      search_callback_t callback_func,
+				      void *voidarg)
 {
 	searchiter p;
 	imapflags	flags;
@@ -198,8 +155,7 @@ static void search_oneatatime(searchiter si,
 		if ((rc=search_evaluate(si)) >= 0)
 		{
 			if (rc > 0)
-				(*callback_func)(si, searchlist, isuid, i,
-						 voidarg);
+				(*callback_func)(*this, si, isuid, i, voidarg);
 			return;
 		}
 
@@ -227,7 +183,7 @@ static void search_oneatatime(searchiter si,
                         /* struct        rfc2045 *rfcp=rfc2045_fromfp(fp); */
                         struct        rfc2045 *rfcp=rfc2045header_fromfp(fp);
 
-			fill_search_header(searchlist, charset, rfcp, fp,
+			fill_search_header(charset, rfcp, fp,
 					   current_maildir_info.msgs+i);
 			rc=search_evaluate(si);
                         rfc2045_free(rfcp);
@@ -237,7 +193,7 @@ static void search_oneatatime(searchiter si,
 				/* Ok, search message contents */
                                 struct        rfc2045 *rfcp=rfc2045_fromfp(fp);
 
-				fill_search_body(searchlist, rfcp, fp,
+				fill_search_body(rfcp, fp,
 						 current_maildir_info.msgs+i);
 
 				/*
@@ -258,7 +214,7 @@ static void search_oneatatime(searchiter si,
 
 		if (rc > 0)
 		{
-			(*callback_func)(si, searchlist, isuid, i, voidarg);
+			(*callback_func)(*this, si, isuid, i, voidarg);
 		}
 		fclose(fp);
 		close(fd);
@@ -636,10 +592,9 @@ int	rc, rc2;
 
 struct fill_search_header_info {
 
-	std::list<searchinfo> &searchlist;
+	contentsearch &cs;
 
-	fill_search_header_info(std::list<searchinfo> &searchlist)
-		: searchlist{searchlist} {}
+	fill_search_header_info(contentsearch &cs) : cs{cs} {}
 
 	std::string utf8buf;
 };
@@ -648,15 +603,14 @@ static int headerfilter_func(const char *name, const char *value, void *arg);
 static int fill_search_header_utf8(const char *, size_t, void *);
 static int fill_search_header_done(const char *, void *);
 
-static void fill_search_header(std::list<searchinfo> &searchlist,
-			       const std::string &charset,
-			       struct rfc2045 *rfcp, FILE *fp,
-			       struct imapscanmessageinfo *mi)
+void contentsearch::fill_search_header(const std::string &charset,
+				       struct rfc2045 *rfcp, FILE *fp,
+				       struct imapscanmessageinfo *mi)
 {
 	searchiter sip;
 	struct rfc2045src *src;
 	struct rfc2045_decodemsgtoutf8_cb decodecb;
-	struct fill_search_header_info decodeinfo{searchlist};
+	struct fill_search_header_info decodeinfo{*this};
 
 	/* Consider the following dummy nodes as evaluated */
 
@@ -677,7 +631,7 @@ static void fill_search_header(std::list<searchinfo> &searchlist,
 			break;
 		}
 
-	search_set_charset_conv(searchlist, charset);
+	search_set_charset_conv(charset);
 
 	src=rfc2045src_init_fd(fileno(fp));
 
@@ -712,8 +666,8 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 	int isreferences=rfc822hdr_namecmp(name, "references");
 	int ismessageid=rfc822hdr_namecmp(name, "message-id");
 
-	for (sip=decodeinfo->searchlist.begin();
-	     sip != decodeinfo->searchlist.end(); ++sip)
+	for (sip=decodeinfo->cs.searchlist.begin();
+	     sip != decodeinfo->cs.searchlist.end(); ++sip)
 	{
 		if (sip->type == search_text && sip->value <= 0)
 		{
@@ -867,8 +821,8 @@ static int fill_search_header_done(const char *name, void *arg)
 	    decodeinfo->utf8buf.back() == '\n')
 		decodeinfo->utf8buf.pop_back();
 
-	for (sip=decodeinfo->searchlist.begin();
-	     sip != decodeinfo->searchlist.end(); ++sip)
+	for (sip=decodeinfo->cs.searchlist.begin();
+	     sip != decodeinfo->cs.searchlist.end(); ++sip)
 		switch (sip->type) {
 		case search_references3:
 			if (issubject == 0 && sip->as.empty())
@@ -938,10 +892,9 @@ static int fill_search_header_done(const char *name, void *arg)
 
 struct fill_search_body_info {
 
-	std::list<searchinfo> &searchlist;
+	contentsearch &cs;
 
-	fill_search_body_info(std::list<searchinfo> &searchlist)
-		: searchlist{searchlist} {}
+	fill_search_body_info(contentsearch &cs) : cs{cs} {}
 
 	unicode_convert_handle_t toucs4_handle;
 
@@ -950,13 +903,12 @@ struct fill_search_body_info {
 static int fill_search_body_utf8(const char *str, size_t n, void *arg);
 static int fill_search_body_ucs4(const char *str, size_t n, void *arg);
 
-static void fill_search_body(std::list<searchinfo> &searchlist,
-			     struct rfc2045 *rfcp, FILE *fp,
-			     struct imapscanmessageinfo *mi)
+void contentsearch::fill_search_body(struct rfc2045 *rfcp, FILE *fp,
+				     struct imapscanmessageinfo *mi)
 {
 	struct rfc2045src *src;
 	struct rfc2045_decodemsgtoutf8_cb decodecb;
-	struct fill_search_body_info decodeinfo{searchlist};
+	struct fill_search_body_info decodeinfo{*this};
 	searchiter sip;
 
 	src=rfc2045src_init_fd(fileno(fp));
@@ -1010,8 +962,8 @@ static int fill_search_body_ucs4(const char *str, size_t n, void *arg)
 
 	n /= 4;
 
-	for (sip=decodeinfo->searchlist.begin();
-	     sip != decodeinfo->searchlist.end(); ++sip)
+	for (sip=decodeinfo->cs.searchlist.begin();
+	     sip != decodeinfo->cs.searchlist.end(); ++sip)
 		if ((sip->type == search_text || sip->type == search_body)
 		    && sip->value <= 0)
 		{

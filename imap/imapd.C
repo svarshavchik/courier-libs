@@ -5584,7 +5584,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "SEARCH") == 0)
 	{
 		std::string charset;
-		std::list<searchinfo> searchlist;
+		contentsearch cs;
 		unsigned long i;
 
 		curtoken=nexttoken_okbracket();
@@ -5613,9 +5613,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		auto si=alloc_parsesearch(searchlist);
+		auto si=cs.alloc_parsesearch();
 
-		if (si == searchlist.end())
+		if (si == cs.searchlist.end())
 		{
 			return (-1);
 		}
@@ -5630,7 +5630,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes("\r\n");
 #endif
 		writes("* SEARCH");
-		dosearch(si, searchlist, charset, uid);
+		cs.dosearch(si, charset, uid);
 		writes("\r\n");
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
@@ -5644,13 +5644,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "THREAD") == 0)
 	{
 		std::string charset;
-		std::list<searchinfo> searchlist;
+		contentsearch cs;
 		unsigned long i;
 
 		/* The following jazz is mainly for future extensions */
 
-		void (*thread_func)(searchiter, std::list<searchinfo> &,
-				    const std::string &, int);
+		void (contentsearch::*thread_func)(searchiter,
+						   const std::string &, int);
 		search_type thread_type;
 
 		{
@@ -5672,12 +5672,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (strcmp(curtoken->tokenbuf, "ORDEREDSUBJECT") == 0)
 		{
-			thread_func=dothreadorderedsubj;
+			thread_func=&contentsearch::dothreadorderedsubj;
 			thread_type=search_orderedsubj;
 		}
 		else if (strcmp(curtoken->tokenbuf, "REFERENCES") == 0)
 		{
-			thread_func=dothreadreferences;
+			thread_func=&contentsearch::dothreadreferences;
 			thread_type=search_references1;
 		}
 		else
@@ -5693,14 +5693,14 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		auto si=alloc_parsesearch(searchlist);
+		auto si=cs.alloc_parsesearch();
 
-		if (si == searchlist.end())
+		if (si == cs.searchlist.end())
 		{
 			return (-1);
 		}
 
-		si=alloc_searchextra(si, searchlist, thread_type);
+		si=cs.alloc_searchextra(si, thread_type);
 
 		if (currenttoken()->tokentype != IT_EOL)
 		{
@@ -5713,7 +5713,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		writes("* THREAD ");
-		(*thread_func)(si, searchlist, charset, uid);
+		(cs.*thread_func)(si, charset, uid);
 		writes("\r\n");
 
 		for (i=0; i<current_maildir_info.nmessages; i++)
@@ -5727,7 +5727,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "SORT") == 0)
 	{
 		std::string charset;
-		std::list<searchinfo> searchlist;
+		contentsearch cs;
 		unsigned long i;
 		std::vector<search_type> ts;
 
@@ -5812,9 +5812,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		auto si=alloc_parsesearch(searchlist);
+		auto si=cs.alloc_parsesearch();
 
-		if (si == searchlist.end())
+		if (si == cs.searchlist.end())
 		{
 			return (-1);
 		}
@@ -5823,7 +5823,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			--e;
 
-			si=alloc_searchextra(si, searchlist, *e);
+			si=cs.alloc_searchextra(si, *e);
 		}
 		ts.clear();
 
@@ -5838,7 +5838,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		writes("* SORT");
-		dosortmsgs(si, searchlist, charset, uid);
+		cs.dosortmsgs(si, charset, uid);
 		writes("\r\n");
 
 		for (i=0; i<current_maildir_info.nmessages; i++)

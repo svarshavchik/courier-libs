@@ -21,10 +21,11 @@
 #include	<list>
 #include	<algorithm>
 
-static void thread_os_callback(searchiter, std::list<searchinfo> &, int,
-	unsigned long, void *);
-static void thread_ref_callback(searchiter, std::list<searchinfo> &, int,
-	unsigned long, void *);
+static void thread_os_callback(contentsearch &cs, searchiter, int,
+			       unsigned long, void *);
+
+static void thread_ref_callback(contentsearch &cs, searchiter, int,
+				unsigned long, void *);
 
 extern struct imapscaninfo current_maildir_info;
 
@@ -95,12 +96,12 @@ static void printos(const std::vector<os_threadinfo> &array)
 	}
 }
 
-void dothreadorderedsubj(searchiter si, std::list<searchinfo> &searchlist,
-			 const std::string &charset, int isuid)
+void contentsearch::dothreadorderedsubj(searchiter si,
+					const std::string &charset, int isuid)
 {
 	std::vector<os_threadinfo> os;
 
-	search_internal(si, searchlist, charset, isuid, thread_os_callback, &os);
+	search_internal(si, charset, isuid, thread_os_callback, &os);
 
 	std::sort(os.begin(), os.end(),
 		  [&]
@@ -129,33 +130,32 @@ This callback function is called once search finds a qualifying message.
 We save its message number and subject in a link list.
 */
 
-static void thread_os_callback(searchiter si,
-			       std::list<searchinfo> &searchlist,
+static void thread_os_callback(contentsearch &cs, searchiter si,
 			       int isuid, unsigned long i,
 			       void *voidarg)
 {
-	if (searchlist.front().type == search_orderedsubj)
+	if (cs.searchlist.front().type == search_orderedsubj)
 	{
 		/* SHOULD BE ALWAYS TRUE */
 		time_t t=0;
 
-		rfc822_parsedate_chk(searchlist.front().bs.c_str(), &t);
+		rfc822_parsedate_chk(cs.searchlist.front().bs.c_str(), &t);
 
 		os_add(
 			*reinterpret_cast<std::vector<os_threadinfo> *>(
 				voidarg
 			),
 			isuid ? current_maildir_info.msgs[i].uid:i+1,
-			searchlist.front().as,
+			cs.searchlist.front().as,
 			t);
 	}
 }
 
 static void printthread(struct imap_refmsg *, int);
 
-void dothreadreferences(searchiter si, std::list<searchinfo> &searchlist,
-			const std::string &charset,
-			int isuid)
+void contentsearch::dothreadreferences(searchiter si,
+				       const std::string &charset,
+				       int isuid)
 {
 	struct imap_refmsgtable *reftable;
 	struct imap_refmsg *root;
@@ -166,7 +166,7 @@ void dothreadreferences(searchiter si, std::list<searchinfo> &searchlist,
 		return;
 	}
 
-	search_internal(si, searchlist, charset, 0,
+	search_internal(si, charset, 0,
 			thread_ref_callback, reftable);
 
 	root=rfc822_thread(reftable);
@@ -174,24 +174,29 @@ void dothreadreferences(searchiter si, std::list<searchinfo> &searchlist,
 	rfc822_threadfree(reftable);
 }
 
-static void thread_ref_callback(searchiter si,
-				std::list<searchinfo> &searchlist,
+static void thread_ref_callback(contentsearch &cs,
+				searchiter si,
 				int isuid, unsigned long i,
 				void *voidarg)
 {
-	if (searchlist.front().type == search_references1 && searchlist.front().a != searchlist.end() &&
-	    searchlist.front().a->type == search_references2 && searchlist.front().a->a != searchlist.end() &&
-	    searchlist.front().a->a->type == search_references3 && searchlist.front().a->a->a != searchlist.end() &&
-	    searchlist.front().a->a->a->type == search_references4)
+	auto &first=cs.searchlist.front();
+
+	if (first.type == search_references1 &&
+	    first.a != cs.searchlist.end() &&
+	    first.a->type == search_references2 &&
+	    first.a->a != cs.searchlist.end() &&
+	    first.a->a->type == search_references3 &&
+	    first.a->a->a != cs.searchlist.end() &&
+	    first.a->a->a->type == search_references4)
 	{
 		std::string inreplyto;
 		std::string ref, subject, date, msgid;
 
-		ref=searchlist.front().as;
-		inreplyto=searchlist.front().bs;
-		date=searchlist.front().a->as;
-		subject=searchlist.front().a->a->as;
-		msgid=searchlist.front().a->a->a->as;
+		ref=first.as;
+		inreplyto=first.bs;
+		date=first.a->as;
+		subject=first.a->a->as;
+		msgid=first.a->a->a->as;
 
 #if 0
 		fprintf(stderr, "REFERENCES: ref=%s, inreplyto=%s, subject=%s, date=%s, msgid=%s\n",
@@ -273,11 +278,12 @@ struct sortmsgs {
 	std::vector<char> reverse_sort_order;
 	} ;
 
-static void sort_callback(searchiter, std::list<searchinfo> &, int,
+static void sort_callback(contentsearch &,
+			  searchiter, int,
 			  unsigned long, void *);
 
-void dosortmsgs(searchiter si, std::list<searchinfo> &searchlist,
-		const std::string &charset, int isuid)
+void contentsearch::dosortmsgs(searchiter si,
+			       const std::string &charset, int isuid)
 {
 	sortmsgs sm;
 
@@ -302,7 +308,7 @@ void dosortmsgs(searchiter si, std::list<searchinfo> &searchlist,
 			break;
 		}
 
-	search_internal(si, searchlist, charset, isuid, sort_callback, &sm);
+	search_internal(si, charset, isuid, sort_callback, &sm);
 
 	std::sort(sm.array.begin(), sm.array.end(),
 		  [&]
@@ -334,8 +340,8 @@ void dosortmsgs(searchiter si, std::list<searchinfo> &searchlist,
 	}
 }
 
-static void sort_callback(searchiter si, std::list<searchinfo> &searchlist,
-	int isuid, unsigned long n, void *voidarg)
+static void sort_callback(contentsearch &cs, searchiter si,
+			  int isuid, unsigned long n, void *voidarg)
 {
 	struct sortmsgs *sm=(struct sortmsgs *)voidarg;
 	searchiter ss;
@@ -351,7 +357,7 @@ static void sort_callback(searchiter si, std::list<searchinfo> &searchlist,
 
 /* fprintf(stderr, "--\n"); */
 
-	for (ss=searchlist.begin(); ss != searchlist.end(); ss=ss->a)
+	for (ss=cs.searchlist.begin(); ss != cs.searchlist.end(); ss=ss->a)
 	{
 		if (i >= s)
 			break;	/* Something's fucked up, better handle it
