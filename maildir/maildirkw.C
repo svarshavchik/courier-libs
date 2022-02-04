@@ -1,5 +1,5 @@
 /*
-** Copyright 2003-2004 Double Precision, Inc.
+** Copyright 2003-2022 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -18,6 +18,9 @@
 #include <sys/stat.h>
 #include	"maildirkeywords.h"
 #include	"maildirwatch.h"
+
+#include	<string>
+#include	<map>
 
 static void usage()
 {
@@ -171,10 +174,10 @@ static int doit_locked(const char *maildir,
 					rc= -1;
 				unlink(tmpname);
 			}
+			free(tmpname);
+			free(newname);
 		}
 
-		free(tmpname);
-		free(newname);
 		if (kwm_alloced)
 			libmail_kwmDestroy(kwm_alloced);
 		libmail_kwgDestroy(&g);
@@ -196,10 +199,21 @@ static int list_locked(const char *maildir)
 	if (rc)
 		return rc;
 
+	std::map<std::string, size_t> messages;
+
 	for (n=0; n<g.nMessages; n++)
 	{
 		struct libmail_kwGenericEntry *e=
 			libmail_kwgFindByIndex(&g, n);
+
+		if (e)
+			messages[e->filename]=n;
+	}
+
+	for (auto b=messages.begin(), ee=messages.end(); b != ee; ++b)
+	{
+		struct libmail_kwGenericEntry *e=
+			libmail_kwgFindByIndex(&g, b->second);
 		struct libmail_kwMessageEntry *k;
 
 		if (!e)

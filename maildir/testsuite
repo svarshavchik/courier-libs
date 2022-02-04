@@ -40,7 +40,7 @@ echo ""
 $VALGRIND ./maildirkw -L md | sort
 rm -rf md testmd
 
-maildirmake ./testmd
+./maildirmake ./testmd
 
 $VALGRIND ./maildiracl -set testmd INBOX.Folder user1 rw
 $VALGRIND ./maildiracl -list testmd INBOX.Folder | sort
@@ -48,4 +48,32 @@ $VALGRIND ./maildiracl -list testmd INBOX.Folder.Subfolder | sort
 $VALGRIND ./maildirmake -f Folder testmd
 $VALGRIND ./maildiracl -list testmd INBOX.Folder | sort
 ls testmd/courierimaphieracl
+rm -rf testmd
+
+./maildirmake ./testmd
+echo "Subject: message 1" >testmd/cur/001:2,S
+echo "Subject: message 2" >testmd/cur/002:2,S
+echo "Subject: message 3" >testmd/cur/003:2,S
+$VALGRIND ./maildirkw testmd 003 gamma alpha beta
+$VALGRIND ./maildirkw testmd 002 alpha gamma
+$VALGRIND ./maildirkw testmd 001 beta gamma
+$VALGRIND ./maildirkw testmd 004 000
+MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+echo "==="
+MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+MOCKTIME=2000 $VALGRIND ./maildirkwtest2 -L testmd
+MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+>testmd/courierimapkeywords/.tmp.4.foo
+>testmd/courierimapkeywords/.tmp.1000.baz
+MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+ls testmd/courierimapkeywords/.tmp.* 2>&1
+rm -f testmd/courierimapkeywords/:list
+echo "epsilon" >testmd/courierimapkeywords/.1.002
+echo "zeta" >testmd/courierimapkeywords/.2.002
+MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+ls testmd/courierimapkeywords/.*002
+$VALGRIND ./maildirkw -a testmd 001 alpha beta
+$VALGRIND ./maildirkw -L testmd
+$VALGRIND ./maildirkw -r testmd 001 beta
+$VALGRIND ./maildirkw -L testmd
 rm -rf testmd

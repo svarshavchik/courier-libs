@@ -38,3 +38,31 @@ administrators	aceilrstwx
 owner	aceilrstwx
 user1	rw
 Folder.Subfolder
+001 beta gamma
+002 alpha gamma
+003 alpha beta gamma
+004 000
+===
+Faked stale filename
+001 beta gamma
+002 alpha gamma
+003 alpha beta gamma
+004 000
+001 beta gamma
+002 alpha gamma
+003 alpha beta gamma
+004 000
+Faked stale filename
+001 beta gamma
+002 alpha gamma
+003 alpha beta gamma
+001 beta gamma
+002 alpha gamma
+003 alpha beta gamma
+testmd/courierimapkeywords/.tmp.1000.baz
+002 zeta
+testmd/courierimapkeywords/.2.002
+001 alpha beta
+002 zeta
+001 alpha
+002 zeta

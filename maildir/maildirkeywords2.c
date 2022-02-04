@@ -148,7 +148,12 @@ static void doReadKeywords2(const char *maildir, const char *dir,
 	struct keywordUpdateInfo *updateInfo;
 
 	time_t t=time(NULL);
-	time_t tn=t/300;
+	time_t tn;
+#ifdef MAILDIRKW_MOCKTIME
+	MAILDIRKW_MOCKTIME();
+#endif
+
+	tn=t/300;
 
 	rki->updateNeeded=0;
 	rki->tryagain=0;
@@ -307,6 +312,9 @@ int maildir_kwImport(FILE *fp, struct maildir_kwReadInfo *rki)
 
 			*q++=0;
 
+#ifdef MAILDIRKW_MOCKTIME2
+			MAILDIRKW_MOCKTIME2()
+#endif
 			i= (*rki->findMessageByFilename)(p, 0, &n,
 							 rki->voidarg);
 
@@ -458,7 +466,7 @@ static void scan_updates(const char *dir,
 		if (in >= n)
 		{
 			/* libmail_kwgReadMaildir autocrerate */
-			
+
 			struct keywordUpdateInfo *u=
 				realloc(*updateInfo,
 					sizeof(**updateInfo) * (in+1));
@@ -919,7 +927,7 @@ static int maildir_kwSaveCommon(const char *maildir,
 	if (p)
 		*p=0;
 
-	
+
 	maildir_tmpcreate_init(&createInfo);
 
 	createInfo.maildir=maildir;
