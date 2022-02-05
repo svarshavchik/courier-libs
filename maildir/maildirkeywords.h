@@ -439,6 +439,7 @@ libmail_kwgFindByIndex(struct libmail_kwGeneric *g, size_t n);
 #include <list>
 #include <utility>
 #include <memory>
+#include <functional>
 #include <stdexcept>
 
 /* Some C++ wrappers */
@@ -872,6 +873,16 @@ namespace mail {
 		typedef hashtable<> Hashtable;
 		typedef message<> Message;
 #endif
+
+		/* BONUS: */
+
+		bool save_keywords_from(
+			const std::string &maildir,
+			const std::string &filename,
+			const std::function<void (FILE *)> &saver,
+			std::string &tmpname,
+			std::string &newname,
+			bool try_atomic);
 	}
 }
 
