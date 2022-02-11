@@ -57,7 +57,12 @@ namespace maildir {
 //
 // maildir::watch watcher{maildir};
 //
-// Wait for up to this many seconds for a process that used maildir::lock()
+// Lock this maildir. The destructor unlocks it. An exception gets thrown
+// if there was an internal error of some kind.
+//
+// maildir::watch::lock locked{watcher};
+//
+// Wait for up to this many seconds for a process that used lock()
 // to unlock the maildir. Return immediately if there is no lock. Returns
 // false in case of a timeout:
 //
@@ -98,6 +103,20 @@ class watch {
  public:
 	watch(const std::string &);
 	~watch();
+
+	class lock {
+		std::string lockname;
+
+	public:
+
+		lock(watch &w);
+		lock(watch &&w);
+
+		~lock();
+
+		lock(const lock &)=delete;
+		lock &operator=(const lock &)=delete;
+	};
 
 	bool unlock(int nseconds);
 
@@ -235,8 +254,7 @@ void maildirwatch_end(struct maildirwatch_contents *w);
 	**
 	** unlink(filename); free(filename);
 	**
-	** A NULL return with tryAnyway != 0 means that the lock failed
-	** probably as a result of misconfigured FAM, or something.
+	** tryAnyway is now ignored, if passed in it will get set to 0.
 	**
 	*/
 char *maildir_lock(const char *maildir,

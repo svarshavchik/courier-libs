@@ -14,67 +14,94 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <stdexcept>
+#include <string>
 
+#ifndef LOCK_TIMEOUT
+#define LOCK_TIMEOUT 120
+#endif
 
 /*
 ** Courier-IMAP compatible maildir lock.
 */
 
-char *maildir_lock(const char *dir, struct maildirwatch *w,
-		   int *tryAnyway)
+static std::string do_lock(const std::string &dir,
+			   maildir::watch *w)
 {
-	struct maildir_tmpcreate_info createInfo;
-	char *tmpname;
-	char *newname;
-	int rc;
-
-	*tryAnyway=0;
-
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.maildir=dir;
 	createInfo.uniq="courierlock";
-	createInfo.hostname=getenv("HOSTNAME");
-	createInfo.doordie=1;
 
-	if ((rc=maildir_tmpcreate_fd(&createInfo)) < 0)
-		return NULL;
-	close(rc);
+	const char *p=getenv("HOSTNAME");
 
-	tmpname=createInfo.tmpname;
-	newname=createInfo.newname;
+	if (p)
+		createInfo.hostname=p;
 
-	createInfo.tmpname=NULL;
-	createInfo.newname=NULL;
-	maildir_tmpcreate_free(&createInfo);
+	int fd=createInfo.fd();
+
+	if (fd < 0)
+		return "";
+
+	close(fd);
 
 	/* HACK: newname now contains: ".../new/filename" */
+	size_t l=createInfo.newname.rfind('/');
 
-	strcpy(strrchr(newname, '/')-3, WATCHDOTLOCK);
+	createInfo.newname=createInfo.newname.substr(0, l-3);
 
-	while (ll_dotlock(newname, tmpname, 120) < 0)
+	createInfo.newname += WATCHDOTLOCK;
+
+	while (ll_dotlock(createInfo.newname.c_str(),
+			  createInfo.tmpname.c_str(), LOCK_TIMEOUT) < 0)
 	{
 		if (errno == EEXIST)
 		{
-			if (w == NULL || maildirwatch_unlock(w, 120) < 0)
+			if (w == NULL || !w->unlock(LOCK_TIMEOUT))
 				sleep(1);
 			continue;
 		}
 
 		if (errno == EAGAIN)
 		{
-			unlink(newname);
 			sleep(5);
 			continue;
 		}
 
-		free(newname);
-		newname=NULL;
-		*tryAnyway=1;
+		createInfo.newname.clear();
 		break;
 	}
 
-	free(tmpname);
+	return createInfo.newname;
+}
 
-	return newname;
+maildir::watch::lock::lock(watch &&w)
+	: lock{ static_cast<watch &>(w)}
+{
+}
+
+maildir::watch::lock::lock(watch &w)
+	: lockname{do_lock(w.maildir, &w)}
+{
+	if (lockname.empty())
+		throw std::runtime_error("invalid maildir for a lock");
+}
+
+maildir::watch::lock::~lock()
+{
+	unlink(lockname.c_str());
+}
+
+char *maildir_lock(const char *dir, struct maildirwatch *w,
+		   int *tryAnyway)
+{
+	if (tryAnyway)
+		*tryAnyway=0;
+
+	auto s=do_lock(dir, w ? static_cast<maildir::watch *>(w):nullptr);
+
+	if (s.empty())
+		return nullptr;
+
+	return strdup(s.c_str());
 }
