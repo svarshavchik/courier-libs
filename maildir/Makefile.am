@@ -103,6 +103,7 @@ maildirwatch_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
 maildirwatch_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 	../numlib/libnumlib.la
 maildirwatch_LDFLAGS=-static
+nodist_EXTRA_maildirwatch_SOURCES=dummy.C
 
 maildiracl=maildiracl.c
 maildiracl_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la

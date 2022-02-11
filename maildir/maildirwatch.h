@@ -9,26 +9,6 @@
 #include "config.h"
 #endif
 
-#ifdef  __cplusplus
-
-namespace maildir {
-#if 0
-}
-#endif
-
-
-#if 0
-{
-#endif
-}
-
-extern "C" {
-#endif
-
-/*
-** These function use inotify to watch for maildir changes.
-*/
-
 #if TIME_WITH_SYS_TIME
 #include	<sys/time.h>
 #include	<time.h>
@@ -40,7 +20,138 @@ extern "C" {
 #endif
 #endif
 
+#ifdef __cplusplus
+
+extern "C" {
+#if 0
+}
+#endif
+#endif
+
+// Internal helper object
+struct maildirwatch_contents_filehandles {
+#if HAVE_INOTIFY_INIT
+	int handles[3];
+#endif
+};
+
+#ifdef __cplusplus
+#if 0
+{
+#endif
+}
+
+#include <string>
+
+namespace maildir {
+#if 0
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Wait for changes to a maildir.
+//
+// The constructor initializes a watcher for the maildir path specified
+// by the constructor:
+//
+// maildir::watch watcher{maildir};
+//
+// Wait for up to this many seconds for a process that used maildir::lock()
+// to unlock the maildir. Return immediately if there is no lock. Returns
+// false in case of a timeout:
+//
+// bool flag=watcher.unlock(30);
+//
+// Start monitoring the maildir:
+//
+// watch::contents wait4{watcher};
+//
+// started() is a sanity check to verify that the maildir has successfully
+// being monitored. false gets returned if the maildir was corrupted (missing
+// cur, new, courierimapkeywords).
+//
+// if (wait4.started())
+//
+// check() immediately returns true or false, indicating whether or not
+// the maildir has changed. A false return indicates that the caller should
+// wait for up to "timeout" seconds for the "fd" file descriptor to become
+// readable, then call check() again.
+//
+// int fd;
+// int timeout;
+// if (wait4.check(fd, timeout))
+//
+// The destructor stops watching the maildir.
+
+class watch {
+	std::string maildir;
+
+#if HAVE_INOTIFY_INIT
+	int inotify_fd;
+#endif
+	time_t now;
+	time_t timeout;
+
+	bool poll_inotify();
+
+ public:
+	watch(const std::string &);
+	~watch();
+
+	bool unlock(int nseconds);
+
+	class contents : maildirwatch_contents_filehandles {
+
+		watch &w;
+
+	public:
+		const bool fallback;
+
+		contents(watch &);
+		~contents();
+
+		bool started(int &fd) const;
+
+		bool check(int &fd, int &timeout) const;
+
+		contents(const contents &)=delete;
+		contents &operator=(const contents &)=delete;
+	};
+
+	// TODO: make the following private after the C API is removed.
+	bool start(maildirwatch_contents_filehandles &handles);
+	bool started(const maildirwatch_contents_filehandles &handles,
+		     int &fd) const;
+
+	bool check(const maildirwatch_contents_filehandles &handles,
+		   int &fd, int &timeout);
+
+	void end(maildirwatch_contents_filehandles &handles);
+	bool end_unwatch(maildirwatch_contents_filehandles &handles);
+};
+
+void create_keyword_dir(const std::string &maildir,
+			const std::string &keyworddir);
+
+#if 0
+{
+#endif
+}
+
+extern "C" {
+#endif
+
+	/* C API */
+
 struct maildirwatch;
+
+#ifdef __cplusplus
+struct maildirwatch : maildir::watch {
+
+	using watch::watch;
+};
+#endif
 
 #define WATCHDOTLOCK	"tmp/courier.lock"
 
@@ -62,12 +173,10 @@ int maildirwatch_unlock(struct maildirwatch *w, int nseconds);
 
 	/* Caller must allocate the follownig structure: */
 
-struct maildirwatch_contents {
+struct maildirwatch_contents  {
 	struct maildirwatch *w;
 
-#if HAVE_INOTIFY_INIT
-	int handles[3];
-#endif
+	struct  maildirwatch_contents_filehandles handles;
 };
 
 /*

@@ -19,48 +19,34 @@
 #include <poll.h>
 #include <fcntl.h>
 #endif
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
+#include <stdexcept>
+#include <functional>
 
-struct maildirwatch {
-	char *maildir;
-
-#if HAVE_INOTIFY_INIT
-	int inotify_fd;
-#endif
-	time_t now;
-	time_t timeout;
-
-};
-
-struct maildirwatch *maildirwatch_alloc(const char *maildir)
+static std::string prepend_wd(const std::string &maildir)
 {
 	char wd[PATH_MAX];
-	struct maildirwatch *w;
-
-	if (maildir == 0 || *maildir == 0)
-		maildir=".";
 
 	if (getcwd(wd, sizeof(wd)-1) == NULL)
-		return NULL;
+		throw std::runtime_error("getcwd() failed");
 
-	if (*maildir == '/')
+	if (maildir[0] == '/')
 		wd[0]=0;
 	else
 		strcat(wd, "/");
 
-	if ((w=(maildirwatch *)malloc(sizeof(struct maildirwatch))) == NULL)
-		return NULL;
+	return std::string{wd}+maildir;
+}
 
-	if ((w->maildir=(char *)malloc(strlen(wd)+strlen(maildir)+1)) == NULL)
-	{
-		free(w);
-		return NULL;
-	}
-
-	strcat(strcpy(w->maildir, wd), maildir);
+maildir::watch::watch(const std::string &maildir_arg)
+	: maildir{prepend_wd(maildir_arg.empty() ? ".":maildir_arg)}
+{
 
 #if HAVE_INOTIFY_INIT
 #if HAVE_INOTIFY_INIT1
@@ -75,39 +61,47 @@ struct maildirwatch *maildirwatch_alloc(const char *maildir)
 #endif
 
 #if HAVE_INOTIFY_INIT1
-	w->inotify_fd=inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
+	inotify_fd=inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 #else
-	w->inotify_fd=inotify_init();
+	notify_fd=inotify_init();
 
-	if (w->inotify_fd >= 0 &&
-	    (fcntl(w->inotify_fd, F_SETFL, O_NONBLOCK) < 0 ||
-	     fcntl(w->inotify_fd, F_SETFD, FD_CLOEXEC)))
+	if (inotify_fd >= 0 &&
+	    (fcntl(inotify_fd, F_SETFL, O_NONBLOCK) < 0 ||
+	     fcntl(inotify_fd, F_SETFD, FD_CLOEXEC)))
 	{
-		close(w->inotify_fd);
-		w->inotify_fd=-1;
+		close(inotify_fd);
+		inotify_fd=-1;
 	}
 #endif
 
-	if (w->inotify_fd < 0)
+	if (inotify_fd < 0)
 	{
-		maildirwatch_free(w);
-		w=NULL;
+		throw std::runtime_error("inotity_init() failed");
 	}
 #endif
-	return w;
+}
+
+maildir::watch::~watch()
+{
+#if HAVE_INOTIFY_INIT
+	if (inotify_fd >= 0)
+	{
+		close(inotify_fd);
+	}
+#endif
+}
+
+struct maildirwatch *maildirwatch_alloc(const char *maildir)
+{
+	if (!maildir)
+		maildir="";
+
+	return new maildirwatch{maildir};
 }
 
 void maildirwatch_free(struct maildirwatch *w)
 {
-#if HAVE_INOTIFY_INIT
-	if (w->inotify_fd >= 0)
-	{
-		close(w->inotify_fd);
-	}
-#endif
-
-	free(w->maildir);
-	free(w);
+	delete w;
 }
 
 void maildirwatch_cleanup()
@@ -116,12 +110,13 @@ void maildirwatch_cleanup()
 
 #if HAVE_INOTIFY_INIT
 
+
 /*
-** Poll the inotify file descriptor. Returns 0 on timeout, non-0 if
+** Poll the inotify file descriptor. Returns false on timeout, true if
 ** the inotify file descriptor becomes ready before the timeout expires.
 */
 
-static int poll_inotify(struct maildirwatch *w)
+bool maildir::watch::poll_inotify()
 {
 	time_t now2;
 
@@ -129,35 +124,34 @@ static int poll_inotify(struct maildirwatch *w)
 
 	struct pollfd pfd;
 
-	while (w->now < w->timeout)
+	while (now < timeout)
 	{
-		pfd.fd=w->inotify_fd;
+		pfd.fd=inotify_fd;
 		pfd.events=POLLIN;
 
-		rc=poll(&pfd, 1, (w->timeout - w->now)*1000);
+		rc=poll(&pfd, 1, (timeout - now)*1000);
 
 		now2=time(NULL);
 
-		if (now2 < w->now)
-			return 1; /* System clock changed */
+		if (now2 < now)
+			return true; /* System clock changed */
 
-		w->now=now2;
+		now=now2;
 
 		if (rc && pfd.revents & POLLIN)
-			return 1;
+			return true;
 	}
 
-	return 0;
+	return false;
 }
 
 /*
 ** read() inotify_events from the inotify handler.
 */
 
-static int read_inotify_events(int fd,
-			       void (*callback)(struct inotify_event *ie,
-						void *arg),
-			       void *arg)
+static void read_inotify_events(
+	int fd,
+	const std::function<void(const inotify_event &ie)> &callback)
 {
 	char inotify_buffer[sizeof(struct inotify_event)+NAME_MAX+1];
 	int l;
@@ -172,7 +166,7 @@ static int read_inotify_events(int fd,
 	if (l < 0)
 	{
 		fprintf(stderr, "ERR:inotify read: %s\n", strerror(errno));
-		return -1;
+		return;
 	}
 
 	iecp=inotify_buffer;
@@ -180,13 +174,12 @@ static int read_inotify_events(int fd,
 	while (iecp < inotify_buffer+l)
 	{
 		struct inotify_event *ie=
-			(struct inotify_event *)iecp;
+			reinterpret_cast<struct inotify_event *>(iecp);
 
 		iecp += sizeof(struct inotify_event)+ie->len;
 
-		(*callback)(ie, arg);
+		callback(*ie);
 	}
-	return 0;
 }
 
 struct unlock_info {
@@ -195,31 +188,18 @@ struct unlock_info {
 	int deleted;
 };
 
-static void unlock_handler(struct inotify_event *ie,
-			   void *arg)
-{
-	struct unlock_info *ui=(struct unlock_info *)arg;
-
-	if (ie->wd == ui->handle)
-	{
-		if (ie->mask & IN_DELETE_SELF)
-			ui->removed=1;
-
-		if (ie->mask & IN_IGNORED)
-			ui->deleted=1;
-	}
-}
 #endif
 
-static int do_maildirwatch_unlock(struct maildirwatch *w, int nseconds,
-				  const char *p)
+bool maildir::watch::unlock(int nseconds)
 {
+	std::string p=maildir + "/" WATCHDOTLOCK;
+
 #if HAVE_INOTIFY_INIT
 	int cancelled=0;
 
 	struct unlock_info ui;
 
-	ui.handle=inotify_add_watch(w->inotify_fd, p, IN_DELETE_SELF);
+	ui.handle=inotify_add_watch(inotify_fd, p.c_str(), IN_DELETE_SELF);
 	ui.removed=0;
 	ui.deleted=0;
 
@@ -228,34 +208,34 @@ static int do_maildirwatch_unlock(struct maildirwatch *w, int nseconds,
 		if (errno == ENOENT)
 		{
 			/* Doesn't exist anymore, that's ok */
-			return 0;
+			return true;
 		}
 
-		fprintf(stderr, "ERR: %s: %s\n", p, strerror(errno));
-		return -1;
+		fprintf(stderr, "ERR: %s: %s\n", p.c_str(), strerror(errno));
+		return false;
 	}
 
 	if (nseconds < 0)
 		nseconds=0;
 
-	time(&w->now);
+	time(&now);
 
-	w->timeout=w->now + nseconds;
+	timeout=now + nseconds;
 
 	do
 	{
 		errno=ETIMEDOUT;
 
-		if (!poll_inotify(w))
+		if (!poll_inotify())
 		{
 			if (!cancelled)
 			{
 				/*
 				** Timeout on the lock, cancel the inotify.
 				*/
-				w->timeout=w->now+15;
+				timeout=now+15;
 				cancelled=1;
-				inotify_rm_watch(w->inotify_fd, ui.handle);
+				inotify_rm_watch(inotify_fd, ui.handle);
 				continue;
 			}
 
@@ -265,50 +245,50 @@ static int do_maildirwatch_unlock(struct maildirwatch *w, int nseconds,
 			break;
 		}
 
-		read_inotify_events(w->inotify_fd, unlock_handler, &ui);
+		read_inotify_events(
+			inotify_fd,
+			[&]
+			(const inotify_event &ie)
+			{
+				if (ie.wd == ui.handle)
+				{
+					if (ie.mask & IN_DELETE_SELF)
+						ui.removed=1;
+
+					if (ie.mask & IN_IGNORED)
+						ui.deleted=1;
+				}
+			});
 
 		if (ui.removed && !cancelled)
 		{
-			w->timeout=w->now+15;
+			timeout=now+15;
 			cancelled=1;
-			inotify_rm_watch(w->inotify_fd, ui.handle);
+			inotify_rm_watch(inotify_fd, ui.handle);
 		}
 
 		/* We don't terminate the loop until we get IN_IGNORED */
 
 	} while (!ui.deleted);
 
-	return ui.removed;
+	return ui.removed != 0;
 #else
 
 	int n;
 
 	for (n=0; n<nseconds; ++n)
 	{
-		if (access(p, 0))
-			return 1;
+		if (access(p.c_str(), 0))
+			return true;
 		sleep(1);
 	}
-	return 0;
+	return false;
 #endif
 }
 
 int maildirwatch_unlock(struct maildirwatch *w, int nseconds)
 {
-	char *p;
-	int rc;
-
-	p=(char *)malloc(strlen(w->maildir)+ sizeof("/" WATCHDOTLOCK));
-
-	if (!p)
-		return -1;
-
-	strcat(strcpy(p, w->maildir), "/" WATCHDOTLOCK);
-
-	rc=do_maildirwatch_unlock(w, nseconds, p);
-
-	free(p);
-	return rc;
+	return w->unlock(nseconds) ? 0:-1;
 }
 
 int maildirwatch_start(struct maildirwatch *w,
@@ -316,222 +296,248 @@ int maildirwatch_start(struct maildirwatch *w,
 {
 	mc->w=w;
 
-	time(&w->now);
-	w->timeout = w->now + 60;
+	return w->start(mc->handles) ? 1:0;
+}
+
+maildirwatch::contents::contents(watch &w)
+	: w{w}, fallback{w.start(*this)}
+{
+}
+
+maildirwatch::contents::~contents()
+{
+	w.end(*this);
+}
+
+bool maildir::watch::start(maildirwatch_contents_filehandles &handles)
+{
+	time(&now);
+	timeout = now + 60;
 
 #if HAVE_INOTIFY_INIT
 
+	std::string s;
+
+	s.reserve(maildir.size() + sizeof(KEYWORDDIR));
+
+	s=maildir;
+	s += "/new";
+
+	handles.handles[0]=inotify_add_watch(inotify_fd, s.c_str(),
+					     IN_CREATE |
+					     IN_DELETE |
+					     IN_MOVED_FROM |
+					     IN_MOVED_TO);
+
+	s=maildir;
+	s += "/cur";
+	handles.handles[1]=inotify_add_watch(inotify_fd, s.c_str(),
+					     IN_CREATE |
+					     IN_DELETE |
+					     IN_MOVED_FROM |
+					     IN_MOVED_TO);
+
+	s=maildir;
+	s += "/" KEYWORDDIR;
+
+	handles.handles[2]=inotify_add_watch(inotify_fd, s.c_str(),
+					     IN_CREATE |
+					     IN_DELETE |
+					     IN_MOVED_FROM |
+					     IN_MOVED_TO);
+	if (handles.handles[2] < 0)
 	{
-		char *s=(char *)malloc(strlen(w->maildir)
-			       +sizeof("/" KEYWORDDIR));
+		// Maybe it's time to create it.
 
-		if (!s)
-			return (-1);
+		create_keyword_dir(maildir, s);
 
-		strcat(strcpy(s, w->maildir), "/new");
-
-		mc->handles[0]=inotify_add_watch(w->inotify_fd, s,
-						 IN_CREATE |
-						 IN_DELETE |
-						 IN_MOVED_FROM |
-						 IN_MOVED_TO);
-
-
-		strcat(strcpy(s, w->maildir), "/cur");
-
-		mc->handles[1]=inotify_add_watch(w->inotify_fd, s,
-						 IN_CREATE |
-						 IN_DELETE |
-						 IN_MOVED_FROM |
-						 IN_MOVED_TO);
-
-		strcat(strcpy(s, w->maildir), "/" KEYWORDDIR);
-
-		mc->handles[2]=inotify_add_watch(w->inotify_fd, s,
-						 IN_CREATE |
-						 IN_DELETE |
-						 IN_MOVED_FROM |
-						 IN_MOVED_TO);
-		free(s);
+		handles.handles[2]=inotify_add_watch(inotify_fd, s.c_str(),
+						     IN_CREATE |
+						     IN_DELETE |
+						     IN_MOVED_FROM |
+						     IN_MOVED_TO);
 	}
 
-	return 0;
+	return false;
 #else
-	return 1;
+	return true;
 #endif
+}
+
+void maildir::create_keyword_dir(const std::string &maildir,
+				 const std::string &keyworddir)
+{
+	struct stat stat_buf;
+
+	mkdir(keyworddir.c_str(), 0700);
+
+	/* Give it same mode as the maildir */
+
+	if (stat(maildir.c_str(), &stat_buf) == 0)
+		chmod(keyworddir.c_str(),
+		      stat_buf.st_mode & 0777);
 }
 
 int maildirwatch_started(struct maildirwatch_contents *mc,
 			 int *fdret)
 {
+	return mc->w->started(mc->handles, *fdret) ? 1:-1;
+}
+
+bool maildir::watch::contents::started(int &fd) const
+{
+	return w.started(*this, fd);
+}
+
+bool maildir::watch::started(const maildirwatch_contents_filehandles &handles,
+			     int &fd) const
+{
+	fd= -1;
+
 #if HAVE_INOTIFY_INIT
-	size_t n;
-#endif
 
-	*fdret= -1;
-
-#if HAVE_INOTIFY_INIT
-
-	for (n=0; n<sizeof(mc->handles)/sizeof(mc->handles[0]); ++n)
+	for (auto h:handles.handles)
 	{
-		if (mc->handles[n] < 0)
-			return -1;
+		if (h < 0)
+			return false;
 	}
 
-	*fdret=mc->w->inotify_fd;
+	fd=inotify_fd;
 
-	return 1;
+	return true;
 
 #else
-	*fdret= -1;
+	fd= -1;
 
-	return 1;
+	return true;
 #endif
 }
 
-#if HAVE_INOTIFY_INIT
-
-struct check_info {
-	struct maildirwatch_contents *mc;
-	int *changed;
-	int handled;
-};
-
-static void check_handler(struct inotify_event *ie,
-			  void *arg)
+bool maildir::watch::contents::check(int &fd, int &timeout) const
 {
-	struct check_info *ci=(struct check_info *)arg;
-	size_t n;
-
-	ci->handled=1;
-
-	for (n=0; n<sizeof(ci->mc->handles)/sizeof(ci->mc->handles[0]); ++n)
-	{
-		if (ie->wd == ci->mc->handles[n])
-			*ci->changed=1;
-	}
-
+	return w.check(*this, fd, timeout);
 }
-#endif
 
 int maildirwatch_check(struct maildirwatch_contents *mc,
 		       int *changed,
 		       int *fdret,
 		       int *timeout)
 {
-	struct maildirwatch *w=mc->w;
+	*changed=mc->w->check(mc->handles, *fdret, *timeout);
+	return 0;
+}
+
+bool maildir::watch::check(const maildirwatch_contents_filehandles &handles,
+			   int &fd, int &timeout_ret)
+{
 	time_t curTime;
-#if HAVE_INOTIFY_INIT
-	struct check_info ci;
 
-	ci.mc=mc;
-	ci.changed=changed;
-#endif
+	bool changed=false;
 
-	*changed=0;
-	*fdret=-1;
+	fd=-1;
 
 	curTime=time(NULL);
 
-	if (curTime < w->now)
-		w->timeout=curTime; /* System clock changed */
-	w->now=curTime;
+	if (curTime < now)
+		timeout=curTime; /* System clock changed */
+	now=curTime;
 
-	*timeout=60;
+	timeout_ret=60;
 
 #if HAVE_INOTIFY_INIT
-	if (maildirwatch_started(mc, fdret) > 0)
+	if (started(handles, fd))
 	{
-		*timeout=60 * 60;
+		timeout_ret=60 * 60;
 
-		*fdret=w->inotify_fd;
+		bool handled=true;
 
-		ci.handled=1;
-
-		while (ci.handled)
+		while (handled)
 		{
-			ci.handled=0;
-			read_inotify_events(w->inotify_fd, check_handler, &ci);
+			handled=false;
+			read_inotify_events(
+				inotify_fd,
+				[&]
+				(const inotify_event &ie)
+				{
+					handled=true;
+
+					for (auto h:handles.handles)
+					{
+						if (ie.wd == h)
+							changed=true;
+					}
+				});
 		}
 	}
 #endif
-	if (w->now >= w->timeout)
+	if (now >= timeout)
 	{
-                w->timeout = w->now + *timeout;
-		*changed=1;
+                timeout = now + timeout_ret;
+		changed=true;
 	}
-	return 0;
+	return changed;
 }
 
 #if HAVE_INOTIFY_INIT
-
-struct end_info {
-	struct maildirwatch_contents *mc;
-	int unwatched;
-};
-
-static void end_handler(struct inotify_event *ie,
-			void *arg)
+bool maildir::watch::end_unwatch(maildirwatch_contents_filehandles &handles)
 {
-	struct end_info *ei=(struct end_info *)arg;
-	size_t n;
-
-	for (n=0; n<sizeof(ei->mc->handles)/sizeof(ei->mc->handles[0]); ++n)
+	for (auto h:handles.handles)
 	{
-		if (ie->wd == ei->mc->handles[n] &&
-		    ie->mask & IN_IGNORED)
+		if (h >= 0)
 		{
-			ei->mc->handles[n]=-1;
-			ei->unwatched=1;
+			inotify_rm_watch(inotify_fd, h);
+			return true;
 		}
 	}
-}
-
-static int maildir_end_unwatch(struct maildirwatch_contents *mc)
-{
-	size_t n;
-
-	for (n=0; n<sizeof(mc->handles)/sizeof(mc->handles[0]); ++n)
-	{
-		if (mc->handles[n] >= 0)
-		{
-			inotify_rm_watch(mc->w->inotify_fd,
-					 mc->handles[n]);
-			return 1;
-		}
-	}
-	return 0;
+	return false;
 }
 #endif
 
 void maildirwatch_end(struct maildirwatch_contents *mc)
 {
+	mc->w->end(mc->handles);
+}
+
+void maildir::watch::end(maildirwatch_contents_filehandles &handles)
+{
 #if HAVE_INOTIFY_INIT
-	struct end_info ei;
 
-	time(&mc->w->now);
-	mc->w->timeout=mc->w->now + 15;
+	time(&now);
+	timeout=now + 15;
 
-	if (maildir_end_unwatch(mc)) /* Send the first inotify_rm_watch */
+	if (end_unwatch(handles)) /* Send the first inotify_rm_watch */
 	{
 		while (1)
 		{
-			if (poll_inotify(mc->w) != 1)
+			if (!poll_inotify())
 			{
 				fprintf(stderr, "ERR:inotify timeout: %s\n",
 					strerror(errno));
 				break;
 			}
 
-			ei.mc=mc;
-			ei.unwatched=0;
-			read_inotify_events(mc->w->inotify_fd,
-						end_handler, &ei);
+			bool unwatched=false;
 
-			if (ei.unwatched)
+			read_inotify_events(
+				inotify_fd,
+				[&]
+				(const inotify_event &ie)
+				{
+					for (auto &h:handles.handles)
+					{
+						if (ie.wd == h &&
+						    ie.mask & IN_IGNORED)
+						{
+							h= -1;
+							unwatched=true;
+						}
+					}
+				});
+
+			if (unwatched)
 			{
 				/* Send the next inotify_rm_watch? */
-				if (!maildir_end_unwatch(mc))
+				if (!end_unwatch(handles))
 					break; /* Nope, all done! */
 			}
 		}
