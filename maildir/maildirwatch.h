@@ -5,13 +5,24 @@
 ** See COPYING for distribution information.
 */
 
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
 #if HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#ifdef  __cplusplus
+
+namespace maildir {
+#if 0
+}
+#endif
+
+
+#if 0
+{
+#endif
+}
+
+extern "C" {
 #endif
 
 /*
@@ -29,16 +40,7 @@ extern "C" {
 #endif
 #endif
 
-struct maildirwatch {
-	char *maildir;
-
-#if HAVE_INOTIFY_INIT
-	int inotify_fd;
-#endif
-	time_t now;
-	time_t timeout;
-
-};
+struct maildirwatch;
 
 #define WATCHDOTLOCK	"tmp/courier.lock"
 

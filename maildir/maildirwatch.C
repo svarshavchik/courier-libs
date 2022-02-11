@@ -24,6 +24,17 @@
 #define PATH_MAX 4096
 #endif
 
+struct maildirwatch {
+	char *maildir;
+
+#if HAVE_INOTIFY_INIT
+	int inotify_fd;
+#endif
+	time_t now;
+	time_t timeout;
+
+};
+
 struct maildirwatch *maildirwatch_alloc(const char *maildir)
 {
 	char wd[PATH_MAX];
@@ -40,10 +51,10 @@ struct maildirwatch *maildirwatch_alloc(const char *maildir)
 	else
 		strcat(wd, "/");
 
-	if ((w=malloc(sizeof(struct maildirwatch))) == NULL)
+	if ((w=(maildirwatch *)malloc(sizeof(struct maildirwatch))) == NULL)
 		return NULL;
 
-	if ((w->maildir=malloc(strlen(wd)+strlen(maildir)+1)) == NULL)
+	if ((w->maildir=(char *)malloc(strlen(wd)+strlen(maildir)+1)) == NULL)
 	{
 		free(w);
 		return NULL;
@@ -287,7 +298,7 @@ int maildirwatch_unlock(struct maildirwatch *w, int nseconds)
 	char *p;
 	int rc;
 
-	p=malloc(strlen(w->maildir)+ sizeof("/" WATCHDOTLOCK));
+	p=(char *)malloc(strlen(w->maildir)+ sizeof("/" WATCHDOTLOCK));
 
 	if (!p)
 		return -1;
@@ -311,7 +322,7 @@ int maildirwatch_start(struct maildirwatch *w,
 #if HAVE_INOTIFY_INIT
 
 	{
-		char *s=malloc(strlen(w->maildir)
+		char *s=(char *)malloc(strlen(w->maildir)
 			       +sizeof("/" KEYWORDDIR));
 
 		if (!s)
@@ -354,7 +365,7 @@ int maildirwatch_started(struct maildirwatch_contents *mc,
 			 int *fdret)
 {
 #if HAVE_INOTIFY_INIT
-	int n;
+	size_t n;
 #endif
 
 	*fdret= -1;
@@ -390,7 +401,7 @@ static void check_handler(struct inotify_event *ie,
 			  void *arg)
 {
 	struct check_info *ci=(struct check_info *)arg;
-	int n;
+	size_t n;
 
 	ci->handled=1;
 
@@ -463,7 +474,7 @@ static void end_handler(struct inotify_event *ie,
 			void *arg)
 {
 	struct end_info *ei=(struct end_info *)arg;
-	int n;
+	size_t n;
 
 	for (n=0; n<sizeof(ei->mc->handles)/sizeof(ei->mc->handles[0]); ++n)
 	{
@@ -478,7 +489,7 @@ static void end_handler(struct inotify_event *ie,
 
 static int maildir_end_unwatch(struct maildirwatch_contents *mc)
 {
-	int n;
+	size_t n;
 
 	for (n=0; n<sizeof(mc->handles)/sizeof(mc->handles[0]); ++n)
 	{
