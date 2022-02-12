@@ -39,17 +39,17 @@
 extern int smapflag;
 #endif
 
-extern "C" char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
+char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
 extern int is_trash(const char *);
 extern bool get_flagname(std::string s, struct imapflags *flags);
 extern int get_flagsAndKeywords(struct imapflags *flags,
 				struct libmail_kwMessage **kwPtr);
-extern "C" void get_message_flags( struct imapscanmessageinfo *,
-				   char *, struct imapflags *);
-extern "C" int reflag_filename(struct imapscanmessageinfo *, struct imapflags *,
+void get_message_flags( struct imapscanmessageinfo *,
+			char *, struct imapflags *);
+int reflag_filename(struct imapscanmessageinfo *, struct imapflags *,
 			       int);
-extern "C" void fetchflags(unsigned long);
-extern "C" void fetchflags_byuid(unsigned long);
+void fetchflags(unsigned long);
+void fetchflags_byuid(unsigned long);
 extern FILE *maildir_mkfilename(const char *, struct imapflags *,
 				unsigned long, std::string &, std::string &);
 extern int acl_flags_adjust(const char *access_rights,

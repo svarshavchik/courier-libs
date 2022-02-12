@@ -50,10 +50,10 @@ extern char *rfc2045id(struct rfc2045 *);
 
 extern void snapshot_needed();
 
-extern void msgenvelope(void (*)(const char *, size_t),
-                FILE *, struct rfc2045 *);
-extern void msgbodystructure( void (*)(const char *, size_t), int,
-        FILE *, struct rfc2045 *);
+extern "C" void msgenvelope(void (*)(const char *, size_t),
+			    FILE *, struct rfc2045 *);
+extern "C" void msgbodystructure( void (*)(const char *, size_t), int,
+				  FILE *, struct rfc2045 *);
 
 extern int is_trash(const char *);
 extern void get_message_flags(struct imapscanmessageinfo *,
@@ -127,7 +127,7 @@ static int dofetchheaderfields(struct fetchinfo *, const char *);
 static int dofetchheadernotfields(struct fetchinfo *, const char *);
 static int dofetchheadermime(struct fetchinfo *, const char *);
 
-static void rfc822(FILE *, struct fetchinfo *,
+static void dorfc822(FILE *, struct fetchinfo *,
 	struct imapscaninfo *, unsigned long,
 	struct rfc2045 *);
 
@@ -164,7 +164,7 @@ struct imapscanmessageinfo *mi=info->msgs+j;
 
 char *get_reflagged_filename(const char *fn, struct imapflags *newflags)
 {
-	char *p=malloc(strlen(fn)+20);
+	char *p=(char *)malloc(strlen(fn)+20);
 	char *q;
 
 	if (!p)	write_error_exit(0);
@@ -187,8 +187,8 @@ struct	stat	stat_buf;
 
 	p=get_reflagged_filename(mi->filename, flags);
 
-	q=malloc(strlen(current_mailbox)+strlen(mi->filename)+sizeof("/cur/"));
-	r=malloc(strlen(current_mailbox)+strlen(p)+sizeof("/cur/"));
+	q=(char *)malloc(strlen(current_mailbox)+strlen(mi->filename)+sizeof("/cur/"));
+	r=(char *)malloc(strlen(current_mailbox)+strlen(p)+sizeof("/cur/"));
 	if (!q || !r)	write_error_exit(0);
 	strcat(strcat(strcpy(q, current_mailbox), "/cur/"), mi->filename);
 	strcat(strcat(strcpy(r, current_mailbox), "/cur/"), p);
@@ -407,7 +407,7 @@ static int fetchitem(FILE **fp, int *open_err, struct fetchinfo *fi,
 	}
 	else if (strcmp(fi->name, "RFC822") == 0)
 	{
-		fetchfunc= &rfc822;
+		fetchfunc= &dorfc822;
 		mimecorrectness=1;
 		rc=1;
 	}
@@ -685,7 +685,7 @@ static void print_bodysection_partial(struct fetchinfo *fi,
 		(*func)(fi->bodysection);
 		if (fi->bodysublist)
 		{
-		char	*p=" (";
+			const char	*p=" (";
 
 			for (subl=fi->bodysublist; subl; subl=subl->next)
 			{
@@ -883,7 +883,7 @@ off_t cache_phys_chars;
 
 	if (get_cached_offsets(start_seek_pos, &cnt_virtual_chars,
 			       &cnt_phys_chars) == 0 &&
-	    cnt_virtual_chars <= skipping)	/* Yeah - cache it, baby! */
+	    cnt_virtual_chars <= (off_t)skipping) /* Yeah - cache it, baby! */
 	{
 		if (fseek(fp, start_seek_pos+cnt_phys_chars, SEEK_SET) == -1)
 		{
@@ -1014,8 +1014,9 @@ static int dofetchheadernotfields(struct fetchinfo *fi, const char *name)
 
 static int dofetchheadermime(struct fetchinfo *fi, const char *name)
 {
-int	i, a;
-static const char mv[]="MIME-VERSION";
+	size_t i;
+	int	a;
+	static const char mv[]="MIME-VERSION";
 
 	for (i=0; i<sizeof(mv)-1; i++)
 	{
@@ -1059,7 +1060,7 @@ int	ii;
 	}
 
 	ii=fread(buf, 1, start_body - start_pos, fp);
-	if (ii < 0 || (i=ii) != start_body - start_pos)
+	if (ii < 0 || (i=ii) != (size_t)(start_body - start_pos))
 	{
 		fetcherror("unexpected EOF", fi, info, msgnum);
 		exit(1);
@@ -1179,13 +1180,13 @@ static void dofetchheadersfile(FILE *fp, struct fetchinfo *fi,
 	struct rfc2045 *mimep,
 	int (*headerfunc)(struct fetchinfo *fi, const char *))
 {
-off_t start_pos, end_pos, start_body, left;
-off_t nlines, nbodylines;
-size_t i;
-int	c, pass;
-char	buf1[256];
-int	goodheader;
-struct	fetchheaderinfo finfo;
+	off_t start_pos, end_pos, start_body;
+	off_t nlines, nbodylines;
+	size_t i, left;
+	int	c, pass;
+	char	buf1[256];
+	int	goodheader;
+	struct	fetchheaderinfo finfo;
 
 	finfo.cnt=0;
 	for (pass=0; pass<2; pass++)
@@ -1326,7 +1327,7 @@ static void printheader(struct fetchheaderinfo *fi, const char *p, size_t s)
 	fi->cnt -= s;
 }
 
-static void rfc822(FILE *fp, struct fetchinfo *fi,
+static void dorfc822(FILE *fp, struct fetchinfo *fi,
 	struct imapscaninfo *info, unsigned long msgnum,
 	struct rfc2045 *rfcp)
 {

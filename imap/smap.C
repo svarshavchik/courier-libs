@@ -109,7 +109,7 @@ extern void imapidle(void);
 extern void expunge();
 extern void doNoop(int);
 extern int do_store(unsigned long, int, void *);
-extern "C" int reflag_filename(struct imapscanmessageinfo *mi,
+extern int reflag_filename(struct imapscanmessageinfo *mi,
 			       struct imapflags *flags, int fd);
 
 extern void do_expunge(unsigned long expunge_start,
@@ -120,17 +120,17 @@ extern char *current_mailbox, *current_mailbox_acl;
 static int current_mailbox_shared;
 
 extern struct imapscaninfo current_maildir_info;
-extern "C" void get_message_flags(struct imapscanmessageinfo *,
-				  char *, struct imapflags *);
-extern "C" void fetchflags(unsigned long);
+void get_message_flags(struct imapscanmessageinfo *,
+		       char *, struct imapflags *);
+void fetchflags(unsigned long);
 
 extern bool acl_lock(const std::string &maildir,
 		     const std::function< bool() >&callback);
 
 extern void aclminimum(const std::string &);
 
-extern "C" struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
-extern "C" FILE *open_cached_fp(unsigned long);
+struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
+FILE *open_cached_fp(unsigned long);
 void fetch_free_cache();
 
 FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,

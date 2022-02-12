@@ -33,8 +33,8 @@ extern struct imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 
 extern bool get_flagname(std::string s, struct imapflags *flags);
-extern "C" void get_message_flags( struct imapscanmessageinfo *,
-				   char *, struct imapflags *);
+void get_message_flags( struct imapscanmessageinfo *,
+			char *, struct imapflags *);
 extern bool valid_keyword(const std::string &kw);
 
 static void fill_search_preparse(searchiter);

@@ -93,17 +93,18 @@
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
+extern void fetchflags(unsigned long);
+extern int do_fetch(unsigned long, int, void *);
+extern unsigned long header_count, body_count;
+extern void fetch_free_cached();
+
 extern "C" {
 #if 0
 }
 #endif
 
-extern void fetchflags(unsigned long);
-extern unsigned long header_count, body_count;
 extern time_t start_time;
 
-extern int do_fetch(unsigned long, int, void *);
-extern void fetch_free_cached();
 extern int keywords();
 extern int fastkeywords();
 extern void imapscanfail(const char *);
@@ -122,9 +123,9 @@ extern int magictrash();
 #if SMAP
 extern "C" {
 	int smapflag=0;
-	extern void snapshot_needed();
 }
 
+extern void snapshot_needed();
 extern void snapshot_save();
 extern void smap();
 extern void smap_fetchflags(unsigned long);
@@ -580,7 +581,7 @@ struct imaptoken *t;
 	return (t->tokentype == IT_RPAREN ? 0:-1);
 }
 
-extern "C" void get_message_flags(
+void get_message_flags(
 	struct imapscanmessageinfo *mi,
 	char *buf, struct imapflags *flags)
 {
@@ -698,7 +699,7 @@ static std::string parse_mailbox_error(
 		STORE NEW MESSAGE INTO A MAILBOX
 */
 
-extern "C" void append_flags(char *buf, struct imapflags *flags)
+void append_flags(char *buf, struct imapflags *flags)
 {
 	if (flags->drafts)	strcat(buf, "D");
 	if (flags->flagged)	strcat(buf, "F");

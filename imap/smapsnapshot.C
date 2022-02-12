@@ -616,7 +616,7 @@ int snapshot_init(const char *folder, const char *snapshot)
 ** take a snapshot.
 */
 
-extern "C" void snapshot_needed()
+void snapshot_needed()
 {
 	index_dirty=1;
 }
