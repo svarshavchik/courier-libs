@@ -1998,86 +1998,97 @@
 001992 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
 001993 +OK Updated ACLs
 001994 * COPY NEWUID
-001995 * COPY NEWUID
-001996 * COPY NEWUID
-001997 * COPY NEWUID
-001998 +OK Messages copied.
-001999 +OK Folder closed
-002000 +OK Folder created
-002001 +OK Folder created
-002002 * GETACL "owner" "aeilrstwx" "administrators" "aceilrstwx"
-002003 +OK Updated ACLs
-002004 -ERR --error--
-002005 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002006 +OK Updated ACLs
-002007 +OK Folder renamed.
-002008 * GETACL "owner" "aceilrstw" "administrators" "aceilrstwx"
-002009 +OK Updated ACLs
-002010 -ERR --error--
-002011 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002012 +OK Updated ACLs
-002013 +OK Folder renamed.
-002014 * EXISTS 8
-002015 +OK Folder opened
-002016 * FETCH 1 FLAGS=MARKED,SEEN,DELETED "KEYWORDS=keyword1"
-002017 +OK Message retrieved.
-002018 * GETACL "owner" "aceilrstx" "administrators" "aceilrstwx"
-002019 +OK Updated ACLs
-002020 * FETCH 1 FLAGS=MARKED,SEEN
-002021 * FETCH 1 "KEYWORDS=keyword1"
-002022 +OK Folder status updated
-002023 * GETACL "owner" "aceilrswx" "administrators" "aceilrstwx"
-002024 +OK Updated ACLs
-002025 * FETCH 1 FLAGS=MARKED,SEEN
-002026 * FETCH 1 "KEYWORDS=keyword2"
-002027 +OK Folder status updated
-002028 * GETACL "owner" "aceilrtwx" "administrators" "aceilrstwx"
-002029 +OK Updated ACLs
-002030 * FETCH 1 FLAGS=SEEN
-002031 +OK Folder status updated
-002032 * GETACL "owner" "acilrstwx" "administrators" "aceilrstwx"
-002033 +OK Updated ACLs
-002034 * FETCH 1 FLAGS=DELETED
-002035 +OK Folder status updated
-002036 -ERR --error--
-002037 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002038 +OK Updated ACLs
-002039 * EXPUNGE 1-3 5-7
-002040 +OK Folder updated
-002041 * GETACL "owner" "aceilrswx" "administrators" "aceilrstwx"
-002042 +OK Updated ACLs
-002043 -ERR --error--
-002044 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002045 +OK Updated ACLs
-002046 * EXPUNGE 1
-002047 +OK Folder updated
-002048 * BYE Courier-SMAP server shutting down
-002049 +OK LOGOUT completed
-002050 +OK SMAP1 LOGIN Ok.
-002051 * EXISTS 256
-002052 +OK Folder opened
-002053 * EXPUNGE 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202
-002054 * EXPUNGE 103 105 107 109 111 113 115 117 119 121 123 125 127 129 131 133 135 137 139 141 143 145 147 149 151 153 155
-002055 +OK Folder updated
-002056 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "c"
-002057 +OK Updated ACLs
-002058 -ERR --error--
-002059 -ERR --error--
-002060 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002061 +OK Updated ACLs
-002062 +OK Folder created
-002063 +OK Folder created
-002064 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
-002065 +OK Updated ACLs
-002066 -ERR --error--
-002067 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+001995 +OK Messages copied.
+001996 * EXISTS 5
+001997 +OK Folder updated
+001998 * COPY NEWUID
+001999 +OK Messages copied.
+002000 * EXISTS 6
+002001 +OK Folder updated
+002002 * COPY NEWUID
+002003 +OK Messages copied.
+002004 * EXISTS 7
+002005 +OK Folder updated
+002006 * COPY NEWUID
+002007 +OK Messages copied.
+002008 * EXISTS 8
+002009 +OK Folder updated
+002010 +OK Folder closed
+002011 +OK Folder created
+002012 +OK Folder created
+002013 * GETACL "owner" "aeilrstwx" "administrators" "aceilrstwx"
+002014 +OK Updated ACLs
+002015 -ERR --error--
+002016 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002017 +OK Updated ACLs
+002018 +OK Folder renamed.
+002019 * GETACL "owner" "aceilrstw" "administrators" "aceilrstwx"
+002020 +OK Updated ACLs
+002021 -ERR --error--
+002022 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002023 +OK Updated ACLs
+002024 +OK Folder renamed.
+002025 * EXISTS 8
+002026 +OK Folder opened
+002027 * FETCH 1 FLAGS=MARKED,SEEN,DELETED "KEYWORDS=keyword1"
+002028 +OK Message retrieved.
+002029 * GETACL "owner" "aceilrstx" "administrators" "aceilrstwx"
+002030 +OK Updated ACLs
+002031 * FETCH 1 FLAGS=MARKED,SEEN
+002032 * FETCH 1 "KEYWORDS=keyword1"
+002033 +OK Folder status updated
+002034 * GETACL "owner" "aceilrswx" "administrators" "aceilrstwx"
+002035 +OK Updated ACLs
+002036 * FETCH 1 FLAGS=MARKED,SEEN
+002037 * FETCH 1 "KEYWORDS=keyword2"
+002038 +OK Folder status updated
+002039 * GETACL "owner" "aceilrtwx" "administrators" "aceilrstwx"
+002040 +OK Updated ACLs
+002041 * FETCH 1 FLAGS=SEEN
+002042 +OK Folder status updated
+002043 * GETACL "owner" "acilrstwx" "administrators" "aceilrstwx"
+002044 +OK Updated ACLs
+002045 * FETCH 1 FLAGS=DELETED
+002046 +OK Folder status updated
+002047 -ERR --error--
+002048 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002049 +OK Updated ACLs
+002050 * EXPUNGE 1-3 5-7
+002051 +OK Folder updated
+002052 * GETACL "owner" "aceilrswx" "administrators" "aceilrstwx"
+002053 +OK Updated ACLs
+002054 -ERR --error--
+002055 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002056 +OK Updated ACLs
+002057 * EXPUNGE 1
+002058 +OK Folder updated
+002059 * BYE Courier-SMAP server shutting down
+002060 +OK LOGOUT completed
+002061 +OK SMAP1 LOGIN Ok.
+002062 * EXISTS 256
+002063 +OK Folder opened
+002064 * EXPUNGE 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202
+002065 * EXPUNGE 103 105 107 109 111 113 115 117 119 121 123 125 127 129 131 133 135 137 139 141 143 145 147 149 151 153 155
+002066 +OK Folder updated
+002067 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "c"
 002068 +OK Updated ACLs
-002069 +OK Folder deleted
-002070 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
-002071 +OK Updated ACLs
-002072 -ERR --error--
-002073 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
-002074 +OK Updated ACLs
-002075 +OK Folder deleted
-002076 * BYE Courier-SMAP server shutting down
-002077 +OK LOGOUT completed
+002069 -ERR --error--
+002070 -ERR --error--
+002071 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002072 +OK Updated ACLs
+002073 +OK Folder created
+002074 +OK Folder created
+002075 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
+002076 +OK Updated ACLs
+002077 -ERR --error--
+002078 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002079 +OK Updated ACLs
+002080 +OK Folder deleted
+002081 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx" "-owner" "x"
+002082 +OK Updated ACLs
+002083 -ERR --error--
+002084 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
+002085 +OK Updated ACLs
+002086 +OK Folder deleted
+002087 * BYE Courier-SMAP server shutting down
+002088 +OK LOGOUT completed
