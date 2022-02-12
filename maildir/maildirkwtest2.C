@@ -5,21 +5,20 @@
 			t=atoi(p);			\
 	} while (0)
 
-#define MAILDIRKW_MOCKTIME2()					\
-	do {							\
+#define MAILDIRKW_MOCKTIME2()						\
+	do {								\
+		static bool first=true;					\
 		const char *eee=getenv("MOCKTIME");			\
 									\
 		if (eee && strcmp(eee, "1000") == 0 &&			\
-		    strcmp(p, "004") == 0)				\
+		    status.second.found_newest &&			\
+		    status.first == "004" && first)			\
 		{							\
 			printf("Faked stale filename\n");		\
 			fflush(stdout);					\
-			p=NULL;						\
-									\
+			opened=false;					\
+			first=false;					\
 		}							\
 	} while(0);							\
-									\
-	i=NULL;								\
-		if (p)
 
-#include "maildirkeywords2.c"
+#include "maildirkeywords2cpp.C"

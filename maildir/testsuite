@@ -38,6 +38,11 @@ $VALGRIND ./maildirkw -L md | sort
 $VALGRIND ./maildirkw -r md one Label1
 echo ""
 $VALGRIND ./maildirkw -L md | sort
+$VALGRIND ./maildirkw md one two
+ls md/tmp
+$VALGRIND ./maildirkw md one three
+ls md/tmp
+$VALGRIND ./maildirkw -L md | sort
 rm -rf md testmd
 
 ./maildirmake ./testmd
@@ -65,9 +70,13 @@ MOCKTIME=2000 $VALGRIND ./maildirkwtest2 -L testmd
 MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
 >testmd/courierimapkeywords/.tmp.4.foo
 >testmd/courierimapkeywords/.tmp.1000.baz
-MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
+touch -t 200001010000 testmd/courierimapkeywords/.tmp.4.foo
+$VALGRIND ./maildirkwtest2 -L testmd
 ls testmd/courierimapkeywords/.tmp.* 2>&1
 rm -f testmd/courierimapkeywords/:list
+rm -f testmd/courierimapkeywords/.?.001
+rm -f testmd/courierimapkeywords/.?.002
+rm -f testmd/courierimapkeywords/.?.003
 echo "epsilon" >testmd/courierimapkeywords/.1.002
 echo "zeta" >testmd/courierimapkeywords/.2.002
 MOCKTIME=1000 $VALGRIND ./maildirkwtest2 -L testmd
@@ -77,3 +86,7 @@ $VALGRIND ./maildirkw -L testmd
 $VALGRIND ./maildirkw -r testmd 001 beta
 $VALGRIND ./maildirkw -L testmd
 rm -rf testmd
+
+LC_ALL=C
+export LC_ALL
+$VALGRIND ./maildirkwtest3 | sort

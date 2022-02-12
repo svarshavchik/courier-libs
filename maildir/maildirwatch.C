@@ -29,6 +29,8 @@
 #include <stdexcept>
 #include <functional>
 
+// Prepend current working directory to a relative pathname (if it is relative)
+
 static std::string prepend_wd(const std::string &maildir)
 {
 	char wd[PATH_MAX];
@@ -182,12 +184,6 @@ static void read_inotify_events(
 	}
 }
 
-struct unlock_info {
-	int handle;
-	int removed;
-	int deleted;
-};
-
 #endif
 
 bool maildir::watch::unlock(int nseconds)
@@ -195,15 +191,13 @@ bool maildir::watch::unlock(int nseconds)
 	std::string p=maildir + "/" WATCHDOTLOCK;
 
 #if HAVE_INOTIFY_INIT
-	int cancelled=0;
+	bool cancelled=false;
 
-	struct unlock_info ui;
+	auto handle=inotify_add_watch(inotify_fd, p.c_str(), IN_DELETE_SELF);
+	bool removed=false;
+	bool deleted=false;
 
-	ui.handle=inotify_add_watch(inotify_fd, p.c_str(), IN_DELETE_SELF);
-	ui.removed=0;
-	ui.deleted=0;
-
-	if (ui.handle < 0)
+	if (handle < 0)
 	{
 		if (errno == ENOENT)
 		{
@@ -234,8 +228,8 @@ bool maildir::watch::unlock(int nseconds)
 				** Timeout on the lock, cancel the inotify.
 				*/
 				timeout=now+15;
-				cancelled=1;
-				inotify_rm_watch(inotify_fd, ui.handle);
+				cancelled=true;
+				inotify_rm_watch(inotify_fd, handle);
 				continue;
 			}
 
@@ -250,28 +244,28 @@ bool maildir::watch::unlock(int nseconds)
 			[&]
 			(const inotify_event &ie)
 			{
-				if (ie.wd == ui.handle)
+				if (ie.wd == handle)
 				{
 					if (ie.mask & IN_DELETE_SELF)
-						ui.removed=1;
+						removed=true;
 
 					if (ie.mask & IN_IGNORED)
-						ui.deleted=1;
+						deleted=true;
 				}
 			});
 
-		if (ui.removed && !cancelled)
+		if (removed && !cancelled)
 		{
 			timeout=now+15;
-			cancelled=1;
-			inotify_rm_watch(inotify_fd, ui.handle);
+			cancelled=true;
+			inotify_rm_watch(inotify_fd, handle);
 		}
 
 		/* We don't terminate the loop until we get IN_IGNORED */
 
-	} while (!ui.deleted);
+	} while (!deleted);
 
-	return ui.removed != 0;
+	return removed;
 #else
 
 	int n;
@@ -362,6 +356,11 @@ bool maildir::watch::start(maildirwatch_contents_filehandles &handles)
 #else
 	return true;
 #endif
+}
+
+void maildir::create_keyword_dir(const std::string &maildir)
+{
+	create_keyword_dir(maildir, maildir + "/" KEYWORDDIR);
 }
 
 void maildir::create_keyword_dir(const std::string &maildir,

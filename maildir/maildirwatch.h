@@ -150,6 +150,10 @@ class watch {
 	bool end_unwatch(maildirwatch_contents_filehandles &handles);
 };
 
+// Internal utility functions:
+
+void create_keyword_dir(const std::string &maildir);
+
 void create_keyword_dir(const std::string &maildir,
 			const std::string &keyworddir);
 

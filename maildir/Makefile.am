@@ -54,7 +54,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirwatch.C maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
-	maildirkwtest2 testautoresponse \
+	maildirkwtest2 maildirkwtest3 testautoresponse \
 	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch
 
 deliverquota_SOURCES=deliverquota.c
@@ -93,10 +93,15 @@ maildirkw_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 maildirkw_LDFLAGS=-static
 nodist_EXTRA_maildirkw_SOURCES=dummy.C
 
-maildirkwtest2_SOURCES=maildirkw.C maildirkwtest2.c
+maildirkwtest2_SOURCES=maildirkw.C maildirkwtest2.C
 maildirkwtest2_LDADD=$(maildirkw_LDADD)
 maildirkwtest2_DEPENDENCIES=$(maildirkw_DEPENDENCIES)
 maildirkwtest2_LDFLAGS=-static
+
+maildirkwtest3_SOURCES=maildirkwtest3.C
+maildirkwtest3_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
+maildirkwtest3_DEPENDENCIES=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
+maildirkwtest3_LDFLAGS=-static
 
 maildirwatch_SOURCES=maildirwatchprog.c
 maildirwatch_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
