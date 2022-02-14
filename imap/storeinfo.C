@@ -39,7 +39,7 @@
 extern int smapflag;
 #endif
 
-char *get_reflagged_filename(const char *fn, struct imapflags *newfl);
+std::string get_reflagged_filename(std::string fn, struct imapflags &newflags);
 extern int is_trash(const char *);
 extern bool get_flagname(std::string s, struct imapflags *flags);
 extern int get_flagsAndKeywords(struct imapflags *flags,
@@ -455,7 +455,6 @@ unsigned long nbytes;
 struct	stat	stat_buf;
 int	fd;
 struct imapflags flags;
-char *ff;
 
 	--n;
 
@@ -467,16 +466,15 @@ char *ff;
 
 	(void)acl_flags_adjust(info->acls, &flags);
 
-	ff=get_reflagged_filename(filename, &flags);
+	auto ff=get_reflagged_filename(filename, flags);
 
-	if (maildirquota_countfile(ff))
+	if (maildirquota_countfile(ff.c_str()))
 	{
-		if (maildir_parsequota(ff, &nbytes))
+		if (maildir_parsequota(ff.c_str(), &nbytes))
 		{
 			if (fstat(fd, &stat_buf) < 0)
 			{
 				close(fd);
-				free(ff);
 				return (0);
 			}
 			nbytes=stat_buf.st_size;
@@ -485,6 +483,5 @@ char *ff;
 		info->nfiles += 1;
 	}
 	close(fd);
-	free(ff);
 	return (0);
 }

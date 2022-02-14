@@ -58,7 +58,7 @@ extern "C" void msgbodystructure( void (*)(const char *, size_t), int,
 extern int is_trash(const char *);
 extern void get_message_flags(struct imapscanmessageinfo *,
 	char *, struct imapflags *);
-extern void append_flags(char *, struct imapflags *);
+extern void append_flags(std::string &buf, struct imapflags &flags);
 
 static int fetchitem(FILE **, int *, struct fetchinfo *,
 		     struct imapscaninfo *,  unsigned long,
@@ -162,37 +162,38 @@ struct imapscanmessageinfo *mi=info->msgs+j;
 	fprintf(stderr, "\n");
 }
 
-char *get_reflagged_filename(const char *fn, struct imapflags *newflags)
+std::string get_reflagged_filename(std::string fn, struct imapflags &newflags)
 {
-	char *p=(char *)malloc(strlen(fn)+20);
-	char *q;
+	size_t n=fn.rfind(MDIRSEP[0]);
 
-	if (!p)	write_error_exit(0);
-	strcpy(p, fn);
-	if ((q=strrchr(p, MDIRSEP[0])) != 0)	*q=0;
-	strcat(p, MDIRSEP "2,");
-	append_flags(p, newflags);
-	return p;
+	if (n != fn.npos)
+		fn.resize(n);
+
+	fn += MDIRSEP "2,";
+	append_flags(fn, newflags);
+	return fn;
 }
 
 int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 	int fd)
 {
-char    *p, *q, *r;
-int	rc=0;
-struct	imapflags old_flags;
-struct	stat	stat_buf;
+	int	rc=0;
+	struct	imapflags old_flags;
+	struct	stat	stat_buf;
 
 	get_message_flags(mi, 0, &old_flags);
 
-	p=get_reflagged_filename(mi->filename, flags);
+	auto p=get_reflagged_filename(mi->filename, *flags);
+	std::string q=current_mailbox;
+	q += "/cur/";
+	q += mi->filename;
 
-	q=(char *)malloc(strlen(current_mailbox)+strlen(mi->filename)+sizeof("/cur/"));
-	r=(char *)malloc(strlen(current_mailbox)+strlen(p)+sizeof("/cur/"));
-	if (!q || !r)	write_error_exit(0);
-	strcat(strcat(strcpy(q, current_mailbox), "/cur/"), mi->filename);
-	strcat(strcat(strcpy(r, current_mailbox), "/cur/"), p);
-	if (strcmp(q, r))
+	std::string r=current_mailbox;
+
+	r += "/cur/";
+	r += p;
+
+	if (q != r)
 	{
 		if (maildirquota_countfolder(current_mailbox)
 			&& old_flags.deleted != flags->deleted
@@ -223,16 +224,14 @@ struct	stat	stat_buf;
 		}
 
 		if (rc == 0)
-			rename(q, r);
+			rename(q.c_str(), r.c_str());
 
 #if SMAP
 		snapshot_needed();
 #endif
 	}
-	free(q);
-	free(r);
 	free(mi->filename);
-	mi->filename=p;
+	mi->filename=strdup(p.c_str());
 
 #if 0
 	if (is_sharedsubdir(current_mailbox))

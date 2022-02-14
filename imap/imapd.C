@@ -699,13 +699,13 @@ static std::string parse_mailbox_error(
 		STORE NEW MESSAGE INTO A MAILBOX
 */
 
-void append_flags(char *buf, struct imapflags *flags)
+void append_flags(std::string &buf, struct imapflags &flags)
 {
-	if (flags->drafts)	strcat(buf, "D");
-	if (flags->flagged)	strcat(buf, "F");
-	if (flags->answered)	strcat(buf, "R");
-	if (flags->seen)	strcat(buf, "S");
-	if (flags->deleted)	strcat(buf, "T");
+	if (flags.drafts)	buf += "D";
+	if (flags.flagged)	buf += "F";
+	if (flags.answered)	buf += "R";
+	if (flags.seen)	buf += "S";
+	if (flags.deleted)	buf += "T";
 }
 
 	/* First, figure out the filenames used in tmp and new */
@@ -718,28 +718,31 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 	char	uniqbuf[80];
 	static unsigned uniqcnt=0;
 	FILE	*fp;
-	struct maildir_tmpcreate_info createInfo;
 
 	sprintf(uniqbuf, "%u", uniqcnt++);
 
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 	createInfo.openmode=0666;
 	createInfo.maildir=mailbox;
 	createInfo.uniq=uniqbuf;
 	createInfo.msgsize=s;
-	createInfo.hostname=getenv("HOSTNAME");
-	createInfo.doordie=1;
 
-	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
-		return NULL;
+	const char *p=getenv("HOSTNAME");
+
+	if (p) createInfo.hostname=p;
+	createInfo.doordie=true;
+
+	fp=createInfo.fp();
+
+	if (!fp)
+		return nullptr;
 
 	tmpname=createInfo.tmpname;
 	newname=createInfo.newname;
 
-	maildir_tmpcreate_free(&createInfo);
+	std::string suffix = MDIRSEP "2,";
 
-	strcpy(uniqbuf, MDIRSEP "2,");
-	append_flags(uniqbuf, flags);
+	append_flags(suffix, *flags);
 
 	/* Ok, this message will really go to cur, not new */
 
@@ -748,7 +751,7 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 	static const char curstr[]="cur";
 
 	std::copy(curstr, curstr+3, newname.begin()+(slash-3));
-	newname += uniqbuf;
+	newname += suffix;
 
 	return fp;
 }
