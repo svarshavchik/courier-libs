@@ -59,6 +59,10 @@
 #include	"imapwrite.h"
 #include	"imapd.h"
 
+#include	<fstream>
+#include	<sstream>
+#include	<iterator>
+
 /*
 ** RFC 2060: "A good value to use for the unique identifier validity value is a
 ** 32-bit representation of the creation date/time of the mailbox."
@@ -290,19 +294,19 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				const char *dir, int leavenew, int ro,
 				struct uidplus_info *uidplus)
 {
-char	*dbfilepath, *newdbfilepath;
-struct	tempinfo *tempinfo_list=0, **tempinfo_array=0, *tempinfoptr;
-struct	tempinfo *newtempinfo_list=0;
-unsigned	tempinfo_cnt=0, i;
-FILE	*fp;
-char	*p, *q;
-unsigned long uidv, nextuid;
-int	version;
-struct	stat	stat_buf;
-DIR	*dirp;
-struct	dirent *de;
-unsigned long left_unseen=0;
-int	dowritecache=0;
+	char	*dbfilepath, *newdbfilepath;
+	struct	tempinfo *tempinfo_list=0, **tempinfo_array=0, *tempinfoptr;
+	struct	tempinfo *newtempinfo_list=0;
+	unsigned	tempinfo_cnt=0, i;
+	std::fstream fp;
+	char	*p, *q;
+	unsigned long uidv, nextuid;
+	int	version;
+	struct	stat	stat_buf;
+	DIR	*dirp;
+	struct	dirent *de;
+	unsigned long left_unseen=0;
+	int	dowritecache=0;
 
 	if (is_sharedsubdir(dir))
 		maildir_shared_sync(dir);
@@ -347,24 +351,40 @@ int	dowritecache=0;
 	}
 
 	/* Step 1 - read the cache file */
+	std::string line;
 
-	if ((fp=fopen(dbfilepath, "r")) != 0 &&
-		(p=readline(0, fp)) != 0 &&
-		sscanf(p, "%d %lu %lu", &version, &uidv, &nextuid) == 3 &&
-		version == IMAPDBVERSION)
+	fp.open(dbfilepath, std::ios_base::in);
+
+	version=0;
+
+	if (fp.is_open() &&
+	    std::getline(fp, line))
 	{
-		while ((p=readline(0, fp)) != 0)
-		{
-		char	*q=strchr(p, ' ');
-		unsigned long uid;
-		struct	tempinfo	*newtmpl;
+		std::istringstream i{line};
 
-			if (!q)	continue;
-			*q++=0;
-			if (sscanf(p, "%lu", &uid) != 1)	continue;
+		if (!(i >> version >> uidv >> nextuid))
+			version=0;
+	}
+
+	if (version == IMAPDBVERSION)
+	{
+		while (std::getline(fp, line))
+		{
+			unsigned long uid;
+			struct	tempinfo	*newtmpl;
+			std::istringstream i{line};
+
+			if (!(i >> uid >> std::ws)) continue;
+
+			std::string filename{
+				std::istreambuf_iterator<char>{i},
+				std::istreambuf_iterator<char>{}
+			};
+
 			if ((newtmpl=(struct tempinfo *)
 				malloc(sizeof(struct tempinfo))) == 0
-				|| (newtmpl->filename=strdup(q)) == 0)
+				|| (newtmpl->filename=strdup(
+					    filename.c_str())) == 0)
 			{
 				unlink(newdbfilepath);
 				write_error_exit(0);
@@ -376,26 +396,26 @@ int	dowritecache=0;
 			newtmpl->isrecent=0;
 			++tempinfo_cnt;
 		}
-		fclose(fp);
-		fp=0;
+		fp.close();
 	}
 	else if(!ro)
 	{
 
 	/* First time - create the cache file */
 
-		if (fp)	fclose(fp);
+		fp.close();
 		nextuid=1;
-		if ((fp=fopen(newdbfilepath, "w")) == 0 ||
-			fstat(fileno(fp), &stat_buf) != 0)
+		fp.open(newdbfilepath,
+			std::ios_base::out | std::ios_base::trunc);
+
+		if (!fp || stat(newdbfilepath, &stat_buf) != 0)
 		{
-			if (fp)	fclose(fp);
+			fp.close();
 			imapscanfail(newdbfilepath);
 
 			/* bk: ignore error */
 			unlink(newdbfilepath);
 			unlink(dbfilepath);
-			fp = 0;
 			/*
 			free(dbfilepath);
 			unlink(newdbfilepath);
@@ -466,7 +486,11 @@ int	dowritecache=0;
 		dowritecache=1;
 	}
 
-	if (!fp && (fp=fopen(newdbfilepath, "w")) == 0)
+	if (!fp.is_open())
+		fp.open(newdbfilepath,
+			std::ios_base::out | std::ios_base::trunc);
+
+	if (!fp.is_open())
 	{
 		imapscanfail(newdbfilepath);
 
@@ -730,30 +754,30 @@ int	dowritecache=0;
 		}
 
 	/* bk: ignore if failed to open file */
-	if (!ro && dowritecache && fp)
+	if (!ro && dowritecache && fp.is_open())
 	{
-		int need_fclose;
-
 	/* Step 7 - write out the new cache file */
 
 		version=IMAPDBVERSION;
-		fprintf(fp, "%d %lu %lu\n", version, uidv, nextuid);
+
+		fp << version << " " << uidv << " " << nextuid << "\n";
 
 		for (i=0; i<tempinfo_cnt; i++)
 		{
 			q=strrchr(tempinfo_array[i]->filename, MDIRSEP[0]);
 			if (q)  *q=0;
-			fprintf(fp, "%lu %s\n", tempinfo_array[i]->uid,
-				tempinfo_array[i]->filename);
+			fp << tempinfo_array[i]->uid
+			   << " " << tempinfo_array[i]->filename
+			   << "\n";
 			if (q)	*q=MDIRSEP[0];
 		}
 
-		need_fclose=1;
-		if (fflush(fp) || ferror(fp) || ((need_fclose=0), fclose(fp)))
+		fp << std::flush;
+
+		if (!fp.good() || (fp.close(), !fp.good()))
 		{
 			imapscanfail(dir);
-			if (need_fclose)
-				fclose(fp);
+			fp.close();
 			/* bk: ignore if failed */
 			unlink(newdbfilepath);
 			unlink(dbfilepath);
@@ -779,8 +803,7 @@ int	dowritecache=0;
 	}
 	else
 	{
-		if (fp)
-			fclose(fp);
+		fp.close();
 		unlink(newdbfilepath);
 	}
 	free(dbfilepath);
