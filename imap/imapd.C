@@ -97,6 +97,7 @@ extern void fetchflags(unsigned long);
 extern int do_fetch(unsigned long, int, fetchinfo *);
 extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
+extern void imapscanfail(const char *p);
 
 extern "C" {
 #if 0
@@ -107,7 +108,6 @@ extern time_t start_time;
 
 extern int keywords();
 extern int fastkeywords();
-extern void imapscanfail(const char *);
 extern void bye_msg(const char *);
 
 extern void mainloop();
@@ -180,24 +180,49 @@ void writemailbox(const std::string &mailbox)
 	writeqs(encoded.c_str());
 }
 
-// C++ wrapper for imapmaildirlock
-
-static int do_imapmaildirlock(void *p)
+static int uselocks()
 {
-	auto closure=*reinterpret_cast<const std::function<bool ()> **>(p);
+	const	char *p;
 
-	return (*closure)() ? 0:-1;
+	if ((p=getenv("IMAP_USELOCKS")) != 0 && *p != '1')
+		return 0;
+
+	return 1;
 }
 
 bool imapmaildirlock(struct imapscaninfo *scaninfo,
 		     const std::string &maildir,
 		     const std::function< bool() >&callback)
 {
-	const std::function< bool () > *ptr=&callback;
+	char *newname;
+	int tryAnyway;
 
-	return imapmaildirlock(scaninfo, maildir.c_str(),
-			       do_imapmaildirlock, &ptr) == 0
-		? true:false;
+	if (!uselocks())
+		return callback();
+
+	if (scaninfo->watcher == NULL &&
+	    (scaninfo->watcher=maildirwatch_alloc(maildir.c_str())) == NULL)
+		imapscanfail("maildirwatch");
+
+	if ((newname=maildir_lock(maildir.c_str(),
+				  scaninfo->watcher, &tryAnyway))
+	    == NULL)
+	{
+		if (!tryAnyway)
+			return -1;
+
+		imapscanfail("maildir_lock");
+	}
+
+	bool flag=callback();
+
+	if (newname)
+	{
+		unlink(newname);
+		free(newname);
+		newname=NULL;
+	}
+	return flag;
 }
 
 extern int maildirsize_read(const char *,int *,off_t *,unsigned *,unsigned *,struct stat *);
@@ -3158,19 +3183,6 @@ bool acl_lock(const std::string &maildir,
 
 	imapscan_init(&ii);
 	auto rc=imapmaildirlock(&ii, maildir, callback);
-	imapscan_free(&ii);
-	return rc;
-}
-
-int acl_lock(const char *homedir,
-	     int (*func)(void *),
-	     void *void_arg)
-{
-	struct imapscaninfo ii;
-	int rc;
-
-	imapscan_init(&ii);
-	rc=imapmaildirlock(&ii, homedir, func, void_arg);
 	imapscan_free(&ii);
 	return rc;
 }

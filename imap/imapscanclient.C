@@ -85,6 +85,11 @@ extern void set_time(const char *tmpname, time_t timestamp);
 static void imapscan_readKeywords(const char *maildir,
 				  struct imapscaninfo *scaninfo);
 
+extern bool imapmaildirlock(struct imapscaninfo *scaninfo,
+			    const std::string &maildir,
+			    const std::function< bool() >&callback);
+
+
 void imapscan_init(struct imapscaninfo *i)
 {
 	memset(i, 0, sizeof(*i));
@@ -123,52 +128,6 @@ struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *a,
 	return a->msgs[n].keywordMsg;
 }
 
-static int uselocks()
-{
-	const	char *p;
-
-	if ((p=getenv("IMAP_USELOCKS")) != 0 && *p != '1')
-		return 0;
-
-	return 1;
-}
-
-int imapmaildirlock(struct imapscaninfo *scaninfo,
-		    const char *maildir,
-		    int (*func)(void *),
-		    void *void_arg)
-{
-	char *newname;
-	int tryAnyway;
-	int rc;
-
-	if (!uselocks())
-		return (*func)(void_arg);
-
-	if (scaninfo->watcher == NULL &&
-	    (scaninfo->watcher=maildirwatch_alloc(maildir)) == NULL)
-		imapscanfail("maildirwatch");
-
-	if ((newname=maildir_lock(maildir, scaninfo->watcher, &tryAnyway))
-	    == NULL)
-	{
-		if (!tryAnyway)
-			return -1;
-
-		imapscanfail("maildir_lock");
-	}
-
-	rc=(*func)(void_arg);
-
-	if (newname)
-	{
-		unlink(newname);
-		free(newname);
-		newname=NULL;
-	}
-	return rc;
-}
-
 
 struct imapscan_info {
 	struct imapscaninfo *scaninfo;
@@ -178,36 +137,21 @@ struct imapscan_info {
 	struct uidplus_info *uidplus;
 };
 
-
-static int imapscan_maildir_cb(void *);
-
 int imapscan_maildir(struct imapscaninfo *scaninfo,
 		     const char *dir, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
 {
-	struct imapscan_info ii;
-
-	ii.scaninfo=scaninfo;
-	ii.dir=dir;
-	ii.leavenew=leavenew;
-	ii.ro=ro;
-	ii.uidplus=uidplus;
-
-	return imapmaildirlock(scaninfo, dir, imapscan_maildir_cb, &ii);
-}
-
-int imapscan_maildir_cb(void *void_arg)
-{
-	struct imapscan_info *ii=(struct imapscan_info *)void_arg;
-	int rc=do_imapscan_maildir2(ii->scaninfo,
-				   ii->dir,
-				   ii->leavenew,
-				   ii->ro,
-				   ii->uidplus);
-
-	if (rc)
-		rc= -1;
-	return rc;
+	return imapmaildirlock(
+		scaninfo, dir,
+		[&]
+		{
+			return do_imapscan_maildir2(
+				scaninfo,
+				dir,
+				leavenew,
+				ro,
+				uidplus) == 0;
+		}) ? 0:-1;
 }
 
 /* This structure is a temporary home for the filenames */
