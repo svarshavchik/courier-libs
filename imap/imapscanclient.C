@@ -294,7 +294,9 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				const char *dir, int leavenew, int ro,
 				struct uidplus_info *uidplus)
 {
-	char	*dbfilepath, *newdbfilepath;
+	std::string dbfilepath;
+	std::string newdbfilepath;
+
 	struct	tempinfo *tempinfo_list=0, **tempinfo_array=0, *tempinfoptr;
 	struct	tempinfo *newtempinfo_list=0;
 	unsigned	tempinfo_cnt=0, i;
@@ -316,9 +318,8 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 
 	maildir_purgetmp(dir);
 
-	dbfilepath=(char *)malloc(strlen(dir)+sizeof("/" IMAPDB));
-	if (!dbfilepath)	write_error_exit(0);
-	strcat(strcpy(dbfilepath, dir), "/" IMAPDB);
+	dbfilepath=dir;
+	dbfilepath += "/" IMAPDB;
 
 	/*
 	** We may need to rebuild the UID cache file.  Create the new cache
@@ -326,28 +327,25 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	*/
 
 	{
-		char	uniqbuf[80];
-		static  unsigned tmpuniqcnt=0;
-		struct maildir_tmpcreate_info createInfo;
-		int fd;
-
-		maildir_tmpcreate_init(&createInfo);
+		maildir::tmpcreate_info createInfo;
 
 		createInfo.maildir=dir;
-		createInfo.hostname=getenv("HOSTNAME");
-		sprintf(uniqbuf, "imapuid_%u", tmpuniqcnt++);
-		createInfo.uniq=uniqbuf;
-		createInfo.doordie=1;
 
-		if ((fd=maildir_tmpcreate_fd(&createInfo)) < 0)
+		const char *p=getenv("HOSTNAME");
+
+		if (!p)
+			p="";
+		createInfo.hostname=p;
+		createInfo.doordie=true;
+
+		int fd;
+
+		if ((fd=createInfo.fd()) < 0)
 		{
 			write_error_exit(0);
 		}
-		close(fd);
 
 		newdbfilepath=createInfo.tmpname;
-		createInfo.tmpname=NULL;
-		maildir_tmpcreate_free(&createInfo);
 	}
 
 	/* Step 1 - read the cache file */
@@ -386,7 +384,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				|| (newtmpl->filename=strdup(
 					    filename.c_str())) == 0)
 			{
-				unlink(newdbfilepath);
+				unlink(newdbfilepath.c_str());
 				write_error_exit(0);
 			}
 			newtmpl->next=tempinfo_list;
@@ -408,14 +406,14 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		fp.open(newdbfilepath,
 			std::ios_base::out | std::ios_base::trunc);
 
-		if (!fp || stat(newdbfilepath, &stat_buf) != 0)
+		if (!fp || stat(newdbfilepath.c_str(), &stat_buf) != 0)
 		{
 			fp.close();
-			imapscanfail(newdbfilepath);
+			imapscanfail(newdbfilepath.c_str());
 
 			/* bk: ignore error */
-			unlink(newdbfilepath);
-			unlink(dbfilepath);
+			unlink(newdbfilepath.c_str());
+			unlink(dbfilepath.c_str());
 			/*
 			free(dbfilepath);
 			unlink(newdbfilepath);
@@ -466,7 +464,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		    || (newtmpl->filename=strdup(strrchr(uidplus->curfilename,
 							 '/')+1)) == 0)
 		{
-			unlink(newdbfilepath);
+			unlink(newdbfilepath.c_str());
 			write_error_exit(0);
 		}
 
@@ -492,11 +490,11 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 
 	if (!fp.is_open())
 	{
-		imapscanfail(newdbfilepath);
+		imapscanfail(newdbfilepath.c_str());
 
 		/* bk: ignore error */
-		unlink(newdbfilepath);
-		unlink(dbfilepath);
+		unlink(newdbfilepath.c_str());
+		unlink(dbfilepath.c_str());
 		/*
 		free(dbfilepath);
 		unlink(newdbfilepath);
@@ -520,7 +518,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	if ((tempinfo_array=(struct tempinfo **)malloc(
 		(tempinfo_cnt+1)*sizeof(struct tempinfo *))) == 0)
 	{
-		unlink(newdbfilepath);
+		unlink(newdbfilepath.c_str());
 		write_error_exit(0);
 	}
 
@@ -565,7 +563,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		if ((newtmpl=(struct tempinfo *)
 			malloc(sizeof(struct tempinfo))) == 0)
 		{
-			unlink(newdbfilepath);
+			unlink(newdbfilepath.c_str());
 			write_error_exit(0);
 		}
 		newtmpl->filename=p;
@@ -655,7 +653,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 					       +sizeof(MDIRSEP "2,"));
 				if (!curname)
 				{
-					unlink(newdbfilepath);
+					unlink(newdbfilepath.c_str());
 					write_error_exit(0);
 				}
 				strcpy(curname, newname);
@@ -672,7 +670,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				if ((newtmpl=(struct tempinfo *)
 				     malloc(sizeof(struct tempinfo))) == 0)
 				{
-					unlink(newdbfilepath);
+					unlink(newdbfilepath.c_str());
 					write_error_exit(0);
 				}
 				newtmpl->filename=my_strdup(z+1);
@@ -730,7 +728,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	if ((tempinfo_array=(struct tempinfo **)malloc(
 		(tempinfo_cnt+1)*sizeof(struct tempinfo *))) == 0)
 	{
-		unlink(newdbfilepath);
+		unlink(newdbfilepath.c_str());
 		write_error_exit(0);
 	}
 
@@ -779,8 +777,8 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 			imapscanfail(dir);
 			fp.close();
 			/* bk: ignore if failed */
-			unlink(newdbfilepath);
-			unlink(dbfilepath);
+			unlink(newdbfilepath.c_str());
+			unlink(dbfilepath.c_str());
 			/*
 			free(tempinfo_array);
 			free(dbfilepath);
@@ -799,15 +797,13 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		/* bk */
 		else
 
-		rename(newdbfilepath, dbfilepath);
+			rename(newdbfilepath.c_str(), dbfilepath.c_str());
 	}
 	else
 	{
 		fp.close();
-		unlink(newdbfilepath);
+		unlink(newdbfilepath.c_str());
 	}
-	free(dbfilepath);
-	free(newdbfilepath);
 
 	/* Step 8 - create the final scaninfo array */
 
