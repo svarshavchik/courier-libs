@@ -2090,5 +2090,12 @@
 002084 * GETACL "owner" "aceilrstwx" "administrators" "aceilrstwx"
 002085 +OK Updated ACLs
 002086 +OK Folder deleted
-002087 * BYE Courier-SMAP server shutting down
-002088 +OK LOGOUT completed
+002087 +OK Folder created
+002088 * COPY NEWUID
+002089 * EXPUNGE 1
+002090 +OK Messages copied.
+002091 * EXISTS 1
+002092 +OK Folder opened
+002093 +OK Folder status updated
+002094 * BYE Courier-SMAP server shutting down
+002095 +OK LOGOUT completed
