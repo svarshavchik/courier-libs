@@ -1190,8 +1190,7 @@ static void parsekeywords(char *q, struct libmail_kwMessage **msgp)
 	}
 }
 
-static int applymsgset( int (*callback_func)(unsigned long, void *),
-			void *callback_arg)
+static int applymsgset( const std::function<int (unsigned long)> &callback)
 {
 	struct smapmsgset *msgsetp= &msgset;
 	unsigned long n;
@@ -1209,7 +1208,7 @@ static int applymsgset( int (*callback_func)(unsigned long, void *),
 				if (current_mailbox == NULL ||
 				    n > current_maildir_info.nmessages)
 					break;
-				rc=(*callback_func)(n-1, callback_arg);
+				rc=callback(n-1);
 				if (rc)
 					return rc;
 			}
@@ -1220,11 +1219,10 @@ static int applymsgset( int (*callback_func)(unsigned long, void *),
 	return 0;
 }
 
-static int do_attrfetch(unsigned long n, void *vp);
+static void do_attrfetch(unsigned long n, int);
 
-static int applyflags(unsigned long n, void *vp)
+static int applyflags(unsigned long n, struct storeinfo *si)
 {
-	struct storeinfo *si=(struct storeinfo *)vp;
 	int attrs;
 	struct libmail_kwMessage *newKw;
 
@@ -1252,7 +1250,7 @@ static int applyflags(unsigned long n, void *vp)
 	}
 	si->keywords=newKw;
 
-	do_attrfetch(n, &attrs);
+	do_attrfetch(n, attrs);
 	return 0;
 }
 
@@ -1262,45 +1260,33 @@ struct smapAddRemoveKeywordInfo {
 };
 
 static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
-					 smapAddRemoveKeywordInfo &info);
+					 storeinfo *si);
 
 static int addRemoveSmapKeywords(struct storeinfo *si)
 {
-	struct smapAddRemoveKeywordInfo ar;
-
-	ar.si=si;
-
 	return addRemoveKeywords(
 		[&]
 		(addRemoveKeywordInfo &arki)
 		{
 			return addRemoveSmapKeywordsCallback(
-				arki, ar
+				arki, si
 			);
 		}, si);
 }
 
-static int doAddRemoveSmapKeywords(unsigned long n, void *voidArg);
-
 static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
-					 smapAddRemoveKeywordInfo &info)
+					 storeinfo *si)
 {
-
-	info.storeVoidArg=&arki;
-	return applymsgset(doAddRemoveSmapKeywords, &info);
+	return applymsgset(
+		[&]
+		(unsigned long n)
+		{
+			return doAddRemoveKeywords(n+1, 0, arki);
+		});
 }
 
-static int doAddRemoveSmapKeywords(unsigned long n, void *voidArg)
+static void setdate(unsigned long n, time_t datestamp)
 {
-	struct smapAddRemoveKeywordInfo *info=
-		(struct smapAddRemoveKeywordInfo *)voidArg;
-
-	return doAddRemoveKeywords(n+1, 0, *info->storeVoidArg);
-}
-
-static int setdate(unsigned long n, void *vp)
-{
-	time_t datestamp=*(time_t *)vp;
 	char	*filename=maildir_filename(current_mailbox, 0,
 					   current_maildir_info.msgs[n]
 					   .filename);
@@ -1310,13 +1296,11 @@ static int setdate(unsigned long n, void *vp)
 		set_time(filename, datestamp);
 		free(filename);
 	}
-	return 0;
 }
 
-static int msg_expunge(unsigned long n, void *vp)
+static void msg_expunge(unsigned long n)
 {
 	do_expunge(n, n+1, 1);
-	return 0;
 }
 
 struct smapfetchinfo {
@@ -2008,15 +1992,13 @@ void smap_fetchflags(unsigned long n)
 {
 	int items=FETCH_FLAGS | FETCH_KEYWORDS;
 
-	do_attrfetch(n, &items);
+	do_attrfetch(n, items);
 }
 
-static int do_attrfetch(unsigned long n, void *vp)
+static void do_attrfetch(unsigned long n, int items)
 {
-	int items=*(int *)vp;
-
 	if (n >= current_maildir_info.nmessages)
-		return 0;
+		return;
 
 	writes("* FETCH ");
 	writen(n+1);
@@ -2109,7 +2091,6 @@ static int do_attrfetch(unsigned long n, void *vp)
 		}
 	}
 	writes("\n");
-	return 0;
 }
 
 struct add_rcptlist {
@@ -2245,11 +2226,6 @@ static void senderr(char *errmsg)
 	writes("-ERR ");
 	writes(errmsg);
 	writes("\n");
-}
-
-static int calc_quota(unsigned long n, void *voidptr)
-{
-	return do_copy_quota_calc(n+1, 0, voidptr);
 }
 
 /* Copy msg to another folder */
@@ -2721,7 +2697,12 @@ static int do_copyto(const char *toFolder,
 			maildir_closequotafile(&quotainfo);
 		}
 
-		if (has_quota > 0 && applymsgset( &calc_quota, &cqinfo ))
+		if (has_quota > 0 && applymsgset(
+			    [&]
+			    (unsigned long n)
+			    {
+				    return do_copy_quota_calc(n+1, 0, &cqinfo);
+			    }))
 			has_quota= -1;
 	}
 
@@ -2741,7 +2722,12 @@ static int do_copyto(const char *toFolder,
 				      cqinfo.nfiles);
 	}
 
-	return applymsgset(do_func, &cqinfo);
+	return applymsgset(
+		[&]
+		(unsigned long n)
+		{
+			return do_func(n, &cqinfo);
+		});
 }
 
 static int copyto(const char *toFolder, int do_move, const char *acls)
@@ -2763,7 +2749,13 @@ static int copyto(const char *toFolder, int do_move, const char *acls)
 	if (do_copyto(toFolder, &do_copymsg, acls))
 		return -1;
 
-	applymsgset(&msg_expunge, NULL);
+	applymsgset(
+		[]
+		(unsigned long n)
+		{
+			msg_expunge(n);
+			return 0;
+		});
 	doNoop(0);
 	return 0;
 }
@@ -4056,8 +4048,13 @@ void smap()
 						accessdenied(ACL_DELETEMSGS);
 						continue;
 					}
-
-					applymsgset( &msg_expunge, NULL);
+					applymsgset(
+						[]
+						(unsigned long n)
+						{
+							msg_expunge(n);
+							return 0;
+						});
 				}
 				else
 					expunge();
@@ -4094,8 +4091,14 @@ void smap()
 					memset(&si, 0, sizeof(si));
 					up(p);
 					parseflags(p, &si.flags);
-					if ((dummy=applymsgset(&applyflags,
-							       &si)) != 0)
+					if ((dummy=applymsgset(
+						     [&]
+						     (unsigned long n)
+						     {
+							     return applyflags(
+								     n, &si
+							     );
+						     })) != 0)
 						break;
 				}
 				else if (strncmp(p, "+FLAGS=", 7) == 0 ||
@@ -4105,8 +4108,14 @@ void smap()
 					up(p);
 					si.plusminus=p[0];
 					parseflags(p, &si.flags);
-					if ((dummy=applymsgset(&applyflags,
-							       &si)) != 0)
+					if ((dummy=applymsgset(
+						     [&]
+						     (unsigned long n)
+						     {
+							     return applyflags(
+								     n, &si
+							     );
+						     })) != 0)
 						break;
 				}
 				else if (strncmp(p, "KEYWORDS=", 9) == 0 &&
@@ -4121,8 +4130,14 @@ void smap()
 						write_error_exit(0);
 
 					parsekeywords(p, &si.keywords);
-					dummy=applymsgset(&applyflags,
-							  &si);
+					dummy=applymsgset(
+						[&]
+						(unsigned long n)
+						{
+							return applyflags(
+								n, &si
+							);
+						});
 
 					libmail_kwmDestroy(kwm);
 
@@ -4140,8 +4155,14 @@ void smap()
 						write_error_exit(0);
 					si.plusminus=p[0];
 					parsekeywords(p, &si.keywords);
-					dummy=applymsgset(&applyflags,
-							  &si);
+					dummy=applymsgset(
+						[&]
+						(unsigned long n)
+						{
+							return applyflags(
+								n, &si
+							);
+						});
 
 					if (dummy == 0)
 						dummy=addRemoveSmapKeywords(&si);
@@ -4158,7 +4179,13 @@ void smap()
 
 					if (rfc822_parsedate_chk(p+13, &t)
 					    == 0 &&
-					    (dummy=applymsgset(&setdate, &t))
+					    (dummy=applymsgset(
+						    [&]
+						    (unsigned long n)
+						    {
+							    setdate(n, t);
+							    return 0;
+						    }))
 					    != 0)
 						break;
 				}
@@ -4235,7 +4262,14 @@ void smap()
 				    strcmp(p, "CONTENTS.PEEK") == 0)
 				{
 					fi.peek=strchr(p, '.') != NULL;
-					if (applymsgset(&do_fetch, &fi) == 0)
+					if (applymsgset(
+						    [&]
+						    (unsigned long n)
+						    {
+							    return do_fetch(
+								    n, &fi
+							    );
+						    }) == 0)
 					{
 						continue;
 					}
@@ -4253,8 +4287,14 @@ void smap()
 
 			if (!p || !*p)
 			{
-				if (fetch_items &&
-				    applymsgset(&do_attrfetch, &fetch_items))
+				if (fetch_items && applymsgset(
+					    [&]
+					    (unsigned long n)
+					    {
+						    do_attrfetch(
+							    n, fetch_items);
+						    return 0;
+					    }))
 				{
 					writes("-ERR Cannot retrieve message: ");
 					writes(strerror(errno));
