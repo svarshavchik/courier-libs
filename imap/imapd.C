@@ -2057,17 +2057,21 @@ void dirsync(std::string folder)
 /*
 ** Keyword updates for +FLAGS and -FLAGS
 */
+struct addRemoveKeywordInfo {
+	struct libmail_kwGeneric kwg;
+	struct storeinfo *storeinfo;
+};
 
-static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
-			       void *callback_func_arg,
-			       struct storeinfo *storeinfo_s,
-			       int *tryagain);
+static bool addRemoveKeywords2(
+	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
+	storeinfo *storeinfo_s,
+	bool &try_again);
 
-int addRemoveKeywords(int (*callback_func)(void *, void *),
-		      void *callback_func_arg,
-		      struct storeinfo *storeinfo_s)
+int addRemoveKeywords(
+	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
+	struct storeinfo *storeinfo_s)
 {
-	int tryagain;
+	bool tryagain;
 
 	if (!keywords())
 		return 0;
@@ -2083,9 +2087,8 @@ int addRemoveKeywords(int (*callback_func)(void *, void *),
 				     {
 					     return addRemoveKeywords2(
 						     callback_func,
-						     callback_func_arg,
 						     storeinfo_s,
-						     &tryagain
+						     tryagain
 					     );
 				     }))
 			return -1;
@@ -2094,22 +2097,17 @@ int addRemoveKeywords(int (*callback_func)(void *, void *),
 	return 0;
 }
 
-int doAddRemoveKeywords(unsigned long, int, void *);
+int doAddRemoveKeywords(unsigned long, int, addRemoveKeywordInfo &arki);
 
-struct addRemoveKeywordInfo {
-	struct libmail_kwGeneric kwg;
-	struct storeinfo *storeinfo;
-};
-
-static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
-			       void *callback_func_arg,
-			       struct storeinfo *storeinfo_s,
-			       int *tryagain)
+static bool addRemoveKeywords2(
+	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
+	storeinfo *storeinfo_s,
+	bool &try_again)
 {
 	struct addRemoveKeywordInfo arki;
 	int rc;
 
-	*tryagain=0;
+	try_again=false;
 
 	libmail_kwgInit(&arki.kwg);
 
@@ -2118,7 +2116,7 @@ static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
 	rc=libmail_kwgReadMaildir(&arki.kwg, current_mailbox);
 
 	if (rc == 0)
-		rc= (*callback_func)(callback_func_arg, &arki);
+		rc= callback_func(arki);
 
 	if (rc < 0)
 	{
@@ -2129,7 +2127,7 @@ static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
 	if (rc > 0) /* Race */
 	{
 		libmail_kwgDestroy(&arki.kwg);
-		*tryagain=1;
+		try_again=true;
 		return true;
 	}
 
@@ -2137,12 +2135,11 @@ static bool addRemoveKeywords2(int (*callback_func)(void *, void *),
 	return true;
 }
 
-int doAddRemoveKeywords(unsigned long n, int uid, void *vp)
+int doAddRemoveKeywords(unsigned long n, int uid,
+			struct addRemoveKeywordInfo &arki)
 {
-	struct addRemoveKeywordInfo *arki=
-		(struct addRemoveKeywordInfo *)vp;
 	struct libmail_kwGenericEntry *ge=
-		libmail_kwgFindByName(&arki->kwg,
+		libmail_kwgFindByName(&arki.kwg,
 				      current_maildir_info.msgs[--n].filename);
 	char *tmpname=NULL, *newname=NULL;
 	struct stat stat_buf;
@@ -2150,24 +2147,24 @@ int doAddRemoveKeywords(unsigned long n, int uid, void *vp)
 
 	if (!ge || ge->keywords == NULL)
 	{
-		if (arki->storeinfo->plusminus == '+')
+		if (arki.storeinfo->plusminus == '+')
 		{
 			rc=maildir_kwSave(current_mailbox,
 					  current_maildir_info.msgs[n].
 					  filename,
-					  arki->storeinfo->keywords,
+					  arki.storeinfo->keywords,
 					  &tmpname, &newname, 1);
 
 			if (rc < 0)
 				return -1;
 		}
 	}
-	else if (arki->storeinfo->plusminus == '+')
+	else if (arki.storeinfo->plusminus == '+')
 	{
 		int flag=0;
 		struct libmail_kwMessageEntry *kme;
 
-		for (kme=arki->storeinfo->keywords->firstEntry;
+		for (kme=arki.storeinfo->keywords->firstEntry;
 		     kme; kme=kme->next)
 		{
 			if ((rc=libmail_kwmSet(ge->keywords,
@@ -2199,12 +2196,12 @@ int doAddRemoveKeywords(unsigned long n, int uid, void *vp)
 		int flag=0;
 		struct libmail_kwMessageEntry *kme;
 
-		for (kme=arki->storeinfo->keywords->firstEntry;
+		for (kme=arki.storeinfo->keywords->firstEntry;
 		     kme; kme=kme->next)
 		{
 			struct libmail_keywordEntry *kwe;
 
-			if ((kwe=libmail_kweFind(&arki->kwg.kwHashTable,
+			if ((kwe=libmail_kweFind(&arki.kwg.kwHashTable,
 						 keywordName(kme->
 							     libmail_keywordEntryPtr),
 						 0)) != NULL &&
@@ -2265,23 +2262,22 @@ struct imap_addRemoveKeywordInfo {
 	bool uid;
 };
 
-static int imap_addRemoveKeywords(void *myVoidArg, void *addRemoveVoidArg)
+static int imap_addRemoveKeywords(imap_addRemoveKeywordInfo &i,
+				  addRemoveKeywordInfo &arki)
 {
-	struct imap_addRemoveKeywordInfo *i=
-		(struct imap_addRemoveKeywordInfo *)myVoidArg;
 	unsigned long j;
 
 	for (j=0; j<current_maildir_info.nmessages; j++)
 		current_maildir_info.msgs[j].storeflag=0;
 
-	do_msgset(i->msgset,
+	do_msgset(i.msgset,
 		  []
 		  (unsigned long n)
 		  {
 			  --n;
 			  current_maildir_info.msgs[n].storeflag=1;
 			  return true;
-		  }, i->uid);
+		  }, i.uid);
 	for (j=0; j<current_maildir_info.nmessages; j++)
 	{
 		int rc;
@@ -2289,7 +2285,7 @@ static int imap_addRemoveKeywords(void *myVoidArg, void *addRemoveVoidArg)
 		if (!current_maildir_info.msgs[j].storeflag)
 			continue;
 
-		rc=doAddRemoveKeywords(j+1, i->uid, addRemoveVoidArg);
+		rc=doAddRemoveKeywords(j+1, i.uid, arki);
 		if (rc)
 			return rc;
 	}
@@ -5560,8 +5556,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				imapInfo.uid=uid;
 
 				if (!fastkeywords() &&
-				    addRemoveKeywords(&imap_addRemoveKeywords,
-						      &imapInfo, &storeinfo_s))
+				    addRemoveKeywords(
+					    [&]
+					    (addRemoveKeywordInfo &arki)
+					    {
+						    return imap_addRemoveKeywords(
+							    imapInfo, arki
+						    );
+					    },
+					    &storeinfo_s))
 				{
 					libmail_kwmDestroy(storeinfo_s.keywords);
 					free(msgset);

@@ -92,11 +92,12 @@ extern unsigned long header_count, body_count;
 extern std::string compute_myrights(maildir::aclt_list &l,
 				    const std::string &l_owner);
 
-extern int addRemoveKeywords(int (*callback_func)(void *, void *),
-			     void *callback_func_arg,
-			     struct storeinfo *storeinfo_s);
-extern int doAddRemoveKeywords(unsigned long n, int uid, void *vp);
+struct addRemoveKeywordInfo;
 
+extern int addRemoveKeywords(
+	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
+	struct storeinfo *storeinfo_s);
+extern int doAddRemoveKeywords(unsigned long, int, addRemoveKeywordInfo &arki);
 
 void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
@@ -1257,10 +1258,11 @@ static int applyflags(unsigned long n, void *vp)
 
 struct smapAddRemoveKeywordInfo {
 	struct storeinfo *si;
-	void *storeVoidArg;
+	addRemoveKeywordInfo *storeVoidArg;
 };
 
-static int addRemoveSmapKeywordsCallback(void *myVoidArg, void *storeVoidArg);
+static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
+					 smapAddRemoveKeywordInfo &info);
 
 static int addRemoveSmapKeywords(struct storeinfo *si)
 {
@@ -1268,18 +1270,24 @@ static int addRemoveSmapKeywords(struct storeinfo *si)
 
 	ar.si=si;
 
-	return addRemoveKeywords(addRemoveSmapKeywordsCallback, &ar, si);
+	return addRemoveKeywords(
+		[&]
+		(addRemoveKeywordInfo &arki)
+		{
+			return addRemoveSmapKeywordsCallback(
+				arki, ar
+			);
+		}, si);
 }
 
 static int doAddRemoveSmapKeywords(unsigned long n, void *voidArg);
 
-static int addRemoveSmapKeywordsCallback(void *myVoidArg, void *storeVoidArg)
+static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
+					 smapAddRemoveKeywordInfo &info)
 {
-	struct smapAddRemoveKeywordInfo *info=
-		(struct smapAddRemoveKeywordInfo *)myVoidArg;
 
-	info->storeVoidArg=storeVoidArg;
-	return applymsgset(doAddRemoveSmapKeywords, info);
+	info.storeVoidArg=&arki;
+	return applymsgset(doAddRemoveSmapKeywords, &info);
 }
 
 static int doAddRemoveSmapKeywords(unsigned long n, void *voidArg)
@@ -1287,7 +1295,7 @@ static int doAddRemoveSmapKeywords(unsigned long n, void *voidArg)
 	struct smapAddRemoveKeywordInfo *info=
 		(struct smapAddRemoveKeywordInfo *)voidArg;
 
-	return doAddRemoveKeywords(n+1, 0, info->storeVoidArg);
+	return doAddRemoveKeywords(n+1, 0, *info->storeVoidArg);
 }
 
 static int setdate(unsigned long n, void *vp)
