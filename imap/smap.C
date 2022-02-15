@@ -1866,16 +1866,15 @@ static struct rfc2045 *findmimeid(struct rfc2045 *rfcp,
 	return rfcp;
 }
 
-static int do_fetch(unsigned long n, void *vp)
+static int do_fetch(unsigned long n, smapfetchinfo &fi)
 {
-	struct smapfetchinfo *fi=(struct smapfetchinfo *)vp;
 	FILE *fp=open_cached_fp(n);
 	int rc=0;
 
 	if (!fp)
 		return -1;
 
-	if (strcmp(fi->entity, "MIME") == 0)
+	if (strcmp(fi.entity, "MIME") == 0)
 	{
 		struct rfc2045 *rfcp=fetch_alloc_rfc2045(n, fp);
 		int fd;
@@ -1887,11 +1886,11 @@ static int do_fetch(unsigned long n, void *vp)
 		if (fd < 0)
 			return -1;
 
-		rc=mime(fd, n, rfcp, fi->hdrs);
+		rc=mime(fd, n, rfcp, fi.hdrs);
 		close(fd);
 	}
-	else if (strcmp(fi->entity, "HEADERS") == 0 ||
-		 strcmp(fi->entity, "RAWHEADERS") == 0)
+	else if (strcmp(fi.entity, "HEADERS") == 0 ||
+		 strcmp(fi.entity, "RAWHEADERS") == 0)
 	{
 		int fd;
 		struct rfc2045 *rfcp;
@@ -1900,13 +1899,13 @@ static int do_fetch(unsigned long n, void *vp)
 		if (fd < 0)
 			return -1;
 
-		if (!fi->mimeid || !*fi->mimeid)
+		if (!fi.mimeid || !*fi.mimeid)
 			rfcp=NULL;
 		else
 		{
 			rfcp=fetch_alloc_rfc2045(n, fp);
 
-			rfcp=findmimeid(rfcp, fi->mimeid);
+			rfcp=findmimeid(rfcp, fi.mimeid);
 
 			if (!rfcp)
 			{
@@ -1916,21 +1915,21 @@ static int do_fetch(unsigned long n, void *vp)
 			}
 		}
 
-		rc=dump_hdrs(fd, n, rfcp, fi->hdrs, fi->entity);
+		rc=dump_hdrs(fd, n, rfcp, fi.hdrs, fi.entity);
 		close(fd);
 	}
-	else if (strcmp(fi->entity, "BODY") == 0
-		 || strcmp(fi->entity, "ALL") == 0)
+	else if (strcmp(fi.entity, "BODY") == 0
+		 || strcmp(fi.entity, "ALL") == 0)
 	{
 		struct rfc2045 *rfcp;
 
-		if (!fi->mimeid || !*fi->mimeid)
+		if (!fi.mimeid || !*fi.mimeid)
 			rfcp=NULL;
 		else
 		{
 			rfcp=fetch_alloc_rfc2045(n, fp);
 
-			rfcp=findmimeid(rfcp, fi->mimeid);
+			rfcp=findmimeid(rfcp, fi.mimeid);
 
 			if (!rfcp)
 			{
@@ -1939,19 +1938,19 @@ static int do_fetch(unsigned long n, void *vp)
 			}
 		}
 
-		rc=dump_body(fp, n, rfcp, fi->entity[0] == 'A');
+		rc=dump_body(fp, n, rfcp, fi.entity[0] == 'A');
 	}
-	else if (strcmp(fi->entity, "BODY.DECODED") == 0)
+	else if (strcmp(fi.entity, "BODY.DECODED") == 0)
 	{
 		struct rfc2045 *rfcp;
 
-		if (!fi->mimeid || !*fi->mimeid)
+		if (!fi.mimeid || !*fi.mimeid)
 			rfcp=NULL;
 		else
 		{
 			rfcp=fetch_alloc_rfc2045(n, fp);
 
-			rfcp=findmimeid(rfcp, fi->mimeid);
+			rfcp=findmimeid(rfcp, fi.mimeid);
 
 			if (!rfcp)
 			{
@@ -1967,7 +1966,7 @@ static int do_fetch(unsigned long n, void *vp)
 		rc=0;
 	}
 
-	if (rc == 0 && !fi->peek)
+	if (rc == 0 && !fi.peek)
 	{
 		struct	imapflags	flags;
 
@@ -4267,7 +4266,7 @@ void smap()
 						    (unsigned long n)
 						    {
 							    return do_fetch(
-								    n, &fi
+								    n, fi
 							    );
 						    }) == 0)
 					{

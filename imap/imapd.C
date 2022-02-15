@@ -94,7 +94,7 @@
 #define KEYWORD_SMAPVERBOTTEN ","
 
 extern void fetchflags(unsigned long);
-extern int do_fetch(unsigned long, int, void *);
+extern int do_fetch(unsigned long, int, fetchinfo *);
 extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
 

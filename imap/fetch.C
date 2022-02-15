@@ -241,9 +241,8 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 	return (rc);
 }
 
-int do_fetch(unsigned long n, int byuid, void *p)
+int do_fetch(unsigned long n, int byuid, fetchinfo *fi)
 {
-	struct fetchinfo *fi=(struct fetchinfo *)p;
 	FILE	*fp;
 	struct	rfc2045 *rfc2045p;
 	int	seen;
