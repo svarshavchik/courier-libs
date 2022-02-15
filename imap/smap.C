@@ -103,7 +103,7 @@ void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    struct imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
-extern "C" void set_time(const char *tmpname, time_t timestamp);
+extern void set_time(const char *tmpname, time_t timestamp);
 extern int imapenhancedidle(void);
 extern void imapidle(void);
 

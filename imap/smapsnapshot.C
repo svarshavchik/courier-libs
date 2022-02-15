@@ -86,7 +86,7 @@ static char *snapshot_cur;  /* Current snapshot */
 static int index_dirty;
 static int snapshots_enabled;
 
-extern "C" void set_time(const char *tmpname, time_t timestamp);
+extern void set_time(const char *tmpname, time_t timestamp);
 extern void smapword(const char *);
 
 struct snapshot_list {

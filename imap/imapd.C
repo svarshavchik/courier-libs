@@ -756,7 +756,7 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 	return fp;
 }
 
-extern "C" void set_time(const char *tmpname, time_t timestamp)
+void set_time(const char *tmpname, time_t timestamp)
 {
 #if	HAVE_UTIME
 	if (timestamp)

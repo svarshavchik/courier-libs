@@ -89,7 +89,7 @@ void imapscan_init(struct imapscaninfo *i)
 {
 	memset(i, 0, sizeof(*i));
 
-	if ((i->keywordList=malloc(sizeof(*i->keywordList))) == NULL)
+	if ((i->keywordList=(libmail_kwHashtable *)malloc(sizeof(*i->keywordList))) == NULL)
 		write_error_exit(0);
 
 	libmail_kwhInit(i->keywordList);
@@ -222,7 +222,7 @@ struct tempinfo {
 
 static char *imapscan_namedir(const char *dir, const char *new_or_cur)
 {
-char	*p=malloc(strlen(dir)+strlen(new_or_cur)+2);
+	char	*p=(char *)malloc(strlen(dir)+strlen(new_or_cur)+2);
 
 	if (!p)	write_error_exit(0);
 	strcat(strcat(strcpy(p, dir), "/"), new_or_cur);
@@ -324,8 +324,8 @@ int	c;
 
 		if (i >= readbufsize)
 		{
-		char	*p= readbuf ? realloc(readbuf, readbufsize+256):
-					malloc(readbufsize+256);
+			char	*p= readbuf ? (char *)realloc(readbuf, readbufsize+256):
+				(char *)malloc(readbufsize+256);
 
 			if (!p)	write_error_exit(0);
 			readbuf=p;
@@ -368,7 +368,7 @@ int	dowritecache=0;
 
 	maildir_purgetmp(dir);
 
-	dbfilepath=malloc(strlen(dir)+sizeof("/" IMAPDB));
+	dbfilepath=(char *)malloc(strlen(dir)+sizeof("/" IMAPDB));
 	if (!dbfilepath)	write_error_exit(0);
 	strcat(strcpy(dbfilepath, dir), "/" IMAPDB);
 
@@ -664,7 +664,7 @@ int	dowritecache=0;
 		char *new_buf[20];
 		char *cur_buf[20];
 		int keepgoing;
-		int n;
+		size_t n;
 
 		do
 		{
@@ -683,7 +683,7 @@ int	dowritecache=0;
 				z=de->d_name;
 
 				newname=imapscan_namedir(p, z);
-				curname=malloc(strlen(newname)
+				curname=(char *)malloc(strlen(newname)
 					       +sizeof(MDIRSEP "2,"));
 				if (!curname)
 				{
@@ -895,7 +895,7 @@ char	*p;
 	{
 		n->changedflags=1;
 		free(n->filename);
-		n->filename=malloc(strlen(p)+1);
+		n->filename=(char *)malloc(strlen(p)+1);
 		if (!n->filename)	write_error_exit(0);
 		strcpy(n->filename, p);
 	}
