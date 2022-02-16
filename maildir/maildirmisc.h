@@ -256,7 +256,7 @@ namespace maildir {
 			     const std::string &);
 	bool shared_unsubscribe(const std::string &,
 				const std::string &);
-
+	void shared_sync(const std::string &);
 }
 #endif
 

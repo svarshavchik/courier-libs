@@ -252,70 +252,42 @@ bool maildir::shared_unsubscribe(const std::string &maildir,
 
 /*                    LET'S SYNC IT                  */
 
-static void do_maildir_shared_sync(const char *, const char *);
-
 void maildir_shared_sync(const char *dir)
 {
-char	*shareddir;
-char	*buf;
-
-	shareddir=(char *)malloc(strlen(dir)+sizeof("/shared"));
-	if (!shareddir)
-	{
-		perror("malloc");
-		return;
-	}
-	strcat(strcpy(shareddir, dir),"/shared");
-
-	buf=maildir_getlink(shareddir);
-	free(shareddir);
-	if (buf)
-	{
-		do_maildir_shared_sync(dir, buf);
-		free(buf);
-	}
+	maildir::shared_sync(dir);
 }
 
 /* Step 1 - safely create a temporary database */
 
-static int create_db(struct dbobj *obj,
-	const char *dir,
-	char **dbname)
+static bool create_db(struct dbobj *obj,
+		      const std::string &dir,
+		      std::string &dbname)
 {
-	struct maildir_tmpcreate_info createInfo;
-
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.maildir=dir;
 	createInfo.uniq="sync";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
+	auto fd=createInfo.fd();
+
+	if (fd < 0)
 	{
-		int	fd;
+		perror(dir.c_str());
+		return false;
+	}
+	close(fd);
 
-		fd=maildir_tmpcreate_fd(&createInfo);
-
-		if (fd < 0)
-		{
-			perror(dir);
-			return -1;
-		}
-		close(fd);
-
-		dbobj_init(obj);
-		if (dbobj_open(obj, createInfo.tmpname, "N") < 0)
-		{
-			perror(createInfo.tmpname);
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
-			return (-1);
-		}
+	dbobj_init(obj);
+	if (dbobj_open(obj, createInfo.tmpname.c_str(), "N") < 0)
+	{
+		perror(createInfo.tmpname.c_str());
+		unlink(createInfo.tmpname.c_str());
+		return false;
 	}
 
-	*dbname=createInfo.tmpname;
-	createInfo.tmpname=NULL;
-	maildir_tmpcreate_free(&createInfo);
-	return (0);
+	dbname=createInfo.tmpname;
+	return true;
 }
 
 /*
@@ -324,70 +296,44 @@ static int create_db(struct dbobj *obj,
 ** the complete message filename.
 */
 
-static int build_db(const char *shared, struct dbobj *obj)
+static bool build_db(const std::string &shared, struct dbobj *obj)
 {
-char	*dummy=(char *)malloc(strlen(shared)+sizeof("/cur"));
-DIR	*dirp;
-struct	dirent *de;
+	DIR	*dirp;
+	struct	dirent *de;
 
-	if (!dummy)
-	{
-		perror("malloc");
-		return (-1);
-	}
-
-	strcat(strcpy(dummy, shared), "/cur");
-
-	dirp=opendir(dummy);
+	dirp=opendir((shared+"/cur").c_str());
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
-	char	*a, *b;
-	char	*c;
 
 		if (de->d_name[0] == '.')
 			continue;
-		if ((a=(char *)malloc(strlen(de->d_name)+1)) == 0)
-		{
-			perror("malloc");
-			closedir(dirp);
-			free(dummy);
-			return (-1);
-		}
-		if ((b=(char *)malloc(strlen(de->d_name)+1)) == 0)
-		{
-			perror("malloc");
-			closedir(dirp);
-			free(dummy);
-			free(a);
-			return (-1);
-		}
-		strcpy(a, de->d_name);
-		strcpy(b, de->d_name);
-		c=strrchr(a, MDIRSEP[0]);
-		if (c)	*c=0;
 
-		if (dbobj_store(obj, a, strlen(a), b, strlen(b), "R"))
+		std::string a=de->d_name;
+		std::string b=de->d_name;
+
+		auto p=a.rfind(MDIRSEP[0]);
+
+		if (p != a.npos)
+			a.resize(p);
+
+		if (dbobj_store(obj, a.c_str(), a.size(),
+				b.c_str(), b.size(), "R"))
 		{
 			perror("dbobj_store");
-			free(a);
-			free(b);
 			closedir(dirp);
-			free(dummy);
-			return (-1);
+			return false;
 		}
-		free(a);
-		free(b);
 	}
 	if (dirp)	closedir(dirp);
-	free(dummy);
-	return (0);
+	return true;
 }
 
-static int update_link(const char *,
-	const char *, const char *,
-	const char *,
-	const char *,
-	size_t);
+static bool update_link(const std::string &curdir,
+			const std::string &linkname,
+			const std::string &linkvalue,
+			const std::string &shareddir,
+			const char *msgfilename,
+			size_t msgfilenamelen);
 
 /*
 **	Now, read our synced cur directory, and make sure that the soft
@@ -396,24 +342,15 @@ static int update_link(const char *,
 **	valid.
 */
 
-static int update_cur(const char *cur, const char *shared, struct dbobj *obj)
+static bool update_cur(const std::string &cur,
+		       const std::string &shared, struct dbobj *obj)
 {
-DIR	*dirp;
-struct	dirent *de;
-char	*p;
+	DIR	*dirp;
+	struct	dirent *de;
 
-	dirp=opendir(cur);
+	dirp=opendir(cur.c_str());
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
-	char	*cur_base;
-
-	char	*cur_name_ptr;
-	size_t	cur_name_len;
-
-	char	*linked_name_buf;
-	size_t	linked_name_len;
-	int	n;
-
 		if (de->d_name[0] == '.')	continue;
 
 		/*
@@ -421,24 +358,23 @@ char	*p;
 		** db.
 		*/
 
-		cur_base=(char *)malloc(strlen(de->d_name)+1);
-		if (!cur_base)
-		{
-			perror("malloc");
-			closedir(dirp);
-			return (-1);
-		}
-		strcpy(cur_base, de->d_name);
-		p=strrchr(cur_base, MDIRSEP[0]);
-		if (p)	*p=0;
+		std::string cur_base=de->d_name;
 
-		cur_name_ptr=dbobj_fetch(obj, cur_base, strlen(cur_base),
-			&cur_name_len, "");
+		size_t p=cur_base.rfind(MDIRSEP[0]);
+
+		if (p != cur_base.npos)
+			cur_base.resize(p);
+
+		size_t cur_name_len;
+		auto cur_name_ptr=dbobj_fetch(obj,
+					      cur_base.c_str(),
+					      cur_base.size(),
+					      &cur_name_len, "");
 
 		/* If it's there, delete the db entry. */
 
 		if (cur_name_ptr)
-			dbobj_delete(obj, cur_base, strlen(cur_base));
+			dbobj_delete(obj, cur_base.c_str(), cur_base.size());
 
 		/*
 		** We'll either delete this soft link, or check its
@@ -446,37 +382,25 @@ char	*p;
 		** any case.
 		*/
 
-		free(cur_base);
-		cur_base=(char *)malloc(strlen(de->d_name)+strlen(cur)+2);
-		if (!cur_base)
-		{
-			perror("malloc");
-			if (cur_name_ptr)	free(cur_name_ptr);
-			closedir(dirp);
-			return (-1);
-		}
-		strcat(strcat(strcpy(cur_base, cur), "/"), de->d_name);
+		cur_base=cur;
+		cur_base += "/";
+		cur_base += de->d_name;
 
 		if (!cur_name_ptr)	/* Removed from sharable dir */
 		{
-			unlink(cur_base);
-			free(cur_base);
+			unlink(cur_base.c_str());
 			continue;
 		}
 
-		linked_name_len=strlen(shared)+strlen(de->d_name)+100;
+		auto linked_name_len=shared.size()+strlen(de->d_name)+100;
 			/* should be enough */
 
-		if ((linked_name_buf=(char *)malloc(linked_name_len)) == 0)
-		{
-			perror("malloc");
-			free(cur_base);
-			free(cur_name_ptr);
-			closedir(dirp);
-			return (-1);
-		}
+		auto linked_name_buf=new char[linked_name_len];
 
-		if ((n=readlink(cur_base, linked_name_buf, linked_name_len))< 0)
+		auto n=readlink(cur_base.c_str(),
+				linked_name_buf, linked_name_len);
+
+		if (n < 0)
 		{
 			/* This is stupid, let's just unlink this nonsense */
 
@@ -484,240 +408,196 @@ char	*p;
 		}
 
 		if (n == 0 || (size_t)n >= linked_name_len ||
-			(linked_name_buf[n]=0,
-			update_link(cur,
-				cur_base, linked_name_buf, shared, cur_name_ptr,
-				cur_name_len)))
+		    (linked_name_buf[n]=0,
+		     !update_link(cur,
+				  cur_base,
+				  linked_name_buf, shared, cur_name_ptr,
+				  cur_name_len)))
 		{
-			unlink(cur_base);
-			free(linked_name_buf);
-			free(cur_base);
 			free(cur_name_ptr);
+			unlink(cur_base.c_str());
+			delete[] linked_name_buf;
 			closedir(dirp);
-			return (-1);
+			return false;
 		}
-		free(cur_base);
-		free(linked_name_buf);
+		delete[] linked_name_buf;
 		free(cur_name_ptr);
 	}
 	if (dirp)	closedir(dirp);
-	return (0);
+	return true;
 }
 
 /* Update the link pointer */
 
-static int update_link(const char *curdir,
-	const char *linkname, const char *linkvalue,
-	const char *shareddir,
-	const char *msgfilename,
-	size_t msgfilenamelen)
+static bool update_link(const std::string &curdir,
+			const std::string &linkname,
+			const std::string &linkvalue,
+			const std::string &shareddir,
+			const char *msgfilename,
+			size_t msgfilenamelen)
 {
-	char	*p=(char *)malloc(strlen(shareddir)+sizeof("/cur/")+msgfilenamelen);
-	char	*q;
-	int	fd;
-	struct maildir_tmpcreate_info createInfo;
+	std::string p;
 
-	if (!p)
-	{
-		perror("malloc");
-		return (-1);
-	}
+	p.reserve(shareddir.size()+sizeof("/cur/")-1+msgfilenamelen);
 
-	strcat(strcpy(p, shareddir), "/cur/");
-	q=p+strlen(p);
-	memcpy(q, msgfilename, msgfilenamelen);
-	q[msgfilenamelen]=0;
+	p=shareddir;
+	p += "/cur/";
+	p.insert(p.end(), msgfilename, msgfilename+msgfilenamelen);
 
-	if (linkvalue && strcmp(p, linkvalue) == 0)
+	if (linkvalue == p)
 	{
 		/* the link is good */
 
-		free(p);
-		return (0);
+		return (true);
 	}
 
 	/* Ok, we want this to be an atomic operation. */
 
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
+
 	createInfo.maildir=curdir;
 	createInfo.uniq="relink";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((fd=maildir_tmpcreate_fd(&createInfo)) < 0)
-		return -1;
+	auto fd=createInfo.fd();
+
+	if (fd < 0)
+		return false;
 
 	close(fd);
-	unlink(createInfo.tmpname);
+	unlink(createInfo.tmpname.c_str());
 
-	if (symlink(p, createInfo.tmpname) < 0 ||
-	    rename(createInfo.tmpname, linkname) < 0)
+	if (symlink(p.c_str(), createInfo.tmpname.c_str()) < 0 ||
+	    rename(createInfo.tmpname.c_str(), linkname.c_str()) < 0)
 	{
-		perror(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
-		return (-1);
+		perror(createInfo.tmpname.c_str());
+		return false;
 	}
-
-	maildir_tmpcreate_free(&createInfo);
-	return (0);
+	return true;
 }
 
 /* and now, anything that's left in the temporary db must be new messages */
 
-static int newmsgs(const char *cur, const char *shared, struct dbobj *obj)
+static bool newmsgs(const std::string &cur,
+		    const std::string &shared,
+		    struct dbobj *obj)
 {
 	char	*key, *val;
 	size_t	keylen, vallen;
-	int fd;
-	struct maildir_tmpcreate_info createInfo;
 
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
+
 	createInfo.maildir=cur;
 	createInfo.uniq="newlink";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((fd=maildir_tmpcreate_fd(&createInfo)) < 0)
-		return -1;
+	auto fd=createInfo.fd();
+
+	if (fd < 0)
+		return false;
+
 	close(fd);
 
-	unlink(createInfo.tmpname);
+	unlink(createInfo.tmpname.c_str());
 
 	for (key=dbobj_firstkey(obj, &keylen, &val, &vallen); key;
 		key=dbobj_nextkey(obj, &keylen, &val, &vallen))
 	{
-	char	*slink=(char *)malloc(strlen(shared)+sizeof("/cur/")+vallen);
-	char	*q;
 
-		if (!slink)
-		{
-			free(val);
-			maildir_tmpcreate_free(&createInfo);
-			return (-1);
-		}
+		std::string slink;
 
-		strcat(strcpy(slink, shared), "/cur/");
-		q=slink+strlen(slink);
-		memcpy(q, val, vallen);
-		q[vallen]=0;
+		slink.reserve(shared.size()+sizeof("/cur/")-1+vallen);
+
+		slink=shared;
+		slink+="/cur/";
+		slink.insert(slink.end(), val, val+vallen);
 		free(val);
 
-		if (symlink(slink, createInfo.tmpname))
+		if (symlink(slink.c_str(), createInfo.tmpname.c_str()))
 		{
-			perror(createInfo.tmpname);
-
-			free(slink);
-			maildir_tmpcreate_free(&createInfo);
-			return (-1);
+			perror(createInfo.tmpname.c_str());
+			return false;
 		}
 
-		free(slink);
-		slink=(char *)malloc(strlen(cur)+sizeof("/new/" MDIRSEP "2,")+keylen);
-		if (!slink)
-		{
-			perror("malloc");
-			maildir_tmpcreate_free(&createInfo);
-			return (-1);
-		}
+		slink.reserve(cur.size()+sizeof("/new/" MDIRSEP "2,")-1+keylen);
 
-		strcat(strcpy(slink, cur), "/new/");
-		q=slink+strlen(slink);
-		memcpy(q, key, keylen);
-		strcpy(q+keylen, MDIRSEP "2,");
+		slink=cur;
+		slink+="/new/";
+		slink.insert(slink.end(), key, key+keylen);
+		slink += MDIRSEP "2,";
 
-		if (rename(createInfo.tmpname, slink))
+		if (rename(createInfo.tmpname.c_str(), slink.c_str()))
 		{
-			free(slink);
-			maildir_tmpcreate_free(&createInfo);
-			return (-1);
+			return false;
 		}
-		free(slink);
 	}
-	maildir_tmpcreate_free(&createInfo);
-	return (0);
+	return true;
 }
 
-static void do_maildir_shared_sync(const char *dir, const char *shared)
+void maildir::shared_sync(const std::string &dir)
 {
-struct	dbobj obj;
-char	*dbname;
-char	*cur;
-char	*shared_update_name;
+	auto shared=maildir::getlink(dir + "/shared");
 
-struct	stat	stat1, stat2;
-int	fd;
+	if (shared.empty())
+		return;
 
-	maildir_purgetmp(dir);	/* clean up after myself */
-	maildir_getnew(dir, 0, NULL, NULL);
+	struct	dbobj obj;
+	struct	stat	stat1, stat2;
+	int	fd;
 
-	maildir_purgetmp(shared);
-	maildir_getnew(shared, 0, NULL, NULL);
+	maildir_purgetmp(dir.c_str());	/* clean up after myself */
+	maildir_getnew(dir.c_str(), 0, NULL, NULL);
+
+	maildir_purgetmp(shared.c_str());
+	maildir_getnew(shared.c_str(), 0, NULL, NULL);
 
 	/* Figure out if we REALLY need to sync something */
 
-	shared_update_name=(char *)malloc(strlen(dir)+sizeof("/shared-timestamp"));
-	if (!shared_update_name)	return;
-	strcat(strcpy(shared_update_name, dir), "/shared-timestamp");
-	cur=(char *)malloc(strlen(shared)+sizeof("/new"));
-	if (!cur)
-	{
-		free(shared_update_name);
-		return;
-	}
+	auto shared_update_name=dir + "/shared-timestamp";
 
-	if (stat(shared_update_name, &stat1) == 0)
+	if (stat(shared_update_name.c_str(), &stat1) == 0)
 	{
-		if ( stat( strcat(strcpy(cur, shared), "/new"), &stat2) == 0 &&
-			stat2.st_mtime < stat1.st_mtime &&
-			stat( strcat(strcpy(cur, shared), "/cur"), &stat2)
-			== 0 && stat2.st_mtime < stat1.st_mtime)
-		{
-			free(shared_update_name);
-			free(cur);
+		if ( stat( (shared+"/new").c_str(), &stat2) == 0 &&
+		     stat2.st_mtime < stat1.st_mtime &&
+		     stat( (shared+"/cur").c_str(), &stat2) == 0 &&
+		     stat2.st_mtime < stat1.st_mtime)
 			return;
-		}
 	}
-	if ((fd=maildir_safeopen(shared_update_name, O_RDWR|O_CREAT, 0600))>= 0)
+	if ((fd=maildir::safeopen(shared_update_name, O_RDWR|O_CREAT, 0600))
+	    >= 0)
 	{
 		if (write(fd, "", 1) < 0)
 			perror("write");
 		close(fd);
 	}
 
-	free(cur);
-	free(shared_update_name);
+	std::string dbname;
 
-	if (create_db(&obj, dir, &dbname))	return;
+	if (!create_db(&obj, dir, dbname))	return;
 
-	if (build_db(shared, &obj))
+	if (!build_db(shared, &obj))
 	{
 		dbobj_close(&obj);
-		unlink(dbname);
-		free(dbname);
+		unlink(dbname.c_str());
 		return;
 	}
 
-	if ((cur=(char *)malloc(strlen(dir)+sizeof("/cur"))) == 0)
+	auto cur=dir+"/cur";
+
+	if (update_cur(cur, shared, &obj))
 	{
-		perror("malloc");
-		dbobj_close(&obj);
-		unlink(dbname);
-		free(dbname);
-		return;
-	}
-	strcat(strcpy(cur, dir), "/cur");
-	if (update_cur(cur, shared, &obj) == 0)
-	{
-		strcat(strcpy(cur, dir), "/new");
-		if (update_cur(cur, shared, &obj) == 0)
+		cur.resize(cur.size()-3);
+		cur += "new";
+
+		if (update_cur(cur, shared, &obj))
 		{
-			*strrchr(cur, '/')=0;	/* Chop off the /new */
+			cur.resize(cur.rfind('/'));
 			newmsgs(cur, shared, &obj);
 		}
 	}
 
-	free(cur);
 	dbobj_close(&obj);
-	unlink(dbname);
-	free(dbname);
+	unlink(dbname.c_str());
 }
 
 int maildir_sharedisro(const char *maildir)
