@@ -62,6 +62,8 @@
 #include	<fstream>
 #include	<sstream>
 #include	<iterator>
+#include	<algorithm>
+#include	<utility>
 
 /*
 ** RFC 2060: "A good value to use for the unique identifier validity value is a
@@ -132,15 +134,6 @@ struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *a,
 	return a->msgs[n].keywordMsg;
 }
 
-
-struct imapscan_info {
-	struct imapscaninfo *scaninfo;
-	const char *dir;
-	int leavenew;
-	int ro;
-	struct uidplus_info *uidplus;
-};
-
 int imapscan_maildir(struct imapscaninfo *scaninfo,
 		     const char *dir, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
@@ -161,21 +154,23 @@ int imapscan_maildir(struct imapscaninfo *scaninfo,
 /* This structure is a temporary home for the filenames */
 
 struct tempinfo {
-	struct tempinfo *next;
-	char *filename;
+	std::string filename;
 	unsigned long uid;
-	int	found;
-	int	isrecent;
-	} ;
+	bool	found=false;
+	bool	isrecent=false;
 
-static char *imapscan_namedir(const char *dir, const char *new_or_cur)
-{
-	char	*p=(char *)malloc(strlen(dir)+strlen(new_or_cur)+2);
+	template<typename T>
+	tempinfo(T &&t, unsigned long uid, bool isrecent=false)
+		: filename{std::forward<T>(t)}, uid{uid}, isrecent{isrecent}
+	{
+	}
 
-	if (!p)	write_error_exit(0);
-	strcat(strcat(strcpy(p, dir), "/"), new_or_cur);
-	return (p);
-}
+	tempinfo(const tempinfo &)=default;
+	tempinfo(tempinfo &&)=default;
+
+	tempinfo &operator=(const tempinfo &)=default;
+	tempinfo &operator=(tempinfo &&)=default;
+} ;
 
 static int fnamcmp(const char *a, const char *b)
 {
@@ -200,54 +195,41 @@ static int fnamcmp(const char *a, const char *b)
 	return ( (int)(unsigned char)ca - (int)(unsigned char)cb);
 }
 
-static int sort_by_filename(struct tempinfo **a, struct tempinfo **b)
+static bool sort_by_filename(const tempinfo &a, struct tempinfo &b)
 {
-	return (fnamcmp( (*a)->filename, (*b)->filename));
+	return fnamcmp(a.filename.c_str(), b.filename.c_str()) < 0;
 }
 
-static int sort_by_filename_status(struct tempinfo **a, struct tempinfo **b)
+static int sort_by_filename_status(const tempinfo &a, const tempinfo &b)
 {
-	if ( (*a)->found && (*b)->found )
+	if ( a.found && b.found )
 	{
-		if ( (*a)->uid < (*b)->uid )
+		if ( a.uid < b.uid )
 			return (-1);
-		if ( (*a)->uid > (*b)->uid )
+		if ( a.uid > b.uid )
 			return (1);
 		return (0);	/* What the fuck??? */
 	}
-	if ( (*a)->found )	return (-1);
-	if ( (*b)->found )	return (1);
+	if ( a.found )	return (-1);
+	if ( b.found )	return (1);
 
-	return (fnamcmp( (*a)->filename, (*b)->filename));
+	return (fnamcmp( a.filename.c_str(), b.filename.c_str()));
 }
 
 /* Binary search on an array of tempinfos which is sorted by filenames */
 
-static int search_by_filename(struct tempinfo **a, unsigned s, unsigned *i,
-	const char *filename)
-{
-unsigned lo=0, hi=s, mid;
-int	rc;
+struct search_by_filename {
 
-	while (lo < hi)
+	bool operator()(const tempinfo &a, const std::string &b) const
 	{
-		mid=(hi+lo)/2;
-		rc=fnamcmp( a[mid]->filename, filename);
-		if (rc < 0)
-		{
-			lo=mid+1;
-			continue;
-		}
-		if (rc > 0)
-		{
-			hi=mid;
-			continue;
-		}
-		*i=mid;
-		return (0);
+		return fnamcmp(a.filename.c_str(), b.c_str()) < 0;
 	}
-	return (-1);
-}
+
+	bool operator()(const std::string &a, const tempinfo &b)
+	{
+		return fnamcmp(a.c_str(), b.filename.c_str()) < 0;
+	}
+};
 
 void imapscanfail(const char *p)
 {
@@ -297,11 +279,8 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	std::string dbfilepath;
 	std::string newdbfilepath;
 
-	struct	tempinfo *tempinfo_list=0, **tempinfo_array=0, *tempinfoptr;
-	struct	tempinfo *newtempinfo_list=0;
-	unsigned	tempinfo_cnt=0, i;
+	std::vector<tempinfo> tempinfo_array, newtempinfo_array;
 	std::fstream fp;
-	char	*p, *q;
 	unsigned long uidv, nextuid;
 	int	version;
 	struct	stat	stat_buf;
@@ -369,7 +348,6 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		while (std::getline(fp, line))
 		{
 			unsigned long uid;
-			struct	tempinfo	*newtmpl;
 			std::istringstream i{line};
 
 			if (!(i >> uid >> std::ws)) continue;
@@ -379,20 +357,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				std::istreambuf_iterator<char>{}
 			};
 
-			if ((newtmpl=(struct tempinfo *)
-				malloc(sizeof(struct tempinfo))) == 0
-				|| (newtmpl->filename=strdup(
-					    filename.c_str())) == 0)
-			{
-				unlink(newdbfilepath.c_str());
-				write_error_exit(0);
-			}
-			newtmpl->next=tempinfo_list;
-			tempinfo_list=newtmpl;
-			newtmpl->uid=uid;
-			newtmpl->found=0;
-			newtmpl->isrecent=0;
-			++tempinfo_cnt;
+			tempinfo_array.emplace_back(filename, uid);
 		}
 		fp.close();
 	}
@@ -432,8 +397,6 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 
 	while (uidplus)
 	{
-		struct	tempinfo	*newtmpl;
-
 		if (uidplus->tmpkeywords)
 			if (rename(uidplus->tmpkeywords,
 				   uidplus->newkeywords) < 0)
@@ -459,26 +422,15 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		if (uidplus->mtime)
 			set_time (uidplus->curfilename, uidplus->mtime);
 
-		if ((newtmpl=(struct tempinfo *)
-		     malloc(sizeof(struct tempinfo))) == 0
-		    || (newtmpl->filename=strdup(strrchr(uidplus->curfilename,
-							 '/')+1)) == 0)
-		{
-			unlink(newdbfilepath.c_str());
-			write_error_exit(0);
-		}
+		std::string s=strrchr(uidplus->curfilename, '/')+1;
+		auto sp=s.rfind(MDIRSEP[0]);
 
-		if ((p=strrchr(newtmpl->filename, MDIRSEP[0])) != 0)
-			*p=0;
+		if (sp != s.npos)
+			s.resize(sp);
 
-		newtmpl->next=tempinfo_list;
-		tempinfo_list=newtmpl;
-		newtmpl->uid=nextuid;
+		tempinfo_array.emplace_back(std::move(s), nextuid);
 		uidplus->uid=nextuid;
 		nextuid++;
-		newtmpl->found=0;
-		newtmpl->isrecent=0;
-		++tempinfo_cnt;
 
 		uidplus=uidplus->next;
 		dowritecache=1;
@@ -511,108 +463,82 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	}
 
 	/*
-	** Convert the link list of cached files to an array, then
-	** sort it by filename.
+	** Sort the array by filename.
 	*/
 
-	if ((tempinfo_array=(struct tempinfo **)malloc(
-		(tempinfo_cnt+1)*sizeof(struct tempinfo *))) == 0)
-	{
-		unlink(newdbfilepath.c_str());
-		write_error_exit(0);
-	}
-
-	for (i=0, tempinfoptr=tempinfo_list; tempinfoptr;
-		tempinfoptr=tempinfoptr->next, i++)
-		tempinfo_array[i]=tempinfoptr;
-
-	if (tempinfo_cnt)
-		qsort(tempinfo_array, tempinfo_cnt,
-			sizeof(tempinfo_array[0]),
-			( int (*)(const void *, const void *))
-				&sort_by_filename);
+	std::sort(tempinfo_array.begin(), tempinfo_array.end(),
+		  sort_by_filename);
 
 	/* Step 2 - read maildir/cur.  Search the array.  Mark found files. */
 
-	p=imapscan_namedir(dir, "cur");
-	dirp=opendir(p);
-	free(p);
+	dirp=opendir((std::string{dir} + "/cur").c_str());
+
 	while (dirp && (de=readdir(dirp)) != 0)
 	{
-	int	rc;
-	struct	tempinfo	*newtmpl;
-
 		if (de->d_name[0] == '.')	continue;
 
-		p=my_strdup(de->d_name);
+		std::string p=de->d_name;
+		std::string q=p;
 
 		/* IMAPDB doesn't store the filename flags, so strip them */
-		q=strrchr(p, MDIRSEP[0]);
-		if (q)	*q=0;
-		rc=search_by_filename(tempinfo_array, tempinfo_cnt, &i, p);
-		if (q)	*q=MDIRSEP[0];
-		if (rc == 0)
+		auto sp=p.rfind(MDIRSEP[0]);
+
+		if (sp != p.npos)
+			p.resize(sp);
+
+		auto iter=std::lower_bound(
+			tempinfo_array.begin(),
+			tempinfo_array.end(),
+			p,
+			search_by_filename{});
+
+		if (iter != tempinfo_array.end() &&
+		    fnamcmp(iter->filename.c_str(), p.c_str()) == 0)
 		{
-			tempinfo_array[i]->found=1;
-			free(tempinfo_array[i]->filename);
-			tempinfo_array[i]->filename=p;
+			iter->found=true;
+			iter->filename=q;
 				/* Keep the full filename */
 			continue;
 		}
 
-		if ((newtmpl=(struct tempinfo *)
-			malloc(sizeof(struct tempinfo))) == 0)
-		{
-			unlink(newdbfilepath.c_str());
-			write_error_exit(0);
-		}
-		newtmpl->filename=p;
-		newtmpl->next=newtempinfo_list;
-		newtmpl->found=0;
-		newtmpl->isrecent=1;
-		newtempinfo_list=newtmpl;
+		newtempinfo_array.emplace_back(q, 0, true);
 		dowritecache=1;
 	}
 	if (dirp)	closedir(dirp);
 
 	/* Step 3 - purge messages that no longer exist in the maildir */
 
-	free(tempinfo_array);
+	tempinfo_array.erase(
+		std::remove_if(
+			tempinfo_array.begin(),
+			tempinfo_array.end(),
+			[&]
+			(const tempinfo &a)
+			{
+				if (!a.found)
+					dowritecache=1;
 
-	for (tempinfo_array= &tempinfo_list; *tempinfo_array; )
-	{
-		if ( (*tempinfo_array)->found )
-		{
-			tempinfo_array= & (*tempinfo_array)->next;
-			continue;
-		}
-		tempinfoptr= *tempinfo_array;
-		*tempinfo_array=tempinfoptr->next;
-		free(tempinfoptr->filename);
-		free(tempinfoptr);
-		--tempinfo_cnt;
-		dowritecache=1;
-	}
+				return !a.found;
+			}),
+		tempinfo_array.end());
 
 	/* Step 4 - add messages in cur that are not in the cache file */
 
-	while (newtempinfo_list)
-	{
-		tempinfoptr=newtempinfo_list;
-		newtempinfo_list=tempinfoptr->next;
+	tempinfo_array.insert(tempinfo_array.end(),
+			      newtempinfo_array.begin(),
+			      newtempinfo_array.end());
 
-		tempinfoptr->next=tempinfo_list;
-		tempinfo_list=tempinfoptr;
-		++tempinfo_cnt;
-	}
+	newtempinfo_array.clear();
 
 	/* Step 5 - read maildir/new.  */
 
-	p=imapscan_namedir(dir, "new");
-
 	if (leavenew)
 	{
-		dirp=opendir(p);
+		std::string p=dir;
+
+		p += "/new";
+
+		dirp=opendir(p.c_str());
 		while (dirp && (de=readdir(dirp)) != 0)
 		{
 			if (de->d_name[0] == '.')	continue;
@@ -627,96 +553,70 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		** Accomodate them by processing 20 files at a time.
 		*/
 	{
-		char *new_buf[20];
-		char *cur_buf[20];
-		int keepgoing;
-		size_t n;
+		bool keepgoing;
+		std::string p=dir;
+
+		p += "/new";
 
 		do
 		{
-			n=0;
-			keepgoing=0;
+			keepgoing=false;
 
-			dirp=opendir(p);
+			std::vector<std::string> newbuf;
+			std::vector<std::string> curbuf;
+
+			dirp=opendir(p.c_str());
 			while (dirp && (de=readdir(dirp)) != 0)
 			{
-				struct	tempinfo	*newtmpl;
-				char	*newname, *curname;
-				char	*z;
-
 				if (de->d_name[0] == '.')	continue;
 
-				z=de->d_name;
+				std::string z=de->d_name;
 
-				newname=imapscan_namedir(p, z);
-				curname=(char *)malloc(strlen(newname)
-					       +sizeof(MDIRSEP "2,"));
-				if (!curname)
-				{
-					unlink(newdbfilepath.c_str());
-					write_error_exit(0);
-				}
-				strcpy(curname, newname);
-				z=strrchr(curname, '/');
+				newbuf.push_back(p + "/" + z);
 
-				memcpy(z-3, "cur", 3);
-				/* Mother of all hacks */
-				if (strchr(z, MDIRSEP[0]) == 0)
-					strcat(z, MDIRSEP "2,");
+				if (z.find(MDIRSEP[0]) == z.npos)
+					z += + MDIRSEP "2,";
 
-				new_buf[n]=newname;
-				cur_buf[n]=curname;
+				std::string c=dir;
 
-				if ((newtmpl=(struct tempinfo *)
-				     malloc(sizeof(struct tempinfo))) == 0)
-				{
-					unlink(newdbfilepath.c_str());
-					write_error_exit(0);
-				}
-				newtmpl->filename=my_strdup(z+1);
-				newtmpl->next=tempinfo_list;
-				tempinfo_list=newtmpl;
-				++tempinfo_cnt;
-				newtmpl->found=0;
-				newtmpl->isrecent=1;
+				c.reserve(c.size()+z.size()+5);
+
+				c += "/cur/";
+				c += z;
+				curbuf.push_back(c);
+
 				dowritecache=1;
 
-				if (++n >= sizeof(cur_buf)/
-				    sizeof(cur_buf[0]))
+				tempinfo_array.emplace_back(
+					std::move(z), 0, true
+				);
+
+				if (curbuf.size() >= 20)
 				{
-					keepgoing=1;
+					keepgoing=true;
 					break;
 				}
 			}
 
 			if (dirp)	closedir(dirp);
 
-			while (n)
+			for (size_t i=0; i<newbuf.size(); ++i)
 			{
-				char *newname, *curname;
-
-				--n;
-
-				newname=new_buf[n];
-				curname=cur_buf[n];
-
-				if (rename(newname, curname))
+				if (rename(newbuf[i].c_str(),
+					   curbuf[i].c_str()))
 				{
 					fprintf(stderr,
 						"ERR: rename(%s,%s) failed:"
 						" %s\n",
-						newname, curname,
+						newbuf[i].c_str(),
+						curbuf[i].c_str(),
 						strerror(errno));
-					keepgoing=0;
+					keepgoing=false;
 					/* otherwise we could have infinite loop */
 				}
-
-				free(newname);
-				free(curname);
 			}
 		} while (keepgoing);
 	}
-	free(p);
 
 	/*
 	** Step 6: sort existing messages by UIDs, new messages will
@@ -725,29 +625,20 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	** they were received.
 	*/
 
-	if ((tempinfo_array=(struct tempinfo **)malloc(
-		(tempinfo_cnt+1)*sizeof(struct tempinfo *))) == 0)
-	{
-		unlink(newdbfilepath.c_str());
-		write_error_exit(0);
-	}
-
-	for (i=0, tempinfoptr=tempinfo_list; tempinfoptr;
-		tempinfoptr=tempinfoptr->next, i++)
-		tempinfo_array[i]=tempinfoptr;
-
-	if (tempinfo_cnt)
-		qsort(tempinfo_array, tempinfo_cnt,
-			sizeof(tempinfo_array[0]),
-			( int (*)(const void *, const void *))
-				&sort_by_filename_status);
+	std::sort(tempinfo_array.begin(),
+		  tempinfo_array.end(),
+		  []
+		  (const tempinfo &a, const tempinfo &b)
+		  {
+			  return sort_by_filename_status(a, b) < 0;
+		  });
 
 	/* Assign new UIDs */
 
-	for (i=0; i<tempinfo_cnt; i++)
-		if ( !tempinfo_array[i]->found )
+	for (auto &i:tempinfo_array)
+		if ( !i.found )
 		{
-			tempinfo_array[i]->uid= nextuid++;
+			i.uid= nextuid++;
 			dowritecache=1;
 		}
 
@@ -760,14 +651,15 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 
 		fp << version << " " << uidv << " " << nextuid << "\n";
 
-		for (i=0; i<tempinfo_cnt; i++)
+		for (auto &i:tempinfo_array)
 		{
-			q=strrchr(tempinfo_array[i]->filename, MDIRSEP[0]);
-			if (q)  *q=0;
-			fp << tempinfo_array[i]->uid
-			   << " " << tempinfo_array[i]->filename
+			size_t p=i.filename.rfind(MDIRSEP[0]);
+
+			if (p == i.filename.npos)
+				p=i.filename.size();
+			fp << i.uid
+			   << " " << i.filename.substr(0, p)
 			   << "\n";
-			if (q)	*q=MDIRSEP[0];
 		}
 
 		fp << std::flush;
@@ -808,18 +700,20 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	/* Step 8 - create the final scaninfo array */
 
 	scaninfo->msgs=0;
-	if (tempinfo_cnt && (scaninfo->msgs=(struct imapscanmessageinfo *)
-		malloc(tempinfo_cnt * sizeof(*scaninfo->msgs))) == 0)
+	if (tempinfo_array.size() &&
+	    (scaninfo->msgs=(struct imapscanmessageinfo *)
+	     malloc(tempinfo_array.size() * sizeof(*scaninfo->msgs))) == 0)
 		write_error_exit(0);
-	scaninfo->nmessages=tempinfo_cnt;
+	scaninfo->nmessages=tempinfo_array.size();
 	scaninfo->uidv=uidv;
 	scaninfo->left_unseen=left_unseen;
 	scaninfo->nextuid=nextuid+left_unseen;
 
-	for (i=0; i<tempinfo_cnt; i++)
+	for (size_t i=0; i<tempinfo_array.size(); i++)
 	{
-		scaninfo->msgs[i].uid=tempinfo_array[i]->uid;
-		scaninfo->msgs[i].filename=tempinfo_array[i]->filename;
+		scaninfo->msgs[i].uid=tempinfo_array[i].uid;
+		scaninfo->msgs[i].filename=
+			my_strdup(tempinfo_array[i].filename.c_str());
 		scaninfo->msgs[i].keywordMsg=NULL;
 		scaninfo->msgs[i].copiedflag=0;
 #if SMAP
@@ -828,12 +722,9 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		else
 #endif
 			scaninfo->msgs[i].recentflag=
-				tempinfo_array[i]->isrecent;
+				tempinfo_array[i].isrecent;
 		scaninfo->msgs[i].changedflags=0;
-
-		free(tempinfo_array[i]);
 	}
-	free(tempinfo_array);
 
 	imapscan_readKeywords(dir, scaninfo);
 
