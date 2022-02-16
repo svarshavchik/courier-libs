@@ -38,7 +38,7 @@ char	*buf;
 
 		if (buf)	free(buf);
 		bufsiz += 256;
-		if ((buf=malloc(bufsiz)) == 0)
+		if ((buf=(char *)malloc(bufsiz)) == 0)
 		{
 			perror("malloc");
 			return (0);
@@ -48,7 +48,7 @@ char	*buf;
 			free(buf);
 			return (0);
 		}
-		if (n < bufsiz)
+		if ((size_t)n < bufsiz)
 		{
 			buf[n]=0;
 			break;
@@ -73,7 +73,7 @@ char	*l=maildir_getlink(path);
 
 		if (*l != '/')
 		{
-		char	*q=malloc(strlen(path)+strlen(l)+2);
+			char	*q=(char *)malloc(strlen(path)+strlen(l)+2);
 		char	*s;
 
 			if (!q)
