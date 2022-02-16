@@ -252,8 +252,10 @@ namespace maildir {
 	int safeopen_stat(const std::string &path, int mode, int perm,
 			  struct stat *stat1);
 
-	int shared_subscribe(const std::string &,
+	bool shared_subscribe(const std::string &,
 			     const std::string &);
+	bool shared_unsubscribe(const std::string &,
+				const std::string &);
 
 }
 #endif

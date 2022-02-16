@@ -65,7 +65,8 @@ extern "C" void maildir_shared_fparse(char *, char **, char **);
 
 int maildir_shared_subscribe(const char *maildir, const char *folder)
 {
-	return maildir::shared_subscribe(maildir ? maildir:"", folder);
+	return maildir::shared_subscribe(maildir ? maildir:"", folder)
+		? 0:-1;
 }
 
 namespace {
@@ -110,8 +111,8 @@ namespace {
 	};
 }
 
-int maildir::shared_subscribe(const std::string &maildir,
-			      const std::string &folder)
+bool maildir::shared_subscribe(const std::string &maildir,
+			       const std::string &folder)
 {
 	if (maildir.empty())
 		return shared_subscribe(".", folder);
@@ -121,13 +122,13 @@ int maildir::shared_subscribe(const std::string &maildir,
 	if (namep == folder.npos)
 	{
 		errno=EINVAL;
-		return (-1);
+		return false;
 	}
 
 	if (shareddir(maildir, folder).empty())	/* valid folder name? */
 	{
 		errno=EINVAL;
-		return (-1);
+		return false;
 	}
 
 	bool found=false;
@@ -198,7 +199,7 @@ int maildir::shared_subscribe(const std::string &maildir,
 			newsubdir{base_dir.name, "new"};
 
 		if (!base_dir || !tmpsubdir || !cursubdir || !newsubdir)
-			return -1;
+			return false;
 
 		std::string link;
 
@@ -209,34 +210,44 @@ int maildir::shared_subscribe(const std::string &maildir,
 		link+=name;
 
 		if (symlink(link.c_str(), (base_dir.name + "/shared").c_str()))
-			return (-1);
+			return false;
 
 		base_dir.done=false;
 		tmpsubdir.done=false;
 		cursubdir.done=false;
 		newsubdir.done=false;
-		return (0);
+		return true;
 	}
 	errno=ENOENT;
-	return (-1);
+	return false;
 }
 
 int maildir_shared_unsubscribe(const char *maildir, const char *folder)
 {
-char	*s;
+	return maildir::shared_unsubscribe(maildir ? maildir:"", folder)
+		? 0:-1;
+}
 
-	s=maildir_shareddir(maildir, folder);
-	if (!s)	return (-1);
+bool maildir::shared_unsubscribe(const std::string &maildir,
+				 const std::string &folder)
+{
+	if (maildir.empty())
+		return shared_unsubscribe(".", folder);
 
-	if (maildir_del(s))
+	auto dir=shareddir(maildir, folder);
+
+	if (dir.empty())
 	{
-		free(s);
-		return (-1);
+		errno=EINVAL;
+		return false;
 	}
-	*strrchr(s, '/')=0;	/* Try to remove the whole folder dir */
-	rmdir(s);
-	free(s);
-	return (0);
+
+	if (maildir_del(dir.c_str()))
+		return false;
+
+	dir.resize(dir.rfind('/')); /* Try to remove the whole folder dir */
+	rmdir(dir.c_str());
+	return true;
 }
 
 /*                    LET'S SYNC IT                  */
