@@ -22,97 +22,117 @@
 
 #include	"maildirmisc.h"
 
+#include	<vector>
 
 char *maildir_getlink(const char *filename)
 {
+	auto l=maildir::getlink(filename);
+
+	return l.empty() ? NULL:strdup(l.c_str());
+}
+
+std::string maildir::getlink(const std::string &filename)
+{
 #if     HAVE_READLINK
-size_t	bufsiz;
-char	*buf;
+	size_t	bufsiz;
+	char	*buf;
 
 	bufsiz=0;
 	buf=0;
 
 	for (;;)
 	{
-	int	n;
+		int	n;
 
-		if (buf)	free(buf);
+		if (buf)	delete[] buf;
+
 		bufsiz += 256;
-		if ((buf=(char *)malloc(bufsiz)) == 0)
+
+		if ((buf=new char[bufsiz]) == 0)
 		{
 			perror("malloc");
-			return (0);
+			return "";
 		}
-		if ((n=readlink(filename, buf, bufsiz)) < 0)
+		if ((n=readlink(filename.c_str(), buf, bufsiz)) < 0)
 		{
-			free(buf);
-			return (0);
+			delete[] buf;
+			return "";
 		}
 		if ((size_t)n < bufsiz)
 		{
-			buf[n]=0;
-			break;
+			std::string s{buf, buf+n};
+
+			delete[] buf;
+
+			return s;
 		}
 	}
-	return (buf);
 #else
-	return (0);
+	return "";
 #endif
 }
 
 int maildir_semisafeopen(const char *path, int mode, int perm)
 {
+	return maildir::semisafeopen(path, mode, perm);
+}
 
+int maildir::semisafeopen(const std::string &path, int mode, int perm)
+{
 #if	HAVE_READLINK
 
-char	*l=maildir_getlink(path);
+	std::string l=getlink(path);
 
-	if (l)
+	if (!l.empty())
 	{
-	int	f;
-
-		if (*l != '/')
+		if (*l.c_str() != '/')
 		{
-			char	*q=(char *)malloc(strlen(path)+strlen(l)+2);
-		char	*s;
 
-			if (!q)
-			{
-				free(l);
-				return (-1);
-			}
+			std::string q;
 
-			strcpy(q, path);
-			if ((s=strchr(q, '/')) != 0)
-				s[1]=0;
-			else	*q=0;
-			strcat(q, l);
-			free(l);
+			q.reserve(path.size()+l.size()+1);
+
+			q=path;
+
+			auto p=q.rfind('/');
+
+			if (p != q.npos)
+				q.resize(++p);
+
+			q += l;
 			l=q;
 		}
 
-		f=maildir_safeopen(l, mode, perm);
-
-		free(l);
-		return (f);
+		return safeopen(l, mode, perm);
 	}
 #endif
 
-	return (maildir_safeopen(path, mode, perm));
+	return (safeopen(path, mode, perm));
 }
 
 int maildir_safeopen(const char *path, int mode, int perm)
 {
-	return maildir_safeopen_stat(path, mode, perm, NULL);
+	return maildir::safeopen(path, mode, perm);
+}
+
+int maildir::safeopen(const std::string &path, int mode, int perm)
+{
+	return safeopen_stat(path, mode, perm, NULL);
 }
 
 int maildir_safeopen_stat(const char *path, int mode, int perm,
 			  struct stat *stat1)
 {
+	return maildir::safeopen_stat(path, mode, perm, stat1);
+}
+
+int maildir::safeopen_stat(const std::string &path, int mode, int perm,
+			   struct stat *stat1)
+{
 	struct	stat	stat2, statt;
 	char *p;
 
-	int	fd=open(path, mode
+	int	fd=open(path.c_str(), mode
 #ifdef	O_NONBLOCK
 			| O_NONBLOCK
 #else
@@ -121,6 +141,7 @@ int maildir_safeopen_stat(const char *path, int mode, int perm,
 			, perm);
 
 	if (fd < 0)	return (fd);
+
 	if (fcntl(fd, F_SETFL, (mode & O_APPEND)) || (stat1 && fstat(fd, stat1)))
 	{
 		close(fd);
@@ -141,7 +162,7 @@ int maildir_safeopen_stat(const char *path, int mode, int perm,
 	}
 
 	errno = 0;
-	if (lstat(path, &stat2) || stat1->st_dev != stat2.st_dev || stat1->st_ino != stat2.st_ino)
+	if (lstat(path.c_str(), &stat2) || stat1->st_dev != stat2.st_dev || stat1->st_ino != stat2.st_ino)
 	{
 		close(fd);
 		if (!errno) errno=ENOENT;

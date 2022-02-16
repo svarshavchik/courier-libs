@@ -58,15 +58,15 @@
 
 #include	"dbobj.h"
 
-extern FILE *maildir_shared_fopen(const char *, const char *);
-extern void maildir_shared_fparse(char *, char **, char **);
+extern "C" FILE *maildir_shared_fopen(const char *, const char *);
+extern "C" void maildir_shared_fparse(char *, char **, char **);
 
 int maildir_shared_subscribe(const char *maildir, const char *folder)
 {
 char	linebuf[BUFSIZ];
 FILE	*fp;
 char	*p;
-char	*name=strchr(folder, '.');
+const char	*name=strchr(folder, '.');
 char	*s, *n, *dir;
 char	*buf, *link;
 unsigned l;
@@ -102,7 +102,7 @@ int	pass;
 
 			if (!n)	continue;
 
-			if (strlen(n) == name - folder &&
+			if (strlen(n) == (size_t)(name - folder) &&
 				memcmp(n, folder, name-folder) == 0)	break;
 		}
 		fclose(fp);
@@ -122,7 +122,7 @@ int	pass;
 
 		l=sizeof("/" SHAREDSUBDIR "//shared") +
 			strlen(maildir) + strlen(folder);
-		buf=malloc(l);
+		buf=(char *)malloc(l);
 		if (!buf)	return (-1);
 		strcat(strcpy(buf, maildir), "/" SHAREDSUBDIR);
 		mkdir(buf, 0700);
@@ -166,7 +166,7 @@ int	pass;
 		}
 
 		strcpy(s, "shared");
-		if ((link=malloc(strlen(dir)+strlen(name)+2)) == 0 ||
+		if ((link=(char *)malloc(strlen(dir)+strlen(name)+2)) == 0 ||
 			symlink( strcat(strcat(strcpy(link, dir), "/"), name),
 				buf))
 		{
@@ -217,7 +217,7 @@ void maildir_shared_sync(const char *dir)
 char	*shareddir;
 char	*buf;
 
-	shareddir=malloc(strlen(dir)+sizeof("/shared"));
+	shareddir=(char *)malloc(strlen(dir)+sizeof("/shared"));
 	if (!shareddir)
 	{
 		perror("malloc");
@@ -284,7 +284,7 @@ static int create_db(struct dbobj *obj,
 
 static int build_db(const char *shared, struct dbobj *obj)
 {
-char	*dummy=malloc(strlen(shared)+sizeof("/cur"));
+char	*dummy=(char *)malloc(strlen(shared)+sizeof("/cur"));
 DIR	*dirp;
 struct	dirent *de;
 
@@ -304,14 +304,14 @@ struct	dirent *de;
 
 		if (de->d_name[0] == '.')
 			continue;
-		if ((a=malloc(strlen(de->d_name)+1)) == 0)
+		if ((a=(char *)malloc(strlen(de->d_name)+1)) == 0)
 		{
 			perror("malloc");
 			closedir(dirp);
 			free(dummy);
 			return (-1);
 		}
-		if ((b=malloc(strlen(de->d_name)+1)) == 0)
+		if ((b=(char *)malloc(strlen(de->d_name)+1)) == 0)
 		{
 			perror("malloc");
 			closedir(dirp);
@@ -379,7 +379,7 @@ char	*p;
 		** db.
 		*/
 
-		cur_base=malloc(strlen(de->d_name)+1);
+		cur_base=(char *)malloc(strlen(de->d_name)+1);
 		if (!cur_base)
 		{
 			perror("malloc");
@@ -405,7 +405,7 @@ char	*p;
 		*/
 
 		free(cur_base);
-		cur_base=malloc(strlen(de->d_name)+strlen(cur)+2);
+		cur_base=(char *)malloc(strlen(de->d_name)+strlen(cur)+2);
 		if (!cur_base)
 		{
 			perror("malloc");
@@ -425,7 +425,7 @@ char	*p;
 		linked_name_len=strlen(shared)+strlen(de->d_name)+100;
 			/* should be enough */
 
-		if ((linked_name_buf=malloc(linked_name_len)) == 0)
+		if ((linked_name_buf=(char *)malloc(linked_name_len)) == 0)
 		{
 			perror("malloc");
 			free(cur_base);
@@ -441,7 +441,7 @@ char	*p;
 			n=0;
 		}
 
-		if (n == 0 || n >= linked_name_len ||
+		if (n == 0 || (size_t)n >= linked_name_len ||
 			(linked_name_buf[n]=0,
 			update_link(cur,
 				cur_base, linked_name_buf, shared, cur_name_ptr,
@@ -470,7 +470,7 @@ static int update_link(const char *curdir,
 	const char *msgfilename,
 	size_t msgfilenamelen)
 {
-	char	*p=malloc(strlen(shareddir)+sizeof("/cur/")+msgfilenamelen);
+	char	*p=(char *)malloc(strlen(shareddir)+sizeof("/cur/")+msgfilenamelen);
 	char	*q;
 	int	fd;
 	struct maildir_tmpcreate_info createInfo;
@@ -542,7 +542,7 @@ static int newmsgs(const char *cur, const char *shared, struct dbobj *obj)
 	for (key=dbobj_firstkey(obj, &keylen, &val, &vallen); key;
 		key=dbobj_nextkey(obj, &keylen, &val, &vallen))
 	{
-	char	*slink=malloc(strlen(shared)+sizeof("/cur/")+vallen);
+	char	*slink=(char *)malloc(strlen(shared)+sizeof("/cur/")+vallen);
 	char	*q;
 
 		if (!slink)
@@ -568,7 +568,7 @@ static int newmsgs(const char *cur, const char *shared, struct dbobj *obj)
 		}
 
 		free(slink);
-		slink=malloc(strlen(cur)+sizeof("/new/" MDIRSEP "2,")+keylen);
+		slink=(char *)malloc(strlen(cur)+sizeof("/new/" MDIRSEP "2,")+keylen);
 		if (!slink)
 		{
 			perror("malloc");
@@ -611,10 +611,10 @@ int	fd;
 
 	/* Figure out if we REALLY need to sync something */
 
-	shared_update_name=malloc(strlen(dir)+sizeof("/shared-timestamp"));
+	shared_update_name=(char *)malloc(strlen(dir)+sizeof("/shared-timestamp"));
 	if (!shared_update_name)	return;
 	strcat(strcpy(shared_update_name, dir), "/shared-timestamp");
-	cur=malloc(strlen(shared)+sizeof("/new"));
+	cur=(char *)malloc(strlen(shared)+sizeof("/new"));
 	if (!cur)
 	{
 		free(shared_update_name);
@@ -653,7 +653,7 @@ int	fd;
 		return;
 	}
 
-	if ((cur=malloc(strlen(dir)+sizeof("/cur"))) == 0)
+	if ((cur=(char *)malloc(strlen(dir)+sizeof("/cur"))) == 0)
 	{
 		perror("malloc");
 		dbobj_close(&obj);
@@ -680,7 +680,7 @@ int	fd;
 
 int maildir_sharedisro(const char *maildir)
 {
-char	*p=malloc(strlen(maildir)+sizeof("/shared/cur"));
+	char	*p=(char *)malloc(strlen(maildir)+sizeof("/shared/cur"));
 
 	if (!p)
 	{

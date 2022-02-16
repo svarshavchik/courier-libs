@@ -2,7 +2,7 @@
 #define	maildirmisc_h
 
 /*
-** Copyright 2000-2003 S. Varshavchik.
+** Copyright 2000-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -243,6 +243,13 @@ namespace maildir {
 	std::string name2dir(const std::string &, const std::string &);
 	std::string folderdir(const std::string &, const std::string &);
 	std::string location(const std::string &, const std::string &);
+
+	std::string getlink(const std::string &);
+	int semisafeopen(const std::string &, int, int);
+	int safeopen(const std::string &, int, int);
+	int safeopen_stat(const std::string &path, int mode, int perm,
+			  struct stat *stat1);
+
 }
 #endif
 
