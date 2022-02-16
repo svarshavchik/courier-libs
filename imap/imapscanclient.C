@@ -77,7 +77,7 @@
 #define IMAP_EPOCH	1000000000
 #endif
 
-static int do_imapscan_maildir2(struct imapscaninfo *, const char *,
+static int do_imapscan_maildir2(struct imapscaninfo *, const std::string &,
 				int, int, struct uidplus_info *);
 void imapscanfail(const char *p);
 
@@ -135,7 +135,7 @@ struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *a,
 }
 
 int imapscan_maildir(struct imapscaninfo *scaninfo,
-		     const char *dir, int leavenew, int ro,
+		     const std::string &dir, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
 {
 	return imapmaildirlock(
@@ -273,7 +273,8 @@ int	c;
 }
 
 static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
-				const char *dir, int leavenew, int ro,
+				const std::string &dir,
+				int leavenew, int ro,
 				struct uidplus_info *uidplus)
 {
 	std::string dbfilepath;
@@ -289,13 +290,13 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 	unsigned long left_unseen=0;
 	int	dowritecache=0;
 
-	if (is_sharedsubdir(dir))
-		maildir_shared_sync(dir);
+	if (is_sharedsubdir(dir.c_str()))
+		maildir_shared_sync(dir.c_str());
 
 
 	/* Step 0 - purge the tmp directory */
 
-	maildir_purgetmp(dir);
+	maildir_purgetmp(dir.c_str());
 
 	dbfilepath=dir;
 	dbfilepath += "/" IMAPDB;
@@ -409,7 +410,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 				*/
 
 				libmail_kwgInit(&g);
-				libmail_kwgReadMaildir(&g, dir);
+				libmail_kwgReadMaildir(&g, dir.c_str());
 				libmail_kwgDestroy(&g);
 
 				rename(uidplus->tmpkeywords,
@@ -666,7 +667,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 
 		if (!fp.good() || (fp.close(), !fp.good()))
 		{
-			imapscanfail(dir);
+			imapscanfail(dir.c_str());
 			fp.close();
 			/* bk: ignore if failed */
 			unlink(newdbfilepath.c_str());
@@ -726,7 +727,7 @@ static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
 		scaninfo->msgs[i].changedflags=0;
 	}
 
-	imapscan_readKeywords(dir, scaninfo);
+	imapscan_readKeywords(dir.c_str(), scaninfo);
 
 
 	return (0);

@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2007 S. Varshavchik.
+** Copyright 2000-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -41,6 +41,9 @@
 #include	"maildircreate.h"
 #include	"maildirsharedrc.h"
 
+#include <algorithm>
+#include <fstream>
+#include <string>
 
 /* Prerequisited for shared folder support */
 
@@ -58,132 +61,160 @@
 
 #include	"dbobj.h"
 
-extern "C" FILE *maildir_shared_fopen(const char *, const char *);
 extern "C" void maildir_shared_fparse(char *, char **, char **);
 
 int maildir_shared_subscribe(const char *maildir, const char *folder)
 {
-char	linebuf[BUFSIZ];
-FILE	*fp;
-char	*p;
-const char	*name=strchr(folder, '.');
-char	*s, *n, *dir;
-char	*buf, *link;
-unsigned l;
-int	pass;
+	return maildir::shared_subscribe(maildir ? maildir:"", folder);
+}
 
-	if (!name)
-	{
-		errno=EINVAL;
-		return (-1);
-	}
+namespace {
 
-	if (!maildir)	maildir=".";
-	p=maildir_shareddir(maildir, folder);	/* valid folder name? */
-	if (!p)
-	{
-		errno=EINVAL;
-		return (-1);
-	}
-	free(p);
+	// Helper class used by shared_subscribe, which creates a shared
+	// maildir subdirectory. Each subdirectory that makes up the
+	// maildir gets created here.
 
-	p=0;
+	struct shared_created {
+		std::string name;
+		bool done=false;
 
-	for (pass=0; pass<2; pass++)
-	{
-		fp=pass ? maildir_shared_fopen(maildir, "r")
-			: fopen (MAILDIRSHAREDRC, "r");
-
-		if (!fp)	continue;
-
-		while ((p=fgets(linebuf, sizeof(linebuf), fp)) != 0)
+		// The constructor assembles the full pathname
+		shared_created(const std::string &dir,
+			       const std::string &suffix)
+			: name{dir + "/" + suffix}
 		{
-			maildir_shared_fparse(p, &n, &dir);
-
-			if (!n)	continue;
-
-			if (strlen(n) == (size_t)(name - folder) &&
-				memcmp(n, folder, name-folder) == 0)	break;
 		}
-		fclose(fp);
 
-		if (p)	break;
+		// This operator overload tries to create the subdirectory
+		// and returns true if it was created.
+
+		operator bool()
+		{
+			done=mkdir(name.c_str(), 0700) == 0;
+
+			return done;
+		}
+
+		// The destructor deletes the subdirectory, if the done
+		// flag is set.
+		//
+		// if there's an error creating the subdirectory, the
+		// destructor rmdirs it. If all subdirectories get created
+		// the "done" flag gets cleared, leaving everything behind.
+
+		~shared_created()
+		{
+			if (done)
+				rmdir(name.c_str());
+		}
+	};
+}
+
+int maildir::shared_subscribe(const std::string &maildir,
+			      const std::string &folder)
+{
+	if (maildir.empty())
+		return shared_subscribe(".", folder);
+
+	auto namep=folder.find('.');
+
+	if (namep == folder.npos)
+	{
+		errno=EINVAL;
+		return (-1);
 	}
 
-	if (p)
+	if (shareddir(maildir, folder).empty())	/* valid folder name? */
+	{
+		errno=EINVAL;
+		return (-1);
+	}
+
+	bool found=false;
+	std::string dir;
+
+	for (int pass=0; pass<2; pass++)
+	{
+		std::ifstream i{
+			pass ? maildir::shared_filename(maildir)
+			: std::string{MAILDIRSHAREDRC}
+		};
+
+		std::string line;
+
+		while (std::getline(i, line))
+		{
+			if (line.empty())
+				continue;
+			char *nameb, *namee, *dirb, *dire;
+
+			maildir::shared_fparse(
+				&line[0],
+				&line[0]+line.size(),
+				nameb, namee, dirb, dire);
+
+			if (nameb < namee &&
+			    (size_t)(namee - nameb) == namep &&
+			    std::equal(nameb, namee, folder.begin()))
+			{
+				found=true;
+				dir=std::string{dirb, dire};
+				break;
+			}
+		}
+		if (found)
+			break;
+	}
+
+	if (found)
 	{
 		/*
 		** We will create:
 		**
-		**  maildir/shared-folders/ (name-folder) /(name)
+		**  maildir/shared-folders/folder/(name)
 		**
 		**  there we'll have subdirs cur/new/tmp  and shared link
 		*/
 
-		l=sizeof("/" SHAREDSUBDIR "//shared") +
-			strlen(maildir) + strlen(folder);
-		buf=(char *)malloc(l);
-		if (!buf)	return (-1);
-		strcat(strcpy(buf, maildir), "/" SHAREDSUBDIR);
-		mkdir(buf, 0700);
-		strcat(buf, "/");
-		strncat(buf, folder, name-folder);
-		mkdir(buf, 0700);
-		strcat(buf, "/");
-		strcat(buf, name+1);
-		if ( mkdir(buf, 0700))	return (-1);
-		s=buf+strlen(buf);
-		*s++='/';
-		strcpy(s, "tmp");
-		if ( mkdir(buf, 0700))
-		{
-			s[-1]=0;
-			rmdir(buf);
-			free(buf);
-			return (-1);
-		}
-		strcpy(s, "cur");
-		if ( mkdir(buf, 0700))
-		{
-			strcpy(s, "tmp");
-			rmdir(buf);
-			s[-1]=0;
-			rmdir(buf);
-			free(buf);
-			return (-1);
-		}
-		strcpy(s, "new");
-		if ( mkdir(buf, 0700))
-		{
-			strcpy(s, "cur");
-			rmdir(buf);
-			strcpy(s, "tmp");
-			rmdir(buf);
-			s[-1]=0;
-			rmdir(buf);
-			free(buf);
-			return (-1);
-		}
+		std::string buf;
 
-		strcpy(s, "shared");
-		if ((link=(char *)malloc(strlen(dir)+strlen(name)+2)) == 0 ||
-			symlink( strcat(strcat(strcpy(link, dir), "/"), name),
-				buf))
-		{
-			if (link)	free(link);
-			strcpy(s, "new");
-			rmdir(buf);
-			strcpy(s, "cur");
-			rmdir(buf);
-			strcpy(s, "tmp");
-			rmdir(buf);
-			s[-1]=0;
-			rmdir(buf);
-			free(buf);
+		buf.reserve(maildir.size()+folder.size() +
+			    sizeof("/" SHAREDSUBDIR "//shared"));
+
+		buf=maildir;
+		buf += "/" SHAREDSUBDIR;
+
+		mkdir(buf.c_str(), 0700);
+		buf += "/";
+
+		buf.insert(buf.end(), folder.begin(), folder.begin()+namep);
+		mkdir(buf.c_str(), 0700);
+
+		std::string name=folder.substr(namep+1);
+
+		shared_created base_dir{buf, name},
+			tmpsubdir{base_dir.name, "tmp"},
+			cursubdir{base_dir.name, "cur"},
+			newsubdir{base_dir.name, "new"};
+
+		if (!base_dir || !tmpsubdir || !cursubdir || !newsubdir)
+			return -1;
+
+		std::string link;
+
+		link.reserve(dir.size()+name.size()+1);
+
+		link=dir;
+		link+="/.";
+		link+=name;
+
+		if (symlink(link.c_str(), (base_dir.name + "/shared").c_str()))
 			return (-1);
-		}
-		free(link);
-		free(buf);
+
+		base_dir.done=false;
+		tmpsubdir.done=false;
+		cursubdir.done=false;
+		newsubdir.done=false;
 		return (0);
 	}
 	errno=ENOENT;

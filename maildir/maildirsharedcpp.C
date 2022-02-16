@@ -69,8 +69,6 @@ namespace maildir {
 static void list_sharable(const std::string &, const std::string &,
 			  const std::function<void (const std::string &)> &);
 
-std::string shared_filename(const std::string &maildir);
-
 void list_sharable(const std::string &maildir,
 		   const std::function<void (const std::string &)> &cb)
 {

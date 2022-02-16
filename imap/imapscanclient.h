@@ -68,7 +68,7 @@ void imapscan_init(struct imapscaninfo *p);
 void imapscan_copy(struct imapscaninfo *a,
 		   struct imapscaninfo *b);
 
-int imapscan_maildir(struct imapscaninfo *, const char *, int, int,
+int imapscan_maildir(struct imapscaninfo *, const std::string &, int, int,
 		     struct uidplus_info *);
 void imapscan_free(struct imapscaninfo *);
 

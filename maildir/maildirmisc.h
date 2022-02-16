@@ -38,6 +38,8 @@ void shared_fparse(char *b, char *e,
 		   char * &nameb, char * &namee,
 		   char * &dirb, char * &dire);
 
+std::string shared_filename(const std::string &maildir);
+
 void list_sharable(const std::string &maildir,
 		   const std::function<void (const std::string &)> &callback);
 
@@ -249,6 +251,9 @@ namespace maildir {
 	int safeopen(const std::string &, int, int);
 	int safeopen_stat(const std::string &path, int mode, int perm,
 			  struct stat *stat1);
+
+	int shared_subscribe(const std::string &,
+			     const std::string &);
 
 }
 #endif
