@@ -77,7 +77,7 @@
 #define IMAP_EPOCH	1000000000
 #endif
 
-static int do_imapscan_maildir2(struct imapscaninfo *, const std::string &,
+static int do_imapscan_maildir2(imapscaninfo *, const std::string &,
 				int, int, struct uidplus_info *);
 void imapscanfail(const char *p);
 
@@ -89,32 +89,55 @@ extern int keywords();
 extern void set_time(const char *tmpname, time_t timestamp);
 
 static void imapscan_readKeywords(const char *maildir,
-				  struct imapscaninfo *scaninfo);
+				  imapscaninfo *scaninfo);
 
-extern bool imapmaildirlock(struct imapscaninfo *scaninfo,
+extern bool imapmaildirlock(imapscaninfo *scaninfo,
 			    const std::string &maildir,
 			    const std::function< bool() >&callback);
 
-
-void imapscan_init(struct imapscaninfo *i)
+imapscaninfo_base::imapscaninfo_base()
 {
-	memset(i, 0, sizeof(*i));
-
-	if ((i->keywordList=(libmail_kwHashtable *)malloc(sizeof(*i->keywordList))) == NULL)
+	if ((keywordList=(libmail_kwHashtable *)malloc(sizeof(*keywordList))) == NULL)
 		write_error_exit(0);
 
-	libmail_kwhInit(i->keywordList);
+	libmail_kwhInit(keywordList);
 }
 
-void imapscan_copy(struct imapscaninfo *a,
-		   struct imapscaninfo *b)
+imapscaninfo::imapscaninfo(imapscaninfo &&other)
 {
-	imapscan_free(a);
-	*a=*b;
-	imapscan_init(b);
+	operator=(std::move(other));
 }
 
-struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *a,
+imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other)
+{
+	// TODO: fix this
+	auto watcher1=watcher;
+	auto watcher2=other.watcher;
+	auto msgs1=msgs;
+	auto msgs2=other.msgs;
+	auto keywords1=keywordList;
+	auto keywords2=other.keywordList;
+
+	watcher=nullptr;
+	other.watcher=nullptr;
+	msgs=nullptr;
+	other.msgs=nullptr;
+	keywordList=nullptr;
+	other.keywordList=nullptr;
+
+	std::swap(static_cast<imapscaninfo_base &>(*this),
+		  static_cast<imapscaninfo_base &>(other));
+
+	watcher=watcher2;
+	other.watcher=watcher1;
+	msgs=msgs2;
+	other.msgs=msgs1;
+	keywordList=keywords2;
+	other.keywordList=keywords1;
+	return *this;
+}
+
+struct libmail_kwMessage *imapscan_createKeyword(imapscaninfo *a,
 					      unsigned long n)
 {
 	if (n >= a->nmessages)
@@ -134,7 +157,7 @@ struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *a,
 	return a->msgs[n].keywordMsg;
 }
 
-int imapscan_maildir(struct imapscaninfo *scaninfo,
+int imapscan_maildir(imapscaninfo *scaninfo,
 		     const std::string &dir, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
 {
@@ -272,7 +295,7 @@ int	c;
 	}
 }
 
-static int do_imapscan_maildir2(struct imapscaninfo *scaninfo,
+static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 				const std::string &dir,
 				int leavenew, int ro,
 				struct uidplus_info *uidplus)
@@ -760,7 +783,7 @@ char	*p;
 	return (fd);
 }
 
-int imapscan_openfile(const char *dir, struct imapscaninfo *i, unsigned j)
+int imapscan_openfile(const char *dir, imapscaninfo *i, unsigned j)
 {
 struct imapscanmessageinfo *n;
 
@@ -775,39 +798,36 @@ struct imapscanmessageinfo *n;
 	return (try_maildir_open(dir, n));
 }
 
-void imapscan_free(struct imapscaninfo *i)
+imapscaninfo_base::~imapscaninfo_base()
 {
 	unsigned	n;
 
-	if (i->watcher)
+	if (watcher)
 	{
-		maildirwatch_free(i->watcher);
-		i->watcher=NULL;
+		maildirwatch_free(watcher);
 	}
 
-	if (i->msgs)
+	if (msgs)
 	{
-		for (n=0; n<i->nmessages; n++)
+		for (n=0; n<nmessages; n++)
 		{
-			if (i->msgs[n].filename)
-				free(i->msgs[n].filename);
+			if (msgs[n].filename)
+				free(msgs[n].filename);
 
-			if (i->msgs[n].keywordMsg)
-				libmail_kwmDestroy(i->msgs[n].keywordMsg);
+			if (msgs[n].keywordMsg)
+				libmail_kwmDestroy(msgs[n].keywordMsg);
 
 		}
-		free(i->msgs);
-		i->msgs=0;
+		free(msgs);
 	}
 
-	if (i->keywordList)
+	if (keywordList)
 	{
-		if (libmail_kwhCheck(i->keywordList) < 0)
+		if (libmail_kwhCheck(keywordList) < 0)
 			write_error_exit("INTERNAL ERROR: Keyword hashtable "
 					 "memory corruption.");
 
-		free(i->keywordList);
-		i->keywordList=NULL;
+		free(keywordList);
 	}
 }
 
@@ -842,7 +862,7 @@ int imapscan_updateKeywords(const char *filename,
 	return rc;
 }
 
-static unsigned long hashFilename(const char *fn, struct imapscaninfo *info)
+static unsigned long hashFilename(const char *fn, imapscaninfo *info)
 {
 	unsigned long hashBucket=0;
 
@@ -859,7 +879,7 @@ static unsigned long hashFilename(const char *fn, struct imapscaninfo *info)
 struct imapscanReadKeywordInfo {
 	struct maildir_kwReadInfo ri;
 
-	struct imapscaninfo *messages;
+	imapscaninfo *messages;
 	int hashedFilenames;
 };
 
@@ -874,7 +894,7 @@ static struct libmail_kwMessage **findMessageByFilename(const char *filename,
 	size_t l;
 	struct imapscanmessageinfo *i;
 
-	struct imapscaninfo *scaninfo=info->messages;
+	imapscaninfo *scaninfo=info->messages;
 
 	if (!info->hashedFilenames)
 	{
@@ -999,7 +1019,7 @@ static void initri(struct imapscanReadKeywordInfo *rki)
 }
 
 void imapscan_readKeywords(const char *maildir,
-			   struct imapscaninfo *scaninfo)
+			   imapscaninfo *scaninfo)
 {
 	struct imapscanReadKeywordInfo rki;
 
@@ -1025,7 +1045,7 @@ void imapscan_readKeywords(const char *maildir,
 	} while (rki.ri.tryagain);
 }
 
-int imapscan_restoreKeywordSnapshot(FILE *fp, struct imapscaninfo *scaninfo)
+int imapscan_restoreKeywordSnapshot(FILE *fp, imapscaninfo *scaninfo)
 {
 	struct imapscanReadKeywordInfo rki;
 
@@ -1035,7 +1055,7 @@ int imapscan_restoreKeywordSnapshot(FILE *fp, struct imapscaninfo *scaninfo)
 	return maildir_kwImport(fp, &rki.ri);
 }
 
-int imapscan_saveKeywordSnapshot(FILE *fp, struct imapscaninfo *scaninfo)
+int imapscan_saveKeywordSnapshot(FILE *fp, imapscaninfo *scaninfo)
 {
 	struct imapscanReadKeywordInfo rki;
 

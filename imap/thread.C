@@ -31,7 +31,7 @@ static void thread_ref_callback(contentsearch &cs,
 				bool isuid, unsigned long i,
 				imap_refmsgtable *reftable);
 
-extern struct imapscaninfo current_maildir_info;
+extern imapscaninfo current_maildir_info;
 
 
 struct os_threadinfo {

@@ -29,7 +29,7 @@
 
 
 extern time_t rfc822_parsedt(const char *);
-extern struct imapscaninfo current_maildir_info;
+extern imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 
 extern bool get_flagname(std::string s, struct imapflags *flags);

@@ -75,7 +75,7 @@ extern "C" int keywords();
 */
 
 extern char *current_mailbox;
-extern struct imapscaninfo current_maildir_info;
+extern imapscaninfo current_maildir_info;
 extern char *readline(unsigned i, FILE *);
 
 static char *snapshot_dir; /* Directory with snapshots */
@@ -153,7 +153,7 @@ static void delete_snapshot(struct snapshot_list *snn)
 
 static int restore_snapshot2(const char *snapshot_dir,
 			     FILE *fp,
-			     struct imapscaninfo *new_index);
+			     imapscaninfo *new_index);
 
 /*
 ** Part 1: process the first header line of a snapshot file, and allocate a
@@ -167,7 +167,7 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 	unsigned long s_nmessages, s_uidv, s_nextuid;
 	char *p;
 	char *buf;
-	struct imapscaninfo new_index;
+	imapscaninfo new_index;
 
 	if ((buf=readline(0, snapshot_fp)) == NULL)
 		return 0;
@@ -197,8 +197,6 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 		strcat(strcat(strcpy(*last_snapshot, dir), "/"), p);
 	}
 
-	imapscan_init(&new_index);
-
 	if (s_nmessages && (new_index.msgs=(struct imapscanmessageinfo *)
 			    malloc(s_nmessages * sizeof(*new_index.msgs)))
 	    == 0)
@@ -214,11 +212,9 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 
 	if (restore_snapshot2(dir, snapshot_fp, &new_index))
 	{
-		imapscan_copy(&current_maildir_info, &new_index);
-		imapscan_free(&new_index);
+		current_maildir_info=std::move(new_index);
 		return 1;
 	}
-	imapscan_free(&new_index);
 
 	if (*last_snapshot)
 	{
@@ -236,7 +232,7 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 
 static int restore_snapshot2(const char *snapshot_dir,
 			     FILE *fp,
-			     struct imapscaninfo *new_index)
+			     imapscaninfo *new_index)
 {
 	unsigned long i;
 	char *p=(char *)malloc(strlen(snapshot_dir) + sizeof("/../" IMAPDB));

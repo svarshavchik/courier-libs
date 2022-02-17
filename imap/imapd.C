@@ -142,7 +142,7 @@ FILE *debugfile=0;
 char *imapscanpath;
 #endif
 
-struct imapscaninfo current_maildir_info;
+imapscaninfo current_maildir_info;
 int current_mailbox_ro;
 char *current_mailbox_acl;
 
@@ -190,7 +190,7 @@ static int uselocks()
 	return 1;
 }
 
-bool imapmaildirlock(struct imapscaninfo *scaninfo,
+bool imapmaildirlock(imapscaninfo *scaninfo,
 		     const std::string &maildir,
 		     const std::function< bool() >&callback)
 {
@@ -945,11 +945,9 @@ static int store_mailbox(const char *tag, const char *mailbox,
 	}
 
 	{
-		struct imapscaninfo new_maildir_info;
+		imapscaninfo new_maildir_info;
 		struct uidplus_info new_uidplus_info;
 		int rc;
-
-		imapscan_init(&new_maildir_info);
 
 		memset(&new_uidplus_info, 0, sizeof(new_uidplus_info));
 
@@ -1001,7 +999,6 @@ static int store_mailbox(const char *tag, const char *mailbox,
 
 		*new_uidv=new_maildir_info.uidv;
 		*new_uid=new_uidplus_info.uid;
-		imapscan_free(&new_maildir_info);
 	}
 
 	free(p);
@@ -1291,7 +1288,7 @@ static int noopAddKeyword(struct libmail_keywordEntry *ke, void *vp)
 
 void doNoop(int real_noop)
 {
-	struct imapscaninfo new_maildir_info;
+	imapscaninfo new_maildir_info;
 	unsigned long i, j;
 	int	needstats=0;
 	unsigned long expunged;
@@ -1305,8 +1302,6 @@ void doNoop(int real_noop)
 	int takeSnapshot=1;
 #endif
 	struct noopKeywordUpdateInfo kui;
-
-	imapscan_init(&new_maildir_info);
 
 	if (imapscan_maildir(&new_maildir_info, current_mailbox, 0,
 			     current_mailbox_ro, NULL))
@@ -1487,8 +1482,7 @@ void doNoop(int real_noop)
 	libmail_kwEnumerate(current_maildir_info.keywordList,
 			 noopAddKeyword, &kui);
 
-	imapscan_copy(&current_maildir_info, &new_maildir_info);
-	imapscan_free(&new_maildir_info);
+	current_maildir_info=std::move(new_maildir_info);
 
 #if SMAP
 	if (takeSnapshot)
@@ -2325,16 +2319,13 @@ static int uidplus_fill(const char *mailbox,
 			struct uidplus_info *uidplus_list,
 			unsigned long *uidv)
 {
-	struct imapscaninfo scan_info;
-
-	imapscan_init(&scan_info);
+	imapscaninfo scan_info;
 
 	if (imapscan_maildir(&scan_info, mailbox, 0, 0, uidplus_list))
 		return -1;
 
 	*uidv=scan_info.uidv;
 
-	imapscan_free(&scan_info);
 	return 0;
 }
 
@@ -2423,15 +2414,13 @@ static void uidplus_abort(struct uidplus_info *uidplus_list)
 
 static void rename_callback(const char *old_path, const char *new_path)
 {
-	struct imapscaninfo minfo;
+	imapscaninfo minfo;
 
 	std::string p=new_path;
 
 	p += "/" IMAPDB;
 	unlink(p.c_str());
-	imapscan_init(&minfo);
 	imapscan_maildir(&minfo, new_path, 0,0, NULL);
-	imapscan_free(&minfo);
 }
 
 static int broken_uidvs()
@@ -3179,12 +3168,9 @@ static maildir::info acl_settable_folder(const std::string &mailbox)
 bool acl_lock(const std::string &maildir,
 	      const std::function< bool() >&callback)
 {
-	struct imapscaninfo ii;
+	imapscaninfo ii;
 
-	imapscan_init(&ii);
-	auto rc=imapmaildirlock(&ii, maildir, callback);
-	imapscan_free(&ii);
-	return rc;
+	return imapmaildirlock(&ii, maildir, callback);
 }
 
 static bool acl_update(maildir::aclt_list &aclt_list,
@@ -4272,7 +4258,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			get_uidvalidity=0,
 			get_unseen=0;
 
-		struct imapscaninfo other_info, *loaded_infoptr,
+		imapscaninfo other_info,
 			*infoptr;
 		const char *p;
 		std::string orig_mailbox;
@@ -4346,15 +4332,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (current_mailbox && new_mailbox == current_mailbox)
 		{
-			loaded_infoptr=0;
 			infoptr= &current_maildir_info;
 		}
 		else
 		{
-			loaded_infoptr= &other_info;
-			infoptr=loaded_infoptr;
-
-			imapscan_init(loaded_infoptr);
+			infoptr=&other_info;
 
 			if (imapscan_maildir(infoptr,
 					     new_mailbox.c_str(), 1, 1, NULL))
@@ -4424,8 +4406,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			writen(n);
 		}
 		writes(")\r\n");
-		if (loaded_infoptr)
-			imapscan_free(loaded_infoptr);
 		writes(tag);
 		writes(" OK STATUS Completed.\r\n");
 		return (0);
@@ -4437,7 +4417,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		char	*p;
 		int	isdummy;
-		struct imapscaninfo minfo;
+		imapscaninfo minfo;
 
 		curtoken=nexttoken_nouc();
 
@@ -4579,9 +4559,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				      ACL_CREATE);
 		}
 
-		imapscan_init(&minfo);
 		imapscan_maildir(&minfo, mailbox.c_str(), 0,0, NULL);
-		imapscan_free(&minfo);
 		return (0);
 	}
 
@@ -4817,8 +4795,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (current_mailbox)
 		{
 			free(current_mailbox);
-			imapscan_free(&current_maildir_info);
-			imapscan_init(&current_maildir_info);
+			current_maildir_info=imapscaninfo{};
 			current_mailbox=0;
 		}
 
@@ -5439,8 +5416,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		    && strchr(current_mailbox_acl, ACL_EXPUNGE[0]))
 			expunge();
 		free(current_mailbox);
-		imapscan_free(&current_maildir_info);
-		imapscan_init(&current_maildir_info);
+		current_maildir_info=imapscaninfo{};
 		current_mailbox=0;
 		writes(tag);
 		writes(" OK mailbox closed.\r\n");
@@ -6538,7 +6514,6 @@ int main(int argc, char **argv)
 		writes("* PREAUTH Ready.\r\n");
 	writeflush();
 	chkdisabled(ip, port);
-	imapscan_init(&current_maildir_info);
 	mainloop();
 	fetch_free_cached();
 	bye();

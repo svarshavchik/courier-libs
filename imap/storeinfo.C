@@ -55,7 +55,7 @@ extern FILE *maildir_mkfilename(const char *, struct imapflags *,
 extern int acl_flags_adjust(const char *access_rights,
 			    struct imapflags *flags);
 
-extern struct imapscaninfo current_maildir_info;
+extern imapscaninfo current_maildir_info;
 extern char *current_mailbox;
 extern char *current_mailbox_acl;
 extern "C" int fastkeywords();

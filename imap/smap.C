@@ -101,7 +101,7 @@ extern int doAddRemoveKeywords(unsigned long, int, addRemoveKeywordInfo &arki);
 
 void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
-		    struct imapscaninfo *i, unsigned long msgnum,
+		    imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
 extern void set_time(const char *tmpname, time_t timestamp);
 extern int imapenhancedidle(void);
@@ -120,7 +120,7 @@ extern void do_expunge(unsigned long expunge_start,
 extern char *current_mailbox, *current_mailbox_acl;
 static int current_mailbox_shared;
 
-extern struct imapscaninfo current_maildir_info;
+extern imapscaninfo current_maildir_info;
 void get_message_flags(struct imapscanmessageinfo *,
 		       char *, struct imapflags *);
 void fetchflags(unsigned long);
@@ -3025,7 +3025,6 @@ void smap()
 	char rights_buf[40];
 
 	enabled_utf8=1;
-	imapscan_init(&current_maildir_info);
 	memset(&add_flags, 0, sizeof(add_flags));
 
 #define GETFOLDER(acl) ( strcpy(rights_buf, (acl)), \
@@ -3279,6 +3278,8 @@ void smap()
 							n=0;
 							perror("maildir_kwSave");
 						}
+						libmail_kwmDestroy(addKeywords);
+						addKeywords=NULL;
 					}
 
 					argvec=NULL;
@@ -3550,7 +3551,7 @@ void smap()
 
 		if (strcmp(p, "STATUS") == 0)
 		{
-			struct imapscaninfo other_info, *loaded_infoptr,
+			imapscaninfo loaded_info,
 				*infoptr;
 			unsigned long n, i;
 
@@ -3574,15 +3575,11 @@ void smap()
 
 			if (current_mailbox && t == current_mailbox)
 			{
-				loaded_infoptr=0;
 				infoptr= &current_maildir_info;
 			}
 			else
 			{
-				loaded_infoptr= &other_info;
-				infoptr=loaded_infoptr;
-
-				imapscan_init(loaded_infoptr);
+				infoptr=&loaded_info;
 
 				if (imapscan_maildir(infoptr,
 						     t.c_str(), 1, 1, NULL))
@@ -3612,8 +3609,6 @@ void smap()
 			writes(" UNSEEN=");
 			writen(n);
 			writes("\n+OK Folder status retrieved\n");
-			if (loaded_infoptr)
-				imapscan_free(loaded_infoptr);
 			continue;
 		}
 
@@ -3885,8 +3880,7 @@ void smap()
 			if (current_mailbox)
 			{
 				free(current_mailbox);
-				imapscan_free(&current_maildir_info);
-				imapscan_init(&current_maildir_info);
+				current_maildir_info=imapscaninfo{};
 				current_mailbox=0;
 			}
 			if (current_mailbox_acl)
@@ -3984,8 +3978,7 @@ void smap()
 			if (current_mailbox)
 			{
 				free(current_mailbox);
-				imapscan_free(&current_maildir_info);
-				imapscan_init(&current_maildir_info);
+				current_maildir_info=imapscaninfo{};
 				current_mailbox=0;
 			}
 			writes("+OK Folder closed\n");

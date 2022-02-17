@@ -33,17 +33,32 @@ struct imapscanmessageinfo {
 ** Stuff we want to know about the maildir.
 */
 
-struct imapscaninfo {
-	unsigned long nmessages;	/* # of messages */
-	unsigned long uidv;		/* See RFC 2060 */
-	unsigned long left_unseen;
-	unsigned long nextuid;
+struct imapscaninfo_base {
+	unsigned long nmessages=0;	/* # of messages */
+	unsigned long uidv=0;		/* See RFC 2060 */
+	unsigned long left_unseen=0;
+	unsigned long nextuid=0;
 
 	struct libmail_kwHashtable *keywordList; /* All defined keywords */
 
-	struct imapscanmessageinfo *msgs;
-	struct maildirwatch *watcher;
-	} ;
+	struct imapscanmessageinfo *msgs=nullptr;
+	struct maildirwatch *watcher=nullptr;
+
+	imapscaninfo_base();
+	~imapscaninfo_base();
+};
+
+struct imapscaninfo : imapscaninfo_base {
+
+	imapscaninfo()=default;
+
+	imapscaninfo &operator=(imapscaninfo &&);
+
+	imapscaninfo(const imapscaninfo &)=delete;
+	imapscaninfo &operator=(const imapscaninfo &)=delete;
+
+	imapscaninfo(imapscaninfo &&);
+} ;
 
 /*
 ** In imapscan_maildir, move the following msgs to cur.
@@ -64,27 +79,22 @@ struct uidplus_info {
 } ;
 
 
-void imapscan_init(struct imapscaninfo *p);
-void imapscan_copy(struct imapscaninfo *a,
-		   struct imapscaninfo *b);
-
-int imapscan_maildir(struct imapscaninfo *, const std::string &, int, int,
+int imapscan_maildir(imapscaninfo *, const std::string &, int, int,
 		     struct uidplus_info *);
-void imapscan_free(struct imapscaninfo *);
 
-int imapscan_openfile(const char *, struct imapscaninfo *, unsigned);
+int imapscan_openfile(const char *, imapscaninfo *, unsigned);
 
 
-struct libmail_kwMessage *imapscan_createKeyword(struct imapscaninfo *,
+struct libmail_kwMessage *imapscan_createKeyword(imapscaninfo *,
 					      unsigned long n);
 
 int imapscan_updateKeywords(const char *filename,
 			    struct libmail_kwMessage *newKeywords);
 
-int imapscan_restoreKeywordSnapshot(FILE *, struct imapscaninfo *);
-int imapscan_saveKeywordSnapshot(FILE *fp, struct imapscaninfo *);
+int imapscan_restoreKeywordSnapshot(FILE *, imapscaninfo *);
+int imapscan_saveKeywordSnapshot(FILE *fp, imapscaninfo *);
 
-int imapmaildirlock(struct imapscaninfo *scaninfo,
+int imapmaildirlock(imapscaninfo *scaninfo,
 		    const char *maildir,
 		    int (*func)(void *),
 		    void *void_arg);
