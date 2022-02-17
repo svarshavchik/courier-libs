@@ -63,12 +63,6 @@
 
 extern "C" void maildir_shared_fparse(char *, char **, char **);
 
-int maildir_shared_subscribe(const char *maildir, const char *folder)
-{
-	return maildir::shared_subscribe(maildir ? maildir:"", folder)
-		? 0:-1;
-}
-
 namespace {
 
 	// Helper class used by shared_subscribe, which creates a shared
@@ -222,12 +216,6 @@ bool maildir::shared_subscribe(const std::string &maildir,
 	return false;
 }
 
-int maildir_shared_unsubscribe(const char *maildir, const char *folder)
-{
-	return maildir::shared_unsubscribe(maildir ? maildir:"", folder)
-		? 0:-1;
-}
-
 bool maildir::shared_unsubscribe(const std::string &maildir,
 				 const std::string &folder)
 {
@@ -251,11 +239,6 @@ bool maildir::shared_unsubscribe(const std::string &maildir,
 }
 
 /*                    LET'S SYNC IT                  */
-
-void maildir_shared_sync(const char *dir)
-{
-	maildir::shared_sync(dir);
-}
 
 /* Step 1 - safely create a temporary database */
 
@@ -601,22 +584,12 @@ void maildir::shared_sync(const std::string &dir)
 	unlink(dbname.c_str());
 }
 
-int maildir_sharedisro(const char *maildir)
-{
-	return maildir::shared_isro(maildir) ? 0:-1;
-}
-
 bool maildir::shared_isro(const std::string &maildir)
 {
 	if (access((maildir + "/shared/cur").c_str(), W_OK) == 0)
 		return true;
 
 	return false;
-}
-
-void maildir_unlinksharedmsg(const char *filename)
-{
-	maildir::unlinksharedmsg(filename);
 }
 
 void maildir::unlinksharedmsg(const std::string &filename)
@@ -660,34 +633,238 @@ void maildir::unlinksharedmsg(const std::string &filename)
 	unlink(filename.c_str());
 }
 
+static void list_sharable2(const std::string &, const std::string &,
+			   const std::function<void (const std::string &)> &);
+
+void maildir::list_sharable(const std::string &maildir,
+			    const std::function<void (const std::string &)> &cb)
+{
+	int pass;
+
+	for (pass=0; pass<2; pass++)
+	{
+		std::ifstream fp{
+			pass ? shared_filename(maildir.empty() ? ".":maildir)
+			: MAILDIRSHAREDRC
+		};
+
+		if (!fp)	continue;
+
+		std::string line;
+
+		while (std::getline(fp, line))
+		{
+			if (line.empty())
+				continue;
+
+			char *b=&line[0];
+			char *e=b+line.size();
+
+			char *nameb, *namee, *dirb, *dire;
+
+			shared_fparse(b, e, nameb, namee,
+				      dirb, dire);
+
+			if (nameb != namee)
+				list_sharable2({nameb, namee},
+					       {dirb, dire}, cb);
+		}
+	}
+}
+
+static void list_sharable2(const std::string &pfix,
+			   const std::string &path,
+			   const std::function<void (const std::string &)> &cb)
+{
+	DIR	*dirp;
+	struct	dirent *de;
+	struct	stat	stat_buf;
+
+	dirp=opendir(path.c_str());
+	while (dirp && (de=readdir(dirp)) != 0)
+	{
+		if (de->d_name[0] != '.')	continue;
+		if (strcmp(de->d_name, ".") == 0 ||
+			strcmp(de->d_name, "..") == 0)	continue;
+
+		std::string z;
+
+		z.reserve(path.size()+strlen(de->d_name)+12);
+
+		z=path;
+
+		z += "/";
+		z += de->d_name;
+		z += "/cur/.";
+
+		if (stat(z.c_str(), &stat_buf))
+		{
+			continue;
+		}
+
+		z.reserve(pfix.size()+strlen(de->d_name)+1);
+
+		z=pfix;
+		z += de->d_name;
+		cb(z);
+	}
+	if (dirp)	closedir(dirp);
+}
+
+void maildir::list_shared(const std::string &maildir,
+			  const std::function<void (const std::string &)> &func)
+{
+	DIR	*dirp;
+	struct	dirent *de;
+
+	std::string sh;
+
+	sh.reserve(maildir.size()+sizeof("/" SHAREDSUBDIR));
+
+	sh=maildir;
+
+	if (sh.empty())
+		sh=".";
+
+	sh += "/" SHAREDSUBDIR;
+
+	dirp=opendir(sh.c_str());
+
+	while (dirp && (de=readdir(dirp)) != 0)
+	{
+		DIR	*dirp2;
+		struct	dirent *de2;
+
+		if (de->d_name[0] == '.')	continue;
+
+		std::string z;
+
+		z.reserve(sh.size()+strlen(de->d_name)+1);
+
+		z=sh;
+		z+="/";
+		z+=de->d_name;
+		dirp2=opendir(z.c_str());
+
+		while (dirp2 && (de2=readdir(dirp2)) != 0)
+		{
+
+			if (de2->d_name[0] == '.')	continue;
+
+			std::string s;
+
+			s.reserve(strlen(de->d_name)+strlen(de2->d_name)+1);
+
+			s=de->d_name;
+			s+=".";
+			s+=de2->d_name;
+			func(s);
+		}
+		if (dirp2)	closedir(dirp2);
+	}
+	if (dirp)	closedir(dirp);
+}
 
 #else
 
 /* We cannot implement sharing */
 
-int maildir_shared_subscribe(const char *maildir, const char *folder)
+bool maildir::shared_subscribe(const std::string &maildir,
+			       const std::string &folder)
 {
 	errno=EINVAL;
-	return (-1);
+	return false;
+}
+
+bool maildir::shared_unsubscribe(const std::string &maildir,
+				 const std::string &folder)
+{
+	errno=EINVAL;
+	return false;
+}
+
+void maildir::shared_sync(const std::string &dir)
+{
+}
+
+bool maildir::shared_isro(const std::string &maildir)
+{
+	errno=EINVAL;
+	return false;
+}
+
+void maildir::unlinksharedmsg(const std::string &filename)
+{
+}
+
+/* We cannot implement sharing */
+
+void maildir::list_sharable(const std::string &maildir,
+			    const std::function<void (const std::string &)> &)
+{
+}
+
+void maildir::list_shared(const std::string &maildir,
+			  const std::function<void (const std::string &)> &)
+{
+}
+
+#endif
+
+int maildir_shared_subscribe(const char *maildir, const char *folder)
+{
+	return maildir::shared_subscribe(maildir ? maildir:"", folder)
+		? 0:-1;
 }
 
 int maildir_shared_unsubscribe(const char *maildir, const char *folder)
 {
-	errno=EINVAL;
-	return (-1);
+	return maildir::shared_unsubscribe(maildir ? maildir:"", folder)
+		? 0:-1;
 }
 
-void maildir_shared_sync(const char *maildir)
+void maildir_shared_sync(const char *dir)
 {
+	maildir::shared_sync(dir);
 }
 
 int maildir_sharedisro(const char *maildir)
 {
-	return (-1);
+	return maildir::shared_isro(maildir) ? 0:-1;
 }
 
-int maildir_unlinksharedmsg(const char *filename)
+void maildir_unlinksharedmsg(const char *filename)
 {
-	return (-1);
+	maildir::unlinksharedmsg(filename);
 }
-#endif
+
+void maildir_list_sharable(const char *maildir,
+			   void (*func)(const char *, void *),
+			   void *voidp)
+{
+	if (!maildir)
+		maildir="";
+
+	maildir::list_sharable(maildir,
+			       [&]
+			       (const std::string &s)
+			       {
+				       (*func)(s.c_str(), voidp);
+			       });
+}
+
+
+void maildir_list_shared(const char *maildir,
+	void (*func)(const char *, void *),
+	void *voidp)
+{
+	if (!maildir)
+		maildir="";
+
+	maildir::list_shared(maildir,
+			     [&]
+			     (const std::string &s)
+			     {
+				     (*func)(s.c_str(), voidp);
+			     });
+}
