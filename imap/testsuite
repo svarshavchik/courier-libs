@@ -1225,4 +1225,27 @@ V010 THREAD ORDEREDSUBJECT US-ASCII ALL
 EOF
 
 
-rm -rf confmdtest
+rm -rf confmdtest confmdtest2
+
+../maildir/maildirmake confmdtest2
+../maildir/maildirmake -f a confmdtest2
+
+mkdir confmdtest2/.a/cur/msg1:2,S
+
+../maildir/maildirmake confmdtest
+
+echo "test `pwd`/confmdtest2" >confmdtest/shared-maildirs
+
+env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
+W001 SUBSCRIBE shared.test.a
+W002 SELECT shared.test.a
+W003 STORE 1 +FLAGS (\Deleted)
+W004 LOGOUT
+EOF
+ls confmdtest/shared-folders/test/a/cur 2>&1
+env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
+W005 SELECT shared.test.a
+W006 EXPUNGE
+EOF
+ls confmdtest/shared-folders/test/a/cur 2>&1
+rm -rf confmdtest confmdtest2

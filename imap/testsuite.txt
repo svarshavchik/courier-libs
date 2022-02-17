@@ -1812,3 +1812,28 @@
 001514 V010 OK [READ-WRITE] Ok
 001515 * THREAD (2 1)
 001516 V010 OK THREAD done.
+001517 * PREAUTH Ready.
+001518 W001 OK SUBSCRIBE completed.
+001519 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001520 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001521 * 1 EXISTS
+001522 * 1 RECENT
+001523 * OK [UIDVALIDITY] Ok
+001524 * OK [MYRIGHTS "dilrsw"] ACL
+001525 W002 OK [READ-WRITE] Ok
+001526 * 1 FETCH (FLAGS (\Deleted \Recent))
+001527 W003 OK STORE completed.
+001528 * BYE Courier-IMAP server shutting down
+001529 W004 OK LOGOUT completed
+001530 msg1:2,T
+001531 * PREAUTH Ready.
+001532 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001533 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001534 * 1 EXISTS
+001535 * 0 RECENT
+001536 * OK [UIDVALIDITY] Ok
+001537 * OK [MYRIGHTS "dilrsw"] ACL
+001538 W005 OK [READ-WRITE] Ok
+001539 * 1 FETCH (FLAGS ())
+001540 W006 OK EXPUNGE completed
+001541 msg1:2,
