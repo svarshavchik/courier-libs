@@ -563,6 +563,7 @@ void maildir::shared_sync(const std::string &dir)
 		     stat2.st_mtime < stat1.st_mtime)
 			return;
 	}
+
 	if ((fd=maildir::safeopen(shared_update_name, O_RDWR|O_CREAT, 0600))
 	    >= 0)
 	{
@@ -602,32 +603,31 @@ void maildir::shared_sync(const std::string &dir)
 
 int maildir_sharedisro(const char *maildir)
 {
-	char	*p=(char *)malloc(strlen(maildir)+sizeof("/shared/cur"));
-
-	if (!p)
-	{
-		perror("malloc");
-		return (-1);
-	}
-	strcat(strcpy(p, maildir), "/shared/cur");
-
-	if (access(p, W_OK) == 0)
-	{
-		free(p);
-		return (0);
-	}
-	free(p);
-	return (1);
+	return maildir::shared_isro(maildir) ? 0:-1;
 }
 
-int maildir_unlinksharedmsg(const char *filename)
+bool maildir::shared_isro(const std::string &maildir)
 {
-char	*buf=maildir_getlink(filename);
+	if (access((maildir + "/shared/cur").c_str(), W_OK) == 0)
+		return true;
 
-	if (buf)
+	return false;
+}
+
+void maildir_unlinksharedmsg(const char *filename)
+{
+	maildir::unlinksharedmsg(filename);
+}
+
+void maildir::unlinksharedmsg(const std::string &filename)
+{
+	std::string buf=getlink(filename);
+
+	if (!buf.empty())
 	{
 		struct stat stat_buf;
-		int rc=unlink(buf);
+
+		int rc=unlink(buf.c_str());
 
 		/*
 		** If we FAILED to unlink the real message in the real
@@ -637,32 +637,27 @@ char	*buf=maildir_getlink(filename);
 		** this message.
 		*/
 
-		if (rc && stat(buf, &stat_buf) == 0)
+		if (rc && stat(buf.c_str(), &stat_buf) == 0)
 		{
-			char *cpy=strdup(filename);
+			std::string cpy=filename;
 
-			if (cpy)
+			size_t p=cpy.rfind(MDIRSEP[0]);
+
+			if (p != cpy.npos && cpy.find('/', p) == cpy.npos
+			    && cpy.size()-p > 2
+			    && cpy[p+1] == '2' && cpy[p+2] == ','
+			    && (p=cpy.find('T', p)) != cpy.npos)
 			{
-				char *p=strrchr(cpy, MDIRSEP[0]);
+				cpy.erase(cpy.begin()+p);
 
-				if (p && strchr(p, '/') == 0 &&
-				    strncmp(p, MDIRSEP "2,", 3) == 0 &&
-				    (p=strchr(p, 'T')) != 0)
-				{
-					while ((*p=p[1]) != 0)
-						++p;
-					rename(filename, cpy);
-				}
-				free(cpy);
+				rename(filename.c_str(), cpy.c_str());
+				fclose(fopen("/tmp/zz", "w"));
+
 			}
-
-			free(buf);
-			return (0);
+			return;
 		}
-		free(buf);
 	}
-	unlink(filename);
-	return (0);
+	unlink(filename.c_str());
 }
 
 
@@ -681,14 +676,6 @@ int maildir_shared_unsubscribe(const char *maildir, const char *folder)
 	errno=EINVAL;
 	return (-1);
 }
-
-#if 0
-char *maildir_shareddir(const char *maildir, const char *sharedname)
-{
-	errno=EINVAL;
-	return (0);
-}
-#endif
 
 void maildir_shared_sync(const char *maildir)
 {

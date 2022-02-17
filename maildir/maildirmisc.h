@@ -202,7 +202,7 @@ void maildir_shared_sync(const char *);		/* maildir */
 int maildir_sharedisro(const char *);		/* maildir */
 	/* maildir is a shared read-only folder */
 
-int maildir_unlinksharedmsg(const char *);	/* filename */
+void maildir_unlinksharedmsg(const char *);	/* filename */
 	/* Remove a message from a shared folder */
 
 /* Internal function that reads a symlink */
@@ -257,6 +257,8 @@ namespace maildir {
 	bool shared_unsubscribe(const std::string &,
 				const std::string &);
 	void shared_sync(const std::string &);
+	bool shared_isro(const std::string &);
+	void unlinksharedmsg(const std::string &);
 }
 #endif
 
