@@ -724,6 +724,11 @@ struct hashtable_base {
 	}
 };
 
+void read_keywords_from_file(
+	std::istream &i,
+	const std::function<void (const std::string &,
+				  mail::keywords::list &keywords)> &set);
+
 // A reference-counted handle for a keywords/messages hashtable.
 
 template<typename T>

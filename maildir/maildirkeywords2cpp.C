@@ -213,6 +213,63 @@ static int maildir_kwSaveCommon(const char *maildir,
 	return 0;
 }
 
+void mail::keywords::read_keywords_from_file(
+	std::istream &i,
+	const std::function<void (const std::string &,
+				  mail::keywords::list &keywords)> &set)
+{
+	// The first part of the keyword file, the index.
+
+	std::vector<std::string> keyword_index;
+
+	std::string s;
+
+	// If the file doesn't exist we'll do nothing here, and hurry up
+	// to the grand finale.
+
+	// Read the saved list of keywords.
+
+	while (std::getline(i, s))
+	{
+		if (s.empty())
+			break;
+
+		keyword_index.push_back(s);
+	}
+
+	while (std::getline(i, s))
+	{
+		auto e=s.end();
+		auto b=std::find(s.begin(), e, MDIRSEP[0]);
+
+		// Read the saved message and it keywords.
+
+		mail::keywords::list keywords;
+
+		auto p=b;
+
+		while (b != e)
+		{
+			++b;
+
+			if (*b < '0' || *b > '9')
+				continue;
+
+			size_t n=0;
+
+			while (b != e && *b >= '0' && *b <= '9')
+			{
+				n = n * 10 + *b - '0';
+
+				++b;
+			}
+			if (n < keyword_index.size())
+				keywords.insert(keyword_index[n]);
+		}
+		set(std::string{s.begin(), p}, keywords);
+	}
+}
+
 namespace {
 #if 0
 }
@@ -514,75 +571,33 @@ static void read_keyword_list(
 	bool &save_required
 )
 {
-	// The first part of the keyword file, the index.
-
-	std::vector<std::string> keyword_index;
-
-	std::string s;
-
-	// If the file doesn't exist we'll do nothing here, and hurry up
-	// to the grand finale.
-
-	// Read the saved list of keywords.
-
-	while (std::getline(i, s))
-	{
-		if (s.empty())
-			break;
-
-		keyword_index.push_back(s);
-	}
-
-	while (std::getline(i, s))
-	{
-		auto e=s.end();
-		auto b=std::find(s.begin(), e, MDIRSEP[0]);
-
-		// Read the saved message and it keywords.
-
-		mail::keywords::list keywords;
-
-		auto p=b;
-
-		while (b != e)
+	mail::keywords::read_keywords_from_file(
+		i,
+		[&]
+		(const std::string &name,
+		 mail::keywords::list &keywords)
 		{
-			++b;
-
-			if (*b < '0' || *b > '9')
-				continue;
-
-			size_t n=0;
-
-			while (b != e && *b >= '0' && *b <= '9')
+			if (keywords.empty())
 			{
-				n = n * 10 + *b - '0';
-
-				++b;
+				// Shouldn't happen, zap it out.
+				save_required=true;
+				return;
 			}
-			if (n < keyword_index.size())
-				keywords.insert(keyword_index[n]);
+
+			// Did we already load an updated keyword list for
+			// this one?
+
+			auto iter=updates.find(name);
+
+			if (iter != updates.end())
+				return;
+
+			if (!set(name, keywords))
+				save_required=true;
 		}
-
-		if (keywords.empty())
-		{
-			// Shouldn't happen, zap it out.
-			save_required=true;
-			continue;
-		}
-
-		// Did we already load an updated keyword list for this one?
-
-		std::string name{s.begin(), p};
-
-		auto iter=updates.find(name);
-
-		if (iter != updates.end())
-			continue;
-
-		if (!set(name, keywords))
-			save_required=true;
-	}
+	);
 }
+
 template<typename T>
 static void cleanup(T &&d,
 		    std::unordered_map<std::string, messagestatus> &statuses,
