@@ -41,3 +41,8 @@ int	yes;
 	}
 	return (-1);
 }
+
+bool maildir::parsequota(const std::string &s, unsigned long &n)
+{
+	return maildir_parsequota(s.c_str(), &n) ? false:true;
+}

@@ -144,6 +144,20 @@ void maildir_deliver_quota_warning(const char *dir, const int percent,
 
 #ifdef  __cplusplus
 }
+
+#include <string>
+
+namespace maildir {
+#if 0
+}
+#endif
+
+bool parsequota(const std::string &, unsigned long &);
+
+#if 0
+{
+#endif
+}
 #endif
 
 #endif
