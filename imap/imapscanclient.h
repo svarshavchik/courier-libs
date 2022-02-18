@@ -5,6 +5,7 @@
 #include "maildir/maildirkeywords.h"
 
 #include <vector>
+#include <string>
 
 /*
 ** Copyright 1998 - 2022 S. Varshavchik.
@@ -17,7 +18,7 @@
 
 struct imapscanmessageinfo {
 	unsigned long uid=0;	/* See RFC 2060 */
-	char *filename=nullptr;
+	std::string filename;
 	struct libmail_kwMessage *keywordMsg=nullptr; /* If not NULL - keywords */
 	char recentflag=0;
 	char changedflags=0;	/* Set by imapscan_open */
@@ -59,6 +60,8 @@ struct imapscaninfo : imapscaninfo_base {
 	imapscaninfo &operator=(const imapscaninfo &)=delete;
 
 	imapscaninfo(imapscaninfo &&) noexcept;
+
+	unsigned long unseen() const;
 } ;
 
 /*
@@ -83,13 +86,13 @@ struct uidplus_info {
 int imapscan_maildir(imapscaninfo *, const std::string &, int, int,
 		     struct uidplus_info *);
 
-int imapscan_openfile(const char *, imapscaninfo *, unsigned);
+int imapscan_openfile(const std::string &, imapscaninfo *, unsigned);
 
 
 struct libmail_kwMessage *imapscan_createKeyword(imapscaninfo *,
 					      unsigned long n);
 
-int imapscan_updateKeywords(const char *filename,
+int imapscan_updateKeywords(const std::string &filename,
 			    struct libmail_kwMessage *newKeywords);
 
 int imapscan_restoreKeywordSnapshot(FILE *, imapscaninfo *);

@@ -86,7 +86,7 @@ extern int smapflag;
 #endif
 
 extern int keywords();
-extern void set_time(const char *tmpname, time_t timestamp);
+extern void set_time(const std::string &tmpname, time_t timestamp);
 
 static void imapscan_readKeywords(const char *maildir,
 				  imapscaninfo *scaninfo);
@@ -733,7 +733,7 @@ static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 	{
 		scaninfo->msgs[i].uid=tempinfo_array[i].uid;
 		scaninfo->msgs[i].filename=
-			my_strdup(tempinfo_array[i].filename.c_str());
+			tempinfo_array[i].filename;
 		scaninfo->msgs[i].keywordMsg=NULL;
 		scaninfo->msgs[i].copiedflag=0;
 #if SMAP
@@ -752,34 +752,26 @@ static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 	return (0);
 }
 
-static int try_maildir_open(const char *dir, struct imapscanmessageinfo *n)
+static int try_maildir_open(const std::string &dir, imapscanmessageinfo *n)
 {
-int	fd;
-char	*filename=maildir_filename(dir, 0, n->filename);
-char	*p;
+	auto filename=maildir::filename(dir, "", n->filename);
 
-	if (!filename)
-	{
-		return (-1);
-	}
+	if (filename.empty())
+		return -1;
 
-	p=strrchr(filename, '/')+1;
+	auto p=filename.rfind('/')+1;
 
-	if (strcmp(p, n->filename))
+	if (n->filename != filename.c_str()+p)
 	{
 		n->changedflags=1;
-		free(n->filename);
-		n->filename=(char *)malloc(strlen(p)+1);
-		if (!n->filename)	write_error_exit(0);
-		strcpy(n->filename, p);
+
+		n->filename=filename.substr(p);
 	}
 
-	fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	free(filename);
-	return (fd);
+	return maildir::semisafeopen(filename, O_RDONLY, 0);
 }
 
-int imapscan_openfile(const char *dir, imapscaninfo *i, unsigned j)
+int imapscan_openfile(const std::string &dir, imapscaninfo *i, unsigned j)
 {
 	if (j >= i->msgs.size())
 	{
@@ -799,9 +791,6 @@ imapscaninfo_base::~imapscaninfo_base()
 
 	for (auto &msg:msgs)
 	{
-		if (msg.filename)
-			free(msg.filename);
-
 		if (msg.keywordMsg)
 			libmail_kwmDestroy(msg.keywordMsg);
 	}
@@ -822,13 +811,13 @@ imapscaninfo_base::~imapscaninfo_base()
 
 extern char *current_mailbox;
 
-int imapscan_updateKeywords(const char *filename,
+int imapscan_updateKeywords(const std::string &filename,
 			    struct libmail_kwMessage *newKeyword)
 {
 	char *tmpname, *newname;
 	int rc;
 
-	if (maildir_kwSave(current_mailbox, filename, newKeyword,
+	if (maildir_kwSave(current_mailbox, filename.c_str(), newKeyword,
 			   &tmpname, &newname, 0))
 	{
 		perror("maildir_kwSave");
@@ -888,7 +877,7 @@ static struct libmail_kwMessage **findMessageByFilename(const char *filename,
 
 		for (auto &msg:scaninfo->msgs)
 		{
-			unsigned long bucket=hashFilename(msg.filename,
+			unsigned long bucket=hashFilename(msg.filename.c_str(),
 							  scaninfo);
 
 			msg.nextBucket=
@@ -905,7 +894,7 @@ static struct libmail_kwMessage **findMessageByFilename(const char *filename,
 		     scaninfo->msgs[hashFilename(filename, scaninfo)]
 		     .firstBucket:NULL; i; i=i->nextBucket)
 	{
-		if (strncmp(i->filename, filename, l))
+		if (strncmp(i->filename.c_str(), filename, l))
 			continue;
 
 		if (i->filename[l] == 0 ||
@@ -941,7 +930,7 @@ static const char *getMessageFilename(size_t n, void *voidarg)
 	if (n >= info->messages->msgs.size())
 		return NULL;
 
-	return info->messages->msgs[n].filename;
+	return info->messages->msgs[n].filename.c_str();
 }
 
 static void updateKeywords(size_t n, struct libmail_kwMessage *kw,
@@ -1045,4 +1034,25 @@ int imapscan_saveKeywordSnapshot(FILE *fp, imapscaninfo *scaninfo)
 
 	rki.messages=scaninfo;
 	return maildir_kwExport(fp, &rki.ri);
+}
+
+unsigned long imapscaninfo::unseen() const
+{
+	auto n=left_unseen;
+
+	for (const auto &msg:msgs)
+	{
+		auto p=msg.filename.rfind(MDIRSEP[0]);
+
+		if (p != msg.filename.npos
+		    && msg.filename.size() - p > 2 &&
+		    msg.filename[p+1] == '2' &&
+		    msg.filename[p+2] == ',' &&
+		    msg.filename.find('S', p) !=
+		    msg.filename.npos)
+			continue;
+		++n;
+	}
+
+	return n;
 }

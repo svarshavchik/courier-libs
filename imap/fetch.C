@@ -156,7 +156,7 @@ static void fetcherror(const char *errmsg,
 	imapscanmessageinfo &mi=info->msgs.at(j);
 
 	fprintf(stderr, "IMAP FETCH ERROR: %s, uid=%u, filename=%s: %s",
-		errmsg, (unsigned)getuid(), mi.filename, fi->name);
+		errmsg, (unsigned)getuid(), mi.filename.c_str(), fi->name);
 	if (fi->bodysection)
 		print_bodysection_partial(fi, &fetcherrorprt);
 	fprintf(stderr, "\n");
@@ -204,7 +204,7 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 			unsigned long unbytes;
 			int	nmsgs=1;
 
-			if (maildir_parsequota(mi->filename, &unbytes) == 0)
+			if (maildir::parsequota(mi->filename, unbytes))
 				nbytes=unbytes;
 			else
 				nbytes=stat_buf.st_size;
@@ -230,8 +230,7 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 		snapshot_needed();
 #endif
 	}
-	free(mi->filename);
-	mi->filename=strdup(p.c_str());
+	mi->filename=p;
 
 #if 0
 	if (is_sharedsubdir(current_mailbox))
@@ -1522,7 +1521,7 @@ unsigned long l;
 */
 
 static struct rfc2045 *cached_rfc2045p;
-static char *cached_filename;
+static std::string cached_filename;
 
 void fetch_free_cached()
 {
@@ -1530,23 +1529,19 @@ void fetch_free_cached()
 	{
 		rfc2045_free(cached_rfc2045p);
 		cached_rfc2045p=0;
-		free(cached_filename);
-		cached_filename=0;
+		cached_filename.clear();
 	}
 }
 
 struct rfc2045 *fetch_alloc_rfc2045(unsigned long msgnum, FILE *fp)
 {
 	if (cached_rfc2045p &&
-	    strcmp(cached_filename,
-		   current_maildir_info.msgs.at(msgnum).filename) == 0)
+	    cached_filename == current_maildir_info.msgs.at(msgnum).filename)
 		return (cached_rfc2045p);
 
 	fetch_free_cached();
 
-	if ((cached_filename=strdup(current_maildir_info.
-				    msgs.at(msgnum).filename))
-	    == 0) write_error_exit(0);
+	cached_filename=current_maildir_info.msgs.at(msgnum).filename;
 
 	if (fseek(fp, 0L, SEEK_SET) == -1)
 	{
@@ -1556,15 +1551,14 @@ struct rfc2045 *fetch_alloc_rfc2045(unsigned long msgnum, FILE *fp)
 	cached_rfc2045p=rfc2045_fromfp(fp);
 	if (!cached_rfc2045p)
 	{
-		free(cached_filename);
-		cached_filename=0;
+		cached_filename.clear();
 		write_error_exit(0);
 	}
 	return (cached_rfc2045p);
 }
 
 static FILE *cached_fp=0;
-static char *cached_fp_filename=0;
+static std::string cached_fp_filename;
 static off_t cached_base_offset;
 static off_t cached_virtual_offset;
 static off_t cached_phys_offset;
@@ -1573,16 +1567,14 @@ FILE *open_cached_fp(unsigned long msgnum)
 {
 	int	fd;
 
-	if (cached_fp && strcmp(cached_fp_filename,
-				current_maildir_info.msgs.at(msgnum).filename)
-	    == 0)
+	if (cached_fp && cached_fp_filename ==
+	    current_maildir_info.msgs.at(msgnum).filename)
 		return (cached_fp);
 
 	if (cached_fp)
 	{
 		fclose(cached_fp);
-		free(cached_fp_filename);
-		cached_fp_filename=0;
+		cached_fp_filename.clear();
 		cached_fp=0;
 	}
 
@@ -1618,14 +1610,8 @@ FILE *open_cached_fp(unsigned long msgnum)
 		}
 	}
 
-	if ((cached_fp_filename=strdup(current_maildir_info.
-				       msgs.at(msgnum).filename))
-	    == 0)
-	{
-		fclose(cached_fp);
-		cached_fp=0;
-		write_error_exit(0);
-	}
+	cached_fp_filename=current_maildir_info.msgs.at(msgnum).filename;
+
 	cached_base_offset=0;
 	cached_virtual_offset=0;
 	cached_phys_offset=0;
@@ -1638,8 +1624,7 @@ void fetch_free_cache()
 	{
 		fclose(cached_fp);
 		cached_fp=0;
-		free(cached_fp_filename);
-		cached_fp_filename=0;
+		cached_fp_filename.clear();
 	}
 }
 

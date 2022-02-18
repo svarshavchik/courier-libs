@@ -86,7 +86,7 @@ static char *snapshot_cur;  /* Current snapshot */
 static int index_dirty;
 static int snapshots_enabled;
 
-extern void set_time(const char *tmpname, time_t timestamp);
+extern void set_time(const std::string &tmpname, time_t timestamp);
 extern void smapword(const char *);
 
 struct snapshot_list {
@@ -304,25 +304,15 @@ static int restore_snapshot2(const char *snapshot_dir,
 			    (uid_line=strchr(uid_line, ' ')) != NULL)
 				/* Jackpot */
 			{
-				msg.filename=(char *)
-					malloc(strlen(uid_line)+
-					       strlen(flag_buf)+2);
+				msg.filename.reserve(strlen(uid_line)+
+						     strlen(flag_buf)+2);
 
-				if (!msg.filename)
-				{
-					fclose(courierimapuiddb);
-					write_error_exit(0);
-					return 0;
-				}
-
-				strcpy(msg.filename,
-				       uid_line+1);
+				msg.filename=uid_line+1;
 
 				if (p)
 				{
-					strcat(strcat(msg
-						      .filename, MDIRSEP),
-					       p+1);
+					msg.filename += MDIRSEP;
+					msg.filename += p+1;
 				}
 			}
 
@@ -335,20 +325,6 @@ static int restore_snapshot2(const char *snapshot_dir,
 					fclose(courierimapuiddb);
 					return 0;
 				}
-			}
-		}
-
-
-		if (msg.filename == 0)
-		{
-			msg.filename=strdup("");
-			/* A noop should get rid of this entry anyway */
-
-			if (!msg.filename)
-			{
-				fclose(courierimapuiddb);
-				write_error_exit(0);
-				return 0;
 			}
 		}
 	}
@@ -670,9 +646,11 @@ void snapshot_save()
 
 	for (auto &p:current_maildir_info.msgs)
 	{
-		q=strrchr(p.filename, MDIRSEP[0]);
+		auto q=p.filename.rfind(MDIRSEP[0]);
 
-		fprintf(fp, "%lu:%s\n", p.uid, q ? q+1:"");
+		fprintf(fp, "%lu:%s\n", p.uid,
+			q == p.filename.npos ? ""
+			: p.filename.c_str()+(q+1));
 	}
 
 	if (keywords())

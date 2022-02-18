@@ -610,8 +610,6 @@ void get_message_flags(
 	struct imapscanmessageinfo *mi,
 	char *buf, struct imapflags *flags)
 {
-	const char *filename=mi->filename;
-
 	const char *DRAFT="\\Draft";
 	const char *FLAGGED="\\Flagged";
 	const char *REPLIED="\\Answered";
@@ -628,8 +626,12 @@ void get_message_flags(
 		flags->seen=flags->answered=flags->deleted=flags->flagged
 		=flags->recent=flags->drafts=0;
 
-	if ((filename=strrchr(filename, MDIRSEP[0])) == 0
-		|| strncmp(filename, MDIRSEP "2,", 3))	return;
+	auto p=mi->filename.rfind(MDIRSEP[0]);
+
+	if (p == mi->filename.npos ||
+	    mi->filename.size()-p < 2 ||
+	    mi->filename[p+1] != '2' ||
+	    mi->filename[p+2] != ',') return;
 
 #if SMAP
 	if (smapflag)
@@ -644,30 +646,30 @@ void get_message_flags(
 	}
 #endif
 
-	if (strchr(filename, 'D'))
+	if (mi->filename.find('D', p) != mi->filename.npos)
 	{
 		if (buf) strcat(buf, DRAFT);
 		if (flags)  flags->drafts=1;
 	}
 
-	if (strchr(filename, 'F'))
+	if (mi->filename.find('F', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), FLAGGED);
 		if (flags)	flags->flagged=1;
 	}
-	if (strchr(filename, 'R'))
+	if (mi->filename.find('R', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), REPLIED);
 		if (flags)	flags->answered=1;
 	}
 
-	if (strchr(filename, 'S') != NULL)
+	if (mi->filename.find('S', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), SEEN);
 		if (flags)	flags->seen=1;
 	}
 
-	if (strchr(filename, 'T'))
+	if (mi->filename.find('T', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), DELETED);
 		if (flags)	flags->deleted=1;
@@ -781,7 +783,7 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 	return fp;
 }
 
-void set_time(const char *tmpname, time_t timestamp)
+void set_time(const std::string &tmpname, time_t timestamp)
 {
 #if	HAVE_UTIME
 	if (timestamp)
@@ -789,7 +791,7 @@ void set_time(const char *tmpname, time_t timestamp)
 	struct	utimbuf ub;
 
 		ub.actime=ub.modtime=timestamp;
-		utime(tmpname, &ub);
+		utime(tmpname.c_str(), &ub);
 	}
 #else
 #if	HAVE_UTIMES
@@ -799,7 +801,7 @@ void set_time(const char *tmpname, time_t timestamp)
 
 		tv.tv_sec=timestamp;
 		tv.tv_usec=0;
-		utimes(tmpname, &tv);
+		utimes(tmpname.c_str(), &tv);
 	}
 #endif
 #endif
@@ -1396,8 +1398,8 @@ void doNoop(int real_noop)
 		a=current_maildir_info.msgs[i].keywordMsg;
 		b=new_maildir_info.msgs[j].keywordMsg;
 
-		if (strcmp(current_maildir_info.msgs[i].filename,
-			new_maildir_info.msgs[j].filename) ||
+		if (current_maildir_info.msgs[i].filename !=
+		    new_maildir_info.msgs[j].filename ||
 		    (a && !b) || (!a && b) ||
 		    (a && b && libmail_kwmCmp(a, b)))
 		{
@@ -2159,7 +2161,7 @@ int doAddRemoveKeywords(unsigned long n, int uid,
 {
 	struct libmail_kwGenericEntry *ge=
 		libmail_kwgFindByName(&arki.kwg,
-				      current_maildir_info.msgs[--n].filename);
+				      current_maildir_info.msgs.at(--n).filename.c_str());
 	char *tmpname=NULL, *newname=NULL;
 	struct stat stat_buf;
 	int rc;
@@ -2170,7 +2172,7 @@ int doAddRemoveKeywords(unsigned long n, int uid,
 		{
 			rc=maildir_kwSave(current_mailbox,
 					  current_maildir_info.msgs[n].
-					  filename,
+					  filename.c_str(),
 					  arki.storeinfo->keywords,
 					  &tmpname, &newname, 1);
 
@@ -2202,7 +2204,7 @@ int doAddRemoveKeywords(unsigned long n, int uid,
 		{
 			rc=maildir_kwSave(current_mailbox,
 					  current_maildir_info.msgs[n].
-					  filename,
+					  filename.c_str(),
 					  ge->keywords,
 					  &tmpname, &newname, 1);
 
@@ -2232,8 +2234,8 @@ int doAddRemoveKeywords(unsigned long n, int uid,
 		if (flag)
 		{
 			rc=maildir_kwSave(current_mailbox,
-					  current_maildir_info.msgs[n].
-					  filename,
+					  current_maildir_info.msgs.at(n).
+					  filename.c_str(),
 					  ge->keywords,
 					  &tmpname, &newname, 1);
 
@@ -2246,7 +2248,7 @@ int doAddRemoveKeywords(unsigned long n, int uid,
 
 	if (tmpname)
 	{
-		current_maildir_info.msgs[n].changedflags=1;
+		current_maildir_info.msgs.at(n).changedflags=1;
 
 		if (link(tmpname, newname) < 0)
 		{
@@ -2294,7 +2296,7 @@ static int imap_addRemoveKeywords(imap_addRemoveKeywordInfo &i,
 		  (unsigned long n)
 		  {
 			  --n;
-			  current_maildir_info.msgs[n].storeflag=1;
+			  current_maildir_info.msgs.at(n).storeflag=1;
 			  return true;
 		  }, i.uid);
 	for (j=0; j<current_maildir_info.msgs.size(); j++)
@@ -4390,20 +4392,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (get_unseen)
 		{
-		unsigned long n=infoptr->left_unseen, i;
-
-			for (i=0; i<infoptr->msgs.size(); i++)
-			{
-			const char *p=infoptr->msgs[i].filename;
-
-				p=strrchr(p, MDIRSEP[0]);
-				if (p && strncmp(p, MDIRSEP "2,", 3) == 0 &&
-					strchr(p, 'S'))	continue;
-				++n;
-			}
 			writes(p);
 			writes("UNSEEN ");
-			writen(n);
+			writen(infoptr->unseen());
 		}
 		writes(")\r\n");
 		writes(tag);

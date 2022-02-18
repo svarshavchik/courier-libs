@@ -103,7 +103,7 @@ void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
-extern void set_time(const char *tmpname, time_t timestamp);
+extern void set_time(const std::string &tmpname, time_t timestamp);
 extern int imapenhancedidle(void);
 extern void imapidle(void);
 
@@ -1287,15 +1287,12 @@ static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
 
 static void setdate(unsigned long n, time_t datestamp)
 {
-	char	*filename=maildir_filename(current_mailbox, 0,
-					   current_maildir_info.msgs[n]
-					   .filename);
+	auto filename=maildir::filename(current_mailbox, "",
+					current_maildir_info.msgs[n]
+					.filename);
 
-	if (filename)
-	{
+	if (!filename.empty())
 		set_time(filename, datestamp);
-		free(filename);
-	}
 }
 
 static void msg_expunge(unsigned long n)
@@ -2039,27 +2036,26 @@ static void do_attrfetch(unsigned long n, int items)
 
 	if (items & FETCH_UID)
 	{
-		char *p, *q;
-
 		writes(" \"UID=");
 
-		p=current_maildir_info.msgs[n].filename;
+		auto &filename=current_maildir_info.msgs.at(n).filename;
 
-		q=strrchr(p, MDIRSEP[0]);
-		if (q)
-			*q=0;
-		smapword_s(p);
-		if (q)
-			*q=MDIRSEP[0];
+		auto p=filename.rfind(MDIRSEP[0]);
+
+		if (p != filename.npos)
+			filename[p]=0;
+		smapword_s(filename.c_str());
+		if (p != filename.npos)
+			filename[p]=MDIRSEP[0];
 		writes("\"");
 	}
 
 	if (items & FETCH_SIZE)
 	{
-		char *p=current_maildir_info.msgs[n].filename;
+		auto &p=current_maildir_info.msgs.at(n).filename;
 		unsigned long cnt;
 
-		if (maildir_parsequota(p, &cnt))
+		if (!maildir::parsequota(p, cnt))
 		{
 			FILE *fp=open_cached_fp(n);
 			struct stat stat_buf;
@@ -2357,7 +2353,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 	}
 	fclose(fp);
 
-	if (do_copyKeywords(current_maildir_info.msgs[n].keywordMsg,
+	if (do_copyKeywords(current_maildir_info.msgs.at(n).keywordMsg,
 			    cqinfo->destmailbox,
 			    strrchr(newname.c_str(), '/')+1))
 	{
@@ -2369,10 +2365,10 @@ static int do_copymsg(unsigned long n, void *voidptr)
 		return (-1);
 	}
 
-	current_maildir_info.msgs[n].copiedflag=1;
+	current_maildir_info.msgs.at(n).copiedflag=1;
 
-	maildir_movetmpnew(tmpname.c_str(), newname.c_str());
-	set_time(newname.c_str(), stat_buf.st_mtime);
+	maildir::movetmpnew(tmpname, newname);
+	set_time(newname, stat_buf.st_mtime);
 
 	copieduid(n+1, newname);
 	return 0;
@@ -2380,60 +2376,52 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 static int do_movemsg(unsigned long n, void *voidptr)
 {
-	char *filename;
 	struct copyquotainfo *cqinfo=(struct copyquotainfo *)voidptr;
-	char *newfilename;
 
 	if (n >= current_maildir_info.msgs.size())
 		return 0;
 
-	filename=maildir_filename(current_mailbox, 0,
-				  current_maildir_info.msgs[n].filename);
+	auto filename=maildir::filename(current_mailbox, "",
+					current_maildir_info.msgs.at(n).filename);
 
-	if (!filename)
+	if (filename.empty())
 		return 0;
 
-	newfilename=(char *)malloc(strlen(cqinfo->destmailbox) + sizeof("/cur")
-			   + strlen(strrchr(filename, '/')));
+	std::string newfilename;
 
-	if (!newfilename)
-	{
-		free(filename);
-		write_error_exit(0);
-	}
+	newfilename.reserve(strlen(cqinfo->destmailbox) + sizeof("/cur")-1
+			    + (filename.size()-filename.rfind('/')));
 
-	strcat(strcat(strcpy(newfilename, cqinfo->destmailbox),
-		      "/cur"), strrchr(filename, '/'));
+	newfilename=cqinfo->destmailbox;
 
-	if (do_copyKeywords(current_maildir_info.msgs[n].keywordMsg,
+	newfilename += "/cur";
+	newfilename.insert(newfilename.end(),
+			   filename.begin() + filename.rfind('/'),
+			   filename.end());
+
+	if (do_copyKeywords(current_maildir_info.msgs.at(n).keywordMsg,
 			    cqinfo->destmailbox,
-			    strrchr(newfilename, '/')+1))
+			    strrchr(newfilename.c_str(), '/')+1))
 	{
 		fprintf(stderr,
 			"ERR: error copying keywords, "
 			"user=%s, errno=%d\n",
 			getenv("AUTHENTICATED"), errno);
 
-		free(filename);
-		free(newfilename);
 		return -1;
 	}
 
 
-	if (maildir_movetmpnew(filename, newfilename) == 0)
+	if (maildir::movetmpnew(filename, newfilename) == 0)
 	{
 		copieduid(n+1, newfilename);
-		free(filename);
-		free(newfilename);
 		return 0;
 	}
 
 	if (do_copymsg(n, voidptr))
 		return -1;
 
-	unlink(filename);
-	free(filename);
-	free(newfilename);
+	unlink(filename.c_str());
 	return 0;
 }
 
@@ -3345,15 +3333,15 @@ void smap()
 
 					if (!add_folder.empty() && n)
 					{
-						if (maildir_movetmpnew(
-							    tmpname.c_str(),
-							    newname.c_str())
+						if (maildir::movetmpnew(
+							    tmpname,
+							    newname)
 						    )
 							n=0;
 						else
 						{
 							if (add_internaldate)
-								set_time(newname.c_str(),
+								set_time(newname,
 									 add_internaldate);
 							adduid(newname);
 						}
@@ -3553,7 +3541,6 @@ void smap()
 		{
 			imapscaninfo loaded_info,
 				*infoptr;
-			unsigned long n, i;
 
 			getword(&ptr);
 
@@ -3595,19 +3582,8 @@ void smap()
 			writes("* STATUS EXISTS=");
 			writen(infoptr->msgs.size()+infoptr->left_unseen);
 
-			n=infoptr->left_unseen;
-
-			for (i=0; i<infoptr->msgs.size(); i++)
-			{
-				const char *p=infoptr->msgs[i].filename;
-
-				p=strrchr(p, MDIRSEP[0]);
-				if (p && strncmp(p, MDIRSEP "2,", 3) == 0 &&
-				    strchr(p, 'S'))	continue;
-				++n;
-			}
 			writes(" UNSEEN=");
-			writen(n);
+			writen(infoptr->unseen());
 			writes("\n+OK Folder status retrieved\n");
 			continue;
 		}

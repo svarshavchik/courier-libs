@@ -449,18 +449,17 @@ int do_copy_message(unsigned long n, int byuid, void *voidptr)
 
 int do_copy_quota_calc(unsigned long n, int byuid, void *voidptr)
 {
-struct copyquotainfo *info=(struct copyquotainfo *)voidptr;
-const char *filename;
-unsigned long nbytes;
-struct	stat	stat_buf;
-int	fd;
-struct imapflags flags;
+	struct copyquotainfo *info=(struct copyquotainfo *)voidptr;
+	unsigned long nbytes;
+	struct	stat	stat_buf;
+	int	fd;
+	struct imapflags flags;
 
 	--n;
 
 	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
 	if (fd < 0)	return (0);
-	filename=current_maildir_info.msgs[n].filename;
+	auto filename=current_maildir_info.msgs[n].filename;
 
 	get_message_flags(&current_maildir_info.msgs[n], NULL, &flags);
 
