@@ -245,6 +245,9 @@ namespace maildir {
 	std::string name2dir(const std::string &, const std::string &);
 	std::string folderdir(const std::string &, const std::string &);
 	std::string location(const std::string &, const std::string &);
+	std::string filename(const std::string &,
+			     const std::string &,
+			     const std::string &);
 
 	std::string getlink(const std::string &);
 	int semisafeopen(const std::string &, int, int);

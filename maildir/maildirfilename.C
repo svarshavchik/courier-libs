@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2002 S. Varshavchik.
+** Copyright 2000-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -49,59 +49,63 @@
 */
 
 char *maildir_filename(const char *maildir,
-	const char *folder, const char *filename)
+		       const char *folder, const char *filename)
 {
-struct stat stat_buf;
-char	*p, *q;
-DIR *dirp;
-struct dirent *de;
-char	*dir;
+	std::string s=maildir::filename(maildir ? maildir:"",
+					folder ? folder:"",
+					filename);
 
-	if (strchr(filename, '/') || *filename == '.')
+	if (s.empty())
+		return nullptr;
+
+	return strdup(s.c_str());
+}
+
+std::string maildir::filename(const std::string &maildir,
+			      const std::string &folder,
+			      const std::string &filename)
+{
+	struct stat stat_buf;
+	struct dirent *de;
+
+	if (filename.find('/') != filename.npos ||
+	    *filename.c_str() == '.')
 	{
 		errno=ENOENT;
-		return (0);
+		return "";
 	}
 
-	dir=maildir_folderdir(maildir, folder);
+	auto dir=folderdir(maildir, folder);
 
-	if (!dir)	return (0);
+	if (dir.empty())
+		return "";
 
-	p=malloc(strlen(dir)+strlen(filename)+sizeof("/cur/"));
+	std::string p;
 
-	if (!p)
+	p.reserve(dir.size()+filename.size() + sizeof("/cur/")-1);
+
+	p=dir;
+	p += "/cur/";
+	p += filename;
+
+	if (stat(p.c_str(), &stat_buf) == 0)
 	{
-		free(dir);
-		return (0);
-	}
-
-	strcat(strcat(strcpy(p, dir), "/cur/"), filename);
-
-	if (stat(p, &stat_buf) == 0)
-	{
-		free(dir);
 		return (p);
 	}
 
 	/* Oh, a wise guy... */
 
-	q=strrchr(p, '/');
-	*q=0;
-	dirp=opendir(p);
-	*q='/';
+	auto dirp=opendir(p.substr(0, p.rfind('/')).c_str());
 
-	if ( dirp == NULL)
-	{
-		free(dir);
-		return p;
-	}
+	if (!dirp)
+		return (p);
 
 	/* Compare filenames, ignore filename size if set by maildirquota */
 
 	while ((de=readdir(dirp)) != NULL)
 	{
-	const char *a=filename;
-	const char *b=de->d_name;
+		const char *a=filename.c_str();
+		const char *b=de->d_name;
 
 		for (;;)
 		{
@@ -121,26 +125,23 @@ char	*dir;
 					++b;
 			}
 
-			if ( (*a == 0 || *a == MDIRSEP[0]) && (*b == 0 || *b == MDIRSEP[0]))
+			if ( (*a == 0 || *a == MDIRSEP[0]) &&
+			     (*b == 0 || *b == MDIRSEP[0]))
 			{
-				free(p);
-				p=malloc(strlen(dir)+strlen(de->d_name)+
-					sizeof("/cur/"));
-				if (!p)
-				{
-					closedir(dirp);
-					free(dir);
-					return (0);
-				}
+				p.clear();
+				p.reserve(dir.size()+strlen(de->d_name)+
+					  sizeof("/cur/")-1);
 
-				strcat(strcat(strcpy(p, dir), "/cur/"),
-					de->d_name);
+				p=dir;
+				p += "/cur/";
+				p += de->d_name;
+
 				closedir(dirp);
-				free(dir);
 				return (p);
 			}
-			if ( *a == 0 || *a == MDIRSEP[0] || *b == 0 || *b == MDIRSEP[0] ||
-				*a != *b)
+			if ( *a == 0 || *a == MDIRSEP[0] ||
+			     *b == 0 || *b == MDIRSEP[0] ||
+			     *a != *b)
 				break;
 
 			++a;
@@ -148,6 +149,5 @@ char	*dir;
 		}
 	}
 	closedir(dirp);
-	free(dir);
 	return (p);
 }

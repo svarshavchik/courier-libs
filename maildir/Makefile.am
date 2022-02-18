@@ -32,7 +32,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildiraclt.h maildiracltcpp.C \
 	maildircache.c maildircache.h \
 	maildircreate.C maildircreate.h \
-	maildirfilename.c maildirgetnew.c \
+	maildirfilename.C maildirgetnew.c \
 	maildirfilter.c maildirfilter2.c maildirfiltercpp.C \
 	maildirfilter.h maildirfiltertypelist.h\
 	maildirflags.c maildirmkdir.c \
