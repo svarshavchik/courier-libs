@@ -749,6 +749,11 @@ struct hashtable : std::shared_ptr<hashtable_base<T>> {
 			  mail::keywords::list &keywords)> &set,
 		const std::function<bool ()> &end_of_keywords
 	);
+
+	void save_keywords_to_file(
+		FILE *fp,
+		const std::function<std::string (const T&)> &getfilename
+	);
 };
 
 // A message with keywords, and some metadata.
@@ -1044,7 +1049,6 @@ struct save_keywords {
 	FILE *fp;
 
 	save_keywords(
-		const std::string &maildir,
 		std::unordered_map<std::string, std::string> &,
 		FILE *);
 
@@ -1097,66 +1101,71 @@ void hashtable<T>::load(
 		[&, this]
 		(FILE *fp)
 		{
-			// Helper when saving an updated list
-			// of keywords.
-			//
-			// This closure gets called when the
-			// load implementation has finished
-			// loading an updated list of keywords
-			// and determines that an updated
-			// master :list of keywords should
-			// be written and installed.
-			//
-			// We begin by extracting a list of
-			// all keywords that are now used,
-			// and placing them in a lookup map,
-			// initially empty.
-
-			std::unordered_map<std::string,
-					   std::string>
-				keywords;
-
-			auto &hash_meta= this->operator*();
-
-			for (const auto &kw:hash_meta.keywords)
-			{
-				keywords.emplace(kw.first, "");
-			}
-
-			// The helper object creates a new
-			// :list file, then enumerates every
-			// keyword and numbers them.
-
-			save_keywords helper{maildir, keywords,
-				fp};
-
-			// We assist the helper object by
-			// going through the list of all
-			// messages...
-
-			for (const auto &meta
-				     :hash_meta.metadata)
-			{
-				list keywords;
-
-				// Extracting each message's
-				// keywords.
-				for (const auto &entry
-					     :meta.entries)
-				{
-					keywords.insert(
-						entry.keyword
-						->first);
-				}
-
-				// And then saving them.
-
-				auto filename=
-					getfilename(meta.value);
-				helper( filename, keywords);
-			}
+			save_keywords_to_file(fp, getfilename);
 		}
 	);
+}
+
+// Helper when saving an updated list
+// of keywords.
+//
+// This closure gets called when the
+// load implementation has finished
+// loading an updated list of keywords
+// and determines that an updated
+// master :list of keywords should
+// be written and installed.
+//
+// We begin by extracting a list of
+// all keywords that are now used,
+// and placing them in a lookup map,
+// initially empty.
+//
+// This is also used to capture the current keywords into a snapshot file.
+
+template<typename T>
+void hashtable<T>::save_keywords_to_file(
+	FILE *fp,
+	const std::function<std::string (const T&)> &getfilename
+)
+{
+	// Create a lookup table for all keywords, and constructor the helper.
+
+	std::unordered_map<std::string, std::string> keywords;
+
+	auto &hash_meta= this->operator*();
+
+	for (const auto &kw:hash_meta.keywords)
+	{
+		keywords.emplace(kw.first, "");
+	}
+
+	// The helper object creates a new
+	// :list file, then enumerates every
+	// keyword and numbers them.
+
+	save_keywords helper{keywords, fp};
+
+	// We assist the helper object by
+	// going through the list of all
+	// messages...
+
+	for (const auto &meta:hash_meta.metadata)
+	{
+		list keywords;
+
+		// Extracting each message's
+		// keywords.
+		for (const auto &entry:meta.entries)
+		{
+			keywords.insert(entry.keyword->first);
+		}
+
+		// And then saving them.
+
+		auto filename=getfilename(meta.value);
+		helper(filename, keywords);
+	}
 }
 
 // Attempt to update the keywords

@@ -687,8 +687,8 @@ static bool attempt_load(
 // As we save them, they get numbered at the same time.
 
 mail::keywords::save_keywords::save_keywords(
-	const std::string &maildir,
-	std::unordered_map<std::string, std::string> &lookup, FILE *fp)
+	std::unordered_map<std::string, std::string> &lookup,
+	FILE *fp)
 	: lookup{lookup}, fp{fp}
 {
 	size_t n=0;
