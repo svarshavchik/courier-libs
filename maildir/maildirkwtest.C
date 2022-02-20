@@ -205,7 +205,7 @@ void keywordtest2()
 		hashtable, {"alpha", "beta"}, size_t{3}
 	};
 
-	if (m.keywords() != std::unordered_set<std::string>{"alpha", "beta"})
+	if (m.keywords() != mail::keywords::list{"alpha", "beta"})
 	{
 		fprintf(stderr, "keywordtest2 failed (1)\n");
 		exit(1);
@@ -213,7 +213,7 @@ void keywordtest2()
 
 	m.remove("beta");
 
-	if (m.keywords() != std::unordered_set<std::string>{"alpha"})
+	if (m.keywords() != mail::keywords::list{"alpha"})
 	{
 		fprintf(stderr, "keywordtest2 failed (2)\n");
 		exit(1);

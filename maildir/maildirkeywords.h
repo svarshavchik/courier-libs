@@ -529,9 +529,22 @@ public:
 
 // New implementation of keywords for C++11
 //
+// Like the old one, they're case-insensitive. Define a hash function and
+// equality comparison.
+
+struct keywordhash {
+	size_t operator()(std::string s) const;
+};
+
+struct keywordeq {
+	bool operator()(const std::string &, const std::string &) const;
+};
+
+
+//
 // A collection of keywords for a given message.
 
-typedef std::unordered_set<std::string> list;
+typedef std::unordered_set<std::string, keywordhash, keywordeq> list;
 
 // mail::keywords::hashtable<T> hashtable;
 //
@@ -601,7 +614,9 @@ template<typename T> struct hashtable_entry;
 template<typename T>
 using keywordtable=std::unordered_map<
 	std::string,
-	std::list<hashtable_entry<T> *>>;
+	std::list<hashtable_entry<T> *>,
+	keywordhash,
+	keywordeq>;
 
 // Metadata of a message, and a list of all of its keyword, as keyword_entries
 //

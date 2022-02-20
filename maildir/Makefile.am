@@ -80,18 +80,16 @@ testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  
 testmaildirfilter_LDFLAGS=-static
 nodist_EXTRA_testmaildirfilter_SOURCES=dummy.C
 
-maildirkwtest_SOURCES=maildirkwtest.C
-maildirkwtest_LDADD=libmaildir.la
-maildirkwtest_DEPENDENCIES=libmaildir.la
-maildirkwtest_LDFLAGS=-static
-nodist_EXTRA_maildirkwtest_SOURCES=dummy.C
-
 maildirkw_SOURCES=maildirkw.C
 maildirkw_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
 maildirkw_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 	../numlib/libnumlib.la
 maildirkw_LDFLAGS=-static
-nodist_EXTRA_maildirkw_SOURCES=dummy.C
+
+maildirkwtest_SOURCES=maildirkwtest.C
+maildirkwtest_LDADD=$(maildirkw_LDADD)
+maildirkwtest_DEPENDENCIES=$(maildirkw_DEPENDENCIES)
+maildirkwtest_LDFLAGS=-static
 
 maildirkwtest2_SOURCES=maildirkw.C maildirkwtest2.C
 maildirkwtest2_LDADD=$(maildirkw_LDADD)
