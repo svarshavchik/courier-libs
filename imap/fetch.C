@@ -153,10 +153,10 @@ static void fetcherror(const char *errmsg,
 		struct fetchinfo *fi,
 		imapscaninfo *info, unsigned long j)
 {
-struct imapscanmessageinfo *mi=info->msgs+j;
+	imapscanmessageinfo &mi=info->msgs.at(j);
 
 	fprintf(stderr, "IMAP FETCH ERROR: %s, uid=%u, filename=%s: %s",
-		errmsg, (unsigned)getuid(), mi->filename, fi->name);
+		errmsg, (unsigned)getuid(), mi.filename, fi->name);
 	if (fi->bodysection)
 		print_bodysection_partial(fi, &fetcherrorprt);
 	fprintf(stderr, "\n");
@@ -305,7 +305,7 @@ int do_fetch(unsigned long n, int byuid, fetchinfo *fi)
 	{
 	struct	imapflags	flags;
 
-		get_message_flags(current_maildir_info.msgs+(n-1),
+		get_message_flags(&current_maildir_info.msgs.at(n-1),
 				0, &flags);
 		if (!flags.seen)
 		{
@@ -535,7 +535,7 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 	if (smapflag)
 	{
 		writes(" FLAGS=");
-		get_message_flags(i->msgs+msgnum, buf, 0);
+		get_message_flags(&i->msgs.at(msgnum), buf, 0);
 		writes(buf);
 	}
 	else
@@ -545,7 +545,7 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 
 		writes("FLAGS ");
 
-		get_message_flags(i->msgs+msgnum, buf, 0);
+		get_message_flags(&i->msgs.at(msgnum), buf, 0);
 
 		writes("(");
 		writes(buf);
@@ -553,7 +553,7 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 		if (buf[0])
 			strcpy(buf, " ");
 
-		if ((km=i->msgs[msgnum].keywordMsg) != NULL)
+		if ((km=i->msgs.at(msgnum).keywordMsg) != NULL)
 			for (kme=km->firstEntry; kme; kme=kme->next)
 			{
 				writes(buf);
@@ -563,7 +563,7 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 		writes(")");
 	}
 
-	i->msgs[msgnum].changedflags=0;
+	i->msgs.at(msgnum).changedflags=0;
 }
 
 static void internaldate(FILE *fp, struct fetchinfo *fi,
@@ -600,7 +600,7 @@ static void uid(FILE *fp, struct fetchinfo *fi,
 	struct rfc2045 *mimep)
 {
 	writes("UID ");
-	writen(i->msgs[msgnum].uid);
+	writen(i->msgs.at(msgnum).uid);
 }
 
 static void rfc822size(FILE *fp, struct fetchinfo *fi,
@@ -1539,13 +1539,13 @@ struct rfc2045 *fetch_alloc_rfc2045(unsigned long msgnum, FILE *fp)
 {
 	if (cached_rfc2045p &&
 	    strcmp(cached_filename,
-		   current_maildir_info.msgs[msgnum].filename) == 0)
+		   current_maildir_info.msgs.at(msgnum).filename) == 0)
 		return (cached_rfc2045p);
 
 	fetch_free_cached();
 
 	if ((cached_filename=strdup(current_maildir_info.
-				    msgs[msgnum].filename))
+				    msgs.at(msgnum).filename))
 	    == 0) write_error_exit(0);
 
 	if (fseek(fp, 0L, SEEK_SET) == -1)
@@ -1574,7 +1574,7 @@ FILE *open_cached_fp(unsigned long msgnum)
 	int	fd;
 
 	if (cached_fp && strcmp(cached_fp_filename,
-				current_maildir_info.msgs[msgnum].filename)
+				current_maildir_info.msgs.at(msgnum).filename)
 	    == 0)
 		return (cached_fp);
 
@@ -1619,7 +1619,7 @@ FILE *open_cached_fp(unsigned long msgnum)
 	}
 
 	if ((cached_fp_filename=strdup(current_maildir_info.
-				       msgs[msgnum].filename))
+				       msgs.at(msgnum).filename))
 	    == 0)
 	{
 		fclose(cached_fp);

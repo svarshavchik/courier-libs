@@ -4,6 +4,8 @@
 #include "config.h"
 #include "maildir/maildirkeywords.h"
 
+#include <vector>
+
 /*
 ** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
@@ -14,18 +16,18 @@
 */
 
 struct imapscanmessageinfo {
-	unsigned long uid;	/* See RFC 2060 */
-	char *filename;
-	struct libmail_kwMessage *keywordMsg; /* If not NULL - keywords */
-	char recentflag;
-	char changedflags;	/* Set by imapscan_open */
-	char copiedflag;	/* This message was copied to another folder */
+	unsigned long uid=0;	/* See RFC 2060 */
+	char *filename=nullptr;
+	struct libmail_kwMessage *keywordMsg=nullptr; /* If not NULL - keywords */
+	char recentflag=0;
+	char changedflags=0;	/* Set by imapscan_open */
+	char copiedflag=0;	/* This message was copied to another folder */
 
-	char storeflag;  /* Used by imap_addRemoveKeywords() */
+	char storeflag=0;  /* Used by imap_addRemoveKeywords() */
 
 	/* When reading keywords, hash messages by filename */
 
-	struct imapscanmessageinfo *firstBucket, *nextBucket;
+	struct imapscanmessageinfo *firstBucket=0, *nextBucket=0;
 
 	} ;
 
@@ -34,14 +36,13 @@ struct imapscanmessageinfo {
 */
 
 struct imapscaninfo_base {
-	unsigned long nmessages=0;	/* # of messages */
+	std::vector<imapscanmessageinfo> msgs;
 	unsigned long uidv=0;		/* See RFC 2060 */
 	unsigned long left_unseen=0;
 	unsigned long nextuid=0;
 
 	struct libmail_kwHashtable *keywordList; /* All defined keywords */
 
-	struct imapscanmessageinfo *msgs=nullptr;
 	struct maildirwatch *watcher=nullptr;
 
 	imapscaninfo_base();
@@ -52,12 +53,12 @@ struct imapscaninfo : imapscaninfo_base {
 
 	imapscaninfo()=default;
 
-	imapscaninfo &operator=(imapscaninfo &&);
+	imapscaninfo &operator=(imapscaninfo &&) noexcept;
 
 	imapscaninfo(const imapscaninfo &)=delete;
 	imapscaninfo &operator=(const imapscaninfo &)=delete;
 
-	imapscaninfo(imapscaninfo &&);
+	imapscaninfo(imapscaninfo &&) noexcept;
 } ;
 
 /*

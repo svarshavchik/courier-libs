@@ -1068,9 +1068,9 @@ static bool do_msgset(const char *msgset,
 	unsigned long i, j;
 	unsigned long last=0;
 
-	if (current_maildir_info.nmessages > 0)
+	if (current_maildir_info.msgs.size() > 0)
 	{
-		last=current_maildir_info.nmessages;
+		last=current_maildir_info.msgs.size();
 		if (isuid)
 		{
 			last=current_maildir_info.msgs[last-1].uid;
@@ -1120,10 +1120,10 @@ static bool do_msgset(const char *msgset,
 		{
 		unsigned long k;
 
-			for (k=0; k<current_maildir_info.nmessages; k++)
+			for (k=0; k<current_maildir_info.msgs.size(); k++)
 				if (current_maildir_info.msgs[k].uid >= i)
 					break;
-			if (k >= current_maildir_info.nmessages ||
+			if (k >= current_maildir_info.msgs.size() ||
 				current_maildir_info.msgs[k].uid > j)
 			{
 #if 0
@@ -1138,7 +1138,7 @@ static bool do_msgset(const char *msgset,
 				writes("\r\n");
 #endif
 			}
-			else while (k < current_maildir_info.nmessages &&
+			else while (k < current_maildir_info.msgs.size() &&
 				current_maildir_info.msgs[k].uid <= j)
 			{
 				if (!msgfunc(k+1))
@@ -1151,7 +1151,7 @@ static bool do_msgset(const char *msgset,
 			do
 			{
 				if (i == 0 ||
-				    i > current_maildir_info.nmessages)
+				    i > current_maildir_info.msgs.size())
 				{
 					writes("* NO Invalid message sequence number: ");
 					writen(i);
@@ -1241,7 +1241,7 @@ unsigned long i,j;
 	if (smapflag)
 	{
 		writes("* EXISTS ");
-		writen(current_maildir_info.nmessages);
+		writen(current_maildir_info.msgs.size());
 		writes("\n");
 		return;
 	}
@@ -1249,13 +1249,13 @@ unsigned long i,j;
 
 
 	writes("* ");
-	writen(current_maildir_info.nmessages);
+	writen(current_maildir_info.msgs.size());
 	writes(" EXISTS\r\n");
 
 	writes("* ");
 	i=0;
 
-	for (j=0; j<current_maildir_info.nmessages; j++)
+	for (j=0; j<current_maildir_info.msgs.size(); j++)
 		if (current_maildir_info.msgs[j].recentflag)
 			++i;
 	writen(i);
@@ -1309,11 +1309,11 @@ void doNoop(int real_noop)
 
 	j=0;
 	expunged=0;
-	for (i=0; i<current_maildir_info.nmessages; i++)
+	for (i=0; i<current_maildir_info.msgs.size(); i++)
 	{
 		struct libmail_kwMessage *a, *b;
 
-		while (j < new_maildir_info.nmessages &&
+		while (j < new_maildir_info.msgs.size() &&
 			new_maildir_info.msgs[j].uid <
 				current_maildir_info.msgs[i].uid)
 		{
@@ -1327,7 +1327,7 @@ void doNoop(int real_noop)
 #endif
 		}
 
-		if (j >= new_maildir_info.nmessages ||
+		if (j >= new_maildir_info.msgs.size() ||
 			new_maildir_info.msgs[j].uid >
 				current_maildir_info.msgs[i].uid)
 		{
@@ -1430,7 +1430,7 @@ void doNoop(int real_noop)
 
 #endif
 
-	while (j < new_maildir_info.nmessages)
+	while (j < new_maildir_info.msgs.size())
 	{
 #if SMAP
 		if (smapflag)
@@ -1497,7 +1497,7 @@ void doNoop(int real_noop)
 	if (needstats)
 		mailboxmetrics();
 
-	for (j=0; j < current_maildir_info.nmessages; j++)
+	for (j=0; j < current_maildir_info.msgs.size(); j++)
 		if (current_maildir_info.msgs[j].changedflags)
 		{
 #if SMAP
@@ -1800,7 +1800,7 @@ void do_expunge(unsigned long from, unsigned long to, int force);
 
 void expunge()
 {
-	do_expunge(0, current_maildir_info.nmessages, 0);
+	do_expunge(0, current_maildir_info.msgs.size(), 0);
 }
 
 void do_expunge(unsigned long expunge_start,
@@ -1825,7 +1825,7 @@ int log_deletions= cp && *cp != '0';
 	{
 		int file_counted=0;
 
-		get_message_flags(current_maildir_info.msgs+j, 0, &flags);
+		get_message_flags(&current_maildir_info.msgs.at(j), 0, &flags);
 
 		if (!flags.deleted && !force)
 			continue;
@@ -2286,7 +2286,7 @@ static int imap_addRemoveKeywords(imap_addRemoveKeywordInfo &i,
 {
 	unsigned long j;
 
-	for (j=0; j<current_maildir_info.nmessages; j++)
+	for (j=0; j<current_maildir_info.msgs.size(); j++)
 		current_maildir_info.msgs[j].storeflag=0;
 
 	do_msgset(i.msgset,
@@ -2297,7 +2297,7 @@ static int imap_addRemoveKeywords(imap_addRemoveKeywordInfo &i,
 			  current_maildir_info.msgs[n].storeflag=1;
 			  return true;
 		  }, i.uid);
-	for (j=0; j<current_maildir_info.nmessages; j++)
+	for (j=0; j<current_maildir_info.msgs.size(); j++)
 	{
 		int rc;
 
@@ -4355,7 +4355,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (get_messages)
 		{
 			writes("MESSAGES ");
-			writen(infoptr->nmessages+infoptr->left_unseen);
+			writen(infoptr->msgs.size()+infoptr->left_unseen);
 			p=" ";
 		}
 		if (get_recent)
@@ -4363,7 +4363,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		unsigned long n=infoptr->left_unseen;
 		unsigned long i;
 
-			for (i=0; i<infoptr->nmessages; i++)
+			for (i=0; i<infoptr->msgs.size(); i++)
 				if (infoptr->msgs[i].recentflag)
 					++n;
 			writes(p);
@@ -4392,7 +4392,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 		unsigned long n=infoptr->left_unseen, i;
 
-			for (i=0; i<infoptr->nmessages; i++)
+			for (i=0; i<infoptr->msgs.size(); i++)
 			{
 			const char *p=infoptr->msgs[i].filename;
 
@@ -5638,7 +5638,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		writes("\r\n");
 
-		for (i=0; i<current_maildir_info.nmessages; i++)
+		for (i=0; i<current_maildir_info.msgs.size(); i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);
@@ -5721,7 +5721,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		(cs.*thread_func)(si, charset, uid);
 		writes("\r\n");
 
-		for (i=0; i<current_maildir_info.nmessages; i++)
+		for (i=0; i<current_maildir_info.msgs.size(); i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);
@@ -5846,7 +5846,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		cs.dosortmsgs(si, charset, uid);
 		writes("\r\n");
 
-		for (i=0; i<current_maildir_info.nmessages; i++)
+		for (i=0; i<current_maildir_info.msgs.size(); i++)
 			if (current_maildir_info.msgs[i].changedflags)
 				fetchflags(i);
 		writes(tag);

@@ -1206,7 +1206,7 @@ static int applymsgset( const std::function<int (unsigned long)> &callback)
 			     n <= msgsetp->range[i][1]; n++)
 			{
 				if (current_mailbox == NULL ||
-				    n > current_maildir_info.nmessages)
+				    n > current_maildir_info.msgs.size())
 					break;
 				rc=callback(n-1);
 				if (rc)
@@ -1226,7 +1226,7 @@ static int applyflags(unsigned long n, struct storeinfo *si)
 	int attrs;
 	struct libmail_kwMessage *newKw;
 
-	if (n >= current_maildir_info.nmessages)
+	if (n >= current_maildir_info.msgs.size())
 		return 0;
 
 	attrs= si->keywords ? FETCH_KEYWORDS:FETCH_FLAGS;
@@ -1236,7 +1236,7 @@ static int applyflags(unsigned long n, struct storeinfo *si)
 		if (si->keywords == NULL) /* STORE FLAGS= */
 			si->keywords=current_maildir_info.msgs[n].keywordMsg;
 		else /* STORE KEYWORDS= */
-			get_message_flags(current_maildir_info.msgs+n, 0,
+			get_message_flags(&current_maildir_info.msgs.at(n), 0,
 					  &si->flags);
 	}
 
@@ -1970,7 +1970,7 @@ static int do_fetch(unsigned long n, smapfetchinfo &fi)
 	{
 		struct	imapflags	flags;
 
-		get_message_flags(current_maildir_info.msgs+n,
+		get_message_flags(&current_maildir_info.msgs.at(n),
 				  0, &flags);
 		if (!flags.seen)
 		{
@@ -1996,7 +1996,7 @@ void smap_fetchflags(unsigned long n)
 
 static void do_attrfetch(unsigned long n, int items)
 {
-	if (n >= current_maildir_info.nmessages)
+	if (n >= current_maildir_info.msgs.size())
 		return;
 
 	writes("* FETCH ");
@@ -2006,7 +2006,7 @@ static void do_attrfetch(unsigned long n, int items)
 	{
 		char	buf[256];
 
-		get_message_flags(current_maildir_info.msgs+n, buf, 0);
+		get_message_flags(&current_maildir_info.msgs.at(n), buf, 0);
 
 		writes(" FLAGS=");
 		writes(buf);
@@ -2308,7 +2308,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 		return (0);
 	}
 
-	get_message_flags(current_maildir_info.msgs+n, 0, &new_flags);
+	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
 	fp=maildir_mkfilename(cqinfo->destmailbox,
 			      &new_flags, stat_buf.st_size,
@@ -2384,7 +2384,7 @@ static int do_movemsg(unsigned long n, void *voidptr)
 	struct copyquotainfo *cqinfo=(struct copyquotainfo *)voidptr;
 	char *newfilename;
 
-	if (n >= current_maildir_info.nmessages)
+	if (n >= current_maildir_info.msgs.size())
 		return 0;
 
 	filename=maildir_filename(current_mailbox, 0,
@@ -3593,11 +3593,11 @@ void smap()
 			}
 
 			writes("* STATUS EXISTS=");
-			writen(infoptr->nmessages+infoptr->left_unseen);
+			writen(infoptr->msgs.size()+infoptr->left_unseen);
 
 			n=infoptr->left_unseen;
 
-			for (i=0; i<infoptr->nmessages; i++)
+			for (i=0; i<infoptr->msgs.size(); i++)
 			{
 				const char *p=infoptr->msgs[i].filename;
 
@@ -3959,7 +3959,7 @@ void smap()
 			{
 				snapshot_init(current_mailbox, NULL);
 				writes("* EXISTS ");
-				writen(current_maildir_info.nmessages);
+				writen(current_maildir_info.msgs.size());
 				writes("\n+OK Folder opened\n");
 				continue;
 			}

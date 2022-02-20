@@ -59,7 +59,6 @@ void contentsearch::search_internal(searchiter si,
 				    const std::string &charset,
 				    search_callback_t callback_func)
 {
-	unsigned long i;
 	searchiter p;
 
 	for (p=searchlist.begin(); p != searchlist.end(); ++p)
@@ -77,7 +76,7 @@ void contentsearch::search_internal(searchiter si,
 	{
 		search_byKeyword(si->b, si->a, charset, callback_func);
 	}
-	else for (i=0; i<current_maildir_info.nmessages; i++)
+	else for (size_t i=0; i<current_maildir_info.msgs.size(); i++)
 		search_oneatatime(si, i, charset, callback_func);
 }
 
@@ -123,7 +122,7 @@ void contentsearch::search_oneatatime(searchiter si,
 
 		/* First, see if non-content search will be sufficient */
 
-		get_message_flags(current_maildir_info.msgs+i, 0, &flags);
+		get_message_flags(&current_maildir_info.msgs.at(i), 0, &flags);
 
 		for (p=searchlist.begin(); p != searchlist.end(); ++p)
 			fill_search_veryquick(p, i, &flags);
@@ -160,7 +159,7 @@ void contentsearch::search_oneatatime(searchiter si,
                         struct        rfc2045 *rfcp=rfc2045header_fromfp(fp);
 
 			fill_search_header(charset, rfcp, fp,
-					   current_maildir_info.msgs+i);
+					   &current_maildir_info.msgs.at(i));
 			rc=search_evaluate(si);
                         rfc2045_free(rfcp);
 
@@ -170,7 +169,7 @@ void contentsearch::search_oneatatime(searchiter si,
                                 struct        rfc2045 *rfcp=rfc2045_fromfp(fp);
 
 				fill_search_body(rfcp, fp,
-						 current_maildir_info.msgs+i);
+						 &current_maildir_info.msgs.at(i));
 
 				/*
 				** If there are still UNKNOWN nodes, change

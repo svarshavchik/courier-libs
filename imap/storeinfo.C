@@ -124,7 +124,7 @@ int kwAllowed=1;
 	if (fd < 0)	return (0);
 
 	changedKeywords=0;
-	get_message_flags(current_maildir_info.msgs+n, 0, &new_flags);
+	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
 	old_flags=new_flags;
 
@@ -299,7 +299,7 @@ int kwAllowed=1;
 		}
 	}
 
-	if (reflag_filename(current_maildir_info.msgs+n, &new_flags, fd))
+	if (reflag_filename(&current_maildir_info.msgs.at(n), &new_flags, fd))
 	{
 		close(fd);
 		return (-1);
@@ -430,7 +430,7 @@ int do_copy_message(unsigned long n, int byuid, void *voidptr)
 	--n;
 	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
 	if (fd < 0)	return (0);
-	get_message_flags(current_maildir_info.msgs+n, 0, &new_flags);
+	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
 	if (copy_message(fd, cpy_info, &new_flags,
 

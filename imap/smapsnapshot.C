@@ -197,16 +197,8 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 		strcat(strcat(strcpy(*last_snapshot, dir), "/"), p);
 	}
 
-	if (s_nmessages && (new_index.msgs=(struct imapscanmessageinfo *)
-			    malloc(s_nmessages * sizeof(*new_index.msgs)))
-	    == 0)
-	{
-		write_error_exit(0);
-		return (0);
-	}
-	memset(new_index.msgs, 0, s_nmessages * sizeof(*new_index.msgs));
+	new_index.msgs.resize(s_nmessages);
 
-	new_index.nmessages=s_nmessages;
 	new_index.uidv=s_uidv;
 	new_index.nextuid=s_nextuid;
 
@@ -234,7 +226,6 @@ static int restore_snapshot2(const char *snapshot_dir,
 			     FILE *fp,
 			     imapscaninfo *new_index)
 {
-	unsigned long i;
 	char *p=(char *)malloc(strlen(snapshot_dir) + sizeof("/../" IMAPDB));
 	FILE *courierimapuiddb;
 	int version;
@@ -283,7 +274,7 @@ static int restore_snapshot2(const char *snapshot_dir,
 	** order, by UIDs, rely on that and do what amounts to a merge sort.
 	*/
 
-	for (i=0; i<new_index->nmessages; i++)
+	for (auto &msg:new_index->msgs)
 	{
 		unsigned long s_uid;
 		char flag_buf[128];
@@ -298,7 +289,7 @@ static int restore_snapshot2(const char *snapshot_dir,
 			return 0;
 		}
 
-		new_index->msgs[i].uid=s_uid;
+		msg.uid=s_uid;
 
 		/* Try to fill in the filenames to as much of an extent as
 		** possible.  If IMAPDB no longer has a particular uid listed,
@@ -313,23 +304,23 @@ static int restore_snapshot2(const char *snapshot_dir,
 			    (uid_line=strchr(uid_line, ' ')) != NULL)
 				/* Jackpot */
 			{
-				new_index->msgs[i].filename=(char *)
+				msg.filename=(char *)
 					malloc(strlen(uid_line)+
 					       strlen(flag_buf)+2);
 
-				if (!new_index->msgs[i].filename)
+				if (!msg.filename)
 				{
 					fclose(courierimapuiddb);
 					write_error_exit(0);
 					return 0;
 				}
 
-				strcpy(new_index->msgs[i].filename,
+				strcpy(msg.filename,
 				       uid_line+1);
 
 				if (p)
 				{
-					strcat(strcat(new_index->msgs[i]
+					strcat(strcat(msg
 						      .filename, MDIRSEP),
 					       p+1);
 				}
@@ -348,12 +339,12 @@ static int restore_snapshot2(const char *snapshot_dir,
 		}
 
 
-		if (new_index->msgs[i].filename == 0)
+		if (msg.filename == 0)
 		{
-			new_index->msgs[i].filename=strdup("");
+			msg.filename=strdup("");
 			/* A noop should get rid of this entry anyway */
 
-			if (!new_index->msgs[i].filename)
+			if (!msg.filename)
 			{
 				fclose(courierimapuiddb);
 				write_error_exit(0);
@@ -626,7 +617,6 @@ void snapshot_save()
 	int rc;
 	struct maildir_tmpcreate_info createInfo;
 	FILE *fp;
-	unsigned long i;
 	const char *q;
 
 	if (!index_dirty || !snapshots_enabled)
@@ -671,19 +661,18 @@ void snapshot_save()
 	}
 
 	fprintf(fp, "%d %lu %lu %lu", SNAPSHOTVERSION,
-		current_maildir_info.nmessages,
+		(unsigned long)current_maildir_info.msgs.size(),
 		current_maildir_info.uidv,
 		current_maildir_info.nextuid);
 	if (snapshot_cur)
 		fprintf(fp, ":%s", strrchr(snapshot_cur, '/')+1);
 	fprintf(fp, "\n");
 
-	for (i=0; i<current_maildir_info.nmessages; i++)
+	for (auto &p:current_maildir_info.msgs)
 	{
-		struct imapscanmessageinfo *p=current_maildir_info.msgs + i;
-		q=strrchr(p->filename, MDIRSEP[0]);
+		q=strrchr(p.filename, MDIRSEP[0]);
 
-		fprintf(fp, "%lu:%s\n", p->uid, q ? q+1:"");
+		fprintf(fp, "%lu:%s\n", p.uid, q ? q+1:"");
 	}
 
 	if (keywords())
