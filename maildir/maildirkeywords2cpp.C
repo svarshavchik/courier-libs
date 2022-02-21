@@ -283,6 +283,18 @@ void mail::keywords::read_keywords_from_file(
 		if (s.empty())
 			break;
 
+		if (libmail_kwVerbotten)
+			std::transform(
+				s.begin(),
+				s.end(),
+				s.begin(),
+				[]
+				(char c)
+				{
+					if (strchr(libmail_kwVerbotten, c))
+						c='_';
+					return c;
+				});
 		keyword_index.push_back(s);
 	}
 
@@ -594,6 +606,19 @@ bool scan_updates(
 
 		while (std::getline(i, keyword))
 		{
+			if (libmail_kwVerbotten)
+				std::transform(
+					keyword.begin(),
+					keyword.end(),
+					keyword.begin(),
+					[]
+					(char c)
+					{
+						if (strchr(libmail_kwVerbotten,
+							   c))
+							c='_';
+						return c;
+					});
 			if (!keyword.empty())
 				status.second.keywords.insert(keyword);
 		}
