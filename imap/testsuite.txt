@@ -1063,8 +1063,8 @@
 000933 * OK [PERMANENTFLAGS (-Label1 -Label2 -Label3 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
 000934 * 4 FETCH (FLAGS (-Label1 -Label2 -Label3))
 000935 P027 OK STORE completed.
-000936 * FLAGS (-Label4 -Label1 -Label2 -Label3 \Draft \Answered \Flagged \Deleted \Seen \Recent)
-000937 * OK [PERMANENTFLAGS (-Label4 -Label1 -Label2 -Label3 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+000936 * FLAGS (-Label1 -Label2 -Label3 -Label4 \Draft \Answered \Flagged \Deleted \Seen \Recent)
+000937 * OK [PERMANENTFLAGS (-Label1 -Label2 -Label3 -Label4 \* \Draft \Answered \Flagged \Deleted \Seen)] Limited
 000938 * 4 FETCH (FLAGS (-Label1 -Label2 -Label3 -Label4))
 000939 P028 OK STORE completed.
 000940 * BYE Courier-IMAP server shutting down

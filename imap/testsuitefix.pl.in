@@ -1,6 +1,6 @@
 #! @PERL@
 #
-# Copyright 2000-2001 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2022 Double Precision, Inc.  See COPYING for
 # distribution information.
 #
 # Ok, the output of LIST is given in filesystem order, so fix that by
@@ -10,6 +10,18 @@
 
 $n=0;
 
+sub sortflags {
+    my ($n)=@_;
+
+    my $sp="";
+
+    $sp=" " if $n =~ s/\s+$//;
+
+    my @w = grep { $_ ne ""} split(/\s+/, $n);
+
+    return join(" ", sort @w) . $sp;
+}
+
 while (<>)
 {
     s/UIDVALIDITY \d+/UIDVALIDITY/;
@@ -18,6 +30,7 @@ while (<>)
     s/\[APPENDUID.*\] //;
     s/^\* ADD \"UID=.*/* ADD UID/;
     s/^\* COPY \d+ \"NEWUID=.*/* COPY NEWUID/;
+    s/^(\* (\d+ FETCH \()?FLAGS \(|\* OK \[PERMANENTFLAGS \()([^\\\)]+)/$1 . sortflags($3)/e;
     printf("%06d %s", $n, $_);
     ++$n unless $_ =~ /^\* (LIST|LSUB|ENABLED)/ || $_ =~ /Options enabled/;
 }
