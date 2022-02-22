@@ -22,6 +22,14 @@ sub sortflags {
     return join(" ", sort @w) . $sp;
 }
 
+sub sortflags2 {
+    my ($n)=@_;
+
+    my @w = split(/,/,$n);
+
+    return join(",", sort @w);
+}
+
 while (<>)
 {
     s/UIDVALIDITY \d+/UIDVALIDITY/;
@@ -31,6 +39,8 @@ while (<>)
     s/^\* ADD \"UID=.*/* ADD UID/;
     s/^\* COPY \d+ \"NEWUID=.*/* COPY NEWUID/;
     s/^(\* (\d+ FETCH \()?FLAGS \(|\* OK \[PERMANENTFLAGS \()([^\\\)]+)/$1 . sortflags($3)/e;
+    s/^(\* FETCH \d+ .*"[-+]?KEYWORDS=)([^"]+)/$1 . sortflags2($2)/e;
+
     printf("%06d %s", $n, $_);
     ++$n unless $_ =~ /^\* (LIST|LSUB|ENABLED)/ || $_ =~ /Options enabled/;
 }
