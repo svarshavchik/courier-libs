@@ -217,8 +217,8 @@ check-am:
 	@chmod +x testsuitefix.pl
 	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
 	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
-	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
-	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
+	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
+	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		IMAP_USELOCKS=1; export IMAP_USELOCKS; \
 		LC_ALL=C; export LC_ALL; \
@@ -230,7 +230,7 @@ check-am:
 		LC_ALL=C; export LC_ALL; \
 		rm -f confmdmemleak; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
-		@SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
+		export PERL=@PERL@; @SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
 
 	rm -f confmderror.txt
 	rm -rf confmdtest
@@ -241,4 +241,4 @@ testsuite-imap:
 
 testsuite-smap:
 	@chmod +x testsuitefix.pl
-	@LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort
+	@LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort

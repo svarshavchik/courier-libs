@@ -688,6 +688,12 @@ DELETE INBOX subdir
 CREATE INBOX Trash
 MOVE 1 "" INBOX Trash
 OPEN INBOX Trash
-STORE 1 "INTERNALDATE=01 Jan 2022 09:00:00 -0500"
+STORE 1 "INTERNALDATE=10 Jan 2022 09:00:00 -0500"
+STORE 1 +KEYWORDS=-Label1
+STORE 1 +KEYWORDS=-Label2
 LOGOUT
 EOF
+
+f="`echo confmdtest/.Trash/cur/*`"
+
+$PERL -e "use POSIX qw(strftime); print strftime(\"%m/%Y\\n\", localtime [stat('$f')]->[9])"

@@ -2097,5 +2097,10 @@
 002091 * EXISTS 1
 002092 +OK Folder opened
 002093 +OK Folder status updated
-002094 * BYE Courier-SMAP server shutting down
-002095 +OK LOGOUT completed
+002094 * FETCH 1 "KEYWORDS=-Label1"
+002095 +OK Folder status updated
+002096 * FETCH 1 "KEYWORDS=-Label1,-Label2"
+002097 +OK Folder status updated
+002098 * BYE Courier-SMAP server shutting down
+002099 +OK LOGOUT completed
+002100 01/2022
