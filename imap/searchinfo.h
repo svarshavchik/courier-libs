@@ -102,7 +102,7 @@ struct searchinfo {
 
 	mail::Search sei;	/* Used when searching */
 
-	struct libmail_keywordEntry *ke=nullptr;
+	bool search_keyword=false;
 	} ;
 
 class contentsearch {

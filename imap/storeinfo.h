@@ -2,26 +2,29 @@
 #define	storeinfo_h
 
 /*
-** Copyright 1998 - 2010 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
 #include	"imaptoken.h"
+#include	"imapscanclient.h"
 #include	"numlib/numlib.h"
+
+#include	<vector>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct storeinfo {
-	int plusminus;
-	int silent;
+	int plusminus=0;
+	int silent=0;
 	struct imapflags flags;
-	struct libmail_kwMessage *keywords;
-	} ;
+	mail::keywords::list keywords;
+} ;
 
-int storeinfo_init(struct storeinfo *);
-int do_store(unsigned long, int, void *);
+bool storeinfo_init(struct storeinfo &);
+int do_store(unsigned long, int, storeinfo *);
 
 int do_copy_message(unsigned long, int, void *);
 int do_copy_quota_calc(unsigned long, int, void *);

@@ -60,6 +60,8 @@
 #endif
 #endif
 
+#include <fstream>
+#include <sstream>
 
 extern "C" int keywords();
 
@@ -78,10 +80,10 @@ extern char *current_mailbox;
 extern imapscaninfo current_maildir_info;
 extern char *readline(unsigned i, FILE *);
 
-static char *snapshot_dir; /* Directory with snapshots */
+static std::string snapshot_dir; /* Directory with snapshots */
 
-static char *snapshot_last; /* Last snapshot */
-static char *snapshot_cur;  /* Current snapshot */
+static std::string snapshot_last; /* Last snapshot */
+static std::string snapshot_cur;  /* Current snapshot */
 
 static int index_dirty;
 static int snapshots_enabled;
@@ -138,7 +140,7 @@ static void delete_snapshot(struct snapshot_list *snn)
 {
 	std::string n;
 
-	n.reserve(strlen(snapshot_dir)+snn->filename.size()+1);
+	n.reserve(snapshot_dir.size()+snn->filename.size()+1);
 
 	n=snapshot_dir;
 	n+="/";
@@ -151,8 +153,8 @@ static void delete_snapshot(struct snapshot_list *snn)
 ** Restore a snapshot
 */
 
-static int restore_snapshot2(const char *snapshot_dir,
-			     FILE *fp,
+static int restore_snapshot2(const std::string &snapshot_dir,
+			     std::istream &snapshot_fp,
 			     imapscaninfo *new_index);
 
 /*
@@ -160,41 +162,40 @@ static int restore_snapshot2(const char *snapshot_dir,
 ** new folder index list.
 */
 
-static int restore_snapshot(const char *dir, FILE *snapshot_fp,
-			    char **last_snapshot)
+static int restore_snapshot(const std::string &dir, std::istream &snapshot_fp,
+			    std::string &last_snapshot)
 {
 	int format;
 	unsigned long s_nmessages, s_uidv, s_nextuid;
-	char *p;
-	char *buf;
 	imapscaninfo new_index;
 
-	if ((buf=readline(0, snapshot_fp)) == NULL)
+	std::string buf;
+
+	if (!std::getline(snapshot_fp, buf))
 		return 0;
 
-	p=strchr(buf, ':');
-	if (p)
-		*p++=0;
+	auto p=buf.find(':');
+	if (p == buf.npos)
+		p=buf.size();
 
-	*last_snapshot=NULL;
+	last_snapshot.clear();
 
-	if (sscanf(buf, "%d %lu %lu %lu", &format, &s_nmessages, &s_uidv,
-		   &s_nextuid) != 4 || format != SNAPSHOTVERSION)
+	format=0;
+
+	if (!(std::istringstream{buf.substr(0, p)}
+				>> format >> s_nmessages >> s_uidv >> s_nextuid)
+	|| format != SNAPSHOTVERSION)
 		return 0; /* Don't recognize the header */
 
 	/* Save the previous snapshot ID */
 
-	if (p)
+	if (p < buf.size())
 	{
-		*last_snapshot=(char *)malloc(strlen(dir)+strlen(p)+2);
+		last_snapshot.reserve(dir.size()+buf.size()-p+4);
 
-		if (!last_snapshot)
-		{
-			write_error_exit(0);
-			return 0;
-		}
-
-		strcat(strcat(strcpy(*last_snapshot, dir), "/"), p);
+		last_snapshot=dir;
+		last_snapshot += "/";
+		last_snapshot += buf.substr(p);
 	}
 
 	new_index.msgs.resize(s_nmessages);
@@ -208,11 +209,7 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 		return 1;
 	}
 
-	if (*last_snapshot)
-	{
-		free(*last_snapshot);
-		*last_snapshot=0;
-	}
+	last_snapshot.clear();
 
 	return 0;
 }
@@ -222,49 +219,35 @@ static int restore_snapshot(const char *dir, FILE *snapshot_fp,
 ** index from the combination.
 */
 
-static int restore_snapshot2(const char *snapshot_dir,
-			     FILE *fp,
+static int restore_snapshot2(const std::string &snapshot_dir,
+			     std::istream &fp,
 			     imapscaninfo *new_index)
 {
-	char *p=(char *)malloc(strlen(snapshot_dir) + sizeof("/../" IMAPDB));
-	FILE *courierimapuiddb;
 	int version;
 	unsigned long uidv;
 	unsigned long nextuid;
-	char *uid_line;
+	std::string uid_line;
 	unsigned long uid=0;
 
-	if (!p)
-	{
-		write_error_exit(0);
-		return 0;
-	}
-
-	strcat(strcpy(p, snapshot_dir), "/../" IMAPDB);
-
-	courierimapuiddb=fopen(p, "r");
-	free(p);
+	std::ifstream courierimapuiddb{snapshot_dir + "/../" + IMAPDB};
 
 	if (!courierimapuiddb)
 		return 0; /* Can't open the uiddb file, no dice */
 
-	if ((p=readline(0, courierimapuiddb)) == NULL ||
-	    sscanf(p, "%d %lu %lu", &version, &uidv, &nextuid) != 3 ||
+	version=0;
+	if (!std::getline(courierimapuiddb, uid_line) ||
+	    !(std::istringstream{uid_line} >> version >> uidv >> nextuid) ||
 	    version != IMAPDBVERSION /* Do not recognize the uiddb file */
 
 	    || uidv != new_index->uidv /* Something major happened, abort */ )
 	{
-		fclose(courierimapuiddb);
 		return 0;
 	}
 
-	uid_line=readline(0, courierimapuiddb);
-
-	if (uid_line)
+	if (std::getline(courierimapuiddb, uid_line))
 	{
-		if (sscanf(uid_line, "%lu", &uid) != 1)
+		if (!std::istringstream{uid_line} >> uid)
 		{
-			fclose(courierimapuiddb);
 			return 0;
 		}
 	}
@@ -277,15 +260,21 @@ static int restore_snapshot2(const char *snapshot_dir,
 	for (auto &msg:new_index->msgs)
 	{
 		unsigned long s_uid;
-		char flag_buf[128];
+		std::string flag_buf;
 
-		p=fgets(flag_buf, sizeof(flag_buf)-1, fp);
+		size_t p;
 
-		if (p == NULL || (p=strchr(p, '\n')) == NULL ||
-		    (*p = 0, sscanf(flag_buf, "%lu", &s_uid)) != 1 ||
-		    (p=strchr(flag_buf, ':')) == NULL) /* Corrupted file */
+		if (!std::getline(fp, flag_buf) ||
+		    !(std::istringstream{flag_buf} >> s_uid))
+			/* Corrupted file */
+
 		{
-			fclose(courierimapuiddb);
+			return 0;
+		}
+
+		if ((p=flag_buf.find(':')) == uid_line.npos)
+		{
+			/* Corrupted file */
 			return 0;
 		}
 
@@ -298,38 +287,30 @@ static int restore_snapshot2(const char *snapshot_dir,
 		** noop() processing, after the snapshot is restored.
 		*/
 
-		while (uid_line && uid <= s_uid)
+		while (courierimapuiddb && uid <= s_uid)
 		{
+			size_t uid_line_pos;
+
 			if (uid == s_uid &&
-			    (uid_line=strchr(uid_line, ' ')) != NULL)
+			    (uid_line_pos=uid_line.find(' ')) != uid_line.npos)
 				/* Jackpot */
 			{
-				msg.filename.reserve(strlen(uid_line)+
-						     strlen(flag_buf)+2);
+				msg.filename=uid_line.substr(uid_line_pos+1);
 
-				msg.filename=uid_line+1;
-
-				if (p)
-				{
-					msg.filename += MDIRSEP;
-					msg.filename += p+1;
-				}
+				msg.filename += MDIRSEP;
+				msg.filename += flag_buf.substr(p+1);
 			}
 
-			uid_line=readline(0, courierimapuiddb);
-
-			if (uid_line)
+			if (std::getline(courierimapuiddb, uid_line))
 			{
-				if (sscanf(uid_line, "%lu", &uid) != 1)
+				if (!std::istringstream{uid_line} >> uid)
 				{
-					fclose(courierimapuiddb);
 					return 0;
 				}
 			}
 		}
 	}
 
-	fclose(courierimapuiddb);
 	if (keywords())
 		imapscan_restoreKeywordSnapshot(fp, new_index);
 	return 1;
@@ -367,74 +348,50 @@ int snapshot_init(const char *folder, const char *snapshot)
 	struct dirent *de;
 	struct snapshot_list *snn, **ptr;
 	int cnt;
-	char *new_dir;
+	std::string new_dir;
 	int rc=0;
-	char *new_snapshot_cur=NULL;
-	char *new_snapshot_last=NULL;
+	std::string new_snapshot_cur;
+	std::string new_snapshot_last;
 
-	if ((new_dir=(char *)malloc(strlen(folder)+sizeof("/" SNAPSHOTDIR)))
-	    == NULL)
-	{
-		write_error_exit(0);
-		return rc;
-	}
+	new_dir=folder;
+	new_dir += "/";
+	new_dir += SNAPSHOTDIR;
 
-	strcat(strcpy(new_dir, folder), "/" SNAPSHOTDIR);
-	mkdir(new_dir, 0755); /* Create, if doesn't exist */
+	mkdir(new_dir.c_str(), 0755); /* Create, if doesn't exist */
 
 	if (snapshot)
 	{
-		FILE *fp;
-
 		if (*snapshot == 0 || strchr(snapshot, '/') ||
 		    *snapshot == '.') /* Monkey business */
 		{
-			free(new_dir);
 			return 0;
 		}
 
-		new_snapshot_cur=(char *)malloc(strlen(new_dir) +
-					strlen(snapshot) + 2);
+		new_snapshot_cur.reserve(new_dir.size() +
+					 strlen(snapshot) + 2);
 
-		if (!new_snapshot_cur)
-		{
-			free(new_dir);
-			write_error_exit(0);
-			return rc;
-		}
+		new_snapshot_cur=new_dir;
+		new_snapshot_cur += "/";
+		new_snapshot_cur += snapshot;
 
-		strcat(strcat(strcpy(new_snapshot_cur, new_dir), "/"),
-		       snapshot);
+		std::ifstream fp{new_snapshot_cur};
 
-		if ((fp=fopen(new_snapshot_cur, "r")) != NULL &&
-		    restore_snapshot(new_dir, fp, &new_snapshot_last))
+		if (fp && restore_snapshot(new_dir, fp, new_snapshot_last))
 		{
 			set_time(new_snapshot_cur, time(NULL));
 			rc=1; /* We're good to go.  Finish everything else */
 		}
 
-		if (fp)
-		{
-			fclose(fp);
-			fp=NULL;
-		}
+		fp.close();
 
 		if (!rc) /* Couldn't get the snapshot, abort */
 		{
-			free(new_snapshot_cur);
-			free(new_dir);
 			return 0;
 		}
 	}
 
-	if (snapshot_dir) free(snapshot_dir);
-	if (snapshot_last) free(snapshot_last);
-	if (snapshot_cur) free(snapshot_cur);
-
-	snapshot_dir=NULL;
 	snapshot_last=new_snapshot_last;
 	snapshot_cur=new_snapshot_cur;
-
 	snapshot_dir=new_dir;
 
 	index_dirty=1;
@@ -443,50 +400,38 @@ int snapshot_init(const char *folder, const char *snapshot)
 
 	/* Step 1, compile a list of snapshots, sorted in mtime order */
 
-	dirp=opendir(snapshot_dir);
+	dirp=opendir(snapshot_dir.c_str());
 
 	while (dirp && (de=readdir(dirp)) != NULL)
 	{
-		FILE *fp;
 		struct stat stat_buf;
-
-		char *n;
 
 		if (de->d_name[0] == '.') continue;
 
-		n=(char *)malloc(strlen(snapshot_dir)+strlen(de->d_name)+2);
-		if (!n) break; /* Furrfu */
+		std::string n=snapshot_dir + "/" + de->d_name;
 
-		strcat(strcat(strcpy(n, snapshot_dir), "/"), de->d_name);
+		std::ifstream fp{n};
 
-		fp=fopen(n, "r");
-
-		if (fp)
+		if (fp.is_open())
 		{
-			char buf[1024];
+			std::string buf;
 
-			if (fgets(buf, sizeof(buf)-1, fp) != NULL &&
-			    fstat(fileno(fp), &stat_buf) == 0)
+			if (std::getline(fp, buf) &&
+			    stat(n.c_str(), &stat_buf) == 0)
 			{
-				char *p=strchr(buf, '\n');
-				int fmt;
+				int fmt=0;
 
-				if (p) *p=0;
-
-				p=strchr(buf, ':');
-
-				if (p)
-					*p++=0;
-
-
-				if (sscanf(buf, "%d", &fmt) == 1 &&
+				if ((std::istringstream{buf} >> fmt) &&
 				    fmt == SNAPSHOTVERSION)
 				{
 					snn=new snapshot_list;
 
 					snn->filename=de->d_name;
-					if (p)
-						snn->prev=p;
+
+					auto p=buf.find(':');
+
+					if (p < buf.npos)
+						snn->prev=buf.substr(p+1);
 
 					snn->mtime=stat_buf.st_mtime;
 
@@ -498,20 +443,17 @@ int snapshot_init(const char *folder, const char *snapshot)
 							break;
 					}
 
-					free(n);
-					n=NULL;
+					n.clear();
 
 					snn->next= *ptr;
 					*ptr=snn;
 				}
 
 			}
-			fclose(fp);
 		}
-		if (n)
+		if (!n.empty())
 		{
-			unlink(n);
-			free(n);
+			unlink(n.c_str());
 		}
 	}
 	if (dirp)
@@ -590,58 +532,41 @@ void snapshot_needed()
 
 void snapshot_save()
 {
-	int rc;
-	struct maildir_tmpcreate_info createInfo;
-	FILE *fp;
-	const char *q;
-
 	if (!index_dirty || !snapshots_enabled)
 		return;
 
 	index_dirty=0;
 
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.maildir=current_mailbox;
 	createInfo.uniq="snapshot";
-	createInfo.hostname=getenv("HOSTNAME");
-	createInfo.doordie=1;
 
-	if ((rc=maildir_tmpcreate_fd(&createInfo)) < 0)
+	const char *h=getenv("HOSTNAME");
+
+	if (h)
+		createInfo.hostname=h;
+	createInfo.doordie=true;
+
+	auto fp=createInfo.fp();
+
+	if (!fp)
 	{
 		perror("maildir_tmpcreate_fd");
 		return;
 	}
-	close(rc);
 
-	q=strrchr(createInfo.tmpname, '/'); /* Always there */
-
-	free(createInfo.newname);
-	createInfo.newname=(char *)malloc(strlen(snapshot_dir)+strlen(q)+2);
-
-	if (!createInfo.newname)
-	{
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
-		perror("malloc");
-		return;
-	}
-
-	strcat(strcat(strcpy(createInfo.newname, snapshot_dir), "/"), q);
-
-	if ((fp=fopen(createInfo.tmpname, "w")) == NULL)
-	{
-		perror(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
-		return;
-	}
+	createInfo.newname=snapshot_dir +
+		createInfo.tmpname.substr(createInfo.tmpname.rfind('/'));
 
 	fprintf(fp, "%d %lu %lu %lu", SNAPSHOTVERSION,
 		(unsigned long)current_maildir_info.msgs.size(),
 		current_maildir_info.uidv,
 		current_maildir_info.nextuid);
-	if (snapshot_cur)
-		fprintf(fp, ":%s", strrchr(snapshot_cur, '/')+1);
+
+	if (!snapshot_cur.empty())
+		fprintf(fp, ":%s",
+			snapshot_cur.substr(snapshot_cur.rfind('/')+1).c_str());
 	fprintf(fp, "\n");
 
 	for (auto &p:current_maildir_info.msgs)
@@ -659,31 +584,26 @@ void snapshot_save()
 	if (fflush(fp) < 0 || ferror(fp) < 0)
 	{
 		fclose(fp);
-		perror(createInfo.tmpname);
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
+		perror(createInfo.tmpname.c_str());
+		unlink(createInfo.tmpname.c_str());
 		return;
 	}
 	fclose(fp);
-	if (rename(createInfo.tmpname, createInfo.newname) < 0)
+	if (rename(createInfo.tmpname.c_str(), createInfo.newname.c_str()) < 0)
 	{
-		perror(createInfo.tmpname);
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
+		perror(createInfo.tmpname.c_str());
+		unlink(createInfo.tmpname.c_str());
 		return;
 	}
-	if (snapshot_last)
+	if (!snapshot_last.empty())
 	{
-		unlink(snapshot_last); /* Obsolete snapshot */
-		free(snapshot_last);
+		unlink(snapshot_last.c_str()); /* Obsolete snapshot */
 	}
 
 	snapshot_last=snapshot_cur;
 	snapshot_cur=createInfo.newname;
-	createInfo.newname=NULL;
-	maildir_tmpcreate_free(&createInfo);
 
 	writes("* SNAPSHOT ");
-	smapword(strrchr(snapshot_cur, '/')+1);
+	smapword(snapshot_cur.substr(snapshot_cur.rfind('/')+1).c_str());
 	writes("\n");
 }

@@ -66,13 +66,14 @@ void contentsearch::search_internal(searchiter si,
 
 	/* Shortcuts for keyword-based searches */
 
-	if (si->type == search_msgkeyword && si->bs.empty() && si->ke)
+	if (si->type == search_msgkeyword && si->bs.empty() &&
+	    si->search_keyword)
 	{
 		search_byKeyword(searchlist.end(), si, charset, callback_func);
 	}
 	else if (si->type == search_and &&
 		 si->a->type == search_msgkeyword && si->a->bs.empty()
-		 && si->a->ke)
+		 && si->a->search_keyword)
 	{
 		search_byKeyword(si->b, si->a, charset, callback_func);
 	}
@@ -85,18 +86,32 @@ void contentsearch::search_byKeyword(searchiter tree,
 				     const std::string &charset,
 				     search_callback_t callback_func)
 {
-	struct libmail_kwMessageEntry *kme;
+	for (auto &msg:current_maildir_info.msgs)
+		msg.found_in_search=false;
 
-	for (kme=keyword->ke->firstMsg; kme; kme=kme->keywordNext)
+	current_maildir_info.keywords->messages(
+		keyword->as,
+		[&]
+		(const keyword_meta &meta)
+		{
+			current_maildir_info.msgs.at(meta.index)
+				.found_in_search=true;
+		}
+	);
+
+	for (size_t n=0; n<current_maildir_info.msgs.size(); n++)
 	{
-		unsigned long n=kme->libmail_kwMessagePtr->u.userNum;
+		if (!current_maildir_info.msgs[n].found_in_search)
+			continue;
+
 		if (tree==searchlist.end())
 		{
 			callback_func(n);
-			continue;
 		}
-
-		search_oneatatime(tree, n, charset, callback_func);
+		else
+		{
+			search_oneatatime(tree, n, charset, callback_func);
+		}
 	}
 }
 
@@ -310,7 +325,7 @@ static void fill_search_preparse(searchiter p)
 			struct imapflags flags;
 
 			memset(&flags, 0, sizeof(flags));
-			p->ke=NULL;
+			p->search_keyword=false;
 
 			if (get_flagname(p->as, &flags))
 			{
@@ -324,10 +339,7 @@ static void fill_search_preparse(searchiter p)
 		break;
 
 	case search_msgkeyword:
-		p->ke=NULL;
-		if (valid_keyword(p->as))
-			p->ke=libmail_kweFind(current_maildir_info.keywordList,
-					      p->as.c_str(), 0);
+		p->search_keyword=valid_keyword(p->as);
 		break;
 	default:
 		break;
@@ -369,22 +381,18 @@ static void fill_search_veryquick(searchiter p,
 
 	case search_msgkeyword:
 		p->value=0;
-		if (p->ke)
+		if (p->search_keyword)
 		{
-			struct libmail_kwMessage *km=
-				current_maildir_info.msgs[msgnum]
-				.keywordMsg;
-			struct libmail_kwMessageEntry *kme;
-
-			for (kme=km ? km->firstEntry:NULL;
-			     kme; kme=kme->next)
-				if (strcasecmp(keywordName(kme->
-							   libmail_keywordEntryPtr),
-					       keywordName(p->ke))==0)
+			current_maildir_info.msgs.at(
+				msgnum
+			).keywords.enumerate(
+				[&]
+				(const std::string &keyword)
 				{
-					p->value=1;
-					break;
-				}
+					if (mail::keywords::keywordeq{
+						}(keyword, p->as))
+						p->value=1;
+				});
 		}
 		break;
 	case search_messageset:

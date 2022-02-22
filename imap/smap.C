@@ -94,11 +94,6 @@ extern std::string compute_myrights(maildir::aclt_list &l,
 
 struct addRemoveKeywordInfo;
 
-extern int addRemoveKeywords(
-	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
-	struct storeinfo *storeinfo_s);
-extern int doAddRemoveKeywords(unsigned long, int, addRemoveKeywordInfo &arki);
-
 void snapshot_select(int);
 extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    imapscaninfo *i, unsigned long msgnum,
@@ -1162,11 +1157,11 @@ static void parseflags(char *q, struct imapflags *flags)
 	}
 }
 
-extern int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw);
-
-static void parsekeywords(char *q, struct libmail_kwMessage **msgp)
+static void parsekeywords(char *q, mail::keywords::list &list)
 {
 	char *p;
+
+	list.clear();
 
 	if ((q=strchr(q, '=')) == NULL)
 		return;
@@ -1186,7 +1181,8 @@ static void parsekeywords(char *q, struct libmail_kwMessage **msgp)
 			q++;
 		}
 
-		get_keyword(msgp, p);
+		if (*p)
+			list.insert(p);
 	}
 }
 
@@ -1221,28 +1217,31 @@ static int applymsgset( const std::function<int (unsigned long)> &callback)
 
 static void do_attrfetch(unsigned long n, int);
 
-static int applyflags(unsigned long n, struct storeinfo *si)
+static int applyflags(unsigned long n, struct storeinfo *si,
+		      bool is_keywords)
 {
 	int attrs;
-	struct libmail_kwMessage *newKw;
 
 	if (n >= current_maildir_info.msgs.size())
 		return 0;
 
-	attrs= si->keywords ? FETCH_KEYWORDS:FETCH_FLAGS;
+	attrs= is_keywords ? FETCH_KEYWORDS:FETCH_FLAGS;
 
 	if (!si->plusminus)
 	{
-		if (si->keywords == NULL) /* STORE FLAGS= */
-			si->keywords=current_maildir_info.msgs[n].keywordMsg;
+		if (!is_keywords) /* STORE FLAGS= */
+			si->keywords=
+				current_maildir_info.msgs[n].keywords
+				.keywords();
 		else /* STORE KEYWORDS= */
 			get_message_flags(&current_maildir_info.msgs.at(n), 0,
 					  &si->flags);
 	}
 
 	/* do_store may clobber si->keywords.  Punt */
+	// TODO
 
-	newKw=si->keywords;
+	auto newKw=si->keywords;
 	if (do_store(n+1, 0, si))
 	{
 		si->keywords=newKw;
@@ -1252,37 +1251,6 @@ static int applyflags(unsigned long n, struct storeinfo *si)
 
 	do_attrfetch(n, attrs);
 	return 0;
-}
-
-struct smapAddRemoveKeywordInfo {
-	struct storeinfo *si;
-	addRemoveKeywordInfo *storeVoidArg;
-};
-
-static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
-					 storeinfo *si);
-
-static int addRemoveSmapKeywords(struct storeinfo *si)
-{
-	return addRemoveKeywords(
-		[&]
-		(addRemoveKeywordInfo &arki)
-		{
-			return addRemoveSmapKeywordsCallback(
-				arki, si
-			);
-		}, si);
-}
-
-static int addRemoveSmapKeywordsCallback(addRemoveKeywordInfo &arki,
-					 storeinfo *si)
-{
-	return applymsgset(
-		[&]
-		(unsigned long n)
-		{
-			return doAddRemoveKeywords(n+1, 0, arki);
-		});
 }
 
 static void setdate(unsigned long n, time_t datestamp)
@@ -2013,24 +1981,19 @@ static void do_attrfetch(unsigned long n, int items)
 
 	if ((items & FETCH_KEYWORDS) && keywords())
 	{
-		struct libmail_kwMessageEntry *kme;
-
 		writes(" \"KEYWORDS=");
 
-		if (current_maildir_info.msgs[n].keywordMsg &&
-		    current_maildir_info.msgs[n].keywordMsg->firstEntry)
-		{
-			const char *p="";
+		const char *p="";
 
-			for (kme=current_maildir_info.msgs[n]
-				     .keywordMsg->firstEntry;
-			     kme; kme=kme->next)
+		current_maildir_info.msgs[n].keywords.enumerate(
+			[&]
+			(const std::string &kw)
 			{
 				writes(p);
 				p=",";
-				writes(keywordName(kme->libmail_keywordEntryPtr));
+				writes(kw.c_str());
 			}
-		}
+		);
 		writes("\"");
 	}
 
@@ -2242,26 +2205,15 @@ static void copieduid(unsigned long n, const std::string &newname)
 	writes("\"\n");
 }
 
-static int do_copyKeywords(struct libmail_kwMessage *msg,
-			   const char *destmailbox,
-			   const char *newname)
+static void do_copyKeywords(const mail::keywords::list &keywords,
+			    const std::string &destmailbox,
+			    const std::string &newname)
 {
-	char *tmpkname, *newkname;
+	if (keywords.empty())
+		return;
 
-	if (!msg || !msg->firstEntry)
-		return 0;
-
-	if (maildir_kwSave(destmailbox, newname,
-			   msg, &tmpkname, &newkname, 0))
-	{
-		perror("maildir_kwSave");
-		return -1;
-	}
-
-	rename(tmpkname, newkname);
-	free(tmpkname);
-	free(newkname);
-	return 0;
+	imapscan_updateKeywords(destmailbox, newname, keywords);
+	return;
 }
 
 static void fixnewfilename(std::string &filename)
@@ -2353,17 +2305,9 @@ static int do_copymsg(unsigned long n, void *voidptr)
 	}
 	fclose(fp);
 
-	if (do_copyKeywords(current_maildir_info.msgs.at(n).keywordMsg,
-			    cqinfo->destmailbox,
-			    strrchr(newname.c_str(), '/')+1))
-	{
-		unlink(tmpname.c_str());
-		fprintf(stderr,
-			"ERR: error copying keywords, "
-			"user=%s, errno=%d\n",
-			getenv("AUTHENTICATED"), errno);
-		return (-1);
-	}
+	do_copyKeywords(current_maildir_info.msgs.at(n).keywords.keywords(),
+			cqinfo->destmailbox,
+			strrchr(newname.c_str(), '/')+1);
 
 	current_maildir_info.msgs.at(n).copiedflag=1;
 
@@ -2399,18 +2343,9 @@ static int do_movemsg(unsigned long n, void *voidptr)
 			   filename.begin() + filename.rfind('/'),
 			   filename.end());
 
-	if (do_copyKeywords(current_maildir_info.msgs.at(n).keywordMsg,
-			    cqinfo->destmailbox,
-			    strrchr(newfilename.c_str(), '/')+1))
-	{
-		fprintf(stderr,
-			"ERR: error copying keywords, "
-			"user=%s, errno=%d\n",
-			getenv("AUTHENTICATED"), errno);
-
-		return -1;
-	}
-
+	do_copyKeywords(current_maildir_info.msgs.at(n).keywords.keywords(),
+			cqinfo->destmailbox,
+			strrchr(newfilename.c_str(), '/')+1);
 
 	if (maildir::movetmpnew(filename, newfilename) == 0)
 	{
@@ -3006,7 +2941,7 @@ void smap()
 	time_t add_internaldate=0;
 	char *add_notify=NULL;
 	unsigned add_rcpt_count=0;
-	struct libmail_kwMessage *addKeywords=NULL;
+	mail::keywords::list addKeywords;
 
 	struct add_rcptlist *add_rcpt_list=NULL;
 
@@ -3154,18 +3089,10 @@ void smap()
 				    keywords() && strchr(rights_buf,
 							 ACL_WRITE[0]))
 				{
-					if (addKeywords)
-						libmail_kwmDestroy(addKeywords);
-
-					addKeywords=libmail_kwmCreate();
-
-					if (addKeywords == NULL)
-					{
-						write_error_exit(0);
-					}
+					addKeywords.clear();
 
 					*(q=comma)='=';
-					parsekeywords(q, &addKeywords);
+					parsekeywords(q, addKeywords);
 					okmsg="KEYWORDS set";
 				}
 
@@ -3251,23 +3178,12 @@ void smap()
 					chmod(tmpname.c_str(), 0600);
 
 					if (!add_folder.empty() && n
-					    && addKeywords)
+					    && !addKeywords.empty())
 					{
-						if (maildir_kwSave(
-							    add_folder.c_str(),
-							    strrchr(newname.c_str(), '/')+1,
-							    addKeywords,
-							    &tmpKeywords,
-							    &newKeywords,
-							    0))
-						{
-							tmpKeywords=NULL;
-							newKeywords=NULL;
-							n=0;
-							perror("maildir_kwSave");
-						}
-						libmail_kwmDestroy(addKeywords);
-						addKeywords=NULL;
+						imapscan_updateKeywords(
+							add_folder,
+							strrchr(newname.c_str(), '/')+1,
+							addKeywords);
 					}
 
 					argvec=NULL;
@@ -3395,14 +3311,12 @@ void smap()
 			if (add_notify)
 				free(add_notify);
 
-			if (addKeywords)
-				libmail_kwmDestroy(addKeywords);
+			addKeywords.clear();
 
 			in_add=0;
 			add_from=NULL;
 			add_internaldate=0;
 			add_notify=NULL;
-			addKeywords=NULL;
 			add_rcpt_count=0;
 			if (!p)
 				continue; /* Just added a message */
@@ -4036,6 +3950,8 @@ void smap()
 			struct storeinfo si;
 			int dummy;
 
+			memset(&si.flags, 0, sizeof(si.flags));
+
 			p=markmsgset(&ptr, &dummy);
 
 			dummy=0;
@@ -4056,7 +3972,6 @@ void smap()
 
 				if (strncmp(p, "FLAGS=", 6) == 0)
 				{
-					memset(&si, 0, sizeof(si));
 					up(p);
 					parseflags(p, &si.flags);
 					if ((dummy=applymsgset(
@@ -4064,7 +3979,8 @@ void smap()
 						     (unsigned long n)
 						     {
 							     return applyflags(
-								     n, &si
+								     n, &si,
+								     false
 							     );
 						     })) != 0)
 						break;
@@ -4072,7 +3988,6 @@ void smap()
 				else if (strncmp(p, "+FLAGS=", 7) == 0 ||
 					 strncmp(p, "-FLAGS=", 7) == 0)
 				{
-					memset(&si, 0, sizeof(si));
 					up(p);
 					si.plusminus=p[0];
 					parseflags(p, &si.flags);
@@ -4081,7 +3996,8 @@ void smap()
 						     (unsigned long n)
 						     {
 							     return applyflags(
-								     n, &si
+								     n, &si,
+								     false
 							     );
 						     })) != 0)
 						break;
@@ -4089,25 +4005,15 @@ void smap()
 				else if (strncmp(p, "KEYWORDS=", 9) == 0 &&
 					 keywords())
 				{
-					struct libmail_kwMessage *kwm;
-
-					memset(&si, 0, sizeof(si));
-					kwm=si.keywords=libmail_kwmCreate();
-
-					if (!kwm)
-						write_error_exit(0);
-
-					parsekeywords(p, &si.keywords);
+					parsekeywords(p, si.keywords);
 					dummy=applymsgset(
 						[&]
 						(unsigned long n)
 						{
 							return applyflags(
-								n, &si
+								n, &si, true
 							);
 						});
-
-					libmail_kwmDestroy(kwm);
 
 					if (dummy != 0)
 						break;
@@ -4116,28 +4022,16 @@ void smap()
 					  strncmp(p, "-KEYWORDS=", 10) == 0) &&
 					 keywords())
 				{
-					memset(&si, 0, sizeof(si));
-					si.keywords=libmail_kwmCreate();
-
-					if (!si.keywords)
-						write_error_exit(0);
 					si.plusminus=p[0];
-					parsekeywords(p, &si.keywords);
+					parsekeywords(p, si.keywords);
 					dummy=applymsgset(
 						[&]
 						(unsigned long n)
 						{
 							return applyflags(
-								n, &si
+								n, &si, true
 							);
 						});
-
-					if (dummy == 0)
-						dummy=addRemoveSmapKeywords(&si);
-					libmail_kwmDestroy(si.keywords);
-
-					if (dummy != 0)
-						break;
 				}
 				else if (strncmp(p, "INTERNALDATE=", 13) == 0)
 				{

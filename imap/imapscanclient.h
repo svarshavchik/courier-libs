@@ -13,24 +13,39 @@
 */
 
 /*
+** Metadata associated with the message's keywords
+*/
+
+struct keyword_meta {
+
+	// Index of the keyword's message.
+
+	size_t index;
+
+	keyword_meta(size_t index) : index{index} {}
+};
+
+typedef mail::keywords::message<keyword_meta> keywords_t;
+
+/*
 ** Stuff we want to know about an individual message in the maildir.
 */
 
 struct imapscanmessageinfo {
 	unsigned long uid=0;	/* See RFC 2060 */
 	std::string filename;
-	struct libmail_kwMessage *keywordMsg=nullptr; /* If not NULL - keywords */
+
+	keywords_t keywords;
+
 	char recentflag=0;
 	char changedflags=0;	/* Set by imapscan_open */
 	char copiedflag=0;	/* This message was copied to another folder */
 
 	char storeflag=0;  /* Used by imap_addRemoveKeywords() */
 
-	/* When reading keywords, hash messages by filename */
-
-	struct imapscanmessageinfo *firstBucket=0, *nextBucket=0;
-
-	} ;
+	/* All messages found by the search. */
+	bool found_in_search=false;
+} ;
 
 /*
 ** Stuff we want to know about the maildir.
@@ -42,11 +57,10 @@ struct imapscaninfo_base {
 	unsigned long left_unseen=0;
 	unsigned long nextuid=0;
 
-	struct libmail_kwHashtable *keywordList; /* All defined keywords */
+	mail::keywords::hashtable<keyword_meta> keywords;
 
 	struct maildirwatch *watcher=nullptr;
 
-	imapscaninfo_base();
 	~imapscaninfo_base();
 };
 
@@ -92,11 +106,14 @@ int imapscan_openfile(const std::string &, imapscaninfo *, unsigned);
 struct libmail_kwMessage *imapscan_createKeyword(imapscaninfo *,
 					      unsigned long n);
 
-int imapscan_updateKeywords(const std::string &filename,
-			    struct libmail_kwMessage *newKeywords);
+void imapscan_updateKeywords(const std::string &filename,
+			     const mail::keywords::list &keywords);
+void imapscan_updateKeywords(const std::string &maildir,
+			     const std::string &filename,
+			     const mail::keywords::list &keywords);
 
-int imapscan_restoreKeywordSnapshot(FILE *, imapscaninfo *);
-int imapscan_saveKeywordSnapshot(FILE *fp, imapscaninfo *);
+void imapscan_restoreKeywordSnapshot(std::istream &, imapscaninfo *);
+void imapscan_saveKeywordSnapshot(FILE *, imapscaninfo *);
 
 int imapmaildirlock(imapscaninfo *scaninfo,
 		    const char *maildir,

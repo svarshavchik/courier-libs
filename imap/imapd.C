@@ -89,11 +89,14 @@
 #include	<algorithm>
 #include	<functional>
 #include	<vector>
+#include	<optional>
+#include	<tuple>
 
 #define KEYWORD_IMAPVERBOTTEN " (){%*\"\\]"
 #define KEYWORD_SMAPVERBOTTEN ","
 
 extern void fetchflags(unsigned long);
+extern void fetchflags_byuid(unsigned long);
 extern int do_fetch(unsigned long, int, fetchinfo *);
 extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
@@ -578,32 +581,22 @@ bool valid_keyword(const std::string &kw)
 	return true;
 }
 
-int get_keyword(struct libmail_kwMessage **kwPtr, const char *kw)
+bool get_flagsAndKeywords(imapflags &flags,
+			  mail::keywords::list &keywords)
 {
-	if (libmail_kwmSetName(current_maildir_info.keywordList, *kwPtr, kw) < 0)
-		write_error_exit(0);
-
-	return 0;
-}
-
-
-int get_flagsAndKeywords(struct imapflags *flags,
-			 struct libmail_kwMessage **kwPtr)
-{
-struct imaptoken *t;
+	struct imaptoken *t;
 
 	while ((t=nexttoken_nouc())->tokentype == IT_ATOM)
 	{
-		if (!get_flagname(t->tokenbuf, flags))
+		if (!get_flagname(t->tokenbuf, &flags))
 		{
 			if (!valid_keyword(t->tokenbuf))
-				return -1;
+				return false;
 
-			if (get_keyword(kwPtr, t->tokenbuf))
-				return -1;
+			keywords.insert(t->tokenbuf);
 		}
 	}
-	return (t->tokentype == IT_RPAREN ? 0:-1);
+	return t->tokentype == IT_RPAREN;
 }
 
 void get_message_flags(
@@ -807,14 +800,13 @@ void set_time(const std::string &tmpname, time_t timestamp)
 #endif
 }
 
-static int store_mailbox(const char *tag, const char *mailbox,
-			 struct	imapflags *flags,
-			 struct libmail_kwMessage *keywords,
-			 time_t	timestamp,
-			 struct imaptoken *curtoken,
-			 unsigned long *new_uidv,
-			 unsigned long *new_uid,
-			 int *utf8_error)
+static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
+	const char *tag, const char *mailbox,
+	struct	imapflags *flags,
+	const mail::keywords::list &keywords,
+	time_t	timestamp,
+	struct imaptoken *curtoken,
+	int *utf8_error)
 {
 	unsigned long nbytes=curtoken->tokennum;
 	std::string tmpname, newname;
@@ -835,7 +827,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 	{
 		writes(tag);
 		writes(nowrite);
-		return -1;
+		return std::nullopt;
 	}
 
 	writes("+ OK\r\n");
@@ -903,7 +895,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		unlink(tmpname.c_str());
 		writes(tag);
 		writes(errmsg);
-		return (-1);
+		return std::nullopt;
 	}
 
 	nbytes=ftell(fp);
@@ -915,7 +907,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		unlink(tmpname.c_str());
 		writes(tag);
 		writes(nowrite);
-		return (-1);
+		return std::nullopt;
 	}
 
 	fclose(fp);
@@ -932,7 +924,7 @@ static int store_mailbox(const char *tag, const char *mailbox,
 			free(p);
 			writes(tag);
 			writes(" NO [ALERT] You exceeded your mail quota.\r\n");
-			return (-1);
+			return std::nullopt;
 		}
 		maildir_quota_add_end(&quotainfo, nbytes, 1);
 	}
@@ -943,68 +935,51 @@ static int store_mailbox(const char *tag, const char *mailbox,
 		writes(tag);
 		writes(" NO [ALERT] Unable to send E-mail message.\r\n");
 		free(p);
-		return (-1);
+		return std::nullopt;
 	}
 
+	imapscaninfo new_maildir_info;
+	struct uidplus_info new_uidplus_info;
+	int rc;
+
+	memset(&new_uidplus_info, 0, sizeof(new_uidplus_info));
+
+	std::vector<char> tmpname_buf;
+
+	tmpname_buf.reserve(tmpname.size()+1);
+	tmpname_buf.insert(tmpname_buf.end(),
+			   tmpname.begin(),
+			   tmpname.end());
+	tmpname_buf.push_back(0);
+	new_uidplus_info.tmpfilename=&tmpname_buf[0];
+	new_uidplus_info.curfilename=p;
+	new_uidplus_info.mtime=timestamp;
+
+	if (!keywords.empty())
 	{
-		imapscaninfo new_maildir_info;
-		struct uidplus_info new_uidplus_info;
-		int rc;
+		imapscan_updateKeywords(mailbox,
+					strrchr(p, '/')+1,
+					keywords);
+	}
 
-		memset(&new_uidplus_info, 0, sizeof(new_uidplus_info));
 
-		std::vector<char> tmpname_buf;
+	rc=imapscan_maildir(&new_maildir_info, mailbox, 0, 0,
+			    &new_uidplus_info);
 
-		tmpname_buf.reserve(tmpname.size()+1);
-		tmpname_buf.insert(tmpname_buf.end(),
-				   tmpname.begin(),
-				   tmpname.end());
-		tmpname_buf.push_back(0);
-		new_uidplus_info.tmpfilename=&tmpname_buf[0];
-		new_uidplus_info.curfilename=p;
-		new_uidplus_info.mtime=timestamp;
-
-		if (keywords && keywords->firstEntry)
-		{
-			if (maildir_kwSave(mailbox,
-					   strrchr(p, '/')+1,
-					   keywords,
-					   &new_uidplus_info.tmpkeywords,
-					   &new_uidplus_info.newkeywords,
-					   0))
-			{
-				unlink(tmpname.c_str());
-				writes(tag);
-				writes(" NO [ALERT] ");
-				writes(strerror(errno));
-				free(p);
-				return (-1);
-			}
-		}
-
-		rc=imapscan_maildir(&new_maildir_info, mailbox, 0, 0,
-				    &new_uidplus_info);
-
-		if (new_uidplus_info.tmpkeywords)
-			free(new_uidplus_info.tmpkeywords);
-
-		if (new_uidplus_info.newkeywords)
-			free(new_uidplus_info.newkeywords);
-
-		if (rc)
-		{
-			free(p);
-			writes(tag);
-			writes(nowrite);
-			return -1;
-		}
-
-		*new_uidv=new_maildir_info.uidv;
-		*new_uid=new_uidplus_info.uid;
+	if (rc)
+	{
+		free(p);
+		writes(tag);
+		writes(nowrite);
+		return std::nullopt;
 	}
 
 	free(p);
-	return (0);
+
+	return std::tuple<unsigned long, unsigned long>(
+		new_maildir_info.uidv,
+		new_uidplus_info.uid
+	);
 }
 
 
@@ -1173,9 +1148,7 @@ static bool do_msgset(const char *msgset,
 
 /** Show currently defined flags and keywords **/
 
-static int write_keyword_name(struct libmail_keywordEntry *, void *);
-
-static void mailboxflags(int ro)
+static void mailboxflags(int ro, const mail::keywords::list &keywordlist)
 {
 #if SMAP
 	if (smapflag)
@@ -1184,12 +1157,10 @@ static void mailboxflags(int ro)
 
 	writes("* FLAGS (");
 
-	if (current_maildir_info.keywordList)
+	for (const auto &kw:keywordlist)
 	{
-		void (*writefunc)(const char *)=writes;
-
-		libmail_kwEnumerate(current_maildir_info.keywordList,
-				    &write_keyword_name, &writefunc);
+		writes(kw.c_str());
+		writes(" ");
 	}
 
 	writes("\\Draft \\Answered \\Flagged"
@@ -1203,14 +1174,10 @@ static void mailboxflags(int ro)
 	}
 	else
 	{
-		if (current_maildir_info.keywordList)
+		for (const auto &kw:keywordlist)
 		{
-			void (*writefunc)(const char *)=writes;
-
-			libmail_kwEnumerate(current_maildir_info
-					    .keywordList,
-					    &write_keyword_name,
-					    &writefunc);
+			writes(kw.c_str());
+			writes(" ");
 		}
 
 		if (keywords())
@@ -1220,13 +1187,10 @@ static void mailboxflags(int ro)
 	}
 }
 
-static int write_keyword_name(struct libmail_keywordEntry *kw, void *dummy)
+void mailboxflags(int ro)
 {
-	void (**writefunc)(const char *)=(void (**)(const char *))dummy;
-
-	(**writefunc)(keywordName(kw));
-	(**writefunc)(" ");
-	return 0;
+	mailboxflags(ro,
+		     current_maildir_info.keywords->enumerate_keywords());
 }
 
 /****************************************************************************/
@@ -1270,29 +1234,11 @@ unsigned long i,j;
 
 /****************************************************************************/
 
-struct noopKeywordUpdateInfo {
-	struct libmail_kwHashtable *keywordList;
-	struct libmail_kwMessage *messagePtr;
-};
-
-static int noopAddKeyword(struct libmail_keywordEntry *ke, void *vp)
-{
-	struct noopKeywordUpdateInfo *kui=
-		(struct noopKeywordUpdateInfo *)vp;
-
-	libmail_kwmSetName(kui->keywordList, kui->messagePtr, keywordName(ke));
-	/*
-	** ke originates from a different keyword namespace, so must use
-	** its name.
-	*/
-	return 0;
-}
-
 void doNoop(int real_noop)
 {
 	imapscaninfo new_maildir_info;
 	unsigned long i, j;
-	int	needstats=0;
+	bool needstats=false;
 	unsigned long expunged;
 #if SMAP
 	unsigned long smap_expunge_count=0;
@@ -1301,9 +1247,8 @@ void doNoop(int real_noop)
 	unsigned long smap_last=0;
 	unsigned long smap_range=0;
 
-	int takeSnapshot=1;
+	bool takeSnapshot=true;
 #endif
-	struct noopKeywordUpdateInfo kui;
 
 	if (imapscan_maildir(&new_maildir_info, current_mailbox, 0,
 			     current_mailbox_ro, NULL))
@@ -1313,8 +1258,6 @@ void doNoop(int real_noop)
 	expunged=0;
 	for (i=0; i<current_maildir_info.msgs.size(); i++)
 	{
-		struct libmail_kwMessage *a, *b;
-
 		while (j < new_maildir_info.msgs.size() &&
 			new_maildir_info.msgs[j].uid <
 				current_maildir_info.msgs[i].uid)
@@ -1323,9 +1266,9 @@ void doNoop(int real_noop)
 
 			new_maildir_info.msgs[j].changedflags=1;
 			++j;
-			needstats=1;
+			needstats=true;
 #if SMAP
-			takeSnapshot=0;
+			takeSnapshot=false;
 #endif
 		}
 
@@ -1336,7 +1279,7 @@ void doNoop(int real_noop)
 #if SMAP
 			if (smapflag)
 			{
-				takeSnapshot=0;
+				takeSnapshot=false;
 
 				if (smap_expunge_count > 100)
 				{
@@ -1386,7 +1329,7 @@ void doNoop(int real_noop)
 				writes("* ");
 				writen(i+1-expunged);
 				writes(" EXPUNGE\r\n");
-				needstats=1;
+				needstats=true;
 			}
 
 			++expunged;
@@ -1395,17 +1338,14 @@ void doNoop(int real_noop)
 
 		/* Must be the same */
 
-		a=current_maildir_info.msgs[i].keywordMsg;
-		b=new_maildir_info.msgs[j].keywordMsg;
-
 		if (current_maildir_info.msgs[i].filename !=
 		    new_maildir_info.msgs[j].filename ||
-		    (a && !b) || (!a && b) ||
-		    (a && b && libmail_kwmCmp(a, b)))
+		    current_maildir_info.msgs[i].keywords.keywords() !=
+		    new_maildir_info.msgs[j].keywords.keywords())
 		{
 			new_maildir_info.msgs[j].changedflags=1;
 #if SMAP
-			takeSnapshot=0;
+			takeSnapshot=false;
 #endif
 		}
 		if (current_maildir_info.msgs[i].recentflag)
@@ -1436,53 +1376,53 @@ void doNoop(int real_noop)
 	{
 #if SMAP
 		if (smapflag)
-			takeSnapshot=0;
+			takeSnapshot=false;
 #endif
 		++j;
-		needstats=1;
+		needstats=true;
 	}
-
-	new_maildir_info.keywordList->keywordAddedRemoved=0;
-
 
 	/**********************************************************
 	 **
 	 ** current_maildir_info: existing keywords
 	 ** new_maildir_info: new keywords
 	 **
-	 ** Process new/deleted keywords as follows:
 	 */
 
-	/*
-	** 1. Make sure that the old keyword list includes any new keywords.
-	*/
+	mail::keywords::list all_keywords;
+	bool changed=false;
+	size_t n_new_keywords=0;
 
-	kui.keywordList=current_maildir_info.keywordList;
-	kui.messagePtr=libmail_kwmCreate();
+	// Get all existing keywords
 
-	if (!kui.messagePtr)
-		write_error_exit(0);
+	current_maildir_info.keywords->enumerate_keywords(
+		[&]
+		(const std::string &kw)
+		{
+			all_keywords.insert(kw);
+		});
 
-	current_maildir_info.keywordList->keywordAddedRemoved=0;
-	libmail_kwEnumerate(new_maildir_info.keywordList,
-			 noopAddKeyword, &kui);
+	// Enumerate the keywords in the new_maildir_info. Count them,
+	// and note if there are any new ones.
 
-	if (current_maildir_info.keywordList->keywordAddedRemoved)
-		mailboxflags(current_mailbox_ro);
-	libmail_kwmDestroy(kui.messagePtr);
+	new_maildir_info.keywords->enumerate_keywords(
+		[&]
+		(const std::string &kw)
+		{
+			if (all_keywords.insert(kw).second)
+				changed=true;
+			++n_new_keywords;
+		});
 
+	if (changed)
+		// We added more keywords
+		mailboxflags(current_mailbox_ro, all_keywords);
 
-	/*
-	** 2. Temporarily add all existing keywords to the new keyword list.
-	*/
+	// If the number of new keywords is different than the number of
+	// new and old keywords, it must mean that after all updates are
+	// sent we are going to end up deleting unused keywords.
 
-	kui.keywordList=new_maildir_info.keywordList;
-	kui.messagePtr=libmail_kwmCreate();
-
-	if (!kui.messagePtr)
-		write_error_exit(0);
-	libmail_kwEnumerate(current_maildir_info.keywordList,
-			 noopAddKeyword, &kui);
+	changed = n_new_keywords != all_keywords.size();
 
 	current_maildir_info=std::move(new_maildir_info);
 
@@ -1510,14 +1450,7 @@ void doNoop(int real_noop)
 				fetchflags(j);
 		}
 
-	/*
-	** After sending changed flags to the client, see if any keywords
-	** have gone away.
-	*/
-
-	current_maildir_info.keywordList->keywordAddedRemoved=0;
-	libmail_kwmDestroy(kui.messagePtr);
-	if (current_maildir_info.keywordList->keywordAddedRemoved)
+	if (changed)
 		mailboxflags(current_mailbox_ro);
 }
 
@@ -2073,244 +2006,6 @@ void dirsync(std::string folder)
 	}
 
 #endif
-}
-
-/*
-** Keyword updates for +FLAGS and -FLAGS
-*/
-struct addRemoveKeywordInfo {
-	struct libmail_kwGeneric kwg;
-	struct storeinfo *storeinfo;
-};
-
-static bool addRemoveKeywords2(
-	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
-	storeinfo *storeinfo_s,
-	bool &try_again);
-
-int addRemoveKeywords(
-	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
-	struct storeinfo *storeinfo_s)
-{
-	bool tryagain;
-
-	if (!keywords())
-		return 0;
-
-	if (current_mailbox_acl &&
-	    strchr(current_mailbox_acl, ACL_WRITE[0]) == NULL)
-		return 0; /* No permission */
-	do
-	{
-		if (!imapmaildirlock(&current_maildir_info,
-				     current_mailbox,
-				     [&]
-				     {
-					     return addRemoveKeywords2(
-						     callback_func,
-						     storeinfo_s,
-						     tryagain
-					     );
-				     }))
-			return -1;
-	} while (tryagain);
-
-	return 0;
-}
-
-int doAddRemoveKeywords(unsigned long, int, addRemoveKeywordInfo &arki);
-
-static bool addRemoveKeywords2(
-	const std::function<int (addRemoveKeywordInfo &)> &callback_func,
-	storeinfo *storeinfo_s,
-	bool &try_again)
-{
-	struct addRemoveKeywordInfo arki;
-	int rc;
-
-	try_again=false;
-
-	libmail_kwgInit(&arki.kwg);
-
-	arki.storeinfo=storeinfo_s;
-
-	rc=libmail_kwgReadMaildir(&arki.kwg, current_mailbox);
-
-	if (rc == 0)
-		rc= callback_func(arki);
-
-	if (rc < 0)
-	{
-		libmail_kwgDestroy(&arki.kwg);
-		return false;
-	}
-
-	if (rc > 0) /* Race */
-	{
-		libmail_kwgDestroy(&arki.kwg);
-		try_again=true;
-		return true;
-	}
-
-	libmail_kwgDestroy(&arki.kwg);
-	return true;
-}
-
-int doAddRemoveKeywords(unsigned long n, int uid,
-			struct addRemoveKeywordInfo &arki)
-{
-	struct libmail_kwGenericEntry *ge=
-		libmail_kwgFindByName(&arki.kwg,
-				      current_maildir_info.msgs.at(--n).filename.c_str());
-	char *tmpname=NULL, *newname=NULL;
-	struct stat stat_buf;
-	int rc;
-
-	if (!ge || ge->keywords == NULL)
-	{
-		if (arki.storeinfo->plusminus == '+')
-		{
-			rc=maildir_kwSave(current_mailbox,
-					  current_maildir_info.msgs[n].
-					  filename.c_str(),
-					  arki.storeinfo->keywords,
-					  &tmpname, &newname, 1);
-
-			if (rc < 0)
-				return -1;
-		}
-	}
-	else if (arki.storeinfo->plusminus == '+')
-	{
-		int flag=0;
-		struct libmail_kwMessageEntry *kme;
-
-		for (kme=arki.storeinfo->keywords->firstEntry;
-		     kme; kme=kme->next)
-		{
-			if ((rc=libmail_kwmSet(ge->keywords,
-					       kme->libmail_keywordEntryPtr))
-			    < 0)
-			{
-				write_error_exit(0);
-				return 0;
-			}
-
-			if (rc == 0)
-				flag=1;
-		}
-
-		if (flag)
-		{
-			rc=maildir_kwSave(current_mailbox,
-					  current_maildir_info.msgs[n].
-					  filename.c_str(),
-					  ge->keywords,
-					  &tmpname, &newname, 1);
-
-			if (rc < 0)
-				return -1;
-		}
-	}
-	else
-	{
-		int flag=0;
-		struct libmail_kwMessageEntry *kme;
-
-		for (kme=arki.storeinfo->keywords->firstEntry;
-		     kme; kme=kme->next)
-		{
-			struct libmail_keywordEntry *kwe;
-
-			if ((kwe=libmail_kweFind(&arki.kwg.kwHashTable,
-						 keywordName(kme->
-							     libmail_keywordEntryPtr),
-						 0)) != NULL &&
-
-			    libmail_kwmClear(ge->keywords, kwe) == 0)
-				flag=1;
-		}
-
-		if (flag)
-		{
-			rc=maildir_kwSave(current_mailbox,
-					  current_maildir_info.msgs.at(n).
-					  filename.c_str(),
-					  ge->keywords,
-					  &tmpname, &newname, 1);
-
-			if (rc < 0)
-				return -1;
-		}
-
-
-	}
-
-	if (tmpname)
-	{
-		current_maildir_info.msgs.at(n).changedflags=1;
-
-		if (link(tmpname, newname) < 0)
-		{
-			unlink(tmpname);
-			free(tmpname);
-			free(newname);
-
-			return (errno == EEXIST ? 1:-1);
-		}
-
-		if (stat(tmpname, &stat_buf) == 0 &&
-		    stat_buf.st_nlink == 2)
-		{
-			unlink(tmpname);
-			free(tmpname);
-			free(newname);
-			return 0;
-		}
-		unlink(tmpname);
-		free(tmpname);
-		free(newname);
-		return 1;
-	}
-
-	return 0;
-}
-
-/* IMAP interface to add/remove keyword */
-
-struct imap_addRemoveKeywordInfo {
-	char *msgset;
-	bool uid;
-};
-
-static int imap_addRemoveKeywords(imap_addRemoveKeywordInfo &i,
-				  addRemoveKeywordInfo &arki)
-{
-	unsigned long j;
-
-	for (j=0; j<current_maildir_info.msgs.size(); j++)
-		current_maildir_info.msgs[j].storeflag=0;
-
-	do_msgset(i.msgset,
-		  []
-		  (unsigned long n)
-		  {
-			  --n;
-			  current_maildir_info.msgs.at(n).storeflag=1;
-			  return true;
-		  }, i.uid);
-	for (j=0; j<current_maildir_info.msgs.size(); j++)
-	{
-		int rc;
-
-		if (!current_maildir_info.msgs[j].storeflag)
-			continue;
-
-		rc=doAddRemoveKeywords(j+1, i.uid, arki);
-		if (rc)
-			return rc;
-	}
-	return 0;
 }
 
 /*
@@ -3576,9 +3271,9 @@ static int append(const char *tag, const std::string &mailbox,
 {
 
 	struct	imapflags flags;
-	struct libmail_kwMessage *keywords;
+	mail::keywords::list keywords;
+
 	time_t	timestamp=0;
-	unsigned long new_uidv, new_uid;
 	char access_rights[8];
 	struct imaptoken *curtoken;
 	int need_rparen;
@@ -3619,14 +3314,11 @@ static int append(const char *tag, const std::string &mailbox,
 
 	curtoken=nexttoken_noparseliteral();
 	memset(&flags, 0, sizeof(flags));
-	if ((keywords=libmail_kwmCreate()) == NULL)
-		write_error_exit(0);
 
 	if (curtoken->tokentype == IT_LPAREN)
 	{
-		if (get_flagsAndKeywords(&flags, &keywords))
+		if (!get_flagsAndKeywords(flags, keywords))
 		{
-			libmail_kwmDestroy(keywords);
 			return (-1);
 		}
 		curtoken=nexttoken_noparseliteral();
@@ -3638,7 +3330,6 @@ static int append(const char *tag, const std::string &mailbox,
 	{
 		if (decode_date_time(curtoken->tokenbuf, &timestamp))
 		{
-			libmail_kwmDestroy(keywords);
 			return (-1);
 		}
 		curtoken=nexttoken_noparseliteral();
@@ -3656,15 +3347,12 @@ static int append(const char *tag, const std::string &mailbox,
 		curtoken=nexttoken();
 		if (curtoken->tokentype != IT_LPAREN)
 		{
-			libmail_kwmDestroy(keywords);
 			return (-1);
 		}
 
 		curtoken=nexttoken_noparseliteral();
 		if (curtoken->tokentype != IT_LITERAL8_STRING_START)
 		{
-			libmail_kwmDestroy(keywords);
-
 			/* Don't break the protocol level */
 			convert_literal_tokens(curtoken);
 			return (-1);
@@ -3673,8 +3361,6 @@ static int append(const char *tag, const std::string &mailbox,
 	}
 	else if (curtoken->tokentype != IT_LITERAL_STRING_START)
 	{
-		libmail_kwmDestroy(keywords);
-
 		/* Don't break the protocol level */
 		convert_literal_tokens(curtoken);
 		return (-1);
@@ -3682,17 +3368,19 @@ static int append(const char *tag, const std::string &mailbox,
 
 	acl_flags_adjust(access_rights, &flags);
 
-	if (store_mailbox(tag, path.c_str(), &flags,
-			  acl_flags_adjust(access_rights, &flags)
-			  ? NULL:keywords,
-			  timestamp,
-			  curtoken, &new_uidv, &new_uid, &utf8_error))
+	auto ret=store_mailbox(tag, path.c_str(), &flags,
+			       acl_flags_adjust(access_rights, &flags)
+			       ? mail::keywords::list{}:keywords,
+			       timestamp,
+			       curtoken, &utf8_error);
+
+	if (!ret)
 	{
-		libmail_kwmDestroy(keywords);
 		unread('\n');
 		return (0);
 	}
-	libmail_kwmDestroy(keywords);
+
+	auto &[new_uidv, new_uid] = *ret;
 
 	if (need_rparen)
 	{
@@ -5466,21 +5154,18 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "STORE") == 0)
 	{
-	char	*msgset;
-	struct storeinfo storeinfo_s;
+		char	*msgset;
+		storeinfo storeinfo_s;
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
 		msgset=my_strdup(curtoken->tokenbuf);
 
 		(void)nexttoken();
-		current_maildir_info.keywordList->keywordAddedRemoved=0;
 
-		if (storeinfo_init(&storeinfo_s) ||
+		if (!storeinfo_init(storeinfo_s) ||
 			currenttoken()->tokentype != IT_EOL)
 		{
-			if (storeinfo_s.keywords)
-				libmail_kwmDestroy(storeinfo_s.keywords);
 			free(msgset);
 			return (-1);
 		}
@@ -5489,8 +5174,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (current_mailbox_ro && storeinfo_s.flags.deleted)
 		{
-			if (storeinfo_s.keywords)
-				libmail_kwmDestroy(storeinfo_s.keywords);
 			free(msgset);
 			writes(tag);
 			writes(" NO Current box is selected READ-ONLY.\r\n");
@@ -5499,69 +5182,67 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		fetch_free_cache();
 
-		if (current_maildir_info.keywordList->keywordAddedRemoved)
+		mail::keywords::list all_keywords;
+
+		current_maildir_info.keywords->enumerate_keywords(
+			[&]
+			(const std::string &kw)
+			{
+				all_keywords.insert(kw);
+			});
+
+		bool has_new_keyword=false;
+
+		for (auto &ke:storeinfo_s.keywords)
+		{
+			if (all_keywords.insert(ke).second)
+				has_new_keyword=1;
+		};
+
+		if (has_new_keyword)
+			mailboxflags(current_mailbox_ro, all_keywords);
+
+		bool flag=do_msgset(
+			msgset,
+			[&]
+			(unsigned long n)
+			{
+				if (do_store(n, uid, &storeinfo_s) == 0)
+				{
+					--n;
+					if (n < current_maildir_info.msgs.size()
+					)
+					{
+						if (uid)
+							fetchflags_byuid(n);
+						else
+							fetchflags(n);
+					}
+					return true;
+				}
+				return false;
+			}, uid);
+		free(msgset);
+
+		size_t n=0;
+
+		current_maildir_info.keywords->enumerate_keywords(
+			[&]
+			(const std::string &kw)
+			{
+				++n;
+			});
+
+		if (n != all_keywords.size())
 			mailboxflags(current_mailbox_ro);
 
-		current_maildir_info.keywordList->keywordAddedRemoved=0;
-
-		if (!do_msgset(msgset,
-			       [&]
-			       (unsigned long n)
-			       {
-				       return do_store(n, uid, &storeinfo_s)
-					       == 0;
-			       }, uid))
+		if (!flag)
 		{
-			if (storeinfo_s.keywords)
-				libmail_kwmDestroy(storeinfo_s.keywords);
-			free(msgset);
-			if (current_maildir_info.keywordList
-			    ->keywordAddedRemoved)
-				mailboxflags(current_mailbox_ro);
-
 			writes(tag);
 			writes(" NO [ALERT] You exceeded your mail quota.\r\n");
 			return (0);
 		}
-		if (storeinfo_s.keywords)
-		{
-			struct imap_addRemoveKeywordInfo imapInfo;
 
-			switch (storeinfo_s.plusminus) {
-			case '+':
-			case '-':
-
-				imapInfo.msgset=msgset;
-				imapInfo.uid=uid;
-
-				if (!fastkeywords() &&
-				    addRemoveKeywords(
-					    [&]
-					    (addRemoveKeywordInfo &arki)
-					    {
-						    return imap_addRemoveKeywords(
-							    imapInfo, arki
-						    );
-					    },
-					    &storeinfo_s))
-				{
-					libmail_kwmDestroy(storeinfo_s.keywords);
-					free(msgset);
-					writes(tag);
-					writes(" NO An error occurred while"
-					       " updating keywords: ");
-					writes(strerror(errno));
-					writes(".\r\n");
-					return 0;
-				}
-				break;
-			}
-
-			libmail_kwmDestroy(storeinfo_s.keywords);
-		}
-		free(msgset);
-		if (current_maildir_info.keywordList->keywordAddedRemoved)
-			mailboxflags(current_mailbox_ro);
 		writes(tag);
 		writes(" OK STORE completed.\r\n");
 		return (0);
@@ -6443,7 +6124,6 @@ int main(int argc, char **argv)
 	signal(SIGPIPE, SIG_IGN);
 
 	libmail_kwVerbotten=KEYWORD_IMAPVERBOTTEN;
-	libmail_kwCaseSensitive=0;
 
 	if (!keywords())
 		libmail_kwEnabled=0;
@@ -6466,7 +6146,6 @@ int main(int argc, char **argv)
 		smapflag=1;
 
 		libmail_kwVerbotten=KEYWORD_SMAPVERBOTTEN;
-		libmail_kwCaseSensitive=1;
 
 		chkdisabled(ip, port);
 		smap();

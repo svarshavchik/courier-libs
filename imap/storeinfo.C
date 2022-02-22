@@ -39,17 +39,17 @@
 extern int smapflag;
 #endif
 
+extern void mailboxflags(int ro);
+extern int current_mailbox_ro;
 std::string get_reflagged_filename(std::string fn, struct imapflags &newflags);
 extern int is_trash(const char *);
 extern bool get_flagname(std::string s, struct imapflags *flags);
-extern int get_flagsAndKeywords(struct imapflags *flags,
-				struct libmail_kwMessage **kwPtr);
+extern bool get_flagsAndKeywords(imapflags &flags,
+				 mail::keywords::list &keywords);
 void get_message_flags( struct imapscanmessageinfo *,
 			char *, struct imapflags *);
 int reflag_filename(struct imapscanmessageinfo *, struct imapflags *,
 			       int);
-void fetchflags(unsigned long);
-void fetchflags_byuid(unsigned long);
 extern FILE *maildir_mkfilename(const char *, struct imapflags *,
 				unsigned long, std::string &, std::string &);
 extern int acl_flags_adjust(const char *access_rights,
@@ -60,39 +60,35 @@ extern char *current_mailbox;
 extern char *current_mailbox_acl;
 extern "C" int fastkeywords();
 
-int storeinfo_init(struct storeinfo *si)
+bool storeinfo_init(struct storeinfo &si)
 {
-struct imaptoken *t=currenttoken();
-const char *p;
+	struct imaptoken *t=currenttoken();
+	const char *p;
 
-	if (t->tokentype != IT_ATOM)	return (-1);
-	si->plusminus=0;
-	si->silent=0;
+	if (t->tokentype != IT_ATOM)	return false;
+	si.plusminus=0;
+	si.silent=0;
 
 	p=t->tokenbuf;
 	if (*p == '+' || *p == '-')
-		si->plusminus= *p++;
-	if (strncmp(p, "FLAGS", 5))	return (-1);
+		si.plusminus= *p++;
+	if (strncmp(p, "FLAGS", 5))	return false;
 	p += 5;
 	if (*p)
 	{
-		if (strcmp(p, ".SILENT"))	return (-1);
-		si->silent=1;
+		if (strcmp(p, ".SILENT"))	return false;
+		si.silent=1;
 	}
 
-	memset(&si->flags, 0, sizeof(si->flags));
-
-	if ((si->keywords=libmail_kwmCreate()) == NULL)
-		write_error_exit(0);
+	memset(&si.flags, 0, sizeof(si.flags));
 
 	t=nexttoken_noparseliteral();
+	si.keywords.clear();
 	if (t->tokentype == IT_LPAREN)
 	{
-		if (get_flagsAndKeywords(&si->flags, &si->keywords))
+		if (!get_flagsAndKeywords(si.flags, si.keywords))
 		{
-			libmail_kwmDestroy(si->keywords);
-			si->keywords=NULL;
-			return (-1);
+			return false;
 		}
 		nexttoken();
 	}
@@ -100,24 +96,20 @@ const char *p;
 		nexttoken();
 	else if (t->tokentype == IT_ATOM)
 	{
-		if (!get_flagname(t->tokenbuf, &si->flags))
-			libmail_kwmSetName(current_maildir_info
-				       .keywordList,
-				       si->keywords,
-				       t->tokenbuf);
+		if (!get_flagname(t->tokenbuf, &si.flags))
+			si.keywords.insert(t->tokenbuf);
 		nexttoken();
 	}
-	return (0);
+
+	return true;
 }
 
-int do_store(unsigned long n, int byuid, void *voidptr)
+int do_store(unsigned long n, int byuid, storeinfo *si)
 {
-struct storeinfo *si=(struct storeinfo *)voidptr;
-int	fd;
- struct imapflags new_flags, old_flags;
-int changedKeywords;
-struct libmail_kwMessageEntry *kme;
-int kwAllowed=1;
+	int	fd;
+	struct imapflags new_flags, old_flags;
+	int changedKeywords;
+	bool kwAllowed=true;
 
 	--n;
 	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
@@ -131,9 +123,15 @@ int kwAllowed=1;
 	if (current_mailbox_acl)
 	{
 		if (strchr(current_mailbox_acl, ACL_WRITE[0]) == NULL)
-			kwAllowed=0;
+			kwAllowed=false;
 	}
 
+	auto &keywords=current_maildir_info.msgs[n].keywords;
+
+	auto previous_keywords=keywords;
+
+	auto current_keywords=keywords.keywords();
+	bool changed=false;
 
 	if (si->plusminus == '+')
 	{
@@ -143,34 +141,29 @@ int kwAllowed=1;
 		if (si->flags.deleted)	new_flags.deleted=1;
 		if (si->flags.flagged)	new_flags.flagged=1;
 
-		for (kme=si->keywords ? si->keywords->firstEntry:NULL;
-		     kme; kme=kme->next)
+		for (const auto &kw:si->keywords)
 		{
-			int rc;
-
 			if (!kwAllowed)
 			{
 				current_maildir_info.msgs[n].changedflags=1;
-				continue;
+				break;
 			}
-
-			imapscan_createKeyword(&current_maildir_info, n);
-
-			if ((rc=libmail_kwmSet(current_maildir_info.msgs[n]
-					       .keywordMsg,
-					       kme->libmail_keywordEntryPtr))
-			    < 0)
+			if (current_keywords.insert(kw).second)
 			{
-				write_error_exit(0);
-				return 0;
-			}
 
-			if (rc == 0)
-			{
+				changed=true;
 				if (fastkeywords())
 					changedKeywords=1;
 				current_maildir_info.msgs[n].changedflags=1;
 			}
+		}
+		if (changed)
+		{
+			keywords.keywords(
+				current_maildir_info.keywords,
+				current_keywords,
+				n
+			);
 		}
 	}
 	else if (si->plusminus == '-')
@@ -181,87 +174,66 @@ int kwAllowed=1;
 		if (si->flags.deleted)	new_flags.deleted=0;
 		if (si->flags.flagged)	new_flags.flagged=0;
 
-		if (current_maildir_info.msgs[n].keywordMsg && kwAllowed)
-			for (kme=si->keywords ?
-				     si->keywords->firstEntry:NULL;
-			     kme; kme=kme->next)
-			{
-				if (!kwAllowed)
-				{
-					current_maildir_info.msgs[n]
-						.changedflags=1;
-					continue;
-				}
-
-				if (libmail_kwmClear(current_maildir_info.msgs[n]
-						 .keywordMsg,
-						 kme->libmail_keywordEntryPtr)==0)
-				{
-					if (fastkeywords())
-						changedKeywords=1;
-					current_maildir_info.msgs[n]
-						.changedflags=1;
-				}
-			}
-
-		if (current_maildir_info.msgs[n].keywordMsg &&
-		    !current_maildir_info.msgs[n].keywordMsg->firstEntry)
+		for (const auto &kw:si->keywords)
 		{
-			libmail_kwmDestroy(current_maildir_info.msgs[n]
-					      .keywordMsg);
-			current_maildir_info.msgs[n].keywordMsg=NULL;
+			if (!kwAllowed)
+			{
+				current_maildir_info.msgs[n].changedflags=1;
+				break;
+			}
+			if (current_keywords.erase(kw))
+			{
+				changed=true;
+				if (fastkeywords())
+					changedKeywords=1;
+				current_maildir_info.msgs[n].changedflags=1;
+			}
+		}
+		if (changed)
+		{
+			keywords.keywords(
+				current_maildir_info.keywords,
+				current_keywords,
+				n
+			);
 		}
 	}
 	else
 	{
-		struct libmail_kwMessage *kw;
-		struct libmail_kwMessage *si_kw;
-
 		new_flags=si->flags;
 
-		kw=current_maildir_info.msgs[n].keywordMsg;
+		size_t n=0;
 
-		if (kw && kw->firstEntry == NULL)
-			kw=NULL;
-
-		si_kw=si->keywords;
-
-		if (si_kw && si_kw->firstEntry == NULL)
+		for (const auto &kw:current_keywords)
 		{
-			si_kw=NULL;
+			if (si->keywords.find(kw) != si->keywords.end())
+			{
+				++n;
+			}
+			else
+				changed=true;
 		}
 
-		if ((si_kw && !kw) ||
-		    (!si_kw && kw) ||
-		    (si_kw && kw && libmail_kwmCmp(si_kw, kw)))
+		if (n != si->keywords.size())
+			changed=true;
+
+		if (changed && !kwAllowed)
 		{
-			if (kwAllowed)
-			{
-				kw=current_maildir_info.msgs[n].keywordMsg;
+			changed=false;
+			current_maildir_info.msgs[n].changedflags=1;
+		}
 
-				if (kw)
-					libmail_kwmDestroy(kw);
+		if (changed)
+		{
+			if (fastkeywords())
+				changedKeywords=1;
+			current_maildir_info.msgs[n].changedflags=1;
 
-				current_maildir_info.msgs[n].keywordMsg=NULL;
-
-				if (si->keywords && si->keywords->firstEntry)
-				{
-					struct libmail_kwMessageEntry *kme;
-
-					kw=imapscan_createKeyword(&current_maildir_info,
-								  n);
-
-					for (kme=si->keywords->lastEntry; kme;
-					     kme=kme->prev)
-						if (libmail_kwmSet(kw,
-								   kme->libmail_keywordEntryPtr)
-						    < 0)
-							write_error_exit(0);
-					current_maildir_info.msgs[n].keywordMsg=kw;
-				}
-			}
-
-			changedKeywords=1;
+			keywords.keywords(
+				current_maildir_info.keywords,
+				si->keywords,
+				n);
+			current_keywords=si->keywords;
 		}
 	}
 
@@ -272,6 +244,8 @@ int kwAllowed=1;
 			new_flags.drafts=old_flags.drafts;
 			new_flags.answered=old_flags.answered;
 			new_flags.flagged=old_flags.flagged;
+
+			// TODO: set changedKeywords to false
 		}
 
 		if (strchr(current_mailbox_acl, ACL_SEEN[0]) == NULL)
@@ -289,38 +263,24 @@ int kwAllowed=1;
 	if (changedKeywords)
 	{
 		current_maildir_info.msgs[n].changedflags=1;
-		if (imapscan_updateKeywords(current_maildir_info.msgs[n]
-					    .filename,
-					    current_maildir_info.msgs[n]
-					    .keywordMsg))
-		{
-			close(fd);
-			return -1;
-		}
+		imapscan_updateKeywords(current_maildir_info.msgs[n].filename,
+					current_keywords);
 	}
 
-	if (reflag_filename(&current_maildir_info.msgs.at(n), &new_flags, fd))
+	auto old_file=current_maildir_info.msgs[n].filename;
+
+	if (reflag_filename(&current_maildir_info.msgs[n], &new_flags, fd))
 	{
 		close(fd);
 		return (-1);
 	}
 	close(fd);
+
+	if (old_file != current_maildir_info.msgs[n].filename)
+		current_maildir_info.msgs[n].changedflags=1;
+
 	if (si->silent)
 		current_maildir_info.msgs[n].changedflags=0;
-	else
-	{
-#if SMAP
-		/* SMAP flag notification is handled elsewhere */
-
-		if (!smapflag)
-#endif
-		{
-			if (byuid)
-				fetchflags_byuid(n);
-			else
-				fetchflags(n);
-		}
-	}
 
 	return (0);
 }
@@ -328,7 +288,7 @@ int kwAllowed=1;
 static int copy_message(int fd,
 			struct do_copy_info *cpy_info,
 			struct	imapflags *flags,
-			struct libmail_kwMessage *keywords,
+			const keywords_t &keywords,
 			unsigned long old_uid)
 {
 	std::string tmpname, newname;
@@ -394,18 +354,14 @@ static int copy_message(int fd,
 		return (-1);
 	}
 
-	if (keywords && keywords->firstEntry &&
-	    maildir_kwSave(cpy_info->mailbox,
-			   strrchr(newname.c_str(), '/')+1,
-			   keywords,
-			   &new_uidplus_info->tmpkeywords,
-			   &new_uidplus_info->newkeywords, 0))
-	{
-		unlink(tmpname.c_str());
-		free(new_uidplus_info);
-		perror("maildir_kwSave");
-		return (-1);
-	}
+	auto new_keywords=keywords.keywords();
+
+	if (!new_keywords.empty())
+		imapscan_updateKeywords(
+			cpy_info->mailbox,
+			strrchr(newname.c_str(), '/')+1,
+			keywords.keywords()
+		);
 
 	new_uidplus_info->tmpfilename=strdup(tmpname.c_str());
 	new_uidplus_info->curfilename=strdup(newname.c_str());
@@ -435,8 +391,9 @@ int do_copy_message(unsigned long n, int byuid, void *voidptr)
 	if (copy_message(fd, cpy_info, &new_flags,
 
 			 acl_flags_adjust(cpy_info->acls,
-					  &new_flags) ? NULL
-			 : current_maildir_info.msgs[n].keywordMsg,
+					  &new_flags)
+			 ? keywords_t{}
+			 : current_maildir_info.msgs[n].keywords,
 			 current_maildir_info.msgs[n].uid))
 	{
 		close(fd);

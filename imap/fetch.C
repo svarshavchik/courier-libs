@@ -526,8 +526,6 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 	     imapscaninfo *i, unsigned long msgnum,
 	     struct rfc2045 *mimep)
 {
-	struct libmail_kwMessageEntry *kme;
-
 	char	buf[256];
 
 #if SMAP
@@ -540,8 +538,6 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 	else
 #endif
 	{
-		struct libmail_kwMessage *km;
-
 		writes("FLAGS ");
 
 		get_message_flags(&i->msgs.at(msgnum), buf, 0);
@@ -552,13 +548,14 @@ void doflags(FILE *fp, struct fetchinfo *fi,
 		if (buf[0])
 			strcpy(buf, " ");
 
-		if ((km=i->msgs.at(msgnum).keywordMsg) != NULL)
-			for (kme=km->firstEntry; kme; kme=kme->next)
+		i->msgs.at(msgnum).keywords.enumerate(
+			[&]
+			(const std::string &kw)
 			{
 				writes(buf);
 				strcpy(buf, " ");
-				writes(keywordName(kme->libmail_keywordEntryPtr));
-			}
+				writes(kw.c_str());
+			});
 		writes(")");
 	}
 
