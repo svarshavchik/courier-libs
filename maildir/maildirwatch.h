@@ -138,7 +138,7 @@ class watch {
 		contents(watch &);
 		~contents();
 
-		bool started(int &fd) const;
+		bool started() const;
 
 		bool check(int &fd, int &timeout) const;
 

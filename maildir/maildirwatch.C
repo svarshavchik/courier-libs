@@ -63,7 +63,9 @@ maildir::watch::watch(watch &&ww) : watch{""}
 maildir::watch &maildir::watch::operator=(watch &&ww)
 {
 	std::swap(maildir, ww.maildir);
+#if HAVE_INOTIFY_INIT
 	std::swap(inotify_fd, ww.inotify_fd);
+#endif
 	std::swap(now, ww.now);
 	std::swap(timeout, ww.timeout);
 	return *this;
@@ -411,9 +413,11 @@ int maildirwatch_started(struct maildirwatch_contents *mc,
 	return mc->w->started(mc->handles, *fdret) ? 1:-1;
 }
 
-bool maildir::watch::contents::started(int &fd) const
+bool maildir::watch::contents::started() const
 {
-	return w.started(*this, fd);
+	int ignore;
+
+	return w.started(*this, ignore);
 }
 
 bool maildir::watch::started(const maildirwatch_contents_filehandles &handles,

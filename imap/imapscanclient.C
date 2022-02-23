@@ -114,12 +114,6 @@ imapscaninfo::imapscaninfo(imapscaninfo &&other) noexcept
 
 imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other) noexcept
 {
-	// TODO: fix this
-	auto msgs1=std::move(msgs);
-	auto msgs2=std::move(other.msgs);
-	msgs.clear();
-	other.msgs.clear();
-
 	auto watcher_save=std::move(watcher);
 
 	watcher=std::move(other.watcher);
@@ -129,8 +123,6 @@ imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other) noexcept
 	std::swap(static_cast<imapscaninfo_base &>(*this),
 		  static_cast<imapscaninfo_base &>(other));
 
-	msgs=std::move(msgs2);
-	other.msgs=std::move(msgs1);
 	return *this;
 }
 

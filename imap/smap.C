@@ -99,8 +99,7 @@ extern void doflags(FILE *fp, struct fetchinfo *fi,
 		    imapscaninfo *i, unsigned long msgnum,
 		    struct rfc2045 *mimep);
 extern void set_time(const std::string &tmpname, time_t timestamp);
-extern int imapenhancedidle(void);
-extern void imapidle(void);
+extern void imapenhancedidle(void);
 
 extern void expunge();
 extern void doNoop(int);
@@ -3870,8 +3869,7 @@ void smap()
 
 		if (strcmp(p, "IDLE") == 0)
 		{
-			if (imapenhancedidle())
-				imapidle();
+			imapenhancedidle();
 
 			read_timeout(60);
 			smap_readline(buffer, sizeof(buffer));

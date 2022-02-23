@@ -192,9 +192,7 @@ protocol extension.</term>
 	  <listitem>
 <para>
 Of course, an IMAP client that supports the <literal>IDLE</literal>
-protocol extension is required.
-At press time the status and extent of <literal>IDLE</literal> support
-in most IMAP mail clients is not known.</para>
+protocol extension is required.</para>
 	  </listitem>
 	</varlistentry>
 
@@ -267,7 +265,7 @@ S:* FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
   * OK [UIDVALIDITY 939609418] Ok
   a OK [READ-WRITE] Ok
 C:a IDLE
-S:+ entering ENHANCED idle mode
+S:+ entering idle mode
 </programlisting>
 	  <note>
 <para>

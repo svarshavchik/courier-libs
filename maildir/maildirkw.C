@@ -129,39 +129,11 @@ static bool doit(const char *maildir, const char *filename, int lockflag,
 {
 	if (lockflag)
 	{
-		struct maildirwatch *w=maildirwatch_alloc(maildir);
-		int tryAnyway;
-		char *lockname;
-		int rc;
+		maildir::watch w{maildir};
 
-		if (!w)
-		{
-			perror(maildir);
-			return -1;
-		}
+		maildir::watch::lock locked{w};
 
-		lockname=maildir_lock(maildir, w, &tryAnyway);
-
-		if (!lockname)
-		{
-			perror(maildir);
-			if (!tryAnyway)
-			{
-				maildirwatch_free(w);
-				maildirwatch_cleanup();
-				return -1;
-			}
-		}
-
-		rc=doit_locked(maildir, filename, plusminus, keywords);
-		if (lockname)
-		{
-			unlink(lockname);
-			free(lockname);
-		}
-		maildirwatch_free(w);
-		maildirwatch_cleanup();
-		return rc;
+		return doit_locked(maildir, filename, plusminus, keywords);
 	}
 
 	return doit_locked(maildir, filename, plusminus, keywords);

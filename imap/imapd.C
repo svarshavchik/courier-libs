@@ -1565,124 +1565,95 @@ extern int doidle(time_t, int);
 }
 #endif
 
-int imapenhancedidle(void)
+static bool doenhancedidle(maildir::watch &watcher,
+			   bool &fallback_mode,
+			   const std::function<bool (bool)> &started_handler);
+static void imapidle();
+
+void imapenhancedidle()
 {
-	struct maildirwatch *w;
-	struct maildirwatch_contents c;
-	int rc;
-	int started=0;
-
 	if (current_maildir_info.current_mailbox.empty())
-		return (-1);
-
-	if ((w=maildirwatch_alloc(current_maildir_info.current_mailbox.c_str()))
-	    == NULL)
 	{
-		perror(current_maildir_info.current_mailbox.c_str());
-		fprintf(stderr, "This may be a problem with number of inotify handles (/proc/sys/fs/inotify/max_user_instances)\n");
-		return (-1);
+		imapidle();
+		return;
 	}
 
-	rc=maildirwatch_start(w, &c);
+	maildir::watch watcher{current_maildir_info.current_mailbox};
 
-	if (rc < 0)
-	{
-		perror("maildirwatch_start");
-		maildirwatch_free(w);
-		return (-1);
-	}
+	bool fallback_mode=false;
 
-	if (rc > 0)
-	{
-		maildirwatch_free(w);
-		return (-1); /* Fallback */
-	}
+	bool quit=false;
 
+	std::function<bool (bool)> started_handler=
+		[&]
+		(bool started)
+		{
+			if (!started)
+			{
+				quit=true;
+				return false;
+			}
 #if SMAP
-	if (smapflag)
-	{
-		writes("+OK Entering ENHANCED idle mode\n");
-	}
-	else
+			if (smapflag)
+			{
+				writes("+OK Entering idle mode\n");
+			}
+			else
 #endif
-		writes("+ entering ENHANCED idle mode\r\n");
-	writeflush();
+				writes("+ entering idle mode\r\n");
+			doNoop(0);
+
+			return true;
+		};
 
 	for (;;)
 	{
-		if (!started)
-		{
-			int fd;
-			int rc;
+		if (doenhancedidle(watcher, fallback_mode, started_handler)
+		    || quit)
+			break;
 
-			rc=maildirwatch_started(&c, &fd);
+		started_handler=[](bool){return true;};
+		doNoop(0);
+	}
+}
 
-			if (rc > 0)
-			{
-				started=1;
-				doNoop(0);
-				writeflush();
-			}
-			else
-			{
-				if (rc < 0)
-					perror("maildirwatch_started");
-				if (doidle(60, fd))
-					break;
-			}
-			continue;
-		}
+static bool doenhancedidle(maildir::watch &watcher,
+			   bool &fallback_mode,
+			   const std::function<bool (bool)> &started_handler)
+{
+	if (!fallback_mode)
+	{
+		maildir::watch::contents watching{watcher};
 
-		if (started < 0) /* Error fallback mode*/
+		if (watching.started())
 		{
-			if (doidle(60, -1))
-				break;
-		}
-		else
-		{
-			int changed;
+			started_handler(true);
+
+			writeflush();
 			int fd;
 			int timeout;
 
-			if (maildirwatch_check(&c, &changed, &fd, &timeout)
-			    == 0)
+			while (!watching.check(fd, timeout))
 			{
-				if (!changed)
-				{
-					if (doidle(timeout, fd))
-						break;
-					continue;
-				}
-
-				maildirwatch_end(&c);
-				doNoop(0);
-
-				rc=maildirwatch_start(w, &c);
-
-				if (rc < 0)
-				{
-					perror("maildirwatch_start");
-					started= -1;
-				}
-				else
-					started=0;
+				if (doidle(timeout, fd))
+					return true;
 			}
-			else
-			{
-				started= -1;
-			}
+			return false;
 		}
 
-		doNoop(0);
-		writeflush();
-	}
+		fallback_mode=true;
 
-	maildirwatch_end(&c);
-	maildirwatch_free(w);
-	return (0);
+		if (!started_handler(false))
+		{
+			writeflush();
+			return false;
+		}
+	}
+	writeflush();
+	return doidle(60, -1);
 }
 
-void imapidle(void)
+static void imapidle()
 {
 	const char * envp = getenv("IMAP_IDLE_TIMEOUT");
 	const int idleTimeout = envp ? atoi(envp) : 60;
@@ -3601,8 +3572,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	       read_eol();
 
-	       if (imapenhancedidle())
-		       imapidle();
+	       imapenhancedidle();
 	       curtoken=nexttoken();
 	       if (strcmp(curtoken->tokenbuf, "DONE") == 0)
 	       {
