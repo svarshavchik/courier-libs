@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "maildir/maildirkeywords.h"
+#include "maildir/maildirwatch.h"
 
 #include <vector>
 #include <string>
@@ -69,8 +70,6 @@ struct imapscaninfo_base {
 
 	mail::keywords::hashtable<keyword_meta> keywords;
 
-	struct maildirwatch *watcher=nullptr;
-
 	~imapscaninfo_base();
 };
 
@@ -87,6 +86,8 @@ struct imapscaninfo : imapscaninfo_base {
 	imapscaninfo(imapscaninfo &&) noexcept;
 
 	unsigned long unseen() const;
+
+	maildir::watch watcher;
 } ;
 
 /*

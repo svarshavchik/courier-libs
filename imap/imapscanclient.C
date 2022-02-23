@@ -95,7 +95,8 @@ extern bool imapmaildirlock(imapscaninfo *scaninfo,
 			    const std::function< bool() >&callback);
 
 imapscaninfo::imapscaninfo(const std::string &current_mailbox)
-	: imapscaninfo_base{current_mailbox}
+	: imapscaninfo_base{current_mailbox},
+	  watcher{current_mailbox}
 {
 }
 
@@ -106,7 +107,7 @@ imapscaninfo::imapscaninfo(imapscaninfo *prev)
 }
 
 imapscaninfo::imapscaninfo(imapscaninfo &&other) noexcept
-	: imapscaninfo_base{""}
+	: imapscaninfo_base{""}, watcher{other.current_mailbox}
 {
 	operator=(std::move(other));
 }
@@ -114,21 +115,20 @@ imapscaninfo::imapscaninfo(imapscaninfo &&other) noexcept
 imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other) noexcept
 {
 	// TODO: fix this
-	auto watcher1=watcher;
-	auto watcher2=other.watcher;
 	auto msgs1=std::move(msgs);
 	auto msgs2=std::move(other.msgs);
 	msgs.clear();
 	other.msgs.clear();
 
-	watcher=nullptr;
-	other.watcher=nullptr;
+	auto watcher_save=std::move(watcher);
+
+	watcher=std::move(other.watcher);
+
+	other.watcher=std::move(watcher_save);
 
 	std::swap(static_cast<imapscaninfo_base &>(*this),
 		  static_cast<imapscaninfo_base &>(other));
 
-	watcher=watcher2;
-	other.watcher=watcher1;
 	msgs=std::move(msgs2);
 	other.msgs=std::move(msgs1);
 	return *this;
@@ -789,13 +789,7 @@ imapscaninfo_base::imapscaninfo_base(const std::string &current_mailbox)
 {
 }
 
-imapscaninfo_base::~imapscaninfo_base()
-{
-	if (watcher)
-	{
-		maildirwatch_free(watcher);
-	}
-}
+imapscaninfo_base::~imapscaninfo_base()=default;
 
 /*
 ** Keyword-related stuff  See README.imapkeywords.html for more information.

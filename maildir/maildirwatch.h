@@ -109,6 +109,9 @@ class watch {
 	watch(const watch &)=delete;
 	watch &operator=(const watch &)=delete;
 
+	watch(watch &&w);
+	watch &operator=(watch &&w);
+
 	class lock {
 		std::string lockname;
 

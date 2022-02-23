@@ -195,35 +195,12 @@ bool imapmaildirlock(imapscaninfo *scaninfo,
 		     const std::string &maildir,
 		     const std::function< bool() >&callback)
 {
-	char *newname;
-	int tryAnyway;
-
 	if (!uselocks())
 		return callback();
 
-	if (scaninfo->watcher == NULL &&
-	    (scaninfo->watcher=maildirwatch_alloc(maildir.c_str())) == NULL)
-		imapscanfail("maildirwatch");
+	maildir::watch::lock lock{scaninfo->watcher};
 
-	if ((newname=maildir_lock(maildir.c_str(),
-				  scaninfo->watcher, &tryAnyway))
-	    == NULL)
-	{
-		if (!tryAnyway)
-			return -1;
-
-		imapscanfail("maildir_lock");
-	}
-
-	bool flag=callback();
-
-	if (newname)
-	{
-		unlink(newname);
-		free(newname);
-		newname=NULL;
-	}
-	return flag;
+	return callback();
 }
 
 extern int maildirsize_read(const char *,int *,off_t *,unsigned *,unsigned *,struct stat *);
@@ -2113,6 +2090,12 @@ static void uidplus_abort(struct uidplus_info *uidplus_list)
 
 static void rename_callback(const char *old_path, const char *new_path)
 {
+	struct stat stat_buf;
+
+	if (stat(new_path, &stat_buf) ||
+	    !S_ISDIR(stat_buf.st_mode))
+		return; // Not a directory, something in courierimaphieracl
+
 	imapscaninfo minfo{new_path};
 
 	std::string p=new_path;
