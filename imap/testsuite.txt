@@ -1552,7 +1552,7 @@
 001335 T033 OK LIST completed
 001336 T034 NO Access denied for SELECT/EXAMINE on #shared.a.user1 (ACL "r" required)
 001337 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
-001338 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
+001338 * OK [PERMANENTFLAGS ()] No permanent flags permitted
 001339 * 1 EXISTS
 001340 * 0 RECENT
 001341 * OK [UIDVALIDITY] Ok

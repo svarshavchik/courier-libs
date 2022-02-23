@@ -5271,6 +5271,21 @@ int	uid=0;
 			return (-1);
 		}
 
+		/* check if this is a shared read-only folder */
+
+		if (is_sharedsubdir(mailbox) &&
+			maildir_sharedisro(mailbox))
+			ro=1;
+
+		for (p=current_mailbox_acl; *p; p++)
+			if (strchr(ACL_INSERT ACL_EXPUNGE
+				   ACL_SEEN ACL_WRITE ACL_DELETEMSGS,
+				   *p))
+				break;
+
+		if (*p == 0)
+			ro=1;
+
 		if (imapscan_maildir(&current_maildir_info, mailbox, 0, ro,
 				     NULL))
 		{
@@ -5281,12 +5296,6 @@ int	uid=0;
 		}
 		current_mailbox=mailbox;
 
-		/* check if this is a shared read-only folder */
-
-		if (is_sharedsubdir(mailbox) &&
-			maildir_sharedisro(mailbox))
-			ro=1;
-
 		current_mailbox_ro=ro;
 
 		mailboxflags(ro);
@@ -5296,15 +5305,6 @@ int	uid=0;
 		writes("] Ok\r\n");
 		myrights();
 		writes(tag);
-
-		for (p=current_mailbox_acl; *p; p++)
-			if (strchr(ACL_INSERT ACL_EXPUNGE
-				   ACL_SEEN ACL_WRITE ACL_DELETEMSGS,
-				   *p))
-				break;
-
-		if (*p == 0)
-			ro=1;
 
 		writes(ro ? " OK [READ-ONLY] Ok\r\n":" OK [READ-WRITE] Ok\r\n");
 		return (0);
