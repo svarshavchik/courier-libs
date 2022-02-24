@@ -1845,3 +1845,121 @@
 001547 * 1 FETCH (FLAGS ())
 001548 W006 OK EXPUNGE completed
 001549 msg1:2,
+001550 * PREAUTH Ready.
+001551 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001552 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001553 * 1 EXISTS
+001554 * 1 RECENT
+001555 * OK [UIDVALIDITY] Ok
+001556 * OK [MYRIGHTS "acdilrsw"] ACL
+001557 X001 OK [READ-WRITE] Ok
+001558 * 1 FETCH (BODYSTRUCTURE (("text" "plain" ("charset" "utf-8") NIL NIL "8bit" 14 1 NIL NIL NIL)("text" "html" NIL NIL NIL "7bit" 21 1 NIL NIL NIL) "alternative" ("boundary" "xx1") NIL NIL))
+001559 X002 OK FETCH completed.
+001560 * 1 FETCH (BODY (("text" "plain" ("charset" "utf-8") NIL NIL "8bit" 14 1)("text" "html" NIL NIL NIL "7bit" 21 1) "alternative"))
+001561 X003 OK FETCH completed.
+001562 * 1 FETCH (BODY[] {300}
+001563 Subject: MIME fetch test
+001564 Mime-Version: 1.0
+001565 Content-Type: multipart/alternative; boundary="xx1"
+001566 
+001567 --xx1
+001568 Content-Type: text/plain; charset="utf-8"
+001569 Content-Transfer-Encoding: 8bit
+001570 
+001571 Hello world!
+001572 
+001573 --xx1
+001574 Content-Type: text/html
+001575 Content-Transfer-Encoding: 7bit
+001576 
+001577 <p>Hello world!</p>
+001578 
+001579 --xx1--
+001580 )
+001581 X004 OK FETCH completed.
+001582 * 1 FETCH (BODY[HEADER] {100}
+001583 Subject: MIME fetch test
+001584 Mime-Version: 1.0
+001585 Content-Type: multipart/alternative; boundary="xx1"
+001586 
+001587 )
+001588 X005 OK FETCH completed.
+001589 * 1 FETCH (BODY[1] {14}
+001590 Hello world!
+001591 )
+001592 X006 OK FETCH completed.
+001593 * 1 FETCH (BODY[2] {21}
+001594 <p>Hello world!</p>
+001595 )
+001596 X007 OK FETCH completed.
+001597 * 1 FETCH (BODY[1.HEADER] {78}
+001598 Content-Type: text/plain; charset="utf-8"
+001599 Content-Transfer-Encoding: 8bit
+001600 
+001601 )
+001602 X008 OK FETCH completed.
+001603 * 1 FETCH (BODY[HEADER.FIELDS ("Subject" "Content-Type")] {81}
+001604 Subject: MIME fetch test
+001605 Content-Type: multipart/alternative; boundary="xx1"
+001606 
+001607 )
+001608 X009 OK FETCH completed.
+001609 * 1 FETCH (BODY[2.HEADER.FIELDS.NOT ("Content-Type")] {35}
+001610 Content-Transfer-Encoding: 7bit
+001611 
+001612 )
+001613 X010 OK FETCH completed.
+001614 * 1 FETCH (BODY[2]<0> {4}
+001615 <p>H)
+001616 X011 OK FETCH completed.
+001617 * 1 FETCH (BODY[2]<4> {4}
+001618 ello)
+001619 X012 OK FETCH completed.
+001620 * 1 FETCH (BODY[2]<0> {4}
+001621 <p>H)
+001622 X013 OK FETCH completed.
+001623 * 1 FETCH (ENVELOPE (NIL "MIME fetch test" NIL NIL NIL NIL NIL NIL NIL NIL) RFC822 {300}
+001624 Subject: MIME fetch test
+001625 Mime-Version: 1.0
+001626 Content-Type: multipart/alternative; boundary="xx1"
+001627 
+001628 --xx1
+001629 Content-Type: text/plain; charset="utf-8"
+001630 Content-Transfer-Encoding: 8bit
+001631 
+001632 Hello world!
+001633 
+001634 --xx1
+001635 Content-Type: text/html
+001636 Content-Transfer-Encoding: 7bit
+001637 
+001638 <p>Hello world!</p>
+001639 
+001640 --xx1--
+001641 )
+001642 X014 OK FETCH completed.
+001643 * 1 FETCH (RFC822.HEADER {100}
+001644 Subject: MIME fetch test
+001645 Mime-Version: 1.0
+001646 Content-Type: multipart/alternative; boundary="xx1"
+001647 
+001648  RFC822.SIZE 300)
+001649 X015 OK FETCH completed.
+001650 * 1 FETCH (RFC822.TEXT {200}
+001651 --xx1
+001652 Content-Type: text/plain; charset="utf-8"
+001653 Content-Transfer-Encoding: 8bit
+001654 
+001655 Hello world!
+001656 
+001657 --xx1
+001658 Content-Type: text/html
+001659 Content-Transfer-Encoding: 7bit
+001660 
+001661 <p>Hello world!</p>
+001662 
+001663 --xx1--
+001664 )
+001665 X016 OK FETCH completed.
+001666 * BYE Courier-IMAP server shutting down
+001667 XDONE OK LOGOUT completed

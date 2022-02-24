@@ -1251,3 +1251,46 @@ W006 EXPUNGE
 EOF
 ls confmdtest/shared-folders/test/a/cur 2>&1
 rm -rf confmdtest confmdtest2
+
+../maildir/maildirmake confmdtest
+
+cat >confmdtest/cur/msg1:2,S <<EOF || exit 1
+Subject: MIME fetch test
+Mime-Version: 1.0
+Content-Type: multipart/alternative; boundary="xx1"
+
+--xx1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Hello world!
+
+--xx1
+Content-Type: text/html
+Content-Transfer-Encoding: 7bit
+
+<p>Hello world!</p>
+
+--xx1--
+EOF
+
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
+X001 SELECT INBOX
+X002 FETCH 1 (BODYSTRUCTURE)
+X003 FETCH 1 (BODY)
+X004 FETCH 1 (BODY[])
+X005 FETCH 1 (BODY[HEADER])
+X006 FETCH 1 (BODY[1])
+X007 FETCH 1 (BODY[2])
+X008 FETCH 1 (BODY[1.HEADER])
+X009 FETCH 1 (BODY[HEADER.FIELDS (Subject Content-Type)])
+X010 FETCH 1 (BODY[2.HEADER.FIELDS.NOT (Content-Type)])
+X011 FETCH 1 (BODY[2]<0.4>)
+X012 FETCH 1 (BODY[2]<4.4>)
+X013 FETCH 1 (BODY[2]<0.4>)
+X014 FETCH 1 (ENVELOPE RFC822)
+X015 FETCH 1 (RFC822.HEADER RFC822.SIZE)
+X016 FETCH 1 (RFC822.TEXT)
+XDONE LOGOUT
+EOF
+rm -rf confmdtest
