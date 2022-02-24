@@ -97,7 +97,7 @@
 
 extern void fetchflags(unsigned long);
 extern void fetchflags_byuid(unsigned long);
-extern int do_fetch(unsigned long, int, fetchinfo *);
+extern int do_fetch(unsigned long, int, const std::list<fetchinfo> &);
 extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
 extern void imapscanfail(const char *p);
@@ -4997,7 +4997,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "FETCH") == 0)
 	{
-	struct fetchinfo *fi;
+		std::list<fetchinfo> filist;
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
@@ -5010,23 +5010,23 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			{
 				return (-1);
 			}
-			fi=fetchinfo_alloc(1);
+			if (!fetchinfo_alloc(true, filist))
+				return -1;
 		}
 		else
 		{
 			(void)nexttoken();
-			fi=fetchinfo_alloc(0);
-			if (fi && currenttoken()->tokentype != IT_RPAREN)
-			{
-				fetchinfo_free(fi);
-				fi=0;
-			}
+
+			if (!fetchinfo_alloc(false, filist))
+				return -1;
+			if (currenttoken()->tokentype != IT_RPAREN)
+				return -1;
+
 			nexttoken();
 		}
 
-		if (fi == 0 || currenttoken()->tokentype != IT_EOL)
+		if (currenttoken()->tokentype != IT_EOL)
 		{
-			if (fi)	fetchinfo_free(fi);
 			return (-1);
 		}
 
@@ -5034,9 +5034,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			  [&]
 			  (unsigned long n)
 			  {
-				  return do_fetch(n, uid, fi) == 0;
+				  return do_fetch(n, uid, filist) == 0;
 			  }, uid);
-		fetchinfo_free(fi);
 		writes(tag);
 		writes(" OK FETCH completed.\r\n");
 		return (0);

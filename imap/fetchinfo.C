@@ -20,46 +20,38 @@
 
 /* This file contains functions to parse a FETCH attribute list */
 
-static struct fetchinfo *alloc_headerlist(int);
+static void alloc_headerlist(bool, std::list<fetchinfo> &sublist);
 static char *good_section(char *);
 
-struct fetchinfo *fetchinfo_alloc(int oneonly)
+bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 {
-struct fetchinfo *list, **listtail, *p;
-struct imaptoken *tok;
-
-	list=0;
-	listtail= &list;
+	struct imaptoken *tok;
 
 	while ((tok=currenttoken())->tokentype == IT_ATOM)
 	{
-		if (oneonly && list)	break;
-		*listtail=p=(struct fetchinfo *)malloc(sizeof(*list));
-		if (!p)	write_error_exit(0);
-		p->next=0;
-		p->name=my_strdup(tok->tokenbuf);
-		p->bodysection=0;
-		p->bodysublist=0;
-		p->ispartial=0;
-		listtail= &p->next;
+		if (oneonly && !list.empty())	break;
+		list.emplace_back();
+		auto p=--list.end();
 
-		if (strcmp(p->name, "ALL") == 0 ||
-			strcmp(p->name, "BODYSTRUCTURE") == 0 ||
-			strcmp(p->name, "ENVELOPE") == 0 ||
-			strcmp(p->name, "FLAGS") == 0 ||
-			strcmp(p->name, "FAST") == 0 ||
-			strcmp(p->name, "FULL") == 0 ||
-			strcmp(p->name, "INTERNALDATE") == 0 ||
-			strcmp(p->name, "RFC822") == 0 ||
-			strcmp(p->name, "RFC822.HEADER") == 0 ||
-			strcmp(p->name, "RFC822.SIZE") == 0 ||
-			strcmp(p->name, "RFC822.TEXT") == 0 ||
-			strcmp(p->name, "UID") == 0)
+		p->name=tok->tokenbuf;
+
+		if (p->name == "ALL" ||
+			p->name == "BODYSTRUCTURE" ||
+			p->name == "ENVELOPE" ||
+			p->name == "FLAGS" ||
+			p->name == "FAST" ||
+			p->name == "FULL" ||
+			p->name == "INTERNALDATE" ||
+			p->name == "RFC822" ||
+			p->name == "RFC822.HEADER" ||
+			p->name == "RFC822.SIZE" ||
+			p->name == "RFC822.TEXT" ||
+			p->name == "UID")
 		{
 			nexttoken();
 			continue;
 		}
-		if (strcmp(p->name, "BODY") && strcmp(p->name, "BODY.PEEK"))
+		if (p->name != "BODY" && p->name != "BODY.PEEK")
 			break;
 		if (nexttoken()->tokentype != IT_LBRACKET)	continue;
 
@@ -73,10 +65,10 @@ struct imaptoken *tok;
 				tok->tokentype != IT_NUMBER) ||
 				!(s=good_section(tok->tokenbuf)))
 			{
-				fetchinfo_free(list);
-				return (0);
+				return (false);
 			}
-			p->bodysection=my_strdup(tok->tokenbuf);
+			p->hasbodysection=true;
+			p->bodysection=tok->tokenbuf;
 
 			if (strcmp(s, "HEADER.FIELDS") == 0 ||
 				strcmp(s, "HEADER.FIELDS.NOT") == 0)
@@ -86,35 +78,31 @@ struct imaptoken *tok;
 				if ((tok=nexttoken_nouc())->tokentype
 						!= IT_LPAREN)
 				{
-					p->bodysublist=alloc_headerlist(1);
-					if (p->bodysublist == 0)
+					alloc_headerlist(true, p->bodysublist);
+					if (p->bodysublist.empty())
 					{
-						fetchinfo_free(list);
-						return (0);
+						return false;
 					}
 				}
 				else
 				{
 					nexttoken_nouc();
-					p->bodysublist=alloc_headerlist(0);
+					alloc_headerlist(false, p->bodysublist);
 					if ( currenttoken()->tokentype
 						!= IT_RPAREN)
 					{
-						fetchinfo_free(list);
-						return (0);
+						return false;
 					}
 				}
 			}
 			tok=nexttoken();
-			
+
 		}
-		else p->bodysection=my_strdup("");
+		else p->hasbodysection=true;
 
 		if (tok->tokentype != IT_RBRACKET)
-		{
-			fetchinfo_free(list);
-			return (0);
-		}
+			return false;
+
 		tok=nexttoken();
 		if (tok->tokentype == IT_ATOM && tok->tokenbuf[0] == '<' &&
 			tok->tokenbuf[strlen(tok->tokenbuf)-1] == '>' &&
@@ -122,7 +110,7 @@ struct imaptoken *tok;
 				&p->partialstart, &p->partialend)) > 0)
 			nexttoken();
 	}
-	return (list);
+	return (true);
 }
 
 /* Just validate that the syntax of the attribute is correct */
@@ -155,43 +143,20 @@ int	has_mime=0;
 
 /* Header list looks like atoms to me */
 
-static struct fetchinfo *alloc_headerlist(int oneonly)
+static void alloc_headerlist(bool oneonly, std::list<fetchinfo> &sublist)
 {
-struct fetchinfo *list, **listtail, *p;
-struct imaptoken *tok;
-
-	list=0;
-	listtail= &list;
+	struct imaptoken *tok;
 
 	while ((tok=currenttoken())->tokentype == IT_ATOM ||
 	       tok->tokentype == IT_QUOTED_STRING ||
 	       tok->tokentype == IT_NUMBER)
 	{
-		*listtail=p=(struct fetchinfo *)malloc(sizeof(*list));
-		if (!p)	write_error_exit(0);
-		p->next=0;
-		p->name=my_strdup(tok->tokenbuf);
-		p->bodysublist=0;
-		p->bodysection=0;
-		listtail= &p->next;
+		sublist.emplace_back();
+
+		auto p=--sublist.end();
+		p->name=tok->tokenbuf;
 		if (oneonly)
 			break;
 		nexttoken_nouc();
-	}
-	return (list);
-}
-
-void fetchinfo_free(struct fetchinfo *p)
-{
-struct fetchinfo *q;
-
-	while (p)
-	{
-		if (p->bodysublist)	fetchinfo_free(p->bodysublist);
-		q=p->next;
-		if (p->name)	free(p->name);
-		if (p->bodysection) free(p->bodysection);
-		free(p);
-		p=q;
 	}
 }

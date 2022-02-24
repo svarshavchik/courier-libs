@@ -1,37 +1,30 @@
 #ifndef	fetchinfo_h
 #define	fetchinfo_h
 
+#include <string>
+#include <list>
+
 /*
-** Copyright 1998 - 1999 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct fetchinfo {
-	struct fetchinfo *next;	/* Siblings */
-	char *name;		/* Name */
-	char *bodysection;	/* BODY section */
-	int ispartial;
+	std::string name;
+	std::string bodysection;
+	bool hasbodysection=false;
+	int ispartial=0;
 	unsigned long partialstart;
 	unsigned long partialend;
-	struct fetchinfo *bodysublist;	/* HEADER sublist */
-	} ;
+	std::list<fetchinfo> bodysublist;
+} ;
 
-struct fetchinfo *fetchinfo_alloc(int);
-
-void fetchinfo_free(struct fetchinfo *);
+bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list);
 
 void fetch_free_cache();
 
 void save_cached_offsets(off_t, off_t, off_t);
 
 int get_cached_offsets(off_t, off_t *, off_t *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
