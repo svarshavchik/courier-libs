@@ -1318,24 +1318,15 @@ void doNoop(int real_noop)
 
 		/* Must be the same */
 
-		if (current_maildir_info.msgs[i].filename !=
-		    new_maildir_info.msgs[j].filename ||
-		    current_maildir_info.msgs[i].keywords.keywords() !=
-		    new_maildir_info.msgs[j].keywords.keywords())
+		if (new_maildir_info.msgs[j].update_from(
+			    current_maildir_info.msgs[i]
+		    ))
 		{
-			new_maildir_info.msgs[j].changedflags=1;
 #if SMAP
 			takeSnapshot=false;
 #endif
 		}
-		if (current_maildir_info.msgs[i].recentflag)
-			new_maildir_info.msgs[j].recentflag=1;
-#if SMAP
-		if (smapflag)
-			new_maildir_info.msgs[j].recentflag=0;
-#endif
-		new_maildir_info.msgs[j].copiedflag=
-			current_maildir_info.msgs[i].copiedflag;
+
 		++j;
 	}
 

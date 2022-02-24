@@ -46,6 +46,13 @@ struct imapscanmessageinfo {
 
 	/* All messages found by the search. */
 	bool found_in_search=false;
+
+	// After a resync, this is a new record for an existing message. Copy
+	// over relevant details from the previous record
+	//
+	// Returns true if the message's flags or keywords were changed.
+
+	bool update_from(const imapscanmessageinfo &previous);
 } ;
 
 /*

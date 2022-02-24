@@ -126,6 +126,28 @@ imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other) noexcept
 	return *this;
 }
 
+bool imapscanmessageinfo::update_from(const imapscanmessageinfo &previous)
+{
+	bool haschanged=false;
+
+	if (previous.filename != filename ||
+	    previous.keywords.keywords() != keywords.keywords())
+	{
+		haschanged=true;
+		changedflags=1;
+	}
+
+	if (previous.recentflag)
+		recentflag=1;
+#if SMAP
+	if (smapflag)
+		recentflag=0;
+#endif
+	copiedflag=previous.copiedflag;
+
+	return haschanged;
+}
+
 int imapscan_maildir(imapscaninfo *scaninfo, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
 {
