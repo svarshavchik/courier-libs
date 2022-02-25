@@ -136,8 +136,8 @@ extern void smap_fetchflags(unsigned long);
 
 static const char *protocol;
 
-const char *dot_trash = "." TRASH;
-const char *trash = TRASH;
+std::string dot_trash = "." TRASH;
+std::string trash = TRASH;
 
 FILE *debugfile=0;
 #if 0
@@ -274,7 +274,7 @@ void quotainfo_out(const char* qroot)
 
 int is_trash(const char *m)
 {
-	if (strcmp(m, dot_trash))
+	if (dot_trash != m)
 	{
 		/*
 		 * not trying to delete .Trash but folder inside of .Trash
@@ -1732,7 +1732,7 @@ int log_deletions= cp && *cp != '0';
 				dot_trash,
 				current_maildir_info.msgs[j].filename);
 
-			if (maildirquota_countfolder(dot_trash))
+			if (maildirquota_countfolder(dot_trash.c_str()))
 				will_count=1;
 
 			if (file_counted != will_count)
@@ -1789,7 +1789,7 @@ int log_deletions= cp && *cp != '0';
 
 			if (rename(old_name.c_str(), new_name.c_str()))
 			{
-				mdcreate(dot_trash);
+				mdcreate(dot_trash.c_str());
 				rename(old_name.c_str(), new_name.c_str());
 			}
 
@@ -2854,21 +2854,18 @@ static int aclstore(const char *tag,
 		    std::vector<mailbox_scan_info> &mailboxes)
 {
 	struct imaptoken *curtoken;
-	char *identifier;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
 	    curtoken->tokentype != IT_ATOM &&
 	    curtoken->tokentype != IT_NUMBER)
 		return -1;
 
-	if ((identifier=strdup(curtoken->tokenbuf)) == NULL)
-		write_error_exit(0);
+	std::string identifier=curtoken->tokenbuf;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
 	    curtoken->tokentype != IT_ATOM &&
 	    curtoken->tokentype != IT_NUMBER)
 	{
-		free(identifier);
 		return -1;
 	}
 
@@ -2926,8 +2923,6 @@ static int aclstore(const char *tag,
 			continue;
 		}
 	}
-
-	free(identifier);
 	return 0;
 }
 
@@ -2941,7 +2936,6 @@ static int aclset(const char *tag,
 		  std::vector<mailbox_scan_info> &mailboxes)
 {
 	struct imaptoken *curtoken;
-	char *identifier;
 	maildir::aclt_list newlist;
 
 	while ((curtoken=nexttoken_nouc())->tokentype != IT_EOL)
@@ -2950,15 +2944,14 @@ static int aclset(const char *tag,
 		    curtoken->tokentype != IT_ATOM &&
 		    curtoken->tokentype != IT_NUMBER)
 			return -1;
-		if ((identifier=strdup(curtoken->tokenbuf)) == NULL)
-			write_error_exit(0);
+
+		std::string identifier=curtoken->tokenbuf;
 
 		if ((curtoken=nexttoken_nouc())->tokentype
 		    != IT_QUOTED_STRING &&
 		    curtoken->tokentype != IT_ATOM &&
 		    curtoken->tokentype != IT_NUMBER)
 		{
-			free(identifier);
 			return -1;
 		}
 
@@ -2966,8 +2959,6 @@ static int aclset(const char *tag,
 			identifier,
 			fix_acl_delete(curtoken->tokenbuf)
 		);
-
-		free(identifier);
 	}
 
 	for (auto &mailbox:mailboxes)
@@ -5680,66 +5671,6 @@ static void dogethostname()
 	setenv("HOSTNAME", buf, 1);
 }
 
-#if 0
-static char *getcurdir()
-{
-char	*pathbuf=0;
-size_t	pathlen=256;
-
-	for (;;)
-	{
-		if ((pathbuf=pathbuf ? realloc(pathbuf, pathlen):
-			malloc(pathlen)) == 0)
-			write_error_exit(0);
-		if (getcwd(pathbuf, pathlen-1))
-			return (pathbuf);
-		if (errno != ERANGE)
-		{
-			free(pathbuf);
-			return (0);
-		}
-		pathlen += 256;
-	}
-}
-
-static char *getimapscanpath(const char *argv0)
-{
-char	*p, *q;
-
-	if (*argv0 != '/')
-	{
-		p=getcurdir();
-		if (!p)
-		{
-			perror("getcwd");
-			exit(1);
-		}
-		q=malloc(strlen(p)+strlen(argv0)+sizeof("//imapscan"));
-		if (!q)	write_error_exit(0);
-		strcat(strcat(strcpy(q, p), "/"), argv0);
-	}
-	else
-	{
-		q=malloc(strlen(argv0)+sizeof("imapscan"));
-		if (!q)	write_error_exit(0);
-		strcpy(q, argv0);
-	}
-	p=strrchr(q, '/');
-	if (p && p[1] == 0)
-	{
-		*p=0;
-		p=strrchr(q, '/');
-	}
-
-	if (p)
-		p[1]=0;
-	else	*q=0;
-
-	strcat(q, "imapscan");
-	return (q);
-}
-#endif
-
 static void chkdisabled(const char *ip, const char *port)
 {
 	const char *p;
@@ -5961,11 +5892,10 @@ int main(int argc, char **argv)
 
 	if ((p=getenv("IMAP_TRASHFOLDERNAME")) != 0 && *p)
 	{
-		trash = strdup(p);
-		char *new_dot_trash = (char *)malloc(strlen(trash) + 2);
-		new_dot_trash[0] = '.';
-		strcpy(&new_dot_trash[1], trash);
-		dot_trash=new_dot_trash;
+		trash = p;
+
+		dot_trash=".";
+		dot_trash += trash;
 	}
 
 #if 0
