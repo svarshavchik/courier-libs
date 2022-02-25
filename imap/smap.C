@@ -1,5 +1,5 @@
 /*
-** Copyright 2003-2011 S. Varshavchik.
+** Copyright 2003-2022 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -59,6 +59,7 @@
 #include	"rfc822/rfc822.h"
 
 #include	<string>
+#include	<vector>
 #include	<algorithm>
 
 #define SMAP_BUFSIZ 8192
@@ -135,6 +136,8 @@ FILE *maildir_mkfilename(const char *mailbox, struct imapflags *flags,
 /*
 ** Parse a word from the current SMAP command.
 */
+
+typedef std::vector<const char *> smap_words_t;
 
 static char *getword(char **ptr)
 {
@@ -236,69 +239,20 @@ static void smapword_s(const char *w)
 	}
 }
 
-struct fn_word_list {
-	struct fn_word_list *next;
-	char *w;
-};
+// Collect parsed words, until an empty word.
 
-/*
-** Create a folder word array by reading words from the SMAP command.
-*/
-
-static char **fn_fromwords(char **ptr)
+static smap_words_t fn_fromwords(char **ptr)
 {
-	struct fn_word_list *h=NULL, *n, **t=&h;
-	size_t cnt=0;
+	smap_words_t words;
+
 	char *p;
-	char **fn;
 
 	while (*(p=getword(ptr)))
 	{
-		n=(fn_word_list *)malloc(sizeof(struct fn_word_list));
-
-		if (!n || !(n->w=strdup(p)))
-		{
-			if (n)
-				free(n);
-
-			while ((n=h) != NULL)
-			{
-				h=n->next;
-				free(n->w);
-				free(n);
-			}
-			return NULL;
-		}
-
-		n->next=NULL;
-		*t=n;
-		t= &n->next;
-		cnt++;
+		words.push_back(p);
 	}
 
-	if (!h)
-	{
-		errno=EINVAL;
-		return NULL;
-	}
-
-	fn=(char **)malloc((cnt+1)*sizeof(char *));
-	cnt=0;
-
-	while ((n=h) != NULL)
-	{
-		h=n->next;
-
-		if (fn)
-			fn[cnt]=n->w;
-		else
-			free(n->w);
-		free(n);
-		cnt++;
-	}
-	if (fn)
-		fn[cnt]=0;
-	return fn;
+	return words;
 }
 
 /*
@@ -823,54 +777,42 @@ static int smap_list_cb(struct maildir_newshared_enum_cb *cb)
 
 static std::string getCreateFolder_int(char **ptr, char *need_perms)
 {
-	char **fn;
-	size_t i;
-	char *save;
 	maildir::aclt_list aclt_list;
 
-	fn=fn_fromwords(ptr);
-	if (!fn)
-		return "";
+	auto fn=fn_fromwords(ptr);
 
 	if (need_perms)
 	{
-		for (i=0; fn[i]; i++)
-			;
-
-		if (i == 0)
+		if (fn.size() == 0)
 		{
 			*need_perms=0;
-			maildir_smapfn_free(fn);
 			errno=EINVAL;
 			return "";
 		}
 
-		save=fn[--i];
-		fn[i]=NULL;
+		auto saved=fn.back();
+
+		fn.pop_back();
 
 		auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
 
 		if (!minfo)
 		{
-			fn[i]=save;
-			maildir_smapfn_free(fn);
 			return "";
 		}
 
-		fn[i]=save;
+		fn.push_back(saved);
 
 		if (!read_acls(aclt_list, minfo))
 		{
-			maildir_smapfn_free(fn);
 			return "";
 		}
 
 		auto save=compute_myrights(aclt_list, minfo.owner);
 
-		for (i=0; need_perms[i]; i++)
+		for (size_t i=0; need_perms[i]; i++)
 			if (save.find(need_perms[i]) == save.npos)
 			{
-				maildir_smapfn_free(fn);
 				*need_perms=0;
 				errno=EPERM;
 				return "";
@@ -878,7 +820,6 @@ static std::string getCreateFolder_int(char **ptr, char *need_perms)
 	}
 
 	auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
-	maildir_smapfn_free(fn);
 
 	if (!minfo)
 		return "";
@@ -959,20 +900,14 @@ static bool read_acls(maildir::aclt_list &aclt_list,
 
 static std::string getExistingFolder_int(char **ptr, char *rightsWanted)
 {
-	char **fn;
-
-	fn=fn_fromwords(ptr);
-	if (!fn)
-		return "";
+	auto fn=fn_fromwords(ptr);
 
 	auto minfo=maildir::info_smap_find(fn, getenv("AUTHENTICATED"));
 
 	if (!minfo)
 	{
-		maildir_smapfn_free(fn);
 		return "";
 	}
-	maildir_smapfn_free(fn);
 
 	if (minfo.homedir.empty() || minfo.maildir.empty())
 	{
@@ -2764,7 +2699,7 @@ struct setacl_info {
 	maildir::info minfo;
 	char **ptr;
 
-	setacl_info(char **fn, char **ptr)
+	setacl_info(const smap_words_t &fn, char **ptr)
 		: minfo{
 				maildir::info_smap_find(
 					fn, getenv("AUTHENTICATED")
@@ -2899,7 +2834,7 @@ static void dosetdeleteacl(setacl_info &sainfo, bool dodelete)
 	return;
 }
 
-static maildir::info checkacl(char **folder,
+static maildir::info checkacl(const smap_words_t &folder,
 			      const char *acls)
 {
 	auto minfo=maildir::info_smap_find(folder, getenv("AUTHENTICATED"));
@@ -3331,16 +3266,8 @@ void smap()
 		if (strcmp(p, "GETACL") == 0 ||
 		    strcmp(p, "ACL") == 0)
 		{
-			char **fn=fn_fromwords(&ptr);
+			auto fn=fn_fromwords(&ptr);
 			int cnt;
-
-			if (!fn)
-			{
-				writes("-ERR Invalid folder: ");
-				writes(strerror(errno));
-				writes("\n");
-				continue;
-			}
 
 			auto minfo=maildir::info_smap_find(
 				fn,
@@ -3348,7 +3275,6 @@ void smap()
 
 			if (!minfo)
 			{
-				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
 				writes(strerror(errno));
 				writes("\n");
@@ -3359,7 +3285,6 @@ void smap()
 
 			if (!read_acls(aclt_list, minfo))
 			{
-				maildir_smapfn_free(fn);
 				writes("-ERR Unable to read"
 				       " existing ACLS: ");
 				writes(strerror(errno));
@@ -3375,7 +3300,6 @@ void smap()
 			    :
 			    !maildir_acl_canlistrights(q.c_str()))
 			{
-				maildir_smapfn_free(fn);
 				accessdenied(ACL_ADMINISTER);
 				continue;
 			}
@@ -3397,7 +3321,6 @@ void smap()
 				if (cnt)
 					writes("\n");
 			}
-			maildir_smapfn_free(fn);
 			writes("+OK ACLs retrieved\n");
 			continue;
 		}
@@ -3405,21 +3328,12 @@ void smap()
 		if (strcmp(p, "SETACL") == 0 ||
 		    strcmp(p, "DELETEACL") == 0)
 		{
-			char **fn=fn_fromwords(&ptr);
-
-			if (!fn)
-			{
-				writes("-ERR Invalid folder: ");
-				writes(strerror(errno));
-				writes("\n");
-				continue;
-			}
+			auto fn=fn_fromwords(&ptr);
 
 			setacl_info sainfo{fn, &ptr};
 
 			if (!sainfo.minfo)
 			{
-				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
 				writes(strerror(errno));
 				writes("\n");
@@ -3435,8 +3349,6 @@ void smap()
 					 );
 					 return true;
 				 });
-
-			maildir_smapfn_free(fn);
 			continue;
 		}
 
@@ -3573,62 +3485,50 @@ void smap()
 
 		if (strcmp(p, "DELETE") == 0)
 		{
-			char **fn;
 			std::string t;
 
-			fn=fn_fromwords(&ptr);
+			auto fn=fn_fromwords(&ptr);
 
-			if (fn)
+			auto minfo=maildir::info_smap_find(
+				fn, getenv("AUTHENTICATED"));
+
+			if (minfo)
 			{
-				auto minfo=maildir::info_smap_find(
-					fn, getenv("AUTHENTICATED"));
-
-				if (minfo)
+				if (!minfo.homedir.empty() &&
+				    !minfo.maildir.empty())
 				{
-					maildir_smapfn_free(fn);
+					maildir::aclt_list list;
 
-					if (!minfo.homedir.empty() &&
-					    !minfo.maildir.empty())
+					if (minfo.maildir == INBOX)
 					{
-						maildir::aclt_list list;
-
-						if (minfo.maildir == INBOX)
-						{
-							writes("-ERR INBOX may"
-							       " not be"
-							       " deleted\n");
-							continue;
-						}
-
-						if (!read_acls(list, minfo))
-						{
-							accessdenied(
-								ACL_DELETEFOLDER
-							);
-							continue;
-						}
-
-						auto q=compute_myrights(
-							list,
-							minfo.owner);
-
-						if (q.find(ACL_DELETEFOLDER[0])
-						    == q.npos)
-						{
-							accessdenied(
-								ACL_DELETEFOLDER
-							);
-							continue;
-						}
-						t=maildir::name2dir(
-							minfo.homedir,
-							minfo.maildir
-						);
+						writes("-ERR INBOX may"
+						       " not be"
+						       " deleted\n");
+						continue;
 					}
-				}
-				else
-				{
-					maildir_smapfn_free(fn);
+
+					if (!read_acls(list, minfo))
+					{
+						accessdenied(ACL_DELETEFOLDER);
+						continue;
+					}
+
+					auto q=compute_myrights(
+						list,
+						minfo.owner);
+
+					if (q.find(ACL_DELETEFOLDER[0])
+					    == q.npos)
+					{
+						accessdenied(
+							ACL_DELETEFOLDER
+						);
+						continue;
+					}
+					t=maildir::name2dir(
+						minfo.homedir,
+						minfo.maildir
+					);
 				}
 			}
 
@@ -3666,35 +3566,13 @@ void smap()
 
 		if (strcmp(p, "RENAME") == 0)
 		{
-			char **fnsrc, **fndst;
-			size_t i;
-			char *save;
 			const char *errmsg;
 
-			if ((fnsrc=fn_fromwords(&ptr)) == NULL)
-			{
-				writes("-ERR ");
-				writes(strerror(errno));
-				writes("\n");
-				continue;
-			}
+			auto fnsrc=fn_fromwords(&ptr);
+			auto fndst=fn_fromwords(&ptr);
 
-			if ((fndst=fn_fromwords(&ptr)) == NULL)
+			if (fndst.size() == 0)
 			{
-				maildir_smapfn_free(fnsrc);
-				writes("-ERR ");
-				writes(strerror(errno));
-				writes("\n");
-				continue;
-			}
-
-			for (i=0; fndst[i]; i++)
-				;
-
-			if (i == 0)
-			{
-				maildir_smapfn_free(fnsrc);
-				maildir_smapfn_free(fndst);
 				writes("-ERR Invalid destination folder name\n");
 				continue;
 			}
@@ -3703,34 +3581,27 @@ void smap()
 
 			if (!msrc)
 			{
-				maildir_smapfn_free(fnsrc);
-				maildir_smapfn_free(fndst);
 				accessdenied(ACL_DELETEFOLDER);
 				continue;
 			}
-			save=fndst[--i];
-			fndst[i]=NULL;
+			auto save=fndst.back();
+			fndst.pop_back();
 
 			auto mdst=checkacl(fndst, ACL_CREATE);
 
+			fndst.push_back(save);
+
 			if (!mdst)
 			{
-				fndst[i]=save;
-				maildir_smapfn_free(fnsrc);
-				maildir_smapfn_free(fndst);
 				accessdenied(ACL_CREATE);
 				continue;
 			}
-
-			fndst[i]=save;
 
 			mdst=maildir::info_smap_find(fndst,
 						     getenv("AUTHENTICATED"));
 
 			if (!mdst)
 			{
-				maildir_smapfn_free(fnsrc);
-				maildir_smapfn_free(fndst);
 				writes("-ERR Internal error in RENAME: ");
 				writes(strerror(errno));
 				writes("\n");
@@ -3751,16 +3622,12 @@ void smap()
 			{
 				writes("+OK Folder renamed.\n");
 			}
-
-			maildir_smapfn_free(fnsrc);
-			maildir_smapfn_free(fndst);
 			continue;
 		}
 
 		if (strcmp(p, "OPEN") == 0 ||
 		    strcmp(p, "SOPEN") == 0)
 		{
-			char **fn;
 			const char *snapshot=0;
 
 			current_maildir_info=imapscaninfo{""};
@@ -3771,15 +3638,7 @@ void smap()
 			if (p[0] == 'S')
 				snapshot=getword(&ptr);
 
-			fn=fn_fromwords(&ptr);
-
-			if (!fn)
-			{
-				writes("-ERR Invalid folder: ");
-				writes(strerror(errno));
-				writes("\n");
-				continue;
-			}
+			auto fn=fn_fromwords(&ptr);
 
 			auto minfo=maildir::info_smap_find(
 				fn,
@@ -3787,7 +3646,6 @@ void smap()
 
 			if (!minfo)
 			{
-				maildir_smapfn_free(fn);
 				writes("-ERR Invalid folder: ");
 				writes(strerror(errno));
 				writes("\n");
@@ -3798,7 +3656,6 @@ void smap()
 
 			if (!read_acls(aclt_list, minfo))
 			{
-				maildir_smapfn_free(fn);
 				writes("-ERR Unable to read"
 				       " existing ACLS: ");
 				writes(strerror(errno));
@@ -3807,7 +3664,6 @@ void smap()
 			}
 
 			auto q=compute_myrights(aclt_list, minfo.owner);
-			maildir_smapfn_free(fn);
 
 			if (q.find(ACL_READ[0]) == q.npos)
 			{

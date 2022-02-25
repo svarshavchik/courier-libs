@@ -63,9 +63,6 @@ extern int maildir_info_suppress(const char *maildir);
 /*
 ** The SMAP version:
 */
-int maildir_info_smap_find(struct maildir_info *info, char **folder,
-			   const char *myid);
-
 char **maildir_smapfn_fromutf8(const char *modutf8);
 void maildir_smapfn_free(char **fn);
 
@@ -83,11 +80,14 @@ extern char *maildir_info_imapmunge(const char *name);
 }
 
 #include <string>
+#include <vector>
 
 namespace maildir {
 #if 0
 }
 #endif
+
+typedef std::vector<const char *> smap_words_t;
 
 struct info {
 	int mailbox_type=MAILBOXTYPE_ERROR;
@@ -114,6 +114,8 @@ info info_imap_find(const std::string &path,
 */
 
 info info_smap_find(char **folder, const std::string &myid);
+
+info info_smap_find(const smap_words_t &, const std::string &myid);
 
 /*
 ** Conversions between IMAP folder names to filenames.

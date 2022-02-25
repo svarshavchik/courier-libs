@@ -268,50 +268,6 @@ info info_imap_find(const std::string &path,
 	return ret;
 }
 
-struct get_existing_folder_info {
-	char **fn;
-
-	std::string pathname;
-};
-
-static void get_existing_callback(const char *f, void *vp)
-{
-	char **fn;
-
-	get_existing_folder_info *gefi=
-		reinterpret_cast<get_existing_folder_info *>(vp);
-	size_t i;
-	size_t j;
-
-	if (!gefi->pathname.empty())
-		return;
-
-	fn=maildir_smapfn_fromutf8(f);
-	if (!fn)
-	{
-		perror(f);
-		return;
-	}
-
-	for (i=0; gefi->fn[i]; i++)
-		if (fn[i] == NULL || strcmp(fn[i], gefi->fn[i]))
-		{
-			maildir_smapfn_free(fn);
-			return;
-		}
-
-	maildir_smapfn_free(fn);
-
-	for (j=0; i && f[j]; j++)
-		if (f[j] == '.' && f[j+1] && f[j+1] != '.')
-		{
-			--i;
-			if (i == 0)
-				break;
-		}
-
-	gefi->pathname=std::string{f, f+j};
-}
 /*
 ** Maildir folders are named in IMAP-compatible modified-UTF8 encoding,
 ** with periods as hierarchy delimiters.  One exception: ".", "/", "~", and
@@ -326,37 +282,30 @@ static void get_existing_callback(const char *f, void *vp)
 **
 */
 
-static std::string smap_to_utf8(char **ptr)
+static std::string smap_to_utf8(const smap_words_t &words)
 {
 	std::string f;
-	char *n;
 
-	while ((n=*ptr++) != NULL && *n)
+	for (auto &n:words)
 	{
-		char *p=unicode_convert_tobuf(n, "utf-8",
-					      unicode_x_smap_modutf8,
-					      NULL);
-
-		if (!p)
-		{
-			f.clear();
-			return f;
-		}
+		if (!*n)
+			break;
 
 		if (!f.empty())
 			f += ".";
-		f += p;
-		free(p);
+
+		f += unicode::iconvert::convert(n,
+						"utf-8",
+						unicode_x_smap_modutf8);
 	}
 
 	return f;
 }
 
-static std::string smap_path(const char *homedir,
-			     char **words)  /* words[0] better be INBOX! */
+static std::string smap_path(
+	const std::string &homedir,
+	const smap_words_t &words)  /* words[0] better be INBOX! */
 {
-	struct get_existing_folder_info gefi;
-	char *p;
 	struct stat stat_buf;
 
 	std::string n=smap_to_utf8(words);
@@ -364,41 +313,88 @@ static std::string smap_path(const char *homedir,
 	if (n.empty())
 		return n;
 
-	p=maildir_name2dir(homedir, n.c_str());
+	auto p=maildir::name2dir(homedir, n);
 
-	if (!p)
+	if (p.empty())
 	{
 		n.clear();
 		return n;
 	}
 
-	if (stat(p, &stat_buf) == 0)
+	if (stat(p.c_str(), &stat_buf) == 0)
 	{
-		free(p);
 		return n;
 	}
 
-	gefi.fn=words;
+	std::string out_pathname;
 
-	maildir_list(homedir ? homedir:".",
-		     &get_existing_callback, &gefi);
+	maildir::list(
+		homedir,
+		[&]
+		(const std::string &s)
+		{
+			if (!out_pathname.empty())
+				return;
 
-	if (!gefi.pathname.empty())
+			auto fn=maildir_smapfn_fromutf8(s.c_str());
+
+			if (!fn)
+			{
+				perror(s.c_str());
+				return;
+			}
+
+			size_t i;
+
+			for (i=0; i<words.size(); i++)
+			{
+				if (fn[i] == NULL ||
+				    words[i] != fn[i])
+				{
+					maildir_smapfn_free(fn);
+					return;
+				}
+			}
+
+			maildir_smapfn_free(fn);
+
+			size_t j;
+			for (j=0; i && j<s.size(); j++)
+				if (s[j] == '.' &&
+				    j+1 < s.size() &&
+				    s[j+1] != '.')
+				{
+					--i;
+					if (i == 0)
+						break;
+				}
+
+			out_pathname=s.substr(0, j);
+		});
+
+	if (!out_pathname.empty())
 	{
-		free(p);
-
-		return gefi.pathname.c_str();
+		return out_pathname;
 	}
 
-	free(p);
 	return n;
 }
 
 info info_smap_find(char **folder, const std::string &myId)
 {
+	smap_words_t folderv;
+
+	for (size_t i=0; folder[i]; ++i)
+		folderv.push_back(folder[i]);
+	return info_smap_find(folderv, myId);
+}
+
+info info_smap_find(const smap_words_t &folder,
+		    const std::string &myId)
+{
+
 	info ret;
 
-	char *p;
 	size_t n;
 	const char *indexfile;
 	struct maildir_shindex_cache *curcache;
@@ -409,7 +405,7 @@ info info_smap_find(char **folder, const std::string &myId)
 
 	ret.mailbox_type=MAILBOXTYPE_IGNORE;
 
-	if (folder[0] == NULL)
+	if (folder.size() == 0)
 	{
 		errno=EINVAL;
 		ret={};
@@ -425,7 +421,7 @@ info info_smap_find(char **folder, const std::string &myId)
 			return ret;
 		}
 
-		ret.maildir=smap_path(NULL, folder);
+		ret.maildir=smap_path(".", folder);
 		if (ret.maildir.empty())
 		{
 			ret={};
@@ -445,7 +441,7 @@ info info_smap_find(char **folder, const std::string &myId)
 	subhierarchy=NULL;
 	n=1;
 
-	while (folder[n])
+	while (n < folder.size())
 	{
 		size_t i;
 
@@ -457,7 +453,7 @@ info info_smap_find(char **folder, const std::string &myId)
 
 		for (i=0; i<curcache->nrecords; i++)
 			if (strcmp(curcache->records[i].name,
-				   folder[n]) == 0)
+			    folder[n]) == 0)
 				break;
 
 		if (i >= curcache->nrecords)
@@ -516,14 +512,15 @@ info info_smap_find(char **folder, const std::string &myId)
 			ret.owner=std::string{"user="}+subhierarchy;
 		}
 
-		p=folder[n];
+		smap_words_t new_path;
 
-		static char inbox_s[]="INBOX";
-		folder[n]=inbox_s;
+		new_path.reserve(folder.size()-n);
+		new_path.push_back(INBOX);
 
-		ret.maildir=smap_path(ret.homedir.c_str(), folder+n);
+		for (auto p=folder.begin()+n+1; p != folder.end(); ++p)
+			new_path.push_back(*p);
 
-		folder[n]=p;
+		ret.maildir=smap_path(ret.homedir, new_path);
 
 		if (ret.maildir.empty())
 		{
@@ -535,7 +532,7 @@ info info_smap_find(char **folder, const std::string &myId)
 		return ret;
 	}
 
-	if (folder[n] == 0)
+	if (n >= folder.size())
 	{
 		ret.mailbox_type=MAILBOXTYPE_NEWSHARED;
 		ret.owner="vendor=courier.internal";
@@ -575,29 +572,5 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 		return -1;
 	}
 
-	return 0;
-}
-
-extern "C"
-int maildir_info_smap_find(struct maildir_info *info, char **folder,
-			   const char *myid)
-{
-	memset(info, 0, sizeof(*info));
-
-	maildir::info n=maildir::info_smap_find(folder, myid);
-
-	info->mailbox_type=n.mailbox_type;
-
-	if (!n
-	    || (!n.owner.empty() &&
-		!(info->owner=strdup(n.owner.c_str())))
-	    || (!n.maildir.empty() &&
-		!(info->maildir=strdup(n.maildir.c_str())))
-	    || (!n.homedir.empty() &&
-		!(info->homedir=strdup(n.homedir.c_str()))))
-	{
-		maildir_info_destroy(info);
-		return -1;
-	}
 	return 0;
 }
