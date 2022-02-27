@@ -28,11 +28,9 @@ struct imap_find_shared {
 	std::string maildir;
 };
 
-static int imap_find_cb(struct maildir_newshared_enum_cb *cb)
+static int imap_find_cb(struct maildir_newshared_enum_cb *cb,
+			imap_find_shared *ifs)
 {
-	imap_find_shared *ifs=
-		reinterpret_cast<imap_find_shared *>(cb->cb_arg);
-
 	if (cb->homedir)
 	{
 		ifs->homedir=cb->homedir;
@@ -144,7 +142,8 @@ info info_imap_find(const std::string &path,
 
 	while (*ifs.path)
 	{
-		int rc, eof;
+		int rc;
+		bool eof;
 		size_t i;
 
 		curcache=maildir_shared_cache_read(curcache, indexfile.c_str(),
@@ -188,9 +187,15 @@ info info_imap_find(const std::string &path,
 
 		curcache->indexfile.startingpos=
 			curcache->records[i].offset;
-		rc=maildir_newshared_nextAt(&curcache->indexfile,
-					    &eof,
-					    imap_find_cb, &ifs);
+
+		eof=maildir::newshared_nextAt(
+			&curcache->indexfile,
+			[&]
+			{
+				rc=imap_find_cb(
+					&curcache->indexfile,
+					&ifs);
+			});
 
 		indexfile.clear();
 
@@ -400,7 +405,8 @@ info info_smap_find(const smap_words_t &folder,
 	struct maildir_shindex_cache *curcache;
 	const char *subhierarchy;
 	struct imap_find_shared ifs;
-	int rc, eof;
+	int rc;
+	bool eof;
 	std::string indexfile_cpy;
 
 	ret.mailbox_type=MAILBOXTYPE_IGNORE;
@@ -464,9 +470,12 @@ info info_smap_find(const smap_words_t &folder,
 		ifs.homedir.clear();
 		ifs.maildir.clear();
 
-		rc=maildir_newshared_nextAt(&curcache->indexfile,
-					    &eof,
-					    imap_find_cb, &ifs);
+		eof=maildir::newshared_nextAt(
+			&curcache->indexfile,
+			[&]
+			{
+				rc=imap_find_cb(&curcache->indexfile, &ifs);
+			});
 
 		if (rc || eof)
 		{

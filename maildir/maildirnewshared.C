@@ -41,22 +41,55 @@ void maildir_newshared_close(struct maildir_newshared_enum_cb *info)
 
 int maildir_newshared_nextAt(struct maildir_newshared_enum_cb *info,
 			     int *eof,
-			     int (*cb_func)(struct maildir_newshared_enum_cb*),
+			     int (*cb_func)(struct maildir_newshared_enum_cb*,
+					    void *),
 			     void *cb_arg)
 {
-	if (fseek(info->fp, info->startingpos, SEEK_SET) < 0)
-		return -1;
-	info->linenum= -1;
-	return maildir_newshared_next(info, eof, cb_func, cb_arg);
+	int ret=0;
+
+	*eof=maildir::newshared_nextAt(
+		info,
+		[&]
+		{
+			ret=(*cb_func)(info, cb_arg);
+		}) ? 1:0;
+
+	return ret;
 }
 
 int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 			   int *eof,
-			   int (*cb_func)(struct maildir_newshared_enum_cb *),
+			   int (*cb_func)(struct maildir_newshared_enum_cb *,
+					  void *),
 			   void *cb_arg)
 {
+	int ret=0;
+
+	*eof=maildir::newshared_next(
+		info,
+		[&]
+		{
+			ret=(*cb_func)(info, cb_arg);
+		}) ? 1:0;
+
+	return ret;
+}
+
+bool maildir::newshared_nextAt(struct maildir_newshared_enum_cb *info,
+			       const std::function<void ()> &callback)
+{
+	if (fseek(info->fp, info->startingpos, SEEK_SET) < 0)
+		return true;
+	info->linenum= -1;
+
+	return newshared_next(info, callback);
+}
+
+
+bool maildir::newshared_next(struct maildir_newshared_enum_cb *info,
+			     const std::function<void ()> &callback)
+{
 	char linebuf[BUFSIZ];
-	int rc;
 	char *p;
 	const char *name;
 	const char *homedir;
@@ -67,9 +100,7 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 
 #define CB_INIT(name_,homedir_,maildir_,uid_,gid_) \
 	info->name=name_; info->homedir=homedir_; info->maildir=maildir_; \
-	info->uid=uid_; info->gid=gid_; info->cb_arg=cb_arg;
-
-	*eof=0;
+	info->uid=uid_; info->gid=gid_;
 
 	while (fgets(linebuf, sizeof(linebuf), info->fp) != NULL)
 	{
@@ -110,7 +141,7 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 
 					p=(char *)malloc(n+strlen(maildir)+1);
 					if (!p)
-						return -1;
+						return true;
 
 					if (n)
 						memcpy(p, info->indexfile, n);
@@ -119,12 +150,11 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 
 					CB_INIT(name, NULL, p, 0, 0);
 
-					info->cb_arg=cb_arg;
-					rc= (*cb_func)(info);
+					callback();
 
 					free(p);
 					info->startingpos += nbytes;
-					return rc;
+					return false;
 				}
 			}
 			else
@@ -157,10 +187,9 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 							uid,
 							gid);
 
-						info->cb_arg=cb_arg;
-						rc=(*cb_func)(info);
+						callback();
 						info->startingpos += nbytes;
-						return rc;
+						return false;
 					}
 				}
 			}
@@ -173,30 +202,44 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 		}
 		info->startingpos += nbytes;
 	}
-	*eof=1;
-	return 0;
+	return true;
 }
 
 int maildir_newshared_enum(const char *indexfile,
-			   int (*cb_func)(struct maildir_newshared_enum_cb *),
+			   int (*cb_func)(struct maildir_newshared_enum_cb *,
+					  void *),
 			   void *cb_arg)
 {
+	int rc=0;
+
+	maildir::newshared_enum(
+		indexfile,
+		[&]
+		(maildir_newshared_enum_cb *cb)
+		{
+			if (rc == 0)
+				rc=cb_func(cb, cb_arg);
+		});
+
+	return rc;
+}
+
+void maildir::newshared_enum(
+	const char *indexfile,
+	const std::function<void (maildir_newshared_enum_cb *)> &callback)
+{
 	struct maildir_newshared_enum_cb cb;
-	int eof;
-	int rc;
 
 	if (maildir_newshared_open(indexfile, &cb) < 0)
-		return -1;
+		return;
 
-	while ((rc=maildir_newshared_next(&cb, &eof, cb_func, cb_arg)) == 0)
-	{
-		if (eof)
-		{
-			maildir_newshared_close(&cb);
-			return 0;
-		}
-	}
+	while (!newshared_next(
+		       &cb,
+		       [&]
+		       {
+			       callback(&cb);
+		       }))
+		;
 
 	maildir_newshared_close(&cb);
-	return rc;
 }

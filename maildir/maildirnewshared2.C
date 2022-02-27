@@ -112,11 +112,10 @@ struct maildir_shindex_temp_record {
 	struct maildir_shindex_record rec;
 };
 
-static int shared_cache_read_cb(struct maildir_newshared_enum_cb *ptr)
+static int shared_cache_read_cb(struct maildir_newshared_enum_cb *ptr,
+				struct maildir_shindex_temp_record **list)
 {
 	struct maildir_shindex_temp_record *r;
-	struct maildir_shindex_temp_record **list=
-		(struct maildir_shindex_temp_record **)ptr->cb_arg;
 
 	if ((r=(maildir_shindex_temp_record *)
 	     malloc(sizeof(struct maildir_shindex_temp_record))) == NULL ||
@@ -140,7 +139,6 @@ static struct maildir_shindex_cache *do_shared_cache_read(const char *indexfile,
 	struct maildir_shindex_temp_record *rec=NULL;
 	size_t n;
 	struct maildir_shindex_cache *c;
-	int eof;
 	int rc;
 
 	if ((c=(maildir_shindex_cache *)
@@ -162,10 +160,19 @@ static struct maildir_shindex_cache *do_shared_cache_read(const char *indexfile,
 
 	n=0;
 
-	while ((rc=maildir_newshared_next(&c->indexfile, &eof,
-					  shared_cache_read_cb, &rec)) == 0)
+	while (1)
 	{
-		if (eof)
+		rc=0;
+		bool eof=maildir::newshared_next(
+			&c->indexfile,
+			[&]
+			{
+				rc=shared_cache_read_cb(
+					&c->indexfile,
+					&rec);
+			});
+
+		if (rc != 0 || eof)
 			break;
 		++n;
 	}

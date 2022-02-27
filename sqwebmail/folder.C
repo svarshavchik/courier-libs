@@ -2717,9 +2717,10 @@ void folder_list()
 			    do_sharedhierlist);
 }
 
-static int do_publicfolderlist_cb(struct maildir_newshared_enum_cb *cb)
+static int do_publicfolderlist_cb(struct maildir_newshared_enum_cb *cb,
+				  void *cb_arg)
 {
-	auto h=reinterpret_cast<publicfolderlist_helper *>(cb->cb_arg);
+	auto h=reinterpret_cast<publicfolderlist_helper *>(cb_arg);
 
 	if (cb->name)
 		h->name=cb->name;

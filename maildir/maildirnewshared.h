@@ -66,7 +66,6 @@ struct maildir_newshared_enum_cb {
 	const char *maildir;
 	uid_t uid;
 	gid_t gid;
-	void *cb_arg;
 	const char *indexfile;	/* Original index file */
 	FILE *fp;		/* INTERNAL USE */
 	size_t linenum;		/* INTERNAL USE */
@@ -89,7 +88,8 @@ int maildir_newshared_open(const char *indexfile,
 
 int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 			   int *eof,
-			   int (*cb_func)(struct maildir_newshared_enum_cb *),
+			   int (*cb_func)(struct maildir_newshared_enum_cb *,
+					  void *),
 			   void *cb_arg);
 
 /*
@@ -98,7 +98,8 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 
 int maildir_newshared_nextAt(struct maildir_newshared_enum_cb *info,
 			     int *eof,
-			     int (*cb_func)(struct maildir_newshared_enum_cb*),
+			     int (*cb_func)(struct maildir_newshared_enum_cb*,
+					    void *),
 			     void *cb_arg);
 
 /* Close it */
@@ -106,7 +107,8 @@ int maildir_newshared_nextAt(struct maildir_newshared_enum_cb *info,
 void maildir_newshared_close(struct maildir_newshared_enum_cb *info);
 
 int maildir_newshared_enum(const char *indexfile,
-			   int (*cb_func)(struct maildir_newshared_enum_cb *),
+			   int (*cb_func)(struct maildir_newshared_enum_cb *,
+					  void *),
 			   void *cb_arg);
 
 
@@ -176,6 +178,37 @@ maildir_shared_cache_read(struct maildir_shindex_cache *parent,
 
 #ifdef  __cplusplus
 }
+#include <functional>
+
+namespace maildir {
+#if 0
+}
+#endif
+
+// C++ version of maildir_newshared_next
+//
+// Returns true if EOF was reached, else invokes the callback function after
+// initializing maildir_newshared_enum_cb values.
+
+bool newshared_next(struct maildir_newshared_enum_cb *info,
+		    const std::function<void ()> &callback);
+
+/*
+** C++ version of maildir_newshared_nextAt
+*/
+bool newshared_nextAt(struct maildir_newshared_enum_cb *info,
+		      const std::function<void ()> &callback);
+
+void newshared_enum(
+	const char *indexfile,
+	const std::function<void (maildir_newshared_enum_cb *)> &cb
+);
+
+#if 0
+{
+#endif
+}
+
 #endif
 
 

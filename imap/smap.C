@@ -424,8 +424,10 @@ struct smap_find_info {
 	char *maildir;
 };
 
-static int smap_find_cb(struct maildir_newshared_enum_cb *cb);
-static int smap_list_cb(struct maildir_newshared_enum_cb *cb);
+static void smap_find_cb(struct maildir_newshared_enum_cb *cb,
+			 smap_find_info *ifs);
+static int smap_list_cb(struct maildir_newshared_enum_cb *cb,
+			struct list_callback_utf8 *list_utf8_info);
 static bool read_acls(maildir::aclt_list &aclt_list,
 		      maildir::info &minfo);
 
@@ -460,7 +462,7 @@ static void do_listcmd(struct list_hier **head,
 			struct maildir_shindex_cache *curcache;
 			struct list_hier *p=lci.hier->next;
 			struct smap_find_info sfi;
-			int eof;
+			bool eof;
 			char *d;
 
 			curcache=maildir_shared_cache_read(NULL, NULL, NULL);
@@ -468,7 +470,6 @@ static void do_listcmd(struct list_hier **head,
 			while (curcache && p)
 			{
 				size_t i;
-				int rc;
 				struct list_hier inbox;
 
 				for (i=0; i<curcache->nrecords; i++)
@@ -485,13 +486,18 @@ static void do_listcmd(struct list_hier **head,
 				sfi.maildir=NULL;
 				curcache->indexfile.startingpos=
 					curcache->records[i].offset;
-				rc=maildir_newshared_nextAt(&curcache
-							    ->indexfile,
-							    &eof,
-							    smap_find_cb,
-							    &sfi);
 
-				if (rc || eof)
+				eof=maildir::newshared_nextAt(
+					&curcache->indexfile,
+					[&]
+					{
+						smap_find_cb(
+							&curcache->indexfile,
+							&sfi
+						);
+					});
+
+				if (eof)
 				{
 					fprintf(stderr, "ERR: Internal error -"
 						" maildir_newshared_nextAt: %s\n",
@@ -540,26 +546,24 @@ static void do_listcmd(struct list_hier **head,
 
 			if (curcache) /* List a shared hierarchy */
 			{
-				int rc;
-
 				curcache->indexfile.startingpos=0;
-				eof=0;
+				eof=false;
 
 				do
 				{
-					rc=(curcache->indexfile.startingpos
-						? maildir_newshared_next:
-						maildir_newshared_nextAt)
-						(&curcache->indexfile, &eof,
-						 &smap_list_cb,
-						 &list_utf8_info);
-
-					if (rc)
-						fprintf(stderr,
-							"ERR: Internal error -"
-							" maildir_newshared_next: %s\n",
-							strerror(errno));
-				} while (rc == 0 && !eof);
+					eof=(curcache->indexfile.startingpos
+					     ? maildir::newshared_next:
+					     maildir::newshared_nextAt)(
+						     &curcache->indexfile,
+						     [&]
+						     {
+							     smap_list_cb(
+								     &curcache->
+								     indexfile,
+								     &list_utf8_info
+							     );
+						     });
+				} while (!eof);
 
 				hierlist=1;
 			}
@@ -674,21 +678,18 @@ static void do_listcmd(struct list_hier **head,
 	writes("+OK LIST completed\n");
 }
 
-static int smap_find_cb(struct maildir_newshared_enum_cb *cb)
+static void smap_find_cb(struct maildir_newshared_enum_cb *cb,
+			 smap_find_info *ifs)
 {
-	struct smap_find_info *ifs=(struct smap_find_info *)cb->cb_arg;
-
 	if (cb->homedir)
 		ifs->homedir=my_strdup(cb->homedir);
 	if (cb->maildir)
 		ifs->maildir=my_strdup(cb->maildir);
-	return 0;
 }
 
-static int smap_list_cb(struct maildir_newshared_enum_cb *cb)
+static int smap_list_cb(struct maildir_newshared_enum_cb *cb,
+			struct list_callback_utf8 *list_utf8_info)
 {
-	struct list_callback_utf8 *list_utf8_info=
-		(struct list_callback_utf8 *)cb->cb_arg;
 	struct list_callback_info *lci=
 		(struct list_callback_info *)list_utf8_info->callback_arg;
 	char *d;
