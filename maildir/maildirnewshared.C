@@ -108,7 +108,7 @@ int maildir_newshared_next(struct maildir_newshared_enum_cb *info,
 
 					n=strlen(info->indexfile)-strlen(q);
 
-					p=malloc(n+strlen(maildir)+1);
+					p=(char *)malloc(n+strlen(maildir)+1);
 					if (!p)
 						return -1;
 

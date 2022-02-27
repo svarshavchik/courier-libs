@@ -118,7 +118,8 @@ static int shared_cache_read_cb(struct maildir_newshared_enum_cb *ptr)
 	struct maildir_shindex_temp_record **list=
 		(struct maildir_shindex_temp_record **)ptr->cb_arg;
 
-	if ((r=malloc(sizeof(struct maildir_shindex_temp_record))) == NULL ||
+	if ((r=(maildir_shindex_temp_record *)
+	     malloc(sizeof(struct maildir_shindex_temp_record))) == NULL ||
 	    (r->rec.name=strdup(ptr->name)) == NULL)
 	{
 		if (r)
@@ -142,7 +143,8 @@ static struct maildir_shindex_cache *do_shared_cache_read(const char *indexfile,
 	int eof;
 	int rc;
 
-	if ((c=malloc(sizeof(struct maildir_shindex_cache))) == NULL ||
+	if ((c=(maildir_shindex_cache *)
+	     malloc(sizeof(struct maildir_shindex_cache))) == NULL ||
 	    (c->hierarchy=strdup(subhier)) == NULL)
 	{
 		if (c)
@@ -192,7 +194,8 @@ static struct maildir_shindex_cache *do_shared_cache_read(const char *indexfile,
 
 	if (n)
 	{
-		if ((c->records=malloc(sizeof(*c->records)*n)) == NULL)
+		if ((c->records=(maildir_shindex_record *)
+		     malloc(sizeof(*c->records)*n)) == NULL)
 		{
 
 			free(c->hierarchy);
