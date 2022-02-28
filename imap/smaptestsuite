@@ -707,13 +707,14 @@ echo "cat >>`pwd`/confsendmail.out" >>confsendmail
 chmod +x confsendmail
 
 env AUTHENTICATED=user1 IMAP_BROKENUIDV=1 IMAP_KEYWORDS=1 MOVE_EXPUNGE_TO_TRASH=1 MAILDIR=confmdtest PROTOCOL=SMAP1 SENDMAIL=`pwd`/confsendmail $IMAPINVOKE <<EOF | sed "$SED"
-ADD FOLDER INBOX "" "MAILFROM=user@example.com" "RCPTTO=recipient@example.com" "RCPTTO=recipient2@example.com" "NOTIFY=success,delay,fail" {.}
+OPEN INBOX
+ADD FOLDER INBOX "" "MAILFROM=user@example.com" "RCPTTO=recipient@example.com" "RCPTTO=recipient2@example.com" "NOTIFY=success,delay,fail" FLAGS=REPLIED KEYWORDS=keyword1 {.}
 Subject: test message 1
 
 test message 1
 .
 OPEN INBOX
-FETCH 1 CONTENTS=BODY
+FETCH 1 CONTENTS=BODY FLAGS KEYWORDS
 EOF
 cat confsendmail.out
 rm -rf confsendmail confsendmail.out confmdtest
