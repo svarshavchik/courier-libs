@@ -2104,3 +2104,18 @@
 002098 * BYE Courier-SMAP server shutting down
 002099 +OK LOGOUT completed
 002100 01/2022
+002101 +OK SMAP1 LOGIN Ok.
+002102 > Go ahead
+002103 * ADD UID
+002104 +OK Message saved
+002105 * EXISTS 1
+002106 +OK Folder opened
+002107 {15/15} FETCH 1 CONTENTS
+002108 test message 1
+002109 
+002110 * FETCH 1 FLAGS=SEEN
+002111 +OK Message retrieved.
+002112 -oi -f user@example.com -N success,delay,fail recipient2@example.com recipient@example.com
+002113 Subject: test message 1
+002114 
+002115 test message 1

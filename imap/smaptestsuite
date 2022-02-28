@@ -3,7 +3,7 @@ then
     IMAPINVOKE="./imapd"
 fi
 
-SED='s/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g;s/SNAPSHOT "[^"]*"/SNAPSHOT -SNAPSHOT-/g;s/SNAPSHOTEXISTS "[^"]*"/SNAPSHOTEXISTS -SNAPSHOT-/g;s:^-ERR .*:-ERR --error--:'
+SED='s/UIDVALIDITY [0-9]*/UIDVALIDITY/;s/INTERNALDATE "[^"]*"/INTERNALDATE -DATE-/g;s/SNAPSHOT "[^"]*"/SNAPSHOT -SNAPSHOT-/g;s/SNAPSHOTEXISTS "[^"]*"/SNAPSHOTEXISTS -SNAPSHOT-/g;s/ADD "UID=[^"]*/ADD "UID=<uid>/;s:^-ERR .*:-ERR --error--:'
 
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest
@@ -697,3 +697,23 @@ EOF
 f="`echo confmdtest/.Trash/cur/*`"
 
 $PERL -e "use POSIX qw(strftime); print strftime(\"%m/%Y\\n\", localtime [stat('$f')]->[9])"
+
+rm -rf confmdtest
+../maildir/maildirmake confmdtest || exit 1
+
+echo '#! /bin/sh' >confsendmail
+echo 'echo $* >'`pwd`'/confsendmail.out' >>confsendmail
+echo "cat >>`pwd`/confsendmail.out" >>confsendmail
+chmod +x confsendmail
+
+env AUTHENTICATED=user1 IMAP_BROKENUIDV=1 IMAP_KEYWORDS=1 MOVE_EXPUNGE_TO_TRASH=1 MAILDIR=confmdtest PROTOCOL=SMAP1 SENDMAIL=`pwd`/confsendmail $IMAPINVOKE <<EOF | sed "$SED"
+ADD FOLDER INBOX "" "MAILFROM=user@example.com" "RCPTTO=recipient@example.com" "RCPTTO=recipient2@example.com" "NOTIFY=success,delay,fail" {.}
+Subject: test message 1
+
+test message 1
+.
+OPEN INBOX
+FETCH 1 CONTENTS=BODY
+EOF
+cat confsendmail.out
+rm -rf confsendmail confsendmail.out confmdtest
