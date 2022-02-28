@@ -341,27 +341,18 @@ static std::string smap_path(
 			if (!out_pathname.empty())
 				return;
 
-			auto fn=maildir_smapfn_fromutf8(s.c_str());
-
-			if (!fn)
-			{
-				perror(s.c_str());
-				return;
-			}
+			auto fn=maildir::smapfn_fromutf8(s);
 
 			size_t i;
 
 			for (i=0; i<words.size(); i++)
 			{
-				if (fn[i] == NULL ||
+				if (i >= fn.size() ||
 				    words[i] != fn[i])
 				{
-					maildir_smapfn_free(fn);
 					return;
 				}
 			}
-
-			maildir_smapfn_free(fn);
 
 			size_t j;
 			for (j=0; i && j<s.size(); j++)
@@ -383,15 +374,6 @@ static std::string smap_path(
 	}
 
 	return n;
-}
-
-info info_smap_find(char **folder, const std::string &myId)
-{
-	smap_words_t folderv;
-
-	for (size_t i=0; folder[i]; ++i)
-		folderv.push_back(folder[i]);
-	return info_smap_find(folderv, myId);
 }
 
 info info_smap_find(const smap_words_t &folder,
@@ -582,4 +564,38 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 	}
 
 	return 0;
+}
+
+
+/*
+** Convert modified-UTF8 folder name into an array of UTF-8 words, that
+** represent a folder name.
+*/
+
+std::vector<std::string> maildir::smapfn_fromutf8(const std::string &modutf8)
+{
+	std::vector<std::string> ret;
+
+	for (auto b=modutf8.begin(), e=modutf8.end(); b != e; )
+	{
+
+		auto p=b;
+
+		while (b != e)
+		{
+			if (*b == '.' && b+1 != e && b[1] != '.')
+				break;
+			++b;
+		}
+
+		ret.push_back(unicode::iconvert::convert(
+				      std::string{p, b},
+				      unicode_x_smap_modutf8,
+				      unicode::utf_8));
+
+		if (b != e)
+			++b;
+
+	}
+	return ret;
 }

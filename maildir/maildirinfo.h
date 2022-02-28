@@ -61,12 +61,6 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 extern int maildir_info_suppress(const char *maildir);
 
 /*
-** The SMAP version:
-*/
-char **maildir_smapfn_fromutf8(const char *modutf8);
-void maildir_smapfn_free(char **fn);
-
-/*
 ** The shared index files use UTF-8.  Convenience function to convert
 ** names into IMAP-compatible modified-UTF7.
 */
@@ -113,9 +107,9 @@ info info_imap_find(const std::string &path,
 ** The SMAP version:
 */
 
-info info_smap_find(char **folder, const std::string &myid);
-
 info info_smap_find(const smap_words_t &, const std::string &myid);
+
+std::vector<std::string> smapfn_fromutf8(const std::string &modutf8);
 
 /*
 ** Conversions between IMAP folder names to filenames.

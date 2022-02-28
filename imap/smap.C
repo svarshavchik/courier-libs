@@ -260,16 +260,17 @@ static smap_words_t fn_fromwords(char **ptr)
 */
 
 struct list_hier {
-	struct list_hier *next;
-	char *hier;
+	std::string hier;
 	int flags;
+
+	list_hier(const std::string &hier) : hier{hier}, flags{0} {}
 };
 
 struct list_callback_info {
 
-	struct list_hier *hier; /* Hierarchy being listed */
+	std::vector<list_hier> hier; /* Hierarchy being listed */
 
-	struct list_hier *found;
+	std::vector<list_hier> found;
 };
 
 static void list(const char *folder, const char *descr, int type)
@@ -296,10 +297,10 @@ static void list(const char *folder, const char *descr, int type)
 
 struct list_callback_utf8 {
 
-	void (*callback_func)(const char *, char **, void *);
-	void *callback_arg;
-	const char *homedir;
-	const char *owner;
+	std::function<void (const char *, const std::vector<std::string> &)
+		      > callback_func;
+	std::string homedir;
+	std::string owner;
 };
 
 static void list_callback(const char *f,
@@ -307,13 +308,7 @@ static void list_callback(const char *f,
 {
 	maildir::aclt_list l;
 
-	char **fn=maildir_smapfn_fromutf8(f);
-
-	if (!fn)
-	{
-		perror(f);
-		return;
-	}
+	auto fn=maildir::smapfn_fromutf8(f);
 
 	f=strchr(f, '.');
 	if (!f)
@@ -323,7 +318,7 @@ static void list_callback(const char *f,
 	{
 		std::string owner;
 
-		owner.reserve(strlen(utf8->owner)+5);
+		owner.reserve(utf8->owner.size()+5);
 
 		owner="user=";
 		owner += utf8->owner;
@@ -331,9 +326,8 @@ static void list_callback(const char *f,
 		auto myrights=compute_myrights(l, owner);
 
 		if (myrights.find(ACL_LOOKUP[0]) != myrights.npos)
-			(*utf8->callback_func)(f, fn, utf8->callback_arg);
+			utf8->callback_func(f, fn);
 	}
-	maildir_smapfn_free(fn);
 }
 
 /*
@@ -341,49 +335,44 @@ static void list_callback(const char *f,
 ** certain hierarchy.
 */
 
-static void list_utf8_callback(const char *n, char **f, void *vp)
+static void list_utf8_callback(const char *n,
+			       const std::vector<std::string> &f,
+			       struct list_callback_info *lci)
 {
-	struct list_callback_info *lci=(struct list_callback_info *)vp;
-	struct list_hier *h=lci->hier;
+	auto hb=lci->hier.begin(), he=lci->hier.end();
+
+	auto fb=f.begin(), fe=f.end();
 
 	for (;;)
 	{
-		if (!*f)
+		if (fb == fe)
 			return;
 
-		if (h)
+		if (hb != he)
 		{
-			if (strcmp(h->hier, *f))
+			if (*fb != hb->hier)
 				break;
 
-			h=h->next;
-			f++;
+			++hb;
+			++fb;
 			continue;
 		}
 
-		for (h=lci->found; h; h=h->next)
+		auto h=std::find_if(lci->found.begin(),
+				    lci->found.end(),
+				    [&]
+				    (list_hier &h)
+				    {
+					    return *fb == h.hier;
+				    });
+
+		if (h == lci->found.end())
 		{
-			if (strcmp(h->hier, *f) == 0)
-				break;
+			lci->found.emplace_back(*fb);
+			h=--lci->found.end();
 		}
 
-		if (!h)
-		{
-			if ((h=(list_hier *)malloc(sizeof(struct list_hier))) == NULL ||
-			    (h->hier=strdup(*f)) == NULL)
-			{
-				if (h)
-					free(h);
-				perror("malloc");
-				break;
-			}
-
-			h->next=lci->found;
-			lci->found=h;
-			h->flags=0;
-		}
-
-		if (f[1])
+		if (fb + 1 != fe)
 			h->flags |= LIST_DIRECTORY;
 		else
 			h->flags |= LIST_FOLDER;
@@ -396,51 +385,32 @@ static void list_utf8_callback(const char *n, char **f, void *vp)
 ** the stack.
 */
 
-static void do_listcmd(struct list_hier **head,
-		       struct list_hier **tail,
-		       char **ptr);
-
-static void listcmd(struct list_hier **head,
-		    struct list_hier **tail,
-		    char **ptr)
-{
-	char *p;
-
-	if (*(p=getword(ptr)))
-	{
-		struct list_hier node;
-		node.next=NULL;
-		node.hier=p;
-
-		*tail= &node;
-		listcmd(head, &node.next, ptr);
-		return;
-	}
-	do_listcmd(head, tail, ptr);
-}
-
 struct smap_find_info {
-	char *homedir;
-	char *maildir;
+	std::string homedir;
+	std::string maildir;
 };
 
 static void smap_find_cb(struct maildir_newshared_enum_cb *cb,
 			 smap_find_info *ifs);
 static int smap_list_cb(struct maildir_newshared_enum_cb *cb,
-			struct list_callback_utf8 *list_utf8_info);
+			struct list_callback_utf8 *list_utf8_info,
+			struct list_callback_info *lci);
 static bool read_acls(maildir::aclt_list &aclt_list,
 		      maildir::info &minfo);
 
-static void do_listcmd(struct list_hier **head,
-		       struct list_hier **tail,
-		       char **ptr)
+static void listcmd(char **ptr)
 {
-	struct list_hier *p;
-	size_t cnt;
-	char **vecs;
+	struct list_callback_info lci;
+	char *p;
+
+	while (*(p=getword(ptr)))
+	{
+		lci.hier.emplace_back(p);
+	}
+
 	int hierlist=0;
 
-	if (!*head) /* No arguments to LIST */
+	if (lci.hier.empty()) /* No arguments to LIST */
 	{
 		list(INBOX, "New Mail", LIST_FOLDER);
 		list(INBOX, "Folders", LIST_DIRECTORY);
@@ -448,42 +418,40 @@ static void do_listcmd(struct list_hier **head,
 	}
 	else
 	{
-		struct list_callback_info lci;
-		struct list_callback_utf8 list_utf8_info;
+		list_callback_utf8 list_utf8_info;
 
-		list_utf8_info.callback_func= &list_utf8_callback;
-		list_utf8_info.callback_arg= &lci;
+		list_utf8_info.callback_func=
+			[&]
+			(const char *f, const std::vector<std::string> &fn)
+			{
+				list_utf8_callback(f, fn, &lci);
+			};
 
-		lci.hier= *head;
-		lci.found=NULL;
-
-		if (strcmp(lci.hier->hier, PUBLIC) == 0)
+		if (lci.hier.front().hier == PUBLIC)
 		{
 			struct maildir_shindex_cache *curcache;
-			struct list_hier *p=lci.hier->next;
-			struct smap_find_info sfi;
+			auto p=++lci.hier.begin();
 			bool eof;
-			char *d;
 
 			curcache=maildir_shared_cache_read(NULL, NULL, NULL);
 
-			while (curcache && p)
+			while (curcache && p != lci.hier.end())
 			{
+				struct smap_find_info sfi;
+
 				size_t i;
-				struct list_hier inbox;
 
 				for (i=0; i<curcache->nrecords; i++)
-					if (strcmp(curcache->records[i].name,
-						   p->hier) == 0)
+					if (p->hier ==
+					    curcache->records[i].name)
 						break;
+
 				if (i >= curcache->nrecords)
 				{
 					curcache=NULL;
 					break;
 				}
 
-				sfi.homedir=NULL;
-				sfi.maildir=NULL;
 				curcache->indexfile.startingpos=
 					curcache->records[i].offset;
 
@@ -506,27 +474,41 @@ static void do_listcmd(struct list_hier **head,
 					break;
 				}
 
-				if (!sfi.homedir)
+				if (sfi.homedir.empty())
 				{
 					curcache=
-						maildir_shared_cache_read(curcache,
-									  sfi.maildir,
-									  p->hier);
-					p=p->next;
-					free(sfi.maildir);
+						maildir_shared_cache_read(
+							curcache,
+							sfi.maildir.c_str(),
+							p->hier.c_str());
+					++p;
 					continue;
 				}
 
-				inbox.next=p->next;
+				list_callback_info nested_lci;
 
-				static char inbox_str[]=INBOX; //TODO
-				inbox.hier=inbox_str;
+				nested_lci.hier.reserve(
+					lci.hier.end() - p);
 
-				d=maildir_location(sfi.homedir, sfi.maildir);
-				free(sfi.homedir);
-				free(sfi.maildir);
+				nested_lci.hier.push_back(std::string{INBOX});
+				nested_lci.hier.insert(
+					nested_lci.hier.end(),
+					p+1, lci.hier.end());
 
-				lci.hier= &inbox;
+				list_utf8_info.callback_func=
+					[&]
+					(const char *f,
+					 const std::vector<std::string> &fn)
+					{
+						list_utf8_callback(
+							f, fn,
+							&nested_lci);
+					};
+
+				auto d=maildir::location(
+					sfi.homedir,
+					sfi.maildir);
+
 				list_utf8_info.homedir=d;
 				list_utf8_info.owner=p->hier;
 
@@ -539,8 +521,11 @@ static void do_listcmd(struct list_hier **head,
 							      &list_utf8_info
 						      );
 					      });
-				free(d);
 				curcache=NULL;
+
+				lci.found.insert(lci.found.end(),
+						 nested_lci.found.begin(),
+						 nested_lci.found.end());
 				break;
 			}
 
@@ -560,7 +545,8 @@ static void do_listcmd(struct list_hier **head,
 							     smap_list_cb(
 								     &curcache->
 								     indexfile,
-								     &list_utf8_info
+								     &list_utf8_info,
+								     &lci
 							     );
 						     });
 				} while (!eof);
@@ -581,46 +567,24 @@ static void do_listcmd(struct list_hier **head,
 				      });
 		}
 
-		for (cnt=0, p= *head; p; p=p->next)
-			++cnt;
+		smap_words_t vecs;
 
-		vecs=(char **)malloc(sizeof(char *)*(cnt+2));
+		vecs.reserve(lci.hier.size()+1);
 
-		if (!vecs)
+		for (const auto &h:lci.hier)
+			vecs.push_back(h.hier.c_str());
+
+		for (auto &h:lci.found)
 		{
-			while (lci.found)
-			{
-				struct list_hier *h=lci.found;
-
-				lci.found=h->next;
-
-				free(h->hier);
-				free(h);
-			}
-			write_error_exit(0);
-		}
-
-
-		for (cnt=0, p= *head; p; p=p->next)
-		{
-			vecs[cnt]=p->hier;
-			++cnt;
-		}
-
-		while (lci.found)
-		{
-			struct list_hier *h=lci.found;
 			maildir::aclt_list aclt_list;
 
-			lci.found=h->next;
-
-			vecs[cnt]=h->hier;
-			vecs[cnt+1]=0;
+			vecs.push_back(h.hier.c_str());
 
 			auto minfo=maildir::info_smap_find(
 				vecs,
 				getenv("AUTHENTICATED")
 			);
+			vecs.pop_back();
 
 			if (minfo)
 			{
@@ -632,18 +596,19 @@ static void do_listcmd(struct list_hier **head,
 					if (acl.find(ACL_LOOKUP[0])
 					    == acl.npos)
 					{
-						h->flags=LIST_DIRECTORY;
+						h.flags=LIST_DIRECTORY;
 
 						if (hierlist)
-							list(h->hier,
-							     h->hier,
-							     h->flags);
+							list(h.hier.c_str(),
+							     h.hier.c_str(),
+							     h.flags);
 
 					}
 					else
 					{
-						list(h->hier, h->hier,
-						     h->flags);
+						list(h.hier.c_str(),
+						     h.hier.c_str(),
+						     h.flags);
 					}
 				}
 				else
@@ -666,14 +631,10 @@ static void do_listcmd(struct list_hier **head,
 				fprintf(stderr,
 					"ERR: Internal error in list():"
 					" cannot find folder %s: %s\n",
-					h->hier,
+					h.hier.c_str(),
 					strerror(errno));
 			}
-
-			free(h->hier);
-			free(h);
 		}
-		free(vecs);
 	}
 	writes("+OK LIST completed\n");
 }
@@ -682,60 +643,46 @@ static void smap_find_cb(struct maildir_newshared_enum_cb *cb,
 			 smap_find_info *ifs)
 {
 	if (cb->homedir)
-		ifs->homedir=my_strdup(cb->homedir);
+		ifs->homedir=cb->homedir;
 	if (cb->maildir)
-		ifs->maildir=my_strdup(cb->maildir);
+		ifs->maildir=cb->maildir;
 }
 
 static int smap_list_cb(struct maildir_newshared_enum_cb *cb,
-			struct list_callback_utf8 *list_utf8_info)
+			struct list_callback_utf8 *list_utf8_info,
+			struct list_callback_info *lci)
 {
-	struct list_callback_info *lci=
-		(struct list_callback_info *)list_utf8_info->callback_arg;
-	char *d;
-
-	struct list_hier *h;
 	struct stat stat_buf;
 
 	if (cb->homedir == NULL)
 	{
-		if ((h=(list_hier *)malloc(sizeof(struct list_hier))) == NULL ||
-		    (h->hier
-		     =strdup(cb->name)) == NULL)
-		{
-			if (h)
-				free(h);
-			perror("ERR: malloc");
-			return 0;
-		}
-
-		h->next= lci->found;
-		lci->found=h;
+		lci->found.emplace_back(cb->name);
+		auto h=--lci->found.end();
 		h->flags = LIST_DIRECTORY;
 		return 0;
 	}
 
-	d=maildir_location(cb->homedir, cb->maildir);
+	auto d=maildir::location(cb->homedir, cb->maildir);
 
-	if (!d)
+	if (d.empty())
 	{
 		perror("ERR: get_topmaildir");
 		return 0;
 	}
 
-	if (stat(d, &stat_buf) < 0 ||
+	if (stat(d.c_str(), &stat_buf) < 0 ||
 	    (stat_buf.st_dev == homedir_dev &&
 	     stat_buf.st_ino == homedir_ino))
 	{
-		free(d);
 		return 0;
 	}
 
 	list_utf8_info->homedir=d;
 	list_utf8_info->owner=cb->name;
-	lci->hier=NULL;
-	h=lci->found;
-	lci->found=NULL;
+	auto h=std::move(lci->hier);
+	lci->hier.clear();
+	auto f=std::move(lci->found);
+	lci->found.clear();
 	maildir::list(d,
 		      [&]
 		      (const std::string &name)
@@ -743,29 +690,28 @@ static int smap_list_cb(struct maildir_newshared_enum_cb *cb,
 			      list_callback(name.c_str(),
 					    list_utf8_info);
 		      });
-	free(d);
 
-	if (!lci->found)
-		lci->found=h;
+	lci->hier=std::move(h);
+	if (lci->found.empty())
+	{
+		lci->found=std::move(f);
+	}
 	else
 	{
-		char *p;
+		auto p=++lci->found.begin();
 
-		while (lci->found->next) /* SHOULDN'T HAPPEN!!! */
+		if (p != lci->found.end())
 		{
-			struct list_hier *p=lci->found->next;
-
-			lci->found->next=p->next;
-			free(p->hier);
-			free(p);
 			fprintf(stderr, "ERR: Unexpected folder list"
 				" in smap_list_cb()\n");
+			lci->found.erase(p, lci->found.end());
 		}
-		lci->found->next=h;
 
-		p=my_strdup(cb->name);
-		free(lci->found->hier);
-		lci->found->hier=p;
+		--p;
+		lci->found.insert(lci->found.end(),
+				  h.begin(), h.end());
+
+		p->hier=cb->name;
 	}
 
 	return (0);
@@ -3355,9 +3301,7 @@ void smap()
 
 		if (strcmp(p, "LIST") == 0)
 		{
-			struct list_hier *hier=NULL;
-
-			listcmd(&hier, &hier, &ptr);
+			listcmd(&ptr);
 			continue;
 		}
 
