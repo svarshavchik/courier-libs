@@ -60,6 +60,7 @@
 
 #include	<string>
 #include	<vector>
+#include	<list>
 #include	<algorithm>
 
 #define SMAP_BUFSIZ 8192
@@ -1885,11 +1886,6 @@ static void do_attrfetch(unsigned long n, int items)
 	writes("\n");
 }
 
-struct add_rcptlist {
-	struct add_rcptlist *next;
-	char *rcptto;
-};
-
 static unsigned long add_msg(FILE *fp, const char *format,
 			     char *buffer,
 			     size_t bufsize)
@@ -2777,14 +2773,13 @@ void smap()
 	char *ptr;
 	struct imapflags add_flags;
 	int in_add=0;
-	char *add_from=NULL;
+	std::string add_from;
+	std::string add_notify;
 	std::string add_folder;
 	time_t add_internaldate=0;
-	char *add_notify=NULL;
-	unsigned add_rcpt_count=0;
 	mail::keywords::list addKeywords;
 
-	struct add_rcptlist *add_rcpt_list=NULL;
+	std::vector<std::string> rcptlist;
 
 	char rights_buf[40];
 
@@ -2809,7 +2804,6 @@ void smap()
 
 		if (strcmp(p, "ADD") == 0)
 		{
-			char **argvec;
 			const char *okmsg="So far, so good...";
 			int err_sent=0;
 
@@ -2852,52 +2846,19 @@ void smap()
 
 				if (strcmp(p, "MAILFROM") == 0 && q)
 				{
-					if (add_from)
-						free(add_from);
-					if ((add_from=strdup(q)) == NULL)
-					{
-						writes("-ERR ");
-						writes(strerror(errno));
-						writes("\n");
-						break;
-					}
-					okmsg="MAIL FROM set";
+					add_from=q;
+
 				}
 
 				if (strcmp(p, "NOTIFY") == 0 && q)
 				{
-					if (add_notify)
-						free(add_notify);
-					if ((add_notify=strdup(q)) == NULL)
-					{
-						writes("-ERR ");
-						writes(strerror(errno));
-						writes("\n");
-						break;
-					}
+					add_notify=q;
 					okmsg="NOTIFY set";
 				}
 
 				if (strcmp(p, "RCPTTO") == 0 && q)
 				{
-					struct add_rcptlist *rcpt=
-						(add_rcptlist *)
-						malloc(sizeof(struct
-							      add_rcptlist));
-
-					if (rcpt == NULL ||
-					    (rcpt->rcptto=strdup(q)) == NULL)
-					{
-						if (rcpt)
-							free(rcpt);
-						writes("-ERR ");
-						writes(strerror(errno));
-						writes("\n");
-						break;
-					}
-					rcpt->next=add_rcpt_list;
-					add_rcpt_list=rcpt;
-					++add_rcpt_count;
+					rcptlist.emplace_back(q);
 					okmsg="RCPT TO set";
 				}
 
@@ -3027,52 +2988,72 @@ void smap()
 							addKeywords);
 					}
 
-					argvec=NULL;
+					std::list<std::string> argvec;
 
-					if (add_rcpt_count > 0 && n)
-					{
-						argvec=(char **)malloc(sizeof(char *)
-							      * (add_rcpt_count
-								 +10));
+					const char arg1[]="-oi";
+					argvec.emplace_back(std::begin(arg1),
+							    std::end(arg1));
 
-						if (!argvec)
-							n=0;
-					}
+					const char arg2[]="-f";
 
-					if (argvec)
-					{
-						int i=1;
-						struct add_rcptlist *l;
+					argvec.emplace_back(std::begin(arg2),
+							    std::end(arg2));
 
-						// TODO
-						static char arg1[]="-oi";
-						argvec[i++]=arg1;
+					std::string defaulted_add_from=
+						add_from;
 
-						static char arg2[]="-f";
-						argvec[i++]=arg2;
-						argvec[i++]=add_from
-							? add_from:
-							(char *)
+					if (add_from.empty())
+						defaulted_add_from=
 							defaultSendFrom();
 
-						if (add_notify)
+					argvec.emplace_back(
+						defaulted_add_from.c_str(),
+						defaulted_add_from.c_str()+
+						defaulted_add_from.size()+1);
+
+					if (!add_notify.empty())
+					{
+						const char arg3[]="-N";
+
+						argvec.emplace_back(
+							std::begin(arg3),
+							std::end(arg3));
+
+						argvec.emplace_back(
+							add_notify.c_str(),
+							add_notify.c_str()+
+							add_notify.size()+1);
+					}
+
+					for (const auto &addr:rcptlist)
+					{
+						argvec.emplace_back(
+							addr.c_str(),
+							addr.c_str()+
+							addr.size()+1);
+					}
+
+					if (!rcptlist.empty())
+					{
+						std::vector<char *> ptrs;
+
+						ptrs.reserve(argvec.size()+2);
+						ptrs.push_back(0);
+
+						for (auto &arg:argvec)
 						{
-							static char arg3[]="-N";
-							argvec[i++]=arg3;
-							argvec[i++]=add_notify;
+							ptrs.push_back(
+								arg.data()
+							);
 						}
 
-						for (l=add_rcpt_list; l;
-						     l=l->next)
-						{
-							argvec[i++]=l->rcptto;
-						}
-						argvec[i]=0;
+						ptrs.push_back(0);
 
-						i=imapd_sendmsg(
-							tmpname.c_str(), argvec,
+						auto i=imapd_sendmsg(
+							tmpname.c_str(),
+							&ptrs[0],
 							&senderr);
-						free(argvec);
+
 						if (i)
 						{
 							n=0;
@@ -3137,28 +3118,16 @@ void smap()
 
 		if (in_add)
 		{
-			struct add_rcptlist *l;
-
-			while ((l=add_rcpt_list) != NULL)
-			{
-				add_rcpt_list=l->next;
-				free(l->rcptto);
-				free(l);
-			}
 			memset(&add_flags, 0, sizeof(add_flags));
-			if (add_from)
-				free(add_from);
 			add_folder.clear();
-			if (add_notify)
-				free(add_notify);
 
 			addKeywords.clear();
 
 			in_add=0;
-			add_from=NULL;
+			add_from.clear();
 			add_internaldate=0;
-			add_notify=NULL;
-			add_rcpt_count=0;
+			add_notify.clear();
+			rcptlist.clear();
 			if (!p)
 				continue; /* Just added a message */
 		}

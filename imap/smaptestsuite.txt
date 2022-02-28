@@ -2118,7 +2118,7 @@
 002112 * FETCH 1 FLAGS=REPLIED,SEEN
 002113 * FETCH 1 FLAGS=REPLIED,SEEN "KEYWORDS=keyword1"
 002114 +OK Message retrieved.
-002115 -oi -f user@example.com -N success,delay,fail recipient2@example.com recipient@example.com
+002115 -oi -f user@example.com -N success,delay,fail recipient@example.com recipient2@example.com
 002116 Subject: test message 1
 002117 
 002118 test message 1
