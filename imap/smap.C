@@ -907,49 +907,28 @@ static void smap1_noop(int real_noop)
 
 /* Parse a message set.  Return the next word following the message set */
 
-struct smapmsgset {
-	struct smapmsgset *next;
-	unsigned nranges;
-	unsigned long range[2][2];
-};
+typedef std::vector<std::tuple<unsigned long, unsigned long>> smapmsgset_t;
 
-static struct smapmsgset msgset;
-static const char digit[]="0123456789";
-
-static char *markmsgset(char **ptr, int *hasmsgset)
+static char *markmsgset(char **ptr, smapmsgset_t &msgset)
 {
 	unsigned long n;
 	char *w;
 
-	struct smapmsgset *msgsetp;
-
-	while ((msgsetp=msgset.next) != NULL)
-	{
-		msgset.next=msgsetp->next;
-		free(msgsetp);
-	}
-
-	msgsetp= &msgset;
-
-	msgsetp->nranges=0;
-
-	*hasmsgset=0;
+	msgset.clear();
+	msgset.reserve(10);
 
 	n=0;
 
 	while (*(w=getword(ptr)))
 	{
 		unsigned long a=0, b=0;
-		const char *d;
 
-		if (!*w || (d=strchr(digit, *w)) == NULL)
+		if (*w < '0' || *w > '9')
 			break;
 
-		*hasmsgset=1;
-
-		while ( *w && (d=strchr(digit, *w)) != NULL)
+		while (*w >= '0' && *w <= '9')
 		{
-			a=a * 10 + d-digit;
+			a=a * 10 + *w-'0';
 			w++;
 		}
 
@@ -959,9 +938,10 @@ static char *markmsgset(char **ptr, int *hasmsgset)
 		{
 			++w;
 			b=0;
-			while ( *w && (d=strchr(digit, *w)) != NULL)
+
+			while (*w >= '0' && *w <= '9')
 			{
-				b=b * 10 + d-digit;
+				b=b * 10 + *w-'0';
 				w++;
 			}
 		}
@@ -974,23 +954,7 @@ static char *markmsgset(char **ptr, int *hasmsgset)
 
 		n=b;
 
-		if (msgsetp->nranges >=
-		    sizeof(msgsetp->range)/sizeof(msgsetp->range[0]))
-		{
-			if ((msgsetp->next=(smapmsgset *)malloc(sizeof(struct smapmsgset)))
-			    == NULL)
-			{
-				write_error_exit(0);
-			}
-
-			msgsetp=msgsetp->next;
-			msgsetp->next=NULL;
-			msgsetp->nranges=0;
-		}
-
-		msgsetp->range[msgsetp->nranges][0]=a;
-		msgsetp->range[msgsetp->nranges][1]=b;
-		++msgsetp->nranges;
+		msgset.emplace_back(a, b);
 	}
 
 	return w;
@@ -1061,32 +1025,27 @@ static void parsekeywords(char *q, mail::keywords::list &list)
 	}
 }
 
-static int applymsgset( const std::function<int (unsigned long)> &callback)
+static int applymsgset(const smapmsgset_t &msgset,
+		       const std::function<int (unsigned long)> &callback)
 {
-	struct smapmsgset *msgsetp= &msgset;
-	unsigned long n;
-	int rc;
-
-	while (msgsetp)
+	for (const auto &range:msgset)
 	{
-		unsigned i;
+		auto &start=std::get<0>(range);
+		auto &end=std::get<1>(range);
 
-		for (i=0; i<msgsetp->nranges; i++)
+
+		for (auto n=start; n <= end; n++)
 		{
-			for (n=msgsetp->range[i][0];
-			     n <= msgsetp->range[i][1]; n++)
-			{
-				if (current_maildir_info.current_mailbox.empty()
-				    ||
-				    n > current_maildir_info.msgs.size())
-					break;
-				rc=callback(n-1);
-				if (rc)
-					return rc;
-			}
-		}
+			if (current_maildir_info.current_mailbox.empty()
+			    ||
+			    n > current_maildir_info.msgs.size())
+				break;
 
-		msgsetp=msgsetp->next;
+			auto rc=callback(n-1);
+
+			if (rc)
+				return rc;
+		}
 	}
 	return 0;
 }
@@ -1676,16 +1635,14 @@ static struct rfc2045 *findmimeid(struct rfc2045 *rfcp,
 
 	while (mimeid && *mimeid)
 	{
-		const char *d;
-
 		n=0;
 
-		if (strchr(digit, *mimeid) == NULL)
+		if (*mimeid < '0' || *mimeid > '9')
 			return NULL;
 
-		while (*mimeid && (d=strchr(digit, *mimeid)) != NULL)
+		while (*mimeid >= '0' && *mimeid <= '9')
 		{
-			n=n * 10 + d-digit;
+			n=n * 10 + *mimeid-'0';
 			mimeid++;
 		}
 
@@ -2476,7 +2433,8 @@ static searchiter createSearch2(char *w, contentsearch &cs,
 	return n;
 }
 
-static int do_copyto(const char *toFolder,
+static int do_copyto(const smapmsgset_t &msgset,
+		     const char *toFolder,
 		     int (*do_func)(unsigned long, void *),
 		     const char *acls)
 {
@@ -2499,6 +2457,7 @@ static int do_copyto(const char *toFolder,
 		}
 
 		if (has_quota > 0 && applymsgset(
+			    msgset,
 			    [&]
 			    (unsigned long n)
 			    {
@@ -2524,6 +2483,7 @@ static int do_copyto(const char *toFolder,
 	}
 
 	return applymsgset(
+		msgset,
 		[&]
 		(unsigned long n)
 		{
@@ -2531,26 +2491,28 @@ static int do_copyto(const char *toFolder,
 		});
 }
 
-static int copyto(const char *toFolder, int do_move, const char *acls)
+static int copyto(const smapmsgset_t &msgset,
+		  const char *toFolder, int do_move, const char *acls)
 {
 	if (!do_move)
-		return do_copyto(toFolder, &do_copymsg, acls);
+		return do_copyto(msgset, toFolder, &do_copymsg, acls);
 
 	if (!current_mailbox_shared &&
 	    maildirquota_countfolder(current_maildir_info.current_mailbox.c_str()) ==
 	    maildirquota_countfolder(toFolder))
 	{
-		if (do_copyto(toFolder, do_movemsg, acls))
+		if (do_copyto(msgset, toFolder, do_movemsg, acls))
 			return -1;
 
 		doNoop(0);
 		return(0);
 	}
 
-	if (do_copyto(toFolder, &do_copymsg, acls))
+	if (do_copyto(msgset, toFolder, &do_copymsg, acls))
 		return -1;
 
 	applymsgset(
+		msgset,
 		[]
 		(unsigned long n)
 		{
@@ -3695,9 +3657,9 @@ void smap()
 
 		if (strcmp(p, "EXPUNGE") == 0)
 		{
-			int hasSet;
+			smapmsgset_t msgset;
 
-			p=markmsgset(&ptr, &hasSet);
+			p=markmsgset(&ptr, msgset);
 
 			if (p)
 			{
@@ -3709,7 +3671,7 @@ void smap()
 					continue;
 				}
 
-				if (hasSet)
+				if (!msgset.empty())
 				{
 					if (!current_maildir_info.has_acl(
 						    ACL_DELETEMSGS[0]
@@ -3719,6 +3681,7 @@ void smap()
 						continue;
 					}
 					applymsgset(
+						msgset,
 						[]
 						(unsigned long n)
 						{
@@ -3737,10 +3700,11 @@ void smap()
 		{
 			struct storeinfo si;
 			int dummy;
+			smapmsgset_t msgset;
 
 			memset(&si.flags, 0, sizeof(si.flags));
 
-			p=markmsgset(&ptr, &dummy);
+			p=markmsgset(&ptr, msgset);
 
 			dummy=0;
 
@@ -3763,6 +3727,7 @@ void smap()
 					up(p);
 					parseflags(p, &si.flags);
 					if ((dummy=applymsgset(
+						     msgset,
 						     [&]
 						     (unsigned long n)
 						     {
@@ -3780,6 +3745,7 @@ void smap()
 					si.plusminus=p[0];
 					parseflags(p, &si.flags);
 					if ((dummy=applymsgset(
+						     msgset,
 						     [&]
 						     (unsigned long n)
 						     {
@@ -3795,6 +3761,7 @@ void smap()
 				{
 					parsekeywords(p, si.keywords);
 					dummy=applymsgset(
+						msgset,
 						[&]
 						(unsigned long n)
 						{
@@ -3813,6 +3780,7 @@ void smap()
 					si.plusminus=p[0];
 					parsekeywords(p, si.keywords);
 					dummy=applymsgset(
+						msgset,
 						[&]
 						(unsigned long n)
 						{
@@ -3830,6 +3798,7 @@ void smap()
 					if (rfc822_parsedate_chk(p+13, &t)
 					    == 0 &&
 					    (dummy=applymsgset(
+						    msgset,
 						    [&]
 						    (unsigned long n)
 						    {
@@ -3855,11 +3824,11 @@ void smap()
 
 		if (strcmp(p, "FETCH") == 0)
 		{
-			int dummy;
+			smapmsgset_t msgset;
 			struct smapfetchinfo fi;
 			int fetch_items=0;
 
-			for (p=markmsgset(&ptr, &dummy);
+			for (p=markmsgset(&ptr, msgset);
 			     p && *p; p=getword(&ptr))
 			{
 				if ((fi.entity=strchr(p, '=')) == NULL)
@@ -3913,6 +3882,7 @@ void smap()
 				{
 					fi.peek=strchr(p, '.') != NULL;
 					if (applymsgset(
+						    msgset,
 						    [&]
 						    (unsigned long n)
 						    {
@@ -3938,6 +3908,7 @@ void smap()
 			if (!p || !*p)
 			{
 				if (fetch_items && applymsgset(
+					    msgset,
 					    [&]
 					    (unsigned long n)
 					    {
@@ -3959,12 +3930,12 @@ void smap()
 		if (strcmp(p, "COPY") == 0
 		    || strcmp(p, "MOVE") == 0)
 		{
-			int dummy;
+			smapmsgset_t msgset;
 			int domove= *p == 'M';
 
-			p=markmsgset(&ptr, &dummy);
+			p=markmsgset(&ptr, msgset);
 
-			if (dummy && *p == 0)
+			if (!msgset.empty() && *p == 0)
 			{
 				auto p=GETFOLDER(ACL_INSERT
 						 ACL_DELETEMSGS
@@ -3980,7 +3951,8 @@ void smap()
 						continue;
 					}
 
-					if (copyto(p.c_str(), domove,
+					if (copyto(msgset,
+						   p.c_str(), domove,
 						   rights_buf) == 0)
 					{
 						dirsync(p);
