@@ -102,21 +102,19 @@ struct imapscaninfo : imapscaninfo_base {
 */
 
 struct uidplus_info {
-	struct uidplus_info *next;
-	char *tmpfilename;
-	char *curfilename;
+	std::string tmpfilename;
+	std::string curfilename;
 
-	char *tmpkeywords;
-	char *newkeywords;
+	unsigned long uid=0; /* Initialized by imapscan_maildir2 */
+	unsigned long old_uid=0; /* Initialized by do_copy() */
 
-	unsigned long uid; /* Initialized by imapscan_maildir2 */
-	unsigned long old_uid; /* Initialized by do_copy() */
-
-	time_t mtime;
+	time_t mtime=0;
 } ;
 
 
-int imapscan_maildir(imapscaninfo *, int, int, struct uidplus_info *);
+int imapscan_maildir(imapscaninfo *, int, int);
+int imapscan_maildir(imapscaninfo *, int, int,
+		     std::vector<uidplus_info> &);
 
 int imapscan_openfile(imapscaninfo *, unsigned);
 

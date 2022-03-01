@@ -286,22 +286,17 @@ static int copy_message(int fd,
 	FILE	*fp;
 	struct	stat	stat_buf;
 	char	buf[BUFSIZ];
-	struct uidplus_info *new_uidplus_info;
 
-	if (fstat(fd, &stat_buf) < 0
-	    || (new_uidplus_info=(struct uidplus_info *)
-		malloc(sizeof(struct uidplus_info))) == NULL)
+	if (fstat(fd, &stat_buf) < 0)
 	{
 		return (-1);
 	}
-	memset(new_uidplus_info, 0, sizeof(*new_uidplus_info));
 
 	fp=maildir_mkfilename(cpy_info->mailbox, flags, stat_buf.st_size,
 			      tmpname, newname);
 
 	if (!fp)
 	{
-		free(new_uidplus_info);
 		return (-1);
 	}
 
@@ -322,7 +317,6 @@ static int copy_message(int fd,
 
 			fclose(fp);
 			unlink(tmpname.c_str());
-			free(new_uidplus_info);
 			return (-1);
 		}
 		stat_buf.st_size -= n;
@@ -331,17 +325,18 @@ static int copy_message(int fd,
 	if (fflush(fp) || ferror(fp))
 	{
 		fclose(fp);
-		free(new_uidplus_info);
 		return (-1);
 	}
 	fclose(fp);
+
+	cpy_info->uidplus.emplace_back();
+	auto new_uidplus_info=--cpy_info->uidplus.end();
 
 	new_uidplus_info->mtime = stat_buf.st_mtime;
 
 	if (check_outbox(tmpname.c_str(), cpy_info->mailbox))
 	{
 		unlink(tmpname.c_str());
-		free(new_uidplus_info);
 		return (-1);
 	}
 
@@ -354,17 +349,10 @@ static int copy_message(int fd,
 			keywords.keywords()
 		);
 
-	new_uidplus_info->tmpfilename=strdup(tmpname.c_str());
-	new_uidplus_info->curfilename=strdup(newname.c_str());
+	new_uidplus_info->tmpfilename=tmpname;
+	new_uidplus_info->curfilename=newname;
 
-	if (!new_uidplus_info->tmpfilename ||
-	    !new_uidplus_info->curfilename)
-		write_error_exit(0);
-
-	new_uidplus_info->next=NULL;
 	new_uidplus_info->old_uid=old_uid;
-	*cpy_info->uidplus_tail=new_uidplus_info;
-	cpy_info->uidplus_tail=&new_uidplus_info->next;
 	return (0);
 }
 

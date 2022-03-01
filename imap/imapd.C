@@ -913,10 +913,12 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 		return std::nullopt;
 	}
 
-	struct uidplus_info new_uidplus_info;
-	int rc;
+	std::vector<uidplus_info> new_uidplus_info_vec;
 
-	memset(&new_uidplus_info, 0, sizeof(new_uidplus_info));
+	new_uidplus_info_vec.emplace_back();
+
+	auto &new_uidplus_info=new_uidplus_info_vec.back();
+	int rc;
 
 	std::vector<char> tmpname_buf;
 
@@ -939,7 +941,7 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	imapscaninfo new_maildir_info{mailbox};
 
 	rc=imapscan_maildir(&new_maildir_info, 0, 0,
-			    &new_uidplus_info);
+			    new_uidplus_info_vec);
 
 	if (rc)
 	{
@@ -1230,8 +1232,7 @@ void doNoop(int real_noop)
 		return;
 
 	imapscaninfo new_maildir_info{&current_maildir_info};
-	if (imapscan_maildir(&new_maildir_info, 0,
-			     current_mailbox_ro, NULL))
+	if (imapscan_maildir(&new_maildir_info, 0, current_mailbox_ro))
 		return;
 
 	j=0;
@@ -1954,7 +1955,7 @@ void dirsync(std::string folder)
 */
 
 static int uidplus_fill(const char *mailbox,
-			struct uidplus_info *uidplus_list,
+			std::vector<uidplus_info> &uidplus_list,
 			unsigned long *uidv)
 {
 	imapscaninfo scan_info{mailbox};
@@ -1967,7 +1968,7 @@ static int uidplus_fill(const char *mailbox,
 	return 0;
 }
 
-static void uidplus_writemsgset(struct uidplus_info *uidplus_list,
+static void uidplus_writemsgset(std::vector<uidplus_info> &uidplus_list,
 				int new_uids)
 {
 #define UIDN(u) ( new_uids ? (u)->uid:(u)->old_uid )
@@ -1976,15 +1977,15 @@ static void uidplus_writemsgset(struct uidplus_info *uidplus_list,
 	const char *comma="";
 
 	writes(" ");
-	while (uidplus_list)
+	for (auto b=uidplus_list.begin(), e=uidplus_list.end(); b != e; )
 	{
-		uid_start=UIDN(uidplus_list);
+		uid_start=UIDN(b);
 		uid_end=uid_start;
 
-		while (uidplus_list->next &&
-		       UIDN(uidplus_list->next) == uid_end + 1)
+		while (b+1 != e &&
+		       UIDN(b+1) == uid_end + 1)
 		{
-			uidplus_list=uidplus_list->next;
+			++b;
 			++uid_end;
 		}
 
@@ -1996,57 +1997,18 @@ static void uidplus_writemsgset(struct uidplus_info *uidplus_list,
 			writen(uid_end);
 		}
 		comma=",";
-		uidplus_list=uidplus_list->next;
+		++b;
 	}
 
 #undef UIDN
 }
 
-static void uidplus_free(struct uidplus_info *uidplus_list)
+static void uidplus_abort(std::vector<uidplus_info> &uidplus)
 {
-	struct uidplus_info *u;
-
-	while ((u=uidplus_list) != NULL)
+	for (auto &u:uidplus)
 	{
-		uidplus_list=u->next;
-		free(u->tmpfilename);
-		free(u->curfilename);
-
-		if (u->tmpkeywords)
-			free(u->tmpkeywords);
-		if (u->newkeywords)
-			free(u->newkeywords);
-		free(u);
-	}
-}
-
-/* Abort a partially-filled uidplus */
-
-static void uidplus_abort(struct uidplus_info *uidplus_list)
-{
-	struct uidplus_info *u;
-
-	while ((u=uidplus_list) != NULL)
-	{
-		uidplus_list=u->next;
-		unlink(u->tmpfilename);
-		unlink(u->curfilename);
-
-		if (u->tmpkeywords)
-		{
-			unlink(u->tmpkeywords);
-			free(u->tmpkeywords);
-		}
-
-		if (u->newkeywords)
-		{
-			unlink(u->newkeywords);
-			free(u->newkeywords);
-		}
-
-		free(u->tmpfilename);
-		free(u->curfilename);
-		free(u);
+		unlink(u.tmpfilename.c_str());
+		unlink(u.curfilename.c_str());
 	}
 }
 
@@ -2064,7 +2026,7 @@ static void rename_callback(const char *old_path, const char *new_path)
 
 	p += "/" IMAPDB;
 	unlink(p.c_str());
-	imapscan_maildir(&minfo, 0,0, NULL);
+	imapscan_maildir(&minfo, 0,0);
 }
 
 static int broken_uidvs()
@@ -3938,7 +3900,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			infoptr=&other_info;
 
-			if (imapscan_maildir(infoptr, 1, 1, NULL))
+			if (imapscan_maildir(infoptr, 1, 1))
 			{
 				writes(tag);
 				writes(" NO [ALERT] STATUS failed\r\n");
@@ -4147,7 +4109,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		imapscaninfo minfo{mailbox};
-		imapscan_maildir(&minfo, 0,0, NULL);
+		imapscan_maildir(&minfo, 0,0);
 		return (0);
 	}
 
@@ -4428,8 +4390,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			ro=1;
 		current_mailbox_ro=ro;
 
-		if (imapscan_maildir(&current_maildir_info, 0, ro,
-				     NULL))
+		if (imapscan_maildir(&current_maildir_info, 0, ro))
 		{
 			writes(tag);
 			writes(" NO Unable to open this mailbox.\r\n");
@@ -5618,8 +5579,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		copy_info.mailbox=dest_mailbox.c_str();
-		copy_info.uidplus_list=NULL;
-		copy_info.uidplus_tail= &copy_info.uidplus_list;
 		copy_info.acls=access_rights;
 
 		if (has_quota < 0 ||
@@ -5631,10 +5590,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 					       n, uid, &copy_info
 				       ) == 0;
 			       }, uid) ||
-		    uidplus_fill(copy_info.mailbox, copy_info.uidplus_list,
+		    uidplus_fill(copy_info.mailbox, copy_info.uidplus,
 				 &copy_uidv))
 		{
-			uidplus_abort(copy_info.uidplus_list);
+			uidplus_abort(copy_info.uidplus);
 			writes(tag);
 			writes(" NO [ALERT] COPY failed - no write permission or out of disk space.\r\n");
 			return (0);
@@ -5645,17 +5604,16 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes(tag);
 		writes(" OK");
 
-		if (copy_info.uidplus_list != NULL)
+		if (!copy_info.uidplus.empty())
 		{
 			writes(" [COPYUID ");
 			writen(copy_uidv);
-			uidplus_writemsgset(copy_info.uidplus_list, 0);
-			uidplus_writemsgset(copy_info.uidplus_list, 1);
+			uidplus_writemsgset(copy_info.uidplus, 0);
+			uidplus_writemsgset(copy_info.uidplus, 1);
 			writes("]");
 		}
 
 		writes(" COPY completed.\r\n");
-		uidplus_free(copy_info.uidplus_list);
 
 		return (0);
 	}

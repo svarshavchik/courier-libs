@@ -3267,7 +3267,7 @@ void smap()
 			{
 				infoptr=&loaded_info;
 
-				if (imapscan_maildir(infoptr, 1, 1, NULL))
+				if (imapscan_maildir(infoptr, 1, 1))
 				{
 					writes("-ERR Cannot read"
 					       " folder status: ");
@@ -3565,7 +3565,7 @@ void smap()
 				continue;
 			}
 
-			if (imapscan_maildir(&current_maildir_info, 0, 0, NULL)
+			if (imapscan_maildir(&current_maildir_info, 0, 0)
 			    == 0)
 			{
 				snapshot_init(

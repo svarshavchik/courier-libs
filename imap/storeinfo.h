@@ -29,14 +29,11 @@ int do_store(unsigned long, int, storeinfo *);
 int do_copy_message(unsigned long, int, void *);
 int do_copy_quota_calc(unsigned long, int, void *);
 
-struct uidplus_info;
-
 struct do_copy_info {
 	const char *mailbox;
 	const char *acls;
 
-	struct uidplus_info *uidplus_list;
-	struct uidplus_info **uidplus_tail;
+	std::vector<uidplus_info> uidplus;
 };
 
 /*

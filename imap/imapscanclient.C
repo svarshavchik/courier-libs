@@ -79,7 +79,7 @@
 #endif
 
 static int do_imapscan_maildir2(imapscaninfo *,
-				int, int, struct uidplus_info *);
+				int, int, std::vector<uidplus_info> &);
 void imapscanfail(const char *p);
 extern imapscaninfo current_maildir_info;
 
@@ -148,8 +148,15 @@ bool imapscanmessageinfo::update_from(const imapscanmessageinfo &previous)
 	return haschanged;
 }
 
+int imapscan_maildir(imapscaninfo *scaninfo, int leavenew, int ro)
+{
+	std::vector<uidplus_info> uidplus;
+
+	return imapscan_maildir(scaninfo, leavenew, ro, uidplus);
+}
+
 int imapscan_maildir(imapscaninfo *scaninfo, int leavenew, int ro,
-		     struct uidplus_info *uidplus)
+		     std::vector<uidplus_info> &uidplus)
 {
 	return imapmaildirlock(
 		scaninfo, scaninfo->current_mailbox,
@@ -280,7 +287,7 @@ namespace {
 
 static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 				int leavenew, int ro,
-				struct uidplus_info *uidplus)
+				std::vector<uidplus_info> &uidplus_vec)
 {
 	auto &dir=scaninfo->current_mailbox;
 	std::string dbfilepath;
@@ -402,44 +409,25 @@ static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 		uidv=time(0) - IMAP_EPOCH;
 	}
 
-	while (uidplus)
+	for (auto &uidplus:uidplus_vec)
 	{
-		if (uidplus->tmpkeywords)
-			if (rename(uidplus->tmpkeywords,
-				   uidplus->newkeywords) < 0)
-			{
-				struct libmail_kwGeneric g;
+		maildir::movetmpnew(uidplus.tmpfilename,
+				    uidplus.curfilename);
 
-				/*
-				** Maybe courierimapkeywords needs to be
-				** created.
-				*/
+		if (uidplus.mtime)
+			set_time (uidplus.curfilename, uidplus.mtime);
 
-				libmail_kwgInit(&g);
-				libmail_kwgReadMaildir(&g, dir.c_str());
-				libmail_kwgDestroy(&g);
-
-				rename(uidplus->tmpkeywords,
-				       uidplus->newkeywords);
-			}
-
-		maildir_movetmpnew(uidplus->tmpfilename,
-				   uidplus->curfilename);
-
-		if (uidplus->mtime)
-			set_time (uidplus->curfilename, uidplus->mtime);
-
-		std::string s=strrchr(uidplus->curfilename, '/')+1;
+		std::string s=uidplus.curfilename.substr(
+			uidplus.curfilename.rfind('/')+1);
 		auto sp=s.rfind(MDIRSEP[0]);
 
 		if (sp != s.npos)
 			s.resize(sp);
 
 		tempinfo_array.emplace_back(std::move(s), nextuid);
-		uidplus->uid=nextuid;
+		uidplus.uid=nextuid;
 		nextuid++;
 
-		uidplus=uidplus->next;
 		dowritecache=1;
 	}
 
