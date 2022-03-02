@@ -6,6 +6,12 @@
 ** See COPYING for distribution information.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+}
+#endif
+#endif
 
 struct proxyinfo {
 	const char *host;
@@ -30,5 +36,12 @@ int proxy_readline(int fd, struct proxybuf *pb,
 		   int imapmode);
 int proxy_write(int fd, const char *hostname,
 		const char *buf, size_t buf_len);
+
+#ifdef __cplusplus
+#if 0
+{
+#endif
+}
+#endif
 
 #endif

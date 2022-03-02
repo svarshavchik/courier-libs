@@ -21,9 +21,9 @@
 extern int main_argc;
 extern char **main_argv;
 
-extern int login_callback(struct authinfo *ainfo, void *dummy);
+extern "C" int login_callback(struct authinfo *ainfo, void *dummy);
 
-extern const char *imap_externalauth();
+extern "C" const char *imap_externalauth();
 
 static char *send_auth_reply(const char *q, void *dummy)
 {
@@ -74,15 +74,16 @@ static char *send_auth_reply(const char *q, void *dummy)
 	return (p);
 }
 
+extern "C"
 int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 {
-struct imaptoken *tok=nexttoken();
-char	*authmethod;
-char	*initreply=0;
-char	*authtype, *authdata;
-char	authservice[40];
-char	*p ;
-int	rc;
+	struct imaptoken *tok=nexttoken();
+	char	*authmethod;
+	char	*initreply=0;
+	char	*authtype, *authdata;
+	char	authservice[40];
+	const char	*p ;
+	int	rc;
 
 	switch (tok->tokentype)	{
 	case IT_ATOM:

@@ -62,7 +62,7 @@ libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	-lcourier-unicode
 libimapd_la_LDFLAGS=-static
 
-imaplogin_SOURCES=imaplogin.c authenticate_auth.c proxy.c proxy.h
+imaplogin_SOURCES=imaplogin.C authenticate_auth.C proxy.c proxy.h
 imaplogin_DEPENDENCIES=libimapd.la libimaplogin.la
 imaplogin_LDADD=libimapd.la libimaplogin.la \
 	@LDAUTH@ -lcourierauth -lcourierauthsasl

@@ -40,12 +40,12 @@
 #include	"imapd.h"
 
 FILE *debugfile=0;
-extern void initcapability();
-extern void mainloop();
-extern void imapcapability();
-extern int have_starttls();
-extern int tlsrequired();
-extern int authenticate(const char *, char *, int);
+extern "C" void initcapability();
+extern "C" void mainloop();
+extern "C" void imapcapability();
+extern "C" int have_starttls();
+extern "C" int tlsrequired();
+extern "C" int authenticate(const char *, char *, int);
 unsigned long header_count=0, body_count=0;	/* Dummies */
 int enabled_utf8=0;
 
@@ -59,15 +59,15 @@ extern time_t start_time;
 static const char *imapd;
 static const char *defaultmaildir;
 
-void rfc2045_error(const char *p)
+extern "C" void rfc2045_error(const char *p)
 {
 	if (write(2, p, strlen(p)) < 0)
 		_exit(1);
 	_exit(0);
 }
 
-extern void cmdfail(const char *, const char *);
-extern void cmdsuccess(const char *, const char *);
+extern "C" void cmdfail(const char *, const char *);
+extern "C" void cmdsuccess(const char *, const char *);
 
 static int	starttls(const char *tag)
 {
@@ -90,9 +90,11 @@ static int	starttls(const char *tag)
 	strcat(strcpy(localfd_buf, "-localfd="),
 	       libmail_str_size_t(pipefd[1], buf2));
 
+	char opt1[]="-tcpd";
+	char opt2[]="-server";
 	argvec[0]=localfd_buf;
-	argvec[1]="-tcpd";
-	argvec[2]="-server";
+	argvec[1]=opt1;
+	argvec[2]=opt2;
 	argvec[3]=NULL;
 
 	cmdsuccess(tag, "Begin SSL/TLS negotiation now.\r\n");
@@ -151,7 +153,7 @@ static const char *safe_getenv(const char *p)
 	return p;
 }
 
-int login_callback(struct authinfo *ainfo, void *dummy)
+extern "C" int login_callback(struct authinfo *ainfo, void *dummy)
 {
 	int rc;
 	const char *tag=(const char *)dummy;
@@ -226,7 +228,7 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 
 	if (rc == 0)
 	{
-		p=malloc(sizeof("OPTIONS=") + strlen(ainfo->options ?
+		p=(char *)malloc(sizeof("OPTIONS=") + strlen(ainfo->options ?
 						     ainfo->options:""));
 
 		if (p)
@@ -235,13 +237,13 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 			       ainfo->options ? ainfo->options:"");
 			putenv(p);
 
-			p=malloc(sizeof("IMAPLOGINTAG=")+strlen(tag));
+			p=(char *)malloc(sizeof("IMAPLOGINTAG=")+strlen(tag));
 			if (p)
 			{
 				strcat(strcpy(p, "IMAPLOGINTAG="), tag);
 				putenv(p);
 
-				p=malloc(sizeof("AUTHENTICATED=")+
+				p=(char *)malloc(sizeof("AUTHENTICATED=")+
 					 strlen(ainfo->address));
 				if (p)
 				{
@@ -263,7 +265,7 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 	return(rc);
 }
 
-int do_imap_command(const char *tag, int *flushflag)
+extern "C" int do_imap_command(const char *tag, int *flushflag)
 {
 	struct	imaptoken *curtoken=nexttoken();
 	char authservice[40];
@@ -274,7 +276,7 @@ int do_imap_command(const char *tag, int *flushflag)
 		const char *p=getenv("SMAP_CAPABILITY");
 
 		if (p && *p)
-			putenv("PROTOCOL=SMAP1");
+			putenv((char *)"PROTOCOL=SMAP1");
 		else
 			return -1;
 	}
@@ -314,9 +316,9 @@ int do_imap_command(const char *tag, int *flushflag)
 	{
 		if (!have_starttls())	return (-1);
 		if (starttls(tag))		return (-2);
-		putenv("IMAP_STARTTLS=NO");
-		putenv("IMAP_TLS_REQUIRED=0");
-		putenv("IMAP_TLS=1");
+		putenv((char *)"IMAP_STARTTLS=NO");
+		putenv((char *)"IMAP_TLS_REQUIRED=0");
+		putenv((char *)"IMAP_TLS=1");
 		*flushflag=1;
 		return (0);
 	}
@@ -449,16 +451,16 @@ int main(int argc, char **argv)
 
 	ip=getenv("TCPREMOTEIP");
 	if (!ip)
-		putenv("TCPREMOTEIP=127.0.0.1");
+		putenv((char *)"TCPREMOTEIP=127.0.0.1");
 	ip=getenv("TCPREMOTEIP");
 
 	port=getenv("TCPREMOTEPORT");
 	if (!port)
-		putenv("TCPREMOTEPORT=N/A");
+		putenv((char *)"TCPREMOTEPORT=N/A");
 	port=getenv("TCPREMOTEPORT");
 
 	if (!getenv("TCPLOCALPORT"))
-		putenv("TCPLOCALPORT=143");
+		putenv((char *)"TCPLOCALPORT=143");
 
 	time(&start_time);
 
@@ -489,13 +491,13 @@ int main(int argc, char **argv)
 	main_argc=argc;
 	main_argv=argv;
 
-	putenv("PROTOCOL=IMAP");
+	putenv((char *)"PROTOCOL=IMAP");
 
 	mainloop();
 	return (0);
 }
 
-void bye()
+extern "C" void bye()
 {
 	exit(0);
 }
@@ -591,7 +593,7 @@ static char *get_imap_cmd(struct imapproxyinfo *ipi,
 
 	(*cmd)(ipi, &cb_cnt, &cnt);
 
-	buf=malloc(cnt);
+	buf=(char *)malloc(cnt);
 
 	if (!buf)
 	{
