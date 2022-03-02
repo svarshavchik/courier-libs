@@ -39,13 +39,15 @@
 #include	"tcpd/tlsclient.h"
 #include	"imapd.h"
 
+#include <functional>
+
 FILE *debugfile=0;
 extern "C" void initcapability();
 extern "C" void mainloop();
 extern "C" void imapcapability();
 extern "C" int have_starttls();
 extern "C" int tlsrequired();
-extern "C" int authenticate(const char *, char *, int);
+int authenticate(const char *, char *, int);
 unsigned long header_count=0, body_count=0;	/* Dummies */
 int enabled_utf8=0;
 
@@ -228,38 +230,15 @@ extern "C" int login_callback(struct authinfo *ainfo, void *dummy)
 
 	if (rc == 0)
 	{
-		p=(char *)malloc(sizeof("OPTIONS=") + strlen(ainfo->options ?
-						     ainfo->options:""));
-
-		if (p)
-		{
-			strcat(strcpy(p, "OPTIONS="),
-			       ainfo->options ? ainfo->options:"");
-			putenv(p);
-
-			p=(char *)malloc(sizeof("IMAPLOGINTAG=")+strlen(tag));
-			if (p)
-			{
-				strcat(strcpy(p, "IMAPLOGINTAG="), tag);
-				putenv(p);
-
-				p=(char *)malloc(sizeof("AUTHENTICATED=")+
-					 strlen(ainfo->address));
-				if (p)
-				{
-					strcat(strcpy(p, "AUTHENTICATED="),
-					       ainfo->address);
-					putenv(p);
-					alarm(0);
-					execl(imapd, imapd,
-					      ainfo->maildir ?
-					      ainfo->maildir:defaultmaildir,
-					      NULL);
-					fprintf(stderr, "ERR: exec(%s) failed!!\n",
-								 imapd);
-				}
-			}
-		}
+		setenv("OPTIONS", ainfo->options ? ainfo->options:"", 1);
+		setenv("IMAPLOGINTAG", tag, 1);
+		setenv("AUTHENTICATED", ainfo->address, 1);
+		alarm(0);
+		execl(imapd, imapd,
+		      ainfo->maildir ?
+		      ainfo->maildir:defaultmaildir,
+		      NULL);
+		fprintf(stderr, "ERR: exec(%s) failed!!\n", imapd);
 	}
 
 	return(rc);
@@ -276,7 +255,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		const char *p=getenv("SMAP_CAPABILITY");
 
 		if (p && *p)
-			putenv((char *)"PROTOCOL=SMAP1");
+			setenv("PROTOCOL", "SMAP1", 1);
 		else
 			return -1;
 	}
@@ -316,20 +295,19 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	{
 		if (!have_starttls())	return (-1);
 		if (starttls(tag))		return (-2);
-		putenv((char *)"IMAP_STARTTLS=NO");
-		putenv((char *)"IMAP_TLS_REQUIRED=0");
-		putenv((char *)"IMAP_TLS=1");
+		setenv("IMAP_STARTTLS", "NO", 1);
+		setenv("IMAP_TLS_REQUIRED", "0", 1);
+		setenv("IMAP_TLS", "1", 1);
 		*flushflag=1;
 		return (0);
 	}
 
 	if (strcmp(curtoken->tokenbuf, "LOGIN") == 0)
 	{
-	struct imaptoken *tok=nexttoken_nouc();
-	char	*userid;
-	char	*passwd;
-	const char *p;
-	int	rc;
+		struct imaptoken *tok=nexttoken_nouc();
+		std::string userid, passwd;
+		const char *p;
+		int	rc;
 
 		if (have_starttls() && tlsrequired())	/* Not yet */
 		{
@@ -346,9 +324,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
-		userid=strdup(tok->tokenbuf);
-		if (!userid)
-			write_error_exit(0);
+		userid=tok->tokenbuf;
 		tok=nexttoken_nouc_okbracket();
 		switch (tok->tokentype)	{
 		case IT_ATOM:
@@ -356,16 +332,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		case IT_QUOTED_STRING:
 			break;
 		default:
-			free(userid);
 			return (-1);
 		}
 
-		passwd=my_strdup(tok->tokenbuf);
+		passwd=tok->tokenbuf;
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
-			free(userid);
-			free(passwd);
 			return (-1);
 		}
 
@@ -377,13 +350,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (!p || !*p)
 			p="imap";
 
-		rc=auth_login_meta(NULL, p, userid, passwd,
+		rc=auth_login_meta(NULL, p, userid.c_str(), passwd.c_str(),
 				   login_callback, (void *)tag);
 		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s], port=[%s]",
 				    userid, getenv("TCPREMOTEIP"),
 				    getenv("TCPREMOTEPORT"));
-		free(userid);
-		free(passwd);
 		if (rc > 0)
 		{
 			perror("ERR: authentication error");
@@ -451,16 +422,16 @@ int main(int argc, char **argv)
 
 	ip=getenv("TCPREMOTEIP");
 	if (!ip)
-		putenv((char *)"TCPREMOTEIP=127.0.0.1");
+		setenv("TCPREMOTEIP", "127.0.0.1", 1);
 	ip=getenv("TCPREMOTEIP");
 
 	port=getenv("TCPREMOTEPORT");
 	if (!port)
-		putenv((char *)"TCPREMOTEPORT=N/A");
+		setenv("TCPREMOTEPORT", "N/A", 1);
 	port=getenv("TCPREMOTEPORT");
 
 	if (!getenv("TCPLOCALPORT"))
-		putenv((char *)"TCPLOCALPORT=143");
+		setenv("TCPLOCALPORT", "143", 1);
 
 	time(&start_time);
 
@@ -491,7 +462,7 @@ int main(int argc, char **argv)
 	main_argc=argc;
 	main_argv=argv;
 
-	putenv((char *)"PROTOCOL=IMAP");
+	setenv("PROTOCOL", "IMAP", 1);
 
 	mainloop();
 	return (0);
@@ -503,17 +474,14 @@ extern "C" void bye()
 }
 
 static void imap_write_str(const char *c,
-			   void (*cb_func)(const char *,
-					   size_t,
-					   void *),
-			   void *cb_arg)
+			   const std::function<void (const char *, size_t)> &cb)
 {
 	if (c == NULL)
 	{
-		(*cb_func)("NIL", 3, cb_arg);
+		cb("NIL", 3);
 	}
 
-	(*cb_func)("\"", 1, cb_arg);
+	cb("\"", 1);
 
 	while (*c)
 	{
@@ -525,85 +493,57 @@ static void imap_write_str(const char *c,
 
 		if (n)
 		{
-			(*cb_func)(c, n, cb_arg);
+			cb(c, n);
 
 			c += n;
 		}
 
 		if (*c)
 		{
-			(*cb_func)("\\", 1, cb_arg);
-			(*cb_func)(c, 1, cb_arg);
+			cb("\\", 1);
+			cb(c, 1);
 			++c;
 		}
 	}
-	(*cb_func)("\"", 1, cb_arg);
+	cb("\"", 1);
 }
 
 static void imap_login_cmd(struct imapproxyinfo *ipi,
-			   void (*cb_func)(const char *,
-					   size_t,
-					   void *),
-			   void *cb_arg)
+			   const std::function<void (const char *, size_t)> &cb)
 {
-	(*cb_func)(ipi->tag, strlen(ipi->tag), cb_arg);
-	(*cb_func)(" LOGIN ", 7, cb_arg);
-	imap_write_str(ipi->uid, cb_func, cb_arg);
-	(*cb_func)(" ", 1, cb_arg);
-	imap_write_str(ipi->pwd, cb_func, cb_arg);
-	(*cb_func)("\r\n", 2, cb_arg);
+	cb(ipi->tag, strlen(ipi->tag));
+	cb(" LOGIN ", 7);
+	imap_write_str(ipi->uid, cb);
+	cb(" ", 1);
+	imap_write_str(ipi->pwd, cb);
+	cb("\r\n", 2);
 }
 
-static void imap_capability_cmd(struct imapproxyinfo *ipi,
-			       void (*cb_func)(const char *,
-					       size_t,
-					       void *),
-			       void *cb_arg)
+static void imap_capability_cmd(
+	struct imapproxyinfo *ipi,
+	const std::function<void (const char *, size_t)> &cb)
 {
-	(*cb_func)(ipi->tag, strlen(ipi->tag), cb_arg);
-	(*cb_func)(" CAPABILITY\r\n", 13, cb_arg);
+	cb(ipi->tag, strlen(ipi->tag));
+	cb(" CAPABILITY\r\n", 13);
 }
 
-static void cb_cnt(const char *c, size_t l,
-		   void *arg)
+static std::vector<char> get_imap_cmd(
+	struct imapproxyinfo *ipi,
+	void (*cmd)(struct imapproxyinfo *ipi,
+		    const std::function<void (const char *, size_t)> &cb
+	))
 {
-	*(size_t *)arg += l;
-}
+	std::vector<char> buf;
 
-static void cb_cpy(const char *c, size_t l,
-		   void *arg)
-{
-	char **p=(char **)arg;
+	buf.reserve(100);
 
-	memcpy(*p, c, l);
-	*p += l;
-}
+	cmd(ipi,
+	    [&]
+	    (const char *p, size_t l)
+	    {
+		    buf.insert(buf.end(), p, p+l);
+	    });
 
-static char *get_imap_cmd(struct imapproxyinfo *ipi,
-			  void (*cmd)(struct imapproxyinfo *ipi,
-				      void (*cb_func)(const char *,
-						      size_t,
-						      void *),
-				      void *cb_arg))
-
-{
-	size_t cnt=1;
-	char *buf;
-	char *p;
-
-	(*cmd)(ipi, &cb_cnt, &cnt);
-
-	buf=(char *)malloc(cnt);
-
-	if (!buf)
-	{
-		fprintf(stderr, "CRIT: Out of memory!\n");
-		return NULL;
-	}
-
-	p=buf;
-	(*cmd)(ipi, &cb_cpy, &p);
-	*p=0;
 	return buf;
 }
 
@@ -613,7 +553,6 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 	struct proxybuf pb;
 	char linebuf[256];
 	const char *p;
-	char *cmd;
 
 	DPRINTF("Proxy connected to %s", hostname);
 
@@ -634,17 +573,12 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 		return -1;
 	}
 
-	cmd=get_imap_cmd(ipi, imap_login_cmd);
+	auto cmd=get_imap_cmd(ipi, imap_login_cmd);
 
-	if (!cmd)
-		return -1;
-
-	if (proxy_write(fd, hostname, cmd, strlen(cmd)))
+	if (proxy_write(fd, hostname, cmd.data(), cmd.size()))
 	{
-		free(cmd);
 		return -1;
 	}
-	free(cmd);
 
 #if SMAP
 	if (strcmp(ipi->tag, "\\SMAP1") == 0)
@@ -701,15 +635,10 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 	{
 		cmd=get_imap_cmd(ipi, imap_capability_cmd);
 
-		if (!cmd)
-			return -1;
-
-		if (proxy_write(fd, hostname, cmd, strlen(cmd)))
+		if (proxy_write(fd, hostname, cmd.data(), cmd.size()))
 		{
-			free(cmd);
 			return -1;
 		}
-		free(cmd);
 	}
 	else
 	{

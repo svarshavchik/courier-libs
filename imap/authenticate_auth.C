@@ -16,7 +16,7 @@
 #include	"courierauth.h"
 #include	"courierauthsasl.h"
 #include	"courierauthdebug.h"
-
+#include	<vector>
 
 extern int main_argc;
 extern char **main_argv;
@@ -28,7 +28,8 @@ extern "C" const char *imap_externalauth();
 static char *send_auth_reply(const char *q, void *dummy)
 {
 	struct imaptoken *tok;
-	char	*p;
+
+	std::vector<char> charbuf;
 
 #if SMAP
 	const char *cp=getenv("PROTOCOL");
@@ -47,39 +48,40 @@ static char *send_auth_reply(const char *q, void *dummy)
 	read_timeout(SOCKET_TIMEOUT);
 	tok=nexttoken_nouc();
 
+	charbuf.clear();
+
 	switch (tok->tokentype)	{
 	case IT_ATOM:
 	case IT_NUMBER:
-		p=my_strdup(tok->tokenbuf);
+		{
+			auto l=strlen(tok->tokenbuf);
+
+			charbuf.insert(charbuf.end(),
+				       tok->tokenbuf,
+				       tok->tokenbuf+l+1);
+		}
 		break;
 	case IT_EOL:
-		p=my_strdup("");
+		charbuf.push_back(0);
 		break;
 	default:
-		return (0);
-	}
-	if (!p)
-	{
-		perror("malloc");
 		return (0);
 	}
 
 	if (nexttoken()->tokentype != IT_EOL)
 	{
-		free(p);
 		fprintf(stderr, "Invalid SASL response\n");
 		return (0);
 	}
 	read_eol();
-	return (p);
+	return strdup(charbuf.data()); // TODO: fix when authlib is C++.
 }
 
-extern "C"
 int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 {
 	struct imaptoken *tok=nexttoken();
-	char	*authmethod;
-	char	*initreply=0;
+	std::vector<char> initreply;
+
 	char	*authtype, *authdata;
 	char	authservice[40];
 	const char	*p ;
@@ -93,9 +95,10 @@ int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 		return (0);
 	}
 
-	authmethod=my_strdup(tok->tokenbuf);
+	std::string authmethod=tok->tokenbuf;
+
 	if (methodbuf)
-		snprintf(methodbuf, methodbuflen, "%s", authmethod);
+		snprintf(methodbuf, methodbuflen, "%s", authmethod.c_str());
 
 	tok=nexttoken_nouc();
 	if (tok->tokentype != IT_EOL)
@@ -108,28 +111,26 @@ int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 		default:
 			return (0);
 		}
-		initreply=my_strdup(tok->tokenbuf);
-		if (strcmp(initreply, "=") == 0)
-			*initreply=0;
+		initreply.insert(initreply.end(),
+				 tok->tokenbuf,
+				 tok->tokenbuf+strlen(tok->tokenbuf)+1);
+
+		if (strcmp(initreply.data(), "=") == 0)
+			initreply[0]=0;
+
 		tok=nexttoken_nouc();
 	}
 
 	if (tok->tokentype != IT_EOL)	return (0);
 
 	read_eol();
-	if ((rc = auth_sasl_ex(authmethod, initreply, imap_externalauth(),
+	if ((rc = auth_sasl_ex(authmethod.c_str(),
+			       initreply.data(), imap_externalauth(),
 			       &send_auth_reply, NULL,
 			       &authtype, &authdata)) != 0)
 	{
-		free(authmethod);
-		if (initreply)
-			free(initreply);
 		return (rc);
 	}
-
-	free(authmethod);
-	if (initreply)
-		free(initreply);
 
 	strcat(strcpy(authservice, "AUTHSERVICE"),
 			 getenv("TCPLOCALPORT"));
