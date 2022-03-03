@@ -78,7 +78,7 @@ searchiter contentsearch::alloc_search_notkey()
 {
 	imaptoken t=currenttoken();
 
-	if (t->tokentype == IT_ATOM && strcmp(t->tokenbuf, "NOT") == 0)
+	if (t->tokentype == IT_ATOM && t->tokenbuf == "NOT")
 	{
 		searchiter si=alloc_search();
 
@@ -95,7 +95,6 @@ searchiter contentsearch::alloc_search_key()
 {
 	imaptoken t=currenttoken();
 	searchiter si;
-	const char *keyword;
 
 	if (t->tokentype == IT_LPAREN)
 	{
@@ -110,9 +109,9 @@ searchiter contentsearch::alloc_search_key()
 	if (t->tokentype != IT_ATOM && t->tokentype != IT_NUMBER)
 		return (searchlist.end());
 
-	keyword=t->tokenbuf;
+	auto keyword=t->tokenbuf;
 
-	if (strcmp(keyword, "ALL") == 0)
+	if (keyword == "ALL")
 	{
 	searchiter si;
 
@@ -121,7 +120,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "OR") == 0)
+	if (keyword == "OR")
 	{
 	searchiter si;
 
@@ -135,7 +134,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "HEADER") == 0)
+	if (keyword == "HEADER")
 	{
 	imaptoken t;
 	searchiter si;
@@ -158,11 +157,11 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "BCC") == 0 ||
-		strcmp(keyword, "CC") == 0 ||
-		strcmp(keyword, "FROM") == 0 ||
-		strcmp(keyword, "TO") == 0 ||
-		strcmp(keyword, "SUBJECT") == 0)
+	if (keyword == "BCC" ||
+	    keyword == "CC" ||
+	    keyword == "FROM" ||
+	    keyword == "TO" ||
+	    keyword == "SUBJECT")
 	{
 	imaptoken t;
 	searchiter si;
@@ -180,7 +179,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "BEFORE") == 0)
+	if (keyword == "BEFORE")
 	{
 	imaptoken t;
 	searchiter si;
@@ -197,7 +196,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "BODY") == 0)
+	if (keyword == "BODY")
 	{
 	imaptoken t;
 	searchiter si;
@@ -213,7 +212,7 @@ searchiter contentsearch::alloc_search_key()
 		nexttoken();
 		return (si);
 	}
-	if (strcmp(keyword, "LARGER") == 0)
+	if (keyword == "LARGER")
 	{
 	imaptoken t;
 	searchiter si;
@@ -228,7 +227,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "ON") == 0)
+	if (keyword == "ON")
 	{
 	imaptoken t;
 	searchiter si;
@@ -245,7 +244,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "SENTBEFORE") == 0)
+	if (keyword == "SENTBEFORE")
 	{
 	imaptoken t;
 	searchiter si;
@@ -262,7 +261,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "SENTON") == 0)
+	if (keyword == "SENTON")
 	{
 	imaptoken t;
 	searchiter si;
@@ -274,12 +273,12 @@ searchiter contentsearch::alloc_search_key()
 		    t->tokentype != IT_NUMBER &&
 		    t->tokentype != IT_QUOTED_STRING)
 			return (searchlist.end());
-		si->as=keyword;
+		si->as=t->tokenbuf;
 		nexttoken();
 		return (si);
 	}
 
-	if (strcmp(keyword, "SENTSINCE") == 0)
+	if (keyword == "SENTSINCE")
 	{
 	imaptoken t;
 	searchiter si;
@@ -296,7 +295,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "SINCE") == 0)
+	if (keyword == "SINCE")
 	{
 	imaptoken t;
 	searchiter si;
@@ -313,7 +312,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "SMALLER") == 0)
+	if (keyword == "SMALLER")
 	{
 	imaptoken t;
 	searchiter si;
@@ -328,7 +327,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "TEXT") == 0)
+	if (keyword == "TEXT")
 	{
 	imaptoken t;
 	searchiter si;
@@ -345,7 +344,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "UID") == 0)
+	if (keyword == "UID")
 	{
 	searchiter si;
 	imaptoken t;
@@ -360,10 +359,10 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "KEYWORD") == 0
-		|| strcmp(keyword, "UNKEYWORD") == 0)
+	if (keyword == "KEYWORD"
+	    || keyword == "UNKEYWORD")
 	{
-	int	isnot= *keyword == 'U';
+	int	isnot= keyword[0] == 'U';
 	imaptoken t;
 	searchiter si;
 
@@ -387,38 +386,38 @@ searchiter contentsearch::alloc_search_key()
 		}
 		return (si);
 	}
-	if (strcmp(keyword, "ANSWERED") == 0 ||
-		strcmp(keyword, "DELETED") == 0 ||
-		strcmp(keyword, "DRAFT") == 0 ||
-		strcmp(keyword, "FLAGGED") == 0 ||
-		strcmp(keyword, "RECENT") == 0 ||
-		strcmp(keyword, "SEEN") == 0)
+	if (keyword == "ANSWERED" ||
+	    keyword == "DELETED" ||
+	    keyword == "DRAFT" ||
+	    keyword == "FLAGGED" ||
+	    keyword == "RECENT" ||
+	    keyword == "SEEN")
 	{
 	searchiter si;
 
 		si=alloc_search();
 		si->type=search_msgflag;
-		si->as.reserve(strlen(keyword)+1);
+		si->as.reserve(keyword.size()+1);
 		si->as="\\";
 		si->as += keyword;
 		nexttoken();
 		return (si);
 	}
 
-	if (strcmp(keyword, "UNANSWERED") == 0 ||
-		strcmp(keyword, "UNDELETED") == 0 ||
-		strcmp(keyword, "UNDRAFT") == 0 ||
-		strcmp(keyword, "UNFLAGGED") == 0 ||
-		strcmp(keyword, "UNSEEN") == 0)
+	if (keyword == "UNANSWERED" ||
+	    keyword == "UNDELETED" ||
+	    keyword == "UNDRAFT" ||
+	    keyword == "UNFLAGGED" ||
+	    keyword == "UNSEEN")
 	{
 	searchiter si;
 	searchiter si2;
 
 		si=alloc_search();
 		si->type=search_msgflag;
-		si->as.reserve(strlen(keyword));
+		si->as.reserve(keyword.size());
 		si->as="\\";
-		si->as += keyword+2;
+		si->as += keyword.substr(2);
 		nexttoken();
 
 		si2=alloc_search();
@@ -427,7 +426,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si2);
 	}
 
-	if (strcmp(keyword, "NEW") == 0)
+	if (keyword == "NEW")
 	{
 		searchiter si, si2;
 
@@ -445,7 +444,7 @@ searchiter contentsearch::alloc_search_key()
 		return (si);
 	}
 
-	if (strcmp(keyword, "OLD") == 0)
+	if (keyword == "OLD")
 	{
 		searchiter si, si2;
 

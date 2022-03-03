@@ -10,11 +10,12 @@
 #include	<stdlib.h>
 #include	<time.h>
 
+#include	<string>
+
 struct imaptoken_buf {
 	short	tokentype;
 	unsigned long tokennum;
-	char *tokenbuf;
-	size_t	tokenbuf_size;
+	std::string tokenbuf;
 	} ;
 
 typedef imaptoken_buf *imaptoken;
@@ -42,7 +43,7 @@ void convert_literal_tokens(imaptoken tok);
 
 int ismsgset(imaptoken);
 	/* See if this token is a syntactically valid message set */
-int ismsgset_str(const char *);
+int ismsgset_str(const std::string &);
 	/* Ditto */
 
 void read_timeout(time_t);

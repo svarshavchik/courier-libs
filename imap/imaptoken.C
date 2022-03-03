@@ -184,22 +184,6 @@ time_t	tt;
 	readtimeout=tt+t;
 }
 
-static void alloc_tokenbuf(unsigned l)
-{
-	if (l >= curtoken.tokenbuf_size)
-	{
-		char	*p=(char *)
-			(curtoken.tokenbuf ? realloc(curtoken.tokenbuf, l + 256):
-			 malloc(l + 256));
-
-		if (!p)
-			write_error_exit("malloc");
-
-		curtoken.tokenbuf_size = l+256;
-		curtoken.tokenbuf=p;
-	}
-}
-
 static char LPAREN_CHAR='(';
 static char RPAREN_CHAR=')';
 static char LBRACKET_CHAR='[';
@@ -242,16 +226,16 @@ static imaptoken do_readtoken(int touc)
 
 	if (debugfile)
 	{
-		char	*p=0;
+		const char	*p=0;
 
 		fprintf(debugfile, "READ: ");
 		switch (tok->tokentype) {
 		case IT_ATOM:
-			p=curtoken.tokenbuf; fprintf(debugfile, "ATOM"); break;
+			p=curtoken.tokenbuf.c_str(); fprintf(debugfile, "ATOM"); break;
 		case IT_NUMBER:
-			p=curtoken.tokenbuf; fprintf(debugfile, "NUMBER"); break;
+			p=curtoken.tokenbuf.c_str(); fprintf(debugfile, "NUMBER"); break;
 		case IT_QUOTED_STRING:
-			p=curtoken.tokenbuf; fprintf(debugfile, "QUOTED_STRING"); break;
+			p=curtoken.tokenbuf.c_str(); fprintf(debugfile, "QUOTED_STRING"); break;
 		case IT_LPAREN:
 			fprintf(debugfile, "LPAREN"); break;
 		case IT_RPAREN:
@@ -282,10 +266,9 @@ static imaptoken do_readtoken(int touc)
 
 static imaptoken do_readtoken_nolog(int touc)
 {
-int	c=0;
-unsigned l;
+	int	c=0;
 
-#define	appendch(c)	alloc_tokenbuf(l+1); curtoken.tokenbuf[l++]=(c);
+	curtoken.tokenbuf.clear();
 
 	if (curtoken.tokentype == IT_ERROR)	return (&curtoken);
 
@@ -329,7 +312,7 @@ unsigned l;
 	{
 		int bit8=0;
 
-		l=0;
+		curtoken.tokenbuf.clear();
 		while ((c=READ()) != '"')
 		{
 			if (c == '\\')
@@ -340,16 +323,15 @@ unsigned l;
 				curtoken.tokentype=IT_ERROR;
 				return (&curtoken);
 			}
-			if (l >= BUFSIZ)
+			if (curtoken.tokenbuf.size() >= BUFSIZ)
 			{
 				writes("* NO [ALERT] IMAP command too long.\r\n");
 				curtoken.tokentype=IT_ERROR;
 			}
 			if (c & 0x80)
 				bit8=1;
-			appendch(c);
+			curtoken.tokenbuf.push_back(c);
 		}
-		appendch(0);
 		curtoken.tokentype=IT_QUOTED_STRING;
 
 		/*
@@ -366,8 +348,8 @@ unsigned l;
 						     ignore_output_func,
 						     (void *)0);
 
-			if (unicode_convert(h, curtoken.tokenbuf,
-					    strlen(curtoken.tokenbuf)))
+			if (unicode_convert(h, curtoken.tokenbuf.c_str(),
+					    curtoken.tokenbuf.size()))
 			{
 				curtoken.tokentype=IT_ERROR;
 			}
@@ -422,10 +404,10 @@ unsigned l;
 		return (&curtoken);
 	}
 
-	l=0;
+	curtoken.tokenbuf.clear();
 	if (c == '\\')
 	{
-		appendch(c);	/* Message flag */
+		curtoken.tokenbuf.push_back(c);	/* Message flag */
 		c=READ();
 	}
 	else if (isdigit(c))
@@ -434,7 +416,7 @@ unsigned l;
 		curtoken.tokennum=0;
 		do
 		{
-			appendch(c);
+			curtoken.tokenbuf.push_back(c);
 			curtoken.tokennum = curtoken.tokennum*10 +
 				(c-'0');
 			c=READ();
@@ -451,11 +433,11 @@ unsigned l;
 	       && c != '{' && c != '}' && c != LBRACKET_CHAR && c != RBRACKET_CHAR)
 	{
 		curtoken.tokentype=IT_ATOM;
-		if (l < IT_MAX_ATOM_SIZE)
+		if (curtoken.tokenbuf.size() < IT_MAX_ATOM_SIZE)
 		{
 			if (touc)
 				c=toupper(c);
-			appendch(c);
+			curtoken.tokenbuf.push_back(c);
 		}
 		else
 		{
@@ -463,15 +445,14 @@ unsigned l;
 		}
 		c=READ();
 	}
-	if (l == 0)
+	if (curtoken.tokenbuf.empty())
 	{
 		curtoken.tokentype=IT_ERROR;
 		return (&curtoken);
 	}
-	appendch(0);
 	UNREAD(c);
 
-	if (strcmp(curtoken.tokenbuf, "NIL") == 0)
+	if (curtoken.tokenbuf == "NIL")
 		curtoken.tokentype=IT_NIL;
 	return (&curtoken);
 }
@@ -518,10 +499,10 @@ void convert_literal_tokens(imaptoken tok)
 
 		writes("+ OK\r\n");
 		writeflush();
-		alloc_tokenbuf(nbytes+1);
+		tok->tokenbuf.clear();
 		for (i=0; i<nbytes; i++)
-			tok->tokenbuf[i]= READ();
-		tok->tokenbuf[i]=0;
+			tok->tokenbuf.push_back(READ());
+
 		tok->tokentype=IT_QUOTED_STRING;
 	}
 }
@@ -624,8 +605,10 @@ int ismsgset(imaptoken tok)
 	return ismsgset_str(tok->tokenbuf);
 }
 
-int ismsgset_str(const char *p)
+int ismsgset_str(const std::string &str)
 {
+	auto p=str.c_str();
+
 	while (isdigit((int)(unsigned char)*p) || *p == '*')
 	{
 		if (*p == '0')	return (0);

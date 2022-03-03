@@ -53,13 +53,11 @@ static char *send_auth_reply(const char *q, void *dummy)
 	switch (tok->tokentype)	{
 	case IT_ATOM:
 	case IT_NUMBER:
-		{
-			auto l=strlen(tok->tokenbuf);
-
-			charbuf.insert(charbuf.end(),
-				       tok->tokenbuf,
-				       tok->tokenbuf+l+1);
-		}
+		charbuf.reserve(tok->tokenbuf.size()+1);
+		charbuf.insert(charbuf.end(),
+			       tok->tokenbuf.begin(),
+			       tok->tokenbuf.end());
+		charbuf.push_back(0);
 		break;
 	case IT_EOL:
 		charbuf.push_back(0);
@@ -111,9 +109,11 @@ int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 		default:
 			return (0);
 		}
+		initreply.reserve(tok->tokenbuf.size()+1);
 		initreply.insert(initreply.end(),
-				 tok->tokenbuf,
-				 tok->tokenbuf+strlen(tok->tokenbuf)+1);
+				 tok->tokenbuf.begin(),
+				 tok->tokenbuf.end());
+		initreply.push_back(0);
 
 		if (strcmp(initreply.data(), "=") == 0)
 			initreply[0]=0;

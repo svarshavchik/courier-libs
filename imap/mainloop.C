@@ -107,23 +107,20 @@ void mainloop(void)
 
 	for (;;)
 	{
-	char	tag[IT_MAX_ATOM_SIZE+1];
-	imaptoken curtoken;
+		imaptoken curtoken;
+		std::string tag;
 
 		read_timeout(30 * 60);
 		curtoken=nexttoken_nouc();
-		tag[0]=0;
 		if (curtoken->tokentype == IT_ATOM ||
 			curtoken->tokentype == IT_NUMBER)
 		{
-		int	rc;
-		int	flushflag=0;
+			int	rc;
+			int	flushflag=0;
 
-			if (strlen(tag)+strlen(curtoken->tokenbuf) > IT_MAX_ATOM_SIZE)
-				write_error_exit("max atom size too small");
+			tag=curtoken->tokenbuf;
 
-			strncat(tag, curtoken->tokenbuf, IT_MAX_ATOM_SIZE);
-			rc=do_imap_command(tag, &flushflag);
+			rc=do_imap_command(tag.c_str(), &flushflag);
 
 			if (rc == 0)
 			{
@@ -145,7 +142,7 @@ void mainloop(void)
 			write_error_exit("TOO MANY CONSECUTIVE PROTOCOL VIOLATIONS");
 		}
 		read_eol();
-		cmdfail(tag[0] ? tag:"*",
+		cmdfail(!tag.empty() ? tag.c_str():"*",
 			"Error in IMAP command received by server.\r\n");
 		writeflush();
 	}

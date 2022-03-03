@@ -21,7 +21,7 @@
 /* This file contains functions to parse a FETCH attribute list */
 
 static void alloc_headerlist(bool, std::list<fetchinfo> &sublist);
-static char *good_section(char *);
+static const char *good_section(const char *);
 
 bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 {
@@ -59,11 +59,11 @@ bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 
 		if ((tok=nexttoken())->tokentype != IT_RBRACKET)
 		{
-		char	*s;
+			const char *s;
 
 			if ( (tok->tokentype != IT_ATOM &&
-				tok->tokentype != IT_NUMBER) ||
-				!(s=good_section(tok->tokenbuf)))
+			      tok->tokentype != IT_NUMBER) ||
+			     !(s=good_section(tok->tokenbuf.c_str())))
 			{
 				return (false);
 			}
@@ -104,10 +104,11 @@ bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 			return false;
 
 		tok=nexttoken();
-		if (tok->tokentype == IT_ATOM && tok->tokenbuf[0] == '<' &&
-			tok->tokenbuf[strlen(tok->tokenbuf)-1] == '>' &&
-			(p->ispartial=sscanf(tok->tokenbuf+1, "%lu.%lu",
-				&p->partialstart, &p->partialend)) > 0)
+		if (tok->tokentype == IT_ATOM &&
+		    *tok->tokenbuf.c_str() == '<' &&
+		    tok->tokenbuf.back() == '>' &&
+		    (p->ispartial=sscanf(tok->tokenbuf.c_str()+1, "%lu.%lu",
+					 &p->partialstart, &p->partialend)) > 0)
 			nexttoken();
 	}
 	return (true);
@@ -115,7 +116,7 @@ bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 
 /* Just validate that the syntax of the attribute is correct */
 
-static char *good_section(char *p)
+static const char *good_section(const char *p)
 {
 int	has_mime=0;
 

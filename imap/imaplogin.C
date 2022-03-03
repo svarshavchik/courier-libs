@@ -263,7 +263,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	courier_authdebug_login( 1, "command=%s", curtoken->tokenbuf );
 
-	if (strcmp(curtoken->tokenbuf, "LOGOUT") == 0)
+	if (curtoken->tokenbuf == "LOGOUT")
 	{
 		if (nexttoken()->tokentype != IT_EOL)   return (-1);
 		writes("* BYE Courier-IMAP server shutting down\r\n");
@@ -274,13 +274,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			bytes_received_count, bytes_sent_count);
 		exit(0);
 	}
-	if (strcmp(curtoken->tokenbuf, "NOOP") == 0)
+	if (curtoken->tokenbuf == "NOOP")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 		cmdsuccess(tag, "NOOP completed\r\n");
 		return (0);
 	}
-	if (strcmp(curtoken->tokenbuf, "CAPABILITY") == 0)
+	if (curtoken->tokenbuf == "CAPABILITY")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 
@@ -291,7 +291,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "STARTTLS") == 0)
+	if (curtoken->tokenbuf == "STARTTLS")
 	{
 		if (!have_starttls())	return (-1);
 		if (starttls(tag))		return (-2);
@@ -302,7 +302,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "LOGIN") == 0)
+	if (curtoken->tokenbuf == "LOGIN")
 	{
 		imaptoken tok=nexttoken_nouc();
 		std::string userid, passwd;
@@ -367,7 +367,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "AUTHENTICATE") == 0)
+	if (curtoken->tokenbuf == "AUTHENTICATE")
 	{
 	char	method[32];
 	int	rc;

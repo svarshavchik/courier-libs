@@ -2280,7 +2280,7 @@ static searchiter createSearch(contentsearch &cs, char **ptr)
 			if (c == '-')
 				c=':';
 
-		if (!ismsgset_str(n->as.c_str()))
+		if (!ismsgset_str(n->as))
 		{
 			errno=EINVAL;
 			return cs.searchlist.end();

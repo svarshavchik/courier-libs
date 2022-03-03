@@ -483,7 +483,7 @@ public:
 	using maildir::info::operator bool;
 };
 
-maildir_info_and_mailbox get_maildir_info_and_mailbox(const char *str)
+maildir_info_and_mailbox get_maildir_info_and_mailbox(const std::string &str)
 {
 	auto mailbox=maildir::imap_foldername_to_filename(enabled_utf8, str);
 
@@ -497,18 +497,21 @@ maildir_info_and_mailbox get_maildir_info_and_mailbox(const char *str)
 	return ret;
 }
 
-static int decode_date_time(char *p, time_t *tret)
+static int decode_date_time(std::string &str, time_t *tret)
 {
-unsigned	i;
 
 	/* Convert to format rfc822_parsedt likes */
 
-	for (i=1; p[i] != ' '; i++)
+	for (auto &c:str)
 	{
-		if (!p[i])	return (0);
-		if (p[i] == '-')	p[i]=' ';
+		if (c == ' ')
+			break;
+
+		if (c == '-')
+			c=' ';
 	}
-	return (rfc822_parsedate_chk(p, tret));
+
+	return (rfc822_parsedate_chk(str.c_str(), tret));
 }
 
 bool get_flagname(std::string s, struct imapflags *flags)
@@ -673,11 +676,9 @@ static std::string parse_mailbox_error(
 		return ("");
 	}
 
-	char *mailbox;
-
-	if (ok_hierarchy && (mailbox=strrchr(curtoken->tokenbuf,
-					     HIERCH)) && mailbox[1] == 0)
-		*mailbox=0;
+	if (ok_hierarchy && !curtoken->tokenbuf.empty() &&
+	    curtoken->tokenbuf.back() == HIERCH)
+		curtoken->tokenbuf.pop_back();
 
 	auto ret=decode_valid_mailbox(curtoken->tokenbuf, autosubscribe);
 
@@ -1480,7 +1481,7 @@ static int doId()
 				fflush(stderr);
 				return -1;
 			}
-			fprintf(stderr, ", %s=", curtoken->tokenbuf);
+			fprintf(stderr, ", %s=", curtoken->tokenbuf.c_str());
 
 			curtoken = nexttoken();
 			if ((curtoken->tokentype != IT_QUOTED_STRING) &&
@@ -1492,7 +1493,7 @@ static int doId()
 			}
 			fprintf(stderr, "%s",
 				curtoken->tokentype == IT_QUOTED_STRING
-				? curtoken->tokenbuf:"(nil)");
+				? curtoken->tokenbuf.c_str():"(nil)");
 			curtoken = nexttoken();
 		}
 		fprintf(stderr, "\n");
@@ -2426,7 +2427,7 @@ std::string get_myrightson(const std::string &mailbox)
 	return compute_myrights(l, mailbox_owner);
 }
 
-std::string get_myrightson_folder(const char *folder)
+std::string get_myrightson_folder(const std::string &folder)
 {
 	auto p=maildir::imap_foldername_to_filename(enabled_utf8, folder);
 
@@ -2534,13 +2535,13 @@ static int aclcmd(const char *tag)
 	/* Expect ACL followed only by: STORE/DELETE/SET */
 
 	if ((curtoken=nexttoken())->tokentype != IT_ATOM ||
-	    strlen(curtoken->tokenbuf) > sizeof(aclcmd)-1)
+	    curtoken->tokenbuf.size() > sizeof(aclcmd)-1)
 	{
 		errno=EINVAL;
 		return -1;
 	}
 
-	strcpy(aclcmd, curtoken->tokenbuf);
+	strcpy(aclcmd, curtoken->tokenbuf.c_str());
 
 	switch ((curtoken=nexttoken_nouc())->tokentype) {
 	case IT_LPAREN:
@@ -2870,7 +2871,7 @@ static int aclstore(const char *tag,
 					    aclt_list,
 					    mi,
 					    identifier,
-					    curtoken->tokenbuf,
+					    curtoken->tokenbuf.c_str(),
 					    acl_error
 				    );
 			    }))
@@ -2981,7 +2982,7 @@ static int acldelete(const char *tag,
 	    curtoken->tokentype != IT_NUMBER)
 		return -1;
 
-	identifier=curtoken->tokenbuf;
+	identifier=curtoken->tokenbuf.c_str();
 
 	for (auto &mailbox:mailboxes)
 	{
@@ -3205,7 +3206,7 @@ static int append(const char *tag, const std::string &mailbox,
 	need_rparen=0;
 
 	if (enabled_utf8 && curtoken->tokentype == IT_ATOM &&
-	    strcmp(curtoken->tokenbuf, "UTF8") == 0)
+	    curtoken->tokenbuf == "UTF8")
 	{
 		/* See also: https://bugs.python.org/issue34138 */
 
@@ -3478,7 +3479,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	/* Commands that work in authenticated state */
 
-	if (strcmp(curtoken->tokenbuf, "CAPABILITY") == 0)
+	if (curtoken->tokenbuf == "CAPABILITY")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 		writes("* CAPABILITY ");
@@ -3488,7 +3489,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes(" OK CAPABILITY completed\r\n");
 		return (0);
 	}
-	if (strcmp(curtoken->tokenbuf, "NOOP") == 0)
+	if (curtoken->tokenbuf == "NOOP")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 		doNoop(1);
@@ -3496,7 +3497,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes(" OK NOOP completed\r\n");
 		return (0);
 	}
-	if (strcmp(curtoken->tokenbuf, "ID") == 0)
+	if (curtoken->tokenbuf == "ID")
 	{
 		if (doId() < 0)
 			return (-1);
@@ -3504,7 +3505,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes(" OK ID completed\r\n");
 		return (0);
 	}
-       if (strcmp(curtoken->tokenbuf, "IDLE") == 0)
+       if (curtoken->tokenbuf == "IDLE")
        {
                if (nexttoken()->tokentype != IT_EOL)   return (-1);
 
@@ -3512,7 +3513,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	       imapenhancedidle();
 	       curtoken=nexttoken();
-	       if (strcmp(curtoken->tokenbuf, "DONE") == 0)
+	       if (curtoken->tokenbuf == "DONE")
 	       {
 		       doNoop(0);
 		       writes(tag);
@@ -3521,7 +3522,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
                }
                return (-1);
        }
-	if (strcmp(curtoken->tokenbuf, "LOGOUT") == 0)
+	if (curtoken->tokenbuf == "LOGOUT")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 		fetch_free_cache();
@@ -3534,15 +3535,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		bye();
 	}
 
-	if (strcmp(curtoken->tokenbuf, "LIST") == 0
-		|| strcmp(curtoken->tokenbuf, "LSUB") == 0)
+	if (curtoken->tokenbuf == "LIST"
+		|| curtoken->tokenbuf == "LSUB")
 	{
 		std::string reference, name;
 		int	rc;
 		char	cmdbuf[5];
 		int	list_flags=0;
 
-		strcpy(cmdbuf, curtoken->tokenbuf);
+		strcpy(cmdbuf, curtoken->tokenbuf.c_str());
 
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype == IT_LPAREN)
@@ -3554,12 +3555,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				    curtoken->tokentype != IT_NUMBER)
 					return (-1);
 
-				if (strcmp(curtoken->tokenbuf, "ACL") == 0)
+				if (curtoken->tokenbuf == "ACL")
 					list_flags |= LIST_ACL;
-				if (strcmp(curtoken->tokenbuf, "MYRIGHTS")==0)
+				if (curtoken->tokenbuf == "MYRIGHTS")
 					list_flags |= LIST_MYRIGHTS;
-				if (strcmp(curtoken->tokenbuf,
-					   "POSTADDRESS")==0)
+				if (curtoken->tokenbuf == "POSTADDRESS")
 					list_flags |= LIST_POSTADDRESS;
 			}
 
@@ -3577,7 +3577,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				writes(" BAD Invalid command\r\n");
 				return (0);
 			}
-			if (*curtoken->tokenbuf)
+			if (!curtoken->tokenbuf.empty())
 			{
 				reference=maildir::imap_foldername_to_filename(
 					enabled_utf8, curtoken->tokenbuf
@@ -3600,7 +3600,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				writes(" BAD Invalid command\r\n");
 				return(0);
 			}
-			if (*curtoken->tokenbuf)
+			if (!curtoken->tokenbuf.empty())
 			{
 				name=maildir::imap_foldername_to_filename(
 					enabled_utf8,
@@ -3646,7 +3646,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (rc);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "APPEND") == 0)
+	if (curtoken->tokenbuf == "APPEND")
 	{
 		imaptoken tok=nexttoken_nouc();
 
@@ -3708,7 +3708,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "GETQUOTAROOT") == 0)
+	if (curtoken->tokenbuf == "GETQUOTAROOT")
 	{
 		char	qroot[20];
 		curtoken=nexttoken_nouc();
@@ -3756,14 +3756,14 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	}
 
 
-	if (strcmp(curtoken->tokenbuf, "SETQUOTA") == 0)
+	if (curtoken->tokenbuf == "SETQUOTA")
 	{
 		writes(tag);
 		writes(" NO SETQUOTA No permission.\r\n");
 		return(0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "ENABLE") == 0)
+	if (curtoken->tokenbuf == "ENABLE")
 	{
 		while (nexttoken()->tokentype != IT_EOL)
 		{
@@ -3771,8 +3771,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			case IT_NUMBER:
 			case IT_ATOM:
 			case IT_QUOTED_STRING:
-				if (strcmp(curtoken->tokenbuf, "UTF8=ACCEPT")
-				    == 0)
+				if (curtoken->tokenbuf == "UTF8=ACCEPT")
 				{
 					enabled_utf8=1;
 				}
@@ -3791,7 +3790,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "GETQUOTA") == 0)
+	if (curtoken->tokenbuf == "GETQUOTA")
 	{
 		curtoken=nexttoken_nouc();
 
@@ -3800,13 +3799,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			curtoken->tokentype != IT_QUOTED_STRING)
 			return (-1);
 
-		quotainfo_out(curtoken->tokenbuf);
+		quotainfo_out(curtoken->tokenbuf.c_str());
 		writes(tag);
 		writes(" OK GETQUOTA Ok.\r\n");
 		return(0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "STATUS") == 0)
+	if (curtoken->tokenbuf == "STATUS")
 	{
 		int	get_messages=0,
 			get_recent=0,
@@ -3851,15 +3850,15 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		while ((curtoken=currenttoken())->tokentype == IT_ATOM)
 		{
-			if (strcmp(curtoken->tokenbuf, "MESSAGES") == 0)
+			if (curtoken->tokenbuf == "MESSAGES")
 				get_messages=1;
-			if (strcmp(curtoken->tokenbuf, "RECENT") == 0)
+			if (curtoken->tokenbuf == "RECENT")
 				get_recent=1;
-			if (strcmp(curtoken->tokenbuf, "UIDNEXT") == 0)
+			if (curtoken->tokenbuf == "UIDNEXT")
 				get_uidnext=1;
-			if (strcmp(curtoken->tokenbuf, "UIDVALIDITY") == 0)
+			if (curtoken->tokenbuf == "UIDVALIDITY")
 				get_uidvalidity=1;
-			if (strcmp(curtoken->tokenbuf, "UNSEEN") == 0)
+			if (curtoken->tokenbuf == "UNSEEN")
 				get_unseen=1;
 			nexttoken();
 			if (oneonly)	break;
@@ -3955,11 +3954,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "CREATE") == 0)
+	if (curtoken->tokenbuf == "CREATE")
 	{
 		std::string orig_mailbox;
-
-		char	*p;
 		int	isdummy;
 
 		curtoken=nexttoken_nouc();
@@ -3975,10 +3972,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		isdummy=0;
 
-		p=strrchr(curtoken->tokenbuf, HIERCH);
-		if (p && p[1] == '\0')
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
 		{
-			*p=0;
+			curtoken->tokenbuf.pop_back();
 			isdummy=1;	/* Ignore hierarchy creation */
 		}
 
@@ -4028,7 +4025,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		if (isdummy)	*p=HIERCH;
+		if (isdummy)
+			curtoken->tokenbuf.push_back(HIERCH);
+
 		orig_mailbox=maildir::imap_foldername_to_filename(
 			enabled_utf8,
 			curtoken->tokenbuf);
@@ -4037,6 +4036,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			return (-1);
 		}
+
+		auto mailbox_tokenbuf=curtoken->tokenbuf;
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
@@ -4098,7 +4099,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		*/
 
 		{
-			CHECK_RIGHTSM(curtoken->tokenbuf, create_rights,
+			CHECK_RIGHTSM(mailbox_tokenbuf, create_rights,
 				      ACL_CREATE);
 		}
 
@@ -4107,9 +4108,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "DELETE") == 0)
+	if (curtoken->tokenbuf == "DELETE")
 	{
-		char	*p;
 		std::string mailbox_name;
 
 		curtoken=nexttoken_nouc();
@@ -4123,8 +4123,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		p=strrchr(curtoken->tokenbuf, HIERCH);
-		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
+			/* Ignore hierarchy DELETE */
 		{
 			if (nexttoken()->tokentype != IT_EOL)
 				return (-1);
@@ -4132,6 +4133,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			writes(" OK Folder directory delete punted.\r\n");
 			return (0);
 		}
+
+		std::string foldername=curtoken->tokenbuf;
 
 		auto new_mailbox=
 			parse_mailbox_error(tag, curtoken, true, false);
@@ -4173,14 +4176,14 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		{
-			CHECK_RIGHTSM(curtoken->tokenbuf,
+			CHECK_RIGHTSM(foldername,
 				      delete_rights,
 				      ACL_DELETEFOLDER);
 			if (delete_rights[0] == 0)
 			{
 				writes(tag);
 				accessdenied("DELETE",
-					     curtoken->tokenbuf,
+					     foldername,
 					     ACL_DELETEFOLDER);
 				return 0;
 			}
@@ -4205,10 +4208,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "RENAME") == 0)
+	if (curtoken->tokenbuf == "RENAME")
 	{
-		char *p;
-
 		curtoken=nexttoken_nouc();
 
 		if (curtoken->tokentype != IT_NUMBER &&
@@ -4220,8 +4221,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		if ((p=strrchr(curtoken->tokenbuf, HIERCH))  && p[1] == 0)
-			*p=0;
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
+			curtoken->tokenbuf.pop_back();
 
 		auto mailbox=maildir::imap_foldername_to_filename(
 			enabled_utf8,
@@ -4271,10 +4273,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		if ((p=strrchr(curtoken->tokenbuf, HIERCH)) && p[1] == 0)
-		{
-			*p=0;
-		}
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
+			curtoken->tokenbuf.pop_back();
 
 		mailbox=maildir::imap_foldername_to_filename(
 			enabled_utf8,
@@ -4328,8 +4329,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "SELECT") == 0 ||
-		strcmp(curtoken->tokenbuf, "EXAMINE") == 0)
+	if (curtoken->tokenbuf == "SELECT" ||
+		curtoken->tokenbuf == "EXAMINE")
 	{
 		curtoken=nexttoken_nouc();
 
@@ -4404,10 +4405,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "SUBSCRIBE") == 0)
+	if (curtoken->tokenbuf == "SUBSCRIBE")
 	{
-		const char	*p;
-
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
@@ -4418,8 +4417,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		p=strrchr(curtoken->tokenbuf, HIERCH);
-		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
 		{
 			if (nexttoken()->tokentype != IT_EOL)
 				return (-1);
@@ -4447,12 +4446,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		p=strchr(mi.mailbox.c_str(), '.');
+		auto p=mi.mailbox.find('.');
 
 		std::string s;
 
-		if (p)
-			s=maildir::shareddir(".", p+1);
+		if (p != mi.mailbox.npos)
+			s=maildir::shareddir(".", mi.mailbox.substr(p+1));
 
 		if (s.empty() || access(s.c_str(), 0) == 0)
 		{
@@ -4462,8 +4461,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		if (s.empty() ||
-		    maildir_shared_subscribe(0, strchr(mi.mailbox.c_str(),
-						       '.')+1))
+		    !maildir::shared_subscribe("",
+					       mi.mailbox.substr(
+						       mi.mailbox.find('.')+1)))
 		{
 			writes(tag);
 			writes(" NO Cannot subscribe to this folder.\r\n");
@@ -4474,10 +4474,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "UNSUBSCRIBE") == 0)
+	if (curtoken->tokenbuf == "UNSUBSCRIBE")
 	{
-		const char	*p;
-
 		curtoken=nexttoken_nouc();
 		if (curtoken->tokentype != IT_NUMBER &&
 			curtoken->tokentype != IT_ATOM &&
@@ -4488,8 +4486,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		p=strrchr(curtoken->tokenbuf, HIERCH);
-		if (p && p[1] == '\0')		/* Ignore hierarchy DELETE */
+		if (!curtoken->tokenbuf.empty() &&
+		    curtoken->tokenbuf.back() == HIERCH)
 		{
 			if (nexttoken()->tokentype != IT_EOL)
 				return (-1);
@@ -4518,12 +4516,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		p=strchr(mi.mailbox.c_str(), '.');
+		auto p=mi.mailbox.find('.');
 
 		std::string s;
 
-		if (p)
-			s=maildir::shareddir(".", p+1);
+		if (p != mi.mailbox.npos)
+			s=maildir::shareddir(".", mi.mailbox.substr(p+1));
 
 		if (s.empty() || access(s.c_str(), 0))
 		{
@@ -4548,7 +4546,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "NAMESPACE") == 0)
+	if (curtoken->tokenbuf == "NAMESPACE")
 	{
 		if (nexttoken()->tokentype != IT_EOL)
 			return (-1);
@@ -4560,7 +4558,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "ACL") == 0)
+	if (curtoken->tokenbuf == "ACL")
 	{
 		if (aclcmd(tag))
 		{
@@ -4574,8 +4572,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	/* RFC 2086 */
 
-	if (strcmp(curtoken->tokenbuf, "SETACL") == 0 ||
-	    strcmp(curtoken->tokenbuf, "DELETEACL") == 0)
+	if (curtoken->tokenbuf == "SETACL" ||
+	    curtoken->tokenbuf == "DELETEACL")
 	{
 		int doset=curtoken->tokenbuf[0] == 'S';
 		const char *origcmd=doset ? "SETACL":"DELETEACL";
@@ -4617,7 +4615,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return -1;
 		}
 
-		auto identifier=acl2_identifier(tag, curtoken->tokenbuf);
+		auto identifier=acl2_identifier(tag,
+						curtoken->tokenbuf.c_str());
 
 		if (identifier.empty())
 			return 0;
@@ -4658,7 +4657,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		std::string acl_error;
 		if (!acl_update(aclt_list, mi, identifier,
-				doset ? curtoken->tokenbuf:"",
+				doset ? curtoken->tokenbuf.c_str():"",
 				acl_error))
 		{
 			writes(tag);
@@ -4678,7 +4677,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return 0;
 	}
 
-	if (strcmp(curtoken->tokenbuf, "GETACL") == 0)
+	if (curtoken->tokenbuf == "GETACL")
 	{
 		maildir::aclt_list l;
 
@@ -4751,7 +4750,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return 0;
 	}
 
-	if (strcmp(curtoken->tokenbuf, "LISTRIGHTS") == 0)
+	if (curtoken->tokenbuf == "LISTRIGHTS")
 	{
 		maildir::aclt_list l;
 		std::string mailbox_owner;
@@ -4805,13 +4804,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes("* LISTRIGHTS \"");
 		writemailbox(mb.c_str());
 		writes("\" \"");
-		writeqs(curtoken->tokenbuf);
+		writeqs(curtoken->tokenbuf.c_str());
 		writes("\"");
 
-		if (curtoken->tokenbuf[0] == '-' &&
-		    (MAILDIR_ACL_ANYONE(curtoken->tokenbuf+1) ||
+		if (*curtoken->tokenbuf.c_str() == '-' &&
+		    (MAILDIR_ACL_ANYONE(curtoken->tokenbuf.c_str()+1) ||
 		     (mailbox_owner.substr(0, 5) == "user=" &&
-		      mailbox_owner.substr(5) == curtoken->tokenbuf+1)))
+		      mailbox_owner.substr(5) == curtoken->tokenbuf.c_str()+1)))
 		{
 			writes(" \"\" "
 			       ACL_CREATE " "
@@ -4854,7 +4853,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return 0;
 	}
 
-	if (strcmp(curtoken->tokenbuf, "MYRIGHTS") == 0)
+	if (curtoken->tokenbuf == "MYRIGHTS")
 	{
 		curtoken=nexttoken_nouc();
 
@@ -4903,22 +4902,22 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (current_maildir_info.current_mailbox.empty())	return (-1);
 
-	if (strcmp(curtoken->tokenbuf, "UID") == 0)
+	if (curtoken->tokenbuf == "UID")
 	{
 		uid=true;
 		if ((curtoken=nexttoken())->tokentype != IT_ATOM)
 			return (-1);
-		if (strcmp(curtoken->tokenbuf, "COPY") &&
-		    strcmp(curtoken->tokenbuf, "FETCH") &&
-		    strcmp(curtoken->tokenbuf, "SEARCH") &&
-		    strcmp(curtoken->tokenbuf, "THREAD") &&
-		    strcmp(curtoken->tokenbuf, "SORT") &&
-		    strcmp(curtoken->tokenbuf, "STORE") &&
-		    strcmp(curtoken->tokenbuf, "EXPUNGE"))
+		if (curtoken->tokenbuf != "COPY" &&
+		    curtoken->tokenbuf != "FETCH" &&
+		    curtoken->tokenbuf != "SEARCH" &&
+		    curtoken->tokenbuf != "THREAD" &&
+		    curtoken->tokenbuf != "SORT" &&
+		    curtoken->tokenbuf != "STORE" &&
+		    curtoken->tokenbuf != "EXPUNGE")
 			return (-1);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "CLOSE") == 0)
+	if (curtoken->tokenbuf == "CLOSE")
 	{
 		if (nexttoken()->tokentype != IT_EOL)
 			return (-1);
@@ -4932,7 +4931,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "FETCH") == 0)
+	if (curtoken->tokenbuf == "FETCH")
 	{
 		std::list<fetchinfo> filist;
 
@@ -4978,7 +4977,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "STORE") == 0)
+	if (curtoken->tokenbuf == "STORE")
 	{
 		storeinfo storeinfo_s;
 
@@ -5070,7 +5069,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "SEARCH") == 0)
+	if (curtoken->tokenbuf == "SEARCH")
 	{
 		std::string charset;
 		contentsearch cs;
@@ -5078,7 +5077,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		curtoken=nexttoken_okbracket();
 		if (curtoken->tokentype == IT_ATOM &&
-			strcmp(curtoken->tokenbuf, "CHARSET") == 0)
+			curtoken->tokenbuf == "CHARSET")
 		{
 			if (enabled_utf8)
 			{
@@ -5140,7 +5139,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "THREAD") == 0)
+	if (curtoken->tokenbuf == "THREAD")
 	{
 		std::string charset;
 		contentsearch cs;
@@ -5169,12 +5168,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			curtoken->tokentype != IT_QUOTED_STRING)
 			return (-1);
 
-		if (strcmp(curtoken->tokenbuf, "ORDEREDSUBJECT") == 0)
+		if (curtoken->tokenbuf == "ORDEREDSUBJECT")
 		{
 			thread_func=&contentsearch::dothreadorderedsubj;
 			thread_type=search_orderedsubj;
 		}
-		else if (strcmp(curtoken->tokenbuf, "REFERENCES") == 0)
+		else if (curtoken->tokenbuf == "REFERENCES")
 		{
 			thread_func=&contentsearch::dothreadreferences;
 			thread_type=search_references1;
@@ -5223,7 +5222,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "SORT") == 0)
+	if (curtoken->tokenbuf == "SORT")
 	{
 		std::string charset;
 		contentsearch cs;
@@ -5254,35 +5253,35 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				return (-1);
 			}
 
-			if (strcmp(curtoken->tokenbuf, "SUBJECT") == 0)
+			if (curtoken->tokenbuf == "SUBJECT")
 			{
 				st=search_orderedsubj;
 			}
-			else if (strcmp(curtoken->tokenbuf, "ARRIVAL") == 0)
+			else if (curtoken->tokenbuf == "ARRIVAL")
 			{
 				st=search_arrival;
 			}
-			else if (strcmp(curtoken->tokenbuf, "CC") == 0)
+			else if (curtoken->tokenbuf == "CC")
 			{
 				st=search_cc;
 			}
-			else if (strcmp(curtoken->tokenbuf, "DATE") == 0)
+			else if (curtoken->tokenbuf == "DATE")
 			{
 				st=search_date;
 			}
-			else if (strcmp(curtoken->tokenbuf, "FROM") == 0)
+			else if (curtoken->tokenbuf == "FROM")
 			{
 				st=search_from;
 			}
-			else if (strcmp(curtoken->tokenbuf, "REVERSE") == 0)
+			else if (curtoken->tokenbuf == "REVERSE")
 			{
 				st=search_reverse;
 			}
-			else if (strcmp(curtoken->tokenbuf, "SIZE") == 0)
+			else if (curtoken->tokenbuf == "SIZE")
 			{
 				st=search_size;
 			}
-			else if (strcmp(curtoken->tokenbuf, "TO") == 0)
+			else if (curtoken->tokenbuf == "TO")
 			{
 				st=search_to;
 			}
@@ -5348,7 +5347,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "CHECK") == 0)
+	if (curtoken->tokenbuf == "CHECK")
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
 		doNoop(0);
@@ -5357,7 +5356,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "EXPUNGE") == 0)
+	if (curtoken->tokenbuf == "EXPUNGE")
 	{
 		if (!current_maildir_info.has_acl(ACL_EXPUNGE[0]))
 		{
@@ -5400,7 +5399,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		return (0);
 	}
 
-	if (strcmp(curtoken->tokenbuf, "COPY") == 0)
+	if (curtoken->tokenbuf == "COPY")
 	{
 	struct maildirsize quotainfo;
 	struct copyquotainfo cqinfo;

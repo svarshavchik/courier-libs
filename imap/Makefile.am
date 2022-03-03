@@ -245,7 +245,7 @@ check-am:
 
 testsuite-imap:
 	@chmod +x testsuitefix.pl
-	@LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort
+	@LC_ALL=C; export LC_ALL; export PERL=@PERL@; $(srcdir)/testsuite | ./testsuitefix.pl | sort
 
 testsuite-smap:
 	@chmod +x testsuitefix.pl

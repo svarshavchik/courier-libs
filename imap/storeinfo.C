@@ -67,7 +67,7 @@ bool storeinfo_init(struct storeinfo &si)
 	si.plusminus=0;
 	si.silent=0;
 
-	p=t->tokenbuf;
+	p=t->tokenbuf.c_str();
 	if (*p == '+' || *p == '-')
 		si.plusminus= *p++;
 	if (strncmp(p, "FLAGS", 5))	return false;
