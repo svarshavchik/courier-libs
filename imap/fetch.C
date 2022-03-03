@@ -52,8 +52,8 @@ extern void snapshot_needed();
 
 extern "C" void msgenvelope(void (*)(const char *, size_t),
 			    FILE *, struct rfc2045 *);
-extern "C" void msgbodystructure( void (*)(const char *, size_t), int,
-				  FILE *, struct rfc2045 *);
+extern void msgbodystructure( void (*)(const char *, size_t), int,
+			      FILE *, struct rfc2045 *);
 
 extern int is_trash(const char *);
 extern void get_message_flags(struct imapscanmessageinfo *,

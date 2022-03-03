@@ -16,16 +16,16 @@
 #include	<string.h>
 
 
-extern void msgenvelope(void (*)(const char *, size_t),
+extern "C" void msgenvelope(void (*)(const char *, size_t),
 		FILE *, struct rfc2045 *);
 
-extern void msgappends(void (*)(const char *, size_t), const char *, size_t);
+extern "C" void msgappends(void (*)(const char *, size_t), const char *, size_t);
 
 static void do_param_list(void (*writefunc)(const char *, size_t),
 	struct rfc2045attr *a)
 {
-int	flag;
-char	*p;
+	int	flag;
+	const char	*p;
 
 	flag=0;
 	p="(";
@@ -118,7 +118,7 @@ off_t start_pos, end_pos, start_body;
 off_t nlines, nbodylines;
 const char *disposition_s;
 
-char	*p, *q;
+const char	*p, *q;
 
 	rfc2045_mimeinfo(mimep, &content_type_s, &content_transfer_encoding_s,
 		&charset_s);
