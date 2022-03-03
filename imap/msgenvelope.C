@@ -16,6 +16,9 @@
 #include	<string.h>
 #include	"imapd.h"
 
+#include <string>
+#include <algorithm>
+
 #define	MAX_HEADER_SIZE	8192
 
 static char *read_header(FILE *fp, off_t *headerpos, off_t *endhp)
@@ -58,30 +61,24 @@ static char headerbuf[MAX_HEADER_SIZE];
 void msgappends(void (*writefunc)(const char *, size_t),
 		const char *s, size_t l)
 {
-	size_t	i,j;
-	char *q=0;
+	size_t i, j;
 
-	for (i=0; i<l; i++)
-		if (!enabled_utf8 &&
-		    (s[i] & 0x80))	/* Illegal 8-bit header content */
-		{
-			char *p=(char *)malloc(l+1);
+	std::string buf;
 
-			if (!p)
-				write_error_exit(0);
-			if (l)
-				memcpy(p, s, l);
-			p[l]=0;
+	if (!enabled_utf8 &&
+	    std::find_if(s, s+l, [](char c) { return c & 0x80; }) != s+l)
+	{
+		std::string cpy{s, s+l};
 
+		auto q=
 			/* Assume UTF-8, if not, well, GIGO */
-			q=rfc2047_encode_str(p, "utf-8",
-					     rfc2047_qp_allow_any);
-			free(p);
-			if (!q)
-				write_error_exit(0);
-			s=q;
-			l=strlen(s);
-		}
+			rfc2047_encode_str(cpy.c_str(), "utf-8",
+					   rfc2047_qp_allow_any);
+		buf=q;
+		free(q);
+		s=buf.c_str();
+		l=buf.size();
+	}
 
 	for (i=j=0; i<l; i++)
 	{
@@ -93,14 +90,11 @@ void msgappends(void (*writefunc)(const char *, size_t),
 		}
 	}
 	(*writefunc)(s+j, i-j);
-	if (q)
-		free(q);
 }
 
-static void doenvs(void (*writefunc)(const char *, size_t), char *s)
+static void doenvs(void (*writefunc)(const char *, size_t), const char *s)
 {
-size_t	i,j;
-char	*t=s;
+	size_t	i,j;
 
 	while ( s && *s && isspace((int)(unsigned char)*s))
 		++s;
@@ -117,22 +111,15 @@ char	*t=s;
 		msgappends(writefunc, s, j);
 		(*writefunc)("\"", 1);
 	}
-
-	if (t)	free(t);
 }
 
-static void doenva(void (*writefunc)(const char *, size_t), char *s)
+static void doenva(void (*writefunc)(const char *, size_t),
+		   const char *s)
 {
-struct rfc822t *t;
-struct rfc822a *a;
-int	i;
-char	*q, *r;
-
-	if (!s)
-	{
-		(*writefunc)("NIL", 3);
-		return;
-	}
+	struct rfc822t *t;
+	struct rfc822a *a;
+	int	i;
+	char	*q, *r;
 
 	t=rfc822t_alloc_new(s, 0, 0);
 	if (!t)
@@ -151,7 +138,6 @@ char	*q, *r;
 	{
 		rfc822a_free(a);
 		rfc822t_free(t);
-		free(s);
 		(*writefunc)("NIL", 3);
 		return;
 	}
@@ -191,6 +177,7 @@ char	*q, *r;
 		/* rfc822_display_name_tobuf() defaults to addr, ignore. */
 
 		doenvs(writefunc, q);
+		free(q);
 		(*writefunc)(" NIL \"", 6);	/* TODO @domain list */
 		q=rfc822_gettok(a->addrs[i].tokens);
 		if (!q)
@@ -210,20 +197,18 @@ char	*q, *r;
 	(*writefunc)(")", 1);
 	rfc822a_free(a);
 	rfc822t_free(t);
-	free(s);
 }
 
 void msgenvelope(void (*writefunc)(const char *, size_t),
 		FILE *fp, struct rfc2045 *mimep)
 {
-char	*date=0, *subject=0;
-char	*from=0, *sender=0, *replyto=0, *to=0, *cc=0, *bcc=0;
-char	*inreplyto=0, *msgid=0;
+	char *p;
 
-off_t start_pos, end_pos, start_body;
-off_t nlines, nbodylines;
+	std::string date, subject, from, sender, replyto, to, cc, bcc,
+		inreplyto, msgid;
 
-char	*p, *q, *r;
+	off_t start_pos, end_pos, start_body;
+	off_t nlines, nbodylines;
 
 	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
 		&nlines, &nbodylines);
@@ -236,9 +221,8 @@ char	*p, *q, *r;
 
 	while ((p=read_header(fp, &start_pos, &start_body)) != 0)
 	{
-	char	**hdrp=0;
-	size_t	oldl, newl;
-	size_t	c;
+		std::string *hdrp=nullptr;
+		char *q, *r;
 
 		if ((q=strchr(p, ':')) != 0)
 			*q++=0;
@@ -256,56 +240,42 @@ char	*p, *q, *r;
 		if (strcmp(p, "message-id") == 0) hdrp= &msgid;
 		if (!hdrp)	continue;
 
-		oldl= *hdrp ? strlen(*hdrp):0;
-		newl= q ? strlen(q):0;
-		c=oldl+newl+1;
-		if (c > 8192)	c=8192;
-		r= (char *)(*hdrp ? realloc(*hdrp, c+1):malloc(c+1));
-		if (!r)
+		if (q)
 		{
-			perror("malloc");
-			exit(1);
+			if (!hdrp->empty())
+				*hdrp += ",";
+
+			*hdrp += q;
+			if (hdrp->size() > MAX_HEADER_SIZE)
+				hdrp->resize(MAX_HEADER_SIZE);
 		}
-		if (oldl && oldl < c)
-			r[oldl++]=',';
-		newl=c-oldl;
-		if (newl)	memcpy(r+oldl, q, newl);
-		r[oldl+newl]=0;
-		*hdrp= r;
 	}
 
-#if 1
-	if (!replyto)
-		replyto=strdup(from ? from:"");
-	if (!sender)
-		sender=strdup(from ? from:"");
+	if (replyto.empty())
+		replyto=from;
 
-	if (!replyto || !sender)
-	{
-		perror("malloc");
-		exit(1);
-	}
-#endif
+	if (sender.empty())
+		sender=from;
 
 	(*writefunc)("(", 1);
-	doenvs(writefunc, date);
+	doenvs(writefunc, date.c_str());
 	(*writefunc)(" ", 1);
-	doenvs(writefunc, subject);
+	doenvs(writefunc, subject.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, from);
+	doenva(writefunc, from.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, sender);
+	doenva(writefunc, sender.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, replyto);
+	doenva(writefunc, replyto.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, to);
+	doenva(writefunc, to.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, cc);
+	doenva(writefunc, cc.c_str());
 	(*writefunc)(" ", 1);
-	doenva(writefunc, bcc);
+	doenva(writefunc, bcc.c_str());
 	(*writefunc)(" ", 1);
-	doenvs(writefunc, inreplyto);
+	doenvs(writefunc, inreplyto.c_str());
 	(*writefunc)(" ", 1);
-	doenvs(writefunc, msgid);
+	doenvs(writefunc, msgid.c_str());
 	(*writefunc)(")", 1);
 }
