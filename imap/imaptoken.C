@@ -73,6 +73,7 @@ void bye_msg(const char *type)
 			buf, tls);
 }
 
+extern "C"
 void disconnected()
 {
 	bye_msg("INFO: DISCONNECTED");
@@ -187,8 +188,9 @@ static void alloc_tokenbuf(unsigned l)
 {
 	if (l >= curtoken.tokenbuf_size)
 	{
-	char	*p=curtoken.tokenbuf ? realloc(curtoken.tokenbuf, l + 256):
-			malloc(l + 256);
+		char	*p=(char *)
+			(curtoken.tokenbuf ? realloc(curtoken.tokenbuf, l + 256):
+			 malloc(l + 256));
 
 		if (!p)
 			write_error_exit("malloc");

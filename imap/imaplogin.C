@@ -468,7 +468,7 @@ int main(int argc, char **argv)
 	return (0);
 }
 
-extern "C" void bye()
+void bye()
 {
 	exit(0);
 }

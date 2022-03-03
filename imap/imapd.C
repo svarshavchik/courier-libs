@@ -102,6 +102,7 @@ extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
 extern void imapscanfail(const char *p);
 extern void mainloop();
+extern void bye_msg(const char *);
 
 extern "C" {
 #if 0
@@ -112,7 +113,6 @@ extern time_t start_time;
 
 extern int keywords();
 extern int fastkeywords();
-extern void bye_msg(const char *);
 
 extern void initcapability();
 extern void imapcapability();
@@ -1549,13 +1549,7 @@ static int doId()
 
 /****************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 extern int doidle(time_t, int);
-#ifdef __cplusplus
-}
-#endif
 
 static bool doenhancedidle(maildir::watch &watcher,
 			   bool &fallback_mode,
@@ -2041,7 +2035,7 @@ static void logoutmsg()
 	bye_msg("INFO: LOGOUT");
 }
 
-extern "C" void bye()
+void bye()
 {
 	exit(0);
 }
