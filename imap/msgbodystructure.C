@@ -15,11 +15,13 @@
 #include	<stdlib.h>
 #include	<string.h>
 
+#include <string>
+#include <algorithm>
 
-extern "C" void msgenvelope(void (*)(const char *, size_t),
-		FILE *, struct rfc2045 *);
+extern void msgenvelope(void (*)(const char *, size_t),
+			FILE *, struct rfc2045 *);
 
-extern "C" void msgappends(void (*)(const char *, size_t), const char *, size_t);
+extern void msgappends(void (*)(const char *, size_t), const char *, size_t);
 
 static void do_param_list(void (*writefunc)(const char *, size_t),
 	struct rfc2045attr *a)
@@ -40,19 +42,14 @@ static void do_param_list(void (*writefunc)(const char *, size_t),
 		{
 #if	IMAP_CLIENT_BUGS
 
-		/* NETSCAPE */
+			/* NETSCAPE */
 
-		char *u, *v, *w;
+			std::string u=a->value;
 
-			u=strdup(a->value);
-			if (!u)	write_error_exit(0);
-			strcpy(u, a->value);
-			for (v=w=u; *v; v++)
-				if (*v != '\\')	*w++ = *v;
-			*w=0;
-			msgappends(writefunc, u, strlen(u));
-			free(u);
+			u.erase(std::remove(u.begin(), u.end(), '\\'),
+				u.end());
 
+			msgappends(writefunc, u.c_str(), u.size());
 #else
 			msgappends(writefunc, a->value, strlen(a->value));
 #endif
@@ -111,14 +108,12 @@ static void do_disposition(
 void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
 	FILE *fp, struct rfc2045 *mimep)
 {
-const char *content_type_s;
-const char *content_transfer_encoding_s;
-const char *charset_s;
-off_t start_pos, end_pos, start_body;
-off_t nlines, nbodylines;
-const char *disposition_s;
-
-const char	*p, *q;
+	const char *content_type_s;
+	const char *content_transfer_encoding_s;
+	const char *charset_s;
+	off_t start_pos, end_pos, start_body;
+	off_t nlines, nbodylines;
+	const char *disposition_s;
 
 	rfc2045_mimeinfo(mimep, &content_type_s, &content_transfer_encoding_s,
 		&charset_s);
@@ -133,13 +128,13 @@ const char	*p, *q;
 		mimep->firstpart->next)
 		/* MULTIPART */
 	{
-	struct rfc2045	*childp;
+		struct rfc2045	*childp;
 
 		for (childp=mimep->firstpart; (childp=childp->next) != 0; )
 			msgbodystructure(writefunc, dox, fp, childp);
 
 		(*writefunc)(" \"", 2);
-		p=strchr(content_type_s, '/');
+		auto p=strchr(content_type_s, '/');
 		if (p)
 			msgappends(writefunc, p+1, strlen(p+1));
 		(*writefunc)("\"", 1);
@@ -159,20 +154,37 @@ const char	*p, *q;
 	}
 	else
 	{
-	char	*mybuf;
-	char	buf[40];
-	const	char *cp;
+		char	buf[40];
+		const	char *cp;
 
-		mybuf=my_strdup(content_type_s);
-		q=strtok(mybuf, " /");
+		std::string mybuf=content_type_s;
+
+		auto q=std::find_if(mybuf.begin(),
+				    mybuf.end(),
+				    []
+				    (char c)
+				    {
+					    return c == ' ' || c == '/';
+				    });
+
 		(*writefunc)("\"", 1);
-		if (q)
-			msgappends(writefunc, q, strlen(q));
+		msgappends(writefunc, mybuf.c_str(), q-mybuf.begin());
 		(*writefunc)("\" \"", 3);
-		if (q)	q=strtok(0, " /");
-		if (q)
-			msgappends(writefunc, q, strlen(q));
-		free(mybuf);
+
+		while (q != mybuf.end() && (*q == ' ' || *q == '/'))
+			++q;
+
+		auto p=q;
+
+		q=std::find_if(q, mybuf.end(),
+			       []
+			       (char c)
+			       {
+				       return c == ' ' || c == '/';
+			       });
+
+
+		msgappends(writefunc, &*p, q-p);
 		(*writefunc)("\" ", 2);
 
 		do_param_list(writefunc, mimep->content_type_attr);

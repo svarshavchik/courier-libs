@@ -65,7 +65,7 @@ void msgappends(void (*writefunc)(const char *, size_t),
 		if (!enabled_utf8 &&
 		    (s[i] & 0x80))	/* Illegal 8-bit header content */
 		{
-			char *p=malloc(l+1);
+			char *p=(char *)malloc(l+1);
 
 			if (!p)
 				write_error_exit(0);
@@ -255,9 +255,9 @@ char	*p, *q, *r;
 		if (strcmp(p, "in-reply-to") == 0) hdrp= &inreplyto;
 		if (strcmp(p, "message-id") == 0) hdrp= &msgid;
 		if (!hdrp)	continue;
-		if (!q)	q="";
+
 		oldl= *hdrp ? strlen(*hdrp):0;
-		newl= strlen(q);
+		newl= q ? strlen(q):0;
 		c=oldl+newl+1;
 		if (c > 8192)	c=8192;
 		r= (char *)(*hdrp ? realloc(*hdrp, c+1):malloc(c+1));

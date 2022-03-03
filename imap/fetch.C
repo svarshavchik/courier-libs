@@ -50,8 +50,8 @@ extern char *rfc2045id(struct rfc2045 *);
 
 extern void snapshot_needed();
 
-extern "C" void msgenvelope(void (*)(const char *, size_t),
-			    FILE *, struct rfc2045 *);
+extern void msgenvelope(void (*)(const char *, size_t),
+			FILE *, struct rfc2045 *);
 extern void msgbodystructure( void (*)(const char *, size_t), int,
 			      FILE *, struct rfc2045 *);
 
