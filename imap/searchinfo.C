@@ -54,7 +54,7 @@ searchiter contentsearch::alloc_searchextra(searchiter top, search_type t)
 searchiter contentsearch::alloc_search_andlist()
 {
 	searchiter si, a, b;
-	struct imaptoken *t;
+	imaptoken t;
 
 	si=alloc_search_notkey();
 	if (si == searchlist.end())
@@ -76,7 +76,7 @@ searchiter contentsearch::alloc_search_andlist()
 
 searchiter contentsearch::alloc_search_notkey()
 {
-	struct imaptoken *t=currenttoken();
+	imaptoken t=currenttoken();
 
 	if (t->tokentype == IT_ATOM && strcmp(t->tokenbuf, "NOT") == 0)
 	{
@@ -93,7 +93,7 @@ searchiter contentsearch::alloc_search_notkey()
 
 searchiter contentsearch::alloc_search_key()
 {
-	struct imaptoken *t=currenttoken();
+	imaptoken t=currenttoken();
 	searchiter si;
 	const char *keyword;
 
@@ -137,7 +137,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "HEADER") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -164,7 +164,7 @@ searchiter contentsearch::alloc_search_key()
 		strcmp(keyword, "TO") == 0 ||
 		strcmp(keyword, "SUBJECT") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -182,7 +182,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "BEFORE") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -199,7 +199,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "BODY") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -215,7 +215,7 @@ searchiter contentsearch::alloc_search_key()
 	}
 	if (strcmp(keyword, "LARGER") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -230,7 +230,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "ON") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -247,7 +247,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "SENTBEFORE") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -264,7 +264,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "SENTON") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -281,7 +281,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "SENTSINCE") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -298,7 +298,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "SINCE") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -315,7 +315,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "SMALLER") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -330,7 +330,7 @@ searchiter contentsearch::alloc_search_key()
 
 	if (strcmp(keyword, "TEXT") == 0)
 	{
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();
@@ -348,7 +348,7 @@ searchiter contentsearch::alloc_search_key()
 	if (strcmp(keyword, "UID") == 0)
 	{
 	searchiter si;
-	struct imaptoken *t;
+	imaptoken t;
 
 		si=alloc_search();
 		si->type=search_uid;
@@ -364,7 +364,7 @@ searchiter contentsearch::alloc_search_key()
 		|| strcmp(keyword, "UNKEYWORD") == 0)
 	{
 	int	isnot= *keyword == 'U';
-	struct imaptoken *t;
+	imaptoken t;
 	searchiter si;
 
 		si=alloc_search();

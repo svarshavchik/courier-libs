@@ -27,7 +27,7 @@ extern "C" const char *imap_externalauth();
 
 static char *send_auth_reply(const char *q, void *dummy)
 {
-	struct imaptoken *tok;
+	imaptoken tok;
 
 	std::vector<char> charbuf;
 
@@ -79,7 +79,7 @@ static char *send_auth_reply(const char *q, void *dummy)
 
 int authenticate(const char *tag, char *methodbuf, int methodbuflen)
 {
-	struct imaptoken *tok=nexttoken();
+	imaptoken tok=nexttoken();
 	std::vector<char> initreply;
 
 	char	*authtype, *authdata;

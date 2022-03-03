@@ -60,7 +60,7 @@ extern "C" int fastkeywords();
 
 bool storeinfo_init(struct storeinfo &si)
 {
-	struct imaptoken *t=currenttoken();
+	imaptoken t=currenttoken();
 	const char *p;
 
 	if (t->tokentype != IT_ATOM)	return false;

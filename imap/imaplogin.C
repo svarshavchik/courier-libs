@@ -246,7 +246,7 @@ extern "C" int login_callback(struct authinfo *ainfo, void *dummy)
 
 extern "C" int do_imap_command(const char *tag, int *flushflag)
 {
-	struct	imaptoken *curtoken=nexttoken();
+	imaptoken curtoken=nexttoken();
 	char authservice[40];
 
 #if SMAP
@@ -304,7 +304,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "LOGIN") == 0)
 	{
-		struct imaptoken *tok=nexttoken_nouc();
+		imaptoken tok=nexttoken_nouc();
 		std::string userid, passwd;
 		const char *p;
 		int	rc;

@@ -108,7 +108,7 @@ void mainloop(void)
 	for (;;)
 	{
 	char	tag[IT_MAX_ATOM_SIZE+1];
-	struct	imaptoken *curtoken;
+	imaptoken curtoken;
 
 		read_timeout(30 * 60);
 		curtoken=nexttoken_nouc();

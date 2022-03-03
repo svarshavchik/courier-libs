@@ -10,12 +10,14 @@
 #include	<stdlib.h>
 #include	<time.h>
 
-struct imaptoken {
+struct imaptoken_buf {
 	short	tokentype;
 	unsigned long tokennum;
 	char *tokenbuf;
 	size_t	tokenbuf_size;
 	} ;
+
+typedef imaptoken_buf *imaptoken;
 
 #define	IT_ATOM			0
 #define	IT_NUMBER		1
@@ -30,15 +32,15 @@ struct imaptoken {
 #define	IT_RBRACKET		10
 #define	IT_LITERAL8_STRING_START 11
 
-struct imaptoken *nexttoken(void);
-struct imaptoken *currenttoken(void);
-struct imaptoken *nexttoken_nouc(void);
-struct imaptoken *nexttoken_noparseliteral(void);
-struct imaptoken *nexttoken_okbracket(void);
-struct imaptoken *nexttoken_nouc_okbracket(void);
-void convert_literal_tokens(struct imaptoken *tok);
+imaptoken nexttoken(void);
+imaptoken currenttoken(void);
+imaptoken nexttoken_nouc(void);
+imaptoken nexttoken_noparseliteral(void);
+imaptoken nexttoken_okbracket(void);
+imaptoken nexttoken_nouc_okbracket(void);
+void convert_literal_tokens(imaptoken tok);
 
-int ismsgset(struct imaptoken *);
+int ismsgset(imaptoken);
 	/* See if this token is a syntactically valid message set */
 int ismsgset_str(const char *);
 	/* Ditto */

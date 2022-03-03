@@ -27,7 +27,7 @@
 #endif
 
 
-static struct imaptoken curtoken;
+static imaptoken_buf curtoken;
 static char readbuf[BUFSIZ];
 
 char *imap_readptr=0;
@@ -234,11 +234,11 @@ static int ignore_output_func(const char *ptr, size_t cnt, void *ignore)
 	return 0;
 }
 
-static struct imaptoken *do_readtoken_nolog(int touc);
+static imaptoken do_readtoken_nolog(int touc);
 
-static struct imaptoken *do_readtoken(int touc)
+static imaptoken do_readtoken(int touc)
 {
-	struct imaptoken *tok=do_readtoken_nolog(touc);
+	imaptoken tok=do_readtoken_nolog(touc);
 
 	if (debugfile)
 	{
@@ -280,7 +280,7 @@ static struct imaptoken *do_readtoken(int touc)
 	return tok;
 }
 
-static struct imaptoken *do_readtoken_nolog(int touc)
+static imaptoken do_readtoken_nolog(int touc)
 {
 int	c=0;
 unsigned l;
@@ -476,9 +476,9 @@ unsigned l;
 	return (&curtoken);
 }
 
-static struct imaptoken *readtoken(int touc)
+static imaptoken readtoken(int touc)
 {
-	struct imaptoken *tok=do_readtoken(touc);
+	imaptoken tok=do_readtoken(touc);
 
 	convert_literal_tokens(tok);
 	return (tok);
@@ -488,7 +488,7 @@ static struct imaptoken *readtoken(int touc)
 ** If a token is a LITERAL, read it and replace it with a QUOTED_STRING.
 */
 
-void convert_literal_tokens(struct imaptoken *tok)
+void convert_literal_tokens(imaptoken tok)
 {
 	unsigned long nbytes;
 
@@ -526,21 +526,21 @@ void convert_literal_tokens(struct imaptoken *tok)
 	}
 }
 
-struct imaptoken *nexttoken(void)
+imaptoken nexttoken(void)
 {
 	return (readtoken(1));
 }
 
-struct imaptoken *nexttoken_nouc(void)
+imaptoken nexttoken_nouc(void)
 {
 	return (readtoken(0));
 }
 
 /* RFC 2060 sucks */
 
-struct imaptoken *nexttoken_okbracket(void)
+imaptoken nexttoken_okbracket(void)
 {
-	struct imaptoken *t;
+	imaptoken t;
 
 	LBRACKET_CHAR=RBRACKET_CHAR='\n';
 
@@ -551,9 +551,9 @@ struct imaptoken *nexttoken_okbracket(void)
 	return (t);
 }
 
-struct imaptoken *nexttoken_nouc_okbracket(void)
+imaptoken nexttoken_nouc_okbracket(void)
 {
-	struct imaptoken *t;
+	imaptoken t;
 
 	LBRACKET_CHAR=RBRACKET_CHAR='\n';
 
@@ -564,12 +564,12 @@ struct imaptoken *nexttoken_nouc_okbracket(void)
 	return (t);
 }
 
-struct imaptoken *currenttoken(void)
+imaptoken currenttoken(void)
 {
 	return (&curtoken);
 }
 
-struct imaptoken *nexttoken_noparseliteral(void)
+imaptoken nexttoken_noparseliteral(void)
 {
 	return (do_readtoken(0));
 }
@@ -614,7 +614,7 @@ char	*q=strdup(s);
 	return (q);
 }
 
-int ismsgset(struct imaptoken *tok)
+int ismsgset(imaptoken tok)
 	 /* See if this token is a syntactically valid message set */
 {
 

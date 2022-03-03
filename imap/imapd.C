@@ -559,7 +559,7 @@ bool valid_keyword(const std::string &kw)
 bool get_flagsAndKeywords(imapflags &flags,
 			  mail::keywords::list &keywords)
 {
-	struct imaptoken *t;
+	imaptoken t;
 
 	while ((t=nexttoken_nouc())->tokentype == IT_ATOM)
 	{
@@ -652,7 +652,7 @@ void get_message_flags(
 
 static std::string parse_mailbox_error(
 	const char *tag,
-	struct imaptoken *curtoken,
+	imaptoken curtoken,
 	bool ok_hierarchy,	/* RFC 2060 errata - DELETE can take
 				** a trailing hierarchy separator if the
 				** IMAP server supports subfolders of
@@ -780,7 +780,7 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	struct	imapflags *flags,
 	const mail::keywords::list &keywords,
 	time_t	timestamp,
-	struct imaptoken *curtoken,
+	imaptoken curtoken,
 	int *utf8_error)
 {
 	unsigned long nbytes=curtoken->tokennum;
@@ -1448,7 +1448,7 @@ static int doId()
 {
 	const char *ev = getenv("IMAP_ID_FIELDS");
 	unsigned int flags=0;
-	struct	imaptoken *curtoken;
+	imaptoken curtoken;
 
 	if (!ev)
 		return -1;
@@ -2526,7 +2526,7 @@ static int aclcmd(const char *tag)
 {
 	char aclcmd[11];
 	std::vector<mailbox_scan_info> mailboxlist;
-	struct	imaptoken *curtoken;
+	imaptoken curtoken;
 	int rc;
 	int (*aclfunc)(const char *,
 		       std::vector<mailbox_scan_info> &mblist);
@@ -2809,7 +2809,7 @@ static bool acl_update(maildir::aclt_list &aclt_list,
 static int aclstore(const char *tag,
 		    std::vector<mailbox_scan_info> &mailboxes)
 {
-	struct imaptoken *curtoken;
+	imaptoken curtoken;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
 	    curtoken->tokentype != IT_ATOM &&
@@ -2891,7 +2891,7 @@ struct aclset_info {
 static int aclset(const char *tag,
 		  std::vector<mailbox_scan_info> &mailboxes)
 {
-	struct imaptoken *curtoken;
+	imaptoken curtoken;
 	maildir::aclt_list newlist;
 
 	while ((curtoken=nexttoken_nouc())->tokentype != IT_EOL)
@@ -2973,7 +2973,7 @@ static bool do_acldelete(const char *mailbox,
 static int acldelete(const char *tag,
 		     std::vector<mailbox_scan_info> &mailboxes)
 {
-	struct imaptoken *curtoken;
+	imaptoken curtoken;
 	const char *identifier;
 
 	if ((curtoken=nexttoken_nouc())->tokentype != IT_QUOTED_STRING &&
@@ -3141,7 +3141,7 @@ static int append(const char *tag, const std::string &mailbox,
 
 	time_t	timestamp=0;
 	char access_rights[8];
-	struct imaptoken *curtoken;
+	imaptoken curtoken;
 	int need_rparen;
 	int utf8_error=0;
 
@@ -3471,7 +3471,7 @@ static bool validate_charset(const char *tag, std::string &charset)
 
 extern "C" int do_imap_command(const char *tag, int *flushflag)
 {
-	struct	imaptoken *curtoken=nexttoken();
+	imaptoken curtoken=nexttoken();
 	bool uid=false;
 
 	if (curtoken->tokentype != IT_ATOM)	return (-1);
@@ -3648,7 +3648,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "APPEND") == 0)
 	{
-		struct	imaptoken *tok=nexttoken_nouc();
+		imaptoken tok=nexttoken_nouc();
 
 		if (tok->tokentype != IT_NUMBER &&
 			tok->tokentype != IT_ATOM &&

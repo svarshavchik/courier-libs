@@ -25,7 +25,7 @@ static char *good_section(char *);
 
 bool fetchinfo_alloc(bool oneonly, std::list<fetchinfo> &list)
 {
-	struct imaptoken *tok;
+	imaptoken tok;
 
 	while ((tok=currenttoken())->tokentype == IT_ATOM)
 	{
@@ -145,7 +145,7 @@ int	has_mime=0;
 
 static void alloc_headerlist(bool oneonly, std::list<fetchinfo> &sublist)
 {
-	struct imaptoken *tok;
+	imaptoken tok;
 
 	while ((tok=currenttoken())->tokentype == IT_ATOM ||
 	       tok->tokentype == IT_QUOTED_STRING ||
