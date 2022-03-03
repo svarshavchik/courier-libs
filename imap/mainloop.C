@@ -19,7 +19,7 @@
 #include	"numlib/numlib.h"
 
 
-extern int do_imap_command(const char *, int *);
+extern "C" int do_imap_command(const char *, int *);
 
 extern unsigned long header_count, body_count;
 extern unsigned long bytes_received_count, bytes_sent_count;
@@ -64,7 +64,6 @@ static void sigexit(int n)
 
 	exit(0);
 }
-
 
 void cmdfail(const char *tag, const char *msg)
 {

@@ -43,7 +43,7 @@
 
 FILE *debugfile=0;
 extern "C" void initcapability();
-extern "C" void mainloop();
+void mainloop();
 extern "C" void imapcapability();
 extern "C" int have_starttls();
 extern "C" int tlsrequired();
@@ -68,8 +68,8 @@ extern "C" void rfc2045_error(const char *p)
 	_exit(0);
 }
 
-extern "C" void cmdfail(const char *, const char *);
-extern "C" void cmdsuccess(const char *, const char *);
+void cmdfail(const char *, const char *);
+void cmdsuccess(const char *, const char *);
 
 static int	starttls(const char *tag)
 {

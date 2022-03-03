@@ -101,6 +101,7 @@ extern int do_fetch(unsigned long, int, const std::list<fetchinfo> &);
 extern unsigned long header_count, body_count;
 extern void fetch_free_cached();
 extern void imapscanfail(const char *p);
+extern void mainloop();
 
 extern "C" {
 #if 0
@@ -113,7 +114,6 @@ extern int keywords();
 extern int fastkeywords();
 extern void bye_msg(const char *);
 
-extern void mainloop();
 extern void initcapability();
 extern void imapcapability();
 extern int magictrash();
