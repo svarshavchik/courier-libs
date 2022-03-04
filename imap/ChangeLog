@@ -1,3 +1,7 @@
+2022-03-03  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* imap/authenticate_auth.c: Fix broken SASL authentication.
+
 2022-01-23  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Adjust behavior of inherited ACLs. After deleting and recreating
