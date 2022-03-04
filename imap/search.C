@@ -321,9 +321,8 @@ static void fill_search_preparse(searchiter p)
 	switch (p->type) {
 	case search_msgflag:
 		{
-			struct imapflags flags;
+			imapflags flags;
 
-			memset(&flags, 0, sizeof(flags));
 			p->search_keyword=false;
 
 			if (get_flagname(p->as, &flags))

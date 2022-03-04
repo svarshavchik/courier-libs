@@ -78,7 +78,7 @@ bool storeinfo_init(struct storeinfo &si)
 		si.silent=1;
 	}
 
-	memset(&si.flags, 0, sizeof(si.flags));
+	si.flags={};
 
 	t=nexttoken_noparseliteral();
 	si.keywords.clear();

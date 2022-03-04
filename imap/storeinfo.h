@@ -19,7 +19,7 @@ extern "C" {
 struct storeinfo {
 	int plusminus=0;
 	int silent=0;
-	struct imapflags flags;
+	imapflags flags;
 	mail::keywords::list keywords;
 } ;
 

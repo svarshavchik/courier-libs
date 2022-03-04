@@ -2771,7 +2771,7 @@ void smap()
 {
 	char buffer[8192];
 	char *ptr;
-	struct imapflags add_flags;
+	imapflags add_flags;
 	int in_add=0;
 	std::string add_from;
 	std::string add_notify;
@@ -2784,7 +2784,6 @@ void smap()
 	char rights_buf[40];
 
 	enabled_utf8=1;
-	memset(&add_flags, 0, sizeof(add_flags));
 
 #define GETFOLDER(acl) ( strcpy(rights_buf, (acl)), \
 			getAccessToFolder(&ptr, rights_buf))
@@ -2864,8 +2863,8 @@ void smap()
 
 				if (strcmp(p, "FLAGS") == 0 && q)
 				{
-					memset(&add_flags, 0,
-					       sizeof(add_flags));
+					add_flags={};
+
 					*(q=comma)='=';
 					parseflags(q, &add_flags);
 
@@ -3118,7 +3117,7 @@ void smap()
 
 		if (in_add)
 		{
-			memset(&add_flags, 0, sizeof(add_flags));
+			add_flags={};
 			add_folder.clear();
 
 			addKeywords.clear();
@@ -3670,8 +3669,6 @@ void smap()
 			struct storeinfo si;
 			int dummy;
 			smapmsgset_t msgset;
-
-			memset(&si.flags, 0, sizeof(si.flags));
 
 			p=markmsgset(&ptr, msgset);
 

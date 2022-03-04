@@ -65,12 +65,12 @@ void read_string(char **, unsigned long *, unsigned long);
 /* Flags */
 
 struct imapflags {
-	char	seen;
-	char	answered;
-	char	deleted;
-	char	flagged;
-	char	drafts;
-	char	recent;
+	char	seen=0;
+	char	answered=0;
+	char	deleted=0;
+	char	flagged=0;
+	char	drafts=0;
+	char	recent=0;
 	} ;
 
 struct imapkeywords {

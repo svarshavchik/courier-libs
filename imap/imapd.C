@@ -3136,8 +3136,7 @@ int acl_flags_adjust(const char *access_rights,
 static int append(const char *tag, const std::string &mailbox,
 		  const std::string &path)
 {
-
-	struct	imapflags flags;
+	imapflags flags;
 	mail::keywords::list keywords;
 
 	time_t	timestamp=0;
@@ -3179,7 +3178,6 @@ static int append(const char *tag, const std::string &mailbox,
 	}
 
 	curtoken=nexttoken_noparseliteral();
-	memset(&flags, 0, sizeof(flags));
 
 	if (curtoken->tokentype == IT_LPAREN)
 	{
