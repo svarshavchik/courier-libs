@@ -358,7 +358,7 @@ static int proxyconnect(struct proxyinfo *pi,
 		courier_authdebug_printf("fcntl(socket): %s", strerror(errno));
 	}
 
-	if (connect(fd, addr, addrLen) == 0)
+	if (connect(fd, reinterpret_cast<sockaddr *>(addr), addrLen) == 0)
 		return fd;
 
 	if (errno != EINPROGRESS)
@@ -593,7 +593,7 @@ void proxyloop(int fd)
 				{
 					n=read(fd, stdout_buf,
 					       sizeof(stdout_buf));
-				
+
 					if (n > 0)
 					{
 						stdout_ptr=stdout_buf;
@@ -695,7 +695,7 @@ void proxyloop(int fd)
 				{
 					n=read(fd, stdout_buf,
 					       sizeof(stdout_buf));
-				
+
 					if (n > 0)
 					{
 						stdout_ptr=stdout_buf;

@@ -62,7 +62,7 @@ libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	-lcourier-unicode
 libimapd_la_LDFLAGS=-static
 
-imaplogin_SOURCES=imaplogin.C authenticate_auth.C proxy.c proxy.h
+imaplogin_SOURCES=imaplogin.C authenticate_auth.C proxy.C proxy.h
 imaplogin_DEPENDENCIES=libimapd.la libimaplogin.la
 imaplogin_LDADD=libimapd.la libimaplogin.la \
 	@LDAUTH@ -lcourierauth -lcourierauthsasl
@@ -86,7 +86,7 @@ imapd_testmockpurge_DEPENDENCIES=$(imapd_DEPENDENCIES)
 nodist_EXTRA_imapd_testmockpurge_SOURCES=forcecpp2.C
 imapd_testmockpurge_LDADD=$(imapd_LDADD)
 
-pop3login_SOURCES=pop3login.c pop3dcapa.c proxy.c proxy.h
+pop3login_SOURCES=pop3login.C pop3dcapa.c proxy.C proxy.h
 pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la
 pop3login_LDADD=../tcpd/libtlsclient.la ../tcpd/libspipe.la libpop3d.la ../tcpd/libspipe.la @LDAUTH@ -lcourierauth -lcourierauthsasl @NETLIBS@
 

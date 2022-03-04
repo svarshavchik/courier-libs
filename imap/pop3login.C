@@ -30,11 +30,11 @@
 #include	"tcpd/tlsclient.h"
 
 
-extern void pop3dcapa();
-extern void pop3dlang(const char *);
-extern int have_starttls();
-extern int tls_required();
-extern const char *pop3_externalauth();
+extern "C" void pop3dcapa();
+extern "C" void pop3dlang(const char *);
+extern "C" int have_starttls();
+extern "C" int tls_required();
+extern "C" const char *pop3_externalauth();
 
 static const char *pop3d;
 static const char *defaultmaildir;
@@ -127,8 +127,14 @@ static int	starttls()
 	       libmail_str_size_t(pipefd[1], buf2));
 
 	argvec[0]=localfd_buf;
-	argvec[1]="-tcpd";
-	argvec[2]="-server";
+
+	char arg1[]="-tcpd";
+
+	argvec[1]=arg1;
+
+	char arg2[]="-server";
+
+	argvec[2]=arg2;
 	argvec[3]=NULL;
 
 	printf("+OK Begin SSL/TLS negotiation now.\r\n");
@@ -158,9 +164,9 @@ static int	starttls()
 		exit(1);
 	}
 	close(pipefd[0]);
-	putenv("POP3_STARTTLS=NO");
-	putenv("POP3_TLS_REQUIRED=0");
-	putenv("POP3_TLS=1");
+	setenv("POP3_STARTTLS", "NO", 1);
+	setenv("POP3_TLS_REQUIRED", "0", 1);
+	setenv("POP3_TLS", "1", 1);
 	return (0);
 }
 
@@ -265,36 +271,16 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 
 	if (rc == 0)
 	{
-		char *p=malloc(sizeof("OPTIONS=") + strlen(ainfo->options ?
-							   ainfo->options:""));
+		setenv("OPTIONS", ainfo->options ? ainfo->options:"", 1);
+		setenv("AUTHENTICATED", ainfo->address, 1);
 
-		if (p)
-		{
-			strcat(strcpy(p, "OPTIONS="),
-			       ainfo->options ? ainfo->options:"");
-			putenv(p);
-
-			p=malloc(sizeof("AUTHENTICATED=")+
-				 strlen(ainfo->address));
-			if (p)
-			{
-				strcat(strcpy(p, "AUTHENTICATED="),
-				       ainfo->address);
-				putenv(p);
-
-				if (utf8_enabled)
-					putenv("UTF8=1");
-				else
-					putenv("UTF8=0");
-				alarm(0);
-				execl(pop3d, pop3d,
-				      ainfo->maildir ?
-				      ainfo->maildir:defaultmaildir,
-				      NULL);
-				fprintf(stderr, "ERR: exec(%s) failed!!\n",
-							 pop3d);
-			}
-		}
+		setenv("UTF8", utf8_enabled ? "1":"0", 1);
+		execl(pop3d, pop3d,
+		      ainfo->maildir ?
+		      ainfo->maildir:defaultmaildir,
+		      NULL);
+		fprintf(stderr, "ERR: exec(%s) failed!!\n",
+			pop3d);
 	}
 
 	return (rc);
@@ -395,7 +381,7 @@ char *q ;
 				if (p)
 				{
 					if (user)	free(user);
-					if ((user=malloc(strlen(p)+1)) == 0)
+					if ((user=(char *)malloc(strlen(p)+1)) == 0)
 					{
 						printf("-ERR Server out of memory, aborting connection.\r\n");
 						fflush(stdout);
@@ -449,7 +435,7 @@ char *q ;
 
 					if (initreply &&
 					    strcmp(initreply, "=") == 0)
-						initreply="";
+						*initreply=0;
 
 					rc=auth_sasl_ex(method, initreply,
 							pop3_externalauth(),
@@ -462,8 +448,11 @@ char *q ;
 					{
 						strcat(strcpy(authservice, "AUTHSERVICE"),getenv("TCPLOCALPORT"));
 						q=getenv(authservice);
+
+						char defaultpop3[]="pop3";
+
 						if (!q || !*q)
-							q="pop3";
+							q=defaultpop3;
 
 						rc=auth_generic_meta
 							(NULL, q,
@@ -512,8 +501,11 @@ char *q ;
 
 				strcat(strcpy(authservice, "AUTHSERVICE"),getenv("TCPLOCALPORT"));
 				q=getenv(authservice);
+
+				char defaultpop3[]="pop3";
+
 				if (!q || !*q)
-					q="pop3";
+					q=defaultpop3;
 
 				rc=auth_login_meta(NULL, q, user, p,
 						   login_callback, NULL);
@@ -587,7 +579,8 @@ static int login_pop3(int fd, const char *hostname, void *void_arg)
 		}
 	}
 
-	cmd=malloc(strlen(ppi->uid) + strlen(ppi->pwd)+100);
+	cmd=(char *)malloc(strlen(ppi->uid) + strlen(ppi->pwd)+100);
+
 	/* Should be enough */
 
 	if (!cmd)
