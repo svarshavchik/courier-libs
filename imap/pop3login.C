@@ -28,7 +28,8 @@
 #include	"tcpd/spipe.h"
 #include	"numlib/numlib.h"
 #include	"tcpd/tlsclient.h"
-
+#include	<vector>
+#include	<string>
 
 extern "C" void pop3dcapa();
 extern "C" void pop3dlang(const char *);
@@ -172,24 +173,21 @@ static int	starttls()
 
 static char *authresp(const char *s, void *dummy)
 {
-char	*p;
-char	buf[BUFSIZ];
+	static char buffer[BUFSIZ];
+	char *p;
+	char *buf;
 
 	printf("+ %s\r\n", s);
 	fflush(stdout);
 
-	if (safe_fgets(buf, sizeof(buf)) == 0)	return (0);
+	if ((buf=safe_fgets(buffer, sizeof(buffer))) == nullptr)
+		return (buf);
+
 	if ((p=strchr(buf, '\n')) == 0)	return (0);
 	if (p > buf && p[-1] == '\r')	--p;
 	*p=0;
 
-	p=strdup(buf);
-	if (!p)
-	{
-		perror("malloc");
-		return (0);
-	}
-	return (p);
+	return (buf);
 }
 
 struct pop3proxyinfo {
@@ -197,7 +195,7 @@ struct pop3proxyinfo {
 	const char *pwd;
 };
 
-static int login_pop3(int, const char *, void *);
+static int login_pop3(int, const std::string &, pop3proxyinfo *);
 
 static int login_callback(struct authinfo *ainfo, void *dummy)
 {
@@ -241,8 +239,12 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 			ppi.uid=ainfo->address;
 			ppi.pwd=ainfo->clearpasswd;
 
-			pi.connected_func=login_pop3;
-			pi.void_arg=&ppi;
+			pi.connected_func=
+				[&]
+				(int fd, const std::string &hostname)
+				{
+					return login_pop3(fd, hostname, &ppi);
+				};
 
 			if ((fd=connect_proxy(&pi)) < 0)
 			{
@@ -288,15 +290,15 @@ static int login_callback(struct authinfo *ainfo, void *dummy)
 
 int main(int argc, char **argv)
 {
-char	*user=0;
-char	*p;
-char	buf[BUFSIZ];
-int	c;
-const	char *ip=getenv("TCPREMOTEIP");
-const	char *port=getenv("TCPREMOTEPORT");
+	std::string user;
+	char	*p;
+	char	buf[BUFSIZ];
+	int	c;
+	const	char *ip=getenv("TCPREMOTEIP");
+	const	char *port=getenv("TCPREMOTEPORT");
 
- char authservice[40];
-char *q ;
+	char authservice[40];
+	char *q ;
 
 #ifdef HAVE_SETVBUF_IOLBF
 	setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
@@ -380,15 +382,7 @@ char *q ;
 				p=strtok(0, "\r\n");
 				if (p)
 				{
-					if (user)	free(user);
-					if ((user=(char *)malloc(strlen(p)+1)) == 0)
-					{
-						printf("-ERR Server out of memory, aborting connection.\r\n");
-						fflush(stdout);
-						perror("malloc");
-						exit(1);
-					}
-					strcpy(user, p);
+					user=p;
 					printf("+OK Password required.\r\n");
 					fflush(stdout);
 					continue;
@@ -492,7 +486,7 @@ char *q ;
 
 				p=strtok(0, "\r\n");
 
-				if (!user || p == 0)
+				if (user.empty() || p == 0)
 				{
 					printf("-ERR USER/PASS required.\r\n");
 					fflush(stdout);
@@ -507,7 +501,7 @@ char *q ;
 				if (!q || !*q)
 					q=defaultpop3;
 
-				rc=auth_login_meta(NULL, q, user, p,
+				rc=auth_login_meta(NULL, q, user.c_str(), p,
 						   login_callback, NULL);
 				courier_safe_printf
 					("INFO: LOGIN "
@@ -534,26 +528,23 @@ char *q ;
 	return (0);
 }
 
-static int login_pop3(int fd, const char *hostname, void *void_arg)
+static int login_pop3(int fd, const std::string &hostname, pop3proxyinfo *ppi)
 {
-	struct pop3proxyinfo *ppi=(struct pop3proxyinfo *)void_arg;
 	struct proxybuf pb;
 	char linebuf[256];
-	char *cmd;
+	std::string cmd;
 
-	DPRINTF("Proxy connected to %s", hostname);
-
-	memset(&pb, 0, sizeof(pb));
+	DPRINTF("Proxy connected to %s", hostname.c_str());
 
 	if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
 		return -1;
 
-	DPRINTF("%s: %s", hostname, linebuf);
+	DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 	if (linebuf[0] != '+')
 	{
 		fprintf(stderr, "WARN: Did not receive greeting from %s\n",
-			hostname);
+			hostname.c_str());
 		return -1;
 	}
 
@@ -569,72 +560,62 @@ static int login_pop3(int fd, const char *hostname, void *void_arg)
 			return -1;
 		}
 
-		DPRINTF("%s: %s", hostname, linebuf);
+		DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 		if (linebuf[0] != '+')
 		{
 			fprintf(stderr, "WARN: UTF8 rejected by %s\n",
-				hostname);
+				hostname.c_str());
 			return -1;
 		}
 	}
 
-	cmd=(char *)malloc(strlen(ppi->uid) + strlen(ppi->pwd)+100);
+	cmd="USER ";
+	cmd += ppi->uid;
+	cmd += "\r\n";
 
-	/* Should be enough */
-
-	if (!cmd)
-		return -1;
-
-	sprintf(cmd, "USER %s\r\n", ppi->uid);
-
-	if (proxy_write(fd, hostname, cmd, strlen(cmd)))
+	if (proxy_write(fd, hostname, cmd.c_str(), cmd.size()))
 	{
-		free(cmd);
 		return -1;
 	}
 
 	if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
 	{
-		free(cmd);
 		return -1;
 	}
 
-	DPRINTF("%s: %s", hostname, linebuf);
+	DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 	if (linebuf[0] != '+')
 	{
-		free(cmd);
 		fprintf(stderr, "WARN: Login userid rejected by %s\n",
-			hostname);
+			hostname.c_str());
 		return -1;
 	}
 
-	sprintf(cmd, "PASS %s\r\n", ppi->pwd);
+	cmd="PASS ";
+	cmd += ppi->pwd;
+	cmd += "\r\n";
 
-	if (proxy_write(fd, hostname, cmd, strlen(cmd)))
+	if (proxy_write(fd, hostname, cmd.c_str(), cmd.size()))
 	{
-		free(cmd);
 		return -1;
 	}
 
 	if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
 	{
-		free(cmd);
 		return -1;
 	}
 
-	DPRINTF("%s: %s", hostname, linebuf);
+	DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 	if (linebuf[0] != '+')
 	{
-		free(cmd);
 		fprintf(stderr, "WARN: Login password rejected by %s\n",
-			hostname);
+			hostname.c_str());
 		return -1;
 	}
 
-	free(cmd);
 	if (fcntl(1, F_SETFL, 0) < 0 ||
 	    (printf("+OK Connected to proxy server.\r\n"), fflush(stdout)) < 0)
 		return -1;

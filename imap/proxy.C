@@ -32,7 +32,8 @@
 #endif
 #include	<courierauthdebug.h>
 #include	"proxy.h"
-
+#include	<string>
+#include	<algorithm>
 
 static int checkhostname(const char *host)
 {
@@ -66,43 +67,32 @@ static int checkhostname(const char *host)
 	return 0;
 }
 
-static int connect_host(struct proxyinfo *pi, const char *host);
+static int connect_host(struct proxyinfo *pi, const std::string &host);
 
 int connect_proxy(struct proxyinfo *pi)
 {
-	char *h=strdup(pi->host);
-	char *p, *q;
+	std::string h{pi->host};
 	int fd;
 
-	if (!h)
-	{
-		courier_authdebug_printf("%s", strerror(errno));
-		return -1;
-	}
+	auto b=h.begin(), e=h.end();
 
-	for (p=h; *p;)
+	while (b != e)
 	{
-		if (*p == ',')
+		if (*b == ',')
 		{
-			++p;
+			++b;
 			continue;
 		}
 
-		for (q=p; *q; q++)
-			if (*q == ',')
-				break;
-		if (*q)
-			*q++=0;
+		auto p=b;
+		b=std::find(b, e, ',');
 
-		fd=connect_host(pi, p);
+		fd=connect_host(pi, {p, b});
 		if (fd >= 0)
 		{
-			free(h);
 			return fd;
 		}
-		p=q;
 	}
-	free(h);
 	return -1;
 }
 
@@ -114,14 +104,14 @@ static int proxyconnect(struct proxyinfo *pi,
 
 #if HAVE_GETADDRINFO
 
-static int connect_host(struct proxyinfo *pi, const char *host)
+static int connect_host(struct proxyinfo *pi, const std::string &host)
 {
 	int fd;
 	char portbuf[40];
 	int errcode;
 	struct addrinfo hints, *res, *p;
 
-	if (checkhostname(host))
+	if (checkhostname(host.c_str()))
 		return (0);
 
 	sprintf(portbuf, "%d", pi->port);
@@ -129,7 +119,7 @@ static int connect_host(struct proxyinfo *pi, const char *host)
 	hints.ai_family=PF_UNSPEC;
 	hints.ai_socktype=SOCK_STREAM;
 
-	errcode=getaddrinfo(host, portbuf, &hints, &res);
+	errcode=getaddrinfo(host.c_str(), portbuf, &hints, &res);
 
 	if (errcode)
 	{
@@ -146,8 +136,7 @@ static int connect_host(struct proxyinfo *pi, const char *host)
 				     p->ai_addrlen))
 		    >= 0)
 		{
-			if ((*pi->connected_func)(fd, host,
-						  pi->void_arg))
+			if (pi->connected_func(fd, host))
 			{
 				close(fd);
 				courier_authdebug_printf
@@ -249,7 +238,7 @@ static int connect_host(struct proxyinfo *pi, const char *host)
 
 #if HAVE_POLL
 
-static int proxy_waitfd(int fd, int waitWrite, const char *hostnamebuf)
+static int proxy_waitfd(int fd, int waitWrite, const std::string &hostnamebuf)
 {
 	struct pollfd pfd;
 
@@ -262,7 +251,7 @@ static int proxy_waitfd(int fd, int waitWrite, const char *hostnamebuf)
 	{
 		courier_authdebug_printf
 			("Poll failed while waiting to connect to %s: %s",
-			 hostnamebuf, strerror(errno));
+			 hostnamebuf.c_str(), strerror(errno));
 		return -1;
 	}
 
@@ -270,7 +259,7 @@ static int proxy_waitfd(int fd, int waitWrite, const char *hostnamebuf)
 		return 0;
 
 	courier_authdebug_printf
-		("Timeout/error connecting to %s", hostnamebuf);
+		("Timeout/error connecting to %s", hostnamebuf.c_str());
 	return -1;
 }
 
@@ -469,7 +458,7 @@ int proxy_readline(int fd, struct proxybuf *pb,
 	return 0;
 }
 
-int proxy_write(int fd, const char *hostname,
+int proxy_write(int fd, const std::string &hostname,
 		const char *buf, size_t buf_len)
 {
 	DPRINTF("Sending: %s", buf);
@@ -487,14 +476,14 @@ int proxy_write(int fd, const char *hostname,
 		{
 			courier_authdebug_printf
 				("Error sending to %s: %s",
-				 hostname, strerror(errno));
+				 hostname.c_str(), strerror(errno));
 			return -1;
 		}
 
 		if (n == 0)
 		{
 			courier_authdebug_printf
-				("Connection close by %s", hostname);
+				("Connection close by %s", hostname.c_str());
 			return -1;
 		}
 

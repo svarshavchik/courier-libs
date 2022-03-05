@@ -145,7 +145,7 @@ struct imapproxyinfo {
 	const char *pwd;
 };
 
-static int login_imap(int, const char *, void *);
+static int login_imap(int fd, const std::string &hostname, imapproxyinfo *ipi);
 
 static const char *safe_getenv(const char *p)
 {
@@ -199,8 +199,12 @@ extern "C" int login_callback(struct authinfo *ainfo, void *dummy)
 			ipi.pwd=ainfo->clearpasswd;
 			ipi.tag=tag;
 
-			pi.connected_func=login_imap;
-			pi.void_arg=&ipi;
+			pi.connected_func=
+				[&]
+				(int fd, const std::string &hostname)
+				{
+					return login_imap(fd, hostname, &ipi);
+				};
 
 			if ((fd=connect_proxy(&pi)) < 0)
 			{
@@ -547,21 +551,18 @@ static std::vector<char> get_imap_cmd(
 	return buf;
 }
 
-static int login_imap(int fd, const char *hostname, void *void_arg)
+static int login_imap(int fd, const std::string &hostname, imapproxyinfo *ipi)
 {
-	struct imapproxyinfo *ipi=(struct imapproxyinfo *)void_arg;
 	struct proxybuf pb;
 	char linebuf[256];
 	const char *p;
 
-	DPRINTF("Proxy connected to %s", hostname);
-
-	memset(&pb, 0, sizeof(pb));
+	DPRINTF("Proxy connected to %s", hostname.c_str());
 
 	if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
 		return -1;
 
-	DPRINTF("%s: %s", hostname, linebuf);
+	DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 	if ((p=strtok(linebuf, " \t")) == NULL ||
 	    strcmp(p, "*") ||
@@ -569,13 +570,13 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 	    strcasecmp(p, "OK"))
 	{
 		fprintf(stderr, "WARN: Did not receive greeting from %s\n",
-			hostname);
+			hostname.c_str());
 		return -1;
 	}
 
 	auto cmd=get_imap_cmd(ipi, imap_login_cmd);
 
-	if (proxy_write(fd, hostname, cmd.data(), cmd.size()))
+	if (proxy_write(fd, hostname.c_str(), cmd.data(), cmd.size()))
 	{
 		return -1;
 	}
@@ -589,14 +590,15 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 					   0) < 0)
 				return -1;
 
-			DPRINTF("%s: %s", hostname, linebuf);
+			DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 		} while (linebuf[0] != '+' && linebuf[0] != '-');
 
 
 		if (linebuf[0] != '+')
 		{
-			fprintf(stderr, "WARN: Login to %s failed\n", hostname);
+			fprintf(stderr, "WARN: Login to %s failed\n",
+				hostname.c_str());
 			return -1;
 		}
 
@@ -614,7 +616,7 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 		if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
 			return -1;
 
-		DPRINTF("%s: %s", hostname, linebuf);
+		DPRINTF("%s: %s", hostname.c_str(), linebuf);
 
 		if ((p=strtok(linebuf, " \t")) == NULL ||
 		    strcmp(p, ipi->tag) ||
@@ -623,7 +625,8 @@ static int login_imap(int fd, const char *hostname, void *void_arg)
 
 		if (strcasecmp(p, "OK"))
 		{
-			fprintf(stderr, "WARN: Login to %s failed\n", hostname);
+			fprintf(stderr, "WARN: Login to %s failed\n",
+				hostname.c_str());
 			return -1;
 		}
 		break;
