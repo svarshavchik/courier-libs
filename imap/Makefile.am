@@ -23,10 +23,12 @@ EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
 	mkpop3dcert.html.in mkpop3dcert.8.in \
 	courierpop3d.html.in courierpop3d.8.in \
 	README.proxy README.proxy.html \
-	imapd.cnf.gnutls pop3d.cnf.gnutls
+	imapd.cnf.gnutls pop3d.cnf.gnutls \
+	pop3testsuite pop3testsuite.txt
 
 noinst_SCRIPTS=mkimapdcert mkpop3dcert mkdhparams
-noinst_PROGRAMS=imaplogin imapd imapd.testmockpurge pop3login pop3d
+noinst_PROGRAMS=imaplogin imapd imapd.testmockpurge pop3login pop3d \
+	pop3d.testmock
 
 noinst_DATA=imapd.8 imapd.html imapd.cnf pop3d.cnf \
 	makeimapaccess.html makeimapaccess.8 \
@@ -98,6 +100,10 @@ libpop3d_la_LDFLAGS=-static
 pop3d_SOURCES=pop3dserver.c pop3dcapa.c
 pop3d_DEPENDENCIES=libpop3d.la
 pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
+
+pop3d_testmock_SOURCES=testpop3dserver.c pop3dcapa.c
+pop3d_testmock_DEPENDENCIES=libpop3d.la
+pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 
 HTML2TXT=links -dump -no-numbering
 
@@ -231,9 +237,13 @@ check-am:
 		rm -f confmdmemleak; \
 		IMAPINVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./imapd'; export IMAPINVOKE; \
 		export PERL=@PERL@; @SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
-
 	rm -f confmderror.txt
 	rm -rf confmdtest
+	@SHELL@ $(srcdir)/pop3testsuite | sed 's/^--=_.*/--mimeboundary/;s/ENOMEM.*/ENOMEM/;s/boundary=.*/boundary=/' | cmp -s - $(srcdir)/pop3testsuite.txt
+	rm -f confmdmemleak; \
+	   POP3INVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./pop3d.testmock' \
+           @SHELL@ -x $(srcdir)/pop3testsuite; \
+           test -f confmdmemleak || exit 0; exit 1
 
 testsuite-imap:
 	@chmod +x testsuitefix.pl
@@ -242,3 +252,6 @@ testsuite-imap:
 testsuite-smap:
 	@chmod +x testsuitefix.pl
 	@LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort
+
+testsuite-pop3:
+	@LC_ALL=C @SHELL@ pop3testsuite | sed 's/^--=_.*/--mimeboundary/;s/ENOMEM.*/ENOMEM/;s/boundary=.*/boundary=/'

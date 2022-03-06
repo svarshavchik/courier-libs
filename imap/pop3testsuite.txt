@@ -1,0 +1,115 @@
++OK logged in.
++OK 1 67
++OK
+1 UID1-200
+.
++OK 67 octets follow.
+Subject: test
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+.
++OK headers follow.
+Subject: test
+From: nobody@example.com
+
+Line 1
+.
++OK logged in.
++OK 2 136
++OK 1 UID1-200
++OK 2 UID2-200
++OK headers follow.
+Subject: test
+From: nobody@example.com
+
+.
++OK logged in.
++OK 2 138
++OK
+1 UID2-200
+2 UID3-200
+.
++OK headers follow.
+Subject: test 2
+From: nobody@example.com
+
+.
++OK headers follow.
+Subject: test 3
+From: nobody@example.com
+
+.
++OK logged in.
++OK 1 69
+/3 4 200
+msg2:2,S 69 2:200:0
++OK logged in.
++OK 1 69
++OK
+1 UID2-200
+.
++OK Deleted.
++OK Resurrected.
+msg2:2,S
+msg4:2,
++OK logged in.
++OK 1 69
++OK
+1 ENOMEM
+.
++OK Deleted.
++OK Bye-bye.
++OK logged in.
++OK 1 82
++OK logged in.
++OK POP3 clients that break here, they violate STD53.
+1 82
+2 69
+.
++OK octets follow.
+From: Mail Delivery Subsystem <postmaster>
+Subject: Cannot display Unicode content
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=
+
+
+
+--mimeboundary
+Content-Type: text/plain
+
+This E-mail message was determined to be Unicode-formatted
+but your E-mail reader does not support Unicode E-mail.
+
+Please use an E-mail reader that supports POP3 with UTF-8
+(see https://tools.ietf.org/html/rfc6856.html).
+
+This can also happen when the sender's E-mail program does not
+correctly format the sent message.
+
+The original message is included as a separate attachment
+so that it can be downloaded manually.
+
+--mimeboundary
+Content-Type: message/global
+
+Subject: test 6 Привет
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+
+--mimeboundary
+.
++OK UTF8 enabled
++OK octets follow.
+Subject: test 6 Привет
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+.

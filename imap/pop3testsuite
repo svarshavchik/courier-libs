@@ -1,0 +1,130 @@
+#!/bin/sh
+
+# Maintainer's sanity check
+
+OPTIONS=""
+export OPTIONS
+TZ=EST5EDT
+export TZ
+
+echo '****************************' >&2
+echo '* Sanity check in progress *' >&2
+echo '****************************' >&2
+#test ! -d confmdtest || find confmdtest -exec chmod u+rwx {} \;
+#test ! -d confmdtest2 || find confmdtest2 -exec chmod u+rwx {} \;
+test ! -d confmdtest || chmod -R u+rwx confmdtest
+rm -rf confmdtest
+../maildir/maildirmake confmdtest || exit 1
+
+if test "$POP3INVOKE" = ""
+then
+    POP3INVOKE="./pop3d.testmock"
+fi
+
+cat >confmdtest/new/msg1 <<EOF
+Subject: test
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+$POP3INVOKE confmdtest <<EOF
+STAT
+UIDL
+RETR 1
+TOP 1 1
+EOF
+
+cat >confmdtest/new/msg2 <<EOF
+Subject: test 2
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+$POP3INVOKE confmdtest <<EOF
+STAT
+UIDL 1
+UIDL 2
+TOP 1 0
+EOF
+mv confmdtest/cur/msg2:2, confmdtest/cur/msg2:2,S || exit 1
+rm confmdtest/cur/msg1:2,S || exit 1
+cat >confmdtest/new/msg3 <<EOF
+Subject: test 3
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+$POP3INVOKE confmdtest <<EOF
+STAT
+UIDL
+TOP 1 0
+TOP 2 0
+EOF
+rm confmdtest/cur/msg3:2,
+$POP3INVOKE confmdtest <<EOF
+STAT
+EOF
+cat confmdtest/courierpop3dsizelist
+cat >confmdtest/new/msg4 <<EOF
+Subject: test 4
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+POP3DEBUGNOSAVE=1 $POP3INVOKE confmdtest <<EOF
+STAT
+UIDL
+DELE 1
+RSET
+EOF
+ls confmdtest/cur
+rm -f confmdtest/cur/*
+cat >confmdtest/new/msg5 <<EOF
+Subject: test 5
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+POP3DEBUGNOSAVE=1 $POP3INVOKE confmdtest <<EOF
+STAT
+UIDL
+DELE 1
+QUIT
+EOF
+ls confmdtest/cur
+cat >confmdtest/new/msg6 <<EOF
+Subject: test 6 Привет
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+$POP3INVOKE confmdtest <<EOF
+LIST 1
+EOF
+cat >confmdtest/new/msg7 <<EOF
+Subject: test 7
+From: nobody@example.com
+
+Line 1
+Line 2
+Line 3
+EOF
+UTF8=0 $POP3INVOKE confmdtest <<EOF | sed 's/[1-9][0-9]* octets follow/octets follow/'
+LIST
+RETR 1
+UTF8
+RETR 1
+EOF
+rm -rf confmdtest

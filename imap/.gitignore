@@ -49,5 +49,6 @@
 /pop3d.dist
 /pop3d.dist.in
 /pop3d.pam
+/pop3d.testmock
 /pop3login
 /testsuitefix.pl
