@@ -95,6 +95,9 @@ void libmail_changeusername(const char *, const gid_t *);
 	** no aux group IDs for the user, any AUX ids are cleared.
 	*/
 
+uid_t libmail_getuid(const char *, gid_t *);
+gid_t libmail_getgid(const char *);
+
 #ifdef	__cplusplus
 }
 #endif

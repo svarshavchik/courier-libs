@@ -47,16 +47,21 @@ void libmail_changeuidgid(uid_t uid, gid_t gid)
 	}
 }
 
-void libmail_changeusername(const char *uname, const gid_t *forcegrp)
+/**
+ * Obtain the uid associated to uname and, optionally, the user primary gid
+ */
+uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 {
-struct passwd *pw;
-uid_t	changeuid;
-gid_t	changegid;
+	size_t bufsize;
+	char *buf;
+	struct passwd pwbuf;
+	struct passwd *pw;
 
-/* uname might be a pointer returned from a previous called to getpw(),
-** and libc has a problem getting it back.
-*/
-char	*p=malloc(strlen(uname)+1);
+	/*
+	** uname might be a pointer returned from a previous called to getpw(),
+	** and libc has a problem getting it back.
+	*/
+	char	*p=malloc(strlen(uname)+1);
 
 	if (!p)
 	{
@@ -65,8 +70,29 @@ char	*p=malloc(strlen(uname)+1);
 	}
 	strcpy(p, uname);
 
+#ifdef _SC_GETGR_R_SIZE_MAX
+	bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+	if (bufsize == -1)          /* Value was indeterminate */
+	{
+#endif
+		bufsize = 16384;        /* Should be more than enough */
+	}
+
+	buf = malloc(bufsize);
+	if (buf == NULL)
+	{
+		perror("malloc");
+		exit(1);
+	}
+
+
 	errno=ENOENT;
-	if ((pw=getpwnam(p)) == 0)
+
+	getpwnam_r(p, &pwbuf, buf, bufsize, &pw);
+
+	free(buf);
+
+	if (pw == 0)
 	{
 		free(p);
 		perror("getpwnam");
@@ -74,11 +100,19 @@ char	*p=malloc(strlen(uname)+1);
 	}
 	free(p);
 
-	changeuid=pw->pw_uid;
+	if ( pw_gid ) *pw_gid = pw->pw_gid;
 
-	if ( !forcegrp )	forcegrp= &pw->pw_gid;
+	return pw->pw_uid;
+}
 
-	changegid= *forcegrp;
+void libmail_changeusername(const char *uname, const gid_t *forcegrp)
+{
+uid_t	changeuid;
+gid_t	changegid;
+
+	changeuid=libmail_getuid(uname, &changegid);
+
+	if ( forcegrp )	changegid= *forcegrp;
 
 	if ( setgid( changegid ))
 	{
@@ -87,7 +121,7 @@ char	*p=malloc(strlen(uname)+1);
 	}
 
 #if HAVE_INITGROUPS
-	if ( getuid() == 0 && initgroups(pw->pw_name, changegid) )
+	if ( getuid() == 0 && initgroups(uname, changegid) )
 	{
 		perror("initgroups");
 		exit(1);
@@ -107,4 +141,59 @@ char	*p=malloc(strlen(uname)+1);
 		perror("setuid");
 		exit(1);
 	}
+}
+
+gid_t libmail_getgid(const char *gname)
+{
+	gid_t g;
+	struct group grp;
+	struct group *result;
+	char *buf;
+	size_t bufsize;
+	int s;
+	char	*p=malloc(strlen(gname)+1);
+
+	if (!p)
+	{
+		perror("malloc");
+		exit(1);
+	}
+	strcpy(p, gname);
+
+#ifdef _SC_GETGR_R_SIZE_MAX
+	bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+	if (bufsize == -1)          /* Value was indeterminate */
+#endif
+	{
+		bufsize = 16384;        /* Should be more than enough */
+	}
+
+	buf = malloc(bufsize);
+	if (buf == NULL)
+	{
+		perror("malloc");
+		exit(1);
+	}
+
+	s = getgrnam_r(p, &grp, buf, bufsize, &result);
+	free(p);
+
+	if (result == NULL)
+	{
+		if (s == 0)
+		{
+			fprintf(stderr, "CRIT: Group %s not found\n", gname);
+		}
+		else
+		{
+			errno = s;
+			perror("getpwnam_r");
+		}
+		exit(1);
+	}
+
+	g = grp.gr_gid;
+	free(buf);
+
+	return g;
 }
