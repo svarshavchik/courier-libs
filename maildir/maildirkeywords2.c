@@ -533,8 +533,32 @@ static void scan_updates(const char *dir,
 				unlink(q);
 				free(q);
 			}
-
 			(*updateInfo)[in].highestN=x;
+		}
+		else if (x < (*updateInfo)[in].highestN)
+		{
+			char b[NUMBUFSIZE];
+			char *r;
+
+			libmail_str_size_t(x, b);
+
+			r=de->d_name;
+			if (*r == '.')
+				r=strchr(r+1, '.')+1;
+
+			q=malloc(strlen(dir)+strlen(r)+
+				 strlen(b)+4);
+
+			if (!q)
+			{
+				closedir(dirp);
+				info->errorOccured= -1;
+				return;
+			}
+
+			sprintf(q, "%s/.%s.%s", dir, b, r);
+			unlink(q);
+			free(q);
 		}
 	}
 
