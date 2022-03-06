@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2018 S. Varshavchik.
+** Copyright 1998 - 2022 S. Varshavchik.
 ** See COPYING for distribution information.
 **
 */
@@ -51,6 +51,9 @@
 #include	"rfc2045/rfc2045.h"
 #include	"courierauth.h"
 
+#include	<vector>
+#include	<algorithm>
+
 #define POP3DLIST "courierpop3dsizelist"
 #define LISTVERSION 3
 
@@ -76,22 +79,28 @@ void rfc2045_error(const char *p)
 static const char *authaddr, *remoteip, *remoteport;
 
 struct msglist {
-	struct msglist *next;
-	char *filename;
-	int isdeleted;
-	int isnew;
-	int isutf8;
-	off_t size;
+	std::string filename;
+	bool isdeleted=false;
+	bool isnew=false;
+	bool isutf8=false;
+	off_t size=0;
 
 	struct {
 		unsigned long uidv;
 		unsigned long n;
 	} uid;
+
+	bool operator<(const msglist &) const;
+
+	void operator<<(const msglist &saved)
+	{
+		size=saved.size;
+		uid=saved.uid;
+		isutf8=saved.isutf8;
+	}
 } ;
 
-static struct msglist *msglist_l;
-static struct msglist **msglist_a;
-static unsigned msglist_cnt;
+static std::vector<msglist> msglist_l;
 
 static struct stat enomem_stat;
 static int enomem_1msg;
@@ -132,20 +141,20 @@ static time_t start_time;
 ** in the CRLF endofline.
 */
 
-static void calcsize(struct msglist *m)
+static void calcsize(msglist &m)
 {
-	FILE	*f=fopen(m->filename, "r");
+	FILE	*f=fopen(m.filename.c_str(), "r");
 	struct rfc2045 *p=rfc2045_fromfp(f);
 
-	m->size=p->nlines + p->endpos;
+	m.size=p->nlines + p->endpos;
 
 	clearerr(f);
-	if (m->size > 0 && fseek(f, -1, SEEK_SET) == 0 && getc(f) != '\n')
-		m->size+=2; /* We'll add an extra CRLF ourselves */
+	if (m.size > 0 && fseek(f, -1, SEEK_SET) == 0 && getc(f) != '\n')
+		m.size+=2; /* We'll add an extra CRLF ourselves */
 
-	m->isutf8=0;
+	m.isutf8=false;
 	if (p->rfcviolation & RFC2045_ERR8BITHEADER)
-		m->isutf8=1;
+		m.isutf8=true;
 	rfc2045_free(p);
 	fclose(f);
 }
@@ -176,19 +185,14 @@ openpop3dlist()
 ** Read courierpop3dsizelist
 */
 
-static int cmpmsgs(const void *a, const void *b);
-
-static struct msglist **readpop3dlist(unsigned long *uid)
+static std::vector<msglist> readpop3dlist(unsigned long *uid)
 {
-	struct msglist **a;
-	struct msglist *list=NULL;
-	size_t mcnt=0;
+	std::vector<msglist> list;
 
 	char linebuf[2048];
 
 	FILE *fp=openpop3dlist();
 
-	size_t i;
 	int vernum=0;
 	unsigned long size;
 
@@ -213,8 +217,6 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 
 	if (fp)
 	{
-		struct msglist *m;
-
 		char *p, *q;
 
 		size_t n=0;
@@ -243,109 +245,80 @@ static struct msglist **readpop3dlist(unsigned long *uid)
 			if (linebuf[0] == 0)
 				continue;
 
-			if ((m=(struct msglist *)malloc(sizeof(struct
-							       msglist))) == 0)
-			{
-				perror("malloc");
-				exit(1);
-			}
+			list.emplace_back();
+			auto m=--list.end();
 
-			if ((m->filename=strdup(linebuf)) == NULL)
-			{
-				perror("malloc");
-				exit(1);
-			}
+			m->filename=linebuf;
 
 			// Converting from LISTVERSION 2, assuming no UTF-8.
 			// We have extra room at the end.
 			strcat(p, ":0");
 
+			int isutf8;
 			if (sscanf(p, "%lu %lu:%lu:%d", &size,
 				   &m->uid.n, &m->uid.uidv,
-				   &m->isutf8) == 4)
+				   &isutf8) == 4)
 			{
 				m->size=size;
-				m->next=list;
-				list=m;
-				++mcnt;
+				m->isutf8=isutf8 != 0;
 			}
 			else
 			{
-				free(m->filename);
-				free(m);
+				list.pop_back();
 			}
 		}
 		fclose(fp);
 	}
-	if ((a=(struct msglist **)malloc((mcnt+1)
-					 *sizeof(struct msglist *))) == 0)
-	{
-		perror("malloc");
-		exit(1);
-	}
 
-	for (i=0; list; list=list->next)
-		a[i++]=list;
+	std::sort(list.begin(), list.end());
 
-	a[i]=NULL;
-	qsort(a, i, sizeof(*a), cmpmsgs);
-
-	return a;
+	return list;
 }
 
-static int savepop3dlist(struct msglist **a, size_t cnt,
-			  unsigned long uid)
+static int savepop3dlist(const std::vector<msglist> &list,
+			 unsigned long uid)
 {
-	FILE *fp;
-	size_t i;
-
-	struct maildir_tmpcreate_info createInfo;
-
 #ifdef SAVEHOOK
 	SAVEHOOK();
 #endif
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.uniq="pop3";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
-	{
-		maildir_tmpcreate_free(&createInfo);
+	auto fp=createInfo.fp();
+
+	if (!fp)
 		return -1;
-	}
 
 	fprintf(fp, "/%d %lu %lu\n", LISTVERSION, uid, uidv);
 
-	for (i=0; i<cnt; i++)
+	for (const auto &m:list)
 	{
-		char *p=a[i]->filename;
-		char *q;
+		const char *p=m.filename.c_str();
+		const char *q;
 
 		if ((q=strrchr(p, '/')) != NULL)
 			p=q+1;
 
-		fprintf(fp, "%s %lu %lu:%lu:%d\n", p, (unsigned long)a[i]->size,
-			a[i]->uid.n, a[i]->uid.uidv, a[i]->isutf8);
+		fprintf(fp, "%s %lu %lu:%lu:%d\n", p, (unsigned long)m.size,
+			m.uid.n, m.uid.uidv, (int)m.isutf8);
 	}
 
 	if (fflush(fp) || ferror(fp))
 	{
 		fclose(fp);
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
+		unlink(createInfo.tmpname.c_str());
 		return -1;
 	}
 
 	if (fclose(fp) ||
-	    rename(createInfo.tmpname, POP3DLIST) < 0)
+	    rename(createInfo.tmpname.c_str(), POP3DLIST) < 0)
 	{
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
+		unlink(createInfo.tmpname.c_str());
 		return -1;
 	}
 
-	maildir_tmpcreate_free(&createInfo);
 	return 0;
 }
 
@@ -353,9 +326,8 @@ static int savepop3dlist(struct msglist **a, size_t cnt,
 
 static int scancur()
 {
-DIR	*dirp;
-struct	dirent *de;
-struct	msglist *m;
+	DIR	*dirp;
+	struct	dirent *de;
 
 	if ((dirp=opendir("cur")) == 0)
 	{
@@ -367,22 +339,13 @@ struct	msglist *m;
 	{
 		if ( de->d_name[0] == '.' )	continue;
 
-		if ((m=(struct msglist *)malloc(sizeof(struct msglist))) == 0)
-		{
-			perror("malloc");
-			exit(1);
-		}
-		if ((m->filename=(char *)malloc(strlen(de->d_name)+5)) == 0)
-		{
-			free( (char *)m);
-			perror("malloc");
-			exit(1);
-		}
-		strcat(strcpy(m->filename, "cur/"), de->d_name);
-		m->isdeleted=0;
-		m->next=msglist_l;
-		msglist_l=m;
-		msglist_cnt++;
+		msglist_l.emplace_back();
+		auto m=--msglist_l.end();
+
+		m->filename.reserve(strlen(de->d_name)+5);
+
+		m->filename="cur/";
+		m->filename+=de->d_name;
 	}
 	closedir(dirp);
 	return 0;
@@ -393,10 +356,10 @@ struct	msglist *m;
 ** name of the file in the maildir is the timestamp.
 */
 
-static int cmpmsgs(const void *a, const void *b)
+bool msglist::operator<(const msglist &b) const
 {
-	const char *aname=(*(struct msglist **)a)->filename;
-	const char *bname=(*(struct msglist **)b)->filename;
+	const char *aname=filename.c_str();
+	const char *bname=b.filename.c_str();
 	const char *ap=strrchr(aname, '/');
 	const char *bp=strrchr(bname, '/');
 	long	na, nb;
@@ -414,8 +377,8 @@ static int cmpmsgs(const void *a, const void *b)
 	na=atol(ap);
 	nb=atol(bp);
 
-	if (na < nb)	return (-1);
-	if (na > nb)	return (1);
+	if (na < nb)	return true;
+	if (na > nb)	return false;
 
 	while (*ap || *bp)
 	{
@@ -423,110 +386,81 @@ static int cmpmsgs(const void *a, const void *b)
 			break;
 
 		if (*ap < *bp)
-			return -1;
+			return true;
 		if (*ap > *bp)
-			return 1;
+			return false;
 		++ap;
 		++bp;
 	}
 
-	return 0;
+	return false;
 }
 
 static void sortmsgs()
 {
-	size_t i, n;
-	struct msglist *m;
-	struct msglist **prev_list;
-
 	unsigned long nextuid;
 
-	if (msglist_cnt == 0)	return;
+	if (msglist_l.empty())	return;
 
-	if ((msglist_a=(struct msglist **)malloc(
-			msglist_cnt*sizeof(struct msglist *))) == 0)
-	{
-		perror("malloc");
-		msglist_cnt=0;
-		return;
-	}
-
-	for (i=0, m=msglist_l; m; m=m->next, i++)
-	{
-		m->isnew=0;
-		msglist_a[i]=m;
-	}
-	qsort(msglist_a, msglist_cnt, sizeof(*msglist_a), cmpmsgs);
+	std::sort(msglist_l.begin(), msglist_l.end());
 
 	nextuid=1;
 
-	prev_list=readpop3dlist(&nextuid);
+	auto prev_list=readpop3dlist(&nextuid);
 
-	n=0;
+	auto b=prev_list.begin(), e=prev_list.end();
 
-	for (i=0; i<msglist_cnt; i++)
+	for (size_t i=0; i<msglist_l.size(); i++)
 	{
-		while (prev_list[n] &&
-		       cmpmsgs(&prev_list[n], &msglist_a[i]) < 0)
+		while (b != e && *b < msglist_l[i])
 		{
-			++n;
+			++b;
 			savesizes=1;
 		}
 
-		if (prev_list[n] &&
-		    cmpmsgs(&prev_list[n], &msglist_a[i]) == 0)
+		if (b != e && !(msglist_l[i] < *b))
 		{
-			msglist_a[i]->size=prev_list[n]->size;
-			msglist_a[i]->uid=prev_list[n]->uid;
-			msglist_a[i]->isutf8=prev_list[n]->isutf8;
-			n++;
+			msglist_l[i] << *b;
+			++b;
 		}
 		else
 		{
-			msglist_a[i]->uid.n=nextuid++;
-			msglist_a[i]->uid.uidv=uidv;
-			msglist_a[i]->isnew=1;
+			msglist_l[i].uid.n=nextuid++;
+			msglist_l[i].uid.uidv=uidv;
+			msglist_l[i].isnew=true;
 
-			calcsize(msglist_a[i]);
+			calcsize(msglist_l[i]);
 			savesizes=1;
 		}
 	}
 
-	if (prev_list[n])
+	if (b != e)
 	{
 		savesizes=1;
 	}
 
-	for (i=0; prev_list[i]; i++)
-	{
-		free(prev_list[i]->filename);
-		free(prev_list[i]);
-	}
+	prev_list.clear();
 
-	free(prev_list);
-
-	if (savesizes && savepop3dlist(msglist_a, msglist_cnt, nextuid) < 0)
+	if (savesizes && savepop3dlist(msglist_l, nextuid) < 0)
 	{
 		fprintf(stderr, "ERR: Error while saving courierpop3dsizelist"
 			", user=%s\n", authaddr);
 
-		for (i=n=0; i<msglist_cnt; i++)
-		{
-			if (msglist_a[i]->isnew)
-				continue;
+		auto p=std::remove_if(
+			msglist_l.begin(), msglist_l.end(),
+			[&]
+			(msglist &m)
+			{
+				return m.isnew;
+			});
 
-			msglist_a[n]=msglist_a[i];
-			++n;
-		}
-
-		if (n == 0 && n < msglist_cnt &&
-		    stat(msglist_a[0]->filename, &enomem_stat) == 0)
+		if (!msglist_l.empty() && p == msglist_l.begin() &&
+		    stat(msglist_l[0].filename.c_str(), &enomem_stat) == 0)
 		{
 			enomem_1msg=1;
-			++n;
+			++p;
 		}
-		msglist_cnt=n;
-
+		msglist_l.erase(p, msglist_l.end());
 	}
 }
 
@@ -541,19 +475,18 @@ static void mkupper(char *p)
 
 static void cleanup()
 {
-	unsigned i;
 	const char *cp=getenv("POP3_LOG_DELETIONS");
 	int log_deletions= cp && *cp != '0';
 
 	int64_t deleted_bytes=0;
 	int64_t deleted_messages=0;
 
-	for (i=0; i<msglist_cnt; i++)
-		if (msglist_a[i]->isdeleted)
+	for (auto &m:msglist_l)
+		if (m.isdeleted)
 		{
 			unsigned long un=0;
 
-			const char *filename=msglist_a[i]->filename;
+			const char *filename=m.filename.c_str();
 
 			if (maildirquota_countfile(filename))
 			{
@@ -571,9 +504,9 @@ static void cleanup()
 					getenv("AUTHENTICATED"),
 					remoteip,
 					remoteport,
-					msglist_a[i]->filename);
+					m.filename.c_str());
 
-			if (unlink(msglist_a[i]->filename))
+			if (unlink(m.filename.c_str()))
 				un=0;
 
 			if (un)
@@ -599,15 +532,15 @@ static void cleanup()
 
 static void do_stat()
 {
-off_t	n=0;
-unsigned i, j;
-char	buf[NUMBUFSIZE];
+	off_t	n=0;
+	unsigned j;
+	char	buf[NUMBUFSIZE];
 
 	j=0;
-	for (i=0; i<msglist_cnt; i++)
+	for (auto &m:msglist_l)
 	{
-		if (msglist_a[i]->isdeleted)	continue;
-		n += msglist_a[i]->size;
+		if (m.isdeleted)	continue;
+		n += m.size;
 		++j;
 	}
 
@@ -617,10 +550,10 @@ char	buf[NUMBUFSIZE];
 
 static unsigned getmsgnum(const char *p)
 {
-unsigned i;
+	unsigned i;
 
-	if (!p || (i=atoi(p)) > msglist_cnt || i == 0 ||
-		msglist_a[i-1]->isdeleted)
+	if (!p || (i=atoi(p)) > msglist_l.size() || i == 0 ||
+		msglist_l[i-1].isdeleted)
 	{
 		printed(printf("-ERR Invalid message number.\r\n"));
 		fflush(stdout);
@@ -633,15 +566,15 @@ unsigned i;
 
 static void do_list(const char *msgnum)
 {
-unsigned i;
-char	buf[NUMBUFSIZE];
+	unsigned i;
+	char	buf[NUMBUFSIZE];
 
 	if (msgnum)
 	{
 		if ((i=getmsgnum(msgnum)) != 0)
 		{
 			printed(printf("+OK %u %s\r\n", i,
-				       libmail_str_off_t(msglist_a[i-1]->size,
+				       libmail_str_off_t(msglist_l[i-1].size,
 							 buf)));
 			fflush(stdout);
 		}
@@ -649,10 +582,13 @@ char	buf[NUMBUFSIZE];
 	}
 
 	printed(printf("+OK POP3 clients that break here, they violate STD53.\r\n"));
-	for (i=0; i<msglist_cnt; i++)
+	i=0;
+
+	for (auto &m:msglist_l)
 	{
-		if (msglist_a[i]->isdeleted)	continue;
-		printed(printf("%u %s\r\n", i+1, libmail_str_off_t(msglist_a[i]->size, buf)));
+		if (m.isdeleted)	continue;
+		printed(printf("%u %s\r\n", ++i,
+			       libmail_str_off_t(m.size, buf)));
 	}
 	printed(printf(".\r\n"));
 	fflush(stdout);
@@ -713,10 +649,9 @@ static int get_retr_source(struct retr_source *s)
 	return -1;
 }
 
-static void do_retr(unsigned i, unsigned *lptr)
+static void do_retr(msglist &m, unsigned *lptr)
 {
 	FILE	*f;
-	char	*p;
 	int	c, lastc='\n';
 	int	inheader=1;
 	char	buf[NUMBUFSIZE];
@@ -733,7 +668,7 @@ static void do_retr(unsigned i, unsigned *lptr)
 	if (!mime_message_type)
 		mime_message_type="message/global";
 
-	if (msglist_a[i]->isutf8 && !utf8_enabled)
+	if (m.isutf8 && !utf8_enabled)
 	{
 		sprintf(boundary, "=_%d-%d", (int)getpid(), (int)RUNTIME_CUR);
 
@@ -742,7 +677,7 @@ static void do_retr(unsigned i, unsigned *lptr)
 		sprintf(wrapfooter, "\n--%s--\n", boundary);
 	}
 
-	f=fopen(msglist_a[i]->filename, "r");
+	f=fopen(m.filename.c_str(), "r");
 
 	if (!f)
 	{
@@ -751,7 +686,7 @@ static void do_retr(unsigned i, unsigned *lptr)
 		return;
 	}
 	printed(printf( (lptr ? "+OK headers follow.\r\n":"+OK %s octets follow.\r\n"),
-			libmail_str_off_t(msglist_a[i]->size +
+			libmail_str_off_t(m.size +
 					  strlen(wrapheader) +
 					  strlen(wrapfooter),
 					  buf)));
@@ -787,7 +722,7 @@ static void do_retr(unsigned i, unsigned *lptr)
 	if (ferror(f)) {
 		/* Oops! All we can do is drop the connection */
 		fprintf(stderr, "ERR: I/O error while reading message file %s: %s\n",
-			msglist_a[i]->filename, strerror(errno));
+			m.filename.c_str(), strerror(errno));
 		acctout("INFO: I/O error disconnect");
 		exit(1);
 	}
@@ -797,32 +732,35 @@ static void do_retr(unsigned i, unsigned *lptr)
 	fclose(f);
 	if (lptr)	return;
 
-	if ((p=strchr(msglist_a[i]->filename, MDIRSEP[0])) != 0 &&
-		(p[1] != '2' || p[2] != ',' || strchr(p, 'S') != 0))
+	const char *q;
+	if ((q=strchr(m.filename.c_str(), MDIRSEP[0])) != 0 &&
+		(q[1] != '2' || q[2] != ',' || strchr(q, 'S') != 0))
 		return;
 
-	if ((p=(char *)malloc(strlen(msglist_a[i]->filename)+5)) == 0)
-		return;
+	std::string p;
 
-	strcpy(p, msglist_a[i]->filename);
-	if (strchr(p, MDIRSEP[0]) == 0)	strcat(p, MDIRSEP "2,");
-	strcat(p, "S");
+	p.reserve(m.filename.size()+5);
+
+	p=m.filename;
+
+	if (p.find(MDIRSEP[0]) == p.npos)
+		p += MDIRSEP "2,";
+
+	p += "S";
 
 	if (lptr	/* Don't mark as seen for TOP */
-	    || rename(msglist_a[i]->filename, p))
+	    || rename(m.filename.c_str(), p.c_str()))
 	{
-		free(p);
 		return;
 	}
-	free(msglist_a[i]->filename);
-	msglist_a[i]->filename=p;
+	m.filename=p;
 }
 
 /*
 ** The UIDL of the message is really just its filename, up to the first MDIRSEP character
 */
 
-static void print_uidl(unsigned i)
+static void print_uidl(msglist &m)
 {
 	const char *p;
 
@@ -843,19 +781,19 @@ static void print_uidl(unsigned i)
 		return;
 	}
 
-	if (msglist_a[i]->uid.n != 0)
+	if (m.uid.n != 0)
 	{
 		/* VERSION 1 and VERSION 2 UIDL */
 
-		printed(printf((msglist_a[i]->uid.uidv ?
+		printed(printf((m.uid.uidv ?
 				"UID%lu-%lu\r\n":"UID%lu\r\n"),
-			       msglist_a[i]->uid.n, msglist_a[i]->uid.uidv));
+			       m.uid.n, m.uid.uidv));
 		return;
 	}
 
 	/* VERSION 0 UIDL */
 
-	p=strchr(msglist_a[i]->filename, '/')+1;
+	p=strchr(m.filename.c_str(), '/')+1;
 
 	while (*p && *p != MDIRSEP[0])
 	{
@@ -871,24 +809,27 @@ static void print_uidl(unsigned i)
 
 static void do_uidl(const char *msgnum)
 {
-unsigned i;
+	unsigned i;
 
 	if (msgnum)
 	{
 		if ((i=getmsgnum(msgnum)) != 0)
 		{
 			printed(printf("+OK %u ", i));
-			print_uidl(i-1);
+			print_uidl(msglist_l[i-1]);
 			fflush(stdout);
 		}
 		return;
 	}
 	printed(printf("+OK\r\n"));
-	for (i=0; i<msglist_cnt; i++)
+
+	i=0;
+	for (auto &m:msglist_l)
 	{
-		if (msglist_a[i]->isdeleted)	continue;
+		if (m.isdeleted)	continue;
 		printed(printf("%u ", i+1));
-		print_uidl(i);
+		print_uidl(m);
+		++i;
 	}
 	printed(printf(".\r\n"));
 	fflush(stdout);
@@ -912,7 +853,6 @@ static void acctout(const char *disc)
 	char numAR[NUMBUFSIZE];
 	char numAS[NUMBUFSIZE];
 
-	char *p;
 	const char *q;
 
 	libmail_str_size_t(top_count, num1);
@@ -921,35 +861,38 @@ static void acctout(const char *disc)
 	libmail_str_size_t(bytes_received_count, numAR);
 	libmail_str_size_t(bytes_sent_count, numAS);
 
-	p=(char *)malloc(strlen(authaddr)+strlen(remoteip)+strlen(remoteport)+strlen(disc)+
-		 strlen(num1)+strlen(num2)+strlen(num3)+
-		 strlen(numAR)+strlen(numAS)+200);	/* Should be enough */
+	std::string p;
 
-	strcpy(p, disc);
-	strcat(p, msg2);
-	strcat(p, authaddr);
-	strcat(p, msg3);
-	strcat(p, remoteip);
-	strcat(p, msgport);
-	strcat(p, remoteport);
-	strcat(p, msg4);
-	strcat(p, num1);
-	strcat(p, msg5);
-	strcat(p, num2);
-	strcat(p, msgAR);
-	strcat(p, numAR);
-	strcat(p, msgAS);
-	strcat(p, numAS);
-	strcat(p, msg6);
-	strcat(p, num3);
+	p.reserve(
+		strlen(authaddr)+strlen(remoteip)+strlen(remoteport)+
+		strlen(disc)+
+		strlen(num1)+strlen(num2)+strlen(num3)+
+		strlen(numAR)+strlen(numAS)+200);	/* Should be enough */
+
+	p="disc";
+	p += msg2;
+	p += authaddr;
+	p += msg3;
+	p += remoteip;
+	p += msgport;
+	p += remoteport;
+	p += msg4;
+	p += num1;
+	p += msg5;
+	p += num2;
+	p += msgAR;
+	p += numAR;
+	p += msgAS;
+	p += numAS;
+	p += msg6;
+	p += num3;
 
 	if ((q=getenv("POP3_TLS")) && atoi(q))
-		strcat(p, msg7);
+		p += msg7;
 
-	strcat(p, "\n");
-	if (write(2, p, strlen(p)) < 0)
+	p += "\n";
+	if (write(2, p.c_str(), p.size()) < 0)
 		; /* make gcc shut up */
-	free(p);
 }
 
 static void bye(int signum)
@@ -1010,7 +953,7 @@ int	c;
 			if ((i=getmsgnum(strtok(NULL, " \t\r"))) == 0)
 				continue;
 
-			do_retr(i-1, 0);
+			do_retr(msglist_l[i-1], 0);
 			continue;
 		}
 
@@ -1033,7 +976,7 @@ int	c;
 			if ((i=getmsgnum(strtok(NULL, " \t\r"))) == 0)
 				continue;
 
-			msglist_a[i-1]->isdeleted=1;
+			msglist_l[i-1].isdeleted=true;
 			printed(printf("+OK Deleted.\r\n"));
 			fflush(stdout);
 			continue;
@@ -1048,10 +991,9 @@ int	c;
 
 		if (strcmp(p, "RSET") == 0)
 		{
-		unsigned i;
 
-			for (i=0; i<msglist_cnt; i++)
-				msglist_a[i]->isdeleted=0;
+			for (auto &m:msglist_l)
+				m.isdeleted=false;
 			printed(printf("+OK Resurrected.\r\n"));
 			fflush(stdout);
 			continue;
@@ -1070,7 +1012,7 @@ int	c;
 			if (!q)	goto error;
 
 			j=atoi(q);
-			do_retr(i-1, &j);
+			do_retr(msglist_l[i-1], &j);
 			continue;
 		}
 
@@ -1080,14 +1022,14 @@ int	c;
 			continue;
 		}
 
-              if (strcmp(p, "UTF8") == 0)
-              {
-                      /* XXX workaround for MS Outlook */
-                      utf8_enabled=1;
-                      printed(printf("+OK UTF8 enabled\r\n"));
-                      fflush(stdout);
-                      continue;
-              }
+		if (strcmp(p, "UTF8") == 0)
+		{
+			/* XXX workaround for MS Outlook */
+			utf8_enabled=1;
+			printed(printf("+OK UTF8 enabled\r\n"));
+			fflush(stdout);
+			continue;
+		}
 
 error:
 		printed(printf("-ERR Invalid command.\r\n"));
@@ -1100,11 +1042,10 @@ error:
 
 static void purgetmp()
 {
-DIR	*p=opendir("tmp");
-time_t	t;
-struct	dirent *de;
-struct	stat	stat_buf;
-char	*n;
+	DIR	*p=opendir("tmp");
+	time_t	t;
+	struct	dirent *de;
+	struct	stat	stat_buf;
 
 	if (!p)	return;
 	time (&t);
@@ -1113,12 +1054,16 @@ char	*n;
 	while ((de=readdir(p)) != 0)
 	{
 		if (de->d_name[0] == '.')	continue;
-		n=(char *)malloc(strlen(de->d_name)+5);
-		if (!n)	continue;
-		strcat(strcpy(n, "tmp/"), de->d_name);
-		if (stat(n, &stat_buf) == 0 && stat_buf.st_mtime < t)
-			unlink(n);
-		free(n);
+
+		std::string n;
+
+		n.reserve(strlen(de->d_name)+5);
+
+		n="tmp/";
+		n += de->d_name;
+
+		if (stat(n.c_str(), &stat_buf) == 0 && stat_buf.st_mtime < t)
+			unlink(n.c_str());
 	}
 	closedir(p);
 }
@@ -1209,9 +1154,6 @@ int main(int argc, char **argv)
 					(p=getenv("POP3_TLS")) != 0 && atoi(p) ? ", stls=1" : "");
 	fflush(stderr);
 
-	msglist_cnt=0;
-	msglist_l=0;
-	msglist_a=0;
 	purgetmp();
 	maildir_getnew(".", INBOX, NULL, NULL);
 	if (scancur())
