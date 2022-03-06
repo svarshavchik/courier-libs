@@ -62,8 +62,8 @@
 #define RUNTIME_CUR time(NULL)
 #endif
 
-extern void pop3dcapa();
-extern void pop3dlang(const char *);
+extern "C" void pop3dcapa();
+extern "C" void pop3dlang(const char *);
 
 static void acctout(const char *disc);
 void rfc2045_error(const char *p)
@@ -801,7 +801,7 @@ static void do_retr(unsigned i, unsigned *lptr)
 		(p[1] != '2' || p[2] != ',' || strchr(p, 'S') != 0))
 		return;
 
-	if ((p=malloc(strlen(msglist_a[i]->filename)+5)) == 0)
+	if ((p=(char *)malloc(strlen(msglist_a[i]->filename)+5)) == 0)
 		return;
 
 	strcpy(p, msglist_a[i]->filename);
@@ -921,7 +921,7 @@ static void acctout(const char *disc)
 	libmail_str_size_t(bytes_received_count, numAR);
 	libmail_str_size_t(bytes_sent_count, numAS);
 
-	p=malloc(strlen(authaddr)+strlen(remoteip)+strlen(remoteport)+strlen(disc)+
+	p=(char *)malloc(strlen(authaddr)+strlen(remoteip)+strlen(remoteport)+strlen(disc)+
 		 strlen(num1)+strlen(num2)+strlen(num3)+
 		 strlen(numAR)+strlen(numAS)+200);	/* Should be enough */
 
@@ -975,7 +975,11 @@ int	c;
 		else while ((c=getc(stdin)) >= 0 && c != '\n')
 			;
 		p=strtok(buf, " \t\r");
-		if (!p)	p="";
+		if (!p)
+		{
+			buf[0]=0;
+			p=buf;
+		}
 
 		mkupper(p);
 		if (strcmp(p, "QUIT") == 0)
@@ -1109,7 +1113,7 @@ char	*n;
 	while ((de=readdir(p)) != 0)
 	{
 		if (de->d_name[0] == '.')	continue;
-		n=malloc(strlen(de->d_name)+5);
+		n=(char *)malloc(strlen(de->d_name)+5);
 		if (!n)	continue;
 		strcat(strcpy(n, "tmp/"), de->d_name);
 		if (stat(n, &stat_buf) == 0 && stat_buf.st_mtime < t)
@@ -1124,7 +1128,8 @@ char	*n;
 
 int main(int argc, char **argv)
 {
-char	*p;
+	const char	*p;
+
 #ifdef HAVE_SETVBUF_IOLBF
 	setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
 #endif

@@ -3,4 +3,4 @@
 
 #define SAVEHOOK() do { if (getenv("POP3DEBUGNOSAVE")) return -1; } while (0)
 
-#include "pop3dserver.c"
+#include "pop3dserver.C"
