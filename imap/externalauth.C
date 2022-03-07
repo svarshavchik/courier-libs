@@ -21,7 +21,7 @@ const char *externalauth()
 	if (!p || !*p)
 		return NULL;
 
-	if ((q=malloc(strlen(p)+20)) == NULL)
+	if ((q=(char *)malloc(strlen(p)+20)) == NULL)
 		return NULL;
 
 	strcat(strcpy(q, "TLS_SUBJECT_"), p);

@@ -31,11 +31,11 @@
 #include	<vector>
 #include	<string>
 
-extern "C" void pop3dcapa();
-extern "C" void pop3dlang(const char *);
-extern "C" int have_starttls();
-extern "C" int tls_required();
-extern "C" const char *pop3_externalauth();
+extern void pop3dcapa();
+extern void pop3dlang(const char *);
+extern int have_starttls();
+extern int tls_required();
+extern const char *pop3_externalauth();
 
 static const char *pop3d;
 static const char *defaultmaildir;

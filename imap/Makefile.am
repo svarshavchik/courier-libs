@@ -56,7 +56,7 @@ libimaplogin_la_LIBADD=../tcpd/libspipe.la ../tcpd/libtlsclient.la \
 libimaplogin_la_LDFLAGS=-static
 
 libimapd_la_SOURCES=mainloop.C imaptoken.C imaptoken.h imapwrite.c \
-	imapwrite.h capability.c externalauth.c smap.C smapsnapshot.C
+	imapwrite.h capability.C externalauth.C smap.C smapsnapshot.C
 libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la ../numlib/libnumlib.la \
 	-lcourier-unicode
@@ -86,11 +86,11 @@ imapd_testmockpurge_DEPENDENCIES=$(imapd_DEPENDENCIES)
 nodist_EXTRA_imapd_testmockpurge_SOURCES=forcecpp2.C
 imapd_testmockpurge_LDADD=$(imapd_LDADD)
 
-pop3login_SOURCES=pop3login.C pop3dcapa.c proxy.C proxy.h
+pop3login_SOURCES=pop3login.C pop3dcapa.C proxy.C proxy.h
 pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la
 pop3login_LDADD=../tcpd/libtlsclient.la ../tcpd/libspipe.la libpop3d.la ../tcpd/libspipe.la @LDAUTH@ -lcourierauth -lcourierauthsasl @NETLIBS@
 
-libpop3d_la_SOURCES=externalauth.c
+libpop3d_la_SOURCES=externalauth.C
 libpop3d_la_LIBADD=../maildir/libmaildir.la \
 	../rfc2045/librfc2045.la \
 	../rfc822/librfc822.la \
@@ -98,12 +98,12 @@ libpop3d_la_LIBADD=../maildir/libmaildir.la \
 libpop3d_la_DEPENDENCIES=$(libpop3d_la_LIBADD)
 libpop3d_la_LDFLAGS=-static
 
-pop3d_SOURCES=pop3dserver.C pop3dcapa.c
+pop3d_SOURCES=pop3dserver.C pop3dcapa.C
 pop3d_DEPENDENCIES=libpop3d.la
 pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 nodist_EXTRA_pop3d_SOURCES=dummy.C
 
-pop3d_testmock_SOURCES=testpop3dserver.C pop3dcapa.c
+pop3d_testmock_SOURCES=testpop3dserver.C pop3dcapa.C
 pop3d_testmock_DEPENDENCIES=libpop3d.la
 pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 nodist_EXTRA_pop3d_testmock_SOURCES=dummy.C

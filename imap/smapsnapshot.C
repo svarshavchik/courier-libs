@@ -63,7 +63,7 @@
 #include <fstream>
 #include <sstream>
 
-extern "C" int keywords();
+extern int keywords();
 
 /*
 ** Implement SMAP snapshots.  A snapshot is implemented, essentially, by

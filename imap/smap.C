@@ -87,7 +87,7 @@ extern const char *folder_rename(maildir::info &mi1,
 				 maildir::info &mi2);
 
 extern int snapshot_init(const char *, const char *);
-extern "C" int keywords();
+extern int keywords();
 
 extern unsigned long header_count, body_count;
 

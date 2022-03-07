@@ -56,7 +56,7 @@ extern int acl_flags_adjust(const char *access_rights,
 			    struct imapflags *flags);
 
 extern imapscaninfo current_maildir_info;
-extern "C" int fastkeywords();
+extern int fastkeywords();
 
 bool storeinfo_init(struct storeinfo &si)
 {

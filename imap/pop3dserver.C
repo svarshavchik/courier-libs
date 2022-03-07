@@ -65,8 +65,8 @@
 #define RUNTIME_CUR time(NULL)
 #endif
 
-extern "C" void pop3dcapa();
-extern "C" void pop3dlang(const char *);
+extern void pop3dcapa();
+extern void pop3dlang(const char *);
 
 static void acctout(const char *disc);
 void rfc2045_error(const char *p)

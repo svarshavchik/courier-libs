@@ -23,7 +23,7 @@ extern char **main_argv;
 
 extern "C" int login_callback(struct authinfo *ainfo, void *dummy);
 
-extern "C" const char *imap_externalauth();
+extern const char *imap_externalauth();
 
 static char *send_auth_reply(const char *q, void *dummy)
 {

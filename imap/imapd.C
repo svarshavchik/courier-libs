@@ -104,11 +104,6 @@ extern void imapscanfail(const char *p);
 extern void mainloop();
 extern void bye_msg(const char *);
 
-extern "C" {
-#if 0
-}
-#endif
-
 extern time_t start_time;
 
 extern int keywords();
@@ -118,15 +113,8 @@ extern void initcapability();
 extern void imapcapability();
 extern int magictrash();
 
-#if 0
-{
-#endif
-}
-
 #if SMAP
-extern "C" {
-	int smapflag=0;
-}
+int smapflag=0;
 
 extern void snapshot_needed();
 extern void snapshot_save();

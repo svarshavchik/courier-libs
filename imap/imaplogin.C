@@ -42,11 +42,11 @@
 #include <functional>
 
 FILE *debugfile=0;
-extern "C" void initcapability();
+extern void initcapability();
 void mainloop();
-extern "C" void imapcapability();
-extern "C" int have_starttls();
-extern "C" int tlsrequired();
+extern void imapcapability();
+extern int have_starttls();
+extern int tlsrequired();
 int authenticate(const char *, char *, int);
 unsigned long header_count=0, body_count=0;	/* Dummies */
 int enabled_utf8=0;
