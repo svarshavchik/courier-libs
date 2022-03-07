@@ -82,12 +82,17 @@ int check_outbox(const char *message, const char *mailbox)
 
 	from=defaultSendFrom();
 
-	argv[1]="-oi";
-	argv[2]="-t";
+	char opt1[]="-oi";
+	argv[1]=opt1;
+
+	char opt2[]="-t";
+	argv[2]=opt2;
 	argv[3]=NULL;
+
+	char opt3[]="-f";
 	if (from)
 	{
-		argv[3]="-f";
+		argv[3]=opt3;
 		argv[4]=(char *)from;
 		argv[5]=NULL;
 	}
@@ -98,7 +103,7 @@ int check_outbox(const char *message, const char *mailbox)
 int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
 {
 	char buffer[512];
-	int i;
+	size_t i;
 	int ch;
 	const char *from=defaultSendFrom();
 	const char *hdrfrom;
