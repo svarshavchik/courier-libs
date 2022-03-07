@@ -55,7 +55,7 @@ libimaplogin_la_LIBADD=../tcpd/libspipe.la ../tcpd/libtlsclient.la \
 	../numlib/libnumlib.la
 libimaplogin_la_LDFLAGS=-static
 
-libimapd_la_SOURCES=mainloop.C imaptoken.C imaptoken.h imapwrite.c \
+libimapd_la_SOURCES=mainloop.C imaptoken.C imaptoken.h imapwrite.C \
 	imapwrite.h capability.C externalauth.C smap.C smapsnapshot.C
 libimapd_la_LIBADD= ../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la ../numlib/libnumlib.la \
@@ -71,7 +71,7 @@ imapd_SOURCES=fetch.C fetchinfo.C fetchinfo.h imapd.C imapd.h \
 	imapscanclient.C imapscanclient.h \
 	mailboxlist.C mailboxlist.h \
 	msgbodystructure.C msgenvelope.C \
-	mysignal.c mysignal.h \
+	mysignal.C mysignal.h \
 	outbox.C outbox.h \
 	thread.C thread.h \
 	search.C searchinfo.C searchinfo.h \

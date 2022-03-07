@@ -73,7 +73,6 @@ void bye_msg(const char *type)
 			buf, tls);
 }
 
-extern "C"
 void disconnected()
 {
 	bye_msg("INFO: DISCONNECTED");

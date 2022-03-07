@@ -8,7 +8,7 @@
 #endif
 
 #include	<signal.h>
-
+#include	"mysignal.h"
 
 static int n;
 
