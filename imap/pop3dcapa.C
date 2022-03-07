@@ -19,7 +19,7 @@
 #endif
 
 
-extern const char *externalauth();
+extern "C" const char *externalauth();
 
 int have_starttls()
 {

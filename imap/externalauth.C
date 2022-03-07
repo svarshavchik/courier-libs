@@ -13,25 +13,24 @@
 #include	<unistd.h>
 #endif
 
-const char *externalauth()
+#include	<string>
+
+extern "C" const char *externalauth()
 {
 	const char *p=getenv("TLS_EXTERNAL");
-	char *q, *r;
 
 	if (!p || !*p)
 		return NULL;
 
-	if ((q=(char *)malloc(strlen(p)+20)) == NULL)
-		return NULL;
+	std::string q="TLS_SUBJECT_";
 
-	strcat(strcpy(q, "TLS_SUBJECT_"), p);
+	q += p;
 
-	for (r=q; *r; r++)
-		if (*r >= 'a' && *r <= 'z')
-			*r -= 'a' - 'A';
+	for (char &r:q)
+		if (r >= 'a' && r <= 'z')
+			r -= 'a' - 'A';
 
-	p=getenv(q);
-	free(q);
+	p=getenv(q.c_str());
 
 	if (p && *p)
 		return p;

@@ -17,7 +17,7 @@
 
 static int capa_keywords=0;
 
-extern const char *externalauth();
+extern "C" const char *externalauth();
 
 void initcapability()
 {
