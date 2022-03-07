@@ -20,6 +20,8 @@
 #include	"outbox.h"
 #include	"imapwrite.h"
 
+#include	<vector>
+#include	<sstream>
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #if HAVE_SYS_WAIT_H
@@ -49,7 +51,7 @@ int is_outbox(const char *mailbox)
 	return (1);
 }
 
-const char *defaultSendFrom()
+std::string defaultSendFrom()
 {
 	const char *from;
 
@@ -59,28 +61,21 @@ const char *defaultSendFrom()
 	if (from && !*from)
 		from=NULL;
 
-	return from;
+	return from ? from:"";
 }
 
 /*
 ** After a message is copied to a folder, mail it, if it's an OUTBOX.
 */
 
-static void errlogger(char *buffer)
-{
-	fprintf(stderr, "ERR: error sending a message, user=%s: %s\n",
-		getenv("AUTHENTICATED"), buffer);
-}
-
 int check_outbox(const char *message, const char *mailbox)
 {
 	char *argv[10];
-	const char *from;
 
 	if (!is_outbox(mailbox))
 		return (0);
 
-	from=defaultSendFrom();
+	auto from=defaultSendFrom();
 
 	char opt1[]="-oi";
 	argv[1]=opt1;
@@ -90,22 +85,37 @@ int check_outbox(const char *message, const char *mailbox)
 	argv[3]=NULL;
 
 	char opt3[]="-f";
-	if (from)
+
+	const char *p=from.c_str();
+	std::vector<char> frombuf{p, p+from.size()+1};
+
+	if (!from.empty())
 	{
 		argv[3]=opt3;
-		argv[4]=(char *)from;
+		argv[4]=frombuf.data();
 		argv[5]=NULL;
 	}
 
-	return (imapd_sendmsg(message, argv, errlogger));
+	return imapd_sendmsg(
+		message, argv,
+		[]
+		(const std::string &errmsg)
+		{
+			fprintf(stderr,
+				"ERR: error sending a message, user=%s:"
+				" %s\n",
+				getenv("AUTHENTICATED"), errmsg.c_str()
+			);
+		}
+	);
 }
 
-int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
+int imapd_sendmsg(const char *message, char **argv,
+		  const std::function<void (const std::string &)> &err_func)
 {
-	char buffer[512];
-	size_t i;
+	std::string tempbuf;
 	int ch;
-	const char *from=defaultSendFrom();
+	auto from=defaultSendFrom();
 	const char *hdrfrom;
 
 	const char *prog;
@@ -133,7 +143,6 @@ int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
 
 	if (pid > 0)	/* Parent reads err message, checks exit status */
 	{
-		i=0;
 		close(pipefd[1]);
 		pipefp=fdopen(pipefd[0], "r");
 		if (pipefp == NULL)
@@ -142,12 +151,12 @@ int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
 		{
 			if ((unsigned char)ch < ' ')
 				ch='/';
-			if (i < sizeof(buffer)-1)
-				buffer[i++]=ch;
+
+			if (tempbuf.size() < 512)
+				tempbuf.push_back(ch);
 		}
 		fclose(pipefp);
 		close(pipefd[0]);
-		buffer[i]=0;
 
 		while ((pid2=wait(&waitstat)) != pid)
 			if (pid2 < 0 && errno == ECHILD)
@@ -155,24 +164,27 @@ int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
 
 		if (pid2 < 0 || !WIFEXITED(waitstat) || WEXITSTATUS(waitstat))
 		{
-			if (buffer[0] == '\0')
+			if (tempbuf.empty())
 			{
-				buffer[0]=0;
-				strncat(buffer, prog, 128);
+				std::ostringstream o;
+
+				o << prog;
 
 #ifdef WIFSIGNALED
 #ifdef WTERMSIG
 				if (WIFSIGNALED(waitstat))
-					sprintf(buffer+strlen(buffer),
-						" terminated with signal %d",
-						(int)WTERMSIG(waitstat));
+					o << " terminated with signal "
+					  << WTERMSIG(waitstat);
 				else
 #endif
 #endif
-					strcat(buffer, " failed without logging an error.  This shouldn't happen.");
+					o << " failed without logging an error."
+						" This shouldn't happen.";
+
+				tempbuf=o.str();
 			}
 
-			(*err_func)(buffer);
+			err_func(tempbuf);
 			return (-1);
 		}
 		return (0);
@@ -241,8 +253,8 @@ int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *))
 		exit(1);
 	}
 
-	if ((hdrfrom=getenv("HEADERFROM")) != NULL && *hdrfrom && from)
-		fprintf(pipesendmail, "%s: %s\n", hdrfrom, from);
+	if ((hdrfrom=getenv("HEADERFROM")) != NULL && *hdrfrom && !from.empty())
+		fprintf(pipesendmail, "%s: %s\n", hdrfrom, from.c_str());
 	while ((ch=getc(pipefp)) != EOF)
 		putc(ch, pipesendmail);
 	fclose(pipefp);

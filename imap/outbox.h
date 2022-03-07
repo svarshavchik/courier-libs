@@ -1,22 +1,19 @@
 #ifndef	outbox_h
 #define	outbox_h
 
+#include <string>
+#include <functional>
+
 /*
 ** Copyright 2002 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int check_outbox(const char *message, const char *mailbox);
 int is_outbox(const char *mailbox);
-int imapd_sendmsg(const char *message, char **argv, void (*err_func)(char *));
-const char *defaultSendFrom();
+int imapd_sendmsg(const char *message, char **argv,
+		  const std::function<void (const std::string &)> &errfunc);
 
-#ifdef __cplusplus
-}
-#endif
+std::string defaultSendFrom();
 
 #endif

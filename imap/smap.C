@@ -2009,13 +2009,6 @@ static void adduid(const std::string &newname)
 	writes("\"\n");
 }
 
-static void senderr(char *errmsg)
-{
-	writes("-ERR ");
-	writes(errmsg);
-	writes("\n");
-}
-
 /* Copy msg to another folder */
 
 static void copieduid(unsigned long n, const std::string &newname)
@@ -3051,7 +3044,14 @@ void smap()
 						auto i=imapd_sendmsg(
 							tmpname.c_str(),
 							&ptrs[0],
-							&senderr);
+							[]
+							(const std::string &m)
+							{
+								writes("-ERR ");
+								writes(m.c_str()
+								);
+								writes("\n");
+							});
 
 						if (i)
 						{
