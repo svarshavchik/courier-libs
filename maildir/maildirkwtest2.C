@@ -21,4 +21,4 @@
 		}							\
 	} while(0);							\
 
-#include "maildirkeywords2cpp.C"
+#include "maildirkeywords.C"

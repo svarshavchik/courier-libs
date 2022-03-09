@@ -39,10 +39,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirgetquota.c maildirgetquota.h \
 	maildirinfo.c maildirinfo.h maildirinfo2.C \
 	maildirinfocpp.C \
-	maildirkeywords.c maildirkeywords2.c maildirkeywords2cpp.C \
-	maildirkeywords3.c \
-	maildirkeywords4.cpp \
-	maildirkeywords.h maildirlist.C maildirlock.C \
+	maildirkeywords.C maildirkeywords.h maildirlist.C maildirlock.C \
 	maildirmake2.c \
 	maildirnewshared.C maildirnewshared.h maildirnewshared2.C \
 	maildiropen.C maildirparsequota.C \
@@ -136,7 +133,6 @@ EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	README.imapkeywords.html \
 	README.maildirfilter.html \
 	README.sharedfolders.html README.sharedfolders.txt \
-	maildirkwtest.txt \
 	testsuite testsuite.txt testsuite2 testsuite2.txt quotawarnmsg $(DOCS)
 
 README.maildirquota.txt: README.maildirquota.html
@@ -167,7 +163,7 @@ clean-local:
 check-am:
 	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | diff -U 3 $(srcdir)/testsuite.txt -
 	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | diff -U 3 $(srcdir)/testsuite2.txt -
-	LC_ALL=C; export LC_ALL; ./maildirkwtest | cmp -s - $(srcdir)/maildirkwtest.txt
+	LC_ALL=C; export LC_ALL; ./maildirkwtest
 	LC_ALL=C; export LC_ALL; ./maildiraclttest
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./maildiraclttest

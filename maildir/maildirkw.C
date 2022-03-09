@@ -148,13 +148,8 @@ int main(int argc, char *argv[])
 	int list=0;
 	int plusminus=0;
 
-	libmail_kwCaseSensitive=0;
-
 	while ((optc=getopt(argc, argv, "arLlhc")) != -1)
 		switch (optc) {
-		case 'c':
-			libmail_kwCaseSensitive=1;
-			break;
 		case 'l':
 			lockflag=1;
 			break;

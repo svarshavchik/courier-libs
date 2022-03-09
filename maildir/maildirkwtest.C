@@ -16,44 +16,6 @@
 #include	"maildirkeywords.h"
 #include	"maildirmisc.h"
 
-static struct libmail_kwHashtable h;
-
-int smapflag=0;
-
-static int count_flags(struct libmail_keywordEntry *dummy1, void *dummy)
-{
-	++*(size_t *)dummy;
-
-	return 0;
-}
-
-static struct libmail_kwMessage *msgs[3];
-static const char * const flags[]={"apple", "banana", "pear", "grape"};
-
-
-static int dump()
-{
-	size_t cnt=0;
-
-	if (libmail_kwEnumerate(&h, &count_flags, &cnt))
-		return -1;
-
-	printf("%d flags\n", (int)cnt);
-
-	for (cnt=0; cnt<sizeof(msgs)/sizeof(msgs[0]); cnt++)
-	{
-		struct libmail_kwMessageEntry *e;
-
-		printf("%d:", (int)cnt);
-
-		for (e=msgs[cnt]->firstEntry; e; e=e->next)
-			printf(" %s", keywordName(e->libmail_keywordEntryPtr));
-		printf("\n");
-	}
-	return 0;
-
-}
-
 static void name2dir_test()
 {
 	static struct {
@@ -130,71 +92,6 @@ static void folderdir_test()
 		}
 		free(p);
 	}
-}
-
-void keywordtest1()
-{
-	size_t i;
-
-	libmail_kwhInit(&h);
-
-	for (i=0; i<sizeof(msgs)/sizeof(msgs[0]); i++)
-	{
-		if ((msgs[i]=libmail_kwmCreate()) == NULL)
-		{
-			perror("malloc");
-			exit(1);
-		}
-
-		msgs[i]->u.userNum=i;
-	}
-
-	if (libmail_kwmSetName(&h, msgs[0], flags[0]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[1], flags[1]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[2], flags[2]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[0], flags[0]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[0], flags[1]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[1], flags[2]) >= 0 &&
-	    libmail_kwmSetName(&h, msgs[2], flags[3]) >= 0)
-	{
-
-		if (dump() == 0)
-		{
-			libmail_kwmClearName(msgs[2], flags[3]);
-			libmail_kwmClearName(msgs[2], flags[3]);
-			libmail_kwmClearName(msgs[0], flags[1]);
-
-			if (dump() == 0)
-			{
-				if (libmail_kwmClearName(msgs[0], flags[0]) < 0
-				    ||
-				    libmail_kwmClearName(msgs[1], flags[1]) < 0
-				    ||
-				    libmail_kwmClearName(msgs[2], flags[2]) < 0
-				    ||
-				    libmail_kwmClearName(msgs[0], flags[0]) < 0
-				    ||
-				    libmail_kwmClearName(msgs[1], flags[2]) < 0
-				    ||
-				    libmail_kwhCheck(&h))
-				{
-					fprintf(stderr,
-						"kwhCheck test failed.\n");
-					exit(1);
-				}
-
-				for (i=0; i<sizeof(msgs)/sizeof(msgs[0]); i++)
-				{
-					libmail_kwmDestroy(msgs[i]);
-				}
-				return;
-			}
-		}
-
-	}
-
-	perror("ERROR");
-	exit(1);
 }
 
 void keywordtest2()
@@ -302,7 +199,6 @@ int main()
 {
 	name2dir_test();
 	folderdir_test();
-	keywordtest1();
 	keywordtest2();
 	return 0;
 }

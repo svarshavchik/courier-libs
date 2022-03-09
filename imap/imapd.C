@@ -5853,10 +5853,7 @@ int main(int argc, char **argv)
 	emptytrash();
 	signal(SIGPIPE, SIG_IGN);
 
-	libmail_kwVerbotten=KEYWORD_IMAPVERBOTTEN;
-
-	if (!keywords())
-		libmail_kwEnabled=0;
+	mail::keywords::verbotten_chars=KEYWORD_IMAPVERBOTTEN;
 
 	maildir_info_munge_complex((p=getenv("IMAP_SHAREDMUNGENAMES")) &&
 				   atoi(p));
@@ -5875,7 +5872,7 @@ int main(int argc, char **argv)
 
 		smapflag=1;
 
-		libmail_kwVerbotten=KEYWORD_SMAPVERBOTTEN;
+		mail::keywords::verbotten_chars=KEYWORD_SMAPVERBOTTEN;
 
 		chkdisabled(ip, port);
 		smap();

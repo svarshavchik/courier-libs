@@ -3,7 +3,7 @@
 ** See COPYING for distribution information.
 */
 
-#include "maildirkeywords2cpp.C"
+#include "maildirkeywords.C"
 #include <iostream>
 #include <sstream>
 #include <set>

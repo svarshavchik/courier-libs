@@ -54,6 +54,8 @@
 #include <vector>
 #include <algorithm>
 
+const char *mail::keywords::verbotten_chars=nullptr;
+
 // To lowercase map.
 
 static const unsigned char lowermap[256]={
@@ -184,84 +186,6 @@ bool mail::keywords::save_keywords_from(
 	return true;
 }
 
-/***************/
-
-static int maildir_kwSaveCommon(const char *maildir,
-				const char *filename,
-				struct libmail_kwMessage *newKeyword,
-				const char **newKeywordArray,
-				char **tmpname,
-				char **newname,
-				int tryAtomic);
-
-int maildir_kwSave(const char *maildir,
-		   const char *filename,
-		   struct libmail_kwMessage *newKeyword,
-		   char **tmpname,
-		   char **newname,
-		   int tryAtomic)
-{
-	return maildir_kwSaveCommon(maildir, filename, newKeyword, NULL,
-				    tmpname, newname, tryAtomic);
-}
-
-int maildir_kwSaveArray(const char *maildir,
-			const char *filename,
-			const char **flags,
-			char **tmpname,
-			char **newname,
-			int tryAtomic)
-{
-	return maildir_kwSaveCommon(maildir, filename, NULL, flags,
-				    tmpname, newname, tryAtomic);
-}
-
-static int maildir_kwSaveCommon(const char *maildir,
-				const char *filename,
-				struct libmail_kwMessage *newKeyword,
-				const char **newKeywordArray,
-				char **tmpname,
-				char **newname,
-				int tryAtomic)
-{
-	std::string tmpnames;
-	std::string newnames;
-
-	if (!mail::keywords::save_keywords_from(
-		    maildir,
-		    filename,
-		    [&]
-		    (FILE *fp)
-		    {
-			    if (newKeywordArray)
-			    {
-				    size_t i;
-
-				    for (i=0; newKeywordArray[i]; i++)
-					    fprintf(fp, "%s\n",
-						    newKeywordArray[i]);
-				    return;
-			    }
-			    for (auto kme=newKeyword ?
-					 newKeyword->firstEntry:NULL;
-				 kme; kme=kme->next)
-				    fprintf(fp, "%s\n",
-					    keywordName(
-						    kme->libmail_keywordEntryPtr
-					    ));
-		    },
-		    tmpnames,
-		    newnames,
-		    tryAtomic))
-		return -1;
-
-	if (!(*tmpname=strdup(tmpnames.c_str())) ||
-	    !(*newname=strdup(newnames.c_str())))
-		abort();
-
-	return 0;
-}
-
 void mail::keywords::read_keywords_from_file(
 	std::istream &i,
 	const std::function<void (const std::string &,
@@ -283,7 +207,7 @@ void mail::keywords::read_keywords_from_file(
 		if (s.empty())
 			break;
 
-		if (libmail_kwVerbotten)
+		if (mail::keywords::verbotten_chars)
 			std::transform(
 				s.begin(),
 				s.end(),
@@ -291,7 +215,7 @@ void mail::keywords::read_keywords_from_file(
 				[]
 				(char c)
 				{
-					if (strchr(libmail_kwVerbotten, c))
+					if (strchr(mail::keywords::verbotten_chars, c))
 						c='_';
 					return c;
 				});
@@ -606,7 +530,7 @@ bool scan_updates(
 
 		while (std::getline(i, keyword))
 		{
-			if (libmail_kwVerbotten)
+			if (mail::keywords::verbotten_chars)
 				std::transform(
 					keyword.begin(),
 					keyword.end(),
@@ -614,7 +538,7 @@ bool scan_updates(
 					[]
 					(char c)
 					{
-						if (strchr(libmail_kwVerbotten,
+						if (strchr(mail::keywords::verbotten_chars,
 							   c))
 							c='_';
 						return c;

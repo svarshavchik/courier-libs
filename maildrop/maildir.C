@@ -26,7 +26,7 @@
 #include	"../maildir/maildircreate.h"
 #include	"../maildir/maildirmisc.h"
 #include	"../maildir/maildirkeywords.h"
-
+#include	"../maildir/maildirwatch.h"
 
 #include "../maildir/maildirquota.h"
 extern int quota_warn_percent;
@@ -204,85 +204,43 @@ void	Maildir::MaildirSave()
 
 		if (*keywords_s)
 		{
-			struct libmail_kwHashtable kwh;
-			struct libmail_kwMessage *kwm;
-
-			libmail_kwhInit(&kwh);
-
-			if ((kwm=libmail_kwmCreate()) == NULL)
-				throw strerror(errno);
+			mail::keywords::list keywords;
 
 			while (*keywords_s)
 			{
+				if (*keywords_s == ',')
+				{
+					++keywords_s;
+					continue;
+				}
+
 				const char *p=keywords_s;
 
 				while (*keywords_s && *keywords_s != ',')
 					++keywords_s;
 
-				char *n=new char [keywords_s - p + 1];
-
-				if (!n)
-				{
-					libmail_kwmDestroy(kwm);
-					throw strerror(errno);
-				}
-
-				memcpy(n, p, keywords_s - p);
-				n[keywords_s - p]=0;
-
-				while (*keywords_s && *keywords_s == ',')
-					++keywords_s;
-
-				if (libmail_kwmSetName(&kwh, kwm, n) < 0)
-				{
-					delete [] n;
-					libmail_kwmDestroy(kwm);
-					throw strerror(errno);
-				}
-				delete [] n;
+				keywords.emplace(p, keywords_s);
 			}
 
-			char *tmpkname, *newkname;
-
-			if (maildir_kwSave( maildirRoot.c_str(),
-					    strrchr(newname.c_str(), '/')+1, kwm,
-					    &tmpkname, &newkname, 0) < 0)
-			{
-				libmail_kwmDestroy(kwm);
-				throw "maildir_kwSave() failed.";
-			}
-
-			libmail_kwmDestroy(kwm);
-
-			if (rename(tmpkname, newkname) < 0)
+			if (!mail::keywords::update(
+				    maildirRoot,
+				    strrchr(newname.c_str(), '/')+1,
+				    keywords))
 			{
 				/* Maybe the keyword directory needs creating */
 
-				struct stat stat_buf;
+				maildir::create_keyword_dir(
+					maildirRoot
+				);
 
-				if (stat(maildirRoot.c_str(), &stat_buf) < 0)
+				if (!mail::keywords::update(
+					    maildirRoot,
+					    strrchr(newname.c_str(), '/')+1,
+					    keywords))
 				{
-					free(tmpkname);
-					free(newkname);
-					throw strerror(errno);
-				}
-
-				char *keywordDir=strrchr(newkname, '/');
-
-				*keywordDir=0;
-				mkdir(newkname, 0700);
-				chmod(newkname, stat_buf.st_mode & 0777);
-				*keywordDir='/';
-
-				if (rename(tmpkname, newkname) < 0)
-				{
-					free(tmpkname);
-					free(newkname);
 					throw strerror(errno);
 				}
 			}
-			free(tmpkname);
-			free(newkname);
 		}
 
 		std::string dir;

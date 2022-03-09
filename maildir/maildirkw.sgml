@@ -18,7 +18,6 @@
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
       <command moreinfo="none">maildirkw</command>
-      <arg choice="opt" rep="norepeat">-c</arg>
       <arg choice="opt" rep="norepeat">-l</arg>
       <arg choice="opt" rep="norepeat">-a</arg>
       <arg choice="opt" rep="norepeat">-r</arg>
@@ -30,7 +29,6 @@
 
     <cmdsynopsis sepchar=" ">
       <command moreinfo="none">maildirkw</command>
-      <arg choice="opt" rep="norepeat">-c</arg>
       <arg choice="req" rep="norepeat">-L</arg>
       <arg choice="req" rep="norepeat"><replaceable>maildir</replaceable></arg>
     </cmdsynopsis>
@@ -74,13 +72,6 @@ the <application moreinfo="none">Courier</application> IMAP server's
 configuration file has the <literal moreinfo="none">IMAP_USELOCKS</literal> option set.
 <option>-l</option>
 enables a compatible locking mechanism to update the message's keywords.</para>
-
-    <para>
-<option>-c</option> enables case-sensitive keywords.
-IMAP keywords are normally case insensitive.
-<option>-c</option> needs to be used if the
-<ulink url="https://www.courier-mta.org/cone/smap1.html">SMAP1</ulink>
-protocol extension is used, which uses case sensitive keywords.</para>
 
   </refsect1>
 
