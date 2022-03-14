@@ -29,7 +29,7 @@ install-perms-recursive:
 install-perms-local:
 	@${srcdir}/lstsoftlinks `cat ${srcdir}/*/LANGUAGE_PREF | sort | awk ' { print $$2 } ' | sort | uniq` | sort | uniq | while read F ; \
 	do echo "$(htmllibdir)/$$F 644 bin bin" ; done >>permissions.dat
-	@echo "$(htmllibdir) 555 bin bin"  >>permissions.dat
+	@echo "$(htmllibdir) 755 bin bin"  >>permissions.dat
 
 clone:
 	@test -d ${srcdir}/${to} || exit 0; echo ${srcdir}/${to} already exists. ; exit 1
@@ -39,7 +39,5 @@ clone:
 	echo ${to} >${srcdir}/${to}/LANGUAGE
 	cd ${srcdir}/${to} ; pref=`awk ' { print $$1 }' <LANGUAGE_PREF` ; echo $$pref ${to} >LANGUAGE_PREF
 
-HTML2TXT=`which lynx 2>/dev/null && echo "lynx -dump -nolist" && exit; echo "links -dump"`
-
 README_LANG.txt: README_LANG.html
-	$(HTML2TXT) README_LANG.html >README_LANG.txt
+	elinks -dump -no-numbering README_LANG.html >README_LANG.txt

@@ -14,7 +14,7 @@ CLEANFILES=imapd.8 imapd.html mkimapdcert.html mkimapdcert.8 \
 
 EXTRA_DIST=testsuite testsuite.txt smaptestsuite smaptestsuite.txt \
 	testsuitevalgrind \
-	BUGS BUGS.html README README.html imapd.authpam \
+	BUGS BUGS.html common.authpam imapd.authpam \
 	pop3d.authpam system-auth.authpam system-auth2.authpam\
 	makeimapaccess.8.in makeimapaccess.html.in \
 	imapd.html.in imapd.8.in \
@@ -105,13 +105,8 @@ pop3d_testmock_SOURCES=testpop3dserver.c pop3dcapa.c
 pop3d_testmock_DEPENDENCIES=libpop3d.la
 pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
 
-HTML2TXT=links -dump -no-numbering
-
-README: README.html
-	$(HTML2TXT) README.html >README
-
 BUGS: BUGS.html
-	$(HTML2TXT) BUGS.html >BUGS
+	elinks -dump -no-numbering BUGS.html >BUGS
 
 imapd.html: imapd.html.in
 	./config.status --file=imapd.html
@@ -210,7 +205,7 @@ README.proxy.html: README.proxy.sgml
 	rm -rf html.tmp
 
 README.proxy: README.proxy.html
-	$(HTML2TXT) README.proxy.html >README.proxy
+	elinks -dump -no-numbering README.proxy.html >README.proxy
 endif
 
 check-am:

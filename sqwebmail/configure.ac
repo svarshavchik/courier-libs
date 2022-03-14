@@ -98,7 +98,7 @@ fi
 AC_ARG_WITH(ispell,
 [  --without-ispell      Do not compile ispell support
   --with-ispell=prog    Pathname to ispell (if not in default path)],
-	ispell="$withval", [ AC_PATH_PROGS(ispell, ispell aspell, N, $LPATH) ] )
+	ispell="$withval", [ AC_PATH_PROGS(ispell, aspell ispell, N, $LPATH) ] )
 
 case $ispell in
 "/"*)
@@ -457,6 +457,12 @@ then
 		cp -f $srcdir/sqwebmail-system-auth2.pamconf webmail.authpam
 	fi
 fi
+
+if test -f /etc/pam.d/common-auth
+then
+	cp -f $srcdir/sqwebmail-common.pamconf webmail.authpam
+fi
+
 
 AC_ARG_WITH(mailuser, [], mailuser="$withval",
 	AC_MSG_ERROR(--with-mailuser missing))

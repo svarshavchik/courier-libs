@@ -382,6 +382,10 @@ typedef EVP_CIPHER_CTX CIPHER_CONTEXT;
 
 int tlspassword_init()
 {
+#if HAVE_GCRYPT
+	if (!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
+		gcry_check_version(NULL);
+#endif
 	return 1;
 }
 

@@ -9,7 +9,7 @@ AM_CPPFLAGS=@CPPAUTH@
 
 CLEANFILES=htmllibdir.h ldapsearch webgpg ldapaddressbook.dist \
 	cron.cmd sqwebmail.msg TIMEZONELIST
-DISTCLEANFILES=webmail.authpam
+DISTCLEANFILES=webmail.authpam common.authpam
 
 SUBDIRS=images html
 
@@ -68,7 +68,7 @@ $(GITFILES): %: %.git
 endif
 
 EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
-	 sqwebmail-system-auth2.pamconf\
+	 sqwebmail-common.pamconf sqwebmail-system-auth2.pamconf\
            strdup.c strcasecmp.c strncasecmp.c sv-make_timezonelist.pl\
            $(ISPELLSOURCES) \
 	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
@@ -107,19 +107,17 @@ sqwebmail_LDFLAGS=-static
 sqwebpasswd_SOURCES=sqwebpasswd.c
 sqwebpasswd_LDADD=@NETLIBS@ @LDAUTH@ -lcourierauth
 
-HTML2TXT=`which lynx 2>/dev/null && echo "lynx -dump -nolist" && exit; echo "links -dump"`
-
 SECURITY: SECURITY.html
 	rm -f SECURITY
-	$(HTML2TXT) $(srcdir)/SECURITY.html >SECURITY
+	elinks -dump -no-numbering $(srcdir)/SECURITY.html >SECURITY
 
 BUGS: BUGS.html
 	rm -f BUGS
-	$(HTML2TXT) $(srcdir)/BUGS.html >BUGS
+	elinks -dump -no-numbering $(srcdir)/BUGS.html >BUGS
 
 TODO: TODO.html
 	rm -f TODO
-	$(HTML2TXT) $(srcdir)/TODO.html >TODO
+	elinks -dump -no-numbering $(srcdir)/TODO.html >TODO
 
 TIMEZONELIST: sv-make_timezonelist.pl
 	rm -f TIMEZONELIST

@@ -89,41 +89,242 @@ See COPYING for distribution information.
   <section id="INSTALL">
     <title>Installation and usage</title>
 
-    <para>
-      Download the current version of the library from
-      <ulink url="/download.html#unicode">https://www.courier-mta.org/download.html#unicode</ulink>.
-      Use the downloaded tarball to prepare an appropriate installation
-      package for your operating system distribution.
-      The typical sequence of commands is:
-    </para>
-
-    <blockquote>
-      <informalexample>
-	<programlisting>
-./configure    # Takes the default configure script options
-make
-make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisting>
-      </informalexample>
-    </blockquote>
-
-    <para>
-      The library uses a stock configure script, <command>make</command>
-      and <command>make install</command> command that respects the
-      <varname>DESTDIR</varname> setting to create an installation image
-      in the directory specified by <varname>DESTDIR</varname>.
-    </para>
-
-    <note>
+    <section id="rpmdeb">
+      <title>RPM and DEB packages</title>
       <para>
-	<command>make install</command> does not take any explicit action
-	to uninstall any older version of the library, or remove any files
-	from an older version that do not exist any more in the new version.
-	Use the created installation image to prepare an
-	installable package in a native package format for your operating
-	system distribution. Use your native system distribution's package
-	manager to properly install and update this library.
+	  These are not the same packages as the ones from various
+	  distributions' repositories. These packages carry an higher internal
+	  revision level in order to prevent them from getting upgraded
+	  by the distribution packaging. This packaging exists in order to
+	  have a convenient way of updating after a release without waiting
+	  for the distribution's package to get built.
       </para>
-    </note>
+      <note>
+	<para>
+	  If a distribution package is already installed it should be removed
+	  completely before switching to the upstream version (dnf remove or apt
+	  purge). Preserve any existing configuration files, beforehand, in
+	  order to reconfigure the package.
+	</para>
+      </note>
+      <note>
+	<para>
+	  These packages use their own, generic, installation layout that may
+	  deviate slightly from the package installation conventions that's
+	  preferred by the
+	  distributions.
+	</para>
+      </note>
+
+      <section id="rpmbuild">
+	<title>RPM builds</title>
+
+	<para>
+	  It is not necessary to unpack this tarball in order to build
+	  this tarball.
+	</para>
+
+	<para>
+	  Run <quote>dnf install rpm-build</quote> if it's not installed
+	  already, then:
+	</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ rpmbuild -ta courier-unicode-VERSION.tar.bz2
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  If this fails due to any missing dependencies, install them.
+	  This builds the main <quote>courier-unicode</quote> package
+	  with runtime libraries, and the
+	  <quote>courier-unicode-devel</quote> package with
+	  link libraries and header files.
+	</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ rpmbuild --define 'compat 1' -ta courier-unicode-VERSION.tar.bz2
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  Setting the <quote>compat 1</quote> flag during an RPM build
+	  produces a differently-named <quote>compatibility</quote>
+	  runtime package, with its version as part of the package's name.
+	  The compatibility package gets installed together with the newer
+	  version of this library that introduces a binary ABI change.
+	  This supports a transition
+	  period during which other software that's built to the
+	  compatibility package's ABI version continue to load the
+	  compatibility package's library at runtime, while new software
+	  can be built against the newer ABI.
+	</para>
+      </section>
+
+      <section id="debbuild">
+	<title>DEB builds</title>
+
+	<para>
+	  Run <quote>apt install devscripts debhelper</quote>,
+	  if it's not installed already.
+	  Create an empty directory, and copy/move the tarball into it:
+	</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ mkdir tmp
+	    $ mv courier-unicode-VERSION.tar.bz2 tmp
+	    $ cd tmp
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+	<para>
+	  Unpack the tarball and cd into the unpacked subdirectory:
+	</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ tar xvf courier-unicode-VERSION.tar.bz2
+	    $ cd courier-unicode-VERSION
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+	<para>
+	  Run the <command>courier-debuild</command> script, which is a
+	  wrapper for <command>debuild</command>, and forwards its parameters
+	  to it:
+	</para>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ ./courier-debuild -us -uc
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+	<note>
+	  <para>
+	    The above steps must be followed strictly.
+	    The <command>courier-debuild</command>
+	    script expects the distributed tarball in its parent directory.
+	  </para>
+	</note>
+
+	<para>
+	  This eventually produces a deb subdirectory with .deb packages
+	  that can be installed with "dpkg -i":
+	</para>
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      The <quote>libcourier-unicode-dev</quote> package
+	      contains the development libraries and header files, for
+	      building other packages that use the Courier Unicode
+	      Library.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      The <quote>libcourier-unicode<replaceable>&lt;N&gt;</replaceable></quote>
+	      package
+	      contains the runtime library.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ DEBGCC=10 ./courier-debuild -us -uc
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  Setting the <envar>DEBGCC</envar> environment variable
+	  selects a non-default gcc version.
+	</para>
+
+	<note>
+	  <para>
+	    All Courier packages should be built using the same version of
+	    gcc.
+	  </para>
+	</note>
+      </section>
+    </section>
+
+    <section id="manualbuild">
+      <title>Manual</title>
+
+      <blockquote>
+	<informalexample>
+	  <programlisting><![CDATA[
+	  ./configure    # Takes the default configure script options
+	  make
+	  make install DESTDIR=/tmp/courier-unicode-instimage # For example.]]></programlisting>
+	</informalexample>
+      </blockquote>
+
+      <para>
+	The library uses a stock configure script, <command>make</command>
+	and <command>make install</command> command that respects the
+	<varname>DESTDIR</varname> setting to create an installation image
+	in the directory specified by <varname>DESTDIR</varname>.
+      </para>
+
+      <note>
+	<para>
+	  <command>make install</command> does not take any explicit action
+	  to uninstall any older version of the library, or remove any files
+	  from an older version that do not exist any more in the new version.
+	  Use the created installation image to prepare an
+	  installable package in a native package format for your operating
+	  system distribution. Use your distribution&#39;s native package
+	  manager to properly install and update this library.
+	</para>
+      </note>
+    </section>
+
+    <section id="maintbuild">
+      <title>Maintainer Mode (see README in the git repository to set up)</title>
+      <para>
+	<command>make rpm</command> or <command>make deb</command>, as
+	appropriate, will:
+      </para>
+      <orderedlist>
+	<listitem>
+	  <para>
+	    Increment an internal release number.
+          </para>
+        </listitem>
+	<listitem>
+	  <para>
+	    Run <command>make dist</command>.
+          </para>
+        </listitem>
+	<listitem>
+	  <para>
+	    Proceed and build a new release, creating the native packages
+	    in the rpm or deb subdirectory.
+          </para>
+        </listitem>
+	<listitem>
+	  <para>
+	    Execute either <command>$HOME/bin/rpmrepos.sh</command> or
+	    <command>$HOME/bin/debrepos.sh</command>. This can be a script
+	    that does nothing, or it's intended to be the maintainer's
+	    script that pushes out the packages to a repository.
+          </para>
+        </listitem>
+      </orderedlist>
+    </section>
+  </section>
+
+  <section id="using">
+    <title>Using the library</title>
 
     <para>
       To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link
@@ -133,7 +334,7 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
       Current versions of gcc use C++11, or higher, by default and do not
       require extra flags. For C++ code, as usual, the compiler and compilation
       flags for compiling any code that uses this library must be ABI-compatible
-      too.
+	too.
     </para>
 
     <para>
@@ -145,10 +346,10 @@ make install DESTDIR=/tmp/courier-unicode-instimage # For example.</programlisti
     <blockquote>
       <informalexample>
 	<programlisting>
-	  AX_COURIER_UNICODE_VERSION
-	  AX_COURIER_UNICODE_CXXFLAGS
+	AX_COURIER_UNICODE_VERSION
+	AX_COURIER_UNICODE_CXXFLAGS
 
-	  AC_SUBST(COURIER_UNICODE_CXXFLAGS)
+	AC_SUBST(COURIER_UNICODE_CXXFLAGS)
 	</programlisting>
       </informalexample>
     </blockquote>

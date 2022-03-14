@@ -35,7 +35,7 @@ clonedist: distdir
 	-rm -rf $(distdir)
 
 install-perms:
-	@echo "$(htmllibdir) 555 bin bin" >permissions.dat
+	@echo "$(htmllibdir) 755 bin bin" >permissions.dat
 	@for f in $(conf) ; do\
 		echo $(htmllibdir)/$$f 644 bin bin config >>permissions.dat ;\
 		done

@@ -43,7 +43,7 @@ update-www:
 	@$(MAKE) update-www-composition
 
 update-www-unicode-copyright:
-	links -dump https://www.unicode.org/license.html >UNICODE-LICENSE.txt.tmp
+	elinks -dump -no-numbering https://www.unicode.org/license.html >UNICODE-LICENSE.txt.tmp
 	mv UNICODE-LICENSE.txt.tmp UNICODE-LICENSE.txt
 
 update-www-unicode:
@@ -248,14 +248,30 @@ libcourier_unicode_la_SOURCES=\
 			bidi_mirroring.h \
 			unicode_categories.c
 
-libcourier_unicode_la_LDFLAGS=-version-info 7:0:0
+libcourier_unicode_la_LDFLAGS=-version-info @LIBVERSION_INFO@
 
+DATE := $(shell date -R)
 dist-hook:
 	rm -f $(distdir)/courier-unicode.h
+	chmod +x $(distdir)/courier-debuild
+	@PERL@ -p -i -e 's/\@DATE\@/'"$(DATE)"'/' $(distdir)/packaging/debian/changelog.in
+	@PERL@ -p -i -e 's/\@DATE\@/'"$(DATE)"'/' $(distdir)/packaging/debian/changelog
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
 	m4/courier-unicode.m4 \
 	packaging/freebsd10/pkg-descr
+
+EXTRA_DIST += \
+	courier-debuild \
+	packaging/debian/changelog \
+	packaging/debian/changelog.in \
+	packaging/debian/control \
+	packaging/debian/copyright \
+	packaging/debian/libcourier-unicode.install \
+	packaging/debian/libcourier-unicode-dev.install \
+	packaging/debian/libcourier-unicode-dev.lintian-overrides \
+	packaging/debian/rules \
+	packaging/debian/source/format
 
 if UPDATE_UNICODE
 
@@ -508,7 +524,7 @@ rpm:
 	$(MAKE) bump.rpm.release
 	$(MAKE) dist
 	$(MAKE) dorpm
-	$$HOME/repos.sh
+	$$HOME/bin/rpmrepos.sh
 
 dorpm:
 	rm -rf rpm/BUILD/*
@@ -540,6 +556,28 @@ bump.rpm.release: $(PACKAGE).spec
 		<$(PACKAGE).spec >$(PACKAGE).spec.new; \
 	mv $(PACKAGE).spec.new $(PACKAGE).spec
 
+packaging/debian/changelog: packaging/debian/changelog.in configure.ac
+	CONFIG_FILES=packaging/debian/changelog $(srcdir)/config.status
+
+deb: bump.deb.release
+	$(MAKE) dist
+	rm -rf @PACKAGE@-@VERSION@ deb
+	tar xf @PACKAGE@-@VERSION@.tar.bz2
+	cd @PACKAGE@-@VERSION@ && ./courier-debuild -us -uc && mv deb ../deb && cd .. && rm -rf @PACKAGE@-@VERSION@
+	$$HOME/bin/debrepos.sh
+
+bump.deb.release: packaging/debian/changelog
+	VERSION="x"; \
+	test -f $(srcdir)/deb.release && . $(srcdir)/deb.release; \
+	NEXT_RELEASE=100; \
+	test "$$VERSION" = "@PACKAGE_VERSION@" && NEXT_RELEASE="$$RELEASE"; \
+	RELEASE=`expr $$NEXT_RELEASE + 1`; \
+	echo "VERSION=@PACKAGE_VERSION@" >$(srcdir)/deb.release; \
+	echo "RELEASE=$$RELEASE" >>$(srcdir)/deb.release; \
+	sed 's/^@PACKAGE@.*/@PACKAGE@ (@VERSION@-'$$RELEASE') devel; urgency=medium/' \
+		<packaging/debian/changelog >packaging/debian/changelog.new; \
+	mv packaging/debian/changelog.new packaging/debian/changelog
+
 upload-beta:
 	rm -f @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.bz2.sig; gpg --detach-sign --default-key mrsam@courier-mta.com @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.bz2; test -f @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.bz2.sig || exit 1
 	~/src/sftools/release.pl mrsam courier @PACKAGE_NAME@-devel `echo @PACKAGE_VERSION@|sed 's/.*\(........\)/\1/'` @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.bz2 @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.bz2.sig
@@ -554,8 +592,8 @@ distrelease:
 	$(MAKE) rpm
 	$(MAKE) -$(MAKEFLAGS)
 	$(MAKE) -$(MAKEFLAGS)
-	rm -f courier-unicode.spec
-	$(MAKE) courier-unicode.spec
+	rm -f courier-unicode.spec packaging/debian/changelog
+	$(MAKE) courier-unicode.spec packaging/debian/changelog
 	$(MAKE) dist
 
 www:

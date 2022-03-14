@@ -1,6 +1,6 @@
 Summary: Courier Unicode Library
 %if 0%{?compat:1}
-Name: courier-unicode%(echo @PACKAGE_VERSION@ | tr -d '.')
+Name: courier-unicode@COMPATVERSION@
 
 %define __brp_ldconfig %{nil}
 

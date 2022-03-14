@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode], [2.2.3],
+AC_INIT([courier-unicode], [2.2.3.20220416],
 			   [courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
@@ -133,10 +133,35 @@ p=`echo "00"$p | sed 's/.*(...)$/$[]1/'`
 HVERSION="$v$r$p"
 AC_SUBST(HVERSION)
 
+COMPATVERSION="`echo $VERSION | tr -d '.'`"
+AC_SUBST(COMPATVERSION)
+
+LIBVERSION_CURRENT=7
+LIBVERSION_RELEASE=0
+LIBVERSION_AGE=0
+
+LIBVERSION_INFO=$LIBVERSION_CURRENT:$LIBVERSION_RELEASE:$LIBVERSION_AGE
+AC_SUBST(LIBVERSION_CURRENT)
+AC_SUBST(LIBVERSION_RELEASE)
+AC_SUBST(LIBVERSION_AGE)
+AC_SUBST(LIBVERSION_INFO)
+
+SOVERSION=0
+if test "$LIBVERSION_CURRENT" -ne "$LIBVERSION_AGE"
+then
+	SOVERSION=`expr $LIBVERSION_CURRENT - $LIBVERSION_AGE`
+fi
+
+AC_SUBST(SOVERSION)
+
 AM_CONDITIONAL(HAVE_DOCS,[test -f $srcdir/docbook/icon.gif])
-AC_OUTPUT(Makefile
+
+AC_CONFIG_FILES(Makefile
+	courier-debuild
 	packaging/freebsd10/Makefile
 	courier-unicode.spec
 	courier-unicode.h
 	courier-unicode-version.m4
 )
+
+AC_OUTPUT

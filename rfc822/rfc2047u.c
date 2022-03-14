@@ -322,7 +322,9 @@ int rfc822_display_addr_str(const char *tok,
 
 	if (chset != NULL)
 	{
+#if LIBIDN
 		int err=0;
+#endif
 		char *utf8_ptr;
 
 		if (p > tok)

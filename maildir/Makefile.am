@@ -123,13 +123,11 @@ EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	maildirkwtest.txt \
 	testsuite testsuite.txt testsuite2 testsuite2.txt quotawarnmsg $(DOCS)
 
-HTML2TXT=links -dump -no-numbering
-
 README.maildirquota.txt: README.maildirquota.html
-	$(HTML2TXT) README.maildirquota.html >README.maildirquota.txt
+	elinks -dump -no-numbering README.maildirquota.html >README.maildirquota.txt
 
 README.sharedfolders.txt: README.sharedfolders.html
-	$(HTML2TXT) README.sharedfolders.html >README.sharedfolders.txt
+	elinks -dump -no-numbering README.sharedfolders.html >README.sharedfolders.txt
 
 mailbot.h: config.status
 	echo '#define MAILBOT "@MAILBOT@"' >mailbot.h

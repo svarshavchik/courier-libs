@@ -318,6 +318,12 @@ then
 	fi
 fi
 
+if test -f /etc/pam.d/common-auth
+then
+	cp $srcdir/common.authpam imapd.pam
+	cp $srcdir/common.authpam pop3d.pam
+fi
+
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
 # This gets built by the make rule, and is not in the git repo
