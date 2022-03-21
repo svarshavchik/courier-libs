@@ -240,7 +240,8 @@ check-am:
 	rm -f confmderror.txt
 	rm -rf confmdtest
 	@SHELL@ $(srcdir)/pop3testsuite | sed 's/^--=_.*/--mimeboundary/;s/ENOMEM.*/ENOMEM/;s/boundary=.*/boundary=/' | cmp -s - $(srcdir)/pop3testsuite.txt
-	rm -f confmdmemleak; \
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+	   rm -f confmdmemleak; \
 	   POP3INVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./pop3d.testmock' \
            @SHELL@ -x $(srcdir)/pop3testsuite; \
            test -f confmdmemleak || exit 0; exit 1
