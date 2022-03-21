@@ -37,7 +37,7 @@ then
 fi
 AC_SUBST(SETENV)
 
-AC_PATH_PROG(PKGCONFIG, pkg-config, [], $SPATH)
+PKG_PROG_PKG_CONFIG
 
 if test x$GCC = xyes
 then
@@ -357,12 +357,12 @@ have_gnutls=no
 
 AC_MSG_CHECKING([for GnuTLS])
 
-if test "$PKGCONFIG" != ""
+if test "$PKG_CONFIG" != ""
 then
-	if $PKGCONFIG --modversion gnutls >/dev/null 2>&1
+	if $PKG_CONFIG --modversion gnutls >/dev/null 2>&1
 	then
 		save_CPPFLAGS="$CPPFLAGS"
-		CPPFLAGS="$CPPFLAGS `$PKGCONFIG --cflags gnutls`"
+		CPPFLAGS="$CPPFLAGS `$PKG_CONFIG --cflags gnutls`"
 
 		AC_TRY_COMPILE( [
 #include <gnutls/gnutls.h>
@@ -389,20 +389,20 @@ AC_MSG_RESULT($have_gnutls)
 if test "$have_gnutls" = "yes"
 then
 	LIBCOURIERTLSGNUTLS="libcouriertlsgnutls.la"
-	CPPFLAGS="$CPPFLAGS `$PKGCONFIG --cflags gnutls`"
+	CPPFLAGS="$CPPFLAGS `$PKG_CONFIG --cflags gnutls`"
 	have_gnutls3=no
 	PKG_CHECK_EXISTS([gnutls >= 3.0], [have_gnutls3=yes])
 	if test "x$have_gnutls3" = "xno"
 	then
-		gnutlsdep="`$PKGCONFIG --libs gnutls` -lgnutls-extra"
+		gnutlsdep="`$PKG_CONFIG --libs gnutls` -lgnutls-extra"
 	else
-		gnutlsdep="`$PKGCONFIG --libs gnutls`"
+		gnutlsdep="`$PKG_CONFIG --libs gnutls`"
 		AC_DEFINE([HAVE_GNUTLS3], [1], [Use GnuTLS3])
 	fi
 
 	AC_CHECK_LIB(gnutls, gnutls_alpn_set_protocols, [
 		  AC_DEFINE_UNQUOTED(HAVE_GNUTLS_ALPN, 1,
-					[ Whether OpenSSL supports ALPN ])
+					[ Whether GnuTLS supports ALPN ])
 		])
 fi
 
