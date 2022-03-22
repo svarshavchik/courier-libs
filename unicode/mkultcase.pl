@@ -99,7 +99,7 @@ for ($i=0; $i<$tabsize; $i++)
 	    print "\n" if ($idx % 4) == 3;
 	    ++$idx;
 	}
-    } split(/\n/, $bucket[$i]);
+    } sort split(/\n/, $bucket[$i]);
 }
 print "{0,0,0,0}};
 

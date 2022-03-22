@@ -1322,7 +1322,7 @@ struct msg2html_textplain_info {
 	*/
 	int flowed;
 
-	int conv_err; /* A transcoding error has occured */
+	int conv_err; /* A transcoding error has occurred */
 
 	/*
 	** Optionally replace smiley sequences with image URLs

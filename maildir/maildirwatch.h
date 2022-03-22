@@ -85,7 +85,7 @@ int maildirwatch_start(struct maildirwatch *p,
 ** Returns: 1 - Monitoring has started, or we're in fallback mode.
 **          0 - Not yet, *fdret is initialized to file descriptor to wait on.
 **              (not used at this time).
-**         -1 - A fatal error occured, fall back to polling mode.
+**         -1 - A fatal error occurred, fall back to polling mode.
 **
 ** maildirwatch_started() returns right away, without blocking.
 */

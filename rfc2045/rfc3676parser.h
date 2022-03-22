@@ -163,7 +163,7 @@ namespace mail {
 
 		void end(
 			 /*
-			 ** Set to true if a unicode conversion error occured.
+			 ** Set to true if a unicode conversion error occurred.
 			 */
 			 bool &unicode_errflag);
 
