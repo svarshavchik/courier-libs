@@ -1046,7 +1046,7 @@ static void setexp(const char *exp,
 	{
 		set_err_msg(info->errmsg_buf,
 			    info->errmsg_buf_size,
-			    "A DNS lookup error occured while"
+			    "A DNS lookup error occurred while"
 			    " fetching the SPF explanation record.");
 	}
 	else

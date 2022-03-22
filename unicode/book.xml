@@ -2829,7 +2829,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	      <function>unicode_convert_toutf8</function>()
 	      returns a non <literal>NULL</literal> value
 	      *<parameter>error</parameter> gets set to a non-zero value if
-	      a character conversion error has occured, and some characters
+	      a character conversion error has occurred, and some characters
 	      could not be converted.
 	    </para>
 
@@ -3395,7 +3395,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	  <para>
 	    The callback function should return 0. A non-zero value
 	    indicates to the line breaking algorithm that an error has
-	    occured.
+	    occurred.
 	    <function>unicode_lb_next</function>() and
 	    <function>unicode_lb_next_cnt</function>() return zero either if
 	    they never invoked the callback function, or if each call to the
@@ -3712,7 +3712,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	  <para>
 	    The callback function should return 0. A non-zero value
 	    indicates to the word breaking algorithm that an error has
-	    occured.
+	    occurred.
 	    <function>unicode_wb_next</function>() and
 	    <function>unicode_wb_next_cnt</function>() return zero either if
 	    they never invoked the callback function, or if each call to the

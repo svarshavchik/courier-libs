@@ -46,7 +46,7 @@ static void err(const char *func, const char *msg)
 	       "<html><head><title>Internal error</title></head>\n"
 	       "<body><h1>Internal Error</h1>\n"
 	       "<p>The webmail system is temporarily unavailable.  An error"
-	       " occured in function %s: %s</p></body></html>\n", func,
+	       " occurred in function %s: %s</p></body></html>\n", func,
 	       msg);
 	fflush(stdout);
 	exit(0);

@@ -1101,7 +1101,7 @@
 	"emailAddress", for compatibility with OpenSSL.
 
 	* tcpd/libcouriergnutls.c (verify_client): Check for the required
-	certificate occured in the wrong spot.
+	certificate occurred in the wrong spot.
 
 	* tcpd/libcouriergnutls.c (tls_connect): Add call to
 	gnutls_certificate_set_subject() to actually request the client cert.
@@ -1785,7 +1785,7 @@
 
 2004-05-08  Brian Candler <B.Candler@pobox.com>
 
-	* pop3dserver.c (do_retr): If error occured during RETR drop the
+	* pop3dserver.c (do_retr): If error occurred during RETR drop the
 	connection (only sane thing to do).
 
 2004-05-02  Brian Candler <B.Candler@pobox.com>

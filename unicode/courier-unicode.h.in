@@ -1112,7 +1112,7 @@ unicode_convert_tocbuf_fromutf8_init(const char *dst_chset,
 ** Convert a character string to UTF-8.
 **
 ** Returns a malloc-ed buffer holding the UTF-8 string, or NULL if an
-** error occured.
+** error occurred.
 */
 char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 			       const char *text,
@@ -1123,7 +1123,7 @@ char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 			       /*
 			       ** If non-NULL, and a non-NULL pointer is
 			       ** returned, *error is set to non-zero if
-			       ** a character conversion error has occured.
+			       ** a character conversion error has occurred.
 			       */
 			       int *error);
 
@@ -1131,7 +1131,7 @@ char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 ** Convert UTF-8 text to another character set.
 **
 ** Returns a malloc-ed buffer holding the string converted to the specified
-** character set, or NULL if an error occured.
+** character set, or NULL if an error occurred.
 */
 
 char *unicode_convert_fromutf8(/* A UTF-8 string */
@@ -1147,7 +1147,7 @@ char *unicode_convert_fromutf8(/* A UTF-8 string */
 				 /*
 				 ** If non-NULL, and a non-NULL pointer is
 				 ** returned, *error is set to non-zero if
-				 ** a character conversion error has occured.
+				 ** a character conversion error has occurred.
 				 */
 				 int *error);
 
@@ -1156,7 +1156,7 @@ char *unicode_convert_fromutf8(/* A UTF-8 string */
 ** buffer.
 **
 ** Returns a malloc-ed buffer holding the string converted to the specified
-** character set, or NULL if an error occured.
+** character set, or NULL if an error occurred.
 */
 
 char *unicode_convert_tobuf(/* A string to convert */
@@ -1176,7 +1176,7 @@ char *unicode_convert_tobuf(/* A string to convert */
 			      /*
 			      ** If non-NULL, and a non-NULL pointer is
 			      ** returned, *error is set to non-zero if
-			      ** a character conversion error has occured.
+			      ** a character conversion error has occurred.
 			      */
 			      int *error);
 
