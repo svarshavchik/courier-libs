@@ -7,6 +7,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 AM_CXXFLAGS= @COURIER_UNICODE_CXXFLAGS@
 
 noinst_SCRIPTS=update.sh		\
+	mkcategories.pl			\
 	mkcommon.pm			\
 	mkbidi.pl			\
 	mkbidiclass.pl			\
@@ -17,6 +18,7 @@ noinst_SCRIPTS=update.sh		\
 	mkhtmlent.pl			\
 	mklinebreak.pl			\
 	mknormalization.pl		\
+	mkscripts.pl			\
 	mkultcase.pl			\
 	mkwordbreak.pl
 
