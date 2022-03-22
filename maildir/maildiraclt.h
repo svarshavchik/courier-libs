@@ -213,7 +213,7 @@ int maildir_acl_delete(const char *maildir,
 **
 ** The callback function should return >0 if identifier refers to the entity
 ** whose access rights are to be computed; 0 if it does not, <0 if an error
-** occured.
+** occurred.
 **
 ** As a special case, maildir_acl_compute() handles "anonymous" and "anyone"
 ** identifiers on its own.

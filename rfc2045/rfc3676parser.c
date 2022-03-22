@@ -210,7 +210,7 @@ int rfc3676parser(rfc3676_parser_t handle,
 		  size_t txt_cnt)
 {
 	if (handle->errflag)
-		return handle->errflag; /* Error occured previously */
+		return handle->errflag; /* Error occurred previously */
 
 	/* Convert to unicode and invoke parse_unicode() */
 

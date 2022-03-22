@@ -6023,7 +6023,7 @@ int	uid=0;
 					libmail_kwmDestroy(storeinfo_s.keywords);
 					free(msgset);
 					writes(tag);
-					writes(" NO An error occured while"
+					writes(" NO An error occurred while"
 					       " updating keywords: ");
 					writes(strerror(errno));
 					writes(".\r\n");
