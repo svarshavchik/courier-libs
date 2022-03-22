@@ -1574,7 +1574,7 @@ class iconvert::tou : public iconvert {
 
 	using iconvert::operator();
  private:
-	int converted(const char *ptr, size_t cnt);
+	int converted(const char *ptr, size_t cnt) override;
 
  public:
 	template<typename iter_t> class to_iter_class;
@@ -1625,7 +1625,7 @@ class iconvert::tou::to_iter_class : public iconvert::tou {
 	operator iter_t() const { return iter; }
 
  private:
-	int converted(const char32_t *ptr, size_t cnt)
+	int converted(const char32_t *ptr, size_t cnt) override
 	{
 		while (cnt)
 		{
@@ -1727,7 +1727,7 @@ class iconvert::fromu::to_iter_class : public iconvert::fromu {
 	operator iter_t() const { return iter; }
 
  private:
-	int converted(const char *ptr, size_t cnt)
+	int converted(const char *ptr, size_t cnt) override
 	{
 		while (cnt)
 		{
@@ -1853,7 +1853,7 @@ public:
 	using linebreak_callback_base::operator<<;
 	using linebreak_callback_base::operator();
 private:
-	int callback(int value);
+	int callback(int value) override;
 };
 
 /*
@@ -2043,7 +2043,7 @@ public:
 	using linebreakc_callback_base::operator<<;
 	using linebreakc_callback_base::operator();
 private:
-	int callback(int, char32_t);
+	int callback(int, char32_t) override;
 };
 
 

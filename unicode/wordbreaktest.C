@@ -25,7 +25,7 @@ public:
 	using unicode::wordbreak_callback_base::operator<<;
 
 private:
-	int callback(bool flag)
+	int callback(bool flag) override
 	{
 		flags.push_back(flag);
 		return 0;
