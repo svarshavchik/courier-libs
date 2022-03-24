@@ -98,7 +98,7 @@ fi
 AC_ARG_WITH(ispell,
 [  --without-ispell      Do not compile ispell support
   --with-ispell=prog    Pathname to ispell (if not in default path)],
-	ispell="$withval", [ AC_PATH_PROG(ispell, ispell, N, $LPATH) ] )
+	ispell="$withval", [ AC_PATH_PROGS(ispell, ispell aspell, N, $LPATH) ] )
 
 case $ispell in
 "/"*)
