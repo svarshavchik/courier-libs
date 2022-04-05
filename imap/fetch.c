@@ -1592,7 +1592,7 @@ FILE *open_cached_fp(unsigned long msgnum)
 	{
 		if (fd >= 0)	close(fd);
 
-		if ((cached_fp=tmpfile()) != 0)
+		if (fd <0 && errno == ENOENT && (cached_fp=tmpfile()) != 0)
 		{
 			fprintf(cached_fp, unavailable);
 			if (fseek(cached_fp, 0L, SEEK_SET) < 0 ||
