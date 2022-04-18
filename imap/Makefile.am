@@ -210,10 +210,6 @@ endif
 
 check-am:
 	@test "@MAKECHECKBROKEN@" = "Y" || exit 0; echo "" ; echo "Error: --with-trashquota or the --enable-workarounds-for-imap-client-bugs" ; echo "option was specified to the configure script."; echo ""; echo "As INSTALL told you, make check fails if these options are used, and I wasn't"; echo "kidding when I wrote it.  Reconfigure and rebuild without these options, then"; echo "rerun make and make check.  If make check passes, reconfigure again with your"; echo "original options, and proceed with installing this server.  Have fun!"; exit 1
-	@test "@rootcheck@" = "no" && exit 0; cp /dev/null conftest1 ; chmod 000 conftest1 ; test -w conftest1 || \
-		exit 0; echo "=============================" ; \
-		echo "Do not run make check as root" ; \
-		echo "=============================" ; exit 1
 	@rm -f conftest1
 	@chmod +x testsuitefix.pl
 	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
