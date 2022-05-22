@@ -46,19 +46,19 @@ unicode library.
 
 %prep
 %setup -q -n courier-unicode-@PACKAGE_VERSION@
-%configure
 %build
+%configure
 %{__make} -s %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
 %{__make} install DESTDIR=$RPM_BUILD_ROOT
 
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 %if 0%{?compat:1}
 find $RPM_BUILD_ROOT%{_libdir} -type l -print | xargs rm -f
 rm -rf $RPM_BUILD_ROOT%{_includedir}
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
-rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -rf $RPM_BUILD_ROOT%{_datadir}/aclocal
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
@@ -85,7 +85,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/*/*
 %{_includedir}/*
 %{_libdir}/*.so
-%{_libdir}/*.la
 %{_libdir}/*.a
 %{_datadir}/aclocal/*.m4
 %endif

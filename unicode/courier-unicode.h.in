@@ -1861,9 +1861,15 @@ private:
 ** an input iterator sequence over linebreak values.
 */
 
-template<typename input_t> class linebreak_iter
-	: public std::iterator<std::input_iterator_tag, int, void>
-{
+template<typename input_t> class linebreak_iter {
+
+public:
+	typedef std::input_iterator_tag        iterator_category;
+	typedef int                            value_type;
+	typedef void                           difference_type;
+	typedef value_type *                   pointer;
+	typedef value_type &                   reference;
+private:
 	mutable input_t iter_value, end_iter_value;
 
 	mutable linebreak_callback_save_buf *buf;
@@ -2054,10 +2060,16 @@ private:
 ** the character.
 */
 
-template<typename input_t> class linebreakc_iter
-	: public std::iterator<std::input_iterator_tag,
-			       std::pair<int, char32_t>, void>
-{
+template<typename input_t> class linebreakc_iter {
+
+public:
+	typedef std::input_iterator_tag        iterator_category;
+	typedef std::pair<int, char32_t>       value_type;
+	typedef void                           difference_type;
+	typedef value_type *                   pointer;
+	typedef value_type &                   reference;
+private:
+
 	mutable input_t iter_value, end_iter_value;
 
 	mutable linebreakc_callback_save_buf *buf;

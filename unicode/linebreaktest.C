@@ -192,9 +192,11 @@ int main(int argc, char **argv)
 
 	std::u32string::iterator e(uc.first.end()),
 		b(std::find_if(uc.first.begin(), e,
-			       std::not1(std::bind2nd(std::equal_to<char32_t>
-						      (),
-						      char32_t('0')))));
+			       []
+			       (char32_t c)
+			       {
+				       return c != '0';
+			       }));
 
 	if (b == e || *b++ != 0x30A2 || b != e)
 	{
