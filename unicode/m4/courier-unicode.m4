@@ -13,9 +13,14 @@ AC_LANG_PUSH([C++])
 
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <string>
+
+void func(std::u32string, char32_t);
+
 ]], [[
      std::u32string s;
-     char32_t c;
+     char32_t c=0;
+
+     func(s, c);
      ]])],
      [
      ],
@@ -26,9 +31,14 @@ CXXFLAGS="$save_CFLAGS $COURIER_UNICODE_CXXFLAGS"
 
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <string>
+
+void func(std::u32string, char32_t);
+
 ]], [[
      std::u32string s;
-     char32_t c;
+     char32_t c=0;
+
+     func(s, c);
      ]])],
      [
      ],
@@ -39,9 +49,14 @@ CXXFLAGS="$save_CFLAGS $COURIER_UNICODE_CXXFLAGS"
 
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <string>
+
+void func(std::u32string, char32_t);
+
 ]], [[
      std::u32string s;
-     char32_t c;
+     char32_t c=0;
+
+     func(s, c);
      ]])],
      [
      ],

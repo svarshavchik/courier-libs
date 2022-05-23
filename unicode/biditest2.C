@@ -335,7 +335,7 @@ void character_test()
 					std::cerr << " " << std::hex
 						  << std::setw(4)
 						  << std::setfill('0')
-						  << s[i] << "/"
+						  << (unsigned long)s[i] << "/"
 						  << std::dec
 						  << (int)l[i];
 				}
@@ -506,7 +506,7 @@ void character_test()
 				default:
 					std::cerr << std::hex << std::setw(4)
 						  << std::setfill('0')
-						  << c;
+						  << (unsigned long)c;
 					break;
 				}
 			}

@@ -24,7 +24,7 @@ static void dump(const char32_t *s,
 				  << std::hex
 				  << std::setw(4)
 				  << std::setfill('0')
-				  << s[i]
+				  << (unsigned long)s[i]
 				  << std::dec
 				  << std::setw(0);
 		}
@@ -189,7 +189,7 @@ void testtablookup()
 				       0) != t.found)
 		{
 			std::cerr << "unicode_tab_lookup failed for "
-				  << t.ch << std::endl;
+				  << (unsigned long)t.ch << std::endl;
 		}
 	}
 
@@ -212,11 +212,11 @@ void testcompose1()
 			std::cerr << "testcompose1: failed to compose "
 				  << std::hex << std::setw(4)
 				  << std::setfill('0')
-				  << canonical_compositions[i][0]
+				  << (unsigned long)canonical_compositions[i][0]
 				  << " with "
 				  << std::hex << std::setw(4)
 				  << std::setfill('0')
-				  << canonical_compositions[i][1]
+				  << (unsigned long)canonical_compositions[i][1]
 				  << std::endl;
 			exit(1);
 		}
@@ -232,11 +232,11 @@ void testcompose1()
 			std::cerr << "testcompose1: should not compose "
 				  << std::hex << std::setw(4)
 				  << std::setfill('0')
-				  << canonical_compositions[i][1]
+				  << (unsigned long)canonical_compositions[i][1]
 				  << " with "
 				  << std::hex << std::setw(4)
 				  << std::setfill('0')
-				  << canonical_compositions[i][0]
+				  << (unsigned long)canonical_compositions[i][0]
 				  << std::endl;
 			exit(1);
 		}
