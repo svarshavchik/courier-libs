@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright 2000-2009 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(soxwrap, 0.50, [courier-users@lists.sourceforge.net])
+AC_INIT([soxwrap],[0.50],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -21,7 +21,6 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_CC
-AC_PROG_CC_C99
 
 dnl Check for options
 
@@ -107,7 +106,7 @@ fi
 AC_DEFINE_UNQUOTED(HAVE_SOCKS, $DOSOCKS, [ Whether to use the Courier Socks library ])
 
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/select.h sys/poll.h pthread.h sys/stat.h fcntl.h sys/select.h sys/poll.h])
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_SYS_LARGEFILE
 AC_SUBST(SOCKLIBS)
 
@@ -119,7 +118,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_CACHE_CHECK([for structs in6_addr, sockaddr_in6, and sockaddr_storage],
 	soxwrap_cv_hasipv6structs,
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -129,10 +128,9 @@ struct sockaddr_in6 sain6;
 struct sockaddr_storage soas;
 int x=PF_INET6;
 
-        ], [
+        ]], [[
 
-	], soxwrap_cv_hasipv6structs=yes,
-                soxwrap_cv_hasipv6structs=no )
+	]])],[soxwrap_cv_hasipv6structs=yes],[soxwrap_cv_hasipv6structs=no ])
 )
 
 AC_ARG_WITH(ipv6, [ --without-ipv6               Disable IPv6 support],
@@ -193,4 +191,5 @@ fi
 
 
 AC_CHECK_FUNCS(inet_pton poll)
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2005 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(http11, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([http11],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,8 +15,7 @@ AM_INIT_AUTOMAKE([foreign no-define])
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = yes ; then
         CXXFLAGS="$CXXFLAGS -Wall"
@@ -27,7 +26,6 @@ dnl Checks for libraries.
 
 dnl Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -41,4 +39,5 @@ AC_ARG_WITH(defaultlang,
 	DEFAULTLANG="$withval", DEFAULTLANG="en")
 AC_SUBST(DEFAULTLANG)
 
-AC_OUTPUT(Makefile  http11.h)
+AC_CONFIG_FILES([Makefile  http11.h])
+AC_OUTPUT

@@ -20,17 +20,13 @@ static void start_reaper(pid_t pid, int exit_stat)
 {
 }
 
-static RETSIGTYPE start_reap(int signum)
+static void start_reap(int signum)
 {
 	wait_reap(start_reaper, start_reap);
-
-#if	RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 void wait_forchild( void (*)(pid_t, int), /* Reaper */
-        RETSIGTYPE (*)(int));   /* Signal handler stub */
+        void (*)(int));   /* Signal handler stub */
 
 int wait_startchildren(unsigned nchildren, pid_t **pidptr)
 {

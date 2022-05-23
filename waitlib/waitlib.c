@@ -43,7 +43,7 @@ void wait_block()
 	HOLD_CHILDREN;
 }
 
-void wait_clear(RETSIGTYPE (*func)(int))
+void wait_clear(void (*func)(int))
 {
 	RELEASE_CHILDREN;
 }
@@ -61,7 +61,7 @@ void wait_block()
 	signal(SIGCHLD, SIG_DFL);
 }
 
-void wait_clear(RETSIGTYPE (*func)(int))
+void wait_clear(void (*func)(int))
 {
 	signal(SIGCHLD, func);
 }
@@ -73,7 +73,7 @@ void wait_restore()
 
 #endif
 
-void wait_reap( void (*func)(pid_t, int), RETSIGTYPE (*handler)(int))
+void wait_reap( void (*func)(pid_t, int), void (*handler)(int))
 {
 int	dummy;
 pid_t	p;
@@ -98,7 +98,7 @@ pid_t	p;
 
 }
 
-void wait_forchild( void (*reap)(pid_t, int), RETSIGTYPE (*func)(int))
+void wait_forchild( void (*reap)(pid_t, int), void (*func)(int))
 {
 pid_t	p;
 int	wait_stat;

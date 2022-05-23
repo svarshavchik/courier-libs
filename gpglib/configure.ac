@@ -4,7 +4,7 @@ dnl Copyright 2001-2010 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 dnl
 
-AC_INIT(webpgp, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([webpgp],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -19,9 +19,7 @@ dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 AC_PROG_LN_S
 AC_ARG_WITH(gpg2,[ --with-gpg2       Use gpg2 instead of gpg ], [gpg2_option="$withval"], [gpg2_option=])
 
@@ -96,10 +94,10 @@ fi
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(unistd.h sys/wait.h sys/time.h unistd.h fcntl.h)
 AC_HEADER_SYS_WAIT
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -108,7 +106,7 @@ AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE
 
 dnl Checks for library functions.
-AC_TYPE_SIGNAL
+
 AC_CHECK_FUNCS(gettimeofday)
 
 if test "$GCC" = yes ; then
@@ -119,4 +117,5 @@ CFLAGS="-I.. -I$srcdir/.. $CFLAGS"
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
-AC_OUTPUT(Makefile webgpg)
+AC_CONFIG_FILES([Makefile webgpg])
+AC_OUTPUT

@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2008 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(couriertcpd, 0.11, [courier-users@lists.sourceforge.net])
+AC_INIT([couriertcpd],[0.11],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,11 +15,9 @@ AC_CONFIG_HEADERS(config.h)
 
 dnl Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 
 SPATH="$LPATH:/usr/kerberos/bin"
 
@@ -127,16 +125,22 @@ fi
 AC_SUBST(NETLIBS)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_HEADER_DIRENT
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/stat.h sys/wait.h sys/select.h unistd.h fcntl.h sys/ioctl.h)
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
-AC_PID_T
+AC_TYPE_PID_T
 AC_TYPE_UID_T
-AC_TYPE_SIGNAL
 AC_SYS_LARGEFILE
 
 AC_CACHE_CHECK([for socklen_t],
@@ -202,21 +206,20 @@ AC_ARG_WITH(spipe,
 spipe="$withval", spipe="")
 
 AC_CACHE_CHECK([for SVR3 stream pipes],tcpd_cv_svr3,
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/stream.h>
 #include <stropts.h>
 #include <fcntl.h>
-],[ {
+]], [[ {
 	(void)(sizeof(struct strfdinsert) +
 	        sizeof(queue_t) + I_FDINSERT)
 }
-], tcpd_cv_svr3=yes, tcpd_cv_svr3=no))
+]])],[tcpd_cv_svr3=yes],[tcpd_cv_svr3=no]))
 
 AC_CACHE_CHECK( [for SVR4 stream pipes],tcpd_cv_svr4,
 
-AC_TRY_RUN(
-[
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 
 changequote(<<,>>)
 
@@ -241,11 +244,8 @@ char	c;
 	return (1);
 }
 changequote([,])
-]
-,
-tcpd_cv_svr4=yes,
-tcpd_cv_svr4=no,
-tcpd_cv_svr4="n/a")
+
+]])],[tcpd_cv_svr4=yes],[tcpd_cv_svr4=no],[tcpd_cv_svr4="n/a"])
 
 )
 
@@ -326,20 +326,18 @@ then
 	if test "$KRB5CONFIG" != "krb5-config"
 	then
 		AC_MSG_CHECKING(whether OpenSSL requires Kerberos)
-		AC_TRY_COMPILE( [
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <openssl/ssl.h>
-], [ ], :,
-		 [
+]], [[ ]])],[:],[
 			KRBFLAGS=`$KRB5CONFIG --cflags`
 			CFLAGS="$CFLAGS $KRBFLAGS"
 
 
-			AC_TRY_COMPILE( [
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <openssl/ssl.h>
-], [ ], [ KRBLIBS="`$KRB5CONFIG --libs`" ],
-   AC_MSG_ERROR(OpenSSL test build failed) )
-			]
-)
+]], [[ ]])],[ KRBLIBS="`$KRB5CONFIG --libs`" ],[AC_MSG_ERROR(OpenSSL test build failed) ])
+
+])
 
 		if test "$KRBLIBS" = ""
 		then
@@ -364,15 +362,11 @@ then
 		save_CPPFLAGS="$CPPFLAGS"
 		CPPFLAGS="$CPPFLAGS `$PKG_CONFIG --cflags gnutls`"
 
-		AC_TRY_COMPILE( [
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <gnutls/gnutls.h>
-],
-	[
-	],
-		[ have_gnutls=yes
-		],
-
-		[
+]], [[
+	]])],[ have_gnutls=yes
+		],[
 			have_gnutls="no: \#include <gnutls/gnutls.h> failed"
 		])
 
@@ -471,17 +465,17 @@ then
 
 	save_LIBS="$LIBS"
 	LIBS="$LIBS -lgcrypt"
-	AC_TRY_LINK( [
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <gcrypt.h>
 
-], [
+]], [[
 	gcry_cipher_open(NULL, 0, 0, 0);
-], [
+]])],[
 	AC_MSG_RESULT(yes)
 	AC_DEFINE_UNQUOTED(HAVE_GCRYPT, 1,
 				[ Whether libgcrypt is installed ])
 	CRYPTLIBS="$CRYPTLIBS -lgcrypt"
-], [
+],[
 AC_MSG_RESULT(no)
 have_gcrypt="no"
 ])
@@ -492,15 +486,15 @@ have_gcrypt="no"
 	fi
 	AC_MSG_CHECKING([for libgpg-error])
 	LIBS="$LIBS -lgpg-error"
-	AC_TRY_LINK( [
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <gcrypt.h>
 
-], [
+]], [[
 	gpg_err_code_from_errno(0);
-], [
+]])],[
 	AC_MSG_RESULT(yes)
 	CRYPTLIBS="$CRYPTLIBS -lgpg-error"
-], [
+],[
 AC_MSG_RESULT(no)
 ])
 
@@ -514,12 +508,12 @@ else
 		save_LIBS="$LIBS"
 		LIBS="-lcrypto $KRBLIBS $LIBS"
 
+		AC_CHECK_FUNCS(PEM_read_bio_Parameters_ex)
 		AC_MSG_CHECKING(for OpenSSL 0.9.7)
-		AC_TRY_LINK( [
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-],
-[
+]], [[
 EVP_CIPHER_CTX ctx;
 char dummy[1];
 unsigned char a[1], b[1];
@@ -528,22 +522,21 @@ EVP_CIPHER_CTX_init(&ctx);
 EVP_EncryptInit_ex(&ctx, EVP_des_cbc(), NULL, a, b);
 RAND_pseudo_bytes(dummy, 1);
 
-], [
+]])],[
    CRYPTLIBS="-lcrypto $KRBLIBS"
    AC_MSG_RESULT(yes)
    AC_DEFINE_UNQUOTED(HAVE_OPENSSL097, 1,
 				       [ Whether OpenSSL 0.9.7 is installed ])
-], [
+],[
    AC_MSG_RESULT(no)
 
 
 
 		AC_MSG_CHECKING(for OpenSSL 1.1.0)
-		AC_TRY_LINK( [
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-],
-[
+]], [[
 unsigned char dummy[1];
 unsigned char a[1], b[1];
 
@@ -551,31 +544,30 @@ EVP_CIPHER_CTX *ctx=EVP_CIPHER_CTX_new();
 EVP_EncryptInit_ex(ctx, EVP_des_cbc(), NULL, a, b);
 RAND_bytes(dummy, 1);
 
-], [
+]])],[
    CRYPTLIBS="-lcrypto $KRBLIBS"
    AC_MSG_RESULT(yes)
    AC_DEFINE_UNQUOTED(HAVE_OPENSSL110, 1,
 				       [ Whether OpenSSL 1.1.0 is installed ])
-], [
+],[
    AC_MSG_RESULT(no)
 ])
 
-]
-)
+
+])
 		LIBS="-lssl $LIBS"
 		AC_CHECK_FUNCS(TLSv1_1_method TLSv1_2_method X509_VERIFY_PARAM_set1_host)
 		LIBS="$save_LIBS"
 
-		AC_TRY_COMPILE( [
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <openssl/ssl.h>
 
 SSL *p;
-],
-[
+]], [[
 (void)SSL_get_servername(p, TLSEXT_NAMETYPE_host_name);
-], [
+]])],[
                 AC_DEFINE_UNQUOTED(HAVE_OPENSSL_SNI,1,[ Whether OpenSSL supports SNI ])
-		])
+		],[])
 
 		TLSLIBRARY="$LIBCOURIERTLSOPENSSL"
 		STARTTLS=couriertls$EXEEXT
@@ -610,4 +602,5 @@ AC_SUBST(BUILDLIBCOURIERTLS)
 AC_SUBST(TLSLIBRARY)
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

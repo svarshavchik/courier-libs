@@ -1,6 +1,6 @@
 dnl
 
-AC_INIT(sqwebmail-en-us, 0.1, [courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail-en-us],[0.1],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -33,4 +33,5 @@ AC_SUBST(htmldir)
 AC_SUBST(htmldir)
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -3,8 +3,8 @@ dnl
 dnl Copyright 1998 - 2010 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_PREREQ(2.59)
-AC_INIT(numlib, 0.10, courier-users@lists.sourceforge.net)
+AC_PREREQ([2.71])
+AC_INIT([numlib],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -12,14 +12,13 @@ AC_CONFIG_SRCDIR([atotimet.c])
 AC_CONFIG_AUX_DIR(../..)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign no-define])
- 
+
 dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = "yes"
 then
@@ -47,4 +46,5 @@ AC_SYS_LARGEFILE
 dnl Checks for library functions.
 
 AC_CHECK_FUNCS(setgroups initgroups)
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -4,7 +4,7 @@ dnl Copyright 1998 - 2001 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
 
-AC_INIT(libhmac, 1.00, [courier-users@lists.sourceforge.net])
+AC_INIT([libhmac],[1.00],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -20,8 +20,7 @@ AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = yes
 then
@@ -33,7 +32,6 @@ CPPFLAGS="$CPPFLAGS -I$srcdir/.. -I.."
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -69,4 +67,5 @@ AC_SUBST(TESTPROGS)
 AC_DEFINE_UNQUOTED(HMAC_LIST,$hmac_list,
 	[ Dynamically-generated list of installed HMAC hash functions ])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

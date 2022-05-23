@@ -26,7 +26,7 @@
 #include	<string.h>
 
 static pid_t ispell_pid;
-static RETSIGTYPE (*prevsighandler)(int);
+static void (*prevsighandler)(int);
 
 #ifndef	ISPELL
 #define	ISPELL	"/usr/bin/ispell"

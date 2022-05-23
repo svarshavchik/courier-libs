@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(sqwebmail, 6.0.9, [courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[6.0.10],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -17,9 +17,7 @@ AC_PROG_MAKE_SET
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = yes ; then
         CXXFLAGS="$CXXFLAGS -Wall"
@@ -181,21 +179,21 @@ AC_SUBST(piddir)
 
 dnl Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(fcntl.h sys/wait.h sys/select.h sys/uio.h sys/stat.h sys/time.h utime.h unistd.h locale.h crypt.h wchar.h strings.h)
 
 AC_HEADER_SYS_WAIT
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_STRUCT_TM
 AC_TYPE_PID_T
 AC_TYPE_UID_T
-AC_TYPE_SIGNAL
 AC_SYS_LARGEFILE
 
-AC_TRY_RUN( [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -210,16 +208,14 @@ FILE	*fp=fopen("conftestval", "w");
 	fclose(fp);
 	return (0);
 }
-]
-	, [ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],
-	[
+
+	]])],[ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],[
 		AC_MSG_ERROR(Unable to run test program.)
-	] ,
-	[
+	 ],[
 		MAXLONGSIZE=60
 		AC_MSG_WARN([Cross compiling, setting MAXLONGSIZE to $MAXLONGSIZE])
-	]
-		)
+
+		])
 
 dnl Checks for library functions.
 AC_FUNC_STRFTIME
@@ -228,7 +224,7 @@ AC_REPLACE_FUNCS(strdup)
 
 AC_CACHE_CHECK([for crypt() prototype],sqwebmail_cv_NEED_CRYPT_PROTOTYPE,
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
        #if HAVE_CRYPT_H
        #include <crypt.h>
        #endif
@@ -237,8 +233,7 @@ AC_TRY_COMPILE( [
        #endif
        int crypt(int, int);
 
-        ], [], sqwebmail_cv_NEED_CRYPT_PROTOTYPE=1,
-                sqwebmail_cv_NEED_CRYPT_PROTOTYPE=0 )
+        ]], [[]])],[sqwebmail_cv_NEED_CRYPT_PROTOTYPE=1],[sqwebmail_cv_NEED_CRYPT_PROTOTYPE=0 ])
 
 )
 
@@ -496,7 +491,8 @@ do
     fi
 done
 
-AC_OUTPUT(Makefile sendit.sh cleancache.pl sqwebmaild.dist)
+AC_CONFIG_FILES([Makefile sendit.sh cleancache.pl sqwebmaild.dist])
+AC_OUTPUT
 
 if test ! -d html/$lang
 then

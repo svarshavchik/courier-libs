@@ -44,9 +44,9 @@ static int sig=0;
 static int catch(int signum)
 {
 	sig=1;
-	signal(SIGHUP, (RETSIGTYPE (*)(int))catch);
-	signal(SIGTERM, (RETSIGTYPE (*)(int))catch);
-	signal(SIGINT, (RETSIGTYPE (*)(int))catch);
+	signal(SIGHUP, (void (*)(int))catch);
+	signal(SIGTERM, (void (*)(int))catch);
+	signal(SIGINT, (void (*)(int))catch);
 	return 0;
 }
 
@@ -128,9 +128,9 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		signal(SIGHUP, (RETSIGTYPE (*)(int))catch);
-		signal(SIGTERM, (RETSIGTYPE (*)(int))catch);
-		signal(SIGINT, (RETSIGTYPE (*)(int))catch);
+		signal(SIGHUP, (void (*)(int))catch);
+		signal(SIGTERM, (void (*)(int))catch);
+		signal(SIGINT, (void (*)(int))catch);
 
 		if (ll_mail_lock(p) < 0)
 		{
@@ -187,4 +187,3 @@ int main(int argc, char **argv)
 	exit(EX_TEMPFAIL);
 	return (0);
 }
-

@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2001 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(makedat, 0.60, [courier-users@lists.sourceforge.net])
+AC_INIT([makedat],[0.60],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,14 +15,12 @@ AC_CONFIG_HEADERS(config.h)
 
 dnl Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PATH_PROGS(PERL, perl5 perl, perl, $LPATH)
 AC_SUBST(PERL)
 AC_PATH_PROGS(CAT, cat, cat)
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 AC_SYS_LARGEFILE
 
 if test x$GCC = xyes
@@ -55,7 +53,7 @@ AC_SUBST(makedatprog_target)
 AC_SUBST(dblibrary)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(unistd.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -67,4 +65,5 @@ AC_ARG_WITH(makedatprog,[ --with-makedatprog=filename      Installed location an
 makedatprogpath="$makedatprog"
 AC_SUBST(makedatprogpath)
 
-AC_OUTPUT(Makefile makedat)
+AC_CONFIG_FILES([Makefile makedat])
+AC_OUTPUT

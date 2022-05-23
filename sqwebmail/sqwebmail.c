@@ -2002,7 +2002,7 @@ void cleanup()
 
 
 
-static RETSIGTYPE catch_sig(int n)
+static void catch_sig(int n)
 {
 	n=n;
 	cleanup();

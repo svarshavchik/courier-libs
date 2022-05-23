@@ -3,7 +3,7 @@ dnl
 dnl Copyright 2000 - 2006 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(ldapaddressbook, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([ldapaddressbook],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -16,15 +16,14 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(stdio.h sys/wait.h sys/time.h)
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 AC_ARG_WITH(ldapaddressbook,
 [  --without-ldapaddressbook   Disable LDAP address book code ],
@@ -49,20 +48,17 @@ if test "$HAVE_OPENLDAP" = 1
 then
 	save_LIBS="$LIBS"
 	LIBS="$LIBS -lldap"
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #if HAVE_LBER_H
 #include <lber.h>
 #endif
 #include <ldap.h>
-],
-[
+]], [[
 	(void)ldap_err2string(0);
-],
-[
+]])],[
 	:
-],
-[
+],[
 	AC_MSG_ERROR([ldap.h header found, but a test compile failed -- check ldapaddressbook/config.log for more details])
 ])
 	LIBS="$save_LIBS"
@@ -85,4 +81,5 @@ AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
 dnl Checks for library functions.
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

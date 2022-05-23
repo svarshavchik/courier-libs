@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(gdbmobj, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([gdbmobj],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,11 +15,10 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_AWK
 AC_PROG_CXX
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl Checks for libraries.
 
@@ -49,4 +48,5 @@ AC_SYS_LARGEFILE
 
 dnl Checks for library functions.
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

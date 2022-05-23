@@ -1,7 +1,7 @@
 dnl
 dnl Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
 dnl distribution information.
-AC_INIT(rfc2045lib, 0.20, [courier-maildrop@lists.sourceforge.net])
+AC_INIT([rfc2045lib],[0.20],[courier-maildrop@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -13,10 +13,8 @@ AC_CONFIG_HEADERS(rfc2045_config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_CXX
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = yes ; then
         CXXFLAGS="$CXXFLAGS -Wall"
@@ -26,20 +24,20 @@ fi
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(unistd.h sys/wait.h strings.h locale.h)
 
 AC_CACHE_CHECK([for missing gethostname prototype],rfc2045_cv_SYS_GETHOSTNAME,
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
 
 extern int gethostname(int,int);
-],[
-],rfc2045_cv_SYS_GETHOSTNAME=yes,rfc2045_cv_SYS_GETHOSTNAME=no
-)
+]], [[
+]])],[rfc2045_cv_SYS_GETHOSTNAME=yes],[rfc2045_cv_SYS_GETHOSTNAME=no
+])
 
 )
 
@@ -91,4 +89,5 @@ AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 . ../rfc822/rfc822.config
 
 AM_CONDITIONAL(HAVE_LIBIDN, test "$libidn" = "yes")
-AC_OUTPUT(Makefile rfc2045charset.h)
+AC_CONFIG_FILES([Makefile rfc2045charset.h])
+AC_OUTPUT

@@ -1066,11 +1066,11 @@ static char *convertcid(const char *cidurl, void *voidp)
 	else
 		p=(*cid_info->info->get_url_to_mime_part)(mimeid,
 							  cid_info->info);
-	free(mimeid);
-
 	if (*mimegpgfilename && rfc->parent &&
 	    libmail_gpgmime_is_decoded(rfc->parent, &dummy))
 		add_decoded_link(rfc->parent, mimeid, dummy);
+
+	free(mimeid);
 
 	return p;
 }

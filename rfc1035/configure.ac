@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2003 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(librfc1035, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([librfc1035],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -16,11 +16,9 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_LIBTOOL_DLOPEN
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl Checks for libraries.
 
@@ -31,7 +29,7 @@ then
 	AC_MSG_ERROR(libidn not found)
 fi
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(sys/types.h sys/time.h unistd.h arpa/inet.h netinet/in.h strings.h stdint.h)
 
 USENSL=no
@@ -74,7 +72,8 @@ AC_CHECK_LIB(socket,socket)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+
 AC_SYS_LARGEFILE
 
 AC_ARG_WITH(int32,
@@ -84,7 +83,7 @@ AC_ARG_WITH(int32,
 
 		AC_MSG_CHECKING(for uint32_t)
 
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
@@ -92,13 +91,13 @@ AC_ARG_WITH(int32,
 #include	<stdint.h>
 #endif
 uint32_t n;
-		],[
-		], [ AC_MSG_RESULT(yes) ; int32="uint32_t"], [
+		]], [[
+		]])],[ AC_MSG_RESULT(yes) ; int32="uint32_t"],[
 
 		AC_MSG_RESULT(no)
 		AC_MSG_CHECKING(for u_int_32_t)
 
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
@@ -106,8 +105,8 @@ uint32_t n;
 #include	<stdint.h>
 #endif
 u_int32_t n;
-			],[
-			], [AC_MSG_RESULT(yes); int32="u_int32_t"],[
+			]], [[
+			]])],[AC_MSG_RESULT(yes); int32="u_int32_t"],[
 
 			AC_MSG_RESULT(no)
 
@@ -120,7 +119,7 @@ u_int32_t n;
 					AC_CHECK_SIZEOF(unsigned short, 0)
 					if test "$ac_cv_sizeof_unsigned_short" != 4
 					then
-						AC_ERROR(--with-int32 option is required)
+						AC_MSG_ERROR(--with-int32 option is required)
 					fi
 					int32="unsigned short"
 				fi
@@ -141,7 +140,7 @@ AC_ARG_WITH(int16,
 
 		AC_MSG_CHECKING(for uint16_t)
 
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
@@ -149,13 +148,13 @@ AC_ARG_WITH(int16,
 #include	<stdint.h>
 #endif
 uint16_t n;
-		],[
-		], [ AC_MSG_RESULT(yes) ; int16="uint16_t"], [
+		]], [[
+		]])],[ AC_MSG_RESULT(yes) ; int16="uint16_t"],[
 
 		AC_MSG_RESULT(no)
 		AC_MSG_CHECKING(for u_int_16_t)
 
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_SYS_TYPES_H
 #include	<sys/types.h>
 #endif
@@ -163,8 +162,8 @@ uint16_t n;
 #include	<stdint.h>
 #endif
 u_int16_t n;
-			],[
-			], [AC_MSG_RESULT(yes); int16="u_int16_t"],[
+			]], [[
+			]])],[AC_MSG_RESULT(yes); int16="u_int16_t"],[
 
 			AC_MSG_RESULT(no)
 
@@ -177,7 +176,7 @@ u_int16_t n;
 					AC_CHECK_SIZEOF(unsigned short, 0)
 					if test "$ac_cv_sizeof_unsigned_short" != 4
 					then
-						AC_ERROR(--with-int16 option is required)
+						AC_MSG_ERROR(--with-int16 option is required)
 					fi
 					int16="unsigned short"
 				fi
@@ -232,20 +231,19 @@ dnl Check for IPv6 support
 AC_CACHE_CHECK([for structs in6_addr, sockaddr_in6, and sockaddr_storage],
 	rfc1035_cv_hasipv6structs,
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-        ], [
+        ]], [[
 	(void)(sizeof(struct in6_addr)+
 			     sizeof(struct sockaddr_in6)+
 			     sizeof(struct sockaddr_storage)+
 			     PF_INET6);
 
-	], rfc1035_cv_hasipv6structs=yes,
-                rfc1035_cv_hasipv6structs=no )
+	]])],[rfc1035_cv_hasipv6structs=yes],[rfc1035_cv_hasipv6structs=no ])
 )
 
 changequote()
@@ -257,57 +255,60 @@ changequote([,])
 
 AC_CACHE_CHECK([for IPv6 flavor],
 	rfc1035_cv_ipv6flavor,
+[
 
 if test "$rfc1035_cv_hasipv6structs" = no
 then
 	rfc1035_cv_ipv6flavor=none
 else
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 struct in6_addr in6a;
 
-] , [
+ ]], [[
 	in6a.s6_addr16 $LB 0 $RB =0;
 	in6a.s6_addr32 $LB 0 $RB =0;
-],
-	rfc1035_cv_ipv6flavor="glibc (default)",
+]])],[rfc1035_cv_ipv6flavor="glibc (default)"],[])
+fi
 
-AC_TRY_COMPILE( [
+if test "$rfc1035_cv_ipv6flavor" = ""
+then
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 struct in6_addr in6a;
 
-        ], [
+        ]], [[
 
 	in6a.__u6_addr.__u6_addr16 $LB 0 $RB =0;
 	in6a.__u6_addr.__u6_addr32 $LB 0 $RB =0;
-	],
-		rfc1035_cv_ipv6flavor="freebsd-4.0",
+	]])],[rfc1035_cv_ipv6flavor="freebsd-4.0"],[])
+fi
 
-AC_TRY_COMPILE( [
+if test "$rfc1035_cv_ipv6flavor" = ""
+then
+
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 struct in6_addr in6a;
 
-        ], [
+        ]], [[
        in6a._S6_un._S6_u8 $LB 0 $RB = 0;
        in6a._S6_un._S6_u32 $LB 0 $RB = 0;
 
-       ],
-		rfc1035_cv_ipv6flavor="solaris8",
-		rfc1035_cv_ipv6flavor="unknown"
-		)
-	)
-)
+       ]])],[rfc1035_cv_ipv6flavor="solaris8"],[rfc1035_cv_ipv6flavor="unknown"
+		])
 fi
-)
+
+])
 
 RFC1035_FREEBSD40=0
 if test "$rfc1035_cv_ipv6flavor" = "freebsd-4.0"
@@ -331,13 +332,13 @@ AC_SUBST(RFC1035_SOLARIS8)
 AC_CACHE_CHECK([for SIOCGIFCONF],
 	rfc1035_cv_siocgifconf,
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <unistd.h>
-] , [
+ ]], [[
 	struct ifreq ifreq_buf;
 	struct ifconf ifc;
 
@@ -345,7 +346,7 @@ AC_TRY_COMPILE( [
 	ifc.ifc_req=&ifreq_buf;
 
 	ioctl(0, SIOCGIFCONF, &ifc);
-], rfc1035_cv_siocgifconf=yes, rfc1035_cv_siocgifconf=no)
+]])],[rfc1035_cv_siocgifconf=yes],[rfc1035_cv_siocgifconf=no])
 )
 
 if test "$rfc1035_cv_siocgifconf" = "yes"
@@ -357,15 +358,14 @@ fi
 AC_CACHE_CHECK([for alloca],
 	[rfc1035_cv_alloca],
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 
-        ], [
+        ]], [[
 (void)(char *)alloca(10);
 
-	], rfc1035_cv_alloca=yes,
-                rfc1035_cv_alloca=no )
+	]])],[rfc1035_cv_alloca=yes],[rfc1035_cv_alloca=no ])
 )
 
 ipv6=0
@@ -403,4 +403,5 @@ AC_DEFINE_UNQUOTED(RFC1035_UINT16, $UINT16, [ 16bit datatype ])
 AC_DEFINE_UNQUOTED(RFC1035_IPV6, $RFC1035_IPV6,
 	[ Whether IPv6 support is enabled ])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

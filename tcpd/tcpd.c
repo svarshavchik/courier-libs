@@ -245,25 +245,17 @@ static int isid(const char *p)
 	return (1);
 }
 
-static RETSIGTYPE sigexit(int n)
+static void sigexit(int n)
 {
 	kill( -getpid(), SIGTERM);
 	_exit(0);
-
-#if RETSIGTYPE != void
-	return (0)
-#endif
 }
 
-static RETSIGTYPE sighup(int n)
+static void sighup(int n)
 {
 	sighup_received=1;
 
 	signal(SIGHUP, sighup);
-
-#if RETSIGTYPE != void
-	return (0)
-#endif
 }
 
 /*
@@ -893,13 +885,10 @@ int	n;
 		}
 }
 
-static RETSIGTYPE childsig(int signum)
+static void childsig(int signum)
 {
 	signum=signum;
 	wait_reap(doreap, childsig);
-#if RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 static int doallowaccess(char *, int);

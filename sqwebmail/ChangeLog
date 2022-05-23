@@ -1,3 +1,12 @@
+6.0.10
+
+2022-05-22  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* gcc 12 and autotools update. Fix minor use after free bugs
+	when showing links to decoded PGP attachments, and if the
+	calendar module is enabled, and the calendaring server runs out
+	of disk space.
+
 2022-04-14  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Add scripts to create installable .deb packages, update

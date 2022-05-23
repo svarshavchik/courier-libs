@@ -403,9 +403,9 @@ static char *acquire_dotlock(struct PCPdir *pd)
 
 	if (!tmpname)
 	{
-		free(n);
 		fprintf(stderr, "ALERT: Failed to create dotlock: %s - %s\n",
 			n, strerror(errno));
+		free(n);
 		return (NULL);
 	}
 	strcat(strcat(strcat(strcpy(tmpname, pd->dirname), "/."),
@@ -416,9 +416,9 @@ static char *acquire_dotlock(struct PCPdir *pd)
 	if (!fp)
 	{
 		free(tmpname);
-		free(n);
 		fprintf(stderr, "ALERT: Failed to create dotlock: %s - %s\n",
 			n, strerror(errno));
+		free(n);
 		return (NULL);
 	}
 
@@ -428,9 +428,9 @@ static char *acquire_dotlock(struct PCPdir *pd)
 		fclose(fp);
 		unlink(tmpname);
 		free(tmpname);
-		free(n);
 		fprintf(stderr, "ALERT: Failed to create dotlock: %s - %s\n",
 			n, strerror(errno));
+		free(n);
 		return (NULL);
 	}
 
@@ -438,9 +438,9 @@ static char *acquire_dotlock(struct PCPdir *pd)
 	{
 		unlink(tmpname);
 		free(tmpname);
-		free(n);
 		fprintf(stderr, "ALERT: Failed to create dotlock: %s - %s\n",
 			n, strerror(errno));
+		free(n);
 		return (NULL);
 	}
 

@@ -58,14 +58,10 @@ void Alarm::set_sig()
 	alarm(first->set_interval);
 }
 
-RETSIGTYPE Alarm::alarm_func(int)
+void Alarm::alarm_func(int)
 {
 	if (first)	cancel_sig(first->set_interval);
 	set_sig();
-
-#if RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 unsigned Alarm::sig_left()

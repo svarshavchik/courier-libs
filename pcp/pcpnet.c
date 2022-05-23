@@ -1897,6 +1897,7 @@ static int retr_105(struct PCPnet *pn, struct PCP_retr *ri)
 		if (ri->callback_retr_date)
 			return ( (*ri->callback_retr_date)
 				 (ri, from_t, to_t, ri->callback_arg));
+		ri->event_id=NULL; /* Fix spurious gcc warning */
 	}
 
 	return (0);
@@ -1916,6 +1917,7 @@ static int retr_106(struct PCPnet *pn, struct PCP_retr *ri)
 		if (ri->callback_retr_participants)
 			return ( (*ri->callback_retr_participants)
 				 (ri, addr, NULL, ri->callback_arg));
+		ri->event_id=NULL; /* Fix spurious gcc warning */
 	}
 
 	return (0);
@@ -1926,7 +1928,7 @@ static int retr_110(struct PCPnet *pn, struct PCP_retr *ri)
 	char dummy;
 	char eventid[EVENTID_MAXLEN];
 
-	if (sscanf(pn->readbuf, "110%c" EVENTID_SSCANF, 
+	if (sscanf(pn->readbuf, "110%c" EVENTID_SSCANF,
 		   &dummy, eventid) == 2)
 	{
 		const char *p, *q;

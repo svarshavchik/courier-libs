@@ -28,7 +28,7 @@ static Alarm *first, *last;
 
 static	void cancel_sig(unsigned);
 static	void set_sig();
-static	RETSIGTYPE alarm_func(int);
+static	void alarm_func(int);
 static	unsigned sig_left();
 public:
 	Alarm() : next(0), prev(0), set_interval(0)	{}

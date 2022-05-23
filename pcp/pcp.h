@@ -9,18 +9,10 @@
 
 #include "config.h"
 
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
-
 #include <time.h>
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 
 struct PCP_new_eventid {
 	char *eventid;
@@ -327,7 +319,7 @@ const char *pcp_wdayname(unsigned);	/* Sun, Mon, Tue... */
 const char *pcp_wdayname_long(unsigned); /* Sunday, Monday, ... */
 const char *pcp_monthname(unsigned);	/* Jan, Feb, Mar... */
 const char *pcp_monthname_long(unsigned); /* January, February... */
-int pcp_wday(const char *);	/* Sun, Mon, Tue... -> 0..7, -1 if no match */ 
+int pcp_wday(const char *);	/* Sun, Mon, Tue... -> 0..7, -1 if no match */
 int pcp_month(const char *);	/* Ditto for Jan, Feb, Mar */
 
 int pcp_fmttime(char *, size_t, time_t, int);	/* Format date+time */
@@ -364,7 +356,7 @@ int pcp_parse_datetime_until(time_t start, time_t end,
 			     int *argn,
 			     int argc,
 			     char **argv,
-			    
+
 			     int recurring_time,
 
 			     /* Callback function receives times */

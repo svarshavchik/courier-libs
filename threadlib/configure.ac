@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(threadlib, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([threadlib],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -16,12 +16,11 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_CC
-AC_PROG_CC_C99
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(unistd.h pthread.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -36,13 +35,12 @@ AC_CHECK_LIB(pthread, pthread_cond_wait, [
 	THREADLIB="-lpthread" ; LIBS="-lpthread $LIBS" ], [
 
 LIBS="-pthread $save_LIBS"
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 void pthread_cond_wait();
-],[
+]], [[
 	pthread_cond_wait();
-],
-	THREADLIB="-pthread"
-)
+]])],[THREADLIB="-pthread"
+],[])
 ]
 )
 
@@ -76,19 +74,20 @@ AM_CONDITIONAL(HAVE_PTHREADS, test "$have_pthreads" != "no")
 
 AC_SUBST(THREADLIB)
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <math.h>
 
 double x()
 {
     return sqrt(0);
-}],[
-], [
+}]], [[
+]])],[
    LIBS='-lm'
-])
+],[])
 
 if test "$GCC" = "yes"
 then
 	CFLAGS="-Wall $CFLAGS"
 fi
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

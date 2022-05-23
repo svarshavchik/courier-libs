@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2002 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(waitlib, 0.50, [courier-users@lists.sourceforge.net])
+AC_INIT([waitlib],[0.50],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -18,8 +18,7 @@ AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl Checks for libraries.
 
@@ -31,7 +30,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T
 
 dnl Checks for library functions.
-AC_TYPE_SIGNAL
+
 AC_SYS_LARGEFILE
 
 AC_CHECK_FUNCS(wait wait3 sigblock sighold sigprocmask)
@@ -50,12 +49,10 @@ wait3)
 "")
 	AC_CACHE_CHECK([if wait function is broken],waitlib_cv_SYS_WAITBROKEN,
 
-		AC_TRY_RUN([
+		AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include	"confdefs.h"
 #include	"$srcdir/confwait.c"
-				], waitlib_cv_SYS_WAITBROKEN=no,
-				waitlib_cv_SYS_WAITBROKEN=yes,
-			AC_MSG_ERROR(Must specify --with-waitfunc when cross-compiling)))
+				]])],[waitlib_cv_SYS_WAITBROKEN=no],[waitlib_cv_SYS_WAITBROKEN=yes],[AC_MSG_ERROR(Must specify --with-waitfunc when cross-compiling)]))
 
 	has_xsig=no;
 	if test "$ac_cv_func_sigblock" = "yes"
@@ -70,13 +67,11 @@ wait3)
 	if test "$waitlib_cv_SYS_WAITBROKEN$has_xsig$ac_cv_func_wait3" = "yesyesyes"
 	then
 		AC_CACHE_CHECK([if wait3 function is broken],waitlib_cv_SYS_WAIT3BROKEN,
-			AC_TRY_RUN([
+			AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #define	USE_WAIT3	1
 #include	"confdefs.h"
 #include	"$srcdir/confwait.c"
-				], waitlib_cv_SYS_WAIT3BROKEN=no,
-				waitlib_cv_SYS_WAIT3BROKEN=yes,
-			AC_MSG_ERROR(Must specify --with-waitfunc when cross-compiling)))
+				]])],[waitlib_cv_SYS_WAIT3BROKEN=no],[waitlib_cv_SYS_WAIT3BROKEN=yes],[AC_MSG_ERROR(Must specify --with-waitfunc when cross-compiling)]))
 		use_wait3=yes
 		if test $waitlib_cv_SYS_WAIT3BROKEN = yes
 		then
@@ -106,4 +101,5 @@ then
 	CFLAGS="-Wall $CFLAGS"
 fi
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

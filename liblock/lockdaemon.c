@@ -218,7 +218,7 @@ char	buf[NUMBUFSIZE+1];
 char	*p=strcat(libmail_str_pid_t(getpid(), buf), "\n");
 FILE	*fp;
 
-	unlink(pidfile); 
+	unlink(pidfile);
 	if ((fp=fopen(pidfile, "w")) == NULL ||
 		fprintf(fp, "%s", p) < 0 || fflush(fp) < 0 || fclose(fp))
 	{
@@ -268,12 +268,9 @@ int	waitstat;
 **	process kills itself.
 */
 
-static RETSIGTYPE sigexit(int signum)
+static void sigexit(int signum)
 {
 	kill(getpid(), SIGKILL);
-#if     RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 static void stop1(const char *lockfile, const char *pidfile)
@@ -371,4 +368,3 @@ int	c;
 		kill(p, SIGHUP);
 	return (0);
 }
-

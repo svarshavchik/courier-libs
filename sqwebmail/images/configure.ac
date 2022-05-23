@@ -4,7 +4,7 @@ dnl configure.in,v 1.1 2000/05/24 17:08:11 mrsam Exp
 dnl Copyright 2000-2007 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(sqwebmail-images,0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([sqwebmail-images],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -24,4 +24,5 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

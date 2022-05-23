@@ -18,13 +18,10 @@ extern void killprocgroup();
 
 int Maildrop::sigfpe;
 
-static RETSIGTYPE sig_fpe(int)
+static void sig_fpe(int)
 {
 	maildrop.sigfpe=1;
 	signal (SIGFPE, sig_fpe);
-#if RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 void Maildrop::cleanup()
@@ -33,7 +30,7 @@ void Maildrop::cleanup()
 	killprocgroup();
 }
 
-RETSIGTYPE Maildrop::bye(int n)
+void Maildrop::bye(int n)
 {
 static const char msg[]="maildrop: signal 0x";
 static const char hex[]="0123456789ABCDEF";
@@ -46,10 +43,6 @@ static const char hex[]="0123456789ABCDEF";
 		; /* gcc shut up */
 
 	_exit(EX_TEMPFAIL);
-
-#if RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 int Maildrop::trap(int (*func)(int, char *[]), int argc, char *argv[])

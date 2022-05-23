@@ -12,12 +12,9 @@
 
 static int n;
 
-static RETSIGTYPE trap(int signum)
+static void trap(int signum)
 {
 	n=signum;
-#if	RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 void trap_signals()

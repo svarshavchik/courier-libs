@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(bdbobj, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([bdbobj],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,11 +15,10 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_AWK
 AC_PROG_CXX
-AC_ISC_POSIX
-AC_PROG_LIBTOOL
+AC_SEARCH_LIBS([strerror],[cposix])
+LT_INIT
 
 dnl Checks for libraries.
 
@@ -49,15 +48,13 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 AC_CACHE_CHECK([if the C++ compiler needs -fhandle-exceptions],
 	ac_cv_need_handlexceptions,
 
-AC_TRY_COMPILE([],
-[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 throw;
-], ac_cv_need_handlexceptions=no,
-ac_cv_need_handlexceptions=yes)
+]])],[ac_cv_need_handlexceptions=no],[ac_cv_need_handlexceptions=yes])
 )
 
 if test "$ac_cv_need_handlexceptions" = "yes"
@@ -77,4 +74,5 @@ then
 	CFLAGS="-Wall $CFLAGS"
 fi
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

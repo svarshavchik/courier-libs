@@ -27,6 +27,7 @@ struct rfc2045id nextid;
 			decode(topid, &nextid.next, r, func, ptr);
 		++nextid.idnum;
 	}
+	*childidptr=0; /* Fix spurious gcc warning */
 }
 
 void rfc2045_decode(struct rfc2045 *p,

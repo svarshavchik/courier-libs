@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2002 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(random128, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([random128],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -19,10 +19,9 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PATH_PROGS(PS, ps, ps, $LPATH)
 AC_PATH_PROGS(W, w, w, $LPATH)
-AC_PROG_LIBTOOL
+LT_INIT
 
 if test "$PS" = "ps"
 then
@@ -99,4 +98,5 @@ then
 	AC_DEFINE_UNQUOTED(W, "$w", [ The W program ])
 fi
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

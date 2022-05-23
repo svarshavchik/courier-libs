@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(sqwebmail, 0.23, [courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[0.23],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -24,7 +24,8 @@ htmldir="$datadir/sqwebmail/html"
 AC_SUBST(htmldir)
 AC_CONFIG_SUBDIRS($LANGUAGES)
 AC_SUBST(LANGUAGES)
-AC_OUTPUT(Makefile README_LANG.html)
+AC_CONFIG_FILES([Makefile README_LANG.html])
+AC_OUTPUT
 
 # Set up soft links
 

@@ -9,15 +9,9 @@
 #include	<stdlib.h>
 #include	<sys/types.h>
 #include	<arpa/inet.h>
-#if TIME_WITH_SYS_TIME
-#include	<sys/time.h>
 #include	<time.h>
-#else
 #if HAVE_SYS_TIME_H
 #include	<sys/time.h>
-#else
-#include	<time.h>
-#endif
 #endif
 
 
@@ -34,15 +28,15 @@ char	timebuf[RFC1035_MAXTIMEBUFSIZE+1];
 	if (!p)	return (0);
 
 	strcat(strcat(strcat(strcpy(p, name2), ". "), name1), ". (\n\t\t\t\t");
-	sprintf(p+strlen(p), "%lu ; serial\n", 
+	sprintf(p+strlen(p), "%lu ; serial\n",
 			(unsigned long)rr->rr.soa.serial);
-	sprintf(p+strlen(p), "\t\t\t\t%s  ; refresh\n", 
+	sprintf(p+strlen(p), "\t\t\t\t%s  ; refresh\n",
 			rfc1035_fmttime( rr->rr.soa.refresh, timebuf));
-	sprintf(p+strlen(p), "\t\t\t\t%s  ; retry\n", 
+	sprintf(p+strlen(p), "\t\t\t\t%s  ; retry\n",
 			rfc1035_fmttime( rr->rr.soa.retry, timebuf));
-	sprintf(p+strlen(p), "\t\t\t\t%s  ; expire\n", 
+	sprintf(p+strlen(p), "\t\t\t\t%s  ; expire\n",
 			rfc1035_fmttime( rr->rr.soa.expire, timebuf));
-	sprintf(p+strlen(p), "\t\t\t\t%s) ; minimum", 
+	sprintf(p+strlen(p), "\t\t\t\t%s) ; minimum",
 			rfc1035_fmttime( rr->rr.soa.minimum, timebuf));
 	return (p);
 }

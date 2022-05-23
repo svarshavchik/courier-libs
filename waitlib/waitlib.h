@@ -32,7 +32,7 @@
 */
 
 void wait_reap( void (*)(pid_t, int), /* Called to process reaped child */
-	RETSIGTYPE (*)(int));	/* Should point back to signal handler */
+	void (*)(int));	/* Should point back to signal handler */
 
 /*
 ** Main program can call wait_block and wait_clear to temporarily
@@ -40,7 +40,7 @@ void wait_reap( void (*)(pid_t, int), /* Called to process reaped child */
 */
 
 void wait_block();
-void wait_clear(RETSIGTYPE (*)(int));	/* The signal handler */
+void wait_clear(void (*)(int));	/* The signal handler */
 
 /*
 ** wait_restore should be called instead of signal(SIGCHLD, SIG_DFL)
@@ -60,7 +60,7 @@ void wait_restore();
 */
 
 void wait_forchild( void (*)(pid_t, int), /* Reaper */
-	RETSIGTYPE (*)(int));	/* Signal handler stub */
+	void (*)(int));	/* Signal handler stub */
 
 /*
 ** wait_startchildren() is a convenient function to start a given number

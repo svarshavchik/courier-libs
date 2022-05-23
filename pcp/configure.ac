@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 # Copyright 2001-2003 Double Precision, Inc.  See COPYING for
 # distribution information.
 
-AC_INIT(pcp, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([pcp],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,11 +15,9 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_AWK
 AC_PROG_INSTALL
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 AC_PATH_PROGS(PERL, perl5 perl, perl)
 
 CFLAGS="-I.. -I${srcdir}/.. -I$srcdir/../.. -I../.. $CFLAGS"
@@ -85,16 +83,16 @@ SENDIT="$scriptdir/sendit.sh"
 AC_SUBST(SENDIT)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(fcntl.h sys/stat.h sys/time.h termios.h unistd.h)
 AC_HEADER_DIRENT
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_UID_T
 AC_TYPE_PID_T
-AC_TYPE_SIGNAL
+
 AC_STRUCT_TM
 AC_SYS_LARGEFILE
 
@@ -178,18 +176,18 @@ AC_SUBST(mailgroup)
 AC_DEFINE_UNQUOTED(MAILGROUP,"$mailgroup",
 	[ Mail system group ])
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <signal.h>
 #include <string.h>
 #include <stdio.h>
-],[
+]], [[
 struct sigaction sa;
 
 memset(&sa, 0, sizeof(sa));
 sa.sa_handler=SIG_IGN;
 sa.sa_flags=SA_NOCLDWAIT;
 sigaction(SIGCHLD, &sa, NULL);
-], AC_DEFINE_UNQUOTED(USE_NOCLDWAIT,1, [ Whether to use SA_NOCLDWAIT ]))
+]])],[AC_DEFINE_UNQUOTED(USE_NOCLDWAIT,1,  Whether to use SA_NOCLDWAIT )],[])
 
 if test -f $srcdir/.debug
 then
@@ -204,4 +202,5 @@ fi
 
 CPPFLAGS="-Iintl/ -I${srcdir}/intl $CPPFLAGS"
 MKINSTALLDIRS="$mkdir_p"
-AC_OUTPUT(Makefile po/Makefile.in   )
+AC_CONFIG_FILES([Makefile po/Makefile.in   ])
+AC_OUTPUT

@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2005 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(cgi, 0.10, [courier-users@lists.sourceforge.net])
+AC_INIT([cgi],[0.10],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -16,18 +16,23 @@ AC_CONFIG_HEADERS(cgi_config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h sys/time.h sys/wait.h sys/select.h sys/uio.h unistd.h)
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -35,12 +40,12 @@ AC_TYPE_SIZE_T
 
 AC_CACHE_CHECK([for socklen_t],
         cgi_cv_hassocklen_t,
- 
+
 AC_COMPILE_IFELSE([
 AC_LANG_SOURCE( [
 #include <sys/types.h>
 #include <sys/socket.h>
- 
+
 socklen_t sl_t;
 ],[
 	accept(0, 0, &sl_t);
@@ -48,9 +53,9 @@ socklen_t sl_t;
 	cgi_cv_hassocklen_t=yes,
 	cgi_cv_hassocklen_t=no)
 )
- 
+
 socklen_t="int"
- 
+
 if test $cgi_cv_hassocklen_t = yes
 then
 	:
@@ -77,7 +82,7 @@ AC_ARG_WITH(maxformargsize,
 	[  --with-maxformargsize=nbytes   Maximum size of multipart/formdata uploads],
 	CFLAGS="$CFLAGS -DCGIMAXFORMDATAARG=$withval")
 
-AC_TRY_RUN( [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -92,45 +97,42 @@ FILE	*fp=fopen("conftestval", "w");
 	fclose(fp);
 	return (0);
 }
-]
-	, [ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],
-	[
+
+	]])],[ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],[
 		AC_MSG_ERROR(Unable to run test program.)
-	] ,
-	[
+	 ],[
 		MAXLONGSIZE=60
 		AC_MSG_WARN([Cross compiling, setting MAXLONGSIZE to $MAXLONGSIZE])
-	]
-		)
+
+		])
 
 AC_CACHE_CHECK([how to pass file descriptors],
 		    ac_cv_sqwebmail_passfd,
 
-AC_TRY_COMPILE( [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
-int fd; struct msghdr msg; ],
-[
+int fd; struct msghdr msg; ]], [[
 	msg.msg_accrights=(caddr_t)fd;
 	msg.msg_accrightslen=sizeof(fd);
-],
-	ac_cv_sqwebmail_passfd=msg_accrights,
+]])],[ac_cv_sqwebmail_passfd=msg_accrights],[])
 
-	AC_TRY_COMPILE( [
+if test "$ac_cv_sqwebmail_passfd" = ""
+then
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
 struct msghdr msg; struct cmsghdr cmsg; char buf;
-],
-[
+]], [[
               msg.msg_control = &buf;
               msg.msg_controllen = 1;
-],
-	ac_cv_sqwebmail_passfd=msg_control,
-	ac_cv_sqwebmail_passfd=none)))
+]])],[ac_cv_sqwebmail_passfd=msg_control],[ac_cv_sqwebmail_passfd=none])
+fi
+)
 
 if test "$ac_cv_sqwebmail_passfd" = "msg_accrights"
 then
@@ -144,7 +146,6 @@ then
 		[Pass file descriptors in msg_control])
 fi
 
-
 if test "$GCC" = yes ; then
         CFLAGS="$CFLAGS -Wall"
 fi
@@ -153,4 +154,5 @@ CFLAGS="$CFLAGS -I.. -I$srcdir/.."
 AC_SYS_LARGEFILE
 
 AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE, [ Calculate max size of long ])
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

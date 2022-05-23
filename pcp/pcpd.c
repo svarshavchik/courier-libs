@@ -94,7 +94,7 @@ static int inputchar(struct PCP *pcp)
 
 		if (termsig)
 			return (EOF);
-			
+
 		if (first_timer)
 		{
 			tvptr= &tv;
@@ -1018,7 +1018,7 @@ static int list_callback(struct PCP_list_all *p, void *vp)
 	ls->last_event= & (*ls->last_event)->next;
 	return (0);
 }
-	
+
 static int list(struct PCP *pcp)
 {
 	struct list_struct ls;
@@ -1589,7 +1589,7 @@ static int doline(struct PCP *pcp, char *p, int acl_flags)
 		force_flag=0;
 		need_rset=0;
 		rset(pcp);
-		printf("200 Ok.\n");	
+		printf("200 Ok.\n");
 		return (0);
 	}
 
@@ -1780,7 +1780,7 @@ static int doline(struct PCP *pcp, char *p, int acl_flags)
 					       proxy_name);
 				else
 					printf("200 Ok.\n");
-			}	
+			}
 			rset(pcp);
 			return (0);
 		}
@@ -1929,15 +1929,11 @@ static int check_acl(int flags, int bit)
 	return (1);
 }
 
-static RETSIGTYPE catch_sig(int sig_num)
+static void catch_sig(int sig_num)
 {
 	termsig=1;
 	signal(SIGALRM, catch_sig);
 	alarm(2);
-
-#if RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 static void setsigs()

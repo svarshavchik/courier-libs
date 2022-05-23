@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(maildrop, 3.0.7, [courier-users@lists.sourceforge.net])
+AC_INIT([maildrop],[3.0.8],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -17,11 +17,10 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_AWK
 AC_PROG_LN_S
 AC_PROG_CXX
-AM_PROG_LIBTOOL
+LT_INIT
 
 AC_PATH_PROGS(PERL, perl5 perl, perl, $LPATH)
 
@@ -33,15 +32,15 @@ maildrop_cv_handle_exceptions=no
 
 if test "$GXX" = yes ; then
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 
-AC_TRY_COMPILE( [
-],[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+]], [[
 throw;
-],,maildrop_cv_handle_exceptions=yes
-)
+]])],[],[maildrop_cv_handle_exceptions=yes
+])
 
-AC_LANG_C
+AC_LANG([C])
 fi
 
 )
@@ -54,14 +53,14 @@ fi
 AC_CACHE_CHECK([ability to handle both const and non-const exceptions],
 		maildrop_cv_const_exceptions,
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 
 extern void foo();
 extern void bar(const char *);
 
-],[
+]], [[
 
        try
        {
@@ -80,8 +79,8 @@ extern void bar(const char *);
              bar(0);
        }
 
-]
-, maildrop_cv_const_exceptions="yes",maildrop_cv_const_exceptions="no")
+
+]])],[maildrop_cv_const_exceptions="yes"],[maildrop_cv_const_exceptions="no"])
 )
 
 if test "$maildrop_cv_const_exceptions" = "yes"
@@ -90,7 +89,7 @@ then
 	[ Define this if we need both catch(const foo) and catch(foo) ])
 fi
 
-AC_LANG_C
+AC_LANG([C])
 
 dnl Checks for libraries.
 
@@ -155,9 +154,12 @@ fi
 AC_SUBST(dblibrary)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_HEADER_SYS_WAIT
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+
+# End of obsolete code.
+
 AC_HEADER_DIRENT
 AC_CHECK_HEADERS(fcntl.h memory.h sys/file.h sys/time.h sys/stat.h unistd.h strings.h locale.h)
 
@@ -171,7 +173,7 @@ AC_STRUCT_TM
 AC_TYPE_GETGROUPS
 AC_SYS_LARGEFILE
 
-AC_TRY_RUN( [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 
 #include        <stdio.h>
 #include        <stdlib.h>
@@ -186,17 +188,15 @@ FILE    *fp=fopen("conftestval", "w");
         fclose(fp);
         return (0);
 }
-]
-        , [ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],
-        [
+
+        ]])],[ MAXLONGSIZE=`wc -c conftestval | awk ' { print $1 } '  ` ],[
                 AC_MSG_ERROR(Unable to run test program.)
-        ] ,
-        [
+         ],[
                 MAXLONGSIZE=60
                 AC_MSG_WARN([Cross compiling, setting MAXLONGSIZE to $MAXLONGSIZ
 E])
-        ]
-                )
+
+                ])
 
 AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE,
 				[ Maximum character size of a long ])
@@ -204,7 +204,7 @@ AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE,
 dnl Checks for library functions.
 
 AC_FUNC_CLOSEDIR_VOID
-AC_TYPE_SIGNAL
+
 AC_CHECK_FUNCS(setgroups setlocale)
 
 AC_CHECK_FUNC(getpgrp, HAS_GETPGRP=1, HAS_GETPGRP=0)
@@ -224,14 +224,14 @@ AC_CACHE_CHECK(setpgrp(),maildrop_cv_HAS_SETPGRP,
 
 if test $HAS_GETPGRP -o $HAS_GETPGID
 then
-    AC_TRY_LINK([
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include	<stdio.h>
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-],[
+]], [[
 	(void)setpgrp();
-],maildrop_cv_HAS_SETPGRP=1,maildrop_cv_HAS_SETPGRP=0)
+]])],[maildrop_cv_HAS_SETPGRP=1],[maildrop_cv_HAS_SETPGRP=0])
 
 else
 	maildrop_cv_HAS_SETPGRP=0
@@ -246,14 +246,14 @@ AC_CACHE_CHECK(setpgid(),maildrop_cv_HAS_SETPGID,
 if test $HAS_GETPGRP -o $HAS_GETPGID
 then
 
-    AC_TRY_LINK([
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include	<stdio.h>
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-],[
+]], [[
 	(void)setpgid(0,0);
-],maildrop_cv_HAS_SETPGID=1,maildrop_cv_HAS_SETPGID=0)
+]])],[maildrop_cv_HAS_SETPGID=1],[maildrop_cv_HAS_SETPGID=0])
 else
 	maildrop_cv_HAS_SETPGID=0
 fi
@@ -263,15 +263,15 @@ AC_DEFINE_UNQUOTED(HAS_SETPGID,$maildrop_cv_HAS_SETPGID,
 
 AC_CACHE_CHECK([for missing gethostname prototype],maildir_cv_SYS_GETHOSTNAME,
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
 
 extern int gethostname(int,int);
-],[
-],maildir_cv_SYS_GETHOSTNAME=yes,maildir_cv_SYS_GETHOSTNAME=no
-)
+]], [[
+]])],[maildir_cv_SYS_GETHOSTNAME=yes],[maildir_cv_SYS_GETHOSTNAME=no
+])
 
 )
 
@@ -760,4 +760,5 @@ AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
 . ../rfc822/rfc822.config
 
-AC_OUTPUT(xconfig.h Makefile README.html testsuite)
+AC_CONFIG_FILES([xconfig.h Makefile README.html testsuite])
+AC_OUTPUT

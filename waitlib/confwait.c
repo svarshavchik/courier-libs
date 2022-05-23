@@ -35,15 +35,11 @@ static void cntreaped(pid_t p, int n)
 	if ( ++numterminated == NUMPROCS )	_exit(0);
 }
 
-static RETSIGTYPE childsig(int n)
+static void childsig(int n)
 {
 	n=n;
 
 	wait_reap(cntreaped, childsig);
-
-#if	RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 int main()

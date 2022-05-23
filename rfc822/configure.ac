@@ -3,7 +3,7 @@ dnl
 dnl Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(rfc822lib, 0.13, [courier-users@lists.sourceforge.net])
+AC_INIT([rfc822lib],[0.13],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -15,8 +15,7 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
-AC_PROG_LIBTOOL
+LT_INIT
 
 if test "$GCC" = yes ; then
         CXXFLAGS="$CXXFLAGS -Wall"
@@ -28,7 +27,6 @@ CFLAGS="$CFLAGS -I.. -I$srcdir/.."
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS(locale.h strings.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -39,8 +37,7 @@ AC_SYS_LARGEFILE
 
 dnl Checks for library functions.
 
-AC_ARG_WITH(libidn, AC_HELP_STRING([--with-libidn=[DIR]],
-		    [Support IDN (needs GNU Libidn)]),
+AC_ARG_WITH(libidn, AS_HELP_STRING([--with-libidn=[DIR]],[Support IDN (needs GNU Libidn)]),
 		    libidn=$withval, libidn=yes)
 
 if test "$libidn" != "no"
@@ -62,32 +59,34 @@ AC_CHECK_FUNCS(setlocale)
 
 AC_CACHE_CHECK([how to calculate alternate timezone],librfc822_cv_SYS_TIMEZONE,
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include	<time.h>
 time_t  t;
-],[
+]], [[
 t=altzone;
-], librfc822_cv_SYS_TIMEZONE=altzone,
+]])],[librfc822_cv_SYS_TIMEZONE=altzone],[])
 
-	AC_TRY_COMPILE([
+if test "$librfc822_cv_SYS_TIMEZONE" = ""
+then
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include	<time.h>
 int n;
-],[
+]], [[
 	n=daylight;
-	], librfc822_cv_SYS_TIMEZONE=daylight,
+	]])],[librfc822_cv_SYS_TIMEZONE=daylight],[])
+fi
 
-	AC_TRY_COMPILE([
+if test "$librfc822_cv_SYS_TIMEZONE" = ""
+then
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include	<time.h>
 
 extern struct tm dummy;
 long n;
-],[
+]], [[
 	n=dummy.tm_gmtoff;
-	] ,librfc822_cv_SYS_TIMEZONE=tm_gmtoff,
-		librfc822_cv_SYS_TIMEZONE=unknown
-			)
-		)
-	)
+	]])],[librfc822_cv_SYS_TIMEZONE=tm_gmtoff],[librfc822_cv_SYS_TIMEZONE=unknown])
+fi
 )
 
 case $librfc822_cv_SYS_TIMEZONE in
@@ -111,4 +110,5 @@ esac
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
 echo "libidn=$libidn" >rfc822.config
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

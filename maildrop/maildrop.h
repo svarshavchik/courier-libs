@@ -45,7 +45,7 @@ static	int sigfpe;		// Floating point exception trapped.
 	Maildrop();
 
 static void cleanup();
-static RETSIGTYPE bye(int);
+static void bye(int);
 static int trap(int (*)(int, char *[]), int, char *[]);
 static void reset_vars();
 } ;

@@ -28,15 +28,9 @@
 #if	HAVE_SYS_STAT_H
 #include	<sys/stat.h>
 #endif
-#if TIME_WITH_SYS_TIME
-#include <sys/time.h>
-#include <time.h>
-#else
+#include	<time.h>
 #if HAVE_SYS_TIME_H
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
+#include	<sys/time.h>
 #endif
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -958,13 +952,10 @@ static void acctout(const char *disc)
 	free(p);
 }
 
-static RETSIGTYPE bye(int signum)
+static void bye(int signum)
 {
 	acctout("INFO: TIMEOUT");
 	exit(0);
-#if	RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 static void loop()

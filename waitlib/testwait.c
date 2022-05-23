@@ -26,12 +26,9 @@ static void reap_child(pid_t p, int dummy)
 		; /* shut up gcc */
 }
 
-static RETSIGTYPE sighandler(int sig)
+static void sighandler(int sig)
 {
 	wait_reap(&reap_child, &sighandler);
-#if	RETSIGTYPE != void
-	return (0);
-#endif
 }
 
 static pid_t start_child()

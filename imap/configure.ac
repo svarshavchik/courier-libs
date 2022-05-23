@@ -4,7 +4,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT(courier-imap, 5.1.7, [courier-users@lists.sourceforge.net])
+AC_INIT([courier-imap],[5.1.8],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -18,13 +18,11 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CXX
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+LT_INIT
 AC_PATH_PROGS(PERL, perl5 perl, perl, $LPATH)
 
 if test "$PERL" = "perl"
@@ -117,9 +115,16 @@ AC_ARG_WITH(piddir, [  --with-piddir         Directory where imapd.pid is create
 AC_SUBST(piddir)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+
 AC_CHECK_HEADERS(locale.h unistd.h sys/stat.h sys/wait.h time.h sys/time.h sys/utsname.h utime.h strings.h)
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 
@@ -127,7 +132,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
-AC_TYPE_SIGNAL
 AC_SYS_LARGEFILE
 
 AC_CACHE_CHECK([for socklen_t],
@@ -391,7 +395,8 @@ int main()
 . ../rootcerts/rootcertsdir.cnf
 AC_SUBST(cacerts)
 
-AC_OUTPUT(Makefile imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
+AC_CONFIG_FILES([Makefile imapd.dist imapd-ssl.dist pop3d.dist pop3d-ssl.dist
 	testsuitefix.pl mkimapdcert mkpop3dcert mkdhparams
 	imapd.cnf.gnutls pop3d.cnf.gnutls
-	imapd.cnf.openssl pop3d.cnf.openssl)
+	imapd.cnf.openssl pop3d.cnf.openssl])
+AC_OUTPUT
