@@ -1017,6 +1017,8 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 			SSLeay_add_ssl_algorithms();
 #endif
 
+#if OPENSSL_VERSION_MAJOR < 3
+
 			while (RAND_status() != 1)
 			{
 				const char *p=random128();
@@ -1024,6 +1026,7 @@ SSL_CTX *tls_create_int(int isserver, const struct tls_info *info,
 
 				RAND_add(p, l, l/16);
 			}
+#endif
 		}
 	}
 

@@ -370,8 +370,16 @@ typedef EVP_CIPHER_CTX CIPHER_CONTEXT;
 #define RANDOM_BYTES RAND_pseudo_bytes
 
 #define CONTEXT(ctx) (ctx)
+
 #endif
 
+#ifndef OPENSSL_VERSION_MAJOR
+#define OPENSSL_VERSION_MAJOR 0
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/provider.h>
+#endif
 
 #if HAVE_OPENSSL097
 
@@ -385,6 +393,11 @@ int tlspassword_init()
 #if HAVE_GCRYPT
 	if (!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
 		gcry_check_version(NULL);
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+	OSSL_PROVIDER_load(NULL, "legacy");
+	OSSL_PROVIDER_load(NULL, "default");
 #endif
 	return 1;
 }
