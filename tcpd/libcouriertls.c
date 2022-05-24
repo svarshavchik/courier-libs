@@ -426,10 +426,19 @@ static void load_dh_params(SSL_CTX *ctx, const char *filename,
 		{
 			if (EVP_PKEY_is_a(pkey, "DH"))
 			{
-				SSL_CTX_set0_tmp_dh_pkey(ctx, pkey);
-				*cert_file_flags = 1;
+				if (SSL_CTX_set0_tmp_dh_pkey(ctx, pkey))
+				{
+					*cert_file_flags = 1;
+				}
+				else
+				{
+					EVP_PKEY_free(pkey);
+				}
 			}
-			EVP_PKEY_free(pkey);
+			else
+			{
+				EVP_PKEY_free(pkey);
+			}
 		}
 
 #else

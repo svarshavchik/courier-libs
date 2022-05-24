@@ -1587,6 +1587,7 @@ static int listallevents(struct PCPnet *pn, struct PCP_list_all *la)
 				if (rc == 0)
 					rc= (*la->callback_func)
 						(la, la->callback_arg);
+				la->event_id=NULL; /* gcc warning fix */
 			}
 		}
 		if (s > 0)

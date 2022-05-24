@@ -927,6 +927,7 @@ static int do_msgmove(const char *from,
 			{
 				free(destdir);
 				enomem();
+				exit(0); /* gcc warning fix */
 			}
 			strcat(strcpy(p, destdir), "/shared");
 			free(destdir);
@@ -3046,23 +3047,24 @@ static void maildir_save_start(const char *folder,
 	save_time=t;
 #if 1
 	{
-	  int f = -1;
-	  char *tmpfname = alloc_filename(maildir,
-					   "", MAILDIRCURCACHE ".nfshack");
-	  if (tmpfname) {
-	    f = open(tmpfname, O_CREAT|O_WRONLY, 0600);
-	    free(tmpfname);
-	  }
-	  if (f != -1) {
-	    struct stat s;
-	    if (write(f, ".", 1) != 1)
-		    ; /* ignore */
-	    fsync(f);
-	    if (fstat(f, &s) == 0)
-	      save_time = s.st_mtime;
-	    close(f);
-	    unlink(tmpfname);
-	  }
+		int f = -1;
+		char *tmpfname = alloc_filename(maildir,
+						"", MAILDIRCURCACHE ".nfshack");
+		if (tmpfname) {
+			f = open(tmpfname, O_CREAT|O_WRONLY, 0600);
+
+			if (f != -1) {
+				struct stat s;
+				if (write(f, ".", 1) != 1)
+					; /* ignore */
+				fsync(f);
+				if (fstat(f, &s) == 0)
+					save_time = s.st_mtime;
+				close(f);
+				unlink(tmpfname);
+			}
+			free(tmpfname);
+		}
 	}
 #endif
 
