@@ -3,7 +3,6 @@ dnl
 dnl Copyright 2001-2004 Double Precision, Inc.
 dnl See COPYING for distribution information.
 
-AC_PREREQ([2.71])
 AC_INIT([libsha1],[1.21],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
