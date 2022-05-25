@@ -1,6 +1,5 @@
 usr/lib/*/*.so
 usr/lib/*/*.a
-usr/lib/*/*.la
 usr/share/aclocal/*
 usr/share/man/*/*
 usr/include/*
