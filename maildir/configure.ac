@@ -20,10 +20,6 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
-_LT_SET_OPTION([LT_INIT],[dlopen])
-m4_warn([obsolete],[AC_LIBTOOL_DLOPEN: Remove this warning and the call to _LT_SET_OPTION when you
-put the 'dlopen' option into LT_INIT's first parameter.])
-
 LT_INIT
 
 AC_PROG_CXX
