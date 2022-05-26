@@ -118,12 +118,6 @@ dnl Checks for header files.
 
 AC_CHECK_HEADERS(locale.h unistd.h sys/stat.h sys/wait.h time.h sys/time.h sys/utsname.h utime.h strings.h)
 AC_CHECK_HEADERS_ONCE([sys/time.h])
-# Obsolete code to be removed.
-if test $ac_cv_header_sys_time_h = yes; then
-  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
-	     and <time.h>.  This macro is obsolete.])
-fi
-# End of obsolete code.
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
