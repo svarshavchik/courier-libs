@@ -260,7 +260,7 @@ namespace maildir {
 	bool shared_unsubscribe(const std::string &,
 				const std::string &);
 	void shared_sync(const std::string &);
-	bool shared_isro(const std::string &);
+	bool shared_isrw(const std::string &);
 	void unlinksharedmsg(const std::string &);
 }
 #endif

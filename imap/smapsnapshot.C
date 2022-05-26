@@ -76,7 +76,6 @@ extern "C" int keywords();
 ** read to obtain the filenames.
 */
 
-extern char *current_mailbox;
 extern imapscaninfo current_maildir_info;
 extern char *readline(unsigned i, FILE *);
 
@@ -167,7 +166,7 @@ static int restore_snapshot(const std::string &dir, std::istream &snapshot_fp,
 {
 	int format;
 	unsigned long s_nmessages, s_uidv, s_nextuid;
-	imapscaninfo new_index;
+	imapscaninfo new_index{&current_maildir_info};
 
 	std::string buf;
 
@@ -539,7 +538,7 @@ void snapshot_save()
 
 	maildir::tmpcreate_info createInfo;
 
-	createInfo.maildir=current_mailbox;
+	createInfo.maildir=current_maildir_info.current_mailbox;
 	createInfo.uniq="snapshot";
 
 	const char *h=getenv("HOSTNAME");

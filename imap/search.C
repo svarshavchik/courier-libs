@@ -149,8 +149,7 @@ void contentsearch::search_oneatatime(searchiter si,
 			return;
 		}
 
-		fd=imapscan_openfile(current_mailbox,
-			&current_maildir_info, i);
+		fd=imapscan_openfile(&current_maildir_info, i);
 		if (fd < 0)	return;
 
 		if ((fp=fdopen(fd, "r")) == 0)

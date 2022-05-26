@@ -78,9 +78,10 @@
 #define IMAP_EPOCH	1000000000
 #endif
 
-static int do_imapscan_maildir2(imapscaninfo *, const std::string &,
+static int do_imapscan_maildir2(imapscaninfo *,
 				int, int, struct uidplus_info *);
 void imapscanfail(const char *p);
+extern imapscaninfo current_maildir_info;
 
 #if SMAP
 extern int smapflag;
@@ -93,7 +94,19 @@ extern bool imapmaildirlock(imapscaninfo *scaninfo,
 			    const std::string &maildir,
 			    const std::function< bool() >&callback);
 
+imapscaninfo::imapscaninfo(const std::string &current_mailbox)
+	: imapscaninfo_base{current_mailbox}
+{
+}
+
+imapscaninfo::imapscaninfo(imapscaninfo *prev)
+	: imapscaninfo{prev->current_mailbox}
+{
+	current_mailbox_acl=prev->current_mailbox_acl;
+}
+
 imapscaninfo::imapscaninfo(imapscaninfo &&other) noexcept
+	: imapscaninfo_base{""}
 {
 	operator=(std::move(other));
 }
@@ -121,17 +134,15 @@ imapscaninfo &imapscaninfo::operator=(imapscaninfo &&other) noexcept
 	return *this;
 }
 
-int imapscan_maildir(imapscaninfo *scaninfo,
-		     const std::string &dir, int leavenew, int ro,
+int imapscan_maildir(imapscaninfo *scaninfo, int leavenew, int ro,
 		     struct uidplus_info *uidplus)
 {
 	return imapmaildirlock(
-		scaninfo, dir,
+		scaninfo, scaninfo->current_mailbox,
 		[&]
 		{
 			return do_imapscan_maildir2(
 				scaninfo,
-				dir,
 				leavenew,
 				ro,
 				uidplus) == 0;
@@ -254,10 +265,10 @@ namespace {
 }
 
 static int do_imapscan_maildir2(imapscaninfo *scaninfo,
-				const std::string &dir,
 				int leavenew, int ro,
 				struct uidplus_info *uidplus)
 {
+	auto &dir=scaninfo->current_mailbox;
 	std::string dbfilepath;
 	std::string newdbfilepath;
 
@@ -762,7 +773,7 @@ static int try_maildir_open(const std::string &dir, imapscanmessageinfo *n)
 	return maildir::semisafeopen(filename, O_RDONLY, 0);
 }
 
-int imapscan_openfile(const std::string &dir, imapscaninfo *i, unsigned j)
+int imapscan_openfile(imapscaninfo *i, unsigned j)
 {
 	if (j >= i->msgs.size())
 	{
@@ -770,7 +781,12 @@ int imapscan_openfile(const std::string &dir, imapscaninfo *i, unsigned j)
 		return (-1);
 	}
 
-	return (try_maildir_open(dir, &i->msgs[j]));
+	return (try_maildir_open(i->current_mailbox, &i->msgs[j]));
+}
+
+imapscaninfo_base::imapscaninfo_base(const std::string &current_mailbox)
+	: current_mailbox{current_mailbox}
+{
 }
 
 imapscaninfo_base::~imapscaninfo_base()
@@ -785,12 +801,11 @@ imapscaninfo_base::~imapscaninfo_base()
 ** Keyword-related stuff  See README.imapkeywords.html for more information.
 */
 
-extern char *current_mailbox;
-
 void imapscan_updateKeywords(const std::string &filename,
 			     const mail::keywords::list &keywords)
 {
-	return imapscan_updateKeywords(current_mailbox, filename, keywords);
+	return imapscan_updateKeywords(
+		current_maildir_info.current_mailbox, filename, keywords);
 }
 
 void imapscan_updateKeywords(const std::string &maildir,

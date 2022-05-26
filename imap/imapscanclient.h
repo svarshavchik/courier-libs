@@ -52,6 +52,16 @@ struct imapscanmessageinfo {
 */
 
 struct imapscaninfo_base {
+	imapscaninfo_base(const std::string &current_mailbox);
+
+	std::string current_mailbox;
+	std::string current_mailbox_acl;
+
+	bool has_acl(char c)
+	{
+		return current_mailbox_acl.find(c) != current_mailbox.npos;
+	}
+
 	std::vector<imapscanmessageinfo> msgs;
 	unsigned long uidv=0;		/* See RFC 2060 */
 	unsigned long left_unseen=0;
@@ -66,7 +76,8 @@ struct imapscaninfo_base {
 
 struct imapscaninfo : imapscaninfo_base {
 
-	imapscaninfo()=default;
+	imapscaninfo(const std::string &current_mailbox);
+	imapscaninfo(imapscaninfo *);
 
 	imapscaninfo &operator=(imapscaninfo &&) noexcept;
 
@@ -97,10 +108,9 @@ struct uidplus_info {
 } ;
 
 
-int imapscan_maildir(imapscaninfo *, const std::string &, int, int,
-		     struct uidplus_info *);
+int imapscan_maildir(imapscaninfo *, int, int, struct uidplus_info *);
 
-int imapscan_openfile(const std::string &, imapscaninfo *, unsigned);
+int imapscan_openfile(imapscaninfo *, unsigned);
 
 
 struct libmail_kwMessage *imapscan_createKeyword(imapscaninfo *,

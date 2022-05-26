@@ -98,11 +98,16 @@ class watch {
 	time_t now;
 	time_t timeout;
 
+	int fd();
+
 	bool poll_inotify();
 
  public:
 	watch(const std::string &);
 	~watch();
+
+	watch(const watch &)=delete;
+	watch &operator=(const watch &)=delete;
 
 	class lock {
 		std::string lockname;

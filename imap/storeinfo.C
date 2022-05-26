@@ -56,8 +56,6 @@ extern int acl_flags_adjust(const char *access_rights,
 			    struct imapflags *flags);
 
 extern imapscaninfo current_maildir_info;
-extern char *current_mailbox;
-extern char *current_mailbox_acl;
 extern "C" int fastkeywords();
 
 bool storeinfo_init(struct storeinfo &si)
@@ -112,7 +110,7 @@ int do_store(unsigned long n, int byuid, storeinfo *si)
 	bool kwAllowed=true;
 
 	--n;
-	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
+	fd=imapscan_openfile(&current_maildir_info, n);
 	if (fd < 0)	return (0);
 
 	changedKeywords=0;
@@ -120,11 +118,8 @@ int do_store(unsigned long n, int byuid, storeinfo *si)
 
 	old_flags=new_flags;
 
-	if (current_mailbox_acl)
-	{
-		if (strchr(current_mailbox_acl, ACL_WRITE[0]) == NULL)
-			kwAllowed=false;
-	}
+	if (!current_maildir_info.has_acl(ACL_WRITE[0]))
+		kwAllowed=false;
 
 	auto &keywords=current_maildir_info.msgs[n].keywords;
 
@@ -237,27 +232,23 @@ int do_store(unsigned long n, int byuid, storeinfo *si)
 		}
 	}
 
-	if (current_mailbox_acl)
+	if (!current_maildir_info.has_acl(ACL_WRITE[0]))
 	{
-		if (strchr(current_mailbox_acl, ACL_WRITE[0]) == NULL)
-		{
-			new_flags.drafts=old_flags.drafts;
-			new_flags.answered=old_flags.answered;
-			new_flags.flagged=old_flags.flagged;
+		new_flags.drafts=old_flags.drafts;
+		new_flags.answered=old_flags.answered;
+		new_flags.flagged=old_flags.flagged;
 
-			// TODO: set changedKeywords to false
-		}
+		// TODO: set changedKeywords to false
+	}
 
-		if (strchr(current_mailbox_acl, ACL_SEEN[0]) == NULL)
-		{
-			new_flags.seen=old_flags.seen;
-		}
+	if (!current_maildir_info.has_acl(ACL_SEEN[0]))
+	{
+		new_flags.seen=old_flags.seen;
+	}
 
-		if (strchr(current_mailbox_acl, ACL_DELETEMSGS[0])
-		    == NULL)
-		{
-			new_flags.deleted=old_flags.deleted;
-		}
+	if (!current_maildir_info.has_acl(ACL_DELETEMSGS[0]))
+	{
+		new_flags.deleted=old_flags.deleted;
 	}
 
 	if (changedKeywords)
@@ -384,7 +375,7 @@ int do_copy_message(unsigned long n, int byuid, void *voidptr)
 	struct imapflags new_flags;
 
 	--n;
-	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
+	fd=imapscan_openfile(&current_maildir_info, n);
 	if (fd < 0)	return (0);
 	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
@@ -414,7 +405,7 @@ int do_copy_quota_calc(unsigned long n, int byuid, void *voidptr)
 
 	--n;
 
-	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
+	fd=imapscan_openfile(&current_maildir_info, n);
 	if (fd < 0)	return (0);
 	auto filename=current_maildir_info.msgs[n].filename;
 

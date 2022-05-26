@@ -43,9 +43,7 @@ This message is no longer available on the server.\n";
 unsigned long header_count=0, body_count=0;	/* Total transferred */
 
 extern int current_mailbox_ro;
-extern char *current_mailbox_acl;
 extern imapscaninfo current_maildir_info;
-extern char *current_mailbox;
 extern char *rfc2045id(struct rfc2045 *);
 
 extern void snapshot_needed();
@@ -184,20 +182,21 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 	get_message_flags(mi, 0, &old_flags);
 
 	auto p=get_reflagged_filename(mi->filename, *flags);
-	std::string q=current_mailbox;
+	std::string q=current_maildir_info.current_mailbox;
 	q += "/cur/";
 	q += mi->filename;
 
-	std::string r=current_mailbox;
+	std::string r=current_maildir_info.current_mailbox;
 
 	r += "/cur/";
 	r += p;
 
 	if (q != r)
 	{
-		if (maildirquota_countfolder(current_mailbox)
-			&& old_flags.deleted != flags->deleted
-			&& fstat(fd, &stat_buf) == 0)
+		if (maildirquota_countfolder(
+			    current_maildir_info.current_mailbox.c_str()
+		    ) && old_flags.deleted != flags->deleted
+		    && fstat(fd, &stat_buf) == 0)
 		{
 			struct maildirsize quotainfo;
 			int64_t	nbytes;
@@ -214,9 +213,11 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 				nmsgs= -nmsgs;
 			}
 
-			if ( maildir_quota_delundel_start(current_mailbox,
-							  &quotainfo,
-							  nbytes, nmsgs))
+			if ( maildir_quota_delundel_start(
+				     current_maildir_info.current_mailbox
+				     .c_str(),
+				     &quotainfo,
+				     nbytes, nmsgs))
 				rc= -1;
 			else
 				maildir_quota_delundel_end(&quotainfo,
@@ -296,8 +297,7 @@ int do_fetch(unsigned long n, int byuid, fetchinfo *fi)
 #if SMAP
 	if (!smapflag)
 #endif
-		if (current_mailbox_acl &&
-		    strchr(current_mailbox_acl, ACL_SEEN[0]) == NULL)
+		if (!current_maildir_info.has_acl(ACL_SEEN[0]))
 			seen=0; /* No permissions */
 
 	if (seen && !current_mailbox_ro)
@@ -1575,7 +1575,7 @@ FILE *open_cached_fp(unsigned long msgnum)
 		cached_fp=0;
 	}
 
-	fd=imapscan_openfile(current_mailbox, &current_maildir_info, msgnum);
+	fd=imapscan_openfile(&current_maildir_info, msgnum);
 	if (fd < 0 || (cached_fp=fdopen(fd, "r")) == 0)
 	{
 		if (fd >= 0)	close(fd);

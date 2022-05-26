@@ -584,7 +584,7 @@ void maildir::shared_sync(const std::string &dir)
 	unlink(dbname.c_str());
 }
 
-bool maildir::shared_isro(const std::string &maildir)
+bool maildir::shared_isrw(const std::string &maildir)
 {
 	if (access((maildir + "/shared/cur").c_str(), W_OK) == 0)
 		return true;
@@ -787,7 +787,7 @@ void maildir::shared_sync(const std::string &dir)
 {
 }
 
-bool maildir::shared_isro(const std::string &maildir)
+bool maildir::shared_isrw(const std::string &maildir)
 {
 	errno=EINVAL;
 	return false;
@@ -830,7 +830,7 @@ void maildir_shared_sync(const char *dir)
 
 int maildir_sharedisro(const char *maildir)
 {
-	return maildir::shared_isro(maildir) ? 0:-1;
+	return maildir::shared_isrw(maildir) ? 0:-1;
 }
 
 void maildir_unlinksharedmsg(const char *filename)

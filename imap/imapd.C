@@ -139,15 +139,13 @@ static const char *protocol;
 const char *dot_trash = "." TRASH;
 const char *trash = TRASH;
 
-char *current_mailbox=0;	/* .folder */
 FILE *debugfile=0;
 #if 0
 char *imapscanpath;
 #endif
 
-imapscaninfo current_maildir_info;
+imapscaninfo current_maildir_info{""};
 int current_mailbox_ro;
-char *current_mailbox_acl;
 
 dev_t homedir_dev;
 ino_t homedir_ino;
@@ -938,7 +936,6 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 		return std::nullopt;
 	}
 
-	imapscaninfo new_maildir_info;
 	struct uidplus_info new_uidplus_info;
 	int rc;
 
@@ -962,8 +959,9 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 					keywords);
 	}
 
+	imapscaninfo new_maildir_info{mailbox};
 
-	rc=imapscan_maildir(&new_maildir_info, mailbox, 0, 0,
+	rc=imapscan_maildir(&new_maildir_info, 0, 0,
 			    &new_uidplus_info);
 
 	if (rc)
@@ -1038,7 +1036,7 @@ int mdcreate(const char *mailbox)
 
 /****************************************************************************/
 
-static bool do_msgset(const char *msgset,
+static bool do_msgset(const std::string &msgset,
 		      const std::function<bool (unsigned long)> &msgfunc,
 		      bool isuid)
 {
@@ -1054,32 +1052,34 @@ static bool do_msgset(const char *msgset,
 		}
 	}
 
-	while (isdigit((int)(unsigned char)*msgset) || *msgset == '*')
+	for (auto b=msgset.begin(), e=msgset.end();
+	     b != e &&
+		     (isdigit((int)(unsigned char)*b) || *b == '*'); )
 	{
 		i=0;
-		if (*msgset == '*')
+		if (*b == '*')
 		{
 			i=last;
-			++msgset;
+			++b;
 		}
-		else while (isdigit((int)(unsigned char)*msgset))
+		else while (b != e && isdigit((int)(unsigned char)*b))
 		{
-			i=i*10 + (*msgset++-'0');
+			i=i*10 + (*b++-'0');
 		}
-		if (*msgset != ':')
+		if (b == e || *b != ':')
 			j=i;
 		else
 		{
 			j=0;
-			++msgset;
-			if (*msgset == '*')
+			++b;
+			if (b != e && *b == '*')
 			{
 				j=last;
-				++msgset;
+				++b;
 			}
-			else while (isdigit((int)(unsigned char)*msgset))
+			else while (b != e && isdigit((int)(unsigned char)*b))
 			{
-				j=j*10 + (*msgset++-'0');
+				j=j*10 + (*b++-'0');
 			}
 		}
 		if (j < i)
@@ -1141,7 +1141,7 @@ static bool do_msgset(const char *msgset,
 			} while (i++ < j);
 		}
 
-		if (*msgset++ != ',')	break;
+		if (b == e || *b++ != ',')	break;
 	}
 	return (true);
 }
@@ -1236,7 +1236,6 @@ unsigned long i,j;
 
 void doNoop(int real_noop)
 {
-	imapscaninfo new_maildir_info;
 	unsigned long i, j;
 	bool needstats=false;
 	unsigned long expunged;
@@ -1250,7 +1249,11 @@ void doNoop(int real_noop)
 	bool takeSnapshot=true;
 #endif
 
-	if (imapscan_maildir(&new_maildir_info, current_mailbox, 0,
+	if (current_maildir_info.current_mailbox.empty())
+		return;
+
+	imapscaninfo new_maildir_info{&current_maildir_info};
+	if (imapscan_maildir(&new_maildir_info, 0,
 			     current_mailbox_ro, NULL))
 		return;
 
@@ -1592,12 +1595,13 @@ int imapenhancedidle(void)
 	int rc;
 	int started=0;
 
-	if (!current_mailbox)
+	if (current_maildir_info.current_mailbox.empty())
 		return (-1);
 
-	if ((w=maildirwatch_alloc(current_mailbox)) == NULL)
+	if ((w=maildirwatch_alloc(current_maildir_info.current_mailbox.c_str()))
+	    == NULL)
 	{
-		perror(current_mailbox);
+		perror(current_maildir_info.current_mailbox.c_str());
 		fprintf(stderr, "This may be a problem with number of inotify handles (/proc/sys/fs/inotify/max_user_instances)\n");
 		return (-1);
 	}
@@ -1714,13 +1718,11 @@ void imapidle(void)
 	else
 #endif
 		writes("+ entering idle mode\r\n");
-	if (current_mailbox)
-		doNoop(0);
+	doNoop(0);
 	writeflush();
 	while (!doidle(idleTimeout, -1))
 	{
-		if (current_mailbox)
-			doNoop(0);
+		doNoop(0);
 		writeflush();
 	}
 }
@@ -1752,8 +1754,8 @@ int log_deletions= cp && *cp != '0';
 	fetch_free_cache();
 
 	if (magictrash() &&
-	    !is_trash(strncmp(current_mailbox, "./", 2) == 0?
-		      current_mailbox+2:current_mailbox))
+	    !is_trash(strncmp(current_maildir_info.current_mailbox.c_str(), "./", 2) == 0?
+		      current_maildir_info.current_mailbox.c_str()+2:current_maildir_info.current_mailbox.c_str()))
 		move_to_trash=1;
 
 	for (j=expunge_start; j < expunge_end; j++)
@@ -1766,7 +1768,7 @@ int log_deletions= cp && *cp != '0';
 			continue;
 
 		auto old_name=alloc_filename(
-			current_mailbox,
+			current_maildir_info.current_mailbox.c_str(),
 			current_maildir_info.msgs[j].filename);
 
 		if (stat(old_name.c_str(), &stat_buf) < 0)
@@ -1774,11 +1776,11 @@ int log_deletions= cp && *cp != '0';
 			continue;
 		}
 
-		if (maildirquota_countfolder(current_mailbox) &&
+		if (maildirquota_countfolder(current_maildir_info.current_mailbox.c_str()) &&
 		    maildirquota_countfile(old_name.c_str()))
 			file_counted=1;
 
-		if (is_sharedsubdir(current_mailbox))
+		if (is_sharedsubdir(current_maildir_info.current_mailbox.c_str()))
 		{
 			maildir_unlinksharedmsg(old_name.c_str());
 		}
@@ -2016,9 +2018,9 @@ static int uidplus_fill(const char *mailbox,
 			struct uidplus_info *uidplus_list,
 			unsigned long *uidv)
 {
-	imapscaninfo scan_info;
+	imapscaninfo scan_info{mailbox};
 
-	if (imapscan_maildir(&scan_info, mailbox, 0, 0, uidplus_list))
+	if (imapscan_maildir(&scan_info, 0, 0, uidplus_list))
 		return -1;
 
 	*uidv=scan_info.uidv;
@@ -2111,13 +2113,13 @@ static void uidplus_abort(struct uidplus_info *uidplus_list)
 
 static void rename_callback(const char *old_path, const char *new_path)
 {
-	imapscaninfo minfo;
+	imapscaninfo minfo{new_path};
 
 	std::string p=new_path;
 
 	p += "/" IMAPDB;
 	unlink(p.c_str());
-	imapscan_maildir(&minfo, new_path, 0,0, NULL);
+	imapscan_maildir(&minfo, 0,0, NULL);
 }
 
 static int broken_uidvs()
@@ -2137,7 +2139,7 @@ extern "C" void bye()
 	exit(0);
 }
 
-char *get_myrightson(const std::string &mailbox);
+std::string get_myrightson(const std::string &mailbox);
 
 static void list_acl(const std::string &,
 		     maildir::aclt_list &);
@@ -2146,7 +2148,7 @@ static bool get_acllist(maildir::aclt_list &l,
 			const std::string &mailbox);
 
 static void list_myrights(const std::string &mailbox,
-			  const char *myrights);
+			  const std::string &myrights);
 static void list_postaddress(const std::string &mailbox);
 
 static void accessdenied(const char *cmd, const std::string &folder,
@@ -2158,7 +2160,7 @@ static int list_callback(const mailbox_scan_info &info,
 	const char *sep="";
 	maildir::aclt_list l;
 
-	char *myrights=NULL;
+	std::string myrights;
 
 	/*
 	** If we're going to list ACLs, grab the ACLs now, because
@@ -2174,7 +2176,7 @@ static int list_callback(const mailbox_scan_info &info,
 
 		if (flags & LIST_MYRIGHTS)
 		{
-			if (!maildir_acl_canlistrights(myrights))
+			if (!maildir_acl_canlistrights(myrights.c_str()))
 			{
 				flags &= ~LIST_MYRIGHTS;
 #if 0
@@ -2201,7 +2203,8 @@ static int list_callback(const mailbox_scan_info &info,
 
 		if (flags & LIST_ACL)
 		{
-			if (!strchr(myrights, ACL_ADMINISTER[0]))
+			if (myrights.find(ACL_ADMINISTER[0]) ==
+			    myrights.npos)
 			{
 				flags &= ~LIST_ACL;
 #if 0
@@ -2267,8 +2270,6 @@ static int list_callback(const mailbox_scan_info &info,
 	}
 
 	writes("\r\n");
-	if (myrights)
-		free(myrights);
 
 	return 0;
 }
@@ -2358,12 +2359,12 @@ static bool acl_write_folder(maildir::aclt_list &aclt_list,
 			       owner, err_failedrights) == 0;
 }
 
-static void writeacl(const char *);
+static void writeacl(const std::string &);
 
 static void myrights()
 {
 	writes("* OK [MYRIGHTS \"");
-	writeacl(current_mailbox_acl);
+	writeacl(current_maildir_info.current_mailbox_acl);
 	writes("\"] ACL\r\n");
 }
 
@@ -2412,21 +2413,18 @@ static bool get_acllist(maildir::aclt_list &l,
 
 	/* Detect if ACLs on the currently-open folder have changed */
 
-	if (current_mailbox &&
+	if (
 #if SMAP
 	    !smapflag &&
 #endif
 
-	    !v.empty() && v == current_mailbox)
+	    !v.empty() && v == current_maildir_info.current_mailbox)
 	{
 		auto new_acl=compute_myrights(l, computed_mailbox_owner);
 
-		if (new_acl != current_mailbox_acl)
+		if (new_acl != current_maildir_info.current_mailbox_acl)
 		{
-			if (current_mailbox_acl)
-				free(current_mailbox_acl);
-			if (!(current_mailbox_acl=strdup(new_acl.c_str())))
-				write_error_exit(0);
+			current_maildir_info.current_mailbox_acl=new_acl;
 			myrights();
 		}
 	}
@@ -2456,22 +2454,21 @@ static void list_acl(const std::string &mailbox,
 	writes("))");
 }
 
-static void writeacl(const char *aclstr)
+static void writeacl(const std::string &aclstr)
 {
-	const char *cp;
 	int n=0;
 
-	for (cp=aclstr; *cp; cp++)
-		if (*cp == ACL_EXPUNGE[0])
+	for (auto cp:aclstr)
+		if (cp == ACL_EXPUNGE[0])
 			n |= 1;
-		else if (*cp == ACL_DELETEMSGS[0])
+		else if (cp == ACL_DELETEMSGS[0])
 			n |= 2;
-		else if (*cp == ACL_DELETEFOLDER[0])
+		else if (cp == ACL_DELETEFOLDER[0])
 			n |= 4;
 
 	if (n != 7)
 	{
-		writeqs(aclstr);
+		writeqs(aclstr.c_str());
 		return;
 	}
 
@@ -2517,27 +2514,25 @@ static void writeacl1(std::string p)
 	writeqs(p.c_str());
 }
 
-char *get_myrightson(const std::string &mailbox)
+std::string get_myrightson(const std::string &mailbox)
 {
 	maildir::aclt_list l;
 	std::string mailbox_owner;
 
 	if (!get_acllist(l, mailbox, mailbox_owner))
-		return NULL;
+		return "";
 
-	return my_strdup(compute_myrights(l, mailbox_owner).c_str());
+	return compute_myrights(l, mailbox_owner);
 }
 
-char *get_myrightson_folder(const char *folder)
+std::string get_myrightson_folder(const char *folder)
 {
 	auto p=maildir::imap_foldername_to_filename(enabled_utf8, folder);
-	char *r;
 
 	if (p.empty())
 		return NULL;
 
-	r=get_myrightson(p);
-	return r;
+	return get_myrightson(p);
 }
 
 std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
@@ -2561,47 +2556,26 @@ std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
 
 void check_rights(const std::string &mailbox, char *rights_buf)
 {
-	char *r=get_myrightson(mailbox);
+	auto r=get_myrightson(mailbox);
 	char *p, *q;
-
-	if (!r)
-	{
-		fprintf(stderr, "ERR: Error reading ACLs for %s: %s\n",
-			mailbox.c_str(), strerror(errno));
-		*rights_buf=0;
-		return;
-	}
 
 	for (p=q=rights_buf; *p; p++)
 	{
-		if (strchr(r, *p) == NULL)
+		if (r.find(*p) == r.npos)
 			continue;
 
 		*q++ = *p;
 	}
 	*q=0;
-	free(r);
 }
 
 static void list_myrights(const std::string &mailbox,
-			  const char *r)
+			  const std::string &r)
 {
 
-	writes("(\"MYRIGHTS\" ");
-
-	if (r == NULL)
-	{
-		fprintf(stderr, "ERR: Error reading ACLs for %s: %s\n",
-			mailbox.c_str(), strerror(errno));
-		writes(" NIL");
-	}
-	else
-	{
-		writes("\"");
-		writeacl(r);
-		writes("\"");
-	}
-	writes(")");
+	writes("(\"MYRIGHTS\" \"");
+	writeacl(r);
+	writes("\")");
 }
 
 /*
@@ -2865,7 +2839,7 @@ static maildir::info acl_settable_folder(const std::string &mailbox)
 bool acl_lock(const std::string &maildir,
 	      const std::function< bool() >&callback)
 {
-	imapscaninfo ii;
+	imapscaninfo ii{maildir};
 
 	return imapmaildirlock(&ii, maildir, callback);
 }
@@ -3304,8 +3278,7 @@ static int append(const char *tag, const std::string &mailbox,
 		strcpy(access_rights, append_rights);
 	}
 
-	if (current_mailbox &&
-	    path == current_mailbox && current_mailbox_ro)
+	if (path == current_maildir_info.current_mailbox && current_mailbox_ro)
 	{
 		writes(tag);
 		writes(" NO Current box is selected READ-ONLY.\r\n");
@@ -3495,7 +3468,7 @@ const char *folder_rename(maildir::info &mi1,
 		return "Invalid new mailbox name";
 	}
 
-	if (current_mailbox)
+	if (!current_maildir_info.current_mailbox.empty())
 	{
 		auto mailbox=maildir::name2dir(mi1.homedir,
 					       mi1.maildir);
@@ -3505,11 +3478,15 @@ const char *folder_rename(maildir::info &mi1,
 			return "Invalid mailbox name";
 		}
 
-		auto l=mailbox.size();
-
-		if (strncmp(mailbox.c_str(), current_mailbox, l) == 0 &&
-		    (current_mailbox[l] == 0 ||
-		     current_mailbox[l] == HIERCH))
+		if (current_maildir_info.current_mailbox.substr(
+			    0,
+			    mailbox.size()
+		    ) == mailbox &&
+		    (current_maildir_info.current_mailbox.size() ==
+		     mailbox.size() ||
+		     current_maildir_info.current_mailbox[
+			     mailbox.size()
+		     ] == HIERCH))
 		{
 			return "Can't RENAME the currently-open folder";
 		}
@@ -3622,8 +3599,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "NOOP") == 0)
 	{
 		if (nexttoken()->tokentype != IT_EOL)	return (-1);
-		if (current_mailbox)
-			doNoop(1);
+		doNoop(1);
 		writes(tag);
 		writes(" OK NOOP completed\r\n");
 		return (0);
@@ -3647,8 +3623,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	       curtoken=nexttoken();
 	       if (strcmp(curtoken->tokenbuf, "DONE") == 0)
 	       {
-		       if (current_mailbox)
-			       doNoop(0);
+		       doNoop(0);
 		       writes(tag);
 		       writes(" OK IDLE completed\r\n");
 		       return (0);
@@ -3948,8 +3923,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			get_uidvalidity=0,
 			get_unseen=0;
 
-		imapscaninfo other_info,
-			*infoptr;
 		const char *p;
 		std::string orig_mailbox;
 		int	oneonly;
@@ -4019,8 +3992,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 		}
 
+		imapscaninfo other_info{new_mailbox},
+			*infoptr;
 
-		if (current_mailbox && new_mailbox == current_mailbox)
+		if (new_mailbox == current_maildir_info.current_mailbox)
 		{
 			infoptr= &current_maildir_info;
 		}
@@ -4028,8 +4003,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			infoptr=&other_info;
 
-			if (imapscan_maildir(infoptr,
-					     new_mailbox.c_str(), 1, 1, NULL))
+			if (imapscan_maildir(infoptr, 1, 1, NULL))
 			{
 				writes(tag);
 				writes(" NO [ALERT] STATUS failed\r\n");
@@ -4096,7 +4070,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		char	*p;
 		int	isdummy;
-		imapscaninfo minfo;
 
 		curtoken=nexttoken_nouc();
 
@@ -4238,7 +4211,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				      ACL_CREATE);
 		}
 
-		imapscan_maildir(&minfo, mailbox.c_str(), 0,0, NULL);
+		imapscaninfo minfo{mailbox};
+		imapscan_maildir(&minfo, 0,0, NULL);
 		return (0);
 	}
 
@@ -4287,7 +4261,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
-		if (current_mailbox && new_mailbox == current_mailbox)
+		if (new_mailbox == current_maildir_info.current_mailbox)
 		{
 			writes(tag);
 			writes(" NO Cannot delete currently-open folder.\r\n");
@@ -4466,45 +4440,24 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "SELECT") == 0 ||
 		strcmp(curtoken->tokenbuf, "EXAMINE") == 0)
 	{
-		int	ro=curtoken->tokenbuf[0] == 'E';
-		const char *p;
-
 		curtoken=nexttoken_nouc();
 
-		if (current_mailbox)
-		{
-			free(current_mailbox);
-			current_maildir_info=imapscaninfo{};
-			current_mailbox=0;
-		}
-
-		if (current_mailbox_acl)
-			free(current_mailbox_acl);
-		current_mailbox_acl=0;
+		current_maildir_info=imapscaninfo{""};
 
 		auto new_mailbox=
 			parse_mailbox_error(tag, curtoken, false, true);
+
 		if (new_mailbox.empty())
 		{
 			return 0;
 		}
 
-		current_mailbox_acl=get_myrightson_folder(curtoken->tokenbuf);
-		if (current_mailbox_acl == NULL)
-		{
-			writes(tag);
-			writes(" NO Unable to read ACLs for ");
-			writes(curtoken->tokenbuf);
-			writes(": ");
-			writes(strerror(errno));
-			writes("\r\n");
-			return 0;
-		}
+		auto current_mailbox_acl=
+			get_myrightson_folder(curtoken->tokenbuf);
 
-		if (strchr(current_mailbox_acl, ACL_READ[0]) == NULL)
+		if (current_mailbox_acl.find( ACL_READ[0]) ==
+		    current_mailbox_acl.npos)
 		{
-			free(current_mailbox_acl);
-			current_mailbox_acl=NULL;
 			writes(tag);
 			accessdenied("SELECT/EXAMINE", curtoken->tokenbuf,
 				     ACL_READ);
@@ -4516,35 +4469,38 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
+		current_maildir_info=imapscaninfo{new_mailbox};
+		current_maildir_info.current_mailbox_acl=current_mailbox_acl;
+
 		/* check if this is a shared read-only folder */
 
-		if (is_sharedsubdir(new_mailbox.c_str()) &&
-		    maildir_sharedisro(new_mailbox.c_str()))
-			ro=1;
+		int ro=1;
 
-		for (p=current_mailbox_acl; *p; p++)
+		for (auto c:current_maildir_info.current_mailbox_acl)
 			if (strchr(ACL_INSERT ACL_EXPUNGE
 				   ACL_SEEN ACL_WRITE ACL_DELETEMSGS,
-				   *p))
+				   c))
+			{
+				ro=0;
 				break;
+			}
 
-		if (*p == 0)
+		if (is_sharedsubdir(new_mailbox.c_str()) &&
+		    !maildir::shared_isrw(new_mailbox))
 			ro=1;
 
-		if (imapscan_maildir(&current_maildir_info,
-				     new_mailbox.c_str(), 0, ro,
+		if (curtoken->tokenbuf[0] == 'E')
+			ro=1;
+		current_mailbox_ro=ro;
+
+		if (imapscan_maildir(&current_maildir_info, 0, ro,
 				     NULL))
 		{
 			writes(tag);
 			writes(" NO Unable to open this mailbox.\r\n");
+			current_maildir_info=imapscaninfo{""};
 			return (0);
 		}
-
-		current_mailbox=strdup(new_mailbox.c_str());
-		if (!current_mailbox)
-			write_error_exit(0);
-
-		current_mailbox_ro=ro;
 
 		mailboxflags(ro);
 		mailboxmetrics();
@@ -4822,10 +4778,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 		else
 		{
-			char *p=get_myrightson(mailbox);
+			(void)get_myrightson(mailbox);
 
-			if (p)
-				free(p);
 			/* Side effect - change current folder's ACL */
 
 			writes(tag);
@@ -4925,23 +4879,21 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return -1;
 
 		{
-			char *myrights=get_myrightson(mb);
+			auto myrights=get_myrightson(mb);
 
-			if (!strchr(myrights, ACL_LOOKUP[0]) &&
-			    !strchr(myrights, ACL_READ[0]) &&
-			    !strchr(myrights, ACL_INSERT[0]) &&
-			    !strchr(myrights, ACL_CREATE[0]) &&
-			    !strchr(myrights, ACL_DELETEFOLDER[0]) &&
-			    !strchr(myrights, ACL_EXPUNGE[0]) &&
-			    !strchr(myrights, ACL_ADMINISTER[0]))
+			if (myrights.find(ACL_LOOKUP[0]) == myrights.npos &&
+			    myrights.find(ACL_READ[0]) == myrights.npos &&
+			    myrights.find(ACL_INSERT[0]) == myrights.npos &&
+			    myrights.find(ACL_CREATE[0]) == myrights.npos &&
+			    myrights.find(ACL_DELETEFOLDER[0]) == myrights.npos &&
+			    myrights.find(ACL_EXPUNGE[0]) == myrights.npos &&
+			    myrights.find(ACL_ADMINISTER[0]) == myrights.npos)
 			{
-				free(myrights);
 				writes(tag);
 				accessdenied("GETACL", mb.c_str(),
 					     ACL_ADMINISTER);
 				return 0;
 			}
-			free(myrights);
 		}
 
 		if (!get_acllist(l, mb, mailbox_owner))
@@ -5027,40 +4979,30 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return -1;
 
 		{
-			char *myrights=get_myrightson(f);
+			auto myrights=get_myrightson(f);
 
-			if (!strchr(myrights, ACL_LOOKUP[0]) &&
-			    !strchr(myrights, ACL_READ[0]) &&
-			    !strchr(myrights, ACL_INSERT[0]) &&
-			    !strchr(myrights, ACL_CREATE[0]) &&
-			    !strchr(myrights, ACL_DELETEFOLDER[0]) &&
-			    !strchr(myrights, ACL_EXPUNGE[0]) &&
-			    !strchr(myrights, ACL_ADMINISTER[0]))
+			if (myrights.find(ACL_LOOKUP[0]) == myrights.npos &&
+			    myrights.find(ACL_READ[0]) == myrights.npos &&
+			    myrights.find(ACL_INSERT[0]) == myrights.npos &&
+			    myrights.find(ACL_CREATE[0]) == myrights.npos &&
+			    myrights.find(ACL_DELETEFOLDER[0]) == myrights.npos &&
+			    myrights.find(ACL_EXPUNGE[0]) == myrights.npos &&
+			    myrights.find(ACL_ADMINISTER[0]) == myrights.npos)
 			{
-				free(myrights);
 				writes(tag);
 				accessdenied("GETACL", f,
 					     ACL_ADMINISTER);
 				return 0;
 			}
-			free(myrights);
 		}
 
 		auto mb=get_myrightson(f);
-
-		if (!mb)
-		{
-			writes(tag);
-			writes(" NO Cannot retrieve ACLs for mailbox.\r\n");
-			return 0;
-		}
 
 		writes("* MYRIGHTS \"");
 		writemailbox(f);
 		writes("\" \"");
 
 		writeacl1(mb);
-		free(mb);
 		writes("\"\r\n");
 		writes(tag);
 		writes(" OK MYRIGHTS completed.\r\n");
@@ -5069,7 +5011,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	/* mailbox commands */
 
-	if (current_mailbox == 0)	return (-1);
+	if (current_maildir_info.current_mailbox.empty())	return (-1);
 
 	if (strcmp(curtoken->tokenbuf, "UID") == 0)
 	{
@@ -5092,11 +5034,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 
 		if (!current_mailbox_ro
-		    && strchr(current_mailbox_acl, ACL_EXPUNGE[0]))
+		    && current_maildir_info.has_acl(ACL_EXPUNGE[0]))
 			expunge();
-		free(current_mailbox);
-		current_maildir_info=imapscaninfo{};
-		current_mailbox=0;
+		current_maildir_info=imapscaninfo{""};
 		writes(tag);
 		writes(" OK mailbox closed.\r\n");
 		return (0);
@@ -5105,17 +5045,16 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "FETCH") == 0)
 	{
 	struct fetchinfo *fi;
-	char	*msgset;
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
-		msgset=my_strdup(curtoken->tokenbuf);
+
+		std::string msgset{curtoken->tokenbuf};
 
 		if ((curtoken=nexttoken())->tokentype != IT_LPAREN)
 		{
 			if (curtoken->tokentype != IT_ATOM)
 			{
-				free(msgset);
 				return (-1);
 			}
 			fi=fetchinfo_alloc(1);
@@ -5134,7 +5073,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (fi == 0 || currenttoken()->tokentype != IT_EOL)
 		{
-			free(msgset);
 			if (fi)	fetchinfo_free(fi);
 			return (-1);
 		}
@@ -5146,7 +5084,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				  return do_fetch(n, uid, fi) == 0;
 			  }, uid);
 		fetchinfo_free(fi);
-		free(msgset);
 		writes(tag);
 		writes(" OK FETCH completed.\r\n");
 		return (0);
@@ -5154,19 +5091,17 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "STORE") == 0)
 	{
-		char	*msgset;
 		storeinfo storeinfo_s;
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
-		msgset=my_strdup(curtoken->tokenbuf);
+		std::string msgset{curtoken->tokenbuf};
 
 		(void)nexttoken();
 
 		if (!storeinfo_init(storeinfo_s) ||
 			currenttoken()->tokentype != IT_EOL)
 		{
-			free(msgset);
 			return (-1);
 		}
 
@@ -5174,7 +5109,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (current_mailbox_ro && storeinfo_s.flags.deleted)
 		{
-			free(msgset);
 			writes(tag);
 			writes(" NO Current box is selected READ-ONLY.\r\n");
 			return (0);
@@ -5222,7 +5156,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				}
 				return false;
 			}, uid);
-		free(msgset);
 
 		size_t n=0;
 
@@ -5537,7 +5470,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 	if (strcmp(curtoken->tokenbuf, "EXPUNGE") == 0)
 	{
-		if (strchr(current_mailbox_acl, ACL_EXPUNGE[0]) == NULL)
+		if (!current_maildir_info.has_acl(ACL_EXPUNGE[0]))
 		{
 			writes(tag);
 			accessdenied("EXPUNGE", "current mailbox",
@@ -5554,11 +5487,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (uid)
 		{
-			char *msgset;
-
 			curtoken=nexttoken();
 			if (!ismsgset(curtoken))	return (-1);
-			msgset=my_strdup(curtoken->tokenbuf);
+			std::string msgset{curtoken->tokenbuf};
 			if (nexttoken()->tokentype != IT_EOL)	return (-1);
 
 			do_msgset(msgset,
@@ -5568,7 +5499,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 					  do_expunge(n-1, n, 0);
 					  return true;
 				  }, true);
-			free(msgset);
 		}
 		else
 		{
@@ -5584,7 +5514,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (strcmp(curtoken->tokenbuf, "COPY") == 0)
 	{
 	struct maildirsize quotainfo;
-	char	*msgset;
 	struct copyquotainfo cqinfo;
 	int	has_quota;
 	int	isshared;
@@ -5594,7 +5523,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
-		msgset=my_strdup(curtoken->tokenbuf);
+		std::string msgset{curtoken->tokenbuf};
 
 		curtoken=nexttoken_nouc();
 
@@ -5602,7 +5531,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			curtoken->tokentype != IT_ATOM &&
 			curtoken->tokentype != IT_QUOTED_STRING)
 		{
-			free(msgset);
 			writes(tag);
 			writes(" BAD Invalid command\r\n");
 			return (0);
@@ -5612,8 +5540,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (dest_mailbox.empty())
 		{
-			free(msgset);
-
 			if (maildir::info_imap_find(curtoken->tokenbuf,
 						    getenv("AUTHENTICATED")))
 			{
@@ -5651,7 +5577,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
-			free(msgset);
 			return (-1);
 		}
 
@@ -5659,7 +5584,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		{
 			writes(tag);
 			writes(" NO [TRYCREATE] Mailbox does not exist.\r\n");
-			free(msgset);
 			return (0);
 		}
 
@@ -5718,7 +5642,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				writes(tag);
 				writes(
 			" NO [ALERT] You exceeded your mail quota.\r\n");
-				free(msgset);
 				return (0);
 			}
 
@@ -5756,7 +5679,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			{
 				writes(tag);
 				writes(" NO [ALERT] Only one message may be sent at a time.\r\n");
-				free(msgset);
 				return (0);
 			}
 		}
@@ -5781,7 +5703,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			uidplus_abort(copy_info.uidplus_list);
 			writes(tag);
 			writes(" NO [ALERT] COPY failed - no write permission or out of disk space.\r\n");
-			free(msgset);
 			return (0);
 		}
 
@@ -5802,7 +5723,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		writes(" COPY completed.\r\n");
 		uidplus_free(copy_info.uidplus_list);
 
-		free(msgset);
 		return (0);
 	}
 	return (-1);

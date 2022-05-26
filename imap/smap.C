@@ -112,7 +112,6 @@ extern void do_expunge(unsigned long expunge_start,
 		       unsigned long expunge_end,
 		       int force);
 
-extern char *current_mailbox, *current_mailbox_acl;
 static int current_mailbox_shared;
 
 extern imapscaninfo current_maildir_info;
@@ -941,23 +940,18 @@ static bool read_acls(maildir::aclt_list &aclt_list,
 			       q.substr(0, 2) == "./"
 			       ? q.substr(2):q);
 
-	if (current_mailbox)
+	if (!current_maildir_info.current_mailbox.empty())
 	{
 		q=maildir::name2dir(minfo.homedir, minfo.maildir);
 
 		if (!q.empty())
 		{
-			if (q == current_mailbox)
+			if (q == current_maildir_info.current_mailbox)
 			{
 				auto r=compute_myrights(aclt_list,
 							minfo.owner);
 
-				if (r != current_mailbox_acl)
-				{
-					free(current_mailbox_acl);
-					current_mailbox_acl=
-						my_strdup(r.c_str());
-				}
+				current_maildir_info.current_mailbox_acl=r;
 			}
 		}
 	}
@@ -1025,7 +1019,7 @@ static std::string getAccessToFolder(char **ptr, char *rightsWanted)
 
 static void smap1_noop(int real_noop)
 {
-	if (current_mailbox)
+	if (!current_maildir_info.current_mailbox.empty())
 		doNoop(real_noop);
 	writes("+OK Folder updated\n");
 }
@@ -1201,7 +1195,8 @@ static int applymsgset( const std::function<int (unsigned long)> &callback)
 			for (n=msgsetp->range[i][0];
 			     n <= msgsetp->range[i][1]; n++)
 			{
-				if (current_mailbox == NULL ||
+				if (current_maildir_info.current_mailbox.empty()
+				    ||
 				    n > current_maildir_info.msgs.size())
 					break;
 				rc=callback(n-1);
@@ -1255,9 +1250,10 @@ static int applyflags(unsigned long n, struct storeinfo *si,
 
 static void setdate(unsigned long n, time_t datestamp)
 {
-	auto filename=maildir::filename(current_mailbox, "",
-					current_maildir_info.msgs[n]
-					.filename);
+	auto filename=maildir::filename(
+		current_maildir_info.current_mailbox,
+		"",
+		current_maildir_info.msgs[n].filename);
 
 	if (!filename.empty())
 		set_time(filename, datestamp);
@@ -2247,7 +2243,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 	FILE *fp;
 	std::string tmpname, newname;
 
-	fd=imapscan_openfile(current_mailbox, &current_maildir_info, n);
+	fd=imapscan_openfile(&current_maildir_info, n);
 	if (fd < 0)	return (0);
 
 	if (fstat(fd, &stat_buf) < 0)
@@ -2325,8 +2321,10 @@ static int do_movemsg(unsigned long n, void *voidptr)
 	if (n >= current_maildir_info.msgs.size())
 		return 0;
 
-	auto filename=maildir::filename(current_mailbox, "",
-					current_maildir_info.msgs.at(n).filename);
+	auto filename=maildir::filename(
+		current_maildir_info.current_mailbox,
+		"",
+		current_maildir_info.msgs.at(n).filename);
 
 	if (filename.empty())
 		return 0;
@@ -2658,7 +2656,7 @@ static int copyto(const char *toFolder, int do_move, const char *acls)
 		return do_copyto(toFolder, &do_copymsg, acls);
 
 	if (!current_mailbox_shared &&
-	    maildirquota_countfolder(current_mailbox) ==
+	    maildirquota_countfolder(current_maildir_info.current_mailbox.c_str()) ==
 	    maildirquota_countfolder(toFolder))
 	{
 		if (do_copyto(toFolder, do_movemsg, acls))
@@ -3453,9 +3451,6 @@ void smap()
 
 		if (strcmp(p, "STATUS") == 0)
 		{
-			imapscaninfo loaded_info,
-				*infoptr;
-
 			getword(&ptr);
 
 			auto t=GETFOLDER(ACL_LOOKUP);
@@ -3474,7 +3469,10 @@ void smap()
 				continue;
 			}
 
-			if (current_mailbox && t == current_mailbox)
+			imapscaninfo loaded_info{t},
+				*infoptr;
+
+			if (t == current_maildir_info.current_mailbox)
 			{
 				infoptr= &current_maildir_info;
 			}
@@ -3482,8 +3480,7 @@ void smap()
 			{
 				infoptr=&loaded_info;
 
-				if (imapscan_maildir(infoptr,
-						     t.c_str(), 1, 1, NULL))
+				if (imapscan_maildir(infoptr, 1, 1, NULL))
 				{
 					writes("-ERR Cannot read"
 					       " folder status: ");
@@ -3636,8 +3633,8 @@ void smap()
 				}
 			}
 
-			if (!t.empty() && current_mailbox &&
-			    t == current_mailbox)
+			if (!t.empty() &&
+			    t == current_maildir_info.current_mailbox)
 			{
 				writes("-ERR Cannot DELETE currently open"
 				       " folder.\n");
@@ -3767,15 +3764,7 @@ void smap()
 			char **fn;
 			const char *snapshot=0;
 
-			if (current_mailbox)
-			{
-				free(current_mailbox);
-				current_maildir_info=imapscaninfo{};
-				current_mailbox=0;
-			}
-			if (current_mailbox_acl)
-				free(current_mailbox_acl);
-			current_mailbox_acl=NULL;
+			current_maildir_info=imapscaninfo{""};
 			current_mailbox_shared=0;
 
 			fetch_free_cache();
@@ -3826,16 +3815,17 @@ void smap()
 				accessdenied(ACL_READ);
 				continue;
 			}
-			current_mailbox_acl=my_strdup(q.c_str());
-			current_mailbox=my_strdup(
+			current_maildir_info=imapscaninfo{
 				maildir::name2dir(minfo.homedir,
-						  minfo.maildir
-				).c_str()
-			);
+						  minfo.maildir)
+			};
+			current_maildir_info.current_mailbox_acl=q;
 
 			snapshot_select(snapshot != NULL);
 
-			if (snapshot_init(current_mailbox, snapshot))
+			if (snapshot_init(
+				    current_maildir_info.current_mailbox.c_str()
+				    , snapshot))
 			{
 				writes("* SNAPSHOTEXISTS ");
 				smapword(snapshot);
@@ -3844,10 +3834,13 @@ void smap()
 				continue;
 			}
 
-			if (imapscan_maildir(&current_maildir_info,
-					     current_mailbox, 0, 0, NULL) == 0)
+			if (imapscan_maildir(&current_maildir_info, 0, 0, NULL)
+			    == 0)
 			{
-				snapshot_init(current_mailbox, NULL);
+				snapshot_init(
+					current_maildir_info.current_mailbox
+					.c_str(), NULL);
+
 				writes("* EXISTS ");
 				writen(current_maildir_info.msgs.size());
 				writes("\n+OK Folder opened\n");
@@ -3858,19 +3851,13 @@ void smap()
 			writes(strerror(errno));
 			writes("\n");
 
-			free(current_mailbox);
-			current_mailbox=NULL;
+			current_maildir_info=imapscaninfo{""};
 			continue;
 		}
 
 		if (strcmp(p, "CLOSE") == 0)
 		{
-			if (current_mailbox)
-			{
-				free(current_mailbox);
-				current_maildir_info=imapscaninfo{};
-				current_mailbox=0;
-			}
+			current_maildir_info=imapscaninfo{""};
 			writes("+OK Folder closed\n");
 			continue;
 		}
@@ -3900,7 +3887,7 @@ void smap()
 			continue;
 		}
 
-		if (!current_mailbox)
+		if (current_maildir_info.current_mailbox.empty())
 		{
 			static char null[]="";
 			// TODO
@@ -3915,8 +3902,9 @@ void smap()
 
 			if (p)
 			{
-				if (strchr(current_mailbox_acl,
-					   ACL_EXPUNGE[0]) == NULL)
+				if (!current_maildir_info.has_acl(
+					    ACL_EXPUNGE[0]
+				    ))
 				{
 					accessdenied(ACL_EXPUNGE);
 					continue;
@@ -3924,8 +3912,9 @@ void smap()
 
 				if (hasSet)
 				{
-					if (strchr(current_mailbox_acl,
-						   ACL_DELETEMSGS[0]) == NULL)
+					if (!current_maildir_info.has_acl(
+						    ACL_DELETEMSGS[0]
+					    ))
 					{
 						accessdenied(ACL_DELETEMSGS);
 						continue;
