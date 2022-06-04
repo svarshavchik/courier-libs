@@ -17,7 +17,7 @@
 
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
-      <command moreinfo="none">deliverquota</command>
+      <command>deliverquota</command>
       <arg choice="opt" rep="norepeat">-c</arg>
       <arg choice="opt" rep="norepeat">-w <replaceable>percent</replaceable></arg>
       <arg choice="opt" rep="norepeat">-W <replaceable>filename</replaceable></arg>
@@ -30,7 +30,7 @@
     <title>DESCRIPTION</title>
 
     <para>
-<command moreinfo="none">deliverquota</command> delivers mail to a
+<command>deliverquota</command> delivers mail to a
 <replaceable>maildir</replaceable> taking into account any
 software-imposed quota on the maildir.
 This manually-enforced quota mechanism is described in the
@@ -41,24 +41,24 @@ manual pages.
 Instead of setting up your mail
 server to deliver the message directly
 to a maildir, configure the mail server to
-run the <command moreinfo="none">deliverquota</command> program in order to deliver the
+run the <command>deliverquota</command> program in order to deliver the
 message,
 and specify the
 location of the maildir as the argument to
-<command moreinfo="none">deliverquota</command>.</para>
+<command>deliverquota</command>.</para>
 
     <para>
-The second argument to <command moreinfo="none">deliverquota</command> is optional.
+The second argument to <command>deliverquota</command> is optional.
 If present, <replaceable>quota</replaceable> specifies a new quota setting
 for this maildir.
 Specifying <replaceable>quota</replaceable> is equivalent to running
 <ulink url="maildirmake.html"><citerefentry><refentrytitle>maildirmake</refentrytitle><manvolnum>1</manvolnum></citerefentry></ulink>
 with the <option>-q</option> option.
-The second argument to <command moreinfo="none">deliverquota</command> is considered obsolete,
+The second argument to <command>deliverquota</command> is considered obsolete,
 and may be removed in the future.</para>
 
     <para>
-<command moreinfo="none">deliverquota</command> reads the message from standard input
+<command>deliverquota</command> reads the message from standard input
 and delivers it
 to <replaceable>maildir</replaceable>.
 <replaceable>maildir</replaceable>
@@ -69,7 +69,7 @@ not the main <replaceable>maildir</replaceable>
 
     <para>
 The <option>-c</option> option automatically creates the maildir,
-and all missing parent subdirectories (as '<command moreinfo="none">mkdir -p</command>').
+and all missing parent subdirectories (as '<command>mkdir -p</command>').
 This option should be used with caution.</para>
 
     <para>
@@ -79,11 +79,11 @@ the message was successfully delivered the maildir was at least
 <replaceable>N</replaceable> percent full.
 The warning message is copied
 from the file specified by the <option>-W</option> option, or from
-<filename moreinfo="none">@sysconfdir@/quotawarnmsg</filename> if <option>-W</option> was not
+<filename>@sysconfdir@/quotawarnmsg</filename> if <option>-W</option> was not
 specified.
 The
-"<literal moreinfo="none">Date:</literal>" and
-"<literal moreinfo="none">Message-Id:</literal>" headers are added to the message.
+"<literal>Date:</literal>" and
+"<literal>Message-Id:</literal>" headers are added to the message.
 The warning is repeated every 24 hours (at least), until the maildir drops
 below
 <replaceable>N</replaceable> percent full.</para>
@@ -94,13 +94,16 @@ below
     <title>RETURN CODE</title>
 
     <para>
-<command moreinfo="none">deliverquota</command> delivers the message to the maildir
+<command>deliverquota</command> delivers the message to the maildir
 and terminates with
 exit code 0 if the message can be delivered without going over quota.</para>
 
     <para>
-If the maildir is over its specified quota, <command moreinfo="none">deliverquota</command>
-terminates with exit code 77 (EX_NOPERM).</para>
+      If the maildir is over its specified quota: the maildrop version of
+      <command>deliverquota</command>
+      terminates with an exit code 77 (EX_NOPERM); the Courier version of
+      <command>deliverquota</command>
+      terminates with an exit code 75 (EX_TEMPFAIL).</para>
   </refsect1>
 
   <refsect1 id="seealso">
