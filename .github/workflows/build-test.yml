@@ -1,0 +1,17 @@
+name: Run builds on supported distributions
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-combined:
+     uses: svarshavchik/courier/.github/workflows/build-combined.yml@master
+     with:
+       thisrepo: svarshavchik/courier
+       thisbranch: master
+       libsrepo: ${{ github.repository }}
+       libsbranch: ${{ github.ref }}
