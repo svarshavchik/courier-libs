@@ -364,9 +364,8 @@ MAILBOX="${HOME-WORD}/Mailbox"
 	      (included in the <application>Courier</application> mail server 0.51,
 	      and earlier), used a built-in pattern matching engine, instead of using the
 	      <acronym>PCRE</acronym>
-	      library (see the
-	      <quote><link linkend="patterns">Patterns</link></quote>
-	      section).
+	      library (see
+	      <xref linkend="patterns" />).
 	      <command>maildrop</command> 1.x used a different syntax for patterns, which
 	      is no longer described in this manual page.
 	      The old pattern matching engine is still available, by
@@ -659,7 +658,7 @@ DIR=`ls`
 	  <para>
 	    Named subpatterns are not implemented.
 	    Numbered subpatterns are implemented, see
-	    <quote><link linkend="patmatch">Pattern Match Results</link></quote>,
+	    <xref linkend="patmatch" />,
 	    below.
 	  </para>
 	</listitem>
@@ -875,6 +874,33 @@ From: postmaster@localhost
 	<para>
 	  Subpatterns are not processed in the <literal>foreach</literal>
 	  statement.</para>
+      </note>
+
+      <note>
+	<para>
+	  The contents of all <varname>MATCH</varname> variables use UTF-8
+	  encoding. As explained in <xref linkend="maildropfilter_patterns" />
+	  the message gets transcoded into a canonical UTF-8 format,
+	  replacing MIME-encoded headers with their UTF-8 equivalent.
+	  Consequently, <varname>MATCH</varname> variables that represent
+	  matched text are in UTF-8. For example:
+	</para>
+
+	<blockquote>
+	  <informalexample>
+	    <programlisting>
+if (/^Subject: *(.*)/)</programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  This sets <varname>MATCH</varname> to what's in the
+	  <quote>Subject</quote> header, which could possibly use MIME-encoding,
+	  for example: <quote>Subject: =?UTF-8?B?SMOzbGEh?=</quote>.
+	  The resulting <varname>MATCH</varname> shows
+	  <quote>Hóla!</quote>.
+	</para>
+
       </note>
 
     </refsect2>
