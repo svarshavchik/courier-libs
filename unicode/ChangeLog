@@ -1,3 +1,11 @@
+2.2.5
+
+2022-11-12  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Adjust deb packaging. Check /etc/lsb-release and include the
+	distribution release in the deb package version, to faciliate
+	updating to the same version of the package in an updated release.
+
 2.2.4
 
 2022-05-22  Sam Varshavchik  <mrsam@courier-mta.com>
