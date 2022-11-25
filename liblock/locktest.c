@@ -70,7 +70,8 @@ int	f;
 	char	c;
 
 		close(fd[1]);
-		read(fd[0], &c, 1);
+		if (read(fd[0], &c, 1))
+			;
 		close(fd[0]);
 
 		if ((f=open(name, O_RDWR)) < 0)

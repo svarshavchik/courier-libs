@@ -72,7 +72,8 @@ char	c;
 			close(pipefd[1]);
 			close(pipefd2[0]);
 			close(pipefd2[1]);
-			read(pipefd[0], &c, 1);
+			if (read(pipefd[0], &c, 1))
+				;
 			_exit(0);
 		}
 	}
