@@ -7,7 +7,7 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<errno.h>
-#include	<idna.h>
+#include	<idn2.h>
 
 void rfc1035_replyfree(struct rfc1035_reply *p)
 {
@@ -77,7 +77,7 @@ int	cnt=0;
 
 		namebuf[i]=0;
 
-		if (idna_to_unicode_8z8z(namebuf, &p, 0) != IDNA_SUCCESS)
+		if (idn2_to_unicode_8z8z(namebuf, &p, 0) != IDNA_SUCCESS)
 			return (0);
 
 		if (strlen(p) >= RFC1035_MAXNAMESIZE)

@@ -18,7 +18,7 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<netdb.h>
-#include	<idna.h>
+#include	<idn2.h>
 #if HAVE_DIRENT_H
 #include <dirent.h>
 #define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -578,7 +578,7 @@ static int name_check(ssl_handle ssl,
 	const char *p;
 	int rc;
 
-	if (idna_to_unicode_8z8z(ssl->info_cpy.peer_verify_domain,
+	if (idn2_to_unicode_8z8z(ssl->info_cpy.peer_verify_domain,
 				 &idn_domain, 0) != IDNA_SUCCESS)
 		idn_domain=0;
 
@@ -976,7 +976,7 @@ static char *check_cert(const char *filename,
 		char *p;
 		char *retfile;
 
-		if (idna_to_ascii_8z(req_dn, &p, 0) != IDNA_SUCCESS)
+		if (idn2_to_ascii_8z(req_dn, &p, 0) != IDNA_SUCCESS)
 			p=0;
 
 		if (p)
@@ -1167,7 +1167,7 @@ static int get_server_cert(gnutls_session_t session,
 		char *namebuf;
 
 		/* Convert to UTF8 */
-		if (idna_to_unicode_8z8z(vhost_buf, &utf8, 0)
+		if (idn2_to_unicode_8z8z(vhost_buf, &utf8, 0)
 		    != IDNA_SUCCESS)
 			utf8=0;
 
@@ -1543,7 +1543,7 @@ static int name_set(ssl_handle ssl, ssl_context ctx)
 	const char *p;
 	int rc;
 
-	if (idna_to_unicode_8z8z(ctx->info_cpy.peer_verify_domain,
+	if (idn2_to_unicode_8z8z(ctx->info_cpy.peer_verify_domain,
 				 &idn_domain, 0) != IDNA_SUCCESS)
 		idn_domain=0;
 

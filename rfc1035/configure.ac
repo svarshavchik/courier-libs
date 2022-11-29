@@ -22,11 +22,11 @@ LT_INIT
 
 dnl Checks for libraries.
 
-PKG_CHECK_MODULES(LIBIDN, libidn >= 0.0.0, [libidn=yes], [libidn=no])
+PKG_CHECK_MODULES(LIBIDN, libidn2 >= 0.0.0, [libidn=yes], [libidn=no])
 
 if test "$libidn" = "no"
 then
-	AC_MSG_ERROR(libidn not found)
+	AC_MSG_ERROR(libidn2 not found)
 fi
 dnl Checks for header files.
 

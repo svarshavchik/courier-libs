@@ -15,8 +15,7 @@
 #include	"rfc2047.h"
 
 #if LIBIDN
-#include <idna.h>
-#include <stringprep.h>
+#include <idn2.h>
 #endif
 
 
@@ -344,7 +343,7 @@ int rfc822_display_addr_str(const char *tok,
 			memset(cpy, 0, s);
 			strcpy(cpy, p);
 
-			err=idna_to_unicode_8z8z(cpy, &utf8_ptr, 0);
+			err=idn2_to_unicode_8z8z(cpy, &utf8_ptr, 0);
 			free(cpy);
 		}
 

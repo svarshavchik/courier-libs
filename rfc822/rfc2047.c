@@ -14,8 +14,7 @@
 #include	"rfc822hdr.h"
 #include	"rfc2047.h"
 #if LIBIDN
-#include <idna.h>
-#include <stringprep.h>
+#include <idn2.h>
 #endif
 
 
@@ -61,7 +60,7 @@ static char *rfc822_encode_domain_int(const char *pfix,
 	memset(cpy, 0, s);
 	strcpy(cpy, domain);
 
-	err=idna_to_ascii_8z(cpy, &p, 0);
+	err=idn2_to_ascii_8z(cpy, &p, 0);
 	free(cpy);
 
 	if (err != IDNA_SUCCESS)

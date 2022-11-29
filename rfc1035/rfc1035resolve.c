@@ -13,7 +13,7 @@
 #endif
 #include	<stdlib.h>
 #include	<string.h>
-#include	<idna.h>
+#include	<idn2.h>
 
 static void putqbuf(const char *p, unsigned l, void *q)
 {
@@ -58,7 +58,7 @@ struct rfc1035_reply
 	for (n=0; n<nqueries; ++n)
 	{
 		idna_queries[n]=queries[n];
-		if (idna_to_ascii_8z(idna_queries[n].name, &buffers[n], 0)
+		if (idn2_to_ascii_8z(idna_queries[n].name, &buffers[n], 0)
 		    != IDNA_SUCCESS)
 		{
 			errno=EINVAL;
