@@ -1,1 +1,4 @@
-manpage-has-errors-from-man usr/share/man/man3/*
+#
+# Manual pages generated using Docbook stylesheet
+#
+groff-message usr/share/man/man3/*
