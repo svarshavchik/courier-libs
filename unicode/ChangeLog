@@ -1,3 +1,9 @@
+2.2.6
+
+2022-12-02  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Debian/Ubuntu: update lintian overrides
+
 2.2.5
 
 2022-11-12  Sam Varshavchik  <mrsam@courier-mta.com>
