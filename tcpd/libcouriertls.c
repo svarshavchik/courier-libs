@@ -413,6 +413,8 @@ static void load_dh_params(SSL_CTX *ctx, const char *filename,
 	if (*cert_file_flags)
 		return;
 
+	ERR_clear_error();
+
 	if ((bio=BIO_new_file(filename, "r")) != 0)
 	{
 #if HAVE_PEM_READ_BIO_PARAMETERS_EX
@@ -460,7 +462,12 @@ static void load_dh_params(SSL_CTX *ctx, const char *filename,
 
 			int err=ERR_peek_last_error();
 
-			if (ERR_GET_LIB(err) == ERR_LIB_PEM
+			if (err == 0)
+				/*
+				** No error, and no parameters. Fail.
+				*/
+				;
+			else if (ERR_GET_LIB(err) == ERR_LIB_PEM
 			    && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)
 			{
 				ERR_clear_error();
