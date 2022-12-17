@@ -6,6 +6,7 @@
 	report an error when PEM_read_bio_Parameters_ex does not find
 	any DH parameters, handle that.
 
+	* Makefile: fix broken conversion from absolute to relative symlinks.
 5.2.0
 
 2022-11-28  Sam Varshavchik  <mrsam@courier-mta.com>
