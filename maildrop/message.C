@@ -253,13 +253,13 @@ int Message::appendline(Buffer &buf, int stripcr)
 		while ((c=get_c()) > 0 && c != '\n')
 		{
 			eof=0;
-			buf.push(c);
+			buf.push_back(c);
 			lastc=c;
 		}
 		if (c < 0 && eof)	return (-1);
 		if (stripcr && lastc == '\r')	buf.pop();
 						// Drop trailing CRs
-		buf.push('\n');
+		buf += "\n";
 		return (0);
 	}
 
@@ -279,7 +279,7 @@ unsigned i;
 				// Drop trailing CRs
 			else
 				buf.append(bufptr, i);
-			buf += '\n';
+			buf += "\n";
 			bufptr += ++i;
 			return (0);
 		}
@@ -290,7 +290,7 @@ unsigned i;
 	else
 		buf.append(bufptr, cnt);
 	bufptr += cnt;
-	buf += '\n';
+	buf += "\n";
 	return (0);
 }
 

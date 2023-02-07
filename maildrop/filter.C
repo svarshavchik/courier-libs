@@ -73,7 +73,7 @@ char	buffer[1024];
 Buffer	cmdbuf;
 
 	cmdbuf= filtercmd;
-	cmdbuf += '\0';
+	cmdbuf.push_back_0();
 
 PipeFds	pipe0, pipe1;
 

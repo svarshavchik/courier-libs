@@ -73,7 +73,7 @@ Buffer	b;
 		else
 			cmdbuf= mailbox+1;
 
-		cmdbuf += '\0';
+		cmdbuf.push_back_0();
 
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Delivering to |" <<

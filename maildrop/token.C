@@ -82,7 +82,7 @@ const char *Token::Name()
 		namebuf="string: \"";
 		namebuf += buf;
 		namebuf += "\"";
-		namebuf.push(0);
+		namebuf.push_back_0();
 		return (namebuf);
 	}
 
@@ -91,7 +91,7 @@ const char *Token::Name()
 		namebuf="string: '";
 		namebuf += buf;
 		namebuf += "'";
-		namebuf.push(0);
+		namebuf.push_back_0();
 		return (namebuf);
 	}
 
@@ -100,7 +100,7 @@ const char *Token::Name()
 		namebuf="string: `";
 		namebuf += buf;
 		namebuf += "`";
-		namebuf.push(0);
+		namebuf.push_back_0();
 		return (namebuf);
 	}
 
@@ -108,7 +108,7 @@ const char *Token::Name()
 	{
 		namebuf="regexp: ";
 		namebuf += buf;
-		namebuf.push(0);
+		namebuf.push_back_0();
 		return (namebuf);
 	}
 

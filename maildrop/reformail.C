@@ -73,15 +73,15 @@ int	c;
 
 	buf.reset();
 	while ((c=std::cin.get()) >= 0 && c != '\n')
-		buf.push(c);
+		buf.push_back(c);
 	if (c < 0 && buf.Length() == 0)	return (0);
 	if (buf.Length())	// Strip CRs
 	{
 		c=buf.pop();
-		if (c != '\r')	buf.push(c);
+		if (c != '\r')	buf.push_back(c);
 	}
-	buf.push('\n');
-	buf.push('\0');
+	buf.push_back('\n');
+	buf.push_back_0();
 	return (buf);
 }
 
@@ -130,7 +130,7 @@ static Buffer buf;
 		current_line += p;
 
 	buf=current_line;
-	buf+='\0';
+	buf.push_back_0();
 	if (!p || *p == '\n')
 	{
 		from_filter= &read_blank;
@@ -175,7 +175,7 @@ int n;
 		p=NextLine();
 	}
 
-	add_from_filter_buf += '\0';
+	add_from_filter_buf.push_back_0();
 
 static Buffer	return_path;
 static Buffer	from_header;
@@ -192,21 +192,21 @@ static Buffer	from_header;
 		int	c= (unsigned char)*p++;
 
 			c=tolower(c);
-			header.push(c);
+			header.push_back(c);
 		}
 		for (;;)
 		{
 			while (*p && *p != '\n')
 			{
-				header.push(*p);
+				header.push_back(*p);
 				p++;
 			}
 			if (!*p)	break;
 			++p;
-			header.push('\n');
+			header.push_back('\n');
 			if (!*p || !isspace((unsigned char)*p))	break;
 		}
-		header.push('\0');
+		header.push_back_0();
 		if (strncmp(header, "return-path:", 12) == 0 ||
 			strncmp(header, ">return-path:", 13) == 0 ||
 			strncmp(header, "errors-to:", 10) == 0 ||
@@ -223,7 +223,7 @@ static Buffer	from_header;
 			from_header=(const char *)header + 5;
 	}
 	if (return_path.Length() == 0)	return_path=from_header;
-	return_path += '\0';
+	return_path.push_back_0();
 
 	struct rfc822t *rfc=rfc822t_alloc_new( (const char *)return_path,
 					       NULL, NULL);
@@ -263,18 +263,18 @@ static Buffer	from_header;
 	if (from_header.Length() == 0)	from_header="root";
 	return_path="From ";
 	return_path += from_header;
-	return_path.push(' ');
+	return_path.push_back(' ');
 time_t	t;
 
 	time(&t);
 	p=ctime(&t);
 	while (*p && *p != '\n')
 	{
-		return_path.push(*p);
+		return_path.push_back(*p);
 		p++;
 	}
-	return_path += '\n';
-	return_path += '\0';
+	return_path += "\n";
+	return_path.push_back_0();
 	from_filter=add_from_filter_header;
 	add_from_filter_buf_ptr=add_from_filter_buf;
 	return (return_path);
@@ -298,12 +298,12 @@ static Buffer buf;
 	{
 		while (*add_from_filter_buf_ptr)
 		{
-			buf.push ( (unsigned char)*add_from_filter_buf_ptr );
+			buf.push_back( (unsigned char)*add_from_filter_buf_ptr );
 			if ( *add_from_filter_buf_ptr++ == '\n')	break;
 		}
 	} while ( *add_from_filter_buf_ptr && *add_from_filter_buf_ptr != '\n'
 		&& isspace( (unsigned char)*add_from_filter_buf_ptr ));
-	buf += '\0';
+	buf.push_back_0();
 	return (buf);
 }
 
@@ -323,7 +323,7 @@ static Buffer add_from_buf;
 
 	add_from_buf=">";
 	add_from_buf += p;
-	add_from_buf += '\0';
+	add_from_buf.push_back_0();
 	return (add_from_buf);
 }
 
@@ -353,7 +353,7 @@ const	char *p;
 
 	for (const char *q="Return-Path: <"; *q; ++q)
 	{
-		optI.push(*q);
+		optI.push_back(*q);
 	}
 	for (p += 5; *p && *p != '\n' && isspace(*p); ++p)
 		;
@@ -362,11 +362,11 @@ const	char *p;
 
 	while (*p && *p != '\n' && *p != '>' && !isspace(*p))
 	{
-		optI.push(*p);
+		optI.push_back(*p);
 		++p;
 	}
-	optI.push('>');
-	optI.push(0);
+	optI.push_back('>');
+	optI.push_back_0();
 
 	p=NextLine();
 	if (!p)	return (p);
@@ -441,10 +441,10 @@ unsigned pos2=0;
 		{
 			--l;
 			++pos2;
-			buf2.push( tolower(*r));
+			buf2.push_back( tolower(*r));
 			if (*r++ == 0)	break;
 		}
-		buf2.push('\0');
+		buf2.push_back_0();
 		if (strncmp(hdr, buf2, strlen(hdr)) == 0)	return (1);
 	}
 	return (0);
@@ -477,7 +477,7 @@ const char *p;
 		while (l)
 		{
 			--l;
-			newbuf.push( *p );
+			newbuf.push_back( *p );
 			if (*p++ == '\0')	break;
 		}
 	}
@@ -501,12 +501,12 @@ int l=header.Length();
 			}
 			break;
 		}
-		buf1.push( *p++ );
+		buf1.push_back( *p++ );
 		--l;
 		--offset;
 	}
 	while (l--)
-		buf1.push( *p++ );
+		buf1.push_back( *p++ );
 	header=buf1;
 }
 
@@ -534,10 +534,10 @@ static Buffer oldbuf;
 		buf1.reset();
 		for (q=p; *q && *q != '\n'; q++)
 		{
-			buf1.push( tolower(*q) );
+			buf1.push_back( tolower(*q) );
 			if (*q == ':')	break;
 		}
-		buf1 += '\0';
+		buf1.push_back_0();
 
 		if (has_hdr(opti, buf1))
 		{
@@ -550,7 +550,7 @@ static Buffer oldbuf;
 			tbuf="Old-";
 			tbuf += p;
 			oldbuf=tbuf;
-			oldbuf += '\0';
+			oldbuf.push_back_0();
 			p=oldbuf;
 		}
 		if (has_hdr(optR, buf1, pos))
@@ -564,7 +564,7 @@ static Buffer oldbuf;
 			p += strlen(buf1);
 			tbuf += p;
 			oldbuf=tbuf;
-			oldbuf += '\0';
+			oldbuf.push_back_0();
 			p=oldbuf;
 		}
 
@@ -577,7 +577,7 @@ static Buffer oldbuf;
 				q=p;
 				do
 				{
-					optubuf.push( *q );
+					optubuf.push_back( *q );
 				} while (*q++);
 				break;
 			}
@@ -590,11 +590,11 @@ static Buffer oldbuf;
 				strip_header(optUbuf, pos);
 			while (*p)
 			{
-				optUbuf.push( *p );
+				optUbuf.push_back( *p );
 				p++;
 			}
 			optUbuf.pop();
-			optUbuf.push('\0');
+			optUbuf.push_back_0();
 			continue;
 		}
 		break;
@@ -642,15 +642,15 @@ int l= bufptr->Length();
 			l--;
 			break;
 		}
-		buf1.push( *p );
+		buf1.push_back( *p );
 		p++;
 		l--;
 	}
-	buf1.push('\n');
-	buf1.push('\0');
+	buf1.push_back('\n');
+	buf1.push_back_0();
 
 	while (l--)
-		buf2.push (*p++);
+		buf2.push_back(*p++);
 	*bufptr=buf2;
 	return (buf1);
 }
@@ -681,7 +681,7 @@ static Buffer	buf;
 		{
 			if (*q != '\n')
 			{
-				buf.push(*q);
+				buf.push_back(*q);
 				continue;
 			}
 			do
@@ -689,12 +689,12 @@ static Buffer	buf;
 				++q;
 			} while (*q && isspace(*q));
 			if (*q)
-				buf.push(' ');
+				buf.push_back(' ');
 			--q;
 		}
-		if (addcrs)	buf.push('\r');
-		buf.push('\n');
-		buf.push('\0');
+		if (addcrs)	buf.push_back('\r');
+		buf.push_back('\n');
+		buf.push_back_0();
 		return (buf);
 	}
 
@@ -703,7 +703,7 @@ static Buffer	buf;
 		buf=p;
 		buf.pop();
 		buf += "\r\n";
-		buf += '\0';
+		buf.push_back_0();
 		return (buf);
 	}
 	return (p);
@@ -741,24 +741,24 @@ int found=0;
 		{
 			c= (unsigned char)*p;
 			c=tolower(c);
-			buf.push(c);
+			buf.push_back(c);
 			if (*p++ == ':')	break;
 		}
 		if (!(buf == "message-id:"))	continue;
-		buf += '\0';
+		buf.push_back_0();
 		while (*p && isspace( (unsigned char)*p))	p++;
 		buf.reset();
 		while (*p)
 		{
-			buf.push(*p);
+			buf.push_back(*p);
 			++p;
 		}
 
 		while ( (c=(unsigned char)buf.pop()) != 0 && isspace(c))
 			;
-		if (c)	buf.push(c);
+		if (c)	buf.push_back(c);
 		if (buf.Length() == 0)	break;
-		buf.push('\0');
+		buf.push_back_0();
 
 	int	fd=open(cache_name, O_RDWR | O_CREAT, 0600);
 
@@ -863,10 +863,10 @@ Buffer	b;
 		{
 		int	c= (unsigned char)*q;
 
-			b.push( tolower(c) );
+			b.push_back( tolower(c) );
 			if ( *q++ == ':')	break;
 		}
-		b.push(0);
+		b.push_back_0();
 
 		if (has_hdr(optx, b))
 		{
@@ -957,15 +957,15 @@ const	char *env;
 
 				while (environ || environ_len)
 				{
-					buf.push( "0123456789"[environ % 10]);
+					buf.push_back( "0123456789"[environ % 10]);
 					environ /= 10;
 					if (environ_len)	--environ_len;
 				}
 
 				buf2="FILENO=";
 				while (buf.Length())
-					buf2.push(buf.pop());
-				buf2 += '\0';
+					buf2.push_back(buf.pop());
+				buf2.push_back_0();
 				s=strdup(buf2);
 				if (!s)
 				{
@@ -993,8 +993,8 @@ const	char *env;
 				if (addcrs)
 				{
 					buf.pop();
-					buf.push('\r');
-					buf.push('\n');
+					buf.push_back('\r');
+					buf.push_back('\n');
 				}
 			}
 
@@ -1034,7 +1034,7 @@ int	i;
 
 	for (i=0; i<16; i++)
 	{
-		buf.push ( "0123456789ABCDEF"[n % 16] );
+		buf.push_back( "0123456789ABCDEF"[n % 16] );
 		n /= 16;
 	}
 }
@@ -1043,14 +1043,14 @@ static void add_messageid(Buffer &buf)
 {
 time_t	t;
 
-	buf.push('<');
+	buf.push_back('<');
 	time(&t);
 	add_bin64(buf,t);
-	buf.push('.');
+	buf.push_back('.');
 	add_bin64(buf, getpid() );
 	buf += ".reformail@";
 	buf += HostName();
-	buf.push('>');
+	buf.push_back('>');
 }
 
 static void add_opta(Buffer &buf, const char *optarg)
@@ -1059,19 +1059,19 @@ Buffer	chk_buf;
 const char *c;
 
 	for (c=optarg; *c; c++)
-		chk_buf.push ( tolower( (unsigned char)*c ));
+		chk_buf.push_back( tolower( (unsigned char)*c ));
 	if (chk_buf == "message-id:" || chk_buf == "resent_message_id:")
 	{
 		chk_buf=optarg;
-		chk_buf += ' ';
+		chk_buf += " ";
 		add_messageid(chk_buf);
-		chk_buf += '\0';
+		chk_buf.push_back_0();
 		optarg=chk_buf;
 	}
 
 	do
 	{
-		buf.push( *optarg );
+		buf.push_back( *optarg );
 	} while (*optarg++);
 }
 
@@ -1139,7 +1139,7 @@ void	(*function)(int, char *[], int)=0;
 			if (function)	help();
 			do
 			{
-				opti.push( *optarg );
+				opti.push_back( *optarg );
 			} while (*optarg++);
 			break;
 		case 'I':
@@ -1148,7 +1148,7 @@ void	(*function)(int, char *[], int)=0;
 			if (function)	help();
 			do
 			{
-				optI.push( *optarg );
+				optI.push_back( *optarg );
 			} while (*optarg++);
 			break;
 		case 'R':
@@ -1156,44 +1156,44 @@ void	(*function)(int, char *[], int)=0;
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
 			while (*optarg)
-				optR.push(*optarg++);
+				optR.push_back(*optarg++);
 			if (argn+1 >= argc)	help();
 			optarg=argv[++argn];
 			while (*optarg)
-				optR.push(*optarg++);
-			optR.push(0);
+				optR.push_back(*optarg++);
+			optR.push_back_0();
 			break;
 		case 'u':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
 			while (*optarg)
-				optu.push(*optarg++);
-			optu.push(0);
+				optu.push_back(*optarg++);
+			optu.push_back_0();
 			break;
 		case 'U':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
 			while (*optarg)
-				optU.push(*optarg++);
-			optU.push(0);
+				optU.push_back(*optarg++);
+			optU.push_back_0();
 			break;
 		case 'x':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
 			while (*optarg)
-				optx.push(*optarg++);
-			optx.push(0);
+				optx.push_back(*optarg++);
+			optx.push_back_0();
 			break;
 		case 'X':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
 			while (*optarg)
-				optX.push(*optarg++);
-			optX.push(0);
+				optX.push_back(*optarg++);
+			optX.push_back_0();
 			break;
 		case 's':
 			if (function)	help();

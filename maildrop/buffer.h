@@ -33,7 +33,7 @@ public:
 	Buffer(const Buffer &);		// UNDEFINED
 	Buffer &operator=(const Buffer &);
 
-	void	push(int c) { if (buflength < bufsize)
+	void	push_back(int c) { if (buflength < bufsize)
 				{
 					buf[buflength]=c;
 					++buflength;
@@ -55,7 +55,7 @@ public:
 	Buffer	&operator=(const char *p) { set(p); return (*this); }
 	Buffer	&operator += (const Buffer &p) { append(p.buf, p.buflength); return (*this); }
 	Buffer	&operator += (const char *p) { append(p, strlen(p)); return (*this); }
-	Buffer	&operator += (char c) { push(c); return (*this); }
+	void    push_back_0() { push_back(0); }
 	int	operator-(const Buffer &) const;
 	int	operator-(const char *) const;
 	int	operator==(const Buffer &b) const

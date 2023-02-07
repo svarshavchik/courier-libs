@@ -37,9 +37,9 @@ Buffer	szbuf;
 int	l= 72 - szbuf.Length();
 
 	while (tbuf.Length() < l-1)
-		tbuf.push(' ');
+		tbuf.push_back(' ');
 	tbuf.Length(l-1);
-	tbuf.push(' ');
+	tbuf.push_back(' ');
 	tbuf += szbuf;
 
 	maildrop.logfile << (status ? "!Err: ":"File: ") << tbuf << EOL << EOL;

@@ -52,7 +52,7 @@ void	Lexer::token(Token &t)
 				errmsg="maildrop: '";
 				errmsg += t.Name();
 				errmsg += "' disabled in embedded mode.\n";
-				errmsg += '\0';
+				errmsg.push_back_0();
 				error((const char *)errmsg);
 				t.Type( Token::error );
 				break;
@@ -67,8 +67,8 @@ void	Lexer::token(Token &t)
 
 		debug="Tokenized ";
 		debug += t.Name();
-		debug += '\n';
-		debug += '\0';
+		debug += "\n";
+		debug.push_back_0();
 		error((const char *)debug);
 	}
 }
@@ -160,7 +160,7 @@ missquote:
 			if (q != '\\')
 			{
 				nextchar();
-				pattern.push(q);
+				pattern.push_back(q);
 				continue;
 			}
 			nextchar();
@@ -175,8 +175,8 @@ missquote:
 			if (!isspace(qq) && qq != '\r' && qq != '\n')
 			{
 				if (qq != quote_char && qq != '\\')
-					pattern.push('\\');
-				pattern.push(qq);
+					pattern.push_back('\\');
+				pattern.push_back(qq);
 				nextchar();
 				continue;
 			}
@@ -187,7 +187,7 @@ missquote:
 			// necessary.
 
 		int	l=pattern.Length();
-			pattern.push('\\');
+			pattern.push_back('\\');
 
 			// Collect all whitespace after the backslash,
 			// not including newline characters.
@@ -195,7 +195,7 @@ missquote:
 			while ((q=curchar()) >= 0 && isspace(q) &&
 				q != '\r' && q != '\n')
 			{
-				pattern.push(q);
+				pattern.push_back(q);
 				nextchar();
 			}
 			if (q < 0)	goto missquote;
@@ -229,7 +229,7 @@ missquote:
 		lasttokentype != Token::tokento &&
 		lasttokentype != Token::tokencc)
 	{
-		pattern.push(c);
+		pattern.push_back(c);
 		nextchar();
 		c=curchar();
 		if (c == '\r' || c == '\n' || c < 0 || isspace(c))
@@ -245,26 +245,26 @@ missquote:
 					// an error
 			if (c == '\\')
 			{
-				pattern.push(c);
+				pattern.push_back(c);
 				nextchar();
 				c=curchar();
 				if (c < 0 || c == '\r' || c == '\n')
 					return;
 			}
 
-			pattern.push(c);
+			pattern.push_back(c);
 			nextchar();
 		}
-		pattern.push(c);
+		pattern.push_back(c);
 		nextchar();
 		if ((c=curchar()) == ':')
 		{
-			pattern.push(c);
+			pattern.push_back(c);
 			nextchar();
 			while ( (c=curchar()) >= 0 && (isalnum(c) ||
 				c == '-' || c == '+' || c == '.' || c == ','))
 			{
-				pattern.push(c);
+				pattern.push_back(c);
 				nextchar();
 			}
 		}
@@ -288,7 +288,7 @@ missquote:
 		do
 		{
 			nextchar();
-			pattern.push(c);
+			pattern.push_back(c);
 			c=curchar();
 		} while ( ISUNQSTRING(c) );
 

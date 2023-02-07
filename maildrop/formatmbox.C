@@ -43,18 +43,18 @@ time_t	tm;
 
 	tempbuf="From ";
 	tempbuf += maildrop.msginfo.fromname;
-	tempbuf += ' ';
+	tempbuf += " ";
 
 const char *p=ctime(&tm);
 	while (*p && *p != '\n')
 	{
-		tempbuf.push(*p);
+		tempbuf.push_back(*p);
 		++p;
 	}
 #if	CRLF_TERM
 	tempbuf.push('\r');
 #endif
-	tempbuf.push('\n');
+	tempbuf += "\n";
 	next_func= &FormatMbox::GetLineBuffer;
 	return (&tempbuf);
 }
@@ -114,7 +114,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 #if	CRLF_TERM
 	msglinebuf.pop();	// Drop terminating \n
 	msglinebuf.push('\r');
-	msglinebuf.push('\n');
+	msglinebuf += "\n";
 #endif
 	next_func= &FormatMbox::GetNextLineBuffer;
 	msgsize += msglinebuf.Length();

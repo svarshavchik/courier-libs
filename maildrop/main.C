@@ -302,7 +302,7 @@ static int callback_authlib(struct authinfo *auth,
 		Buffer b;
 
 		b.set(auth->sysgroupid);
-		b.push(0);
+		b.push_back_0();
 
 		merr << "maildrop: authlib: groupid="
 		     << b << "\n";
@@ -338,7 +338,7 @@ static int callback_authlib(struct authinfo *auth,
 		Buffer b;
 
 		b.set(u);
-		b.push(0);
+		b.push_back_0();
 
 		merr << "maildrop: authlib: userid="
 		     << b << "\n";
@@ -578,7 +578,7 @@ const	char *dovecotauth_addr=0;
 			if (*optarg)
 			{
 				extra_headers += optarg;
-				extra_headers += '\n';
+				extra_headers += "\n";
 			}
 			break;
 		case 'f':
@@ -874,7 +874,7 @@ Buffer	value;
 	Buffer	b;
 
 		b=maildrop.init_home;
-		b += '\0';
+		b.push_back_0();
 
 	const char *h=b;
 
@@ -925,7 +925,7 @@ Buffer	value;
 #else
 	maildrop.tempdir=maildrop.init_home;
 	maildrop.tempdir += "/" TEMPDIR;
-	maildrop.tempdir += '\0';
+	maildrop.tempdir.push_back_0();
 	mkdir( (const char *)maildrop.tempdir, 0700 );
 #endif
 	maildrop.reset_vars();
@@ -977,7 +977,7 @@ Buffer	msg;
 		if (maildrop.msginfo.fromname.Length() > 0)
 			msg += maildrop.msginfo.fromname;
 		msg.append("\n");
-		msg += '\0';
+		msg.push_back_0();
 		merr.write(msg);
 	}
 
@@ -1036,7 +1036,7 @@ int	firstdefault=1;
 			msg += recipe;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg += '\0';
+			msg.push_back_0();
 			fd=in.Open((const char *)msg);
 		}
 		else
@@ -1044,7 +1044,7 @@ int	firstdefault=1;
 			msg=recipe;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg += '\0';
+			msg.push_back_0();
 			fd=in.Open((const char *)msg);
 			break;
 		}
@@ -1080,7 +1080,7 @@ int	firstdefault=1;
 			msg += DEFAULTEXT+1;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg += '\0';
+			msg.push_back_0();
 			fd=in.Open((const char *)msg);
 			break;
 		}
@@ -1143,7 +1143,7 @@ int	firstdefault=1;
 		}
 
 		value=v;
-		value += '\0';
+		value.push_back_0();
 		if (delivery((const char *)value) < 0)
 			return (EX_TEMPFAIL);
 	}
@@ -1174,7 +1174,7 @@ const	char *p=DEFAULT_DEF;
 	if (*p != SLASH_CHAR)	// Relative to home directory
 	{
 		buf=maildrop.init_home;
-		buf.push(SLASH_CHAR);
+		buf.push_back(SLASH_CHAR);
 		isfile=1;
 	}
 
@@ -1182,7 +1182,7 @@ const	char *p=DEFAULT_DEF;
 	{
 		if (*p != '=')
 		{
-			buf.push(*p);
+			buf.push_back(*p);
 			++p;
 		}
 
@@ -1190,7 +1190,7 @@ const	char *p=DEFAULT_DEF;
 
 		while (*p == '=')
 		{
-			buf.push (*q ? *q:'.');
+			buf.push_back(*q ? *q:'.');
 			if (*q)	q++;
 			p++;
 		}
@@ -1198,10 +1198,10 @@ const	char *p=DEFAULT_DEF;
 
 	if (!isfile)
 	{
-		buf.push(SLASH_CHAR);
+		buf.push_back(SLASH_CHAR);
 		buf += username;
 	}
-	buf += '\0';
+	buf.push_back_0();
 	return (buf);
 }
 
@@ -1214,7 +1214,7 @@ Buffer	t;
 
 	t=(const char *)maildrop.tempdir;
 	t += "/tmp.";
-	t += '\0';
+	t.push_back_0();
 	return (TempName((const char *)t, 0));
 }
 #endif

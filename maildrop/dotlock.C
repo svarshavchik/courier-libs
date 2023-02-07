@@ -45,13 +45,13 @@ static Buffer   errbuf;
                 errbuf="Unable to create a dot-lock at ";
                 errbuf += (const char *)templock;
                 errbuf += ".\n";
-                errbuf += '\0';
+                errbuf.push_back_0();
                 throw (const char *)errbuf;
 	}
 
 
 	b.append( (unsigned long)getpid() );
-	b += '\n';
+	b += "\n";
 	if (mio.write((const char *)b, b.Length()) < 0 || mio.flush() < 0)
 	{
 		mio.Close();
@@ -150,7 +150,7 @@ Buffer	dotlock_name;
 		if (!p || !*p)	dotlock_name += LOCKEXT_DEF;
 		else	dotlock_name += p;
 
-		dotlock_name += '\0';
+		dotlock_name.push_back_0();
 		Lock( dotlock_name );
 	}
 }

@@ -58,20 +58,20 @@ int	c;
 	if (!name || !*name)	return (0);	// Nope, not a Maildir
 	dirname=name;
 	c=dirname.pop();
-	if (c != SLASH_CHAR)	dirname.push(c);	// Strip trailing /
+	if (c != SLASH_CHAR)	dirname.push_back(c);	// Strip trailing /
 	subdirname=dirname;
 	subdirname += "/tmp";
-	subdirname += '\0';
+	subdirname.push_back_0();
 	if ( stat( (const char *)subdirname, &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/new";
-	subdirname += '\0';
+	subdirname.push_back_0();
 	if ( stat( (const char *)subdirname, &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/cur";
-	subdirname += '\0';
+	subdirname.push_back_0();
 	if ( stat( (const char *)subdirname, &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	return (1);	// If it looks like a duck, walks like a duck...
@@ -88,7 +88,7 @@ int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
 
 	quotabuf="MAILDIRQUOTA";	/* Reuse a convenient buffer */
 	quotabuf= *GetVar(quotabuf);
-	quotabuf += '\0';
+	quotabuf.push_back_0();
 
 	quotap=quotabuf;
 
@@ -101,7 +101,7 @@ AlarmTimer	abort_timer;
 static long	counter=0;
 
 	buf.set(counter++);
-	buf += '\0';
+	buf.push_back_0();
 
 	struct maildir_tmpcreate_info createInfo;
 
@@ -137,7 +137,7 @@ static long	counter=0;
 			const char *flags=GetVarStr(b);
 
 			tmpname=createInfo.tmpname;
-			tmpname += '\0';
+			tmpname.push_back_0();
 
 			if (flags)
 			{
@@ -157,9 +157,7 @@ static long	counter=0;
 			if (flags && *flags)
 			{
 				newname=createInfo.curname;
-				newname += ':';
-				newname += '2';
-				newname += ',';
+				newname += ":2,";
 				newname += flags;
 			}
 			else
@@ -167,13 +165,13 @@ static long	counter=0;
 				newname=createInfo.newname;
 			}
 
-			newname += '\0';
+			newname.push_back_0();
 			maildir_tmpcreate_free(&createInfo);
 
 			file.fd(f);
 			is_open=1;
 			maildirRoot=dir;
-			maildirRoot += '\0';
+			maildirRoot.push_back_0();
 
 			if (maildir_quota_add_start(dir, &quotainfo, s,
 						    1, quotap))
@@ -214,7 +212,7 @@ void	Maildir::MaildirSave()
 
 		keywords="KEYWORDS";
 		keywords=*GetVar(keywords);
-		keywords += '\0';
+		keywords.push_back_0();
 
 		const char *keywords_s=keywords;
 
@@ -325,7 +323,7 @@ void	Maildir::MaildirSave()
 		if (q)
 		{
 			dir.Length(q-p);
-			dir.push((char)0);
+			dir.push_back_0();
 
 #if EXPLICITDIRSYNC
 			int syncfd=open(dir, O_RDONLY);
@@ -339,7 +337,7 @@ void	Maildir::MaildirSave()
 
 			dir.Length(q-p);
 			dir += "/../";
-			dir.push((char)0);
+			dir.push_back_0();
 
 			maildir_deliver_quota_warning(dir, quota_warn_percent,
 						      quota_warn_message);

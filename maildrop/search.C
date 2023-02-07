@@ -73,7 +73,7 @@ int	Search::init(const char *expr, const char *opts)
 		b += ": ";
 		b += (char *)buffer;
 		b += "\n";
-		b += '\0';
+		b.push_back_0();
 		merr.write(b);
 		return -1;
 	}
@@ -89,7 +89,7 @@ int	Search::init(const char *expr, const char *opts)
 		b="Failed to create match data for: ";
 		b += expr;
 		b += "\n";
-		b += '\0';
+		b.push_back_0();
 		merr.write(b);
 		cleanup();
 		return -1;
@@ -140,8 +140,8 @@ int Search::find(const char *str, const char *expr, const char *opts,
 		msg.append(expr);
 		msg.append("/ against ");
 		msg += str;
-		msg += '\n';
-		msg += '\0';
+		msg += "\n";
+		msg.push_back_0();
 		merr.write(msg);
 	}
 
@@ -230,7 +230,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 
 		if (*ptr == '\n')
 		{
-			current_line += '\0';
+			current_line.push_back_0();
 
 			if (VerboseLevel() > 2)
 			{
@@ -242,14 +242,14 @@ int Search::search_cb(const char *ptr, size_t cnt)
 					Buffer cpy;
 
 					cpy += search_expr;
-					cpy += '\0';
+					cpy.push_back_0();
 					msg.append(cpy);
 				}
 				msg.append("/ against ");
 				msg += current_line;
 				msg.pop();	// Trailing null byte.
-				msg += '\n';
-				msg += '\0';
+				msg += "\n";
+				msg.push_back_0();
 				merr.write(msg);
 			}
 
@@ -349,7 +349,7 @@ void Search::init_match_vars(const char *str,
 		if (cnt == 0 && foreachp)
 		{
 			*foreachp += v;
-			*foreachp += '\0';
+			(*foreachp).push_back_0();
 		}
 
 		SetVar(varname, v);

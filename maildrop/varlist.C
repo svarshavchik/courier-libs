@@ -107,7 +107,7 @@ const char *GetVarStr(const Buffer &var)
 static Buffer tempbuf;
 
 	tempbuf= *GetVar(var);
-	tempbuf += '\0';
+	tempbuf.push_back_0();
 	return (tempbuf);
 }
 

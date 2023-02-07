@@ -54,11 +54,11 @@ char	hostname[256];
 	buf=dir;
 	if (l > 0)	buf.Length(l);
 	buf.append( (unsigned long)getpid() );
-	buf += '.';
+	buf += ".";
 	buf.append( (unsigned long)counter++ );
-	buf += '.';
+	buf += ".";
 	buf += hostname;
-	buf += '\0';
+	buf.push_back_0();
 
 	return (buf);
 }
@@ -141,4 +141,3 @@ void killprocgroup()
 #endif
 #endif
 }
-
