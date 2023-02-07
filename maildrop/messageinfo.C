@@ -8,7 +8,7 @@ void MessageInfo::info(Message &msg)
 Buffer	buf;
 
 	msg.Rewind();
-	fromname.set("MAILER-DAEMON");
+	fromname="MAILER-DAEMON";
 
 	for (;;)
 	{

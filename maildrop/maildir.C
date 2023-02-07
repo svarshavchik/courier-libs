@@ -100,7 +100,7 @@ int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
 AlarmTimer	abort_timer;
 static long	counter=0;
 
-	buf.set(counter++);
+	set_integer(buf, counter++);
 	buf.push_back_0();
 
 	struct maildir_tmpcreate_info createInfo;

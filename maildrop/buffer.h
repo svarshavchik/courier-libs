@@ -45,6 +45,7 @@ public:
 
 private:
 	void	append(int);
+	void	replace(const char *);
 public:
 
 	template<typename iter>
@@ -57,9 +58,7 @@ public:
 		}
 	}
 
-	void	set(const char *);
-	void	set(unsigned long n) { buflength=0; append(n); }
-	Buffer	&operator=(const char *p) { set(p); return (*this); }
+	Buffer	&operator=(const char *p) { replace(p); return (*this); }
 	Buffer	&operator += (const Buffer &p) { append(p.buf, p.buf+p.buflength); return (*this); }
 	Buffer	&operator += (const char *p) { append(p, p+strlen(p)); return (*this); }
 	void    push_back_0() { push_back(0); }
@@ -73,5 +72,12 @@ public:
 
 void	add_number(Buffer &buf, double val);
 void	add_integer(Buffer &buf, unsigned long n);
+inline void	set_integer(Buffer &buf, unsigned long n)
+{
+	Buffer b;
+
+	add_integer(b, n);
+	buf=b;
+}
 
 #endif

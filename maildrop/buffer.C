@@ -22,7 +22,7 @@ unsigned char	*newbuf=new unsigned char[newsize];
 	buf[buflength++]=c;
 }
 
-void	Buffer::set(const char *p)
+void	Buffer::replace(const char *p)
 {
 int	l=strlen(p);
 
