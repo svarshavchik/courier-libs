@@ -58,7 +58,7 @@ Buffer	buf;
 				break;
 		}
 		fromname.reset();
-		fromname.append(p, i);
+		fromname.append(p, p+i);
 		break;
 	}
 }

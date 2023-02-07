@@ -107,7 +107,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 			while (*p != '\n' && isspace(*p))	p++;
 			for (l=0; p[l] != '\n'; l++)
 				;
-			bufp->append(p, l);
+			bufp->append(p, p+l);
 		}
 	}
 

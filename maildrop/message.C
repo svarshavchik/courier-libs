@@ -275,20 +275,20 @@ unsigned i;
 		if (bufptr[i] == '\n')
 		{
 			if (i > 0 && stripcr && bufptr[i-1] == '\r')
-				buf.append(bufptr, i-1);
+				buf.append(bufptr, bufptr+i-1);
 				// Drop trailing CRs
 			else
-				buf.append(bufptr, i);
+				buf.append(bufptr, bufptr+i);
 			buf += "\n";
 			bufptr += ++i;
 			return (0);
 		}
 
 	if (stripcr && bufptr[i-1] == '\r')
-		buf.append(bufptr, cnt-1);
+		buf.append(bufptr, bufptr+cnt-1);
 				// Drop trailing CRs
 	else
-		buf.append(bufptr, cnt);
+		buf.append(bufptr, bufptr+cnt);
 	bufptr += cnt;
 	buf += "\n";
 	return (0);

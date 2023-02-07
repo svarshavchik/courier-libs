@@ -137,8 +137,8 @@ int Search::find(const char *str, const char *expr, const char *opts,
 	Buffer	msg;
 
 		msg="Matching /";
-		msg.append(expr);
-		msg.append("/ against ");
+		msg += expr;
+		msg += "/ against ";
 		msg += str;
 		msg += "\n";
 		msg.push_back_0();
@@ -238,14 +238,9 @@ int Search::search_cb(const char *ptr, size_t cnt)
 
 				msg="Matching /";
 
-				{
-					Buffer cpy;
+				msg += search_expr;
 
-					cpy += search_expr;
-					cpy.push_back_0();
-					msg.append(cpy);
-				}
-				msg.append("/ against ");
+				msg += "/ against ";
 				msg += current_line;
 				msg.pop();	// Trailing null byte.
 				msg += "\n";
@@ -300,7 +295,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 		for (i=0; i<cnt; ++i)
 			if (ptr[i] == '\n')
 				break;
-		current_line.append(ptr, i);
+		current_line.append(ptr, ptr+i);
 		ptr += i;
 		cnt -= i;
 	}

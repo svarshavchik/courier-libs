@@ -86,28 +86,6 @@ Buffer &Buffer::operator=(const Buffer &o)
 	return (*this);
 }
 
-void	Buffer::append(const void *p, int l)
-{
-	if (bufsize - buflength < l)
-	{
-	int	newsize=(buflength+l + CHUNK-1);
-
-		newsize -= (newsize % CHUNK);
-	unsigned char	*newbuf=new unsigned char[newsize];
-
-		if (!newbuf)	outofmem();
-		if (buf)
-		{
-			memcpy(newbuf, buf, buflength);
-			delete[] buf;
-		}
-		buf=newbuf;
-		bufsize=newsize;
-	}
-	if (l) memcpy(buf+buflength, p, l);
-	buflength += l;
-}
-
 void	Buffer::append(unsigned long n)
 {
 char	tbuf[40];
@@ -118,7 +96,7 @@ char	*p=tbuf+sizeof(tbuf)-1;
 	{
 		*--p= (n % 10) + '0';
 	} while ( (n /= 10) != 0);
-	append(p);
+	operator +=(p);
 }
 
 

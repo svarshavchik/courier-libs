@@ -500,7 +500,8 @@ RecipeNode	*c;
 		long l=bb.Length();
 
 			if (n < 0 || n > l)	n=l;
-			b.append( (const char *)bb + n, l-n);
+			b.append( (const char *)bb + n,
+				  (const char *)bb + l);
 			if (firstChild->nextSibling->nextSibling)
 			{
 				firstChild->nextSibling->nextSibling->
@@ -898,7 +899,7 @@ RecipeNode	*c;
 
 				for (i=0; i<l && p[i]; i++)
 					;
-				varvalue.append(p, i);
+				varvalue.append(p, p+i);
 				p += i;
 				l -= i;
 				if (l)	{ p++; l--; }
@@ -1042,7 +1043,7 @@ RecipeNode	*c;
 			b.reset();
 			if (result)
 			{
-				b.append(result, result_size);
+				b.append(result, result+result_size);
 				free(result);
 			}
 			else if (firstChild->nextSibling &&
@@ -1374,7 +1375,7 @@ int	j;
 
 Buffer	newstr;
 
-	newstr.append(p, index);
+	newstr.append(p, p+index);
 
 const Buffer *bb=GetVar(varname);
 
@@ -1382,7 +1383,7 @@ const Buffer *bb=GetVar(varname);
 
 int	newindex=newstr.Length();
 
-	newstr.append(p + j, l-j);
+	newstr.append(p + j, p + l);
 	b=newstr;
 	return (newindex);
 }

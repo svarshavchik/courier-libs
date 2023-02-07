@@ -973,10 +973,10 @@ Buffer	msg;
 	if (VerboseLevel() > 1)
 	{
 		msg.reset();
-		msg.append("Message envelope sender=");
+		msg += "Message envelope sender=";
 		if (maildrop.msginfo.fromname.Length() > 0)
 			msg += maildrop.msginfo.fromname;
-		msg.append("\n");
+		msg += "\n";
 		msg.push_back_0();
 		merr.write(msg);
 	}

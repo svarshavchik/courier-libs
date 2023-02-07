@@ -46,15 +46,24 @@ public:
 private:
 	void	append(int);
 public:
-	void	append(const void *, int);
+
+	template<typename iter>
+	void    append(iter b, iter e)
+	{
+		while (b != e)
+		{
+			push_back(*b);
+			++b;
+		}
+	}
+
 	void	set(const char *);
-	void	append(const char *p) { append(p, strlen(p)); }
 	void	set(unsigned long n) { buflength=0; append(n); }
 	void	append(unsigned long n);
 	void	append(double);
 	Buffer	&operator=(const char *p) { set(p); return (*this); }
-	Buffer	&operator += (const Buffer &p) { append(p.buf, p.buflength); return (*this); }
-	Buffer	&operator += (const char *p) { append(p, strlen(p)); return (*this); }
+	Buffer	&operator += (const Buffer &p) { append(p.buf, p.buf+p.buflength); return (*this); }
+	Buffer	&operator += (const char *p) { append(p, p+strlen(p)); return (*this); }
 	void    push_back_0() { push_back(0); }
 	int	compare(const Buffer &) const;
 	int	compare(const char *) const;
