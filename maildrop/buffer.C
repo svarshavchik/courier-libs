@@ -42,7 +42,7 @@ int	l=strlen(p);
 	buflength=l;
 }
 
-int	Buffer::operator-(const Buffer &o) const
+int	Buffer::compare(const Buffer &o) const
 {
 int	i;
 
@@ -55,7 +55,7 @@ int	i;
 		buflength > o.buflength ? 1:0);
 }
 
-int	Buffer::operator-(const char *o) const
+int	Buffer::compare(const char *o) const
 {
 int	i;
 

@@ -56,12 +56,12 @@ public:
 	Buffer	&operator += (const Buffer &p) { append(p.buf, p.buflength); return (*this); }
 	Buffer	&operator += (const char *p) { append(p, strlen(p)); return (*this); }
 	void    push_back_0() { push_back(0); }
-	int	operator-(const Buffer &) const;
-	int	operator-(const char *) const;
+	int	compare(const Buffer &) const;
+	int	compare(const char *) const;
 	int	operator==(const Buffer &b) const
-		{ return ( operator-(b) == 0); }
+		{ return ( compare(b) == 0); }
 	int	operator==(const char *b) const
-		{ return ( operator-(b) == 0); }
+		{ return ( compare(b) == 0); }
 } ;
 
 #endif
