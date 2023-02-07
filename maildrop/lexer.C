@@ -130,7 +130,7 @@ int	c;
 
 
 Buffer	&pattern=t.String();
-	pattern.reset();
+	pattern.clear();
 
 	if (c == '\'' || c == '"' || c == '`')
 	{

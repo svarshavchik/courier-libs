@@ -972,7 +972,7 @@ Buffer	msg;
 
 	if (VerboseLevel() > 1)
 	{
-		msg.reset();
+		msg.clear();
 		msg += "Message envelope sender=";
 		if (maildrop.msginfo.fromname.Length() > 0)
 			msg += maildrop.msginfo.fromname;
@@ -1064,11 +1064,13 @@ int	firstdefault=1;
 		// Pop DEFAULTEXT bytes from end of recipe name
 
 		for (fd=sizeof(DEFAULTEXT)-1; fd; --fd)
-			recipe.pop();
+			recipe.pop_back();
 
 		while (recipe.Length())
 		{
-			if (recipe.pop() == '-')
+			auto dash=recipe.back();
+			recipe.pop_back();
+			if (dash == '-')
 			{
 				recipe += DEFAULTEXT;
 				break;

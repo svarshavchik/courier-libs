@@ -39,9 +39,9 @@ public:
 					++buflength;
 				}
 				else	append(c); }
-	int	pop() { return (buflength ? buf[--buflength]:0); }
-	int	peek() { return (buflength ? buf[buflength-1]:0); }
-	void	reset() { buflength=0; }
+	void	pop_back() { --buflength; }
+	char	back() { return buf[buflength-1]; }
+	void	clear() { buflength=0; }
 
 private:
 	void	append(int);

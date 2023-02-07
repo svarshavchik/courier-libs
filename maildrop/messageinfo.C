@@ -12,7 +12,7 @@ Buffer	buf;
 
 	for (;;)
 	{
-		buf.reset();
+		buf.clear();
 		if (msg.appendline(buf) < 0)	return;
 
 		int	l=buf.Length();
@@ -57,7 +57,7 @@ Buffer	buf;
 			if (isspace(p[i]))
 				break;
 		}
-		fromname.reset();
+		fromname.clear();
 		fromname.append(p, p+i);
 		break;
 	}

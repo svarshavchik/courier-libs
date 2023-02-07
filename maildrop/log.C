@@ -22,7 +22,7 @@ Buffer	szbuf;
 
 	time(&t);
 	tbuf=ctime(&t);
-	tbuf.pop();	// Drop trailing newline
+	tbuf.pop_back();	// Drop trailing newline
 	msg.hdrfrom.Length(72);
 	msg.hdrsubject.Length(72);
 	maildrop.logfile << "Date: " << tbuf << EOL;

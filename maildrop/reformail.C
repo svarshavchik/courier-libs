@@ -71,14 +71,16 @@ const char *NextLine()
 static Buffer buf;
 int	c;
 
-	buf.reset();
+	buf.clear();
 	while ((c=std::cin.get()) >= 0 && c != '\n')
 		buf.push_back(c);
 	if (c < 0 && buf.Length() == 0)	return (0);
 	if (buf.Length())	// Strip CRs
 	{
-		c=buf.pop();
-		if (c != '\r')	buf.push_back(c);
+		c=buf.back();
+
+		if (c == '\r')
+			buf.pop_back();
 	}
 	buf.push_back('\n');
 	buf.push_back_0();
@@ -168,7 +170,7 @@ int n;
 	current_line=p;
 	if (strncmp(p, "From ", 5) == 0)
 		return ( no_from_filter_header() );
-	add_from_filter_buf.reset();
+	add_from_filter_buf.clear();
 	while (p && *p != '\n')
 	{
 		add_from_filter_buf += p;
@@ -180,8 +182,8 @@ int n;
 static Buffer	return_path;
 static Buffer	from_header;
 
-	return_path.reset();
-	from_header.reset();
+	return_path.clear();
+	from_header.clear();
 
 	for (p=add_from_filter_buf; *p; )
 	{
@@ -234,7 +236,7 @@ static Buffer	from_header;
 
 	if (!rfca)	outofmem();
 
-	from_header.reset();
+	from_header.clear();
 
 	for (n=0; n<rfca->naddrs; ++n)
 	{
@@ -286,7 +288,7 @@ const char *add_from_filter_header()
 {
 static Buffer buf;
 
-	buf.reset();
+	buf.clear();
 
 	if (*add_from_filter_buf_ptr == '\0')
 	{
@@ -435,7 +437,7 @@ unsigned pos2=0;
 
 	while (l)
 	{
-		buf2.reset();
+		buf2.clear();
 		pos=pos2;
 		while (l)
 		{
@@ -531,7 +533,7 @@ static Buffer oldbuf;
 			strip_empty_header(optI);
 			return ( ReadLineAddNewHeader());
 		}
-		buf1.reset();
+		buf1.clear();
 		for (q=p; *q && *q != '\n'; q++)
 		{
 			buf1.push_back( tolower(*q) );
@@ -593,7 +595,7 @@ static Buffer oldbuf;
 				optUbuf.push_back( *p );
 				p++;
 			}
-			optUbuf.pop();
+			optUbuf.pop_back();
 			optUbuf.push_back_0();
 			continue;
 		}
@@ -629,7 +631,7 @@ Buffer	*bufptr;
 static Buffer buf1;
 Buffer	buf2;
 
-	buf1.reset();
+	buf1.clear();
 
 const char *p= *bufptr;
 int l= bufptr->Length();
@@ -676,7 +678,7 @@ static Buffer	buf;
 	{
 	const char *q;
 
-		buf.reset();
+		buf.clear();
 		for (q=p; *q; q++)
 		{
 			if (*q != '\n')
@@ -701,7 +703,7 @@ static Buffer	buf;
 	if (addcrs)
 	{
 		buf=p;
-		buf.pop();
+		buf.pop_back();
 		buf += "\r\n";
 		buf.push_back_0();
 		return (buf);
@@ -736,7 +738,7 @@ int found=0;
 	int	c;
 
 		if (inbody)	break;
-		buf.reset();
+		buf.clear();
 		while (*p && *p != '\n')
 		{
 			c= (unsigned char)*p;
@@ -747,16 +749,22 @@ int found=0;
 		if (!(buf == "message-id:"))	continue;
 		buf.push_back_0();
 		while (*p && isspace( (unsigned char)*p))	p++;
-		buf.reset();
+		buf.clear();
 		while (*p)
 		{
 			buf.push_back(*p);
 			++p;
 		}
 
-		while ( (c=(unsigned char)buf.pop()) != 0 && isspace(c))
-			;
-		if (c)	buf.push_back(c);
+		while (buf.Length())
+		{
+			auto c=buf.back();
+
+			if (!isspace(c))
+				break;
+			buf.pop_back();
+		}
+
 		if (buf.Length() == 0)	break;
 		buf.push_back_0();
 
@@ -858,7 +866,7 @@ Buffer	b;
 	catenate=1;
 	while ((p=ReadLine()) && !inbody)
 	{
-		b.reset();
+		b.clear();
 		for (q=p; *q && *q != '\n'; )
 		{
 		int	c= (unsigned char)*q;
@@ -964,7 +972,10 @@ const	char *env;
 
 				buf2="FILENO=";
 				while (buf.Length())
-					buf2.push_back(buf.pop());
+				{
+					buf2.push_back(buf.back());
+					buf.pop_back();
+				}
 				buf2.push_back_0();
 				s=strdup(buf2);
 				if (!s)
@@ -987,12 +998,12 @@ const	char *env;
 			buf=p;
 			p=ReadLine();
 			if (!p || strncmp(p, "From ", 5) == 0)
-				buf.pop();	// Drop trailing newline
+				buf.pop_back();	// Drop trailing newline
 			else
 			{
 				if (addcrs)
 				{
-					buf.pop();
+					buf.pop_back();
 					buf.push_back('\r');
 					buf.push_back('\n');
 				}

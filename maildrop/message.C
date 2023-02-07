@@ -257,7 +257,7 @@ int Message::appendline(Buffer &buf, int stripcr)
 			lastc=c;
 		}
 		if (c < 0 && eof)	return (-1);
-		if (stripcr && lastc == '\r')	buf.pop();
+		if (stripcr && lastc == '\r')	buf.pop_back();
 						// Drop trailing CRs
 		buf += "\n";
 		return (0);
@@ -302,7 +302,7 @@ Buffer	n,v;
 	add_integer(v, MessageSize());
 	SetVar(n,v);
 	n="LINES";
-	v.reset();
+	v.clear();
 	add_integer(v, MessageLines());
 	SetVar(n,v);
 }

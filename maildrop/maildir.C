@@ -53,12 +53,11 @@ Buffer	dirname;
 Buffer	subdirname;
 struct	stat stat_buf;
 
-int	c;
-
 	if (!name || !*name)	return (0);	// Nope, not a Maildir
 	dirname=name;
-	c=dirname.pop();
-	if (c != SLASH_CHAR)	dirname.push_back(c);	// Strip trailing /
+
+	if (dirname.back() == SLASH_CHAR)
+		dirname.pop_back();	// Strip trailing /
 	subdirname=dirname;
 	subdirname += "/tmp";
 	subdirname.push_back_0();

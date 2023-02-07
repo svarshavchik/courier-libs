@@ -206,7 +206,7 @@ int Search::findinline(Message &msg, const char *expr, Buffer *foreachp)
 	if (!match_body)
 		decode_cb.flags |= RFC2045_DECODEMSG_NOBODY;
 
-	current_line.reset();
+	current_line.clear();
 	decode_cb.output_func=&Search::search_cb;
 	decode_cb.arg=this;
 	foreachp_arg=foreachp;
@@ -241,8 +241,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 				msg += search_expr;
 
 				msg += "/ against ";
-				msg += current_line;
-				msg.pop();	// Trailing null byte.
+				msg += (const char *)current_line;
 				msg += "\n";
 				msg.push_back_0();
 				merr.write(msg);
@@ -284,7 +283,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 			else	if (VerboseLevel() > 2)
 				merr.write("Not matched.\n");
 
-			current_line.reset();
+			current_line.clear();
 
 			++ptr;
 			--cnt;

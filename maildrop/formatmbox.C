@@ -15,7 +15,7 @@
 int	FormatMbox::HasMsg()
 {
 	maildrop.msgptr->Rewind();
-	msglinebuf.reset();
+	msglinebuf.clear();
 	if (maildrop.msgptr->appendline(msglinebuf,0) < 0)	return (-1);
 					// Empty message, do not deliver.
 
@@ -123,7 +123,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 
 Buffer	*FormatMbox::GetNextLineBuffer(void)
 {
-	msglinebuf.reset();
+	msglinebuf.clear();
 	if (maildrop.msgptr->appendline(msglinebuf,0) == 0)
 		return (GetLineBuffer());
 	return (0);	// END OF FILE

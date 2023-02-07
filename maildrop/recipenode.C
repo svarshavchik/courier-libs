@@ -67,13 +67,13 @@ void	RecipeNode::Evaluate(Recipe &r, Buffer &b)
 {
 RecipeNode	*c;
 
-	b.reset();
+	b.clear();
 	switch (nodeType)	{
 	case statementlist:
 
 		for (c=firstChild; c; c=c->nextSibling)
 		{
-			b.reset();
+			b.clear();
 			c->Evaluate(r, b);
 		}
 		break;
@@ -306,7 +306,7 @@ RecipeNode	*c;
 		{
 		int n= !boolean(b);
 
-			b.reset();
+			b.clear();
 			add_integer(b, n );
 		}
 		if (VerboseLevel() > 5)
@@ -340,7 +340,7 @@ RecipeNode	*c;
 		long n=atol( (const char *) b);
 
 			n= ~n;
-			b.reset();
+			b.clear();
 			if (n < 0)
 			{
 				b += "-";
@@ -460,7 +460,7 @@ RecipeNode	*c;
 		{
 		unsigned long	n=b.Length();
 
-			b.reset();
+			b.clear();
 			add_integer(b, n);
 		}
 		if (VerboseLevel() > 5)
@@ -893,7 +893,7 @@ RecipeNode	*c;
 
 			while (l)
 			{
-				varvalue.reset();
+				varvalue.clear();
 
 			int	i;
 
@@ -978,12 +978,12 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (rfc822hasaddr(b))
 		{
-			b.reset();
+			b.clear();
 			b.push_back('1');
 		}
 		else
 		{
-			b.reset();
+			b.clear();
 			b.push_back('0');
 		}
 		break;
@@ -1015,7 +1015,7 @@ RecipeNode	*c;
 				}
 
 		int	n=r.gdbm_file.Open(filename, openmode);
-			b.reset();
+			b.clear();
 			if (n < 0) { b += "-"; n= -n; }
 			add_integer(b, n );
 		}
@@ -1040,7 +1040,7 @@ RecipeNode	*c;
 				(const char *)b, b.Length(), result_size,
 				(const char *)optbuf);
 
-			b.reset();
+			b.clear();
 			if (result)
 			{
 				b.append(result, result+result_size);
@@ -1064,7 +1064,7 @@ RecipeNode	*c;
 		int	n=r.gdbm_file.Store(key, key.Length(),
 						val, val.Length(), "R");
 
-			b.reset();
+			b.clear();
 			if (n < 0) { b += "-"; n= -n; }
 			add_integer(b, n );
 		}
@@ -1074,12 +1074,12 @@ RecipeNode	*c;
 	case gdbmclose:
 	case gdbmfetch:
 	case gdbmstore:
-		b.reset();
+		b.clear();
 		b.push_back('0');
 		break;
 #endif
 	case timetoken:
-		b.reset();
+		b.clear();
 		{
 		time_t	t;
 
@@ -1190,7 +1190,7 @@ const	char *p;
 int	l=buf1.Length(), i;
 
 	buf1.push_back_0();
-	buf2.reset();
+	buf2.clear();
 	p=buf1;
 	for (i=0; i<l; i++, p++)
 	{
@@ -1558,7 +1558,7 @@ Buffer	header;
 			;
 		else
 		{
-			next_line.reset();
+			next_line.clear();
 			if (maildrop.msgptr->appendline(next_line))
 				return (0);
 			continue;
@@ -1567,7 +1567,7 @@ Buffer	header;
 		header=(const char *)next_line+3+l;
 		for (;;)
 		{
-			next_line.reset();
+			next_line.clear();
 			if (maildrop.msgptr->appendline(next_line))
 				return ( rfc822hasaddr(lower_addr, header));
 			if (*(p=next_line) == '\n')	break;
@@ -1657,7 +1657,7 @@ Mio	fp;
 	int	c;
 	const	char *p;
 
-		errbuf.reset();
+		errbuf.clear();
 		while ((c=fp.get()) >= 0 && c != '\r' && c != '\n')
 			errbuf.push_back(c);
 		if (c < 0 && errbuf.Length() == 0)	break;
