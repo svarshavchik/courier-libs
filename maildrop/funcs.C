@@ -53,9 +53,9 @@ char	hostname[256];
 
 	buf=dir;
 	if (l > 0)	buf.Length(l);
-	buf.append( (unsigned long)getpid() );
+	add_integer(buf, getpid() );
 	buf += ".";
-	buf.append( (unsigned long)counter++ );
+	add_integer(buf, counter++ );
 	buf += ".";
 	buf += hostname;
 	buf.push_back_0();

@@ -207,7 +207,7 @@ RecipeNode	*c;
 				r.errmsg(*this, "Numerical exception.\n");
 				a1=0;
 			}
-			b.append(a1);
+			add_number(b, a1);
 			if (VerboseLevel() > 5)
 			{
 				debug += ", result is ";
@@ -279,7 +279,7 @@ RecipeNode	*c;
 			default:
 				break;
 			}
-			b.append((unsigned long)n);
+			add_integer(b, n);
 			if (VerboseLevel() > 5)
 			{
 				debug += ", result is ";
@@ -307,7 +307,7 @@ RecipeNode	*c;
 		int n= !boolean(b);
 
 			b.reset();
-			b.append( (unsigned long)n );
+			add_integer(b, n );
 		}
 		if (VerboseLevel() > 5)
 		{
@@ -346,7 +346,7 @@ RecipeNode	*c;
 				b += "-";
 				n= -n;
 			}
-			b.append( (unsigned long)n );
+			add_integer(b, n );
 		}
 		if (maildrop.sigfpe)
 		{
@@ -461,7 +461,7 @@ RecipeNode	*c;
 		unsigned long	n=b.Length();
 
 			b.reset();
-			b.append(n);
+			add_integer(b, n);
 		}
 		if (VerboseLevel() > 5)
 		{
@@ -492,7 +492,7 @@ RecipeNode	*c;
 				debug="Operation on: ";
 				debug += bb;
 				debug += " - strsubstr ";
-				debug.append( (unsigned long) n);
+				add_integer(debug, n);
 				debug.push_back_0();
 				r.errmsg(*this, debug);
 			}
@@ -518,7 +518,7 @@ RecipeNode	*c;
 					debug="Operation on: ";
 					debug += bb;
 					debug += " - strsubstr chop ";
-					debug.append( (unsigned long)n);
+					add_integer(debug, n);
 					debug.push_back_0();
 					r.errmsg(*this, debug);
 				}
@@ -1017,7 +1017,7 @@ RecipeNode	*c;
 		int	n=r.gdbm_file.Open(filename, openmode);
 			b.reset();
 			if (n < 0) { b += "-"; n= -n; }
-			b.append( (unsigned long)n );
+			add_integer(b, n );
 		}
 		break;
 	case gdbmclose:
@@ -1066,7 +1066,7 @@ RecipeNode	*c;
 
 			b.reset();
 			if (n < 0) { b += "-"; n= -n; }
-			b.append( (unsigned long)n );
+			add_integer(b, n );
 		}
 		break;
 #else
@@ -1084,7 +1084,7 @@ RecipeNode	*c;
 		time_t	t;
 
 			time(&t);
-			b.append( (unsigned long)t );
+			add_integer(b, t );
 		}
 		break;
 	case unset:
@@ -1130,11 +1130,11 @@ Buffer	buf1, buf2;
 		buf="Search of ";
 		buf += (const char *)buf1;
 		buf += " = ";
-		buf.append(c.score);
+		add_number(buf, c.score);
 		buf.push_back_0();
 		r.errmsg(*this, buf);
 	}
-	b.append(c.score);
+	add_number(b, c.score);
 }
 
 void RecipeNode::EvaluateStrRegExp(Recipe &r, Buffer &b, Buffer *foreachp)
@@ -1165,11 +1165,11 @@ Buffer	buf1, buf2;
 		buf="Search of ";
 		buf += (const char *)buf1;
 		buf += " = ";
-		buf.append(c.score);
+		add_number(buf, c.score);
 		buf.push_back_0();
 		r.errmsg(*this, buf);
 	}
-	b.append(c.score);
+	add_number(b, c.score);
 }
 
 // Break down /foo/:bar into foo and bar.

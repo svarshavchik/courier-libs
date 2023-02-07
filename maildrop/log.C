@@ -30,7 +30,7 @@ Buffer	szbuf;
 	maildrop.logfile << "Subj: " << msg.hdrsubject << EOL;
 
 	szbuf="(";
-	szbuf.append( (unsigned long)msg.msgsize);
+	add_integer(szbuf, msg.msgsize);
 	szbuf += ")";
 	tbuf=mailbox;
 

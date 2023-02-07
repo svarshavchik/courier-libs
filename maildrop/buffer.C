@@ -86,26 +86,26 @@ Buffer &Buffer::operator=(const Buffer &o)
 	return (*this);
 }
 
-void	Buffer::append(unsigned long n)
+void	add_integer(Buffer &b, unsigned long n)
 {
-char	tbuf[40];
-char	*p=tbuf+sizeof(tbuf)-1;
+	char	tbuf[40];
+	char	*p=tbuf+sizeof(tbuf)-1;
 
 	*p=0;
 	do
 	{
 		*--p= (n % 10) + '0';
 	} while ( (n /= 10) != 0);
-	operator +=(p);
+
+	b += p;
 }
 
-
-void	Buffer::append(double d)
+void	add_number(Buffer &buf, double d)
 {
-char	tbuf[MAXLONGSIZE < 40 ? 40:MAXLONGSIZE+4];
+	char	tbuf[MAXLONGSIZE < 40 ? 40:MAXLONGSIZE+4];
 
 	sprintf(tbuf, "%1.*g", MAXLONGSIZE, d);
-	operator += (tbuf);
+	buf += (tbuf);
 }
 
 int	Buffer::Int(const char *def) const

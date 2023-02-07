@@ -514,7 +514,7 @@ Buffer	errbuf;
 
 	errbuf=filename;
 	errbuf += "(";
-	errbuf.append(lnum);
+	add_integer(errbuf, lnum);
 	errbuf += "): ";
 	errbuf += emsg;
 	errbuf += "\n";

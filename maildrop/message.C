@@ -299,10 +299,10 @@ void Message::setmsgsize()
 Buffer	n,v;
 
 	n="SIZE";
-	v.append((unsigned long)MessageSize());
+	add_integer(v, MessageSize());
 	SetVar(n,v);
 	n="LINES";
 	v.reset();
-	v.append((unsigned long)MessageLines());
+	add_integer(v, MessageLines());
 	SetVar(n,v);
 }

@@ -67,7 +67,7 @@ int	Search::init(const char *expr, const char *opts)
 		pcre2_get_error_message(errcode, buffer, sizeof(buffer));
 
 		b="Invalid regular expression, offset ";
-		b.append((unsigned long)errindex);
+		add_integer(b, errindex);
 		b += " of: ";
 		b += expr;
 		b += ": ";
@@ -317,7 +317,7 @@ void Search::init_match_vars(const char *str,
 	{
 		varname="MATCH";
 		if (cnt)
-			varname.append((unsigned long)cnt);
+			add_integer(varname, cnt);
 
 
 		Buffer v;

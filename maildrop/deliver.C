@@ -146,7 +146,7 @@ Buffer	b;
 			else wait_stat= WIFEXITED(wait_stat)
 				? WEXITSTATUS(wait_stat):-1;
 
-			val.append( (unsigned long)wait_stat);
+			add_integer(val, wait_stat);
 			name="EXITCODE";
 			SetVar(name, val);
 		}

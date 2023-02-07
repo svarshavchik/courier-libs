@@ -265,7 +265,7 @@ int	maxfd=pipe1.fds[0];
 	{
 	Buffer	name, val;
 
-		val.append( (unsigned long)wait_stat);
+		add_integer(val, wait_stat);
 		name="RETURNCODE";
 		SetVar(name, val);
 	}
@@ -330,7 +330,7 @@ void executesystem(const char *cmd)
 	{
 	Buffer	name, val;
 
-		val.append( (unsigned long)wait_stat);
+		add_integer(val, wait_stat);
 		name="RETURNCODE";
 		SetVar(name, val);
 	}

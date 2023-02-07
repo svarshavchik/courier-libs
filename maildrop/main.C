@@ -301,7 +301,7 @@ static int callback_authlib(struct authinfo *auth,
 	{
 		Buffer b;
 
-		b.set(auth->sysgroupid);
+		add_integer(b, auth->sysgroupid);
 		b.push_back_0();
 
 		merr << "maildrop: authlib: groupid="
@@ -337,7 +337,7 @@ static int callback_authlib(struct authinfo *auth,
 	{
 		Buffer b;
 
-		b.set(u);
+		add_integer(b, u);
 		b.push_back_0();
 
 		merr << "maildrop: authlib: userid="
@@ -830,7 +830,7 @@ Buffer	value;
 	while (argn < argc)
 	{
 		name="";
-		name.append( (unsigned long)i);
+		add_integer(name, i);
 		value=argv[argn++];
 		SetVar(name, value);
 		++i;

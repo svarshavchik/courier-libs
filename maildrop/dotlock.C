@@ -50,7 +50,7 @@ static Buffer   errbuf;
 	}
 
 
-	b.append( (unsigned long)getpid() );
+	add_integer(b, getpid() );
 	b += "\n";
 	if (mio.write((const char *)b, b.Length()) < 0 || mio.flush() < 0)
 	{
