@@ -1151,7 +1151,7 @@ int	firstdefault=1;
 	}
 
 	value="EXITCODE";
-	return ( GetVar(value)->Int("0") );
+	return extract_int( *GetVar(value), "0");
 }
 
 int main(int argc, char **argv)

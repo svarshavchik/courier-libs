@@ -25,7 +25,6 @@ public:
 	~Buffer()	{ if (buf)	delete[] buf; }
 
 	const char *c_str() const { return (const char *)buf; }
-	int	Int(const char * =0) const;
 	size_t	size() const { return (buflength); }
 	void	resize(size_t l) { if (l < (size_t)buflength) buflength=l; }
 
@@ -78,5 +77,7 @@ inline void	set_integer(Buffer &buf, unsigned long n)
 	add_integer(b, n);
 	buf=b;
 }
+
+int	extract_int(const Buffer &buf, const char * =0);
 
 #endif

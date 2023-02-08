@@ -598,7 +598,7 @@ RecipeNode	*c;
 		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
 		b="EXITCODE";
-		throw ( GetVar(b)->Int("0") );
+		throw (extract_int(*GetVar(b), "0"));
 	case delivercc:
 		if (!firstChild)
 			throw "Internal error in delivery statement.";
@@ -869,7 +869,7 @@ RecipeNode	*c;
 		break;
 	case exit:
 		b="EXITCODE";
-		throw ( GetVar(b)->Int("0") );
+		throw extract_int( *GetVar(b), "0");
 	case foreach:
 		if (!firstChild || !firstChild->nextSibling ||
 			( firstChild->nodeType != regexpr &&

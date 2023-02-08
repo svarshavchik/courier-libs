@@ -10,7 +10,7 @@ Buffer	b;
 
 	b="LOCKSLEEP";
 
-	return GetVar(b)->Int(LOCKSLEEP_DEF);
+	return extract_int(*GetVar(b), LOCKSLEEP_DEF);
 }
 
 unsigned DotLock::GetLockTimeout()
@@ -18,7 +18,7 @@ unsigned DotLock::GetLockTimeout()
 Buffer	b;
 
 	b="LOCKTIMEOUT";
-	return (GetVar(b)->Int(LOCKTIMEOUT_DEF));
+	return extract_int(*GetVar(b), LOCKTIMEOUT_DEF);
 }
 
 unsigned DotLock::GetLockRefresh()
@@ -26,7 +26,7 @@ unsigned DotLock::GetLockRefresh()
 Buffer	b;
 
 	b="LOCKREFRESH";
-	return (GetVar(b)->Int(LOCKREFRESH_DEF));
+	return extract_int(*GetVar(b), LOCKREFRESH_DEF);
 }
 
 const	char *DotLock::GetLockExt()

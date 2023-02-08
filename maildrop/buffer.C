@@ -108,12 +108,12 @@ void	add_number(Buffer &buf, double d)
 	buf += (tbuf);
 }
 
-int	Buffer::Int(const char *def) const
+int	extract_int(const Buffer &buf, const char *def)
 {
-const	unsigned char *p=buf;
-int	l=buflength;
-int	minus=0;
-unsigned num=0;
+	const	char *p=buf.c_str();
+	auto	l=buf.size();
+	int	minus=0;
+	unsigned num=0;
 
 	while (l && isspace(*p))
 	{
@@ -123,7 +123,7 @@ unsigned num=0;
 
 	if ((!l || (*p != '-' && (*p < '0' || *p > '9'))) && def != 0)
 	{
-		p= (const unsigned char *)def;
+		p=def;
 		l=strlen(def);
 	}
 

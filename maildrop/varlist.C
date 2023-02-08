@@ -61,7 +61,7 @@ void SetVar(const Buffer &var, const Buffer &value)
 	if (var.size() == 7 &&
 		strncmp( var.c_str(), "VERBOSE", 7) == 0)
 	{
-		maildrop.verbose_level= value.Int("0");
+		maildrop.verbose_level= extract_int(value, "0");
 		if (maildrop.isdelivery)	maildrop.verbose_level=0;
 	}
 
