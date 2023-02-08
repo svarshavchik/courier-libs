@@ -52,7 +52,7 @@ class RecipeNode {
 	int	linenum;
 
 	void dollarexpand(Recipe &, Buffer &);
-	int dollarexpand(Recipe &, Buffer &, int);
+	size_t dollarexpand(Recipe &, Buffer &, size_t);
 
 public:
 	friend class Recipe;

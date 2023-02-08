@@ -52,7 +52,7 @@ char	hostname[256];
 	hostname[sizeof(hostname)-1]=0;
 
 	buf=dir;
-	if (l > 0)	buf.Length(l);
+	if (l > 0 && l < buf.size())	buf.resize(l);
 	add_integer(buf, getpid() );
 	buf += ".";
 	add_integer(buf, counter++ );

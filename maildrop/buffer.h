@@ -27,8 +27,8 @@ public:
 	operator const unsigned char *() const { return (buf); }
 	operator const char *() const { return ((const char *)buf); }
 	int	Int(const char * =0) const;
-	int	Length() const { return (buflength); }
-	void	Length(int l) { if (l < buflength) buflength=l; }
+	size_t	size() const { return (buflength); }
+	void	resize(size_t l) { if (l < (size_t)buflength) buflength=l; }
 
 	Buffer(const Buffer &);		// UNDEFINED
 	Buffer &operator=(const Buffer &);

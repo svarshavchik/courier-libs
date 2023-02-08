@@ -186,7 +186,7 @@ missquote:
 			// current length of the string, and backtrack if
 			// necessary.
 
-		int	l=pattern.Length();
+		auto	l=pattern.size();
 			pattern.push_back('\\');
 
 			// Collect all whitespace after the backslash,
@@ -204,7 +204,7 @@ missquote:
 			// a comment, we have a continuation.
 
 			if (q != '#' && q != '\r' && q != '\n')	continue;
-			pattern.Length(l);	// Discard padding
+			pattern.resize(l);	// Discard padding
 			while (q != '\n')
 			{
 				if (q < 0)	goto missquote;
@@ -297,7 +297,7 @@ missquote:
 			nextchar();
 			c=curchar();
 		}
-		if (pattern.Length() == 2)
+		if (pattern.size() == 2)
 		{
 		int	n= ((int)(unsigned char)*(const char *)pattern) << 8
 				| (unsigned char)((const char *)pattern)[1];

@@ -167,7 +167,7 @@ int	maxfd=pipe1.fds[0];
 			else
 			{
 				writebufptr= *p;
-				writebuflen= p->Length();
+				writebuflen= p->size();
 			}
 		}
 

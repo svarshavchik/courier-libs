@@ -74,8 +74,8 @@ int	c;
 	buf.clear();
 	while ((c=std::cin.get()) >= 0 && c != '\n')
 		buf.push_back(c);
-	if (c < 0 && buf.Length() == 0)	return (0);
-	if (buf.Length())	// Strip CRs
+	if (c < 0 && buf.size() == 0)	return (0);
+	if (buf.size())	// Strip CRs
 	{
 		c=buf.back();
 
@@ -224,7 +224,7 @@ static Buffer	from_header;
 		if (strncmp(header, "from:", 5) == 0)
 			from_header=(const char *)header + 5;
 	}
-	if (return_path.Length() == 0)	return_path=from_header;
+	if (return_path.size() == 0)	return_path=from_header;
 	return_path.push_back_0();
 
 	struct rfc822t *rfc=rfc822t_alloc_new( (const char *)return_path,
@@ -262,7 +262,7 @@ static Buffer	from_header;
 	rfc822a_free(rfca);
 	rfc822t_free(rfc);
 
-	if (from_header.Length() == 0)	from_header="root";
+	if (from_header.size() == 0)	from_header="root";
 	return_path="From ";
 	return_path += from_header;
 	return_path.push_back(' ');
@@ -430,10 +430,10 @@ static char hostname_buf[256];
 
 static int has_hdr(const Buffer &hdrs, const char *hdr, unsigned &pos)
 {
-const char *r=hdrs;
-int l=hdrs.Length();
-Buffer	buf2;
-unsigned pos2=0;
+	const char *r=hdrs;
+	auto l=hdrs.size();
+	Buffer	buf2;
+	unsigned pos2=0;
 
 	while (l)
 	{
@@ -461,11 +461,11 @@ unsigned dummy;
 
 static void strip_empty_header(Buffer &buf)
 {
-Buffer	newbuf;
-int l;
-const char *p;
+	Buffer	newbuf;
+	size_t l;
+	const char *p;
 
-	for (p=buf, l=buf.Length(); l; )
+	for (p=buf, l=buf.size(); l; )
 	{
 		if (p[strlen(p)-1] == ':')
 		{
@@ -490,7 +490,7 @@ static void strip_header(Buffer &header, unsigned offset)
 {
 Buffer	buf1;
 const char *p=header;
-int l=header.Length();
+auto l=header.size();
 
 	while (l)
 	{
@@ -617,11 +617,11 @@ const char *ReadLineAddNewHeader()
 
 Buffer	*bufptr;
 
-	if (opta.Length())	bufptr= &opta;
-	else if (optA.Length())	bufptr= &optA;
-	else if (opti.Length())	bufptr= &opti;
-	else if (optI.Length())	bufptr= &optI;
-	else if (optUbuf.Length())	bufptr= &optUbuf;
+	if (opta.size())	bufptr= &opta;
+	else if (optA.size())	bufptr= &optA;
+	else if (opti.size())	bufptr= &opti;
+	else if (optI.size())	bufptr= &optI;
+	else if (optUbuf.size())	bufptr= &optUbuf;
 	else
 	{
 		append_more_headers=&ReadLineAddNewHeaderDone;
@@ -634,7 +634,7 @@ Buffer	buf2;
 	buf1.clear();
 
 const char *p= *bufptr;
-int l= bufptr->Length();
+auto l= bufptr->size();
 
 	while (l)
 	{
@@ -756,7 +756,7 @@ int found=0;
 			++p;
 		}
 
-		while (buf.Length())
+		while (buf.size())
 		{
 			auto c=buf.back();
 
@@ -765,7 +765,7 @@ int found=0;
 			buf.pop_back();
 		}
 
-		if (buf.Length() == 0)	break;
+		if (buf.size() == 0)	break;
 		buf.push_back_0();
 
 	int	fd=open(cache_name, O_RDWR | O_CREAT, 0600);
@@ -798,7 +798,7 @@ int found=0;
 
 		if (newpos < pos)	newpos=pos;
 
-		if ((charbuf=new char[newpos+buf.Length()+1]) == NULL)
+		if ((charbuf=new char[newpos+buf.size()+1]) == NULL)
 			outofmem();
 
 	off_t	readcnt=read(fd, charbuf, newpos);
@@ -819,8 +819,8 @@ int found=0;
 			else while (q < charbuf+readcnt)
 				if ( (*r++=*q++) == '\0') break;
 		}
-		memcpy(r, (const char *)buf, buf.Length());
-		r += buf.Length();
+		memcpy(r, (const char *)buf, buf.size());
+		r += buf.size();
 		for (q=charbuf; q<r; )
 		{
 			if (r - q < maxlen_n)
@@ -971,7 +971,7 @@ const	char *env;
 				}
 
 				buf2="FILENO=";
-				while (buf.Length())
+				while (buf.size())
 				{
 					buf2.push_back(buf.back());
 					buf.pop_back();
@@ -1011,7 +1011,7 @@ const	char *env;
 
 		const char *q=buf;
 
-			l=buf.Length();
+			l=buf.size();
 			while (l)
 			{
 			int	n= ::write( fds[1], q, l);
@@ -1217,7 +1217,7 @@ void	(*function)(int, char *[], int)=0;
 		}
 		if (done)	break;
 	}
-	if (optx.Length() || optX.Length())
+	if (optx.size() || optX.size())
 	{
 		if (function)	help();
 		function=extract_headers;

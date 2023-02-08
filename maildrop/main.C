@@ -276,7 +276,7 @@ Buffer	name, value;
 	value="077";
 	SetVar(name, value);
 
-	if (maildrop.init_quota.Length() > 0)
+	if (maildrop.init_quota.size() > 0)
 	{
 		name="MAILDIRQUOTA";
 		SetVar(name, maildrop.init_quota);
@@ -811,7 +811,7 @@ Buffer	value;
 
 		char	*p=strchr(environ[i], '=');
 
-		value= p ? (name.Length(p - environ[i]), p+1):"";
+		value= p ? (name.resize(p - environ[i]), p+1):"";
 
 		if (maildrop.isdelivery)
 		{
@@ -958,7 +958,7 @@ Buffer	msg;
 		!trusted_uidgid(orig_uid, orig_gid, orig_gid2) ||
 #endif
 
-		maildrop.msginfo.fromname.Length() == 0)
+		maildrop.msginfo.fromname.size() == 0)
 	{
 		maildrop.msginfo.fromname=maildrop.init_logname;
 	}
@@ -974,7 +974,7 @@ Buffer	msg;
 	{
 		msg.clear();
 		msg += "Message envelope sender=";
-		if (maildrop.msginfo.fromname.Length() > 0)
+		if (maildrop.msginfo.fromname.size() > 0)
 			msg += maildrop.msginfo.fromname;
 		msg += "\n";
 		msg.push_back_0();
@@ -1066,7 +1066,7 @@ int	firstdefault=1;
 		for (fd=sizeof(DEFAULTEXT)-1; fd; --fd)
 			recipe.pop_back();
 
-		while (recipe.Length())
+		while (recipe.size())
 		{
 			auto dash=recipe.back();
 			recipe.pop_back();
@@ -1076,7 +1076,7 @@ int	firstdefault=1;
 				break;
 			}
 		}
-		if (recipe.Length() == 0)
+		if (recipe.size() == 0)
 		{
 			msg=".mailfilters/";
 			msg += DEFAULTEXT+1;

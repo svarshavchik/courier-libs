@@ -458,7 +458,7 @@ RecipeNode	*c;
 			r.errmsg(*this, debug);
 		}
 		{
-		unsigned long	n=b.Length();
+		unsigned long	n=b.size();
 
 			b.clear();
 			add_integer(b, n);
@@ -497,7 +497,7 @@ RecipeNode	*c;
 				r.errmsg(*this, debug);
 			}
 
-		long l=bb.Length();
+		long l=bb.size();
 
 			if (n < 0 || n > l)	n=l;
 			b.append( (const char *)bb + n,
@@ -508,8 +508,8 @@ RecipeNode	*c;
 							Evaluate(r, cc);
 				cc.push_back_0();
 				n=atol( (const char *)cc);
-				if (n < b.Length())
-					b.Length(n);
+				if ((size_t)n < b.size())
+					b.resize(n);
 
 				if (VerboseLevel() > 5)
 				{
@@ -889,13 +889,13 @@ RecipeNode	*c;
 				firstChild->EvaluateStrRegExp(r,b,&foreachbuf);
 
 		const char *p=foreachbuf;
-		int l=foreachbuf.Length();
+		auto l=foreachbuf.size();
 
 			while (l)
 			{
 				varvalue.clear();
 
-			int	i;
+			size_t	i;
 
 				for (i=0; i<l && p[i]; i++)
 					;
@@ -945,7 +945,7 @@ RecipeNode	*c;
 		{
 		Buffer	bb;
 		const char *p=b;
-		int	l=b.Length();
+		auto	l=b.size();
 
 			while (l)
 			{
@@ -962,7 +962,7 @@ RecipeNode	*c;
 		{
 		Buffer	bb;
 		const char *p=b;
-		int	l=b.Length();
+		auto	l=b.size();
 
 			while (l)
 			{
@@ -1037,7 +1037,7 @@ RecipeNode	*c;
 			optbuf.push_back_0();
 
 		char	*result=r.gdbm_file.Fetch(
-				(const char *)b, b.Length(), result_size,
+				(const char *)b, b.size(), result_size,
 				(const char *)optbuf);
 
 			b.clear();
@@ -1061,8 +1061,8 @@ RecipeNode	*c;
 			firstChild->Evaluate(r, key);
 			firstChild->nextSibling->Evaluate(r, val);
 
-		int	n=r.gdbm_file.Store(key, key.Length(),
-						val, val.Length(), "R");
+		int	n=r.gdbm_file.Store(key, key.size(),
+						val, val.size(), "R");
 
 			b.clear();
 			if (n < 0) { b += "-"; n= -n; }
@@ -1187,7 +1187,7 @@ const	char *p;
 	++p;
 	buf1=p;
 
-int	l=buf1.Length(), i;
+	size_t	l=buf1.size(), i;
 
 	buf1.push_back_0();
 	buf2.clear();
@@ -1206,7 +1206,7 @@ int	l=buf1.Length(), i;
 			++i;
 		}
 	}
-	buf1.Length(i);
+	buf1.resize(i);
 }
 
 void	RecipeNode::EvaluateString(Recipe &r, Buffer &b)
@@ -1231,7 +1231,7 @@ Buffer	buf;
 		try
 		{
 		int	rc=::xfilter(buf, 1);
-		int	l=0;
+		size_t	l=0;
 
 			if (rc < 0)
 			{
@@ -1250,11 +1250,11 @@ Buffer	buf;
 			{
 				if (rc == '\r' || rc == '\n')	rc=' ';
 				b.push_back(rc);
-				if (!isspace(rc))	l=b.Length();
+				if (!isspace(rc))	l=b.size();
 				rc=maildrop.savemsgptr->get_c();
 			}
 			maildrop.savemsgptr->Init();
-			b.Length(l);
+			b.resize(l);
 		}
 		catch (...)
 		{
@@ -1269,10 +1269,10 @@ Buffer	buf;
 
 void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
 {
-int	i, l;
-const char *p=b;
+	size_t	i, l;
+	const char *p=b;
 
-	for (i=0, l=b.Length(); i<l; )
+	for (i=0, l=b.size(); i<l; )
 	{
 		if (p[i] == '\\' && i+1 < l)
 			++i;
@@ -1281,7 +1281,7 @@ const char *p=b;
 			if (p[i] == '$')
 			{
 				i=dollarexpand(r, b, i);
-				l=b.Length();
+				l=b.size();
 				p=b;
 				continue;
 			}
@@ -1292,11 +1292,11 @@ const char *p=b;
 
 void RecipeNode::SpecialEscape(Buffer &b)
 {
-int	i, l;
-const char *p=b;
-Buffer	s;
+	size_t	i, l;
+	const char *p=b;
+	Buffer	s;
 
-	for (i=0, l=b.Length(); i<l; i++)
+	for (i=0, l=b.size(); i<l; i++)
 	{
 		switch (p[i])	{
 		case '|':
@@ -1332,15 +1332,15 @@ Buffer	s;
 	b=s;
 }
 
-int	RecipeNode::dollarexpand(Recipe &r, Buffer &b, int index)
+size_t	RecipeNode::dollarexpand(Recipe &r, Buffer &b, size_t index)
 {
-int	l=b.Length();
+	size_t	l=b.size();
 
 	if (index+1 >= l)	return (index+1);
 
 const	char *p=b;
 Buffer	varname;
-int	j;
+size_t	j;
 
 	if (p[index+1] == '{')
 	{
@@ -1381,7 +1381,7 @@ const Buffer *bb=GetVar(varname);
 
 	if (bb)	newstr += *bb;
 
-int	newindex=newstr.Length();
+	auto	newindex=newstr.size();
 
 	newstr.append(p + j, p + l);
 	b=newstr;
@@ -1393,8 +1393,8 @@ int	newindex=newstr.Length();
 
 int RecipeNode::boolean(const Buffer &b)
 {
-const char *p=b;
-int l=b.Length();
+	const char *p=b;
+	auto l=b.size();
 
 	while (l && isspace(*p))	p++, l--;
 	if (l == 0)	return (0);
@@ -1424,7 +1424,7 @@ int l=b.Length();
 static void parse_backslash(const Buffer &in, Buffer &s)
 {
 const char *p=in;
-int l=in.Length();
+size_t l=in.size();
 int append_newline=1;
 
 	while (l)
@@ -1523,10 +1523,10 @@ int RecipeNode::rfc822hasaddr(Buffer &buf)
 Buffer	lower_addr;
 Buffer	next_line;
 const char *p;
-int	l;
+size_t	l;
 Buffer	header;
 
-	for (p=buf, l=buf.Length(); l; --l)
+	for (p=buf, l=buf.size(); l; --l)
 		lower_addr.push_back(tolower(*p++));
 	lower_addr.push_back_0();
 
@@ -1660,7 +1660,7 @@ Mio	fp;
 		errbuf.clear();
 		while ((c=fp.get()) >= 0 && c != '\r' && c != '\n')
 			errbuf.push_back(c);
-		if (c < 0 && errbuf.Length() == 0)	break;
+		if (c < 0 && errbuf.size() == 0)	break;
 		errbuf.push_back_0();
 
 		p=errbuf;

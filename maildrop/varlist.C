@@ -18,14 +18,15 @@ static Variable *varlist[101];
 
 void UnsetVar(const Buffer &var)
 {
-int varlen=var.Length();
-unsigned n=0;
-int i;
-const char *p=var;
+	auto varlen=var.size();
+	unsigned n=0;
+	size_t i;
+	const char *p=var;
+
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
 
-	if (var.Length() == 7 &&
+	if (var.size() == 7 &&
 		strncmp( (const char *)var, "VERBOSE", 7) == 0)
 	{
 		maildrop.verbose_level=0;
@@ -49,15 +50,15 @@ Variable **v;
 
 void SetVar(const Buffer &var, const Buffer &value)
 {
-int varlen=var.Length();
-unsigned n=0;
-int i;
-const char *p=var;
+	auto varlen=var.size();
+	size_t n=0;
+	size_t i;
+	const char *p=var;
 
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
 
-	if (var.Length() == 7 &&
+	if (var.size() == 7 &&
 		strncmp( (const char *)var, "VERBOSE", 7) == 0)
 	{
 		maildrop.verbose_level= value.Int("0");
@@ -87,9 +88,9 @@ static Buffer zero;
 
 const Buffer *GetVar(const Buffer &var)
 {
-int varlen=var.Length(),i;
-unsigned n=0;
-const char *p=var;
+	auto varlen=var.size();
+	size_t i, n=0;
+	const char *p=var;
 
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
@@ -123,7 +124,7 @@ char	*envdatap=0;
 	for (i=n=l=0; i<sizeof(varlist)/sizeof(varlist[0]); i++)
 		for (v=varlist[i]; v; v=v->next)
 		{
-			l += v->name.Length() + v->value.Length()+2;
+			l += v->name.size() + v->value.size()+2;
 			++n;
 		}
 
@@ -135,12 +136,12 @@ char	*envdatap=0;
 		{
 			envp[n]=envdatap;
 			memcpy(envdatap, (const char *)v->name,
-							v->name.Length());
-			envdatap += v->name.Length();
+							v->name.size());
+			envdatap += v->name.size();
 			*envdatap++ = '=';
 			memcpy(envdatap, (const char *)v->value,
-							v->value.Length());
-			envdatap += v->value.Length();
+							v->value.size());
+			envdatap += v->value.size();
 			*envdatap++ = 0;
 			n++;
 		}

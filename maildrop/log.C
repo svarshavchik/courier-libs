@@ -23,8 +23,11 @@ Buffer	szbuf;
 	time(&t);
 	tbuf=ctime(&t);
 	tbuf.pop_back();	// Drop trailing newline
-	msg.hdrfrom.Length(72);
-	msg.hdrsubject.Length(72);
+
+	if (msg.hdrfrom.size() > 72)
+		msg.hdrfrom.resize(72);
+	if (msg.hdrsubject.size() > 72)
+		msg.hdrsubject.resize(72);
 	maildrop.logfile << "Date: " << tbuf << EOL;
 	maildrop.logfile << "From: " << msg.hdrfrom << EOL;
 	maildrop.logfile << "Subj: " << msg.hdrsubject << EOL;
@@ -34,11 +37,11 @@ Buffer	szbuf;
 	szbuf += ")";
 	tbuf=mailbox;
 
-int	l= 72 - szbuf.Length();
+size_t	l= 72 - szbuf.size();
 
-	while (tbuf.Length() < l-1)
+	while (tbuf.size() < l-1)
 		tbuf.push_back(' ');
-	tbuf.Length(l-1);
+	tbuf.resize(l-1);
 	tbuf.push_back(' ');
 	tbuf += szbuf;
 

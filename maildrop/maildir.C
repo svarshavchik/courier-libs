@@ -321,7 +321,7 @@ void	Maildir::MaildirSave()
 
 		if (q)
 		{
-			dir.Length(q-p);
+			dir.resize(q-p);
 			dir.push_back_0();
 
 #if EXPLICITDIRSYNC
@@ -334,7 +334,7 @@ void	Maildir::MaildirSave()
 			}
 #endif
 
-			dir.Length(q-p);
+			dir.resize(q-p);
 			dir += "/../";
 			dir.push_back_0();
 

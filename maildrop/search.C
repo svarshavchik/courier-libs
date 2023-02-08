@@ -212,7 +212,7 @@ int Search::findinline(Message &msg, const char *expr, Buffer *foreachp)
 	foreachp_arg=foreachp;
 	rfc2045_decodemsgtoutf8(&msg.rfc2045src_parser,
 				msg.rfc2045p, &decode_cb);
-	if (current_line.Length() >= 1)
+	if (current_line.size() >= 1)
 		search_cb("\n", 1);
 	return 0;
 }

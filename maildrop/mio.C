@@ -218,7 +218,7 @@ off_t	p=mseek(fd_, 0L, SEEK_CUR);
 
 Mio &Mio::operator<<(const class Buffer &b)
 {
-	write( (const char *)b, b.Length() );
+	write( (const char *)b, b.size() );
 	return (*this);
 }
 

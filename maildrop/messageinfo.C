@@ -15,14 +15,14 @@ Buffer	buf;
 		buf.clear();
 		if (msg.appendline(buf) < 0)	return;
 
-		int	l=buf.Length();
+		auto	l=buf.size();
 
 		const char *p=buf;
 
 		if (l && p[l-1] == '\n')
 		{
 			--l;
-			buf.Length(l);
+			buf.resize(l);
 		}
 
 		if (l == 0)	break;
@@ -46,7 +46,7 @@ Buffer	buf;
 			--l;
 		}
 
-		int i;
+		size_t i;
 
 		for (i=0; i<l; i++)
 		{

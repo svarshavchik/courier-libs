@@ -66,7 +66,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 	if (do_escape)
 	{
 	const char *p=msglinebuf;
-	int	l=msglinebuf.Length();
+	auto	l=msglinebuf.size();
 
 		while (l && *p == '>')	p++, l--;
 		if (l >= 5 &&
@@ -117,7 +117,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 	msglinebuf += "\n";
 #endif
 	next_func= &FormatMbox::GetNextLineBuffer;
-	msgsize += msglinebuf.Length();
+	msgsize += msglinebuf.size();
 	return (&msglinebuf);
 }
 
@@ -135,7 +135,7 @@ Buffer	*bufptr;
 
 	while ((bufptr=NextLine()) != NULL)
 	{
-		if (mio.write((const char *)*bufptr, bufptr->Length()) < 0)
+		if (mio.write((const char *)*bufptr, bufptr->size()) < 0)
 		{
 write_error:
 			merr << "maildrop: error writing to mailbox.\n";
