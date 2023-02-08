@@ -61,11 +61,11 @@ const char *p=ctime(&tm);
 
 Buffer	*FormatMbox::GetLineBuffer(void)
 {
-	if (!(const char *)msglinebuf)	return (0);
+	if (!msglinebuf.c_str())	return (0);
 
 	if (do_escape)
 	{
-	const char *p=msglinebuf;
+	const char *p=msglinebuf.c_str();
 	auto	l=msglinebuf.size();
 
 		while (l && *p == '>')	p++, l--;
@@ -78,11 +78,11 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 			msglinebuf=tempbuf;
 		}
 	}
-	if (inheader && *(const char *)msglinebuf == '\n')
+	if (inheader && *msglinebuf.c_str() == '\n')
 		inheader=0;
 	if (inheader)
 	{
-	const char *p=msglinebuf;
+	const char *p=msglinebuf.c_str();
 	Buffer	*bufp=0;
 
 		if ( tolower(*p) == 'f' && tolower(p[1]) == 'r' &&
@@ -135,7 +135,7 @@ Buffer	*bufptr;
 
 	while ((bufptr=NextLine()) != NULL)
 	{
-		if (mio.write((const char *)*bufptr, bufptr->size()) < 0)
+		if (mio.write(bufptr->c_str(), bufptr->size()) < 0)
 		{
 write_error:
 			merr << "maildrop: error writing to mailbox.\n";

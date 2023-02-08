@@ -817,7 +817,7 @@ Buffer	value;
 		{
 			if (name == "LANG" ||
 			    name == "LANGUAGE" ||
-			    strncmp(name, "LC_", 3) == 0)
+			    strncmp(name.c_str(), "LC_", 3) == 0)
 				;
 			else
 				continue;
@@ -876,7 +876,7 @@ Buffer	value;
 		b=maildrop.init_home;
 		b.push_back_0();
 
-	const char *h=b;
+		const char *h=b.c_str();
 
 		if (VerboseLevel() > 1)
 			merr << "maildrop: Changing to " << h << "\n";
@@ -926,7 +926,7 @@ Buffer	value;
 	maildrop.tempdir=maildrop.init_home;
 	maildrop.tempdir += "/" TEMPDIR;
 	maildrop.tempdir.push_back_0();
-	mkdir( (const char *)maildrop.tempdir, 0700 );
+	mkdir( maildrop.tempdir.c_str(), 0700 );
 #endif
 	maildrop.reset_vars();
 
@@ -978,7 +978,7 @@ Buffer	msg;
 			msg += maildrop.msginfo.fromname;
 		msg += "\n";
 		msg.push_back_0();
-		merr.write(msg);
+		merr.write(msg.c_str());
 	}
 
 	name="HOSTNAME";
@@ -1037,7 +1037,7 @@ int	firstdefault=1;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
 			msg.push_back_0();
-			fd=in.Open((const char *)msg);
+			fd=in.Open(msg.c_str());
 		}
 		else
 		{
@@ -1045,7 +1045,7 @@ int	firstdefault=1;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
 			msg.push_back_0();
-			fd=in.Open((const char *)msg);
+			fd=in.Open(msg.c_str());
 			break;
 		}
 #ifndef	DEFAULTEXT
@@ -1083,7 +1083,7 @@ int	firstdefault=1;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
 			msg.push_back_0();
-			fd=in.Open((const char *)msg);
+			fd=in.Open(msg.c_str());
 			break;
 		}
 #endif
@@ -1146,7 +1146,7 @@ int	firstdefault=1;
 
 		value=v;
 		value.push_back_0();
-		if (delivery((const char *)value) < 0)
+		if (delivery(value.c_str()) < 0)
 			return (EX_TEMPFAIL);
 	}
 
@@ -1204,7 +1204,7 @@ const	char *p=DEFAULT_DEF;
 		buf += username;
 	}
 	buf.push_back_0();
-	return (buf);
+	return (buf.c_str());
 }
 
 #if	SHARED_TEMPDIR
@@ -1214,9 +1214,9 @@ const char *TempName()
 {
 Buffer	t;
 
-	t=(const char *)maildrop.tempdir;
+	t=maildrop.tempdir.c_str();
 	t += "/tmp.";
 	t.push_back_0();
-	return (TempName((const char *)t, 0));
+	return (TempName(t.c_str(), 0));
 }
 #endif

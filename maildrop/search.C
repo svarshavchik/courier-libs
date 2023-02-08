@@ -74,7 +74,7 @@ int	Search::init(const char *expr, const char *opts)
 		b += (char *)buffer;
 		b += "\n";
 		b.push_back_0();
-		merr.write(b);
+		merr.write(b.c_str());
 		return -1;
 	}
 
@@ -90,7 +90,7 @@ int	Search::init(const char *expr, const char *opts)
 		b += expr;
 		b += "\n";
 		b.push_back_0();
-		merr.write(b);
+		merr.write(b.c_str());
 		cleanup();
 		return -1;
 	}
@@ -142,7 +142,7 @@ int Search::find(const char *str, const char *expr, const char *opts,
 		msg += str;
 		msg += "\n";
 		msg.push_back_0();
-		merr.write(msg);
+		merr.write(msg.c_str());
 	}
 
 	int startoffset=0;
@@ -241,13 +241,13 @@ int Search::search_cb(const char *ptr, size_t cnt)
 				msg += search_expr;
 
 				msg += "/ against ";
-				msg += (const char *)current_line;
+				msg += current_line.c_str();
 				msg += "\n";
 				msg.push_back_0();
-				merr.write(msg);
+				merr.write(msg.c_str());
 			}
 
-			const char *orig_str=current_line;
+			const char *orig_str=current_line.c_str();
 
 			int rc=pcre2_match(pcre_regexp,
 					   (PCRE2_SPTR8)orig_str,

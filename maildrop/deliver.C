@@ -77,7 +77,7 @@ Buffer	b;
 
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Delivering to |" <<
-				(const char *)cmdbuf << "\n";
+				cmdbuf.c_str() << "\n";
 
 	PipeFds	pipe;
 
@@ -97,7 +97,7 @@ Buffer	b;
 
 			try
 			{
-				subshell(cmdbuf);
+				subshell(cmdbuf.c_str());
 			}
 			catch (const char *p)
 			{
@@ -286,7 +286,7 @@ int	n;
 		_exit(100);
 	}
 	ExitTrap::onfork();
-	execle(shell, q, "-c", cmd, (const char *)0, env);
+	execle(shell, q, "-c", cmd, (const char *)NULL, env);
 	if (write (2, "Unable to execute ", 18) < 0 ||
 	    write (2, shell, strlen(shell)) < 0 ||
 	    write (2, "\n", 1) < 0)

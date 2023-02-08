@@ -83,7 +83,7 @@ const char *Token::Name()
 		namebuf += buf;
 		namebuf += "\"";
 		namebuf.push_back_0();
-		return (namebuf);
+		return (namebuf.c_str());
 	}
 
 	if (type == sqstring)
@@ -92,7 +92,7 @@ const char *Token::Name()
 		namebuf += buf;
 		namebuf += "'";
 		namebuf.push_back_0();
-		return (namebuf);
+		return (namebuf.c_str());
 	}
 
 	if (type == btstring)
@@ -101,7 +101,7 @@ const char *Token::Name()
 		namebuf += buf;
 		namebuf += "`";
 		namebuf.push_back_0();
-		return (namebuf);
+		return (namebuf.c_str());
 	}
 
 	if (type == regexpr)
@@ -109,7 +109,7 @@ const char *Token::Name()
 		namebuf="regexp: ";
 		namebuf += buf;
 		namebuf.push_back_0();
-		return (namebuf);
+		return (namebuf.c_str());
 	}
 
 unsigned	t=(unsigned)type;

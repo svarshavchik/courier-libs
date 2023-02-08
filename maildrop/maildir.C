@@ -61,17 +61,17 @@ struct	stat stat_buf;
 	subdirname=dirname;
 	subdirname += "/tmp";
 	subdirname.push_back_0();
-	if ( stat( (const char *)subdirname, &stat_buf ) ||
+	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/new";
 	subdirname.push_back_0();
-	if ( stat( (const char *)subdirname, &stat_buf ) ||
+	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/cur";
 	subdirname.push_back_0();
-	if ( stat( (const char *)subdirname, &stat_buf ) ||
+	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	return (1);	// If it looks like a duck, walks like a duck...
 }
@@ -89,7 +89,7 @@ int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
 	quotabuf= *GetVar(quotabuf);
 	quotabuf.push_back_0();
 
-	quotap=quotabuf;
+	quotap=quotabuf.c_str();
 
 	if (!*quotap)
 		quotap=NULL;
@@ -107,7 +107,7 @@ static long	counter=0;
 	maildir_tmpcreate_init(&createInfo);
 
 	createInfo.maildir=dir;
-	createInfo.uniq=(const char *)buf;
+	createInfo.uniq=buf.c_str();
 	createInfo.msgsize=s;
 	createInfo.openmode=0666;
 
@@ -176,7 +176,7 @@ static long	counter=0;
 						    1, quotap))
 			{
 				file.fd(-1);
-				unlink( (const char *)tmpname );
+				unlink( tmpname.c_str() );
 				is_open=0;
 				maildir_deliver_quota_warning(dir,
 							      quota_warn_percent,
@@ -213,7 +213,7 @@ void	Maildir::MaildirSave()
 		keywords=*GetVar(keywords);
 		keywords.push_back_0();
 
-		const char *keywords_s=keywords;
+		const char *keywords_s=keywords.c_str();
 
 		while (*keywords_s && *keywords_s == ',')
 			++keywords_s;
@@ -260,8 +260,8 @@ void	Maildir::MaildirSave()
 
 			char *tmpkname, *newkname;
 
-			if (maildir_kwSave( (const char *)maildirRoot,
-					    strrchr(newname, '/')+1, kwm,
+			if (maildir_kwSave( maildirRoot.c_str(),
+					    strrchr(newname.c_str(), '/')+1, kwm,
 					    &tmpkname, &newkname, 0) < 0)
 			{
 				libmail_kwmDestroy(kwm);
@@ -276,7 +276,7 @@ void	Maildir::MaildirSave()
 
 				struct stat stat_buf;
 
-				if (stat(maildirRoot, &stat_buf) < 0)
+				if (stat(maildirRoot.c_str(), &stat_buf) < 0)
 				{
 					free(tmpkname);
 					free(newkname);
@@ -303,10 +303,10 @@ void	Maildir::MaildirSave()
 
 		Buffer dir;
 
-		if (link( (const char *)tmpname, (const char *)newname) < 0)
+		if (link( tmpname.c_str(), newname.c_str()) < 0)
 		{
 			if (errno == EXDEV){
-				if(rename((const char *)tmpname, (const char *)newname) < 0)
+				if(rename(tmpname.c_str(), newname.c_str()) < 0)
 					throw "rename() failed.";
 				is_afs = 1;
 			}
@@ -316,7 +316,7 @@ void	Maildir::MaildirSave()
 			}
 		}
 		dir=newname;
-		const char *p=dir;
+		const char *p=dir.c_str();
 		const char *q=strrchr(p, '/');
 
 		if (q)
@@ -338,7 +338,8 @@ void	Maildir::MaildirSave()
 			dir += "/../";
 			dir.push_back_0();
 
-			maildir_deliver_quota_warning(dir, quota_warn_percent,
+			maildir_deliver_quota_warning(dir.c_str(),
+						      quota_warn_percent,
 						      quota_warn_message);
 		}
 	}
@@ -346,5 +347,5 @@ void	Maildir::MaildirSave()
 
 void	Maildir::MaildirAbort()
 {
-	if (is_open && !is_afs)	unlink( (const char *)tmpname );
+	if (is_open && !is_afs)	unlink( tmpname.c_str() );
 }

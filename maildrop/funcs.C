@@ -60,7 +60,7 @@ char	hostname[256];
 	buf += hostname;
 	buf.push_back_0();
 
-	return (buf);
+	return (buf.c_str());
 }
 
 int backslash_char(int c)

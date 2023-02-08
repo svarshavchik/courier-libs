@@ -166,7 +166,7 @@ int	maxfd=pipe1.fds[0];
 			}
 			else
 			{
-				writebufptr= *p;
+				writebufptr= p->c_str();
 				writebuflen= p->size();
 			}
 		}

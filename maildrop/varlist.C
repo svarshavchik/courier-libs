@@ -21,13 +21,13 @@ void UnsetVar(const Buffer &var)
 	auto varlen=var.size();
 	unsigned n=0;
 	size_t i;
-	const char *p=var;
+	const char *p=var.c_str();
 
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
 
 	if (var.size() == 7 &&
-		strncmp( (const char *)var, "VERBOSE", 7) == 0)
+		strncmp( var.c_str(), "VERBOSE", 7) == 0)
 	{
 		maildrop.verbose_level=0;
 	}
@@ -53,13 +53,13 @@ void SetVar(const Buffer &var, const Buffer &value)
 	auto varlen=var.size();
 	size_t n=0;
 	size_t i;
-	const char *p=var;
+	const char *p=var.c_str();
 
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
 
 	if (var.size() == 7 &&
-		strncmp( (const char *)var, "VERBOSE", 7) == 0)
+		strncmp( var.c_str(), "VERBOSE", 7) == 0)
 	{
 		maildrop.verbose_level= value.Int("0");
 		if (maildrop.isdelivery)	maildrop.verbose_level=0;
@@ -90,7 +90,7 @@ const Buffer *GetVar(const Buffer &var)
 {
 	auto varlen=var.size();
 	size_t i, n=0;
-	const char *p=var;
+	const char *p=var.c_str();
 
 	for (i=varlen; i; --i)
 		n = (n << 1) ^ (unsigned char)*p++;
@@ -109,7 +109,7 @@ static Buffer tempbuf;
 
 	tempbuf= *GetVar(var);
 	tempbuf.push_back_0();
-	return (tempbuf);
+	return (tempbuf.c_str());
 }
 
 // Create environment for a child process.
@@ -135,11 +135,11 @@ char	*envdatap=0;
 		for (v=varlist[i]; v; v=v->next)
 		{
 			envp[n]=envdatap;
-			memcpy(envdatap, (const char *)v->name,
+			memcpy(envdatap, v->name.c_str(),
 							v->name.size());
 			envdatap += v->name.size();
 			*envdatap++ = '=';
-			memcpy(envdatap, (const char *)v->value,
+			memcpy(envdatap, v->value.c_str(),
 							v->value.size());
 			envdatap += v->value.size();
 			*envdatap++ = 0;

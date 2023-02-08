@@ -23,9 +23,8 @@ class Buffer {
 public:
 	Buffer() : buf(0), bufsize(0), buflength(0)	{}
 	~Buffer()	{ if (buf)	delete[] buf; }
-	const unsigned char *Ptr() const { return (buf); }
-	operator const unsigned char *() const { return (buf); }
-	operator const char *() const { return ((const char *)buf); }
+
+	const char *c_str() const { return (const char *)buf; }
 	int	Int(const char * =0) const;
 	size_t	size() const { return (buflength); }
 	void	resize(size_t l) { if (l < (size_t)buflength) buflength=l; }

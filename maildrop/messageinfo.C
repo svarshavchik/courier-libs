@@ -17,7 +17,7 @@ Buffer	buf;
 
 		auto	l=buf.size();
 
-		const char *p=buf;
+		const char *p=buf.c_str();
 
 		if (l && p[l-1] == '\n')
 		{
@@ -27,7 +27,7 @@ Buffer	buf;
 
 		if (l == 0)	break;
 
-		p=buf;
+		p=buf.c_str();
 		if (strncasecmp(p, "Return-Path:", 12))
 			continue;
 

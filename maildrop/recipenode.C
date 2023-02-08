@@ -91,7 +91,7 @@ RecipeNode	*c;
 			s += b;
 			s += "\"";
 			s.push_back_0();
-			r.errmsg(*this, s);
+			r.errmsg(*this, s.c_str());
 		}
 		SetVar(firstChild->str, b);
 		break;
@@ -136,8 +136,8 @@ RecipeNode	*c;
 			ba1.push_back_0();
 			ba2.push_back_0();
 			maildrop.sigfpe=0;
-			a1=atof( (const char *)ba1 );
-			a2=atof( (const char *)ba2 );
+			a1=atof( ba1.c_str() );
+			a2=atof( ba2.c_str() );
 			switch (nodeType)	{
 			case add:
 				a1 += a2;
@@ -213,7 +213,7 @@ RecipeNode	*c;
 				debug += ", result is ";
 				debug += b;
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 		}
 		break;
@@ -243,7 +243,7 @@ RecipeNode	*c;
 			ba1.push_back_0();
 			ba2.push_back_0();
 
-		int	n=strcmp( (const char *)ba1, (const char *)ba2);
+			int	n=strcmp( ba1.c_str(), ba2.c_str());
 
 			switch (nodeType)	{
 			case strlessthan:
@@ -285,7 +285,7 @@ RecipeNode	*c;
 				debug += ", result is ";
 				debug += b;
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 			break;
 		}
@@ -301,7 +301,7 @@ RecipeNode	*c;
 			debug += b;
 			debug += " - logical not.";
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		{
 		int n= !boolean(b);
@@ -316,7 +316,7 @@ RecipeNode	*c;
 			debug="Operation: logical not=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case bitwisenot:
@@ -331,13 +331,13 @@ RecipeNode	*c;
 			debug += b;
 			debug += " - bitwise not.";
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		maildrop.sigfpe=0;
 		{
 			b.push_back_0();
 
-		long n=atol( (const char *) b);
+			long n=atol( b.c_str());
 
 			n= ~n;
 			b.clear();
@@ -359,7 +359,7 @@ RecipeNode	*c;
 			debug="Operation: bitwise not=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case logicalor:
@@ -373,7 +373,7 @@ RecipeNode	*c;
 			debug="Operation: logical or, left hand side=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		if (!boolean(b))
 		{
@@ -383,7 +383,7 @@ RecipeNode	*c;
 
 				debug="Operation: logical or, evaluating right hand size.";
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 			firstChild->nextSibling->Evaluate(r, b);
 		}
@@ -394,7 +394,7 @@ RecipeNode	*c;
 			debug="Operation: logical or, result=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case logicaland:
@@ -408,7 +408,7 @@ RecipeNode	*c;
 			debug="Operation: logical and, left hand side=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		if (boolean(b))
 		{
@@ -418,7 +418,7 @@ RecipeNode	*c;
 
 				debug="Operation: logical and, evaluating right hand size.";
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 			firstChild->nextSibling->Evaluate(r, b);
 		}
@@ -429,7 +429,7 @@ RecipeNode	*c;
 			debug="Operation: logical and, result=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case concat:
@@ -455,7 +455,7 @@ RecipeNode	*c;
 			debug += b;
 			debug += " - strlength.";
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		{
 		unsigned long	n=b.size();
@@ -470,7 +470,7 @@ RecipeNode	*c;
 			debug="Operation: strlength=";
 			debug += b;
 			debug.push_back_0();
-			r.errmsg(*this, debug);
+			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case	strsubstr:
@@ -483,7 +483,7 @@ RecipeNode	*c;
 			firstChild->nextSibling->Evaluate(r, cc);
 			cc.push_back_0();
 
-		long n=atol( (const char *) cc);
+			long n=atol( cc.c_str());
 
 			if (VerboseLevel() > 5)
 			{
@@ -494,20 +494,20 @@ RecipeNode	*c;
 				debug += " - strsubstr ";
 				add_integer(debug, n);
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 
 		long l=bb.size();
 
 			if (n < 0 || n > l)	n=l;
-			b.append( (const char *)bb + n,
-				  (const char *)bb + l);
+			b.append( bb.c_str() + n,
+				  bb.c_str() + l);
 			if (firstChild->nextSibling->nextSibling)
 			{
 				firstChild->nextSibling->nextSibling->
 							Evaluate(r, cc);
 				cc.push_back_0();
-				n=atol( (const char *)cc);
+				n=atol( cc.c_str());
 				if ((size_t)n < b.size())
 					b.resize(n);
 
@@ -520,7 +520,7 @@ RecipeNode	*c;
 					debug += " - strsubstr chop ";
 					add_integer(debug, n);
 					debug.push_back_0();
-					r.errmsg(*this, debug);
+					r.errmsg(*this, debug.c_str());
 				}
 			}
 			if (VerboseLevel() > 5)
@@ -531,7 +531,7 @@ RecipeNode	*c;
 				debug += " strsubstr=";
 				debug += b;
 				debug.push_back_0();
-				r.errmsg(*this, debug);
+				r.errmsg(*this, debug.c_str());
 			}
 		}
 		break;
@@ -546,11 +546,7 @@ RecipeNode	*c;
 		{
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
-
-				buf="Evaluating WHILE condition.";
-				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, "Evaluating WHILE condition.");
 			}
 			firstChild->Evaluate(r,b);
 			if (VerboseLevel() > 3)
@@ -560,7 +556,7 @@ RecipeNode	*c;
 				buf="While condition evaluated, result=";
 				buf += b;
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 			if (! boolean(b))	break;
 
@@ -576,7 +572,7 @@ RecipeNode	*c;
 
 			buf="Evaluating IF condition.";
 			buf.push_back_0();
-			r.errmsg(*this, buf);
+			r.errmsg(*this, buf.c_str());
 		}
 		firstChild->Evaluate(r,b);
 
@@ -587,7 +583,7 @@ RecipeNode	*c;
 			buf="IF evaluated, result=";
 			buf += b;
 			buf.push_back_0();
-			r.errmsg(*this, buf);
+			r.errmsg(*this, buf.c_str());
 		}
 		if (boolean(b))
 			firstChild->nextSibling->Evaluate(r, b);
@@ -599,7 +595,7 @@ RecipeNode	*c;
 			throw "Internal error in delivery statement.";
 		firstChild->Evaluate(r,b);
 		b.push_back_0();
-		if (delivery(b) < 0)
+		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
 		b="EXITCODE";
 		throw ( GetVar(b)->Int("0") );
@@ -608,7 +604,7 @@ RecipeNode	*c;
 			throw "Internal error in delivery statement.";
 		firstChild->Evaluate(r,b);
 		b.push_back_0();
-		if (delivery(b) < 0)
+		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
 		b = "0";
 		break;
@@ -619,8 +615,8 @@ RecipeNode	*c;
 		b.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Filtering through xfilter " <<
-				(const char *)b << "\n";
-		if (filter(b) < 0)
+				b.c_str() << "\n";
+		if (filter(b.c_str()) < 0)
 			throw "Unable to filter message.";
 		b = "0";
 		break;
@@ -631,8 +627,8 @@ RecipeNode	*c;
 		b.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Executing system command " <<
-				(const char *)b << "\n";
-		executesystem(b);
+				b.c_str() << "\n";
+		executesystem(b.c_str());
 		b = "0";
 		break;
 	case exception:
@@ -646,7 +642,7 @@ RecipeNode	*c;
 
 				buf="Trapping exceptions.";
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 			firstChild->Evaluate(r, b);
 			b="";
@@ -656,7 +652,7 @@ RecipeNode	*c;
 
 				buf="Exception trapping removed.";
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 		}
 		catch (const char *p)
@@ -668,7 +664,7 @@ RecipeNode	*c;
 
 				buf="Trapped exception.";
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 		}
 #if NEED_NONCONST_EXCEPTIONS
@@ -680,7 +676,7 @@ RecipeNode	*c;
 
 				buf="Trapped exceptions.";
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 			b=p;
 		}
@@ -697,7 +693,7 @@ RecipeNode	*c;
 
 				buf="Trapped exception.";
 				buf.push_back_0();
-				r.errmsg(*this, buf);
+				r.errmsg(*this, buf.c_str());
 			}
 		}
 		break;
@@ -723,7 +719,7 @@ RecipeNode	*c;
 			s="Creating dotlock ";
 			s += b;
 			s.push_back_0();
-			r.errmsg(*this, s);
+			r.errmsg(*this, s.c_str());
 		}
 		b.push_back_0();
 		{
@@ -732,7 +728,7 @@ RecipeNode	*c;
 			{
 				block_sigalarm pause;
 
-				d.Lock(b);
+				d.Lock(b.c_str());
 			}
 			firstChild->nextSibling->Evaluate(r, b);
 			d.Unlock();
@@ -749,13 +745,13 @@ RecipeNode	*c;
 			s="Creating flock ";
 			s += b;
 			s.push_back_0();
-			r.errmsg(*this, s);
+			r.errmsg(*this, s.c_str());
 		}
 		b.push_back_0();
 		{
-		FileLock	filelock;
+			FileLock	filelock;
 
-			filelock.Lock(b);
+			filelock.Lock(b.c_str());
 			firstChild->nextSibling->Evaluate(r, b);
 		}
 		break;
@@ -770,11 +766,12 @@ RecipeNode	*c;
 			s="Opening logfile ";
 			s += b;
 			s.push_back_0();
-			r.errmsg(*this, s);
+			r.errmsg(*this, s.c_str());
 		}
 		b.push_back_0();
 		maildrop.logfile.Close();
-		if (maildrop.logfile.Open(b, O_CREAT | O_WRONLY | O_APPEND,
+		if (maildrop.logfile.Open(b.c_str(),
+					  O_CREAT | O_WRONLY | O_APPEND,
 			0600) < 0)
 			throw "Unable to create log file.";
 		break;
@@ -803,15 +800,15 @@ RecipeNode	*c;
 				s += b;
 				s += "\"";
 				s.push_back_0();
-				r.errmsg(*this, s);
+				r.errmsg(*this, s.c_str());
 			}
 
 			s=b;
 
 			s.push_back_0();
 
-		const char *name=s;
-		const char *val=getenv(name);
+			const char *name=s.c_str();
+			const char *val=getenv(name);
 
 			if (!val)	val="";
 			s=val;
@@ -836,7 +833,7 @@ RecipeNode	*c;
 			s="Opening include file ";
 			s += b;
 			s.push_back_0();
-			r.errmsg(*this, s);
+			r.errmsg(*this, s.c_str());
 		}
 		b.push_back_0();
 		{
@@ -845,14 +842,14 @@ RecipeNode	*c;
 		MaildropSaveEM save_embedded_mode;
 		static const char embedded_mode_directory[]=ETCDIR "/maildroprcs/";
 
-			if (strncmp( (const char *)b, embedded_mode_directory,
+			if (strncmp( b.c_str(), embedded_mode_directory,
 				sizeof(embedded_mode_directory)-1) == 0 &&
-				strchr( (const char *)b, '.') == 0)
+				strchr( b.c_str(), '.') == 0)
 			{
 				maildrop.embedded_mode=0;
 				maildrop.reset_vars();
 			}
-			if (in.Open( (const char *)b ) < 0)
+			if (in.Open( b.c_str() ) < 0)
 				throw "Unable to open include file.";
 			if (r.ParseRecipe(in) < 0)
 				throw EX_TEMPFAIL;
@@ -888,8 +885,8 @@ RecipeNode	*c;
 			else
 				firstChild->EvaluateStrRegExp(r,b,&foreachbuf);
 
-		const char *p=foreachbuf;
-		auto l=foreachbuf.size();
+			const char *p=foreachbuf.c_str();
+			auto l=foreachbuf.size();
 
 			while (l)
 			{
@@ -944,7 +941,7 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		{
 		Buffer	bb;
-		const char *p=b;
+		const char *p=b.c_str();
 		auto	l=b.size();
 
 			while (l)
@@ -961,7 +958,7 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		{
 		Buffer	bb;
-		const char *p=b;
+		const char *p=b.c_str();
 		auto	l=b.size();
 
 			while (l)
@@ -994,15 +991,15 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		b.push_back_0();
 		{
-		const char *filename=b;
-		const char *openmode="R";
-		Buffer	bb;
+			const char *filename=b.c_str();
+			const char *openmode="R";
+			Buffer	bb;
 
 			if (firstChild->nextSibling)
 			{
 				firstChild->nextSibling->Evaluate(r, bb);
 				bb.push_back_0();
-				openmode=bb;
+				openmode=bb.c_str();
 			}
 			if (maildrop.embedded_mode)
 				switch ( *openmode )	{
@@ -1037,8 +1034,8 @@ RecipeNode	*c;
 			optbuf.push_back_0();
 
 		char	*result=r.gdbm_file.Fetch(
-				(const char *)b, b.size(), result_size,
-				(const char *)optbuf);
+				b.c_str(), b.size(), result_size,
+				optbuf.c_str());
 
 			b.clear();
 			if (result)
@@ -1061,8 +1058,9 @@ RecipeNode	*c;
 			firstChild->Evaluate(r, key);
 			firstChild->nextSibling->Evaluate(r, val);
 
-		int	n=r.gdbm_file.Store(key, key.size(),
-						val, val.size(), "R");
+			int	n=r.gdbm_file.Store(key.c_str(), key.size(),
+						    val.c_str(), val.size(),
+						    "R");
 
 			b.clear();
 			if (n < 0) { b += "-"; n= -n; }
@@ -1099,7 +1097,7 @@ RecipeNode	*c;
 				s="unset ";
 				s += b;
 				s.push_back_0();
-				r.errmsg(*this, s);
+				r.errmsg(*this, s.c_str());
 			}
 
 			UnsetVar(b);
@@ -1118,7 +1116,8 @@ Buffer	buf1, buf2;
 	dollarexpand(r, buf1);
 	buf1.push_back_0();
 	buf2.push_back_0();
-	if (c.find( *maildrop.msgptr, maildrop.msginfo, buf1, buf2, foreachp))
+	if (c.find( *maildrop.msgptr, maildrop.msginfo,
+		    buf1.c_str(), buf2.c_str(), foreachp))
 	{
 		c.score=0;
 		r.errmsg(*this, "Syntax error in /pattern/.\n");
@@ -1128,11 +1127,11 @@ Buffer	buf1, buf2;
 	Buffer	buf;
 
 		buf="Search of ";
-		buf += (const char *)buf1;
+		buf += buf1.c_str();
 		buf += " = ";
 		add_number(buf, c.score);
 		buf.push_back_0();
-		r.errmsg(*this, buf);
+		r.errmsg(*this, buf.c_str());
 	}
 	add_number(b, c.score);
 }
@@ -1153,7 +1152,7 @@ Buffer	buf1, buf2;
 	buf1.push_back_0();
 	buf2.push_back_0();
 	str.push_back_0();
-	if (c.find( str, buf1, buf2, foreachp))
+	if (c.find( str.c_str(), buf1.c_str(), buf2.c_str(), foreachp))
 	{
 		c.score=0;
 		r.errmsg(*this, "Syntax error in /pattern/.\n");
@@ -1163,11 +1162,11 @@ Buffer	buf1, buf2;
 	Buffer	buf;
 
 		buf="Search of ";
-		buf += (const char *)buf1;
+		buf += buf1.c_str();
 		buf += " = ";
 		add_number(buf, c.score);
 		buf.push_back_0();
-		r.errmsg(*this, buf);
+		r.errmsg(*this, buf.c_str());
 	}
 	add_number(b, c.score);
 }
@@ -1179,9 +1178,9 @@ void	RecipeNode::ParseRegExp(const Buffer &str, Buffer &buf1, Buffer &buf2)
 	buf2=str;
 	buf2.push_back_0();
 
-const	char *p;
+	const	char *p;
 
-	p=buf2;
+	p=buf2.c_str();
 
 	if (*p != '/')	throw "Internal error.";
 	++p;
@@ -1191,7 +1190,7 @@ const	char *p;
 
 	buf1.push_back_0();
 	buf2.clear();
-	p=buf1;
+	p=buf1.c_str();
 	for (i=0; i<l; i++, p++)
 	{
 		if (*p == '/')
@@ -1227,11 +1226,11 @@ Buffer	buf;
 		buf.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Filtering through `" <<
-				(const char *)buf << "`\n";
+				buf.c_str() << "`\n";
 		try
 		{
-		int	rc=::xfilter(buf, 1);
-		size_t	l=0;
+			int	rc=::xfilter(buf.c_str(), 1);
+			size_t	l=0;
 
 			if (rc < 0)
 			{
@@ -1270,7 +1269,7 @@ Buffer	buf;
 void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
 {
 	size_t	i, l;
-	const char *p=b;
+	const char *p=b.c_str();
 
 	for (i=0, l=b.size(); i<l; )
 	{
@@ -1282,7 +1281,7 @@ void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
 			{
 				i=dollarexpand(r, b, i);
 				l=b.size();
-				p=b;
+				p=b.c_str();
 				continue;
 			}
 		}
@@ -1293,7 +1292,7 @@ void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
 void RecipeNode::SpecialEscape(Buffer &b)
 {
 	size_t	i, l;
-	const char *p=b;
+	const char *p=b.c_str();
 	Buffer	s;
 
 	for (i=0, l=b.size(); i<l; i++)
@@ -1338,9 +1337,9 @@ size_t	RecipeNode::dollarexpand(Recipe &r, Buffer &b, size_t index)
 
 	if (index+1 >= l)	return (index+1);
 
-const	char *p=b;
-Buffer	varname;
-size_t	j;
+	const	char *p=b.c_str();
+	Buffer	varname;
+	size_t	j;
 
 	if (p[index+1] == '{')
 	{
@@ -1351,7 +1350,7 @@ size_t	j;
 			{
 				varname="Terminating } is missing.\n";
 				varname.push_back_0();
-				r.errmsg(*this, varname);
+				r.errmsg(*this, varname.c_str());
 				return (index+1);
 			}
 			if (p[j] == '}')
@@ -1393,7 +1392,7 @@ const Buffer *bb=GetVar(varname);
 
 int RecipeNode::boolean(const Buffer &b)
 {
-	const char *p=b;
+	const char *p=b.c_str();
 	auto l=b.size();
 
 	while (l && isspace(*p))	p++, l--;
@@ -1423,9 +1422,9 @@ int RecipeNode::boolean(const Buffer &b)
 
 static void parse_backslash(const Buffer &in, Buffer &s)
 {
-const char *p=in;
-size_t l=in.size();
-int append_newline=1;
+	const char *p=in.c_str();
+	size_t l=in.size();
+	int append_newline=1;
 
 	while (l)
 	{
@@ -1474,7 +1473,7 @@ void RecipeNode::rfc822getaddr(Buffer &buf)
 {
 	buf.push_back_0();
 
-	struct	rfc822t	*p=rfc822t_alloc_new(buf, NULL, NULL);
+	struct	rfc822t	*p=rfc822t_alloc_new(buf.c_str(), NULL, NULL);
 
 	if (!p)	outofmem();
 
@@ -1520,23 +1519,23 @@ void RecipeNode::rfc822getaddr(Buffer &buf)
 
 int RecipeNode::rfc822hasaddr(Buffer &buf)
 {
-Buffer	lower_addr;
-Buffer	next_line;
-const char *p;
-size_t	l;
-Buffer	header;
+	Buffer	lower_addr;
+	Buffer	next_line;
+	const char *p;
+	size_t	l;
+	Buffer	header;
 
-	for (p=buf, l=buf.size(); l; --l)
+	for (p=buf.c_str(), l=buf.size(); l; --l)
 		lower_addr.push_back(tolower(*p++));
 	lower_addr.push_back_0();
 
 	if (VerboseLevel() > 5)
 		merr << "maildrop: hasaddr('" <<
-			(const char *)lower_addr << "')\n";
+			lower_addr.c_str() << "')\n";
 
 	maildrop.msgptr->Rewind();
 	if (maildrop.msgptr->appendline(next_line))	return (0);
-	while ( *(p=next_line) != '\n')
+	while ( *(p=next_line.c_str()) != '\n')
 	{
 	int	c;
 
@@ -1564,18 +1563,18 @@ Buffer	header;
 			continue;
 		}
 		next_line.push_back_0();
-		header=(const char *)next_line+3+l;
+		header=next_line.c_str()+3+l;
 		for (;;)
 		{
 			next_line.clear();
 			if (maildrop.msgptr->appendline(next_line))
-				return ( rfc822hasaddr(lower_addr, header));
-			if (*(p=next_line) == '\n')	break;
+				return ( rfc822hasaddr(lower_addr.c_str(), header));
+			if (*(p=next_line.c_str()) == '\n')	break;
 			if ( !isspace(*p))	break;
 			header += " ";
 			header += next_line;
 		}
-		if (rfc822hasaddr(lower_addr, header))	return (1);
+		if (rfc822hasaddr(lower_addr.c_str(), header))	return (1);
 	}
 	return (0);
 }
@@ -1586,9 +1585,9 @@ int RecipeNode::rfc822hasaddr(const char *addr, Buffer &header)
 
 	if (VerboseLevel() > 5)
 		merr << "maildrop: hasaddr: rfc822 parsing: "
-			<< (const char *)header << "\n";
+			<< header.c_str() << "\n";
 
-	struct	rfc822t	*p=rfc822t_alloc_new(header, NULL, NULL);
+	struct	rfc822t	*p=rfc822t_alloc_new(header.c_str(), NULL, NULL);
 
 	if (!p)	outofmem();
 
@@ -1617,8 +1616,8 @@ int	found=0;
 		rfc822buf.push_back_0();
 		if (VerboseLevel() > 5)
 			merr << "maildrop: hasaddr: rfc822 parsed: "
-				<< (const char *)rfc822buf << "\n";
-		if (strcmp(addr, rfc822buf) == 0)
+				<< rfc822buf.c_str() << "\n";
+		if (strcmp(addr, rfc822buf.c_str()) == 0)
 		{
 			found=1;
 			break;
@@ -1638,18 +1637,18 @@ Buffer	real_opts;
 
 	strng.push_back_0();
 	opts.push_back_0();
-	if (strchr (opts, 'D'))	real_opts.push_back('D');	// Only allow this opt
+	if (strchr (opts.c_str(), 'D'))	real_opts.push_back('D');	// Only allow this opt
 	real_opts.push_back_0();
 
 Mio	fp;
 
-	if (fp.Open((const char *)filename, O_RDONLY) < 0)
+	if (fp.Open(filename.c_str(), O_RDONLY) < 0)
 	{
 		errbuf="Unable to open ";
-		errbuf += (const char *)filename;
+		errbuf += filename.c_str();
 		errbuf += ".\n";
 		errbuf.push_back_0();
-		throw (const char *)errbuf;
+		throw errbuf.c_str();
 	}
 
 	for (;;)
@@ -1663,23 +1662,24 @@ Mio	fp;
 		if (c < 0 && errbuf.size() == 0)	break;
 		errbuf.push_back_0();
 
-		p=errbuf;
+		p=errbuf.c_str();
 		while (*p && isspace(*p))	p++;
 		if (!*p || *p == '#')	continue;
 
-	Search	srch;
+		Search	srch;
 
-		if (srch.find( strng, p, real_opts, (Buffer *)NULL))
+		if (srch.find( strng.c_str(), p,
+			       real_opts.c_str(), (Buffer *)NULL))
 		{
 			opts=p;		// Convenient buffer
 
 			errbuf="Bad pattern in ";
-			errbuf += (const char *)filename;
+			errbuf += filename.c_str();
 			errbuf += ": ";
 			errbuf += opts;
 			errbuf += "\n";
 			errbuf.push_back_0();
-			throw (const char *)errbuf;
+			throw errbuf.c_str();
 		}
 		if (srch.score)
 			return (1);

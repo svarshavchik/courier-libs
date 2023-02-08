@@ -53,7 +53,7 @@ void	Lexer::token(Token &t)
 				errmsg += t.Name();
 				errmsg += "' disabled in embedded mode.\n";
 				errmsg.push_back_0();
-				error((const char *)errmsg);
+				error(errmsg.c_str());
 				t.Type( Token::error );
 				break;
 			}
@@ -69,7 +69,7 @@ void	Lexer::token(Token &t)
 		debug += t.Name();
 		debug += "\n";
 		debug.push_back_0();
-		error((const char *)debug);
+		error(debug.c_str());
 	}
 }
 
@@ -299,8 +299,8 @@ missquote:
 		}
 		if (pattern.size() == 2)
 		{
-		int	n= ((int)(unsigned char)*(const char *)pattern) << 8
-				| (unsigned char)((const char *)pattern)[1];
+		int	n= ((int)(unsigned char)*pattern.c_str()) << 8
+				| (unsigned char)(pattern.c_str())[1];
 
 			switch (n)	{
 			case (('l' << 8) | 't'):

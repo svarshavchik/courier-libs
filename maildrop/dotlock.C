@@ -43,16 +43,16 @@ static Buffer   errbuf;
 	if (mio.Open(templock, O_CREAT | O_WRONLY, 0644) < 0)
 	{
                 errbuf="Unable to create a dot-lock at ";
-                errbuf += (const char *)templock;
+                errbuf += templock;
                 errbuf += ".\n";
                 errbuf.push_back_0();
-                throw (const char *)errbuf;
+                throw errbuf.c_str();
 	}
 
 
 	add_integer(b, getpid() );
 	b += "\n";
-	if (mio.write((const char *)b, b.size()) < 0 || mio.flush() < 0)
+	if (mio.write(b.c_str(), b.size()) < 0 || mio.flush() < 0)
 	{
 		mio.Close();
 		unlink(templock);
@@ -151,7 +151,7 @@ Buffer	dotlock_name;
 		else	dotlock_name += p;
 
 		dotlock_name.push_back_0();
-		Lock( dotlock_name );
+		Lock( dotlock_name.c_str() );
 	}
 }
 

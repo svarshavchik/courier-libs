@@ -194,7 +194,7 @@ void Message::Init(const void *data, unsigned cnt)
 
 void Message::ExtraHeaders(const Buffer &buf)
 {
-	rfc2045_parse(rfc2045p, (const char *)buf, buf.size());
+	rfc2045_parse(rfc2045p, buf.c_str(), buf.size());
 
 	if ( extra_headers )
 	{
@@ -206,7 +206,7 @@ void Message::ExtraHeaders(const Buffer &buf)
 
 	extra_headers=new char[buf.size()+1];
 	if (!extra_headers)	outofmem();
-	memcpy(extra_headers, (const char *)buf, buf.size());
+	memcpy(extra_headers, buf.c_str(), buf.size());
 	extra_headers[buf.size()]=0;
 	extra_headersptr=extra_headers;
 	if (!*extra_headersptr)	extra_headersptr=0;
