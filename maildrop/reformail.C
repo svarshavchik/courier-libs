@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2009 Double Precision, Inc.
+** Copyright 1998 - 2023 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -34,6 +34,9 @@
 #include	"buffer.h"
 #include	"liblock/config.h"
 #include	"liblock/liblock.h"
+#include <string>
+#include <vector>
+#include <algorithm>
 
 #if	HAS_GETHOSTNAME
 #else
@@ -43,7 +46,12 @@ extern "C" int gethostname(const char *, size_t);
 
 static int inbody=0, addcrs=0, catenate=0;
 static const char *(*append_more_headers)();
-static Buffer	optx, optX, opta, optA, opti, optI, optu, optU, optubuf, optUbuf, optR;
+
+typedef std::vector<std::string> multibuf;
+static multibuf	optx, optX, opta, optA, opti, optI, optu, optU, optubuf, optUbuf, optR;
+
+typedef multibuf::iterator multibuf_iterator;
+
 
 static Buffer add_from_filter_buf;
 static const char *add_from_filter_buf_ptr;
@@ -353,10 +361,8 @@ const	char *p;
 		return ( no_from_filter_header() );
 	}
 
-	for (const char *q="Return-Path: <"; *q; ++q)
-	{
-		optI.push_back(*q);
-	}
+	std::string new_opti="Return-Path: <";
+
 	for (p += 5; *p && *p != '\n' && isspace(*p); ++p)
 		;
 	if (*p == '<')
@@ -364,11 +370,11 @@ const	char *p;
 
 	while (*p && *p != '\n' && *p != '>' && !isspace(*p))
 	{
-		optI.push_back(*p);
+		new_opti.push_back(*p);
 		++p;
 	}
-	optI.push_back('>');
-	optI.push_back_0();
+	new_opti.push_back('>');
+	optI.push_back(new_opti);
 
 	p=NextLine();
 	if (!p)	return (p);
@@ -423,105 +429,78 @@ static char hostname_buf[256];
 //
 // Return TRUE if header is already in a list of headers.
 //
-// hdrs: null separated list of headers (and header contents)
+// hdrs: list of headers
 // hdr - header to check (must be lowercase and terminated by a colon)
-// pos - offset into hdrs where it's found.
-//
+// pos - if found, the specific header, and the iterator to one past the
+//       colon.
 
-static int has_hdr(const Buffer &hdrs, const char *hdr, unsigned &pos)
+static bool has_hdr(multibuf &hdrs, const std::string &hdr,
+		    multibuf_iterator &ret)
 {
-	const char *r=hdrs.c_str();
-	auto l=hdrs.size();
-	Buffer	buf2;
-	unsigned pos2=0;
-
-	while (l)
+	for (auto b=hdrs.begin(), e=hdrs.end(); b != e; ++b)
 	{
-		buf2.clear();
-		pos=pos2;
-		while (l)
+		if (b->size() < hdr.size())
+			continue;
+
+		auto p=b->begin();
+
+		auto hb=hdr.begin(), he=hdr.end();
+
+		for (; hb != he; ++hb, ++p)
 		{
-			--l;
-			++pos2;
-			buf2.push_back( tolower(*r));
-			if (*r++ == 0)	break;
+			if (*hb != tolower(*p))
+				break;
 		}
-		buf2.push_back_0();
-		if (strncmp(hdr, buf2.c_str(), strlen(hdr)) == 0)
-			return (1);
+
+		if (hb == he)
+		{
+			ret=b;
+			return true;
+		}
 	}
-	return (0);
+	return false;
 }
 
-static int has_hdr(const Buffer &hdrs, const char *hdr)
+static bool has_hdr(multibuf &hdrs, const std::string &hdr)
 {
-unsigned dummy;
+	multibuf_iterator dummy;
 
 	return (has_hdr(hdrs, hdr, dummy));
 }
 
-static void strip_empty_header(Buffer &buf)
+static void strip_empty_header(multibuf &buf)
 {
-	Buffer	newbuf;
-	size_t l;
-	const char *p;
+	auto b=buf.begin(), e=buf.end(), p=b;
 
-	for (p=buf.c_str(), l=buf.size(); l; )
+	while (b != e)
 	{
-		if (p[strlen(p)-1] == ':')
+		auto ce=b->end();
+
+		auto ptr=std::find(b->begin(), ce, ':');
+
+		if (ptr != ce && ++ptr == ce)
 		{
-			while (l)
-			{
-				--l;
-				if (*p++ == '\0')	break;
-			}
+			++b;
 			continue;
 		}
-		while (l)
-		{
-			--l;
-			newbuf.push_back( *p );
-			if (*p++ == '\0')	break;
-		}
-	}
-	buf=newbuf;
-}
 
-static void strip_header(Buffer &header, unsigned offset)
-{
-	Buffer	buf1;
-	const char *p=header.c_str();
-	auto l=header.size();
-
-	while (l)
-	{
-		if (!offset)
-		{
-			while (l)
-			{
-				--l;
-				if (*p++ == '\0')	break;
-			}
-			break;
-		}
-		buf1.push_back( *p++ );
-		--l;
-		--offset;
+		if (b != p)
+			*p=*b;
+		++p;
+		++b;
 	}
-	while (l--)
-		buf1.push_back( *p++ );
-	header=buf1;
+	buf.erase(p, e);
 }
 
 const char *ReadLineAddNewHeader();
 
 const char *ReadLineAddHeader()
 {
-Buffer	buf1;
-const char *q;
-const char *p;
-unsigned pos;
-static Buffer oldbuf;
+	std::string buf1;
+	const char *q;
+	const char *p;
+	multibuf_iterator pos;
+	static std::string oldbuf;
 
 	for (;;)
 	{
@@ -540,73 +519,60 @@ static Buffer oldbuf;
 			buf1.push_back( tolower(*q) );
 			if (*q == ':')	break;
 		}
-		buf1.push_back_0();
 
-		if (has_hdr(opti, buf1.c_str()))
+		if (has_hdr(opti, buf1))
 		{
 			oldbuf="old-";
 			oldbuf += buf1;
 			buf1=oldbuf;
 
-		Buffer	tbuf;
+			std::string	tbuf;
 
 			tbuf="Old-";
 			tbuf += p;
 			oldbuf=tbuf;
-			oldbuf.push_back_0();
 			p=oldbuf.c_str();
 		}
-		if (has_hdr(optR, buf1.c_str(), pos))
+		if (has_hdr(optR, buf1, pos))
 		{
-			Buffer	tbuf;
+			std::string tbuf=pos->substr(buf1.size());
 
-			q=optR.c_str();
-			q += pos + strlen(buf1.c_str());
-			tbuf=q;
+			p += buf1.size();
 
-			p += strlen(buf1.c_str());
 			tbuf += p;
 			oldbuf=tbuf;
-			oldbuf.push_back_0();
 			p=oldbuf.c_str();
 		}
 
-		if (has_hdr(optI, buf1.c_str()))
+		if (has_hdr(optI, buf1))
 			continue;
-		if (has_hdr(optu, buf1.c_str()))
+		if (has_hdr(optu, buf1))
 		{
-			if (!has_hdr(optubuf, buf1.c_str()))
+			if (!has_hdr(optubuf, buf1))
 			{
-				q=p;
-				do
-				{
-					optubuf.push_back( *q );
-				} while (*q++);
+				optubuf.push_back(p);
 				break;
 			}
 			continue;
 		}
 
-		if (has_hdr(optU, buf1.c_str()))
+		if (has_hdr(optU, buf1))
 		{
-			if (has_hdr(optUbuf, buf1.c_str(), pos))
-				strip_header(optUbuf, pos);
-			while (*p)
-			{
-				optUbuf.push_back( *p );
-				p++;
-			}
-			optUbuf.pop_back();
-			optUbuf.push_back_0();
+			if (has_hdr(optUbuf, buf1, pos))
+				optUbuf.erase(pos);
+
+			std::string s{p};
+
+			s.pop_back();
+
+			optUbuf.push_back(std::move(s));
 			continue;
 		}
 		break;
 	}
 
-	unsigned offset;
-
-	if (has_hdr(opta, buf1.c_str(), offset))
-		strip_header(opta, offset);
+	if (has_hdr(opta, buf1, pos))
+		opta.erase(pos);
 	return (p);
 }
 
@@ -616,7 +582,7 @@ const char *ReadLineAddNewHeader()
 {
 	append_more_headers= &ReadLineAddNewHeader;
 
-Buffer	*bufptr;
+	multibuf *bufptr;
 
 	if (opta.size())	bufptr= &opta;
 	else if (optA.size())	bufptr= &optA;
@@ -629,32 +595,14 @@ Buffer	*bufptr;
 		return ("\n");
 	}
 
-static Buffer buf1;
-Buffer	buf2;
+	static std::string buf1;
 
-	buf1.clear();
+	buf1= (*bufptr)[0];
 
-	const char *p= bufptr->c_str();
-	auto l= bufptr->size();
-
-	while (l)
-	{
-		if ( !*p )
-		{
-			p++;
-			l--;
-			break;
-		}
-		buf1.push_back( *p );
-		p++;
-		l--;
-	}
 	buf1.push_back('\n');
-	buf1.push_back_0();
 
-	while (l--)
-		buf2.push_back(*p++);
-	*bufptr=buf2;
+	(*bufptr).erase((*bufptr).begin());
+
 	return (buf1.c_str());
 }
 
@@ -1040,7 +988,7 @@ const	char *env;
 
 //////////////////////////////////////////////////////////////////////////////
 
-static void add_bin64(Buffer &buf, unsigned long n)
+static void add_bin64(std::string &buf, unsigned long n)
 {
 int	i;
 
@@ -1051,9 +999,9 @@ int	i;
 	}
 }
 
-static void add_messageid(Buffer &buf)
+static void add_messageid(std::string &buf)
 {
-time_t	t;
+	time_t	t;
 
 	buf.push_back('<');
 	time(&t);
@@ -1065,10 +1013,12 @@ time_t	t;
 	buf.push_back('>');
 }
 
-static void add_opta(Buffer &buf, const char *optarg)
+static void add_opta(multibuf &buf, const char *optarg)
 {
-Buffer	chk_buf;
-const char *c;
+	std::string chk_buf;
+	const char *c;
+
+	chk_buf.reserve(strlen(optarg));
 
 	for (c=optarg; *c; c++)
 		chk_buf.push_back( tolower( (unsigned char)*c ));
@@ -1077,14 +1027,10 @@ const char *c;
 		chk_buf=optarg;
 		chk_buf += " ";
 		add_messageid(chk_buf);
-		chk_buf.push_back_0();
 		optarg=chk_buf.c_str();
 	}
 
-	do
-	{
-		buf.push_back( *optarg );
-	} while (*optarg++);
+	buf.push_back(optarg);
 }
 
 int main(int argc, char *argv[])
@@ -1149,63 +1095,52 @@ void	(*function)(int, char *[], int)=0;
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			do
-			{
-				opti.push_back( *optarg );
-			} while (*optarg++);
+
+			opti.push_back(optarg);
 			break;
 		case 'I':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			do
-			{
-				optI.push_back( *optarg );
-			} while (*optarg++);
+			optI.push_back(optarg);
 			break;
 		case 'R':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			while (*optarg)
-				optR.push_back(*optarg++);
+
+			optR.push_back(optarg);
 			if (argn+1 >= argc)	help();
 			optarg=argv[++argn];
-			while (*optarg)
-				optR.push_back(*optarg++);
-			optR.push_back_0();
+
+			(*--optR.end()) += optarg;
 			break;
 		case 'u':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			while (*optarg)
-				optu.push_back(*optarg++);
-			optu.push_back_0();
+
+			optu.push_back(optarg);
 			break;
 		case 'U':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			while (*optarg)
-				optU.push_back(*optarg++);
-			optU.push_back_0();
+
+			optU.push_back(optarg);
 			break;
 		case 'x':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			while (*optarg)
-				optx.push_back(*optarg++);
-			optx.push_back_0();
+
+			optx.push_back(optarg);
 			break;
 		case 'X':
 			if (!optarg && argn+1 < argc)	optarg=argv[++argn];
 			if (!optarg || !*optarg)	help();
 			if (function)	help();
-			while (*optarg)
-				optX.push_back(*optarg++);
-			optX.push_back_0();
+			optX.push_back(optarg);
 			break;
 		case 's':
 			if (function)	help();
