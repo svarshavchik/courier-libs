@@ -1,3 +1,13 @@
+Parameters: -f  nobody@example.com
+Subject: test-forward
+Subject: msg1
+
+
+Subject: msg2
+
+-rw-------
+-rw-r--r--
+Subject: testsuite.maildir2
 Yes1
 Yes2
 Four: 4

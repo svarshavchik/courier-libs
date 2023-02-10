@@ -1,3 +1,8 @@
+if test "$VALGRIND" != ""
+then
+    VALGRIND="$VALGRIND --tool=memcheck --error-exitcode=1"
+fi
+
 cat >testsuite.msg <<EOF
 From: =?iso-8859-1?q?h=E9ader?= <nobody@example.com>
 Mime-Version: 1.0
@@ -64,11 +69,15 @@ EOF
 
 chmod 600 ./testsuite1.filter ./testsuite2.filter ./testsuite3.filter ./testsuite4.filter ./testsuite5.filter
 
+run_maildrop() {
+   $VALGRIND ./maildrop "$@"
+}
+
 runtest() {
     type="small message $1"
 
     # Small file
-    if ./maildrop ./testsuite1.filter <testsuite.msg
+    if run_maildrop ./testsuite1.filter <testsuite.msg
     then
 	:
     else
@@ -76,7 +85,7 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite2.filter <testsuite.msg
+    if run_maildrop ./testsuite2.filter <testsuite.msg
     then
 	:
     else
@@ -84,13 +93,13 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite3.filter <testsuite.msg
+    if run_maildrop ./testsuite3.filter <testsuite.msg
     then
 	echo "Test 3 failed: $type"
 	exit 1
     fi
 
-    if ./maildrop ./testsuite4.filter <testsuite.msg
+    if run_maildrop ./testsuite4.filter <testsuite.msg
     then
 	:
     else
@@ -98,7 +107,7 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite5.filter <testsuite.msg
+    if run_maildrop ./testsuite5.filter <testsuite.msg
     then
 	:
     else
@@ -107,7 +116,7 @@ runtest() {
     fi
 
     type="small pipe"
-    if cat testsuite.msg | ./maildrop ./testsuite1.filter
+    if cat testsuite.msg | run_maildrop ./testsuite1.filter
     then
 	:
     else
@@ -115,7 +124,7 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite2.filter
+    if cat testsuite.msg | run_maildrop ./testsuite2.filter
     then
 	:
     else
@@ -123,13 +132,13 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite3.filter
+    if cat testsuite.msg | run_maildrop ./testsuite3.filter
     then
 	echo "Test 3 failed: $type"
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite4.filter
+    if cat testsuite.msg | run_maildrop ./testsuite4.filter
     then
 	:
     else
@@ -137,7 +146,7 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite5.filter
+    if cat testsuite.msg | run_maildrop ./testsuite5.filter
     then
 	:
     else
@@ -150,7 +159,7 @@ runtest() {
     type="large message $1"
 
     # Large file
-    if ./maildrop ./testsuite1.filter <testsuite.msg
+    if run_maildrop ./testsuite1.filter <testsuite.msg
     then
 	:
     else
@@ -158,7 +167,7 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite2.filter <testsuite.msg
+    if run_maildrop ./testsuite2.filter <testsuite.msg
     then
 	:
     else
@@ -166,13 +175,13 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite3.filter <testsuite.msg
+    if run_maildrop ./testsuite3.filter <testsuite.msg
     then
 	echo "Test 3 failed: $type"
 	exit 1
     fi
 
-    if ./maildrop ./testsuite4.filter <testsuite.msg
+    if run_maildrop ./testsuite4.filter <testsuite.msg
     then
 	:
     else
@@ -180,7 +189,7 @@ runtest() {
 	exit 1
     fi
 
-    if ./maildrop ./testsuite5.filter <testsuite.msg
+    if run_maildrop ./testsuite5.filter <testsuite.msg
     then
 	:
     else
@@ -189,7 +198,7 @@ runtest() {
     fi
 
     type="large pipe"
-    if cat testsuite.msg | ./maildrop ./testsuite1.filter
+    if cat testsuite.msg | run_maildrop ./testsuite1.filter
     then
 	:
     else
@@ -197,7 +206,7 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite2.filter
+    if cat testsuite.msg | run_maildrop ./testsuite2.filter
     then
 	:
     else
@@ -205,13 +214,13 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite3.filter
+    if cat testsuite.msg | run_maildrop ./testsuite3.filter
     then
 	echo "Test 3 failed: $type"
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite4.filter
+    if cat testsuite.msg | run_maildrop ./testsuite4.filter
     then
 	:
     else
@@ -219,7 +228,7 @@ runtest() {
 	exit 1
     fi
 
-    if cat testsuite.msg | ./maildrop ./testsuite5.filter
+    if cat testsuite.msg | run_maildrop ./testsuite5.filter
     then
 	:
     else
@@ -255,7 +264,7 @@ EOF
 
 chmod 600 testsuite1.filter
 
-if ./maildrop ./testsuite1.filter <testsuite.msg
+if run_maildrop ./testsuite1.filter <testsuite.msg
 then
     echo "bodyless message test failed"
     exit 1
@@ -313,7 +322,7 @@ if (/^Subject: attachmentpart/:H)
 exit
 EOF
 
-if ./maildrop ./testsuite1.filter <testsuite.msg
+if run_maildrop ./testsuite1.filter <testsuite.msg
 then
 	:
 else
@@ -331,7 +340,7 @@ dotlock "testsuite.dotlock" {
 }
 EOF
 chmod 600 testmd
-./maildrop ./testmd </dev/null
+run_maildrop ./testmd </dev/null
 if test $? != 5
 then
 	echo "dotlock test did not exit with the correct exit code"

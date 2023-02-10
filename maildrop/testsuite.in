@@ -19,6 +19,11 @@ unset LC_MEASUREMENT
 unset LC_IDENTIFICATION
 unset LC_ALL
 
+if test "$VALGRIND" != ""
+then
+    VALGRIND="$VALGRIND --tool=memcheck --error-exitcode=1"
+fi
+
 if test "@USE_GDBM@@USE_DB@" != "00" -a -x ../makedat/makedatprog
 then
 
@@ -28,7 +33,7 @@ foo.bar.com	foobar
 foobar@foo.bar.com	barfoo
 .
 EOF
-../makedat/makedatprog testsuite.chk testsuite.tmp testsuite.dat
+$VALGRIND ../makedat/makedatprog testsuite.chk testsuite.tmp testsuite.dat
 
 cat <<EOF >testsuite.recipe
 if ( gdbmopen("$PWD/testsuite.dat", "R") != 0 )
@@ -51,7 +56,7 @@ FOO: bar
 FOO: barfoo
 FOO: foobar
 EOF
-./maildrop ./testsuite.recipe </dev/null | diff - testsuite.chk
+$VALGRIND ./maildrop ./testsuite.recipe </dev/null | diff - testsuite.chk
 
 fi
 
@@ -67,7 +72,8 @@ EOF
 
 chmod go-rw testsuite.recipe
 
-echo "To: testsuite" | ./maildrop ./testsuite.recipe
+echo "To: testsuite" >teststdin
+$VALGRIND ./maildrop ./testsuite.recipe <teststdin
 
 echo "2,S" >testsuite.chk
 
@@ -96,9 +102,47 @@ EOF
 Delivered message one
 Done.
 EOF
-	echo "To: testsuite" | ./maildrop ./testsuite.recipe 2>/dev/null \
+	echo "To: testsuite" >testsuite.stdin
+	$VALGRIND ./maildrop ./testsuite.recipe <testsuite.stdin \
 		| diff - testsuite.chk
 fi
+
+
+cat >testsuite.chk <<EOF
+#! /bin/bash
+echo "Parameters: \$*"
+cat
+EOF
+
+chmod +x testsuite.chk
+cat >testsuite.recipe <<EOF
+SENDMAIL='./testsuite.chk'
+to "! nobody@example.com"
+EOF
+echo "Subject: test-forward" | $VALGRIND ./maildrop testsuite.recipe
+
+rm -rf testsuite.maildir
+cat >testsuite.recipe <<EOF
+to "./testsuite.maildir"
+EOF
+echo "Subject: msg1" | $VALGRIND ./maildrop testsuite.recipe
+echo "Subject: msg2" | $VALGRIND ./maildrop testsuite.recipe
+sed '/^From MAILER-DAEMON/d' <testsuite.maildir
+ls -al testsuite.maildir | cut -c1-10
+cat >testsuite.recipe <<EOF
+UMASK='022'
+to "./testsuite.maildir"
+EOF
+rm testsuite.maildir
+echo "Subject: msg1" | $VALGRIND ./maildrop testsuite.recipe
+ls -al testsuite.maildir | cut -c1-10
+cat >testsuite.recipe <<EOF
+UMASK='022'
+to "| cat >testsuite.maildir2"
+EOF
+echo "Subject: testsuite.maildir2" | $VALGRIND ./maildrop testsuite.recipe
+cat testsuite.maildir2
+rm -f testsuite.maildir2
 
 cat <<EOF >testsuite.recipe
 if ( 2 && 3 )
@@ -148,7 +192,7 @@ echo "Minus six: \$a"
 EOF
 
 chmod go-rw testsuite.recipe
-./maildrop ./testsuite.recipe </dev/null
+$VALGRIND ./maildrop ./testsuite.recipe </dev/null
 
 
 ./reformail -s /bin/bash -c 'cat >testmsg.$FILENO' <<EOF
@@ -298,7 +342,7 @@ Content-Type: text/plain; format=flowed; delsp=yes; charset=utf-8
 
 autoreply text
 EOF
-LANG=en_US.utf-8 ./mailbot -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -m testmailbot.msg cat <testmailbot.1
 
 cat >testmailbot.1 <<EOF
 From: =?iso-8859-1?Q?H=F3la!?= sender <test@xn--80ah.example.com>
@@ -317,14 +361,14 @@ Original
 test
 message
 EOF
-LANG=en_US.utf-8 ./mailbot -m testmailbot.msg cat <testmailbot.1
-LANG=en_US.utf-8 TZ=EST5EDT ./mailbot -e -m testmailbot.msg \
+LANG=en_US.utf-8 $VALGRIND ./mailbot -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 TZ=EST5EDT $VALGRIND ./mailbot -e -m testmailbot.msg \
     -S 'On %d,%nin %C (%N), %F (%f),%nin message %i, %s, writes:' \
     cat <testmailbot.1
-LANG=en_US.utf-8 ./mailbot -T replyall -m testmailbot.msg cat <testmailbot.1
-LANG=en_US.utf-8 ./mailbot -T replyall -N -m testmailbot.msg cat <testmailbot.1
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T replyall -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T replyall -N -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 cat >testsuite.recipe <<EOF
 if (hasaddr("nobody@example.com"))
@@ -343,20 +387,20 @@ To: "nobody@host2.example.com" <nobody@example.com>
 
 test
 EOF
-./maildrop testsuite.recipe <testsuite.msg
+$VALGRIND ./maildrop testsuite.recipe <testsuite.msg
 
 cat >testsuite.msg <<EOF
 To: "nobody@example.com" <nobody@host2.example.com>
 
 test
 EOF
-./maildrop testsuite.recipe <testsuite.msg
+$VALGRIND ./maildrop testsuite.recipe <testsuite.msg
 
 cat >testsuite.recipe <<EOF
 echo getaddr('To: list: "user 1" <user1@example.com>, user2@example.com;')
 exit
 EOF
-./maildrop testsuite.recipe </dev/null
+$VALGRIND ./maildrop testsuite.recipe </dev/null
 
 cat >testmailbot.1 <<EOF
 Mime-Version: 1.0
@@ -374,10 +418,10 @@ autoreply text
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 cat >testmailbot.1 <<EOF
 Mime-Version: 1.0
@@ -400,10 +444,10 @@ Content-Transfer-Encoding: quoted-printable
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 cat >testmailbot.1 <<EOF
 Mime-Version: 1.0
@@ -426,10 +470,10 @@ Content-Transfer-Encoding: quoted-printable
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 cat >testmailbot.1 <<EOF
 Mime-Version: 1.0
@@ -442,10 +486,10 @@ Content-Transfer-Encoding: quoted-printable
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 cat >testmailbot.1 <<EOF
 Mime-Version: 1.0
@@ -479,14 +523,14 @@ Text attachment
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 echo "===================="
-LANG=en_US.utf-8 ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 
 echo "===================="
 
-LANG=en_US.utf-8 ./mailbot -T reply -m testmailbot.msg cat <<EOF
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T reply -m testmailbot.msg cat <<EOF
 From: nobody@example.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
@@ -498,7 +542,7 @@ Message
  space
 EOF
 
-LANG=en_US.utf-8 ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <<EOF
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <<EOF
 From: nobody@example.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
@@ -529,14 +573,14 @@ Content-Transfer-Encoding: 8bit
 DSN message text
 EOF
 
-LANG=en_US.utf-8 ./mailbot -M nobody@example.com -N -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/'
+LANG=en_US.utf-8 $VALGRIND ./mailbot -M nobody@example.com -N -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/'
 
-LANG=en_US.utf-8 ./mailbot -T replyfeedback -R abuse -n -N -m testmailbot.msg \
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T replyfeedback -R abuse -n -N -m testmailbot.msg \
     --feedback-source-ip 127.0.0.1 \
     --feedback-incidents 2 \
     <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/;s/User-Agent:.*//'
 
-LANG=en_US.utf-8 ./mailbot -T feedback -R abuse -n -N -m testmailbot.msg \
+LANG=en_US.utf-8 $VALGRIND ./mailbot -T feedback -R abuse -n -N -m testmailbot.msg \
     --feedback-source-ip 127.0.0.1 \
     --feedback-incidents 2 \
     <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/;s/User-Agent:.*//'
@@ -548,3 +592,4 @@ rm -f testmailbot.msg
 rm -f testmailbot.1
 rm -f testsuite.dat
 rm -rf testsuite.maildir
+rm -f teststdin

@@ -67,10 +67,9 @@ mailbot_LDFLAGS = -static
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
 	maildrop.lsm testsuite.txt.idn testsuite2
 
-check-am:
-	@chmod +x testsuite
-	./testsuite | cmp -s - $(srcdir)/testsuite.txt.idn
-	@SHELL@ $(srcdir)/testsuite2
+check-am: testsuite
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ ./testsuite | diff -U 3 - $(srcdir)/testsuite.txt.idn
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ $(srcdir)/testsuite2
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
 	maildropgdbm.html maildropgdbm.7
