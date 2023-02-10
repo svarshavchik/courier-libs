@@ -73,7 +73,7 @@ void Message::Init()
 	rfc2045p=rfc2045_alloc();
 }
 
-void Message::Init(int fd, const Buffer &extra_headers)
+void Message::Init(int fd, const std::string &extra_headers)
 {
 	Init();
 	ExtraHeaders(extra_headers);
@@ -192,7 +192,7 @@ void Message::Init(const void *data, unsigned cnt)
 	msgsize += cnt;
 }
 
-void Message::ExtraHeaders(const Buffer &buf)
+void Message::ExtraHeaders(const std::string &buf)
 {
 	rfc2045_parse(rfc2045p, buf.c_str(), buf.size());
 
@@ -242,7 +242,7 @@ void Message::seekerr()
 	throw "Seek error.";
 }
 
-int Message::appendline(Buffer &buf, int stripcr)
+int Message::appendline(std::string &buf, int stripcr)
 {
 	if (mio.fd() >= 0 || extra_headersptr)
 	{
@@ -296,7 +296,7 @@ unsigned i;
 
 void Message::setmsgsize()
 {
-Buffer	n,v;
+std::string	n,v;
 
 	n="SIZE";
 	add_integer(v, MessageSize());

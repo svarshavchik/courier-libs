@@ -37,15 +37,14 @@ void	DotLock::Unlock()
 int DotLock::attemptlock(const char *templock, const char *finallock)
 {
 Mio	mio;
-Buffer	b;
-static Buffer   errbuf;
+std::string	b;
+static std::string   errbuf;
 
 	if (mio.Open(templock, O_CREAT | O_WRONLY, 0644) < 0)
 	{
                 errbuf="Unable to create a dot-lock at ";
                 errbuf += templock;
                 errbuf += ".\n";
-                errbuf.push_back_0();
                 throw errbuf.c_str();
 	}
 
@@ -138,7 +137,7 @@ AlarmTimer	stat_timer;
 void	DotLock::LockMailbox(const char *mailbox)
 {
 struct stat stat_buf;
-Buffer	dotlock_name;
+std::string	dotlock_name;
 
 	if (stat(mailbox, &stat_buf) < 0 ||
 		( !S_ISCHR(stat_buf.st_mode) && !S_ISBLK(stat_buf.st_mode)))
@@ -150,7 +149,6 @@ Buffer	dotlock_name;
 		if (!p || !*p)	dotlock_name += LOCKEXT_DEF;
 		else	dotlock_name += p;
 
-		dotlock_name.push_back_0();
 		Lock( dotlock_name.c_str() );
 	}
 }

@@ -27,7 +27,7 @@ class	Lexer {
 
 	Mio file;
 	int linenum;
-	Buffer filename;
+	std::string filename;
 	Token::tokentype lasttokentype;
 	// curchar() represents the next character in the file.
 	// Calling curchar() does NOT actual "read" the character, this

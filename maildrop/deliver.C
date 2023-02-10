@@ -53,11 +53,11 @@ FormatMbox	format_mbox;
 
 	if (format_mbox.HasMsg())	return (0);
 
-Buffer	b;
+	std::string	b;
 
 	if ( *mailbox == '!' || *mailbox == '|' )
 	{
-	Buffer	cmdbuf;
+	std::string	cmdbuf;
 
 		if (*mailbox == '!')
 		{
@@ -73,7 +73,6 @@ Buffer	b;
 		else
 			cmdbuf= mailbox+1;
 
-		cmdbuf.push_back_0();
 
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Delivering to |" <<
@@ -140,7 +139,7 @@ Buffer	b;
 		log(mailbox, rc || wait_stat, format_mbox);
 
 		{
-		Buffer	name, val;
+		std::string	name, val;
 
 			if (rc)	wait_stat= -1;
 			else wait_stat= WIFEXITED(wait_stat)
@@ -188,7 +187,7 @@ Buffer	b;
 
 		struct	stat	stat_buf;
 		Mio	mio;
-		Buffer name_buf;
+		std::string name_buf;
 
 		name_buf="UMASK";
 		const char *um=GetVarStr(name_buf);
@@ -261,7 +260,7 @@ Buffer	b;
 
 void	subshell(const char *cmd)
 {
-Buffer	b;
+std::string	b;
 
 	b="SHELL";
 

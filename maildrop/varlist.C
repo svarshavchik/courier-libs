@@ -11,12 +11,12 @@ class Variable {
 public:
 
 	Variable *next;
-	Buffer	name, value;
+	std::string	name, value;
 	} ;
 
 static Variable *varlist[101];
 
-void UnsetVar(const Buffer &var)
+void UnsetVar(const std::string &var)
 {
 	auto varlen=var.size();
 	unsigned n=0;
@@ -48,7 +48,7 @@ Variable **v;
 	return;
 }
 
-void SetVar(const Buffer &var, const Buffer &value)
+void SetVar(const std::string &var, const std::string &value)
 {
 	auto varlen=var.size();
 	size_t n=0;
@@ -84,9 +84,9 @@ Variable *v;
 	varlist[n]=v;
 }
 
-static Buffer zero;
+static std::string zero;
 
-const Buffer *GetVar(const Buffer &var)
+const std::string *GetVar(const std::string &var)
 {
 	auto varlen=var.size();
 	size_t i, n=0;
@@ -103,12 +103,11 @@ Variable *v;
 	return (&zero);
 }
 
-const char *GetVarStr(const Buffer &var)
+const char *GetVarStr(const std::string &var)
 {
-static Buffer tempbuf;
+static std::string tempbuf;
 
 	tempbuf= *GetVar(var);
-	tempbuf.push_back_0();
 	return (tempbuf.c_str());
 }
 

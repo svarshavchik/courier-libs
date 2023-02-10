@@ -15,8 +15,8 @@
 void log(const char *mailbox, int status, class FormatMbox &msg)
 {
 time_t	t;
-Buffer	tbuf;
-Buffer	szbuf;
+std::string	tbuf;
+std::string	szbuf;
 
 	if (maildrop.logfile.fd() < 0)	return;	// Logfile not open
 
@@ -49,7 +49,7 @@ size_t	l= 72 - szbuf.size();
 	maildrop.logfile.flush();
 }
 
-void log_line(const class Buffer &buf)
+void log_line(const std::string &buf)
 {
 	if (maildrop.logfile.fd() < 0)	return;	// Logfile not open
 	maildrop.logfile << buf;

@@ -43,7 +43,7 @@ void	seekerr()
 
 const char *TempName(const char *dir, unsigned l)
 {
-static Buffer buf;
+static std::string buf;
 static unsigned counter=0;
 char	hostname[256];
 
@@ -58,7 +58,6 @@ char	hostname[256];
 	add_integer(buf, counter++ );
 	buf += ".";
 	buf += hostname;
-	buf.push_back_0();
 
 	return (buf.c_str());
 }

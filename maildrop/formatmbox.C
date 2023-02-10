@@ -35,7 +35,7 @@ void	FormatMbox::Init(int flag)
 		next_func= &FormatMbox::GetFromLine;
 }
 
-Buffer	*FormatMbox::GetFromLine(void)
+std::string	*FormatMbox::GetFromLine(void)
 {
 time_t	tm;
 
@@ -59,7 +59,7 @@ const char *p=ctime(&tm);
 	return (&tempbuf);
 }
 
-Buffer	*FormatMbox::GetLineBuffer(void)
+std::string	*FormatMbox::GetLineBuffer(void)
 {
 	if (!msglinebuf.c_str())	return (0);
 
@@ -83,7 +83,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 	if (inheader)
 	{
 	const char *p=msglinebuf.c_str();
-	Buffer	*bufp=0;
+	std::string	*bufp=0;
 
 		if ( tolower(*p) == 'f' && tolower(p[1]) == 'r' &&
 			tolower(p[2]) == 'o' && tolower(p[3]) == 'm' &&
@@ -121,7 +121,7 @@ Buffer	*FormatMbox::GetLineBuffer(void)
 	return (&msglinebuf);
 }
 
-Buffer	*FormatMbox::GetNextLineBuffer(void)
+std::string	*FormatMbox::GetNextLineBuffer(void)
 {
 	msglinebuf.clear();
 	if (maildrop.msgptr->appendline(msglinebuf,0) == 0)
@@ -131,7 +131,7 @@ Buffer	*FormatMbox::GetNextLineBuffer(void)
 
 int	FormatMbox::DeliverTo(class Mio &mio)
 {
-Buffer	*bufptr;
+std::string	*bufptr;
 
 	while ((bufptr=NextLine()) != NULL)
 	{

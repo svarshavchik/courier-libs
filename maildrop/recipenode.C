@@ -27,7 +27,7 @@
 
 extern int xfilter(const char *, int);
 
-static void parse_backslash(const Buffer &, Buffer &);
+static void parse_backslash(const std::string &, std::string &);
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -63,7 +63,7 @@ void	RecipeNode::AppendSibling(RecipeNode *chld)
 	lastChild=chld;
 }
 
-void	RecipeNode::Evaluate(Recipe &r, Buffer &b)
+void	RecipeNode::Evaluate(Recipe &r, std::string &b)
 {
 RecipeNode	*c;
 
@@ -84,19 +84,18 @@ RecipeNode	*c;
 		firstChild->nextSibling->Evaluate(r, b);
 		if (VerboseLevel() > 3)
 		{
-		Buffer	s;
+		std::string	s;
 
 			s=firstChild->str;
 			s += "=\"";
 			s += b;
 			s += "\"";
-			s.push_back_0();
 			r.errmsg(*this, s.c_str());
 		}
 		SetVar(firstChild->str, b);
 		break;
 	case regexpr:
-		EvaluateRegExp(r, b, (Buffer *)NULL);
+		EvaluateRegExp(r, b, nullptr);
 		break;
 	case qstring:
 	case sqstring:
@@ -119,8 +118,8 @@ RecipeNode	*c;
 			throw "Internal error in evaluate binary.";
 		{
 		double a1, a2;
-		Buffer ba1, ba2;
-		Buffer debug;
+		std::string ba1, ba2;
+		std::string debug;
 
 			firstChild->Evaluate(r, ba1);
 			firstChild->nextSibling->Evaluate(r, ba2);
@@ -133,8 +132,6 @@ RecipeNode	*c;
 				debug += ba2;
 			}
 
-			ba1.push_back_0();
-			ba2.push_back_0();
 			maildrop.sigfpe=0;
 			a1=atof( ba1.c_str() );
 			a2=atof( ba2.c_str() );
@@ -212,7 +209,6 @@ RecipeNode	*c;
 			{
 				debug += ", result is ";
 				debug += b;
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 		}
@@ -226,8 +222,8 @@ RecipeNode	*c;
 		if (!firstChild || !firstChild->nextSibling)
 			throw "Internal error in evaluate binary.";
 		{
-		Buffer ba1, ba2;
-		Buffer debug;
+		std::string ba1, ba2;
+		std::string debug;
 
 			firstChild->Evaluate(r, ba1);
 			firstChild->nextSibling->Evaluate(r, ba2);
@@ -240,8 +236,6 @@ RecipeNode	*c;
 				debug += ba2;
 			}
 
-			ba1.push_back_0();
-			ba2.push_back_0();
 
 			int	n=strcmp( ba1.c_str(), ba2.c_str());
 
@@ -284,7 +278,6 @@ RecipeNode	*c;
 			{
 				debug += ", result is ";
 				debug += b;
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 			break;
@@ -295,12 +288,11 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation on: ";
 			debug += b;
 			debug += " - logical not.";
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		{
@@ -311,11 +303,10 @@ RecipeNode	*c;
 		}
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: logical not=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		break;
@@ -325,17 +316,15 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation on: ";
 			debug += b;
 			debug += " - bitwise not.";
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		maildrop.sigfpe=0;
 		{
-			b.push_back_0();
 
 			long n=atol( b.c_str());
 
@@ -354,11 +343,10 @@ RecipeNode	*c;
 		}
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: bitwise not=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		break;
@@ -368,32 +356,29 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: logical or, left hand side=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		if (!boolean(b))
 		{
 			if (VerboseLevel() > 5)
 			{
-			Buffer	debug;
+			std::string	debug;
 
 				debug="Operation: logical or, evaluating right hand size.";
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 			firstChild->nextSibling->Evaluate(r, b);
 		}
 		if (VerboseLevel() > 5)
 		{
-		Buffer debug;
+		std::string debug;
 
 			debug="Operation: logical or, result=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		break;
@@ -403,38 +388,35 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: logical and, left hand side=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		if (boolean(b))
 		{
 			if (VerboseLevel() > 5)
 			{
-			Buffer	debug;
+			std::string	debug;
 
 				debug="Operation: logical and, evaluating right hand size.";
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 			firstChild->nextSibling->Evaluate(r, b);
 		}
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: logical and, result=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		break;
 	case concat:
 		{
-		Buffer	bb;
+		std::string	bb;
 
 			for (c=firstChild; c; c=c->nextSibling)
 			{
@@ -449,12 +431,11 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation on: ";
 			debug += b;
 			debug += " - strlength.";
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		{
@@ -465,11 +446,10 @@ RecipeNode	*c;
 		}
 		if (VerboseLevel() > 5)
 		{
-		Buffer	debug;
+		std::string	debug;
 
 			debug="Operation: strlength=";
 			debug += b;
-			debug.push_back_0();
 			r.errmsg(*this, debug.c_str());
 		}
 		break;
@@ -477,23 +457,21 @@ RecipeNode	*c;
 		if (!firstChild || !firstChild->nextSibling)
 			throw "Internal error in evaluate unary.";
 		{
-		Buffer	bb, cc;
+		std::string	bb, cc;
 
 			firstChild->Evaluate(r, bb);
 			firstChild->nextSibling->Evaluate(r, cc);
-			cc.push_back_0();
 
 			long n=atol( cc.c_str());
 
 			if (VerboseLevel() > 5)
 			{
-			Buffer	debug;
+			std::string	debug;
 
 				debug="Operation on: ";
 				debug += bb;
 				debug += " - strsubstr ";
 				add_integer(debug, n);
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 
@@ -506,37 +484,34 @@ RecipeNode	*c;
 			{
 				firstChild->nextSibling->nextSibling->
 							Evaluate(r, cc);
-				cc.push_back_0();
 				n=atol( cc.c_str());
 				if ((size_t)n < b.size())
 					b.resize(n);
 
 				if (VerboseLevel() > 5)
 				{
-				Buffer	debug;
+				std::string	debug;
 
 					debug="Operation on: ";
 					debug += bb;
 					debug += " - strsubstr chop ";
 					add_integer(debug, n);
-					debug.push_back_0();
 					r.errmsg(*this, debug.c_str());
 				}
 			}
 			if (VerboseLevel() > 5)
 			{
-			Buffer	debug;
+			std::string	debug;
 
 				debug="Operation: ";
 				debug += " strsubstr=";
 				debug += b;
-				debug.push_back_0();
 				r.errmsg(*this, debug.c_str());
 			}
 		}
 		break;
 	case strregexp:
-		EvaluateStrRegExp(r, b, (Buffer *)NULL);
+		EvaluateStrRegExp(r, b, nullptr);
 		break;
 	case whileloop:
 		if (!firstChild || !firstChild->nextSibling)
@@ -551,11 +526,10 @@ RecipeNode	*c;
 			firstChild->Evaluate(r,b);
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="While condition evaluated, result=";
 				buf += b;
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 			if (! boolean(b))	break;
@@ -568,21 +542,19 @@ RecipeNode	*c;
 			throw "Internal error in while loop.";
 		if (VerboseLevel() > 3)
 		{
-		Buffer	buf;
+		std::string	buf;
 
 			buf="Evaluating IF condition.";
-			buf.push_back_0();
 			r.errmsg(*this, buf.c_str());
 		}
 		firstChild->Evaluate(r,b);
 
 		if (VerboseLevel() > 3)
 		{
-		Buffer	buf;
+		std::string	buf;
 
 			buf="IF evaluated, result=";
 			buf += b;
-			buf.push_back_0();
 			r.errmsg(*this, buf.c_str());
 		}
 		if (boolean(b))
@@ -594,7 +566,6 @@ RecipeNode	*c;
 		if (!firstChild)
 			throw "Internal error in delivery statement.";
 		firstChild->Evaluate(r,b);
-		b.push_back_0();
 		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
 		b="EXITCODE";
@@ -603,7 +574,6 @@ RecipeNode	*c;
 		if (!firstChild)
 			throw "Internal error in delivery statement.";
 		firstChild->Evaluate(r,b);
-		b.push_back_0();
 		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
 		b = "0";
@@ -612,7 +582,6 @@ RecipeNode	*c;
 		if (!firstChild)
 			throw "Internal error in xfilter statement.";
 		firstChild->Evaluate(r,b);
-		b.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Filtering through xfilter " <<
 				b.c_str() << "\n";
@@ -624,7 +593,6 @@ RecipeNode	*c;
 		if (!firstChild)
 			throw "Internal error in system statement.";
 		firstChild->Evaluate(r,b);
-		b.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Executing system command " <<
 				b.c_str() << "\n";
@@ -638,20 +606,18 @@ RecipeNode	*c;
 		{
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="Trapping exceptions.";
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 			firstChild->Evaluate(r, b);
 			b="";
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="Exception trapping removed.";
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 		}
@@ -660,10 +626,9 @@ RecipeNode	*c;
 			b=p;
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="Trapped exception.";
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 		}
@@ -672,10 +637,9 @@ RecipeNode	*c;
 		{
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="Trapped exceptions.";
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 			b=p;
@@ -689,10 +653,9 @@ RecipeNode	*c;
 			b="";
 			if (VerboseLevel() > 3)
 			{
-			Buffer	buf;
+			std::string	buf;
 
 				buf="Trapped exception.";
-				buf.push_back_0();
 				r.errmsg(*this, buf.c_str());
 			}
 		}
@@ -702,7 +665,7 @@ RecipeNode	*c;
 			throw "Internal error in echo statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	s;
+		std::string	s;
 
 			parse_backslash(b, s);
 			mout << s;
@@ -714,14 +677,12 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 3)
 		{
-		Buffer	s;
+		std::string	s;
 
 			s="Creating dotlock ";
 			s += b;
-			s.push_back_0();
 			r.errmsg(*this, s.c_str());
 		}
-		b.push_back_0();
 		{
 			DotLock	d;
 
@@ -740,14 +701,12 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 3)
 		{
-		Buffer	s;
+		std::string	s;
 
 			s="Creating flock ";
 			s += b;
-			s.push_back_0();
 			r.errmsg(*this, s.c_str());
 		}
-		b.push_back_0();
 		{
 			FileLock	filelock;
 
@@ -761,14 +720,12 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 3)
 		{
-		Buffer	s;
+		std::string	s;
 
 			s="Opening logfile ";
 			s += b;
-			s.push_back_0();
 			r.errmsg(*this, s.c_str());
 		}
-		b.push_back_0();
 		maildrop.logfile.Close();
 		if (maildrop.logfile.Open(b.c_str(),
 					  O_CREAT | O_WRONLY | O_APPEND,
@@ -780,7 +737,7 @@ RecipeNode	*c;
 			throw "Internal error in logfile statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	s;
+		std::string	s;
 
 			parse_backslash(b, s);
 			log_line(s);
@@ -791,7 +748,7 @@ RecipeNode	*c;
 			throw "Internal error in import statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	s;
+		std::string	s;
 
 			if (VerboseLevel() > 3)
 			{
@@ -799,13 +756,11 @@ RecipeNode	*c;
 				s += " \"";
 				s += b;
 				s += "\"";
-				s.push_back_0();
 				r.errmsg(*this, s.c_str());
 			}
 
 			s=b;
 
-			s.push_back_0();
 
 			const char *name=s.c_str();
 			const char *val=getenv(name);
@@ -828,14 +783,12 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		if (VerboseLevel() > 3)
 		{
-		Buffer	s;
+		std::string	s;
 
 			s="Opening include file ";
 			s += b;
-			s.push_back_0();
 			r.errmsg(*this, s.c_str());
 		}
-		b.push_back_0();
 		{
 		Recipe	r;
 		Lexer	in;
@@ -876,32 +829,26 @@ RecipeNode	*c;
 				firstChild->nodeType != strregexp))
 			throw "Internal error in foreach statement.";
 		{
-		Buffer	foreachbuf;
-		Buffer	varname;
-		Buffer	varvalue;
+			foreach_t foreachbuf;
 
 			if (firstChild->nodeType == regexpr)
 				firstChild->EvaluateRegExp(r, b, &foreachbuf);
 			else
 				firstChild->EvaluateStrRegExp(r,b,&foreachbuf);
 
-			const char *p=foreachbuf.c_str();
-			auto l=foreachbuf.size();
-
-			while (l)
+			for (auto &matches:foreachbuf)
 			{
-				varvalue.clear();
+				std::string varname="MATCH";
 
-			size_t	i;
+				unsigned long n=0;
 
-				for (i=0; i<l && p[i]; i++)
-					;
-				varvalue.append(p, p+i);
-				p += i;
-				l -= i;
-				if (l)	{ p++; l--; }
-				varname="MATCH";
-				SetVar(varname, varvalue);
+				for (auto &v:matches)
+				{
+					SetVar(varname, v);
+
+					varname="MATCH";
+					add_integer(varname, ++n);
+				}
 				firstChild->nextSibling->Evaluate(r, b);
 			}
 		}
@@ -922,7 +869,7 @@ RecipeNode	*c;
 		if (!firstChild || !firstChild->nextSibling)
 			throw "Internal error in lookup statement.";
 		{
-		Buffer	expr, file, opts;
+		std::string	expr, file, opts;
 
 			firstChild->Evaluate(r, expr);
 			firstChild->nextSibling->Evaluate(r, file);
@@ -940,7 +887,7 @@ RecipeNode	*c;
 			throw "Internal error in tolower statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	bb;
+		std::string	bb;
 		const char *p=b.c_str();
 		auto	l=b.size();
 
@@ -957,7 +904,7 @@ RecipeNode	*c;
 			throw "Internal error in toupper statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	bb;
+		std::string	bb;
 		const char *p=b.c_str();
 		auto	l=b.size();
 
@@ -989,16 +936,14 @@ RecipeNode	*c;
 		if (!firstChild)
 			throw "Internal error in evaluate gdbmopen.";
 		firstChild->Evaluate(r, b);
-		b.push_back_0();
 		{
 			const char *filename=b.c_str();
 			const char *openmode="R";
-			Buffer	bb;
+			std::string	bb;
 
 			if (firstChild->nextSibling)
 			{
 				firstChild->nextSibling->Evaluate(r, bb);
-				bb.push_back_0();
 				openmode=bb.c_str();
 			}
 			if (maildrop.embedded_mode)
@@ -1026,12 +971,11 @@ RecipeNode	*c;
 		firstChild->Evaluate(r, b);
 		{
 		size_t	result_size;
-		Buffer	optbuf;
+		std::string	optbuf;
 
 			if (firstChild->nextSibling)
 				firstChild->nextSibling->Evaluate(r, optbuf);
 
-			optbuf.push_back_0();
 
 		char	*result=r.gdbm_file.Fetch(
 				b.c_str(), b.size(), result_size,
@@ -1053,7 +997,7 @@ RecipeNode	*c;
 		if (!firstChild || !firstChild->nextSibling)
 			throw "Internal error in evaluate gdbmstore.";
 		{
-		Buffer	key, val;
+		std::string	key, val;
 
 			firstChild->Evaluate(r, key);
 			firstChild->nextSibling->Evaluate(r, val);
@@ -1090,13 +1034,12 @@ RecipeNode	*c;
 			throw "Internal error in unset statement.";
 		firstChild->Evaluate(r, b);
 		{
-		Buffer	s;
+		std::string	s;
 
 			if (VerboseLevel() > 3)
 			{
 				s="unset ";
 				s += b;
-				s.push_back_0();
 				r.errmsg(*this, s.c_str());
 			}
 
@@ -1106,16 +1049,14 @@ RecipeNode	*c;
 	}
 }
 
-void RecipeNode::EvaluateRegExp(Recipe &r, Buffer &b, Buffer *foreachp)
+void RecipeNode::EvaluateRegExp(Recipe &r, std::string &b, foreach_t *foreachp)
 {
 Search	c;
-Buffer	buf1, buf2;
+std::string	buf1, buf2;
 
 	ParseRegExp(str, buf1, buf2);
 
 	dollarexpand(r, buf1);
-	buf1.push_back_0();
-	buf2.push_back_0();
 	if (c.find( *maildrop.msgptr, maildrop.msginfo,
 		    buf1.c_str(), buf2.c_str(), foreachp))
 	{
@@ -1124,34 +1065,30 @@ Buffer	buf1, buf2;
 	}
 	else if (VerboseLevel() > 3)
 	{
-	Buffer	buf;
+	std::string	buf;
 
 		buf="Search of ";
 		buf += buf1.c_str();
 		buf += " = ";
 		add_number(buf, c.score);
-		buf.push_back_0();
 		r.errmsg(*this, buf.c_str());
 	}
 	add_number(b, c.score);
 }
 
-void RecipeNode::EvaluateStrRegExp(Recipe &r, Buffer &b, Buffer *foreachp)
+void RecipeNode::EvaluateStrRegExp(Recipe &r, std::string &b, foreach_t *foreachp)
 {
 	if (!firstChild || !firstChild->nextSibling ||
 		firstChild->nextSibling->nodeType != regexpr)
 		throw "Internal error in evaluate =~.";
 
 Search	c;
-Buffer	buf1, buf2;
+std::string	buf1, buf2;
 
 	firstChild->Evaluate(r,str);
 	ParseRegExp( firstChild->nextSibling->str, buf1, buf2);
 
 	dollarexpand(r, buf1);
-	buf1.push_back_0();
-	buf2.push_back_0();
-	str.push_back_0();
 	if (c.find( str.c_str(), buf1.c_str(), buf2.c_str(), foreachp))
 	{
 		c.score=0;
@@ -1159,13 +1096,12 @@ Buffer	buf1, buf2;
 	}
 	else if (VerboseLevel() > 3)
 	{
-	Buffer	buf;
+	std::string	buf;
 
 		buf="Search of ";
 		buf += buf1.c_str();
 		buf += " = ";
 		add_number(buf, c.score);
-		buf.push_back_0();
 		r.errmsg(*this, buf.c_str());
 	}
 	add_number(b, c.score);
@@ -1173,10 +1109,9 @@ Buffer	buf1, buf2;
 
 // Break down /foo/:bar into foo and bar.
 
-void	RecipeNode::ParseRegExp(const Buffer &str, Buffer &buf1, Buffer &buf2)
+void	RecipeNode::ParseRegExp(const std::string &str, std::string &buf1, std::string &buf2)
 {
 	buf2=str;
-	buf2.push_back_0();
 
 	const	char *p;
 
@@ -1188,7 +1123,6 @@ void	RecipeNode::ParseRegExp(const Buffer &str, Buffer &buf1, Buffer &buf2)
 
 	size_t	l=buf1.size(), i;
 
-	buf1.push_back_0();
 	buf2.clear();
 	p=buf1.c_str();
 	for (i=0; i<l; i++, p++)
@@ -1208,9 +1142,9 @@ void	RecipeNode::ParseRegExp(const Buffer &str, Buffer &buf1, Buffer &buf2)
 	buf1.resize(i);
 }
 
-void	RecipeNode::EvaluateString(Recipe &r, Buffer &b)
+void	RecipeNode::EvaluateString(Recipe &r, std::string &b)
 {
-Buffer	buf;
+std::string	buf;
 
 	switch (nodeType)	{
 	case qstring:
@@ -1223,7 +1157,6 @@ Buffer	buf;
 		break;
 	case btstring:
 		buf=str;
-		buf.push_back_0();
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Filtering through `" <<
 				buf.c_str() << "`\n";
@@ -1266,7 +1199,7 @@ Buffer	buf;
 	}
 }
 
-void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
+void	RecipeNode::dollarexpand(Recipe &r, std::string &b)
 {
 	size_t	i, l;
 	const char *p=b.c_str();
@@ -1289,11 +1222,11 @@ void	RecipeNode::dollarexpand(Recipe &r, Buffer &b)
 	}
 }
 
-void RecipeNode::SpecialEscape(Buffer &b)
+void RecipeNode::SpecialEscape(std::string &b)
 {
 	size_t	i, l;
 	const char *p=b.c_str();
-	Buffer	s;
+	std::string	s;
 
 	for (i=0, l=b.size(); i<l; i++)
 	{
@@ -1331,14 +1264,14 @@ void RecipeNode::SpecialEscape(Buffer &b)
 	b=s;
 }
 
-size_t	RecipeNode::dollarexpand(Recipe &r, Buffer &b, size_t index)
+size_t	RecipeNode::dollarexpand(Recipe &r, std::string &b, size_t index)
 {
 	size_t	l=b.size();
 
 	if (index+1 >= l)	return (index+1);
 
 	const	char *p=b.c_str();
-	Buffer	varname;
+	std::string	varname;
 	size_t	j;
 
 	if (p[index+1] == '{')
@@ -1349,7 +1282,6 @@ size_t	RecipeNode::dollarexpand(Recipe &r, Buffer &b, size_t index)
 			if (j >= l || isspace(p[j]))
 			{
 				varname="Terminating } is missing.\n";
-				varname.push_back_0();
 				r.errmsg(*this, varname.c_str());
 				return (index+1);
 			}
@@ -1372,11 +1304,11 @@ size_t	RecipeNode::dollarexpand(Recipe &r, Buffer &b, size_t index)
 		}
 	}
 
-Buffer	newstr;
+std::string	newstr;
 
 	newstr.append(p, p+index);
 
-const Buffer *bb=GetVar(varname);
+const std::string *bb=GetVar(varname);
 
 	if (bb)	newstr += *bb;
 
@@ -1390,7 +1322,7 @@ const Buffer *bb=GetVar(varname);
 // Is arbitrary string true, or false?
 // A false is either an empty string, or a number 0.
 
-int RecipeNode::boolean(const Buffer &b)
+int RecipeNode::boolean(const std::string &b)
 {
 	const char *p=b.c_str();
 	auto l=b.size();
@@ -1420,7 +1352,7 @@ int RecipeNode::boolean(const Buffer &b)
 	return (0);
 }
 
-static void parse_backslash(const Buffer &in, Buffer &s)
+static void parse_backslash(const std::string &in, std::string &s)
 {
 	const char *p=in.c_str();
 	size_t l=in.size();
@@ -1469,9 +1401,8 @@ static void parse_backslash(const Buffer &in, Buffer &s)
 	}
 }
 
-void RecipeNode::rfc822getaddr(Buffer &buf)
+void RecipeNode::rfc822getaddr(std::string &buf)
 {
-	buf.push_back_0();
 
 	struct	rfc822t	*p=rfc822t_alloc_new(buf.c_str(), NULL, NULL);
 
@@ -1484,7 +1415,7 @@ void RecipeNode::rfc822getaddr(Buffer &buf)
 	try
 	{
 		int n;
-		Buffer newbuf;
+		std::string newbuf;
 
 		for (n=0; n<a->naddrs; n++)
 			if (a->addrs[n].tokens)
@@ -1517,17 +1448,16 @@ void RecipeNode::rfc822getaddr(Buffer &buf)
 	rfc822t_free(p);
 }
 
-int RecipeNode::rfc822hasaddr(Buffer &buf)
+int RecipeNode::rfc822hasaddr(std::string &buf)
 {
-	Buffer	lower_addr;
-	Buffer	next_line;
+	std::string	lower_addr;
+	std::string	next_line;
 	const char *p;
 	size_t	l;
-	Buffer	header;
+	std::string	header;
 
 	for (p=buf.c_str(), l=buf.size(); l; --l)
 		lower_addr.push_back(tolower(*p++));
-	lower_addr.push_back_0();
 
 	if (VerboseLevel() > 5)
 		merr << "maildrop: hasaddr('" <<
@@ -1562,7 +1492,6 @@ int RecipeNode::rfc822hasaddr(Buffer &buf)
 				return (0);
 			continue;
 		}
-		next_line.push_back_0();
 		header=next_line.c_str()+3+l;
 		for (;;)
 		{
@@ -1579,9 +1508,8 @@ int RecipeNode::rfc822hasaddr(Buffer &buf)
 	return (0);
 }
 
-int RecipeNode::rfc822hasaddr(const char *addr, Buffer &header)
+int RecipeNode::rfc822hasaddr(const char *addr, std::string &header)
 {
-	header.push_back_0();
 
 	if (VerboseLevel() > 5)
 		merr << "maildrop: hasaddr: rfc822 parsing: "
@@ -1596,7 +1524,7 @@ int RecipeNode::rfc822hasaddr(const char *addr, Buffer &header)
 	if (!a)	outofmem();
 
 int	i;
-Buffer	rfc822buf;
+std::string	rfc822buf;
 int	found=0;
 
 	for (i=0; i<a->naddrs; i++)
@@ -1613,7 +1541,6 @@ int	found=0;
 
 		rfc822buf=p;
 		free(p);
-		rfc822buf.push_back_0();
 		if (VerboseLevel() > 5)
 			merr << "maildrop: hasaddr: rfc822 parsed: "
 				<< rfc822buf.c_str() << "\n";
@@ -1628,17 +1555,13 @@ int	found=0;
 	return (found);
 }
 
-int RecipeNode::dolookup(Buffer &strng, Buffer &filename, Buffer &opts)
+int RecipeNode::dolookup(std::string &strng, std::string &filename, std::string &opts)
 {
-static Buffer	errbuf;
-Buffer	real_opts;
+static std::string	errbuf;
+std::string	real_opts;
 
-	filename.push_back_0();
 
-	strng.push_back_0();
-	opts.push_back_0();
 	if (strchr (opts.c_str(), 'D'))	real_opts.push_back('D');	// Only allow this opt
-	real_opts.push_back_0();
 
 Mio	fp;
 
@@ -1647,7 +1570,6 @@ Mio	fp;
 		errbuf="Unable to open ";
 		errbuf += filename.c_str();
 		errbuf += ".\n";
-		errbuf.push_back_0();
 		throw errbuf.c_str();
 	}
 
@@ -1660,7 +1582,6 @@ Mio	fp;
 		while ((c=fp.get()) >= 0 && c != '\r' && c != '\n')
 			errbuf.push_back(c);
 		if (c < 0 && errbuf.size() == 0)	break;
-		errbuf.push_back_0();
 
 		p=errbuf.c_str();
 		while (*p && isspace(*p))	p++;
@@ -1669,7 +1590,7 @@ Mio	fp;
 		Search	srch;
 
 		if (srch.find( strng.c_str(), p,
-			       real_opts.c_str(), (Buffer *)NULL))
+			       real_opts.c_str(), nullptr))
 		{
 			opts=p;		// Convenient buffer
 
@@ -1678,7 +1599,6 @@ Mio	fp;
 			errbuf += ": ";
 			errbuf += opts;
 			errbuf += "\n";
-			errbuf.push_back_0();
 			throw errbuf.c_str();
 		}
 		if (srch.score)

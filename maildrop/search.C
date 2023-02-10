@@ -8,7 +8,7 @@
 #include	<string.h>
 #include	<ctype.h>
 #include	<stdlib.h>
-
+#include	<algorithm>
 
 void Search::cleanup()
 {
@@ -61,7 +61,7 @@ int	Search::init(const char *expr, const char *opts)
 
 	if (!pcre_regexp)
 	{
-		Buffer b;
+		std::string b;
 
 		PCRE2_UCHAR buffer[256];
 		pcre2_get_error_message(errcode, buffer, sizeof(buffer));
@@ -73,7 +73,6 @@ int	Search::init(const char *expr, const char *opts)
 		b += ": ";
 		b += (char *)buffer;
 		b += "\n";
-		b.push_back_0();
 		merr.write(b.c_str());
 		return -1;
 	}
@@ -84,12 +83,11 @@ int	Search::init(const char *expr, const char *opts)
 
 	if (!match_data)
 	{
-		Buffer b;
+		std::string b;
 
 		b="Failed to create match data for: ";
 		b += expr;
 		b += "\n";
-		b.push_back_0();
 		merr.write(b.c_str());
 		cleanup();
 		return -1;
@@ -119,7 +117,7 @@ int	Search::init(const char *expr, const char *opts)
 }
 
 int Search::find(Message &msg, MessageInfo &,
-	const char *expr, const char *opts, Buffer *foreachp)
+	const char *expr, const char *opts, foreach_t *foreachp)
 {
 	if (init(expr, opts))	return (-1);
 
@@ -128,20 +126,19 @@ int Search::find(Message &msg, MessageInfo &,
 }
 
 int Search::find(const char *str, const char *expr, const char *opts,
-		Buffer *foreachp)
+		foreach_t *foreachp)
 {
 	if (init(expr, opts))	return (-1);
 
 	if (VerboseLevel() > 2)
 	{
-	Buffer	msg;
+	std::string	msg;
 
 		msg="Matching /";
 		msg += expr;
 		msg += "/ against ";
 		msg += str;
 		msg += "\n";
-		msg.push_back_0();
 		merr.write(msg.c_str());
 	}
 
@@ -192,7 +189,7 @@ int Search::find(const char *str, const char *expr, const char *opts,
 //
 //////////////////////////////////////////////////////////////////////////////
 
-int Search::findinline(Message &msg, const char *expr, Buffer *foreachp)
+int Search::findinline(Message &msg, const char *expr, foreach_t *foreachp)
 {
 	struct rfc2045_decodemsgtoutf8_cb decode_cb;
 
@@ -230,11 +227,10 @@ int Search::search_cb(const char *ptr, size_t cnt)
 
 		if (*ptr == '\n')
 		{
-			current_line.push_back_0();
 
 			if (VerboseLevel() > 2)
 			{
-			Buffer	msg;
+			std::string	msg;
 
 				msg="Matching /";
 
@@ -243,7 +239,6 @@ int Search::search_cb(const char *ptr, size_t cnt)
 				msg += "/ against ";
 				msg += current_line.c_str();
 				msg += "\n";
-				msg.push_back_0();
 				merr.write(msg.c_str());
 			}
 
@@ -304,13 +299,15 @@ int Search::search_cb(const char *ptr, size_t cnt)
 void Search::init_match_vars(const char *str,
 			     PCRE2_SIZE *offsets,
 			     uint32_t nranges,
-			     Buffer *foreachp)
+			     foreach_t *foreachp)
 {
-	Buffer varname;
+	std::string varname;
 	uint32_t cnt;
 
 	if (!offsets)
 		return;
+
+	std::list<std::string> foreach_values;
 
 	for (cnt=0; cnt<nranges; cnt++)
 	{
@@ -319,7 +316,7 @@ void Search::init_match_vars(const char *str,
 			add_integer(varname, cnt);
 
 
-		Buffer v;
+		std::string v;
 
 		int i, j;
 
@@ -340,12 +337,16 @@ void Search::init_match_vars(const char *str,
 			}
 		}
 
-		if (cnt == 0 && foreachp)
+		if (foreachp)
 		{
-			*foreachp += v;
-			(*foreachp).push_back_0();
+			foreach_values.push_back(v);
 		}
 
 		SetVar(varname, v);
+	}
+
+	if (foreachp)
+	{
+		foreachp->push_back(std::move(foreach_values));
 	}
 }

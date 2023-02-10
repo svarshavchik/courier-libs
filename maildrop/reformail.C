@@ -53,12 +53,12 @@ static multibuf	optx, optX, opta, optA, opti, optI, optu, optU, optubuf, optUbuf
 typedef multibuf::iterator multibuf_iterator;
 
 
-static Buffer add_from_filter_buf;
+static std::string add_from_filter_buf;
 static const char *add_from_filter_buf_ptr;
 static const char *cache_maxlen="", *cache_name="";
 
 static const char *( *from_filter)();
-static Buffer	current_line;
+static std::string	current_line;
 
 void outofmem()
 {
@@ -76,7 +76,7 @@ void help()
 
 const char *NextLine()
 {
-static Buffer buf;
+static std::string buf;
 int	c;
 
 	buf.clear();
@@ -91,7 +91,6 @@ int	c;
 			buf.pop_back();
 	}
 	buf.push_back('\n');
-	buf.push_back_0();
 	return (buf.c_str());
 }
 
@@ -132,7 +131,7 @@ const char *no_from_filter_header()
 {
 const	char *p;
 
-static Buffer buf;
+static std::string buf;
 
 	from_filter= &no_from_filter_header;
 
@@ -140,7 +139,6 @@ static Buffer buf;
 		current_line += p;
 
 	buf=current_line;
-	buf.push_back_0();
 	if (!p || *p == '\n')
 	{
 		from_filter= &read_blank;
@@ -185,17 +183,16 @@ int n;
 		p=NextLine();
 	}
 
-	add_from_filter_buf.push_back_0();
 
-static Buffer	return_path;
-static Buffer	from_header;
+static std::string	return_path;
+static std::string	from_header;
 
 	return_path.clear();
 	from_header.clear();
 
 	for (p=add_from_filter_buf.c_str(); *p; )
 	{
-	Buffer	header;
+	std::string	header;
 
 		while (*p && *p != ':' && *p != '\n')
 		{
@@ -216,7 +213,6 @@ static Buffer	from_header;
 			header.push_back('\n');
 			if (!*p || !isspace((unsigned char)*p))	break;
 		}
-		header.push_back_0();
 		if (strncmp(header.c_str(), "return-path:", 12) == 0 ||
 		    strncmp(header.c_str(), ">return-path:", 13) == 0 ||
 		    strncmp(header.c_str(), "errors-to:", 10) == 0 ||
@@ -233,7 +229,6 @@ static Buffer	from_header;
 			from_header=header.c_str() + 5;
 	}
 	if (return_path.size() == 0)	return_path=from_header;
-	return_path.push_back_0();
 
 	struct rfc822t *rfc=rfc822t_alloc_new( return_path.c_str(),
 					       NULL, NULL);
@@ -284,7 +279,6 @@ time_t	t;
 		p++;
 	}
 	return_path += "\n";
-	return_path.push_back_0();
 	from_filter=add_from_filter_header;
 	add_from_filter_buf_ptr=add_from_filter_buf.c_str();
 	return (return_path.c_str());
@@ -294,7 +288,7 @@ const char *add_from_filter_body();
 
 const char *add_from_filter_header()
 {
-static Buffer buf;
+static std::string buf;
 
 	buf.clear();
 
@@ -313,7 +307,6 @@ static Buffer buf;
 		}
 	} while ( *add_from_filter_buf_ptr && *add_from_filter_buf_ptr != '\n'
 		&& isspace( (unsigned char)*add_from_filter_buf_ptr ));
-	buf.push_back_0();
 	return (buf.c_str());
 }
 
@@ -329,11 +322,10 @@ const char *q;
 		;
 	if (strncmp(q, "From ", 5))	return (p);
 
-static Buffer add_from_buf;
+static std::string add_from_buf;
 
 	add_from_buf=">";
 	add_from_buf += p;
-	add_from_buf.push_back_0();
 	return (add_from_buf.c_str());
 }
 
@@ -618,7 +610,7 @@ const char *p=(*append_more_headers)();
 
 	if (!p)	return (p);
 
-static Buffer	buf;
+static std::string	buf;
 
 	if (*p == '\n')
 		inbody=1;
@@ -645,7 +637,6 @@ static Buffer	buf;
 		}
 		if (addcrs)	buf.push_back('\r');
 		buf.push_back('\n');
-		buf.push_back_0();
 		return (buf.c_str());
 	}
 
@@ -654,7 +645,6 @@ static Buffer	buf;
 		buf=p;
 		buf.pop_back();
 		buf += "\r\n";
-		buf.push_back_0();
 		return (buf.c_str());
 	}
 	return (p);
@@ -678,7 +668,7 @@ const char *p;
 void cache(int, char *[], int)
 {
 const char *p;
-Buffer	buf;
+std::string	buf;
 int found=0;
 
 	addcrs=0;
@@ -696,7 +686,6 @@ int found=0;
 			if (*p++ == ':')	break;
 		}
 		if (!(buf == "message-id:"))	continue;
-		buf.push_back_0();
 		while (*p && isspace( (unsigned char)*p))	p++;
 		buf.clear();
 		while (*p)
@@ -715,7 +704,6 @@ int found=0;
 		}
 
 		if (buf.size() == 0)	break;
-		buf.push_back_0();
 
 	int	fd=open(cache_name, O_RDWR | O_CREAT, 0600);
 
@@ -810,7 +798,7 @@ int found=0;
 void extract_headers(int, char *[], int)
 {
 const char *p, *q;
-Buffer	b;
+std::string	b;
 
 	catenate=1;
 	while ((p=ReadLine()) && !inbody)
@@ -823,7 +811,6 @@ Buffer	b;
 			b.push_back( tolower(c) );
 			if ( *q++ == ':')	break;
 		}
-		b.push_back_0();
 
 		if (has_hdr(optx, b.c_str()))
 		{
@@ -853,7 +840,7 @@ Buffer	b;
 void split(int argc, char *argv[], int argn)
 {
 const char *p;
-Buffer	buf;
+std::string	buf;
 int	l;
 int	do_environ=1;
 unsigned long	environ=0;
@@ -906,7 +893,7 @@ const	char *env;
 			close(fds[0]);
 			close(fds[1]);
 
-		Buffer	buf, buf2;
+		std::string	buf, buf2;
 
 			if (do_environ)
 			{
@@ -925,7 +912,6 @@ const	char *env;
 					buf2.push_back(buf.back());
 					buf.pop_back();
 				}
-				buf2.push_back_0();
 				s=strdup(buf2.c_str());
 				if (!s)
 				{

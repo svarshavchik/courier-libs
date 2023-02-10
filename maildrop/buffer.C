@@ -7,86 +7,7 @@
 #include	<math.h>
 
 
-#define	CHUNK	512
-
-void	Buffer::append(int c)
-{
-int	newsize=bufsize+CHUNK;
-unsigned char	*newbuf=new unsigned char[newsize];
-
-	if (!newbuf)	outofmem();
-	if (bufsize)	memcpy(newbuf, buf, bufsize);
-	if (buf)	delete[] buf;
-	buf=newbuf;
-	bufsize = newsize;
-	buf[buflength++]=c;
-}
-
-void	Buffer::replace(const char *p)
-{
-int	l=strlen(p);
-
-	if (bufsize < l)
-	{
-	int	newsize=l + CHUNK-1;
-
-		newsize -= (newsize % CHUNK);
-	unsigned char	*newbuf=new unsigned char[newsize];
-
-		if (!newbuf)	outofmem();
-		if (buf)	delete[] buf;
-		buf=newbuf;
-		bufsize=newsize;
-	}
-	memcpy(buf, p, l);
-	buflength=l;
-}
-
-int	Buffer::compare(const Buffer &o) const
-{
-int	i;
-
-	for (i=0; i<buflength && i < o.buflength; i++)
-	{
-		if (buf[i] < o.buf[i])	return (-1);
-		if (buf[i] > o.buf[i])	return (1);
-	}
-	return (buflength < o.buflength ? -1:
-		buflength > o.buflength ? 1:0);
-}
-
-int	Buffer::compare(const char *o) const
-{
-int	i;
-
-	for (i=0; i<buflength && o[i]; i++)
-	{
-		if (buf[i] < o[i])	return (-1);
-		if (buf[i] > o[i])	return (1);
-	}
-	return (i < buflength ? 1: o[i] ? -1:0);
-}
-
-Buffer &Buffer::operator=(const Buffer &o)
-{
-	if (bufsize < o.buflength)
-	{
-	int	newsize=(o.buflength + CHUNK-1);
-
-		newsize -= (newsize % CHUNK);
-	unsigned char	*newbuf=new unsigned char[newsize];
-
-		if (!newbuf)	outofmem();
-		if (buf)	delete[] buf;
-		buf=newbuf;
-		bufsize=newsize;
-	}
-	if (o.buflength) memcpy(buf, o.buf, o.buflength);
-	buflength=o.buflength;
-	return (*this);
-}
-
-void	add_integer(Buffer &b, unsigned long n)
+void	add_integer(std::string &b, unsigned long n)
 {
 	char	tbuf[40];
 	char	*p=tbuf+sizeof(tbuf)-1;
@@ -100,7 +21,7 @@ void	add_integer(Buffer &b, unsigned long n)
 	b += p;
 }
 
-void	add_number(Buffer &buf, double d)
+void	add_number(std::string &buf, double d)
 {
 	char	tbuf[MAXLONGSIZE < 40 ? 40:MAXLONGSIZE+4];
 
@@ -108,7 +29,7 @@ void	add_number(Buffer &buf, double d)
 	buf += (tbuf);
 }
 
-int	extract_int(const Buffer &buf, const char *def)
+int	extract_int(const std::string &buf, const char *def)
 {
 	const	char *p=buf.c_str();
 	auto	l=buf.size();

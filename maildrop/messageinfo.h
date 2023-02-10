@@ -17,7 +17,7 @@ class	Message;
 
 class	MessageInfo {
 public:
-	Buffer fromname;	// Envelope sender
+	std::string fromname;	// Envelope sender
 
 	MessageInfo() {}
 	~MessageInfo()			{}

@@ -16,10 +16,10 @@ class	Mio;
 class Maildir {
 	int	is_open;
 	int	is_afs;
-	Buffer	maildirRoot;
+	std::string	maildirRoot;
 public:
-	Buffer	tmpname;
-	Buffer	newname;
+	std::string	tmpname;
+	std::string	newname;
 
 	Maildir();
 	virtual ~Maildir();

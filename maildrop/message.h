@@ -2,6 +2,7 @@
 #define	message_h
 
 #include "rfc2045/rfc2045.h"
+#include <string>
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -44,8 +45,6 @@
 
 #endif
 
-class Buffer;
-
 class Message {
 	Mio mio;
 	TempFile tempfile;
@@ -61,15 +60,15 @@ class Message {
 public:
 	Message();
 	~Message();
-	void Init(int, const Buffer &extra_headers);
+	void Init(int, const std::string &extra_headers);
 	// Initialize from file descriptor
 
 	void Init();		// Begin initializing externally
 	void Init(const void *, unsigned);	// From existing contents.
-	void ExtraHeaders(const Buffer &);
+	void ExtraHeaders(const std::string &);
 	void Rewind();		// Start reading the message
 	void RewindIgnore();	// Rewind, ignore msginfo
-	int appendline(Buffer &, int=1);	// Read newline-terminated line.
+	int appendline(std::string &, int=1);	// Read newline-terminated line.
 	void seek(off_t);
 	off_t tell();
 	int get_c();

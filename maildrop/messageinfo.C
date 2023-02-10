@@ -5,7 +5,7 @@
 
 void MessageInfo::info(Message &msg)
 {
-Buffer	buf;
+std::string	buf;
 
 	msg.Rewind();
 	fromname="MAILER-DAEMON";

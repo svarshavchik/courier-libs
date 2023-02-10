@@ -21,7 +21,7 @@
 //                    have a From line (and embedded From lines to be
 //                    escaped).  Flag is zero if the message should not
 //                    be molested by From lines (when writing to a pipe).
-//  Buffer NextLine() - return consecutive lines, until a NULL pointer is
+//  std::string NextLine() - return consecutive lines, until a NULL pointer is
 //                      returned.
 //
 //  When NULL pointer is returned, the hdrfrom, hdrsubject, and msgsize will
@@ -31,20 +31,20 @@
 
 class FormatMbox {
 
-	Buffer	msglinebuf;
-	Buffer	tempbuf;
+	std::string	msglinebuf;
+	std::string	tempbuf;
 	int	do_escape;
 
-	Buffer	* (FormatMbox::* next_func)(void);
+	std::string	* (FormatMbox::* next_func)(void);
 
-	Buffer	*GetFromLine(void);
-	Buffer	*GetLineBuffer(void);
-	Buffer	*GetNextLineBuffer(void);
+	std::string	*GetFromLine(void);
+	std::string	*GetLineBuffer(void);
+	std::string	*GetNextLineBuffer(void);
 
 	int	inheader;
 public:
 
-	Buffer	hdrfrom, hdrsubject;
+	std::string	hdrfrom, hdrsubject;
 	unsigned long msgsize;
 
 	FormatMbox()	{}
@@ -52,7 +52,7 @@ public:
 
 	int	HasMsg();
 	void	Init(int);
-	Buffer	*NextLine()
+	std::string	*NextLine()
 		{
 			return ( (this->*next_func)() );
 		}

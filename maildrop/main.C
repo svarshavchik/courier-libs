@@ -168,7 +168,7 @@ static int trusted_uidgid(uid_t uid, gid_t gid, gid_t gid2)
 	return (0);
 }
 
-static void sethostname(Buffer &buf)
+static void sethostname(std::string &buf)
 {
 char    hostname[256];
 
@@ -255,7 +255,7 @@ static const char msg[]="maildrop " VERSION " Copyright 1998-2018 Double Precisi
 void Maildrop::reset_vars()
 {
 int	i;
-Buffer	name, value;
+std::string	name, value;
 
 	for (i=0; i<(int)(sizeof(defaults_vars)/sizeof(defaults_vars[0])); i++)
 	{
@@ -299,10 +299,9 @@ static int callback_authlib(struct authinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		Buffer b;
+		std::string b;
 
 		add_integer(b, auth->sysgroupid);
-		b.push_back_0();
 
 		merr << "maildrop: authlib: groupid="
 		     << b << "\n";
@@ -335,10 +334,9 @@ static int callback_authlib(struct authinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		Buffer b;
+		std::string b;
 
 		add_integer(b, u);
-		b.push_back_0();
 
 		merr << "maildrop: authlib: userid="
 		     << b << "\n";
@@ -406,7 +404,7 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		Buffer b;
+		std::string b;
 
 		b.set(auth->sysgroupid);
 		b.push(0);
@@ -438,7 +436,7 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		Buffer b;
+		std::string b;
 
 		b.set(u);
 		b.push(0);
@@ -503,10 +501,10 @@ const	char *deliverymode=0;
 char *embedded_filter=0;
 const	char *from=0;
 int     explicit_from=0;
-Buffer	recipe;
+std::string	recipe;
 uid_t	orig_uid;
 gid_t	orig_gid, orig_gid2;
-Buffer	extra_headers;
+std::string	extra_headers;
 struct passwd *my_pw;
 int	found;
 #if	HAVE_COURIER
@@ -802,8 +800,8 @@ uid_t	my_u=getuid();
 	}
 
 int	i;
-Buffer	name;
-Buffer	value;
+std::string	name;
+std::string	value;
 
 	for (i=0; environ[i]; i++)
 	{
@@ -871,10 +869,9 @@ Buffer	value;
 	if (deliverymode)
 	{
 	struct	stat	buf;
-	Buffer	b;
+	std::string	b;
 
 		b=maildrop.init_home;
-		b.push_back_0();
 
 		const char *h=b.c_str();
 
@@ -925,12 +922,11 @@ Buffer	value;
 #else
 	maildrop.tempdir=maildrop.init_home;
 	maildrop.tempdir += "/" TEMPDIR;
-	maildrop.tempdir.push_back_0();
 	mkdir( maildrop.tempdir.c_str(), 0700 );
 #endif
 	maildrop.reset_vars();
 
-Buffer	msg;
+std::string	msg;
 
 	signal(SIGALRM, alarm_handler);
 	alarm(GLOBAL_TIMEOUT);
@@ -977,7 +973,6 @@ Buffer	msg;
 		if (maildrop.msginfo.fromname.size() > 0)
 			msg += maildrop.msginfo.fromname;
 		msg += "\n";
-		msg.push_back_0();
 		merr.write(msg.c_str());
 	}
 
@@ -1036,7 +1031,6 @@ int	firstdefault=1;
 			msg += recipe;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg.push_back_0();
 			fd=in.Open(msg.c_str());
 		}
 		else
@@ -1044,7 +1038,6 @@ int	firstdefault=1;
 			msg=recipe;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg.push_back_0();
 			fd=in.Open(msg.c_str());
 			break;
 		}
@@ -1082,7 +1075,6 @@ int	firstdefault=1;
 			msg += DEFAULTEXT+1;
 			if (VerboseLevel() > 1)
 				merr << "maildrop: Attempting " << msg << "\n";
-			msg.push_back_0();
 			fd=in.Open(msg.c_str());
 			break;
 		}
@@ -1145,7 +1137,6 @@ int	firstdefault=1;
 		}
 
 		value=v;
-		value.push_back_0();
 		if (delivery(value.c_str()) < 0)
 			return (EX_TEMPFAIL);
 	}
@@ -1166,7 +1157,7 @@ int main(int argc, char **argv)
 
 const char *GetDefaultMailbox(const char *username)
 {
-static Buffer buf;
+static std::string buf;
 int	isfile=0;
 
 	buf="";
@@ -1203,7 +1194,6 @@ const	char *p=DEFAULT_DEF;
 		buf.push_back(SLASH_CHAR);
 		buf += username;
 	}
-	buf.push_back_0();
 	return (buf.c_str());
 }
 
@@ -1212,11 +1202,10 @@ const	char *p=DEFAULT_DEF;
 #else
 const char *TempName()
 {
-Buffer	t;
+std::string	t;
 
 	t=maildrop.tempdir.c_str();
 	t += "/tmp.";
-	t.push_back_0();
 	return (TempName(t.c_str(), 0));
 }
 #endif

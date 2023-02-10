@@ -5,6 +5,7 @@
 #include	"config.h"
 #include	<sys/types.h>
 #include	<string.h>
+#include	<string>
 
 // Fault-tolerant wrappers around I/O functions - they automatically retry
 // when they get an EINTR (for kernels that do not restart the calls themselves)
@@ -64,7 +65,7 @@ public:
 	void write(const char *p) { write(p, strlen(p)); }
 
 	Mio &operator<<(const char *p) { write(p); return (*this); }
-	Mio &operator<<(const class Buffer &);
+	Mio &operator<<(const std::string &);
 
 private:
 	int fill();

@@ -73,7 +73,7 @@ static const char *names[]={
 		"unset"
 		} ;
 
-static Buffer namebuf;
+static std::string namebuf;
 
 const char *Token::Name()
 {
@@ -82,7 +82,6 @@ const char *Token::Name()
 		namebuf="string: \"";
 		namebuf += buf;
 		namebuf += "\"";
-		namebuf.push_back_0();
 		return (namebuf.c_str());
 	}
 
@@ -91,7 +90,6 @@ const char *Token::Name()
 		namebuf="string: '";
 		namebuf += buf;
 		namebuf += "'";
-		namebuf.push_back_0();
 		return (namebuf.c_str());
 	}
 
@@ -100,7 +98,6 @@ const char *Token::Name()
 		namebuf="string: `";
 		namebuf += buf;
 		namebuf += "`";
-		namebuf.push_back_0();
 		return (namebuf.c_str());
 	}
 
@@ -108,7 +105,6 @@ const char *Token::Name()
 	{
 		namebuf="regexp: ";
 		namebuf += buf;
-		namebuf.push_back_0();
 		return (namebuf.c_str());
 	}
 

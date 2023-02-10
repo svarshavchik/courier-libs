@@ -47,12 +47,11 @@ void	Lexer::token(Token &t)
 		case Token::logfile:
 		case Token::log:
 			{
-			Buffer	errmsg;
+			std::string	errmsg;
 
 				errmsg="maildrop: '";
 				errmsg += t.Name();
 				errmsg += "' disabled in embedded mode.\n";
-				errmsg.push_back_0();
 				error(errmsg.c_str());
 				t.Type( Token::error );
 				break;
@@ -63,12 +62,11 @@ void	Lexer::token(Token &t)
 
 	if (VerboseLevel() > 8)
 	{
-	Buffer	debug;
+	std::string	debug;
 
 		debug="Tokenized ";
 		debug += t.Name();
 		debug += "\n";
-		debug.push_back_0();
 		error(debug.c_str());
 	}
 }
@@ -129,7 +127,7 @@ int	c;
 	// String, quoted by ", ', or `
 
 
-Buffer	&pattern=t.String();
+std::string	&pattern=t.String();
 	pattern.clear();
 
 	if (c == '\'' || c == '"' || c == '`')
@@ -510,7 +508,7 @@ void	Lexer::errmsg(const char *emsg)
 
 void	Lexer::errmsg(unsigned long lnum, const char *emsg)
 {
-Buffer	errbuf;
+std::string	errbuf;
 
 	errbuf=filename;
 	errbuf += "(";

@@ -44,7 +44,7 @@ void Recipe::errmsg(RecipeNode &r, const char *emsg)
 
 void Recipe::ExecuteRecipe()
 {
-Buffer	b;
+std::string	b;
 
 	if (topNode)	topNode->Evaluate(*this, b);
 }

@@ -70,10 +70,9 @@ char	buffer[1024];
 //	if (format_mbox.HasMsg())	return (0);	// Empty
 	(void)format_mbox.HasMsg();
 
-Buffer	cmdbuf;
+std::string	cmdbuf;
 
 	cmdbuf= filtercmd;
-	cmdbuf.push_back_0();
 
 PipeFds	pipe0, pipe1;
 
@@ -157,7 +156,7 @@ int	maxfd=pipe1.fds[0];
 
 		if (!writebuflen && pipe0.fds[1] >= 0)
 		{		// Need more to write.
-		Buffer	*p=format_mbox.NextLine();
+		std::string	*p=format_mbox.NextLine();
 
 			if (!p)
 			{
@@ -263,11 +262,10 @@ int	maxfd=pipe1.fds[0];
 		wait_stat= -1;
 
 	{
-	Buffer	name, val;
+		std::string	val;
 
 		add_integer(val, wait_stat);
-		name="RETURNCODE";
-		SetVar(name, val);
+		SetVar("RETURNCODE", val);
 	}
 
 	if (wait_stat)
@@ -328,10 +326,9 @@ void executesystem(const char *cmd)
 	wait_stat= WIFEXITED(wait_stat) ? WEXITSTATUS(wait_stat):-1;
 
 	{
-	Buffer	name, val;
+		std::string	val;
 
 		add_integer(val, wait_stat);
-		name="RETURNCODE";
-		SetVar(name, val);
+		SetVar("RETURNCODE", val);
 	}
 }

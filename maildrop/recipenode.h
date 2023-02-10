@@ -3,6 +3,8 @@
 
 
 #include	"buffer.h"
+#include	"search.h"
+
 class Recipe;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -48,11 +50,11 @@ class RecipeNode {
 	RecipeNode *prevSibling, *nextSibling;	// Siblings of this node.
 	RecipeNode *firstChild, *lastChild;	// Its own children.
 
-	Buffer	str;
+	std::string	str;
 	int	linenum;
 
-	void dollarexpand(Recipe &, Buffer &);
-	size_t dollarexpand(Recipe &, Buffer &, size_t);
+	void dollarexpand(Recipe &, std::string &);
+	size_t dollarexpand(Recipe &, std::string &, size_t);
 
 public:
 	friend class Recipe;
@@ -122,20 +124,20 @@ public:
 
 	RecipeNode(RecipeNodeType);
 	~RecipeNode()					{}
-	void	Evaluate(Recipe &, Buffer &);
+	void	Evaluate(Recipe &, std::string &);
 private:
 	void	AppendSibling(RecipeNode *);
-	void	EvaluateString(Recipe &r, Buffer &b);
+	void	EvaluateString(Recipe &r, std::string &b);
 
-	void EvaluateStrRegExp(Recipe &, Buffer &, Buffer *);
-	void EvaluateRegExp(Recipe &, Buffer &, Buffer *);
-static	void	ParseRegExp(const Buffer &, Buffer &, Buffer &);
-static	int	boolean(const Buffer &);
+	void EvaluateStrRegExp(Recipe &, std::string &, foreach_t *);
+	void EvaluateRegExp(Recipe &, std::string &, foreach_t *);
+static	void	ParseRegExp(const std::string &, std::string &, std::string &);
+static	int	boolean(const std::string &);
 
-	void rfc822getaddr(Buffer &);
-	int rfc822hasaddr(Buffer &);
-	int rfc822hasaddr(const char *, Buffer &);
-	void SpecialEscape(Buffer &);
-	int dolookup(Buffer &, Buffer &, Buffer &);
+	void rfc822getaddr(std::string &);
+	int rfc822hasaddr(std::string &);
+	int rfc822hasaddr(const char *, std::string &);
+	void SpecialEscape(std::string &);
+	int dolookup(std::string &, std::string &, std::string &);
 	} ;
 #endif

@@ -3,6 +3,7 @@
 
 
 #include	"buffer.h"
+#include <list>
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 
@@ -38,13 +39,15 @@
 class MessageInfo;
 class Message;
 
+typedef std::list<std::list<std::string>> foreach_t;
+
 class Search {
 
 	pcre2_code *pcre_regexp;
 	pcre2_match_data *match_data;
 
-	Buffer	current_line;
-	Buffer	next_line;
+	std::string	current_line;
+	std::string	next_line;
 
 	int	match_top_header, match_other_headers, match_body;
 	double	weight1, weight2;
@@ -62,17 +65,17 @@ public:
 		   match_data(NULL) {}
 	~Search()	{ cleanup(); }
 	int find(Message &, MessageInfo &, const char *, const char *,
-		Buffer *);
-	int find(const char *, const char *, const char *, Buffer *);
+		foreach_t *);
+	int find(const char *, const char *, const char *, foreach_t *);
 private:
-	int findinline(Message &, const char *, Buffer *);
-	int findinsection(Message &, const char *, Buffer *);
+	int findinline(Message &, const char *, foreach_t *);
+	int findinsection(Message &, const char *, foreach_t *);
 	void init_match_vars(const char *,
 			     PCRE2_SIZE *,
 			     uint32_t,
-			     Buffer *);
-	Buffer search_expr;
-	Buffer *foreachp_arg;
+			     foreach_t *);
+	std::string search_expr;
+	foreach_t *foreachp_arg;
 	static int search_cb(const char *ptr, size_t cnt, void *arg);
 	int search_cb(const char *ptr, size_t cnt);
 } ;

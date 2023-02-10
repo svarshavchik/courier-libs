@@ -49,8 +49,8 @@ Maildir::~Maildir()
 
 int Maildir::IsMaildir(const char *name)
 {
-Buffer	dirname;
-Buffer	subdirname;
+std::string	dirname;
+std::string	subdirname;
 struct	stat stat_buf;
 
 	if (!name || !*name)	return (0);	// Nope, not a Maildir
@@ -60,17 +60,14 @@ struct	stat stat_buf;
 		dirname.pop_back();	// Strip trailing /
 	subdirname=dirname;
 	subdirname += "/tmp";
-	subdirname.push_back_0();
 	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/new";
-	subdirname.push_back_0();
 	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	subdirname=dirname;
 	subdirname += "/cur";
-	subdirname.push_back_0();
 	if ( stat( subdirname.c_str(), &stat_buf ) ||
 		! S_ISDIR(stat_buf.st_mode) )	return (0);
 	return (1);	// If it looks like a duck, walks like a duck...
@@ -78,16 +75,15 @@ struct	stat stat_buf;
 
 int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
 {
-	Buffer	buf;
+	std::string	buf;
 	struct maildirsize quotainfo;
 
 	const char *quotap;
 
-	Buffer quotabuf;
+	std::string quotabuf;
 
 	quotabuf="MAILDIRQUOTA";	/* Reuse a convenient buffer */
 	quotabuf= *GetVar(quotabuf);
-	quotabuf.push_back_0();
 
 	quotap=quotabuf.c_str();
 
@@ -100,7 +96,6 @@ AlarmTimer	abort_timer;
 static long	counter=0;
 
 	set_integer(buf, counter++);
-	buf.push_back_0();
 
 	struct maildir_tmpcreate_info createInfo;
 
@@ -114,7 +109,7 @@ static long	counter=0;
 	abort_timer.Set( 24 * 60 * 60 );
 	while (!abort_timer.Expired())
 	{
-		Buffer name_buf;
+		std::string name_buf;
 
 		name_buf="UMASK";
 		const char *um=GetVarStr(name_buf);
@@ -129,14 +124,13 @@ static long	counter=0;
 
 		if (f >= 0)
 		{
-			Buffer b;
+			std::string b;
 
 			b="FLAGS";
 
 			const char *flags=GetVarStr(b);
 
 			tmpname=createInfo.tmpname;
-			tmpname.push_back_0();
 
 			if (flags)
 			{
@@ -164,13 +158,11 @@ static long	counter=0;
 				newname=createInfo.newname;
 			}
 
-			newname.push_back_0();
 			maildir_tmpcreate_free(&createInfo);
 
 			file.fd(f);
 			is_open=1;
 			maildirRoot=dir;
-			maildirRoot.push_back_0();
 
 			if (maildir_quota_add_start(dir, &quotainfo, s,
 						    1, quotap))
@@ -207,11 +199,10 @@ void	Maildir::MaildirSave()
 {
 	if (is_open)
 	{
-		Buffer keywords;
+		std::string keywords;
 
 		keywords="KEYWORDS";
 		keywords=*GetVar(keywords);
-		keywords.push_back_0();
 
 		const char *keywords_s=keywords.c_str();
 
@@ -301,7 +292,7 @@ void	Maildir::MaildirSave()
 			free(newkname);
 		}
 
-		Buffer dir;
+		std::string dir;
 
 		if (link( tmpname.c_str(), newname.c_str()) < 0)
 		{
@@ -322,7 +313,6 @@ void	Maildir::MaildirSave()
 		if (q)
 		{
 			dir.resize(q-p);
-			dir.push_back_0();
 
 #if EXPLICITDIRSYNC
 			int syncfd=open(dir, O_RDONLY);
@@ -336,7 +326,6 @@ void	Maildir::MaildirSave()
 
 			dir.resize(q-p);
 			dir += "/../";
-			dir.push_back_0();
 
 			maildir_deliver_quota_warning(dir.c_str(),
 						      quota_warn_percent,

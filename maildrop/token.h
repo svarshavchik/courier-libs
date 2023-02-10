@@ -14,7 +14,7 @@
 
 class	Token {
 
-	Buffer	buf;
+	std::string	buf;
 
 public:
 	enum tokentype {
@@ -96,10 +96,10 @@ public:
 	Token &operator=(const Token &t) { type=t.type; buf=t.buf; return (*this); }
 
 	void Type(tokentype t) { type=t; }
-	void Type(tokentype t, const Buffer &tbuf) { type=t; buf=tbuf; }
+	void Type(tokentype t, const std::string &tbuf) { type=t; buf=tbuf; }
 	tokentype Type() const { return (type); }
-	const Buffer &String() const { return (buf); }
-	Buffer &String() { return (buf); }
+	const std::string &String() const { return (buf); }
+	std::string &String() { return (buf); }
 
 	const char *Name();
 } ;

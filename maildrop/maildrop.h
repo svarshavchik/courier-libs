@@ -30,14 +30,14 @@ static	int sigfpe;		// Floating point exception trapped.
 #if	SHARED_TEMPDIR
 
 #else
-	Buffer	tempdir;	// Directory for temporary files
+	std::string	tempdir;	// Directory for temporary files
 #endif
 
-	Buffer  init_home;	// Initial HOME
-	Buffer	init_logname;	// Initial LOGNAME
-	Buffer	init_shell;	// Initial SHELL
-	Buffer	init_default;	// Initial DEFAULT
-	Buffer	init_quota;	// Initial MAILDIRQUOTA
+	std::string  init_home;	// Initial HOME
+	std::string	init_logname;	// Initial LOGNAME
+	std::string	init_shell;	// Initial SHELL
+	std::string	init_default;	// Initial DEFAULT
+	std::string	init_quota;	// Initial MAILDIRQUOTA
 
 	Mio	logfile;	// Log file.
 	Maildrop();
