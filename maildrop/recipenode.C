@@ -568,8 +568,7 @@ RecipeNode	*c;
 		firstChild->Evaluate(r,b);
 		if (delivery(b.c_str()) < 0)
 			throw "Unable to deliver to mailbox.";
-		b="EXITCODE";
-		throw (extract_int(*GetVar(b), "0"));
+		throw (extract_int(GetVar("EXITCODE"), "0"));
 	case delivercc:
 		if (!firstChild)
 			throw "Internal error in delivery statement.";
@@ -821,8 +820,7 @@ RecipeNode	*c;
 		}
 		break;
 	case exit:
-		b="EXITCODE";
-		throw extract_int( *GetVar(b), "0");
+		throw extract_int( GetVar("EXITCODE"), "0");
 	case foreach:
 		if (!firstChild || !firstChild->nextSibling ||
 			( firstChild->nodeType != regexpr &&
@@ -1304,13 +1302,9 @@ size_t	RecipeNode::dollarexpand(Recipe &r, std::string &b, size_t index)
 		}
 	}
 
-std::string	newstr;
+	std::string	newstr{p, p+index};
 
-	newstr.append(p, p+index);
-
-const std::string *bb=GetVar(varname);
-
-	if (bb)	newstr += *bb;
+	newstr += GetVar(varname);
 
 	auto	newindex=newstr.size();
 

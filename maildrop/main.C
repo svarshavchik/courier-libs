@@ -1126,23 +1126,19 @@ int	firstdefault=1;
 
 	if (!maildrop.embedded_mode)
 	{
-		name="DEFAULT";
+		value=GetVar("DEFAULT");
 
-	const char *v=GetVarStr(name);
-
-		if (!v)
+		if (value.empty())
 		{
 			errexit=EX_TEMPFAIL;
 			throw "DEFAULT mailbox not defined.";
 		}
 
-		value=v;
 		if (delivery(value.c_str()) < 0)
 			return (EX_TEMPFAIL);
 	}
 
-	value="EXITCODE";
-	return extract_int( *GetVar(value), "0");
+	return extract_int( GetVar("EXITCODE"), "0");
 }
 
 int main(int argc, char **argv)

@@ -4,6 +4,7 @@
 
 #include	"tempfile.h"
 #include	"dotlockrefresh.h"
+#include	<string>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -35,6 +36,6 @@ public:
 private:
 	static unsigned GetLockTimeout();
 	static unsigned GetLockRefresh();
-	static const	char *GetLockExt();
+	static std::string GetLockExt();
 } ;
 #endif

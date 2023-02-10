@@ -144,9 +144,9 @@ std::string	dotlock_name;
 	{
 		dotlock_name=mailbox;
 
-	const	char *p=GetLockExt();
+		std::string p=GetLockExt();
 
-		if (!p || !*p)	dotlock_name += LOCKEXT_DEF;
+		if (p.empty())	dotlock_name += LOCKEXT_DEF;
 		else	dotlock_name += p;
 
 		Lock( dotlock_name.c_str() );

@@ -82,8 +82,7 @@ int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
 
 	std::string quotabuf;
 
-	quotabuf="MAILDIRQUOTA";	/* Reuse a convenient buffer */
-	quotabuf= *GetVar(quotabuf);
+	quotabuf= GetVar("MAILDIRQUOTA");
 
 	quotap=quotabuf.c_str();
 
@@ -111,11 +110,10 @@ static long	counter=0;
 	{
 		std::string name_buf;
 
-		name_buf="UMASK";
-		const char *um=GetVarStr(name_buf);
+		std::string um=GetVar("UMASK");
 		unsigned int umask_val=077;
 
-		sscanf(um, "%o", &umask_val);
+		sscanf(um.c_str(), "%o", &umask_val);
 
 		umask_val=umask(umask_val);
 
@@ -126,15 +124,13 @@ static long	counter=0;
 		{
 			std::string b;
 
-			b="FLAGS";
-
-			const char *flags=GetVarStr(b);
+			std::string flags=GetVar("FLAGS");
 
 			tmpname=createInfo.tmpname;
 
-			if (flags)
+			if (!flags.empty())
 			{
-				const char *p=flags;
+				const char *p=flags.c_str();
 
 				while (*p)
 				{
@@ -147,7 +143,7 @@ static long	counter=0;
 				}
 			}
 
-			if (flags && *flags)
+			if (!flags.empty())
 			{
 				newname=createInfo.curname;
 				newname += ":2,";
@@ -199,10 +195,7 @@ void	Maildir::MaildirSave()
 {
 	if (is_open)
 	{
-		std::string keywords;
-
-		keywords="KEYWORDS";
-		keywords=*GetVar(keywords);
+		std::string keywords=GetVar("KEYWORDS");
 
 		const char *keywords_s=keywords.c_str();
 

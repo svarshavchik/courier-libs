@@ -6,34 +6,20 @@
 
 unsigned DotLock::GetLockSleep()
 {
-std::string	b;
-
-	b="LOCKSLEEP";
-
-	return extract_int(*GetVar(b), LOCKSLEEP_DEF);
+	return extract_int(GetVar("LOCKSLEEP"), LOCKSLEEP_DEF);
 }
 
 unsigned DotLock::GetLockTimeout()
 {
-std::string	b;
-
-	b="LOCKTIMEOUT";
-	return extract_int(*GetVar(b), LOCKTIMEOUT_DEF);
+	return extract_int(GetVar("LOCKTIMEOUT"), LOCKTIMEOUT_DEF);
 }
 
 unsigned DotLock::GetLockRefresh()
 {
-std::string	b;
-
-	b="LOCKREFRESH";
-	return extract_int(*GetVar(b), LOCKREFRESH_DEF);
+	return extract_int(GetVar("LOCKREFRESH"), LOCKREFRESH_DEF);
 }
 
-const	char *DotLock::GetLockExt()
+std::string DotLock::GetLockExt()
 {
-std::string varname;
-
-	varname="LOCKEXT";
-
-	return (GetVarStr(varname));
+	return GetVar("LOCKEXT");
 }

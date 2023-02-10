@@ -61,11 +61,7 @@ FormatMbox	format_mbox;
 
 		if (*mailbox == '!')
 		{
-			b="SENDMAIL";
-
-		const char *sendmail=GetVarStr(b);
-
-			cmdbuf=sendmail;
+			cmdbuf=GetVar("SENDMAIL");
 
 			cmdbuf += " -f '' ";
 			cmdbuf += mailbox+1;
@@ -189,11 +185,10 @@ FormatMbox	format_mbox;
 		Mio	mio;
 		std::string name_buf;
 
-		name_buf="UMASK";
-		const char *um=GetVarStr(name_buf);
+		std::string um=GetVar("UMASK");
 		unsigned int umask_val=077;
 
-		sscanf(um, "%o", &umask_val);
+		sscanf(um.c_str(), "%o", &umask_val);
 
 		umask_val=umask(umask_val);
 
@@ -260,18 +255,19 @@ FormatMbox	format_mbox;
 
 void	subshell(const char *cmd)
 {
-std::string	b;
+	std::string	b;
 
-	b="SHELL";
+	std::string shell=GetVar("SHELL");
 
-const char *shell=GetVarStr(b);
+	const char *p, *q;
 
-const char *p, *q;
-
-	for (p=q=shell; *p; p++)
+	for (p=q=shell.c_str(); *p; p++)
 		if (*p == SLASH_CHAR)	q=p+1;
 
-char	**env=ExportEnv();
+	std::vector<std::vector<char>> strings;
+	std::vector<char *> env;
+
+	ExportEnv(strings, env);
 
 int	n;
 
@@ -285,9 +281,9 @@ int	n;
 		_exit(100);
 	}
 	ExitTrap::onfork();
-	execle(shell, q, "-c", cmd, (const char *)NULL, env);
+	execle(shell.c_str(), q, "-c", cmd, (const char *)NULL, env.data());
 	if (write (2, "Unable to execute ", 18) < 0 ||
-	    write (2, shell, strlen(shell)) < 0 ||
+	    write (2, shell.c_str(), shell.size()) < 0 ||
 	    write (2, "\n", 1) < 0)
 		; /* ignored */
 	_exit(100);

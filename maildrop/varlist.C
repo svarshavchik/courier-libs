@@ -5,145 +5,77 @@
 #include	"maildrop.h"
 
 #include	<string.h>
+#include	<unordered_map>
 
-
-class Variable {
-public:
-
-	Variable *next;
-	std::string	name, value;
-	} ;
-
-static Variable *varlist[101];
+std::unordered_map<std::string, std::string> varlist;
 
 void UnsetVar(const std::string &var)
 {
-	auto varlen=var.size();
-	unsigned n=0;
-	size_t i;
-	const char *p=var.c_str();
+	varlist.erase(var);
 
-	for (i=varlen; i; --i)
-		n = (n << 1) ^ (unsigned char)*p++;
-
-	if (var.size() == 7 &&
-		strncmp( var.c_str(), "VERBOSE", 7) == 0)
+	if (var == "VERBOSE")
 	{
 		maildrop.verbose_level=0;
 	}
 
-	n %= sizeof(varlist)/sizeof(varlist[0]);
-
-Variable **v;
-
-	for (v= &varlist[n]; *v; v= &(*v)->next)
-		if ( (*v)->name == var )
-		{
-		Variable *vv= (*v);
-
-			(*v)= vv->next;
-			delete vv;
-			break;
-		}
 	return;
 }
 
 void SetVar(const std::string &var, const std::string &value)
 {
-	auto varlen=var.size();
-	size_t n=0;
-	size_t i;
-	const char *p=var.c_str();
+	varlist[var]=value;
 
-	for (i=varlen; i; --i)
-		n = (n << 1) ^ (unsigned char)*p++;
-
-	if (var.size() == 7 &&
-		strncmp( var.c_str(), "VERBOSE", 7) == 0)
+	if (var == "VERBOSE")
 	{
 		maildrop.verbose_level= extract_int(value, "0");
 		if (maildrop.isdelivery)	maildrop.verbose_level=0;
 	}
-
-	n %= sizeof(varlist)/sizeof(varlist[0]);
-
-Variable *v;
-
-	for (v=varlist[n]; v; v=v->next)
-		if ( v->name == var )
-		{
-			v->value=value;
-			return;
-		}
-
-	v=new Variable;
-	if (!v)	outofmem();
-	v->name=var;
-	v->value=value;
-	v->next=varlist[n];
-	varlist[n]=v;
 }
 
-static std::string zero;
-
-const std::string *GetVar(const std::string &var)
+std::string GetVar(const std::string &var)
 {
-	auto varlen=var.size();
-	size_t i, n=0;
-	const char *p=var.c_str();
+	auto iter=varlist.find(var);
 
-	for (i=varlen; i; --i)
-		n = (n << 1) ^ (unsigned char)*p++;
-	n %= sizeof(varlist)/sizeof(varlist[0]);
+	if (iter != varlist.end())
+		return iter->second;
 
-Variable *v;
-
-	for (v=varlist[n]; v; v=v->next)
-		if ( v->name == var)	return ( &v->value );
-	return (&zero);
-}
-
-const char *GetVarStr(const std::string &var)
-{
-static std::string tempbuf;
-
-	tempbuf= *GetVar(var);
-	return (tempbuf.c_str());
+	return "";
 }
 
 // Create environment for a child process.
 
-char	**ExportEnv()
+void ExportEnv(std::vector<std::vector<char>> &strings,
+	       std::vector<char *> &pts)
 {
-unsigned	i,n,l;
-Variable	*v;
-char	**envp;
-char	*envdatap=0;
+	strings.clear();
+	strings.reserve(varlist.size());
 
-	for (i=n=l=0; i<sizeof(varlist)/sizeof(varlist[0]); i++)
-		for (v=varlist[i]; v; v=v->next)
-		{
-			l += v->name.size() + v->value.size()+2;
-			++n;
-		}
+	std::string v;
 
-	if ((envp=new char *[n+1]) == NULL)	outofmem();
-	if (l && (envdatap=new char[l]) == NULL)	outofmem();
+	for (auto &kv:varlist)
+	{
+		v.clear();
+		v.reserve(kv.first.size()+kv.second.size()+2);
 
-	for (i=n=0; i<sizeof(varlist)/sizeof(varlist[0]); i++)
-		for (v=varlist[i]; v; v=v->next)
-		{
-			envp[n]=envdatap;
-			memcpy(envdatap, v->name.c_str(),
-							v->name.size());
-			envdatap += v->name.size();
-			*envdatap++ = '=';
-			memcpy(envdatap, v->value.c_str(),
-							v->value.size());
-			envdatap += v->value.size();
-			*envdatap++ = 0;
-			n++;
-		}
-	envp[n]=0;
-	return (envp);
+		v=kv.first;
+		v += "=";
+		v += kv.second;
+
+		std::vector<char> new_buf;
+
+		new_buf.reserve(v.size()+1);
+
+		new_buf.insert(new_buf.end(), v.begin(), v.end());
+		new_buf.push_back(0);
+		strings.push_back(std::move(new_buf));
+	}
+
+	pts.clear();
+	pts.reserve(strings.size()+1);
+
+	for (auto &s:strings)
+	{
+		pts.push_back(s.data());
+	}
+	pts.push_back(nullptr);
 }
