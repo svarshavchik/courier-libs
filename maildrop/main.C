@@ -25,6 +25,7 @@
 #include	<sys/stat.h>
 #endif
 #include	<sysexits.h>
+#include	<signal.h>
 #include	<string.h>
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -71,6 +72,17 @@ static const char *defaults_vars[]={"LOCKEXT","LOCKSLEEP","LOCKTIMEOUT",
 static const char *defaults_vals[]={LOCKEXT_DEF,LOCKSLEEP_DEF,LOCKTIMEOUT_DEF,
 					LOCKREFRESH_DEF, DEFAULT_PATH,
 					SENDMAIL_DEF, ""};
+
+
+static const char alarm_msg[]="maildrop: Timeout quota exceeded.\n";
+
+static void alarm_handler(int)
+{
+	if (write(2, alarm_msg, sizeof(alarm_msg)-1) < 0)
+		; /* ignored */
+
+	_exit(EX_TEMPFAIL);
+}
 
 Maildrop maildrop;
 
@@ -615,6 +627,17 @@ const	char *dovecotauth_addr=0;
 	orig_uid=getuid();
 	orig_gid=getgid();
 	orig_gid2=getegid();
+
+	if (pipe(Maildrop::sigchildfd) < 0)
+	{
+		perror("pipe");
+		exit(1);
+	}
+	fcntl(Maildrop::sigchildfd[0], F_SETFL, O_NONBLOCK);
+	fcntl(Maildrop::sigchildfd[1], F_SETFL, O_NONBLOCK);
+	fcntl(Maildrop::sigchildfd[0], F_SETFD, FD_CLOEXEC);
+	fcntl(Maildrop::sigchildfd[1], F_SETFD, FD_CLOEXEC);
+
 	if (!deliverymode && argn < argc)
 		recipe=argv[argn++];
 	else
@@ -909,7 +932,9 @@ Buffer	value;
 
 Buffer	msg;
 
-	maildrop.global_timer.Set(GLOBAL_TIMEOUT);
+	signal(SIGALRM, alarm_handler);
+	alarm(GLOBAL_TIMEOUT);
+
 	maildrop.msgptr->Init(0, extra_headers); // Read message from standard input.
 	maildrop.msginfo.info( *maildrop.msgptr );
 	maildrop.msgptr->setmsgsize();

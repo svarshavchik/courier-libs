@@ -6,6 +6,7 @@
 #include	"funcs.h"
 #include	"message.h"
 #include	"messageinfo.h"
+#include	"alarm.h"
 #include	"mio.h"
 #include	"pipefds.h"
 #include	"formatmbox.h"
@@ -252,9 +253,9 @@ int	maxfd=pipe1.fds[0];
 	pipe0.close1();
 	pipe1.close0();
 
-int	wait_stat;
+	int	wait_stat;
 
-	while (wait(&wait_stat) != pid)
+	while (Alarm::wait_child(&wait_stat) != pid)
 		;
 	wait_stat= WIFEXITED(wait_stat) ? WEXITSTATUS(wait_stat):-1;
 
@@ -320,9 +321,9 @@ void executesystem(const char *cmd)
 	}
 	close(devnull);
 
-int	wait_stat;
+	int	wait_stat;
 
-	while (wait(&wait_stat) != pid)
+	while (Alarm::wait_child(&wait_stat) != pid)
 		;
 	wait_stat= WIFEXITED(wait_stat) ? WEXITSTATUS(wait_stat):-1;
 

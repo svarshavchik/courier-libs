@@ -129,7 +129,7 @@ AlarmTimer	stat_timer;
 			}
 		}
 
-	AlarmSleep sleep(nseconds);
+		AlarmSleep sleep{nseconds};
 	}
 	if (refresh_interval >= 10)
 		refresh.Set(refresh_interval);

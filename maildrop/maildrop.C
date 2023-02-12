@@ -15,7 +15,7 @@
 
 extern void killprocgroup();
 
-
+int Maildrop::sigchildfd[2];
 int Maildrop::sigfpe;
 
 static void sig_fpe(int)
@@ -24,9 +24,16 @@ static void sig_fpe(int)
 	signal (SIGFPE, sig_fpe);
 }
 
+static void sig_chld(int)
+{
+	write(maildrop.sigchildfd[1], "", 1);
+}
+
 void Maildrop::cleanup()
 {
 	ExitTrap::onexit();
+	close(sigchildfd[0]);
+	close(sigchildfd[1]);
 	killprocgroup();
 }
 
@@ -55,7 +62,7 @@ int	n;
 #ifdef SIGWINCH
 	signal(SIGWINCH, SIG_IGN);
 #endif
-	signal(SIGCHLD, SIG_DFL);
+	signal(SIGCHLD, sig_chld);
 	signal(SIGFPE,  sig_fpe);
 
 #if SYSLOG_LOGGING

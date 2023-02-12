@@ -14,29 +14,47 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include	"config.h"
+#include	<unistd.h>
+#include	<time.h>
+#include	<map>
+#include	<time.h>
 
 class Alarm;
 
+typedef std::multimap<time_t, Alarm *> alarmlist_t;
+
 class Alarm {
 
-static Alarm *first, *last;
+	time_t expiration=0; // When this alarm expires.
+	alarmlist_t::iterator me; // Our entry in alarmlist.
 
-	Alarm *next, *prev;	// List sorted by expiration interval.
-	unsigned set_interval;	// For how many seconds we're set.
-
-	void	Unlink();
-
-static	void cancel_sig(unsigned);
-static	void set_sig();
-static	void alarm_func(int);
-static	unsigned sig_left();
 public:
-	Alarm() : next(0), prev(0), set_interval(0)	{}
+	Alarm() {}
 	virtual ~Alarm();
 
 	virtual void handler()=0;
 
 	void	Set(unsigned);
 	void	Cancel();
+
+	static pid_t wait_child(int *wstatus);
+	static void wait_alarm();
 } ;
+
+/*
+** The constructor blocks sigalarm. The destructor unblocks it.
+*/
+
+struct block_sigalarm {
+
+	struct sigs;
+
+	block_sigalarm();
+	~block_sigalarm();
+
+	block_sigalarm(const block_sigalarm &)=delete;
+
+	block_sigalarm &operator=(const block_sigalarm &)=delete;
+};
+
 #endif

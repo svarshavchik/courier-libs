@@ -53,7 +53,6 @@ FormatMbox	format_mbox;
 
 	if (format_mbox.HasMsg())	return (0);
 
-DeliverDotLock	dotlock;
 Buffer	b;
 
 	if ( *mailbox == '!' || *mailbox == '|' )
@@ -129,10 +128,10 @@ Buffer	b;
 		pipe.fds[1]= -1;
 		format_mbox.Init(0);
 
-	int	rc=format_mbox.DeliverTo(pipemio);
-	int	wait_stat;
+		int	rc=format_mbox.DeliverTo(pipemio);
+		int	wait_stat;
 
-		while (wait(&wait_stat) != pid)
+		while (Alarm::wait_child(&wait_stat) != pid)
 			;
 
 		if (wait_stat == 0)
@@ -156,8 +155,9 @@ Buffer	b;
 	}
 	else if (Maildir::IsMaildir(mailbox))
 	{
-	Maildir	deliver_maildir;
-	Mio	deliver_file;
+		block_sigalarm pause;
+		Maildir	deliver_maildir;
+		Mio	deliver_file;
 
 		if ( deliver_maildir.MaildirOpen(mailbox, deliver_file,
 			maildrop.msgptr->MessageSize()) < 0)
@@ -176,6 +176,9 @@ Buffer	b;
 	}
 	else		// Delivering to a mailbox (hopefully)
 	{
+		block_sigalarm pause;
+		DeliverDotLock	dotlock;
+
 		if (VerboseLevel() > 0)
 			merr << "maildrop: Delivering to " << mailbox << "\n";
 

@@ -1,6 +1,7 @@
 #include	"config.h"
 #include	<iostream>
-
+#include	<poll.h>
+#include	<sys/wait.h>
 
 #if HAVE_UNISTD_H
 #include	<unistd.h>
@@ -10,67 +11,67 @@ extern "C" long alarm(long);
 
 #include	<signal.h>
 #include	"alarm.h"
+#include	"maildrop.h"
 
-Alarm *Alarm::first=0;
-Alarm *Alarm::last=0;
+static alarmlist_t alarmlist;
 
 Alarm::~Alarm()
 {
 	Cancel();
 }
 
-void Alarm::Unlink()
+void Alarm::Cancel()
 {
-	set_interval=0;
-	if (prev)	prev->next=next;
-	else		first=next;
-	if (next)	next->prev=prev;
-	else		last=prev;
+	if (!expiration)
+		return;
+	alarmlist.erase(me);
+	expiration=0;
 }
 
-void Alarm::cancel_sig(unsigned seconds_left)
+static int ring()
 {
-Alarm	*p;
-Alarm	*alarm_chain=0;
+	time_t now=time(NULL);
+	bool called_handler=false;
 
-	while ((p=first) != 0 && p->set_interval <= seconds_left)
-			// Marginal case
+	alarmlist_t::iterator first;
+
+#if ALARM_DEBUG
+
+	std::cout << "Time now is " << now << "\n" << std::flush;
+
+	for (auto &a:alarmlist)
 	{
-		p->Unlink();
-		p->next=alarm_chain;
-		alarm_chain=p;
+		std::cout << "   Alarm: " << a.first << "\n" << std::flush;
+	}
+#endif
+
+	while ((first=alarmlist.begin()) != alarmlist.end())
+	{
+		if (first->first > now)
+		{
+			if (called_handler)
+				return 0;
+
+#if ALARM_DEBUG
+			std::cout << "Next alarm in "
+				  << (first->first-now) << "\n" << std::flush;
+#endif
+			return 1000 * (
+				first->first-now < 30 ? first->first-now:30
+			);
+		}
+
+		auto wake_up=first->second;
+
+#if ALARM_DEBUG
+		std::cout << "Alarm went off\n" << std::flush;
+#endif
+		wake_up->Cancel();
+		wake_up->handler();
+		called_handler=true;
 	}
 
-	for (p=first; p; p=p->next)
-		p->set_interval -= seconds_left;
-
-	while ((p=alarm_chain) != 0)
-	{
-		alarm_chain=p->next;
-		p->handler();
-	}
-}
-
-void Alarm::set_sig()
-{
-	if (!first)	return;
-	signal(SIGALRM, &Alarm::alarm_func);
-	alarm(first->set_interval);
-}
-
-void Alarm::alarm_func(int)
-{
-	if (first)	cancel_sig(first->set_interval);
-	set_sig();
-}
-
-unsigned Alarm::sig_left()
-{
-	if (!first)	return (0);
-
-unsigned n=alarm(0);
-
-	return (n ? n <= first->set_interval ? first->set_interval - n:0:0);
+	return -1;
 }
 
 void Alarm::Set(unsigned nseconds)
@@ -82,39 +83,74 @@ void Alarm::Set(unsigned nseconds)
 		return;
 	}
 
-	cancel_sig(sig_left());
+	expiration=time(NULL)+nseconds;
 
-Alarm	*p;
-
-	for (p=first; p; p=p->next)
-		if (p->set_interval > nseconds)
-			break;
-
-	if (!p)
-	{
-		next=0;
-		if ((prev=last) != 0)
-			prev->next=this;
-		else
-			first=this;
-		last=this;
-	}
-	else
-	{
-		if ((prev=p->prev) != 0)
-			prev->next=this;
-		else
-			first=this;
-		next=p;
-		p->prev=this;
-	}
-	set_interval=nseconds;
-	set_sig();
+	me=alarmlist.emplace(alarmlist_t::value_type{expiration, this});
 }
 
-void Alarm::Cancel()
+pid_t Alarm::wait_child(int *wstatus)
 {
-	cancel_sig(sig_left());
-	if (set_interval) Unlink();
-	set_sig();
+	char buf;
+	pid_t ret;
+	struct pollfd pfd;
+
+	pfd.fd=Maildrop::sigchildfd[0];
+	pfd.events=POLLIN;
+
+	while (1)
+	{
+		int timeout=ring();
+		(void)read(Maildrop::sigchildfd[0], &buf, 1);
+
+		ret=waitpid(-1, wstatus, WNOHANG);
+
+		if (ret != 0)
+			break;
+
+		poll(&pfd, 1, timeout);
+	}
+
+	return ret;
+}
+
+void Alarm::wait_alarm()
+{
+	struct pollfd pfd;
+
+	pfd.fd=-1;
+
+	auto timeout=ring();
+
+	if (timeout < 0)
+		return;
+
+	poll(&pfd, 0, timeout);
+}
+
+
+struct block_sigalarm::sigs {
+
+	sigset_t ss;
+
+	sigs() {
+		sigemptyset(&ss);
+		sigaddset(&ss, SIGALRM);
+		sigaddset(&ss, SIGTERM);
+		sigaddset(&ss, SIGHUP);
+		sigaddset(&ss, SIGINT);
+	}
+};
+
+block_sigalarm::block_sigalarm()
+{
+	sigs ss;
+
+	sigprocmask(SIG_BLOCK, &ss.ss, NULL);
+}
+
+block_sigalarm::~block_sigalarm()
+{
+	sigs ss;
+
+	sigprocmask(SIG_UNBLOCK, &ss.ss, NULL);
 }

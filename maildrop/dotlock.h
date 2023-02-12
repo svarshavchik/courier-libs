@@ -31,11 +31,10 @@ public:
 
 	friend	class DotLockRefresh;
 
+	static unsigned GetLockSleep();
 private:
-static unsigned GetLockSleep();
-static unsigned GetLockTimeout();
-static unsigned GetLockRefresh();
-static const	char *GetLockExt();
-
+	static unsigned GetLockTimeout();
+	static unsigned GetLockRefresh();
+	static const	char *GetLockExt();
 } ;
 #endif

@@ -11,7 +11,6 @@
 // Maildrop global variables
 
 #include	"buffer.h"
-#include	"globaltimer.h"
 #include	"mio.h"
 
 class Maildrop {
@@ -41,13 +40,14 @@ static	int sigfpe;		// Floating point exception trapped.
 	Buffer	init_quota;	// Initial MAILDIRQUOTA
 
 	Mio	logfile;	// Log file.
-	GlobalTimer global_timer;	// Watchdog timeout.
 	Maildrop();
 
-static void cleanup();
-static void bye(int);
-static int trap(int (*)(int, char *[]), int, char *[]);
-static void reset_vars();
+	static void cleanup();
+	static void bye(int);
+	static int trap(int (*)(int, char *[]), int, char *[]);
+	static void reset_vars();
+
+	static int sigchildfd[2];
 } ;
 
 extern class Maildrop maildrop;

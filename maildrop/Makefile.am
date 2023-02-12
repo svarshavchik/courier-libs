@@ -36,7 +36,7 @@ libmdcommon_la_LDFLAGS=-static
 
 maildrop_SOURCES=deliver.C deliverdotlock.C deliverdotlock.h \
 	dotlockmaildrop.C filelock.C filelock.h filter.C formatmbox.C \
-	formatmbox.h globaltimer.C globaltimer.h lexer.C lexer.h log.C log.h \
+	formatmbox.h lexer.C lexer.h log.C log.h \
 	maildir.C maildir.h main.C message.C message.h messageinfo.C \
 	messageinfo.h mytime.h mywait.h pipefds.C pipefds.h \
 	recipe.C recipe.h recipenode.C recipenode.h recipeparse.C reeval.C \

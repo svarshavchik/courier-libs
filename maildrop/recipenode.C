@@ -725,9 +725,13 @@ RecipeNode	*c;
 		}
 		b += '\0';
 		{
-		DotLock	d;
+			DotLock	d;
 
-			d.Lock(b);
+			{
+				block_sigalarm pause;
+
+				d.Lock(b);
+			}
 			firstChild->nextSibling->Evaluate(r, b);
 			d.Unlock();
 		}
