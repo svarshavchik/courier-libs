@@ -3950,22 +3950,6 @@ static int append(const char *tag, const char *mailbox, const char *path)
 		}
 		curtoken=nexttoken_noparseliteral();
 	}
-	else if (curtoken->tokentype == IT_ATOM)
-	{
-		if (get_flagname(curtoken->tokenbuf, &flags))
-		{
-			if (!valid_keyword(curtoken->tokenbuf))
-			{
-				libmail_kwmDestroy(keywords);
-				return -1;
-			}
-
-			libmail_kwmSetName(current_maildir_info.keywordList,
-					   keywords,
-					   curtoken->tokenbuf);
-		}
-		curtoken=nexttoken_noparseliteral();
-	}
 	else if (curtoken->tokentype == IT_NIL)
 		curtoken=nexttoken_noparseliteral();
 
