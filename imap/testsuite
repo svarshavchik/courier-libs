@@ -6,6 +6,10 @@ OPTIONS=""
 export OPTIONS
 TZ=EST5EDT
 export TZ
+if test "$PERL" = ""
+then
+    PERL="perl"
+fi
 
 echo '****************************' >&2
 echo '* Sanity check in progress *' >&2
@@ -1291,8 +1295,15 @@ X013 FETCH 1 (BODY[2]<0.4>)
 X014 FETCH 1 (ENVELOPE RFC822)
 X015 FETCH 1 (RFC822.HEADER RFC822.SIZE)
 X016 FETCH 1 (RFC822.TEXT)
+X017 APPEND INBOX (\Seen) "01-Jan-2022 12:00:00 -0500" {5}
+test
+
 XDONE LOGOUT
 EOF
+rm -f confmdtest/cur/msg1*
+
+f="`ls confmdtest/cur/*`"
+$PERL -e "use POSIX qw(strftime); print strftime(\"%m/%Y\\n\", localtime [stat('$f')]->[9])"
 rm -rf confmdtest
 
 
