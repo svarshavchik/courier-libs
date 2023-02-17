@@ -24,6 +24,10 @@ then
     VALGRIND="$VALGRIND --tool=memcheck --error-exitcode=1"
 fi
 
+set -e
+
+$VALGRIND ./testtimer
+
 if test "@USE_GDBM@@USE_DB@" != "00" -a -x ../makedat/makedatprog
 then
 
@@ -215,6 +219,7 @@ EOF
 rm testmsg.00[01]
 
 rm -f testcache.dat
+set +e
 ./reformail -D 2000 testcache.dat <<EOF
 Subject: dummy
 Message-ID: <1>
@@ -228,6 +233,7 @@ Message-ID: <1>
 EOF
 echo "Not dupe: $?"
 rm -f testcache.dat
+set -e
 
 ./reformail -x from: -x subject: <<EOF
 From: extract1@example.com

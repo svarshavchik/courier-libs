@@ -53,7 +53,7 @@ reformail_SOURCES=reformail.C
 reformail_LDADD = libmdcommon.la
 reformail_DEPENDENCIES = $(reformail_LDADD)
 
-noinst_PROGRAMS=maildrop reformail mailbot
+noinst_PROGRAMS=maildrop reformail mailbot testtimer
 
 mailbot_SOURCES=mailbot.c
 mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
@@ -64,11 +64,14 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode
 mailbot_LDFLAGS = -static
 
+testtimer_SOURCES=testtimer.C
+testtimer_LDADD=libmdcommon.la
+
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
 	maildrop.lsm testsuite.txt.idn testsuite2
 
 check-am: testsuite
-	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ ./testsuite | diff -U 3 - $(srcdir)/testsuite.txt.idn
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ ./testsuite >testsuite.diff || exit 1; diff -U 3 testsuite.diff $(srcdir)/testsuite.txt.idn || exit 1; rm -f testsuite.diff
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ $(srcdir)/testsuite2
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
