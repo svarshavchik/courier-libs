@@ -3,6 +3,16 @@
 #include <unistd.h>
 #include <iostream>
 
+extern "C" {
+
+	void rfc2045_error(const char *p)
+	{
+		fprintf(stderr, "%s\n", p);
+		fflush(stderr);
+		exit(1);
+	}
+}
+
 int main()
 {
 	alarm(30);
