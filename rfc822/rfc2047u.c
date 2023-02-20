@@ -14,9 +14,7 @@
 #include	"rfc822hdr.h"
 #include	"rfc2047.h"
 
-#if LIBIDN
 #include <idn2.h>
-#endif
 
 
 static ssize_t rfc822_decode_rfc2047_atom(const char *str,
@@ -321,15 +319,12 @@ int rfc822_display_addr_str(const char *tok,
 
 	if (chset != NULL)
 	{
-#if LIBIDN
 		int err=0;
-#endif
 		char *utf8_ptr;
 
 		if (p > tok)
 			(*print_func)(tok, p-tok, ptr);
 
-#if LIBIDN
 		/*
 		** Invalid UTF-8 can make libidn go off the deep end. Add
 		** padding as a workaround.
@@ -349,9 +344,6 @@ int rfc822_display_addr_str(const char *tok,
 
 		if (err != IDNA_SUCCESS)
 			utf8_ptr=0;
-#else
-		utf8_ptr=0;
-#endif
 
 		if (utf8_ptr == 0)
 			(*print_func)(p, strlen(p), ptr);

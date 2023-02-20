@@ -13,9 +13,7 @@
 
 #include	"rfc822hdr.h"
 #include	"rfc2047.h"
-#if LIBIDN
 #include <idn2.h>
-#endif
 
 
 #define	RFC2047_ENCODE_FOLDLENGTH	76
@@ -43,7 +41,6 @@ static char *rfc822_encode_domain_int(const char *pfix,
 {
 	char *q;
 
-#if LIBIDN
 	int err;
 	char *p;
 	size_t s=strlen(domain)+16;
@@ -68,14 +65,6 @@ static char *rfc822_encode_domain_int(const char *pfix,
 		errno=EINVAL;
 		return NULL;
 	}
-#else
-	char *p;
-
-	p=strdup(domain);
-
-	if (!p)
-		return NULL;
-#endif
 
 	q=malloc(strlen(p)+pfix_len+1);
 
