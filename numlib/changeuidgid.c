@@ -52,10 +52,11 @@ void libmail_changeuidgid(uid_t uid, gid_t gid)
  */
 uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 {
-	size_t bufsize;
+	int bufsize;
 	char *buf;
 	struct passwd pwbuf;
 	struct passwd *pw;
+	int s;
 
 	/*
 	** uname might be a pointer returned from a previous called to getpw(),
@@ -70,35 +71,39 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 	}
 	strcpy(p, uname);
 
-#ifdef _SC_GETGR_R_SIZE_MAX
-	bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+#ifdef _SC_GETPW_R_SIZE_MAX
+	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 	if (bufsize == -1)          /* Value was indeterminate */
-	{
 #endif
+	{
 		bufsize = 16384;        /* Should be more than enough */
 	}
 
-	buf = malloc(bufsize);
-	if (buf == NULL)
-	{
-		perror("malloc");
-		exit(1);
-	}
+	do {
+		buf = malloc(bufsize);
+		if (buf == NULL)
+		{
+			perror("malloc");
+			exit(1);
+		}
 
+		s = getpwnam_r(p, &pwbuf, buf, bufsize, &pw);
+		if (s == ERANGE) {
+			free(buf);
+			bufsize += 1024;
+		}
+	} while (s == ERANGE && bufsize <= 65536);
 
-	errno=ENOENT;
-
-	getpwnam_r(p, &pwbuf, buf, bufsize, &pw);
-
-	free(buf);
+	free(p);
 
 	if (pw == 0)
 	{
-		free(p);
-		perror("getpwnam");
+		errno = s;
+		perror("getpwnam_r");
 		exit(1);
 	}
-	free(p);
+
+	free(buf);
 
 	if ( pw_gid ) *pw_gid = pw->pw_gid;
 
@@ -149,7 +154,7 @@ gid_t libmail_getgid(const char *gname)
 	struct group grp;
 	struct group *result;
 	char *buf;
-	size_t bufsize;
+	int bufsize;
 	int s;
 	char	*p=malloc(strlen(gname)+1);
 
@@ -168,14 +173,21 @@ gid_t libmail_getgid(const char *gname)
 		bufsize = 16384;        /* Should be more than enough */
 	}
 
-	buf = malloc(bufsize);
-	if (buf == NULL)
-	{
-		perror("malloc");
-		exit(1);
-	}
+	do {
+		buf = malloc(bufsize);
+		if (buf == NULL)
+		{
+			perror("malloc");
+			exit(1);
+		}
 
-	s = getgrnam_r(p, &grp, buf, bufsize, &result);
+		s = getgrnam_r(p, &grp, buf, bufsize, &result);
+		if (s == ERANGE) {
+			free(buf);
+			bufsize += 1024;
+		}
+	} while (s == ERANGE && bufsize <= 65536);
+
 	free(p);
 
 	if (result == NULL)
@@ -187,7 +199,7 @@ gid_t libmail_getgid(const char *gname)
 		else
 		{
 			errno = s;
-			perror("getpwnam_r");
+			perror("getgrnam_r");
 		}
 		exit(1);
 	}
