@@ -52,7 +52,7 @@ void libmail_changeuidgid(uid_t uid, gid_t gid)
  */
 uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 {
-	size_t bufsize;
+	int bufsize;
 	char *buf;
 	struct passwd pwbuf;
 	struct passwd *pw;
@@ -149,7 +149,7 @@ gid_t libmail_getgid(const char *gname)
 	struct group grp;
 	struct group *result;
 	char *buf;
-	size_t bufsize;
+	int bufsize;
 	int s;
 	char	*p=malloc(strlen(gname)+1);
 
