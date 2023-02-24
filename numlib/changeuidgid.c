@@ -56,6 +56,7 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 	char *buf;
 	struct passwd pwbuf;
 	struct passwd *pw;
+	int s;
 
 	/*
 	** uname might be a pointer returned from a previous called to getpw(),
@@ -78,27 +79,31 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 		bufsize = 16384;        /* Should be more than enough */
 	}
 
-	buf = malloc(bufsize);
-	if (buf == NULL)
-	{
-		perror("malloc");
-		exit(1);
-	}
+	do {
+		buf = malloc(bufsize);
+		if (buf == NULL)
+		{
+			perror("malloc");
+			exit(1);
+		}
 
+		s = getpwnam_r(p, &pwbuf, buf, bufsize, &pw);
+		if (s == ERANGE) {
+			free(buf);
+			bufsize += 1024;
+		}
+	} while (s == ERANGE && bufsize <= 65536);
 
-	errno=ENOENT;
-
-	getpwnam_r(p, &pwbuf, buf, bufsize, &pw);
-
-	free(buf);
+	free(p);
 
 	if (pw == 0)
 	{
-		free(p);
+		errno = s;
 		perror("getpwnam_r");
 		exit(1);
 	}
-	free(p);
+
+	free(buf);
 
 	if ( pw_gid ) *pw_gid = pw->pw_gid;
 
@@ -168,14 +173,21 @@ gid_t libmail_getgid(const char *gname)
 		bufsize = 16384;        /* Should be more than enough */
 	}
 
-	buf = malloc(bufsize);
-	if (buf == NULL)
-	{
-		perror("malloc");
-		exit(1);
-	}
+	do {
+		buf = malloc(bufsize);
+		if (buf == NULL)
+		{
+			perror("malloc");
+			exit(1);
+		}
 
-	s = getgrnam_r(p, &grp, buf, bufsize, &result);
+		s = getgrnam_r(p, &grp, buf, bufsize, &result);
+		if (s == ERANGE) {
+			free(buf);
+			bufsize += 1024;
+		}
+	} while (s == ERANGE && bufsize <= 65536);
+
 	free(p);
 
 	if (result == NULL)
