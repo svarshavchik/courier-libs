@@ -73,8 +73,8 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 #ifdef _SC_GETPW_R_SIZE_MAX
 	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 	if (bufsize == -1)          /* Value was indeterminate */
-	{
 #endif
+	{
 		bufsize = 16384;        /* Should be more than enough */
 	}
 
