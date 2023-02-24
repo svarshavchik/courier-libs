@@ -95,7 +95,7 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 	if (pw == 0)
 	{
 		free(p);
-		perror("getpwnam");
+		perror("getpwnam_r");
 		exit(1);
 	}
 	free(p);
@@ -187,7 +187,7 @@ gid_t libmail_getgid(const char *gname)
 		else
 		{
 			errno = s;
-			perror("getpwnam_r");
+			perror("getgrnam_r");
 		}
 		exit(1);
 	}
