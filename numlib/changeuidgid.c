@@ -70,8 +70,8 @@ uid_t libmail_getuid(const char *uname, gid_t *pw_gid)
 	}
 	strcpy(p, uname);
 
-#ifdef _SC_GETGR_R_SIZE_MAX
-	bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+#ifdef _SC_GETPW_R_SIZE_MAX
+	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 	if (bufsize == -1)          /* Value was indeterminate */
 	{
 #endif
