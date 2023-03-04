@@ -25,6 +25,11 @@ public:
 			if (nodenums)	delete[] nodenums;
 			}
 	void	init(unsigned maxsize);
+
+	ReEval(const ReEval &)=delete;
+	ReEval &operator=(const ReEval &)=delete;
+
+
 private:
 	unsigned	arysize;
 } ;

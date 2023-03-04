@@ -18,11 +18,14 @@ unset LC_TELEPHONE
 unset LC_MEASUREMENT
 unset LC_IDENTIFICATION
 unset LC_ALL
+unset VERBOSE
 
 if test "$VALGRIND" != ""
 then
     VALGRIND="$VALGRIND --tool=memcheck --error-exitcode=1"
 fi
+
+VALGRIND=""
 
 set -e
 
@@ -40,7 +43,7 @@ EOF
 $VALGRIND ../makedat/makedatprog testsuite.chk testsuite.tmp testsuite.dat
 
 cat <<EOF >testsuite.recipe
-if ( gdbmopen("$PWD/testsuite.dat", "R") != 0 )
+if ( gdbmopen("$PWD/testsuite.dat", "W") != 0 )
 {
 	exit
 }
@@ -52,6 +55,9 @@ FOO=gdbmfetch("foobar@foo.bar.com", "D")
 echo "FOO: \$FOO"
 FOO=gdbmfetch("foobaz@foo.bar.com", "D")
 echo "FOO: \$FOO"
+gdbmstore("foobaz@foo.bar.com", "BAR");
+FOO=gdbmfetch("foobaz@foo.bar.com", "D")
+echo "FOO: \$FOO"
 EOF
 
 chmod go-rw testsuite.recipe
@@ -59,8 +65,10 @@ cat <<EOF >testsuite.chk
 FOO: bar
 FOO: barfoo
 FOO: foobar
+FOO: BAR
 EOF
-$VALGRIND ./maildrop ./testsuite.recipe </dev/null | diff - testsuite.chk
+$VALGRIND ./maildrop ./testsuite.recipe </dev/null >teststdin
+diff teststdin testsuite.chk
 
 fi
 
@@ -107,8 +115,8 @@ Delivered message one
 Done.
 EOF
 	echo "To: testsuite" >testsuite.stdin
-	$VALGRIND ./maildrop ./testsuite.recipe <testsuite.stdin \
-		| diff - testsuite.chk
+	$VALGRIND ./maildrop ./testsuite.recipe <testsuite.stdin >testsuite.chk2
+	diff testsuite.chk2 testsuite.chk
 fi
 
 
@@ -591,9 +599,90 @@ LANG=en_US.utf-8 $VALGRIND ./mailbot -T feedback -R abuse -n -N -m testmailbot.m
     --feedback-incidents 2 \
     <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/;s/User-Agent:.*//'
 
+cat >testsuite.msg <<EOF
+logfile "./nonexistent/logfile"
+EOF
+rm -f testsuite.lock
+
+cat >testsuite.recipe <<EOF
+f="x"
+f=\`echo ' '; echo Yes; echo ' '\`
+g="y\${f}z\$f"
+g=escape('+')
+echo \$g
+if (1)
+{
+  g="1"
+}
+exception {
+  include "./testsuite.msg"
+}
+import PATH
+dotlock "testsuite.lock" {
+   logfile "/dev/null"
+   log "Logging"
+}
+flock "testsuite.lock" {
+}
+exit
+EOF
+chmod 600 testsuite.recipe
+$VALGRIND  ./maildrop -V 9 ./testsuite.recipe 2>&1 </dev/null
+
+cat >testsuite.msg <<EOF
+Header: one
+Header: two
+
+ok
+EOF
+cat >testsuite.chk <<EOF
+one
+two
+EOF
+cat >testsuite.recipe <<EOF
+foreach /Header: (.*)/
+{
+  echo "Matched: \$MATCH"
+}
+
+if (lookup("one", "testsuite.chk", ""))
+{
+  echo "One found"
+}
+
+if (lookup("two", "testsuite.chk", ""))
+{
+  echo "Two found"
+}
+
+if (lookup("three", "testsuite.chk", ""))
+{
+  echo "Two found"
+}
+echo substr("abc", 1)
+echo substr("abc", 1, 2)
+
+echo "a" =~ /a/;
+echo "a" =~ /b/;
+
+i=0
+while (\$i < 5)
+{
+    echo \$i
+    i=\$i+1
+}
+system "exit 0"
+echo tolower("Alpha")
+echo toupper("BETA");
+unset i
+exit
+EOF
+$VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
+
 rm -f testsuite.recipe
 rm -f testsuite.msg
-rm -f testsuite.chk
+rm -f testsuite.lock
+rm -f testsuite.chk*
 rm -f testmailbot.msg
 rm -f testmailbot.1
 rm -f testsuite.dat

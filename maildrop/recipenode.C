@@ -528,7 +528,7 @@ RecipeNode	*c;
 
 				debug="Operation: ";
 				debug += " strsubstr=";
-				debug.append(b);
+				debug += b;
 				debug += '\0';
 				r.errmsg(*this, debug);
 			}
@@ -548,6 +548,7 @@ RecipeNode	*c;
 			Buffer	buf;
 
 				buf="Evaluating WHILE condition.";
+				buf += '\0';
 				r.errmsg(*this, buf);
 			}
 			firstChild->Evaluate(r,b);
