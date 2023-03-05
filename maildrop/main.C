@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2009 Double Precision, Inc.
+** Copyright 1998 - 2023 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -182,7 +182,7 @@ char    hostname[256];
 
 static void copyright()
 {
-static const char msg[]="maildrop " VERSION " Copyright 1998-2018 Double Precision, Inc."
+static const char msg[]="maildrop " VERSION " Copyright 1998-2023 Double Precision, Inc."
 
 #if CRLF_TERM
 	"\r\n"
@@ -543,7 +543,7 @@ const	char *dovecotauth_addr=0;
 			break;
 		case 'V':
 			if (!*optarg && argn < argc)	optarg=argv[argn++];
-			maildrop.verbose_level=atoi(optarg);
+			SetVar("VERBOSE", optarg);
 			break;
 		case 'v':
 			copyright();

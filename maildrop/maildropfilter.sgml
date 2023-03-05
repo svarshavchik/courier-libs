@@ -872,12 +872,6 @@ From: postmaster@localhost
 
       <note>
 	<para>
-	  Subpatterns are not processed in the <literal>foreach</literal>
-	  statement.</para>
-      </note>
-
-      <note>
-	<para>
 	  The contents of all <varname>MATCH</varname> variables use UTF-8
 	  encoding. As explained in <xref linkend="maildropfilter_patterns" />
 	  the message gets transcoded into a canonical UTF-8 format,
@@ -1234,8 +1228,16 @@ foreach (expression) =~ /pattern/:options
 	<para>
 	  The <command>foreach</command> statement executes a block of statements for
 	  each
-	  occurrence of the given pattern in the given message, or expression. On every
-	  iteration <varname>MATCH</varname> variable will be set to the matched string.
+	  occurrence of the given pattern in the given message, or expression.
+	  On every
+	  iteration <varname>MATCH</varname> variable will be set to the
+	  matched string.
+	  Subpatterns set <varname>MATCH1</varname>,
+	  <varname>MATCH2</varname>, and so on, before
+	  beginning each iteration.
+	</para>
+
+	<para>
 	  All the usual options may be applied to the pattern match,
 	  EXCEPT the following:
 	  <variablelist>
@@ -1244,15 +1246,6 @@ foreach (expression) =~ /pattern/:options
 	      <listitem>
 		<para>
 		  Weighted scoring is meaningless, in this context.</para>
-	      </listitem>
-	    </varlistentry>
-	    <varlistentry>
-	      <term>( ... )</term>
-	      <listitem>
-		<para>
-		  Subpatterns are not processed.
-		  Only the <varname>MATCH</varname> variable will be set for each found
-		  pattern.</para>
 	      </listitem>
 	    </varlistentry>
 	  </variablelist>

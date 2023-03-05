@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2023 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 PWD=`pwd`
@@ -605,7 +605,7 @@ EOF
 rm -f testsuite.lock
 
 cat >testsuite.recipe <<EOF
-f="x"
+echo "VERBOSE=\$VERBOSE"; f="x"
 f=\`echo ' '; echo Yes; echo ' '\`
 g="y\${f}z\$f"
 g=escape('+')
@@ -642,7 +642,7 @@ EOF
 cat >testsuite.recipe <<EOF
 foreach /Header: (.*)/
 {
-  echo "Matched: \$MATCH"
+  echo "Matched: \$MATCH (\$MATCH1)"
 }
 
 if (lookup("one", "testsuite.chk", ""))

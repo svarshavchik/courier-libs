@@ -715,6 +715,9 @@ Content-Type: text/plain; charset=iso-8859-1
 --
 Message envelope sender=MAILER-DAEMON
 maildrop: Attempting ./testsuite.recipe
+Tokenized echo
+Tokenized string: "VERBOSE=$VERBOSE"
+Tokenized ;
 Tokenized string: "f"
 Tokenized =
 Tokenized string: "x"
@@ -782,6 +785,7 @@ Tokenized ;
 Tokenized exit
 Tokenized ;
 Tokenized eof
+VERBOSE=9
 ./testsuite.recipe(1): f="x"
 maildrop: Filtering through `echo ' '; echo Yes; echo ' '`
 ./testsuite.recipe(2): f="Yes"
@@ -811,7 +815,7 @@ Tokenized ;
 Tokenized {
 Tokenized ;
 Tokenized echo
-Tokenized string: "Matched: $MATCH"
+Tokenized string: "Matched: $MATCH ($MATCH1)"
 Tokenized ;
 Tokenized }
 Tokenized ;
@@ -956,8 +960,8 @@ Tokenized eof
 Matching /Header: (.*)/ against Header: one
 Matching /Header: (.*)/ against Header: two
 ./testsuite.recipe(1): Search of Header: (.*) = 2
-Matched: Header: one
-Matched: Header: two
+Matched: Header: one (one)
+Matched: Header: two (two)
 ./testsuite.recipe(6): Evaluating IF condition.
 Matching /one/ against one
 ./testsuite.recipe(6): IF evaluated, result=1
