@@ -679,6 +679,39 @@ exit
 EOF
 $VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
 
+rm -rf testsuite.maildir
+../maildir/maildirmake ./testsuite.maildir
+
+cat >testsuite.recipe <<EOF
+KEYWORDS="alpha,beta"
+to "./testsuite.maildir"
+EOF
+cat >testsuite.msg <<EOF
+From: mrsam
+EOF
+$VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
+../maildir/maildirkw -L ./testsuite.maildir | tr ' ' '\012' | sed 1d | sort
+
+cat >testsuite.recipe <<EOF
+if (0 < 1 || 1 < 2)
+{
+}
+
+if ( 1 > 2 && 2 > 3)
+{
+}
+
+if ( 1 <= 2 && 2 >= 1 && 1 == 1 && 1 != 2 && "a" lt "b" && "a" le "a" && \
+     "b" gt "a" && b ge "b" && "a" eq "a" && "a" ne "b")
+{
+}
+
+1 | 2;
+3 & 1;
+1 + 2*3 - 4 / 4
+length("abc")
+EOF
+$VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
 rm -f testsuite.recipe
 rm -f testsuite.msg
 rm -f testsuite.lock

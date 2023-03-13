@@ -1026,3 +1026,183 @@ maildrop: Executing system command exit 0
 alpha
 BETA
 ./testsuite.recipe(35): unset i
+Message envelope sender=MAILER-DAEMON
+maildrop: Attempting ./testsuite.recipe
+Tokenized string: "KEYWORDS"
+Tokenized =
+Tokenized string: "alpha,beta"
+Tokenized ;
+Tokenized to
+Tokenized string: "./testsuite.maildir"
+Tokenized ;
+Tokenized eof
+./testsuite.recipe(1): KEYWORDS="alpha,beta"
+maildrop: Delivery complete.
+alpha
+beta
+Message envelope sender=MAILER-DAEMON
+maildrop: Attempting ./testsuite.recipe
+Tokenized if
+Tokenized (
+Tokenized string: "0"
+Tokenized <
+Tokenized string: "1"
+Tokenized ||
+Tokenized string: "1"
+Tokenized <
+Tokenized string: "2"
+Tokenized )
+Tokenized ;
+Tokenized {
+Tokenized ;
+Tokenized }
+Tokenized ;
+Tokenized ;
+Tokenized if
+Tokenized (
+Tokenized string: "1"
+Tokenized >
+Tokenized string: "2"
+Tokenized &&
+Tokenized string: "2"
+Tokenized >
+Tokenized string: "3"
+Tokenized )
+Tokenized ;
+Tokenized {
+Tokenized ;
+Tokenized }
+Tokenized ;
+Tokenized ;
+Tokenized if
+Tokenized (
+Tokenized string: "1"
+Tokenized <=
+Tokenized string: "2"
+Tokenized &&
+Tokenized string: "2"
+Tokenized >=
+Tokenized string: "1"
+Tokenized &&
+Tokenized string: "1"
+Tokenized ==
+Tokenized string: "1"
+Tokenized &&
+Tokenized string: "1"
+Tokenized !=
+Tokenized string: "2"
+Tokenized &&
+Tokenized string: "a"
+Tokenized lt
+Tokenized string: "b"
+Tokenized &&
+Tokenized string: "a"
+Tokenized le
+Tokenized string: "a"
+Tokenized &&
+Tokenized string: "b"
+Tokenized gt
+Tokenized string: "a"
+Tokenized &&
+Tokenized string: "b"
+Tokenized ge
+Tokenized string: "b"
+Tokenized &&
+Tokenized string: "a"
+Tokenized eq
+Tokenized string: "a"
+Tokenized &&
+Tokenized string: "a"
+Tokenized ne
+Tokenized string: "b"
+Tokenized )
+Tokenized ;
+Tokenized {
+Tokenized ;
+Tokenized }
+Tokenized ;
+Tokenized ;
+Tokenized string: "1"
+Tokenized |
+Tokenized string: "2"
+Tokenized ;
+Tokenized ;
+Tokenized string: "3"
+Tokenized &
+Tokenized string: "1"
+Tokenized ;
+Tokenized ;
+Tokenized string: "1"
+Tokenized +
+Tokenized string: "2"
+Tokenized *
+Tokenized string: "3"
+Tokenized -
+Tokenized string: "4"
+Tokenized /
+Tokenized string: "4"
+Tokenized ;
+Tokenized length
+Tokenized (
+Tokenized string: "abc"
+Tokenized )
+Tokenized ;
+Tokenized eof
+./testsuite.recipe(1): Evaluating IF condition.
+./testsuite.recipe(1): Operation on: 0 and 1 - less than, result is 1
+./testsuite.recipe(1): Operation: logical or, left hand side=1
+./testsuite.recipe(1): Operation: logical or, result=1
+./testsuite.recipe(1): IF evaluated, result=1
+./testsuite.recipe(5): Evaluating IF condition.
+./testsuite.recipe(5): Operation on: 1 and 2 - greater than, result is 0
+./testsuite.recipe(5): Operation: logical and, left hand side=0
+./testsuite.recipe(5): Operation: logical and, result=0
+./testsuite.recipe(5): IF evaluated, result=0
+./testsuite.recipe(9): Evaluating IF condition.
+./testsuite.recipe(9): Operation on: 1 and 2 - less than or equal, result is 1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: 2 and 1 - greater than or equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: 1 and 1 - equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: 1 and 2 - not equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: a and b - string less than, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: a and a - string less than or equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: b and a - string greater than, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: b and b - string grater than or equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: a and a - string equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): Operation: logical and, left hand side=1
+./testsuite.recipe(9): Operation: logical and, evaluating right hand size.
+./testsuite.recipe(9): Operation on: a and b - string not equal, result is 1
+./testsuite.recipe(9): Operation: logical and, result=1
+./testsuite.recipe(9): IF evaluated, result=1
+./testsuite.recipe(13): Operation on: 1 and 2 - bitwise or, result is 3
+./testsuite.recipe(14): Operation on: 3 and 1 - bitwise and, result is 1
+./testsuite.recipe(15): Operation on: 2 and 3 - multiply, result is 6
+./testsuite.recipe(15): Operation on: 1 and 6 - add, result is 7
+./testsuite.recipe(15): Operation on: 4 and 4 - divide, result is 1
+./testsuite.recipe(15): Operation on: 7 and 1 - subtract, result is 6
+./testsuite.recipe(16): Operation on: abc - strlength.
+./testsuite.recipe(16): Operation: strlength=3
+maildrop: Delivery complete.

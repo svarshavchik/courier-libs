@@ -354,35 +354,6 @@ MAILBOX="${HOME-WORD}/Mailbox"
 	      delivered.
 
 	</para></listitem></varlistentry>
-	<varlistentry>
-	  <term><varname>MAILDROP_OLD_REGEXP</varname></term>
-
-	  <listitem>
-	    <para>
-	      Revert to using the old legacy pattern matching engine.
-	      Versions of <command>maildrop</command> prior to version 2.0
-	      (included in the <application>Courier</application> mail server 0.51,
-	      and earlier), used a built-in pattern matching engine, instead of using the
-	      <acronym>PCRE</acronym>
-	      library (see
-	      <xref linkend="patterns" />).
-	      <command>maildrop</command> 1.x used a different syntax for patterns, which
-	      is no longer described in this manual page.
-	      The old pattern matching engine is still available, by
-	      setting <varname>MAILDROP_OLD_REGEXP</varname> to <quote>1</quote>.
-	      Setting this variable will use the legacy pattern matching engine for the
-	      rest of the <command>maildrop</command> recipe file.</para>
-
-	    <para>
-	      The pattern matching engine will be removed completely in a future version
-	      of maildrop.
-	      This setting provides for a transitional period of converting old recipes.
-	      <varname>MAILDROP_OLD_REGEXP</varname> can be set to <quote>1</quote> in
-	      the global <filename>maildroprc</filename> file, then reset to <quote>0</quote>
-	      in each individual <command>maildrop</command> recipe file, after it gets
-	      converted to the new syntax.</para>
-	  </listitem>
-	</varlistentry>
 	<varlistentry><term><varname>MAILFILTER</varname></term><listitem><para>This is the name of the original <systemitem class="resource">filter file</systemitem>
 	      that was given to <command>maildrop</command> on the command line. This is mostly
 	      useful to <literal>-default</literal> <systemitem class="resource">filter file</systemitem>s, it allows them to
