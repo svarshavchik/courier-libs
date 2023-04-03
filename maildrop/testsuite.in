@@ -710,6 +710,7 @@ if ( 1 <= 2 && 2 >= 1 && 1 == 1 && 1 != 2 && "a" lt "b" && "a" le "a" && \
 3 & 1;
 1 + 2*3 - 4 / 4
 length("abc")
+exit
 EOF
 $VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
 rm -f testsuite.recipe

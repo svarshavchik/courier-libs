@@ -1147,6 +1147,8 @@ Tokenized (
 Tokenized string: "abc"
 Tokenized )
 Tokenized ;
+Tokenized exit
+Tokenized ;
 Tokenized eof
 ./testsuite.recipe(1): Evaluating IF condition.
 ./testsuite.recipe(1): Operation on: 0 and 1 - less than, result is 1
@@ -1205,4 +1207,3 @@ Tokenized eof
 ./testsuite.recipe(15): Operation on: 7 and 1 - subtract, result is 6
 ./testsuite.recipe(16): Operation on: abc - strlength.
 ./testsuite.recipe(16): Operation: strlength=3
-maildrop: Delivery complete.
