@@ -404,13 +404,8 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		std::string b;
-
-		b.set(auth->sysgroupid);
-		b.push(0);
-
 		merr << "maildrop: dovecotauth: groupid="
-		     << b << "\n";
+		     << auth->sysgroupid << "\n";
 	}
 
 	setgroupid(auth->sysgroupid);
@@ -436,13 +431,8 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		std::string b;
-
-		b.set(u);
-		b.push(0);
-
 		merr << "maildrop: dovecotauth: userid="
-		     << b << "\n";
+		     << u << "\n";
 	}
 
 	setuid(u);
