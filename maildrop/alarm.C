@@ -100,7 +100,8 @@ pid_t Alarm::wait_child(int *wstatus)
 	while (1)
 	{
 		int timeout=ring();
-		(void)read(Maildrop::sigchildfd[0], &buf, 1);
+		if (read(Maildrop::sigchildfd[0], &buf, 1) < 0)
+			;
 
 		ret=waitpid(-1, wstatus, WNOHANG);
 

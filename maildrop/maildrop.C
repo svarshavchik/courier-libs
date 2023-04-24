@@ -26,7 +26,8 @@ static void sig_fpe(int)
 
 static void sig_chld(int)
 {
-	write(maildrop.sigchildfd[1], "", 1);
+	if (write(maildrop.sigchildfd[1], "", 1) < 0)
+		;
 }
 
 void Maildrop::cleanup()

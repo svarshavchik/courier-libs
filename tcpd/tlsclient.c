@@ -447,10 +447,16 @@ static int do_couriertls_start(char **args, struct couriertls_info *cinfo)
 			{
 				int l=strlen(cinfo->errmsg);
 
-				readbuf[n]=0;
-				if (l < sizeof(cinfo->errmsg)-2)
-					strncat(cinfo->errmsg, readbuf,
-						sizeof(cinfo->errmsg)-2-l);
+				if (n > sizeof(cinfo->errmsg)-2-l)
+				{
+					n=sizeof(cinfo->errmsg)-2-l;
+				}
+
+				if (n > 0)
+				{
+					memcpy(cinfo->errmsg+l, readbuf, n);
+					cinfo->errmsg[l+n]=0;
+				}
 			}
 		}
 

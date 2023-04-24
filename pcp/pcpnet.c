@@ -2106,6 +2106,7 @@ static int retr_107(struct PCPnet *pn, struct PCP_retr *ri, int ignore)
 
 	if (rc == 0 && ri->callback_end_func)
 		rc= (*ri->callback_end_func)(ri, ri->callback_arg);
+	ri->event_id=0;
 	return (rc);
 }
 
