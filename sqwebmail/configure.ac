@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT([sqwebmail],[6.1.2],[courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[6.2.0],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -93,22 +93,45 @@ then
 	AC_MSG_ERROR([pcre2-config was not found, please install PCRE2])
 fi
 
-AC_ARG_WITH(ispell,
-[  --without-ispell      Do not compile ispell support
-  --with-ispell=prog    Pathname to ispell (if not in default path)],
-	ispell="$withval", [ AC_PATH_PROGS(ispell, aspell ispell, N, $LPATH) ] )
+AC_PATH_PROGS(hunspell, hunspell, [], [$LPATH])
+AC_PATH_PROGS(ispell,[aspell ispell], [], [$LPATH])
 
-case $ispell in
-"/"*)
-	AC_DEFINE_UNQUOTED(ISPELL, "$ispell",
-	[ Path to ispell or aspell ])
-	;;
-*)
-	ispell=""
-	;;
-esac
+AC_ARG_WITH(spellcheck,
+	[AS_HELP_STRING([--without-spellchk],
+		[Disable spell checking support])],
 
-AM_CONDITIONAL(ISPELL, test "$ispell" != "")
+	[ spellcheck="$withval" ], [
+
+if test "$hunspell" != ""
+then
+	spellcheck=hunspell
+	ac_configure_args="$ac_configure_args --with-spellcheck=hunspell"
+else
+	if test "$ispell" = ""
+	then
+		spellcheck=ispell
+		ac_configure_args="$ac_configure_args --with-spellcheck=ispell"
+	fi
+fi
+
+])
+
+if test "$spellcheck" = "hunspell"
+then
+	if test "$hunspell" = ""
+	then
+		AC_MSG_ERROR([hunspell not found])
+	fi
+	AC_DEFINE_UNQUOTED(ISPELL, "$hunspell", [Spell checker])
+else
+	if test "$ispell" = ""
+	then
+		AC_MSG_ERROR([ispell or aspell not found])
+	fi
+	AC_DEFINE_UNQUOTED(ISPELL, "$ispell", [Spell checker])
+fi
+
+AM_CONDITIONAL(ISPELL, test "$ispell$hunspell" != "")
 
 AC_ARG_ENABLE(autorenamesent, [
   --enable-autorenamesent   Enable Autorename Sent folder periodically (default)

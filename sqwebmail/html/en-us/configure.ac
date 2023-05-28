@@ -29,9 +29,18 @@ eval "datadir=$datadir"
 htmldir="$datadir/sqwebmail/html"
 AC_SUBST(htmldir)
 
+DICT=english
 
+AC_ARG_WITH(spellcheck, [], [ spellcheck="$withval" ], [spellcheck = ""])
+
+if test "$spellcheck" = "hunspell"
+then
+	DICT=en_US
+fi
+
+AC_SUBST(DICT)
 AC_SUBST(htmldir)
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile ISPELLDICT])
 AC_OUTPUT
