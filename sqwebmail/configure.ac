@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT([sqwebmail],[6.2.0],[courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[6.2.1],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -97,7 +97,7 @@ AC_PATH_PROGS(hunspell, hunspell, [], [$LPATH])
 AC_PATH_PROGS(ispell,[aspell ispell], [], [$LPATH])
 
 AC_ARG_WITH(spellcheck,
-	[AS_HELP_STRING([--without-spellchk],
+	[AS_HELP_STRING([--without-spellcheck],
 		[Disable spell checking support])],
 
 	[ spellcheck="$withval" ], [
@@ -113,7 +113,7 @@ else
 		ac_configure_args="$ac_configure_args --with-spellcheck=ispell"
 	fi
 fi
-
+r
 ])
 
 if test "$spellcheck" = "hunspell"
@@ -123,7 +123,10 @@ then
 		AC_MSG_ERROR([hunspell not found])
 	fi
 	AC_DEFINE_UNQUOTED(ISPELL, "$hunspell", [Spell checker])
-else
+fi
+
+if test "$spellcheck" = "ispell"
+then
 	if test "$ispell" = ""
 	then
 		AC_MSG_ERROR([ispell or aspell not found])

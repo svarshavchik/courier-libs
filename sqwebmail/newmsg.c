@@ -535,8 +535,10 @@ void newmsg_init(const char *folder, const char *pos)
 	const char	*attachmentslab=getarg("ATTACHMENTS");
 	const char      *uploadlab=getarg("UPLOAD");
 	const char	*replysalutation=getarg("SALUTATION");
+#ifdef ISPELL
 	const char	*checkspellingdone=getarg("SPELLCHECKDONE");
 	const char	*checkspelling=getarg("CHECKSPELLING");
+#endif
 	const char	*quotaerr=getarg("QUOTAERR");
 	const char	*fromlab=getarg("FROMLAB");
 	const char	*replytolab=getarg("REPLYTOLAB");
@@ -1018,7 +1020,7 @@ int dsn;
 			execl(SENDITSH, "sendit.sh", returnaddr,
 				sqwebmail_mailboxid, NULL);
 		}
-			
+
 		if (fwrite(noexec, 1, sizeof(noexec)-1, stderr))
 			; /* ignore */
 		_exit(1);
@@ -1097,7 +1099,7 @@ int dsn;
 							replytomsg);
 				if (replytofolder)	free(replytofolder);
 				if (replytomsg)	free(replytomsg);
-				
+
 				maildir_quota_deleted(".",
 						      -(long)filesize, -1);
 

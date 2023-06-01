@@ -1,3 +1,9 @@
+6.2.1
+
+2023-06-01  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix --without-spellcheck
+
 6.2.0
 
 2023-05-28  Sam Varshavchik  <mrsam@courier-mta.com>
