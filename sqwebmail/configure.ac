@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
-AC_INIT([sqwebmail],[6.2.1],[courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[6.2.2],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -107,13 +107,13 @@ then
 	spellcheck=hunspell
 	ac_configure_args="$ac_configure_args --with-spellcheck=hunspell"
 else
-	if test "$ispell" = ""
+	if test "$ispell" != ""
 	then
 		spellcheck=ispell
 		ac_configure_args="$ac_configure_args --with-spellcheck=ispell"
 	fi
 fi
-r
+
 ])
 
 if test "$spellcheck" = "hunspell"
