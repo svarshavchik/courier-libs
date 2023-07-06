@@ -75,26 +75,14 @@ int	is8bitte;
 			rfc2045_enomem();
 		if (p->mime_version
 
-			&& p->firstpart == 0 /* sam - don't trigger rewrites on changes to multipart headers */
-			)
+		    && !p->firstpart /* sam - don't trigger rewrites on changes to multipart headers */
+		    )
 		{
 			flag=1;
 		}
 	}
 
-#if 0
-	if (RFC2045_ISMIME1DEF(p->mime_version)
-		&& strncmp(p->content_type, "text/", 5) == 0 && !hasnon7bit
-		&& strcmp(p->content_transfer_encoding, "7bit"))
-	{
-		if (p->mime_version)
-		{
-			flag=1;
-		}
-	}
-#endif
-
-	if (RFC2045_ISMIME1DEF(p->mime_version))
+	if (RFC2045_ISMIME1DEF(p->mime_version) && !p->firstpart)
 	{
 		/* Check for conversions */
 
