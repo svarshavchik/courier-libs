@@ -1,3 +1,10 @@
+6.2.3
+
+2023-08-03  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Recognize names of elliptic-curve based public key algorithms when
+	listing PGP keys.
+
 6.2.2
 
 2023-06-02  Sam Varshavchik  <mrsam@courier-mta.com>

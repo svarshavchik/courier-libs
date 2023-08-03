@@ -376,10 +376,13 @@ static int dolist_callback(char *line, void *vp1,
 		char buf[60];
 
 		sprintf(buf, "%4.4s/%-8.8s", length,
-			algo == 1 ? "RSA":
-			algo == 16 ? "ElGamal":
+			algo == 1 || algo == 2 || algo == 3 ? "RSA":
+			algo == 16 || algo == 20 ? "ElGamal":
 			algo == 17 ? "DSA":
-			algo == 20 ? "DSA":"???");
+			algo == 18 ? "ECC":
+			algo == 19 ? "ECDSA":
+			algo == 21 ? "DH":
+			algo == 22 ? "EdDSA":"???");
 
 		if (algo == 0 || *length == 0)
 			sprintf(buf, "%13s", "");
