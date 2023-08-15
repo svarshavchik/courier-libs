@@ -38,9 +38,12 @@ int have_starttls()
 int tls_required()
 {
 	const char *p=getenv("POP3_TLS_REQUIRED");
+	if (!p || !atoi(p))	return(0);
 
-        if (p && atoi(p))       return (1);
-        return (0);
+	p=getenv("POP3_TLS");
+	if (p && atoi(p))       return (0);
+
+	return (1);
 }
 
 const char *pop3_externalauth()

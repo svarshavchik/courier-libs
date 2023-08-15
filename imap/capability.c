@@ -44,8 +44,12 @@ int tlsrequired()
 {
 const char *p=getenv("IMAP_TLS_REQUIRED");
 
-	if (p && atoi(p))       return (1);
-	return (0);
+	if (!p || !atoi(p))	return(0);
+
+	p=getenv("IMAP_TLS");
+	if (p && atoi(p))       return (0);
+
+	return (1);
 }
 
 int keywords()
