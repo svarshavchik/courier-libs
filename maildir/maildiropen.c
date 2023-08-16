@@ -103,8 +103,6 @@ char	*l=maildir_getlink(path);
 
 int maildir_safeopen(const char *path, int mode, int perm)
 {
-	struct	stat	stat1;
-
 	return maildir_safeopen_stat(path, mode, perm, NULL);
 }
 
