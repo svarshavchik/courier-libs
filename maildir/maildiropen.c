@@ -100,18 +100,19 @@ char	*l=maildir_getlink(path);
 
 	return (maildir_safeopen(path, mode, perm));
 }
-		
+
 int maildir_safeopen(const char *path, int mode, int perm)
 {
 	struct	stat	stat1;
 
-	return maildir_safeopen_stat(path, mode, perm, &stat1);
+	return maildir_safeopen_stat(path, mode, perm, NULL);
 }
 
 int maildir_safeopen_stat(const char *path, int mode, int perm,
 			  struct stat *stat1)
 {
-	struct	stat	stat2;
+	struct	stat	stat2, statt;
+	char *p;
 
 	int	fd=open(path, mode
 #ifdef	O_NONBLOCK
@@ -122,17 +123,30 @@ int maildir_safeopen_stat(const char *path, int mode, int perm,
 			, perm);
 
 	if (fd < 0)	return (fd);
-	if (fcntl(fd, F_SETFL, (mode & O_APPEND)) || fstat(fd, stat1)
-	    || lstat(path, &stat2))
+	if (fcntl(fd, F_SETFL, (mode & O_APPEND)) || (stat1 && fstat(fd, stat1)))
 	{
 		close(fd);
 		return (-1);
 	}
 
-	if (stat1->st_dev != stat2.st_dev || stat1->st_ino != stat2.st_ino)
+	p = getenv("MAILDIR_SKIP_SYMLINK_CHECKS");
+	if (p && atoi(p)) return (fd);
+
+	if (!stat1)
+	{
+		stat1 = &statt;
+		if (fstat(fd, stat1))
+		{
+			close(fd);
+			return (-1);
+		}
+	}
+
+	errno = 0;
+	if (lstat(path, &stat2) || stat1->st_dev != stat2.st_dev || stat1->st_ino != stat2.st_ino)
 	{
 		close(fd);
-		errno=ENOENT;
+		if (!errno) errno=ENOENT;
 		return (-1);
 	}
 
