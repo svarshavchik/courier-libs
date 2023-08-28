@@ -1948,8 +1948,8 @@ void maildir_loadsearch(unsigned nfiles,
 				load_msginfo(&msginfo[i], &matches[i], fp);
 			}
 		}
+		fclose(fp);
 	}
-	fclose(fp);
 
 	for (i=0; i<nfiles; ++i)
 	{
