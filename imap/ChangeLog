@@ -1,3 +1,5 @@
+5.2.5
+
 2023-08-16  Jaco Kroon <jaco@uls.co.za>
 
 	* Turn off IMAP_TLS_REQUIRED if IMAP_TLS is already set.
