@@ -208,10 +208,11 @@ int login_callback(struct authinfo *ainfo, void *dummy)
 			{
 				alarm(0);
 
-				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s\n",
+				fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s%s\n",
 					ainfo->address, safe_getenv("TCPREMOTEIP"),
 					safe_getenv("TCPREMOTEPORT"),
-					safe_getenv("PROTOCOL"));
+					safe_getenv("PROTOCOL"),
+					(p=getenv("IMAP_TLS")) != 0 && atoi(p) ? ", starttls=1" : "");
 
 				proxyloop(fd);
 				exit(0);

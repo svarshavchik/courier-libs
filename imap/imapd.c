@@ -6661,9 +6661,10 @@ static void chkdisabled(const char *ip, const char *port)
 		exit(0);
 	}
 
-	fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s\n",
+	fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s], protocol=%s%s\n",
 		getenv("AUTHENTICATED"), ip, port,
-		protocol);
+		protocol,
+		(p=getenv("IMAP_TLS")) != 0 && atoi(p) ? ", starttls=1" : "");
 }
 
 static int chk_clock_skew()
