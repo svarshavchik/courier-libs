@@ -282,6 +282,7 @@ struct	rfc822token namet, addresst;
 		fclose(new_fp);
 		free(new_name);
 		enomem();
+		return;
 	}
 	strcat(strcpy(p, "tmp/"), new_name);
 	free(new_name);
@@ -683,7 +684,7 @@ char *header, *value;
 	}
 	return (0);
 }
-	
+
 void addressbook()
 {
 FILE	*fp;

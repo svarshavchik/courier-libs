@@ -1,3 +1,7 @@
+2023-11-09  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* addressbook.c (dodel): Fix gcc warning
+
 6.2.4
 
 2023-08-28  Sam Varshavchik  <mrsam@courier-mta.com>
