@@ -1197,10 +1197,11 @@ char	*p;
 		exit(1);
 	}
 
-	fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s]\n",
+	fprintf(stderr, "INFO: LOGIN, user=%s, ip=[%s], port=[%s]%s\n",
 			authaddr,
 					remoteip,
-					remoteport);
+					remoteport,
+					(p=getenv("POP3_TLS")) != 0 && atoi(p) ? ", stls=1" : "");
 	fflush(stderr);
 
 	msglist_cnt=0;
