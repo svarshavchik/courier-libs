@@ -59,16 +59,6 @@ if test "$librfc822_cv_SYS_TIMEZONE" = ""
 then
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include	<time.h>
-int n;
-]], [[
-	n=daylight;
-	]])],[librfc822_cv_SYS_TIMEZONE=daylight],[])
-fi
-
-if test "$librfc822_cv_SYS_TIMEZONE" = ""
-then
-	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include	<time.h>
 
 extern struct tm dummy;
 long n;
@@ -77,6 +67,16 @@ long n;
 	]])],[librfc822_cv_SYS_TIMEZONE=tm_gmtoff],[librfc822_cv_SYS_TIMEZONE=unknown])
 fi
 )
+
+if test "$librfc822_cv_SYS_TIMEZONE" = ""
+then
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include	<time.h>
+int n;
+]], [[
+	n=daylight;
+	]])],[librfc822_cv_SYS_TIMEZONE=daylight],[])
+fi
 
 case $librfc822_cv_SYS_TIMEZONE in
 tm_gmtoff)
