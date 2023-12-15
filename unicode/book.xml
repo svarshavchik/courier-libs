@@ -3356,7 +3356,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	    value if there's a grapheme break before the character, in a
 	    sequence of Unicode characters.
 	    <function>unicode_grapheme_break_deinit</function>() releases
-	    all reosurces used by the grapheme breaking handle, and the
+	    all resources used by the grapheme breaking handle, and the
 	    <classname>unicode_grapheme_break_info_t</classname> handle
 	    is no longer valid after this call.
 	  </para>
