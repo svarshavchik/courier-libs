@@ -264,7 +264,7 @@ struct decomposition_info {
 
 	!$found && $_->{type} eq "UNICODE_CANONICAL_FMT_NONE";
 
-    } values %decomps;
+    } map { $decomps{$_} } sort keys %decomps;
 
     $maxbuckets = 4;
 

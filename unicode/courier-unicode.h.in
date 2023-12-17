@@ -2,7 +2,7 @@
 #define	courier_unicode_h
 
 /*
-** Copyright 2000-2021 Double Precision, Inc.
+** Copyright 2000-2024 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -206,7 +206,7 @@ extern int unicode_isupper(char32_t ch);
 
 /*
 ** Implementation of Unicode emoji classification, as per
-** http://www.unicode.org/reports/tr51/tr51-18.html
+** https://www.unicode.org/reports/tr51/tr51-25.html
 **
 ** Given a char32_t, returns the character's emoji value, which is a bitmask:
 **
@@ -234,9 +234,80 @@ extern int unicode_emoji_component(char32_t);
 extern int unicode_emoji_extended_pictographic(char32_t);
 
 /*
+** Return the generic Unicode category of a character.
+*/
+
+typedef enum {
+	UNICODE_GENERAL_CATEGORY_Cn, /* No category */
+
+	UNICODE_GENERAL_CATEGORY_Cc,
+	UNICODE_GENERAL_CATEGORY_Cf,
+	UNICODE_GENERAL_CATEGORY_Co,
+	UNICODE_GENERAL_CATEGORY_Cs,
+	UNICODE_GENERAL_CATEGORY_Ll,
+	UNICODE_GENERAL_CATEGORY_Lm,
+	UNICODE_GENERAL_CATEGORY_Lo,
+	UNICODE_GENERAL_CATEGORY_Lt,
+	UNICODE_GENERAL_CATEGORY_Lu,
+	UNICODE_GENERAL_CATEGORY_Mc,
+	UNICODE_GENERAL_CATEGORY_Me,
+	UNICODE_GENERAL_CATEGORY_Mn,
+	UNICODE_GENERAL_CATEGORY_Nd,
+	UNICODE_GENERAL_CATEGORY_Nl,
+	UNICODE_GENERAL_CATEGORY_No,
+	UNICODE_GENERAL_CATEGORY_Pc,
+	UNICODE_GENERAL_CATEGORY_Pd,
+	UNICODE_GENERAL_CATEGORY_Pe,
+	UNICODE_GENERAL_CATEGORY_Pf,
+	UNICODE_GENERAL_CATEGORY_Pi,
+	UNICODE_GENERAL_CATEGORY_Po,
+	UNICODE_GENERAL_CATEGORY_Ps,
+	UNICODE_GENERAL_CATEGORY_Sc,
+	UNICODE_GENERAL_CATEGORY_Sk,
+	UNICODE_GENERAL_CATEGORY_Sm,
+	UNICODE_GENERAL_CATEGORY_So,
+	UNICODE_GENERAL_CATEGORY_Zl,
+	UNICODE_GENERAL_CATEGORY_Zp,
+	UNICODE_GENERAL_CATEGORY_Zs,
+} unicode_general_category_t;
+
+unicode_general_category_t unicode_general_category_lookup(char32_t);
+
+/*
+** Look up the DerivedCoreProperties table:
+*/
+
+int unicode_derived_alphabetic_lookup(char32_t ch);
+int unicode_derived_case_ignorable_lookup(char32_t ch);
+int unicode_derived_cased_lookup(char32_t ch);
+int unicode_derived_changes_when_casefolded_lookup(char32_t ch);
+int unicode_derived_changes_when_casemapped_lookup(char32_t ch);
+int unicode_derived_changes_when_lowercased_lookup(char32_t ch);
+int unicode_derived_changes_when_titlecased_lookup(char32_t ch);
+int unicode_derived_changes_when_uppercased_lookup(char32_t ch);
+int unicode_derived_default_ignorable_code_point_lookup(char32_t ch);
+int unicode_derived_grapheme_base_lookup(char32_t ch);
+int unicode_derived_grapheme_extend_lookup(char32_t ch);
+int unicode_derived_grapheme_link_lookup(char32_t ch);
+int unicode_derived_id_continue_lookup(char32_t ch);
+int unicode_derived_id_start_lookup(char32_t ch);
+
+#define UNICODE_DERIVED_INCB_NONE                          0x00000000
+#define UNICODE_DERIVED_INCB_CONSONANT                     0x00000001
+#define UNICODE_DERIVED_INCB_EXTEND                        0x00000002
+#define UNICODE_DERIVED_INCB_LINKER                        0x00000003
+
+int unicode_derived_incb_lookup(char32_t ch);
+int unicode_derived_lowercase_lookup(char32_t ch);
+int unicode_derived_math_lookup(char32_t ch);
+int unicode_derived_uppercase_lookup(char32_t ch);
+int unicode_derived_xid_continue_lookup(char32_t ch);
+int unicode_derived_xid_start_lookup(char32_t ch);
+
+/*
 ** Implementation of grapheme cluster boundary rules, as per
-** http://www.unicode.org/reports/tr29/tr29-37.html
-** including  GB9a and GB9b.
+** https://www.unicode.org/reports/tr29/tr29-43.html
+** including GB9a and GB9b.
 **
 ** unicode_grapheme_break_init() allocates an opaque
 ** unicode_grapheme_break_info_t handle, and
@@ -274,14 +345,14 @@ typedef enum {
 
 /*
 ** Look up the unicode script property, as per
-** http://www.unicode.org/reports/tr24/tr24-31.html
+** https://www.unicode.org/reports/tr24/tr24-36.html
 */
 
 unicode_script_t unicode_script(char32_t a);
 
 /*
 ** Implementation of line break rules, as per
-** http://www.unicode.org/reports/tr14/tr14-45.html
+** https://www.unicode.org/reports/tr14/tr14-51.html
 **
 ** Invoke unicode_lb_init() to initialize the linebreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two
@@ -440,7 +511,7 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 
 /*
 ** Implemention of word break rules, as per
-** http://www.unicode.org/reports/tr29/tr29-37.html
+** https://www.unicode.org/reports/tr29/tr29-43.html
 **
 ** Invoke unicode_wb_init() to initialize the wordbreaking algorithm. The
 ** first parameter is a callback function that gets invoked with two

@@ -33,8 +33,13 @@
 
 struct unicode_grapheme_break_info_s {
 	uint8_t prev_class;
+	uint8_t gb11_status;
 	unsigned prev_count;
 };
+
+#define GB11_SEEN_NONE 0
+#define GB11_SEEN_EXTENDED_PICOGRAPHIC 1
+#define GB11_SEEN_ZWJ 2
 
 unicode_grapheme_break_info_t unicode_grapheme_break_init()
 {
@@ -78,6 +83,30 @@ int unicode_grapheme_break_next(unicode_grapheme_break_info_t t, char32_t b)
 				      sizeof(unicode_rangetab[0]),
 				      unicode_classtab,
 				      UNICODE_GRAPHEMEBREAK_ANY);
+	int seen_gb11=0;
+	int is_extended_picographic=0;
+
+	if (t->gb11_status == GB11_SEEN_EXTENDED_PICOGRAPHIC &&
+	    bc == UNICODE_GRAPHEMEBREAK_Extend)
+		;
+	else {
+		if (t->gb11_status == GB11_SEEN_EXTENDED_PICOGRAPHIC &&
+		    bc == UNICODE_GRAPHEMEBREAK_ZWJ)
+		{
+			t->gb11_status=GB11_SEEN_ZWJ;
+		}
+		else
+		{
+			if (t->gb11_status==GB11_SEEN_ZWJ)
+				seen_gb11=1;
+
+			is_extended_picographic=
+				unicode_emoji_extended_pictographic(b);
+
+			t->gb11_status = is_extended_picographic
+				? GB11_SEEN_EXTENDED_PICOGRAPHIC:GB11_SEEN_NONE;
+		}
+	}
 
 	if (ac != bc)
 		t->prev_count=0;
@@ -140,9 +169,8 @@ int unicode_grapheme_break_next(unicode_grapheme_break_info_t t, char32_t b)
 	if (ac == UNICODE_GRAPHEMEBREAK_Prepend)
 		return 0; /* GB9b */
 
-	if (ac == UNICODE_GRAPHEMEBREAK_Extend ||
-	    ac == UNICODE_GRAPHEMEBREAK_ZWJ)
-		return 0; /* GB11? */
+	if (seen_gb11 && is_extended_picographic)
+		return 0; /* GB11 */
 
 	if (ac == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&
 	    bc == UNICODE_GRAPHEMEBREAK_Regional_Indicator &&

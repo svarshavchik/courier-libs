@@ -1565,7 +1565,19 @@ static void unicode_bidi_n(directional_status_stack_t stack,
 					"BD16 stack exceeded on index %d\n",
 					(int)iter.i);
 #endif
-				break; /* BD16 failure */
+				/*
+				  stop processing BD16 ...
+				   and return an empty list.
+				*/
+
+				while (bracket_stack)
+				{
+					struct bidi_n_stack *p=bracket_stack;
+
+					bracket_stack=bracket_stack->next;
+					free(p);
+				}
+				break;
 			}
 			if (!((*bracket_stack_tail)=(struct bidi_n_stack *)
 			      calloc(1, sizeof(struct bidi_n_stack))))

@@ -1,3 +1,11 @@
+2.3.0
+
+2023-12-18  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Unicode 15 update. Added unicode_derived_<name>() lookup for
+	derived core properties. Added unicode_general_category_lookup()
+	for general category lookups. Fix GB11 rule.
+
 2.2.6
 
 2022-12-02  Sam Varshavchik  <mrsam@courier-mta.com>

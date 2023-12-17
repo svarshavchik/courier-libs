@@ -8,9 +8,11 @@
 /Categories.txt
 /DerivedNormalizationProps.txt
 /DerivedBidiClass.txt
+/DerivedCoreProperties.txt
 /EastAsianWidth.txt
 /GraphemeBreakProperty.txt
 /INSTALL
+/UNICODE-LICENSE.txt
 /Scripts.txt
 /LineBreak.txt
 /LineBreakTest.txt

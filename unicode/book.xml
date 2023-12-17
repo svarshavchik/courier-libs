@@ -2,18 +2,18 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
  "https://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
-<!ENTITY tr9ver  "42">
-<!ENTITY tr14ver "45">
-<!ENTITY tr15ver "50">
-<!ENTITY tr24ver "31">
-<!ENTITY tr29ver "37">
-<!ENTITY tr51ver "18">
+<!ENTITY tr9ver  "48">
+<!ENTITY tr14ver "51">
+<!ENTITY tr15ver "54">
+<!ENTITY tr24ver "36">
+<!ENTITY tr29ver "43">
+<!ENTITY tr51ver "25">
 
 ]>
 
 <!--
 
-Copyright 2014-2021 Double Precision, Inc.
+Copyright 2014-2023 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -23,7 +23,7 @@ See COPYING for distribution information.
 
   <para>
     This library implements several algorithms related to the
-    <ulink url="https://www.unicode.org/standard/standard.html">Unicode
+    <ulink url="https://www.unicode.org/versions/Unicode15.1.0/">Unicode
     Standard</ulink>, featuring:
   </para>
 
@@ -476,8 +476,14 @@ See COPYING for distribution information.
 	    <link linkend="unicode_default_chset">
 	      <citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_derived_core_properties">
+	      <citerefentry><refentrytitle>unicode_derived_core_properties</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_emoji_lookup">
 	      <citerefentry><refentrytitle>unicode_emoji_lookup</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_general_category_lookup">
+	      <citerefentry><refentrytitle>unicode_general_category_lookup</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_html40ent_lookup">
 	      <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
@@ -1722,7 +1728,7 @@ void reorder_right_to_left_combining(unicode_bidi_level_t level,
 	    </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>int <funcname>unicode_composition_init</funcname></funcdef>
+	      <funcdef>int <function>unicode_composition_init</function></funcdef>
 	      <paramdef>const char32_t *<parameter>string</parameter></paramdef>
 	      <paramdef>size_t <parameter>string_size</parameter></paramdef>
 	      <paramdef>int <parameter>flags</parameter></paramdef>
@@ -3137,6 +3143,182 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	</refsect1>
       </refentry>
 
+      <refentry id="unicode_derived_core_properties">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_derived_core_properties</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_derived_core_properties</refname>
+	  <refname>unicode_derived_case_ignorable_lookup</refname>
+	  <refname>unicode_derived_cased_lookup</refname>
+	  <refname>unicode_derived_changes_when_casefolded_lookup</refname>
+	  <refname>unicode_derived_changes_when_casemapped_lookup</refname>
+	  <refname>unicode_derived_changes_when_lowercased_lookup</refname>
+	  <refname>unicode_derived_changes_when_titlecased_lookup</refname>
+	  <refname>unicode_derived_changes_when_uppercased_lookup</refname>
+	  <refname>unicode_derived_default_ignorable_code_point_lookup</refname>
+	  <refname>unicode_derived_grapheme_base_lookup</refname>
+	  <refname>unicode_derived_grapheme_extend_lookup</refname>
+	  <refname>unicode_derived_grapheme_link_lookup</refname>
+	  <refname>unicode_derived_id_continue_lookup</refname>
+	  <refname>unicode_derived_id_start_lookup</refname>
+	  <refname>unicode_derived_incb_lookup</refname>
+	  <refname>unicode_derived_lowercase_lookup</refname>
+	  <refname>unicode_derived_math_lookup</refname>
+	  <refname>unicode_derived_uppercase_lookup</refname>
+	  <refname>unicode_derived_xid_continue_lookup</refname>
+	  <refname>unicode_derived_xid_start_lookup</refname>
+	  <refpurpose>look up derived core properties</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_case_ignorable_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_cased_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_changes_when_casefolded_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_changes_when_casemapped_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_changes_when_lowercased_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_changes_when_titlecased_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_changes_when_uppercased_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_default_ignorable_code_point_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_grapheme_base_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_grapheme_extend_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_grapheme_link_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_id_continue_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_id_start_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_incb_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_lowercase_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_math_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_uppercase_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_xid_continue_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+	      <funcdef>int <function>unicode_derived_xid_start_lookup</function></funcdef>
+	      <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1 id="unicode_derived_core_properties_descr">
+	  <title>DESCRIPTION</title>
+	  <para>
+	    These functions look up the character's various derived core
+	    properties.
+	    <function>unicode_derived_incb_lookup</function>() returns
+	    one of the <symbol>UNICODE_DERIVED_INCB_<replaceable>value</replaceable></symbol>
+	    from <filename>courier-unicode.h</filename>, all others return
+	    a non-0 value if the character has the derived property.
+	  </para>
+	</refsect1>
+	<refsect1 id="unicode_derived_core_properties_seealso">
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr44/">TR-44</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
       <refentry id="unicode_emoji_lookup">
 	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 
@@ -3230,6 +3412,52 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	  <title>SEE ALSO</title>
 	  <para>
 	    <ulink url="https://www.unicode.org/reports/tr51/tr51-&tr51ver;.html">TR-51</ulink>,
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>.
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode_general_category_lookup">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+
+	<refmeta>
+	  <refentrytitle>unicode_general_category_lookup</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_general_category_lookup</refname>
+	  <refpurpose>unicode general category lookup</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+	      <funcdef>unicode_general_category_t <function>unicode_general_category_lookup</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1 id="unicode_general_category_descr">
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_general_category_lookup</function>() looks up the
+	    Unicode character's general category, from the Unicode
+	    character database database.
+	    <function>unicode_general_category_lookup</function>() returns one
+	    of the
+	    <symbol>UNICODE_GENERAL_CATEGORY_<replaceable>value</replaceable></symbol>
+	    values.
+	  </para>
+	</refsect1>
+	<refsect1 id="unicode_general_category_seealso">
+	  <title>SEE ALSO</title>
+	  <para>
+	    <ulink url="https://www.unicode.org/reports/tr44/">TR-44</ulink>,
 	    <link linkend="courier-unicode">
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>

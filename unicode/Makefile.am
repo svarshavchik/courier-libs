@@ -12,10 +12,12 @@ noinst_SCRIPTS=update.sh		\
 	mkbidi.pl			\
 	mkbidiclass.pl			\
 	mkbidiclassnames.pl		\
+	mkderivedcoreproperties.pl      \
 	mkeastasianwidth.pl		\
 	mkemojidata.pl			\
 	mkgraphemebreak.pl		\
 	mkhtmlent.pl			\
+	mkgeneral_category.pl		\
 	mklinebreak.pl			\
 	mknormalization.pl		\
 	mkscripts.pl			\
@@ -41,31 +43,32 @@ update-www:
 	@$(MAKE) update-www-bidi
 	@$(MAKE) update-www-unicode-copyright
 	@$(MAKE) update-www-composition
+	@$(MAKE) update-www-derived-core-properties
 
 update-www-unicode-copyright:
 	elinks -dump -no-numbering https://www.unicode.org/license.html >UNICODE-LICENSE.txt.tmp
 	mv UNICODE-LICENSE.txt.tmp UNICODE-LICENSE.txt
 
 update-www-unicode:
-	@SHELL@ $(srcdir)/update.sh UnicodeData.txt http://www.unicode.org/Public/UNIDATA/UnicodeData.txt
+	@SHELL@ $(srcdir)/update.sh UnicodeData.txt https://www.unicode.org/Public/UNIDATA/UnicodeData.txt
 
 update-www-eastasia:
-	@SHELL@ $(srcdir)/update.sh Unihan.zip http://www.unicode.org/Public/UNIDATA/Unihan.zip
-	@SHELL@ $(srcdir)/update.sh EastAsianWidth.txt http://www.unicode.org/Public/UNIDATA/EastAsianWidth.txt
+	@SHELL@ $(srcdir)/update.sh Unihan.zip https://www.unicode.org/Public/UNIDATA/Unihan.zip
+	@SHELL@ $(srcdir)/update.sh EastAsianWidth.txt https://www.unicode.org/Public/UNIDATA/EastAsianWidth.txt
 
 update-www-grapheme:
-	@SHELL@ $(srcdir)/update.sh GraphemeBreakProperty.txt http://www.unicode.org/Public/UNIDATA/auxiliary/GraphemeBreakProperty.txt
+	@SHELL@ $(srcdir)/update.sh GraphemeBreakProperty.txt https://www.unicode.org/Public/UNIDATA/auxiliary/GraphemeBreakProperty.txt
 
 update-www-emojidata:
 	@SHELL@ $(srcdir)/update.sh emoji-data.txt https://www.unicode.org/Public/UCD/latest/ucd/emoji/emoji-data.txt
 
 update-www-linebreak:
-	@SHELL@ $(srcdir)/update.sh LineBreak.txt http://www.unicode.org/Public/UNIDATA/LineBreak.txt
-	@SHELL@ $(srcdir)/update.sh LineBreakTest.txt http://www.unicode.org/Public/UNIDATA/auxiliary/LineBreakTest.txt
+	@SHELL@ $(srcdir)/update.sh LineBreak.txt https://www.unicode.org/Public/UNIDATA/LineBreak.txt
+	@SHELL@ $(srcdir)/update.sh LineBreakTest.txt https://www.unicode.org/Public/UNIDATA/auxiliary/LineBreakTest.txt
 
 update-www-wordbreak:
-	@SHELL@ $(srcdir)/update.sh WordBreakProperty.txt http://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakProperty.txt
-	@SHELL@ $(srcdir)/update.sh WordBreakTest.txt http://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakTest.txt
+	@SHELL@ $(srcdir)/update.sh WordBreakProperty.txt https://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakProperty.txt
+	@SHELL@ $(srcdir)/update.sh WordBreakTest.txt https://www.unicode.org/Public/UNIDATA/auxiliary/WordBreakTest.txt
 
 update-www-scripts:
 	@SHELL@ $(srcdir)/update.sh Scripts.txt http://unicode.org/Public/UNIDATA/Scripts.txt
@@ -76,7 +79,7 @@ update-www-htmlent:
 	@SHELL@ $(srcdir)/update.sh xhtml-special.ent http://www.w3.org/TR/xhtml1/DTD/xhtml-special.ent
 
 update-www-categories:
-	@SHELL@ $(srcdir)/update.sh Categories.txt http://www.unicode.org/notes/tn36/Categories.txt
+	@SHELL@ $(srcdir)/update.sh Categories.txt https://www.unicode.org/notes/tn36/Categories.txt
 
 update-www-bidi:
 	@SHELL@ $(srcdir)/update.sh BidiBrackets.txt https://www.unicode.org/Public/UCD/latest/ucd/BidiBrackets.txt
@@ -87,6 +90,9 @@ update-www-bidi:
 
 update-www-composition:
 	@SHELL@ $(srcdir)/update.sh DerivedNormalizationProps.txt https://www.unicode.org/Public/UCD/latest/ucd/DerivedNormalizationProps.txt
+
+update-www-derived-core-properties:
+	@SHELL@ $(srcdir)/update.sh DerivedCoreProperties.txt https://www.unicode.org/Public/UNIDATA/DerivedCoreProperties.txt
 
 lib_LTLIBRARIES=libcourier-unicode.la
 include_HEADERS=courier-unicode.h \
@@ -173,6 +179,26 @@ man_MANS= \
         $(srcdir)/man/unicode_decomposition_deinit.3 \
         $(srcdir)/man/unicode_decomposition_init.3 \
         $(srcdir)/man/unicode_default_chset.3 \
+        $(srcdir)/man/unicode_derived_case_ignorable_lookup.3 \
+        $(srcdir)/man/unicode_derived_cased_lookup.3 \
+        $(srcdir)/man/unicode_derived_changes_when_casefolded_lookup.3 \
+        $(srcdir)/man/unicode_derived_changes_when_casemapped_lookup.3 \
+        $(srcdir)/man/unicode_derived_changes_when_lowercased_lookup.3 \
+        $(srcdir)/man/unicode_derived_changes_when_titlecased_lookup.3 \
+        $(srcdir)/man/unicode_derived_changes_when_uppercased_lookup.3 \
+        $(srcdir)/man/unicode_derived_core_properties.3 \
+        $(srcdir)/man/unicode_derived_default_ignorable_code_point_lookup.3 \
+        $(srcdir)/man/unicode_derived_grapheme_base_lookup.3 \
+        $(srcdir)/man/unicode_derived_grapheme_extend_lookup.3 \
+        $(srcdir)/man/unicode_derived_grapheme_link_lookup.3 \
+        $(srcdir)/man/unicode_derived_id_continue_lookup.3 \
+        $(srcdir)/man/unicode_derived_id_start_lookup.3 \
+        $(srcdir)/man/unicode_derived_incb_lookup.3 \
+        $(srcdir)/man/unicode_derived_lowercase_lookup.3 \
+        $(srcdir)/man/unicode_derived_math_lookup.3 \
+        $(srcdir)/man/unicode_derived_uppercase_lookup.3 \
+        $(srcdir)/man/unicode_derived_xid_continue_lookup.3 \
+        $(srcdir)/man/unicode_derived_xid_start_lookup.3 \
         $(srcdir)/man/unicode_emoji.3 \
         $(srcdir)/man/unicode_emoji_component.3 \
         $(srcdir)/man/unicode_emoji_extended_pictographic.3 \
@@ -180,6 +206,7 @@ man_MANS= \
         $(srcdir)/man/unicode_emoji_modifier.3 \
         $(srcdir)/man/unicode_emoji_modifier_base.3 \
         $(srcdir)/man/unicode_emoji_presentation.3 \
+        $(srcdir)/man/unicode_general_category_lookup.3 \
         $(srcdir)/man/unicode_grapheme_break.3 \
         $(srcdir)/man/unicode_grapheme_break_deinit.3 \
         $(srcdir)/man/unicode_grapheme_break_init.3 \
@@ -232,6 +259,7 @@ libcourier_unicode_la_SOURCES=\
 			unicode_tablookup.c \
 			unicode_graphemebreak.c graphemebreaktab.h \
 			unicode_linebreak.c linebreaktab.h \
+			unicode_general_category.c general_categorytab.h \
 			unicode_htmlent.c unicode_htmlent.h \
 			unicode_normalization.c \
 			normalization.h normalization_defs.h \
@@ -246,6 +274,8 @@ libcourier_unicode_la_SOURCES=\
 			bidi_brackets_v.h \
 			bidi_class.h \
 			bidi_mirroring.h \
+			derivedcoreproperties.h \
+			derivedcoreproperties.c \
 			unicode_categories.c
 
 libcourier_unicode_la_LDFLAGS=-version-info @LIBVERSION_INFO@
@@ -282,10 +312,12 @@ BUILT_SOURCES=unicode_ultcasetab.c \
 	bidi_classnames.h \
 	bidi_mirroring.h \
 	categoriestab.h \
+	derivedcoreproperties.h \
 	eastasianwidth.h \
 	emojitab.h \
 	graphemebreaktab.h \
 	linebreaktab.h \
+	general_categorytab.h \
 	normalization.h \
 	scriptstab.h \
 	unicode_htmlent.h \
@@ -304,6 +336,10 @@ graphemebreaktab.h: GraphemeBreakProperty.txt mkgraphemebreak.pl mkcommon.pm
 linebreaktab.h: LineBreak.txt UnicodeData.txt mklinebreak.pl mkcommon.pm
 	@PERL@ -I$(srcdir) $(srcdir)/mklinebreak.pl >linebreaktab.h.tmp
 	mv linebreaktab.h.tmp linebreaktab.h
+
+general_categorytab.h: UnicodeData.txt mkgeneral_category.pl mkcommon.pm
+	@PERL@ -I$(srcdir) $(srcdir)/mkgeneral_category.pl >general_categorytab.h.tmp
+	mv general_categorytab.h.tmp general_categorytab.h
 
 wordbreaktab.h: WordBreakProperty.txt mkwordbreak.pl mkcommon.pm
 	@PERL@ -I$(srcdir) $(srcdir)/mkwordbreak.pl >wordbreaktab.h.tmp
@@ -332,6 +368,10 @@ bidi_brackets.h: BidiBrackets.txt mkbidi.pl
 bidi_brackets_v.h: BidiBrackets.txt mkbidi.pl
 	@PERL@ -I$(srcdir) $(srcdir)/mkbidi.pl BidiBrackets.txt 1 >bidi_brackets_v.h.tmp
 	mv bidi_brackets_v.h.tmp bidi_brackets_v.h
+
+derivedcoreproperties.h: DerivedCoreProperties.txt mkderivedcoreproperties.pl mkcommon.pm
+	@PERL@ -I$(srcdir) $(srcdir)/mkderivedcoreproperties.pl >derivedcoreproperties.h.tmp
+	mv derivedcoreproperties.h.tmp derivedcoreproperties.h
 
 bidi_class.h: DerivedBidiClass.txt mkbidiclass.pl mkcommon.pm
 	@PERL@ -I$(srcdir) $(srcdir)/mkbidiclass.pl >bidi_class.h.tmp
@@ -455,7 +495,9 @@ check-am: unicodetest
 	test "`./graphemetest 0x0041 0x036F`" = "0"  # GB9
 	test "`./graphemetest 0x0041 0x0903`" = "0"  # GB9a
 	test "`./graphemetest 0x0041 0xAABB`" = "1"
-	test "`./graphemetest 0x036F 0x0041`" = "0"
+	test "`./graphemetest 0x00A9 0x200d 0x00A9`" = "0"         # GB11
+	test "`./graphemetest 0x00A9 0x036F 0x200d 0x00A9`" = "0"  # GB11
+	test "`./graphemetest 0x00A9 0x200d 0x00A9 0x200d 0x00A9`" = "0" # GB11
 	test "`./graphemetest 0x0903 0x0041`" = "1"
 	test "`./graphemetest 0x0600 0x0041`" = "0" # GB9b
 	test "`./graphemetest 0x1F1E6 0x1f1FF`" = "0" # GB12, GB31
@@ -464,9 +506,23 @@ check-am: unicodetest
 	test "`./biditest 30`" = "30 30 n"
 	test "`./biditest 8261`" = "8262 8262 o"
 	test "`./biditest 8262`" = "8261 8261 c"
-	set -vx; test -f ./BidiTest.txt || exit 0; ./biditest
-	set -vx; test -f ./BidiCharacterTest.txt || exit 0; ./biditest2
-	./normalizetest
+	VALGRIND="`which valgrind 2>/dev/null`"; \
+		if test "$$VALGRIND" != ""; \
+			then VALGRIND="$$VALGRIND --tool=memcheck --leak-check=yes"; \
+		fi; \
+		set -x; test -f ./BidiTest.txt || exit 0; \
+		$$VALGRIND ./biditest
+	VALGRIND="`which valgrind 2>/dev/null`"; \
+		if test "$$VALGRIND" != ""; \
+			then VALGRIND="$$VALGRIND --tool=memcheck --leak-check=yes"; \
+		fi; \
+		set -x; test -f ./BidiTest.txt || exit 0; \
+		$$VALGRIND ./biditest2
+	VALGRIND="`which valgrind 2>/dev/null`"; \
+		if test "$$VALGRIND" != ""; \
+			then VALGRIND="$$VALGRIND --tool=memcheck --leak-check=yes"; \
+		fi; \
+	set -x; $$VALGRIND ./normalizetest
 
 if HAVE_DOCS
 

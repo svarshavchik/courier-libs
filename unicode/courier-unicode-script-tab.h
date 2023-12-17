@@ -154,4 +154,11 @@
 	unicode_script_chorasmian,
 	unicode_script_dives_akuru,
 	unicode_script_khitan_small_script,
-	unicode_script_yezidi
+	unicode_script_yezidi,
+	unicode_script_cypro_minoan,
+	unicode_script_old_uyghur,
+	unicode_script_tangsa,
+	unicode_script_toto,
+	unicode_script_vithkuqi,
+	unicode_script_kawi,
+	unicode_script_nag_mundari

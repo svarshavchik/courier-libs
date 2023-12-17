@@ -47,7 +47,7 @@ while (defined($_=<F>))
 {
     chomp;
 
-    next unless /^([0-9A-F]+)(\.\.([0-9A-F]+))?\;([^\s]+)\s*/;
+    next unless /^([0-9A-F]+)(\.\.([0-9A-F]+))?\s*\;\s*([^\s#]+)/;
 
     my $f=$1;
     my $l=$3;

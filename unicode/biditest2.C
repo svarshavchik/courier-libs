@@ -841,5 +841,6 @@ int main(int argc, char **argv)
 	character_test();
 	direction_test();
 	direction_test2();
+	fclose(DEBUGDUMP);
 	return 0;
 }

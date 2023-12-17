@@ -243,4 +243,33 @@ sub output {
     print "\n};\n\n";
 }
 
+sub lookup_call {
+    my ($self, %params) = @_;
+
+    my $ch = $params{ch} // 'ch';
+    my $default = $params{'default'} // 0;
+    my $classtype = $params{classtype} // $self->{"classtype"};
+
+    my $prefix = $self->{prefix};
+    my $funcname = $params{name} // "unicode_${prefix}_tab_lookup";
+
+    print "
+$classtype $funcname(char32_t ch)
+{
+    return unicode_tab_lookup(
+        ch,
+        ${prefix}_starting_indextab,
+        ${prefix}_starting_pagetab,
+        sizeof(${prefix}_starting_indextab)/
+        sizeof(${prefix}_starting_indextab[0]),
+        ${prefix}_rangetab,
+        sizeof(${prefix}_rangetab)/
+        sizeof(${prefix}_rangetab[0]),
+        " . ($self->{noclass} ? "NULL":"${prefix}_classtab") . ",
+        $default
+    );
+}
+";
+}
+
 1;

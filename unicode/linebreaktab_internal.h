@@ -48,6 +48,11 @@
 #define UNICODE_LB_EB	0x4B
 #define UNICODE_LB_EM	0x4C
 #define UNICODE_LB_ZWJ	0x4D
+#define UNICODE_LB_AS   0x4E
+#define UNICODE_LB_VF   0x4F
+#define UNICODE_LB_AP   0x50
+#define UNICODE_LB_AK   0x51
+#define UNICODE_LB_VI   0x52
 
 extern int unicode_lb_lookup(char32_t ch);
 
