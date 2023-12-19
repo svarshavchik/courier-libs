@@ -30,7 +30,7 @@ See COPYING for distribution information.
   <itemizedlist>
     <listitem>
       <para>
-	Both C and C++ bindings, with a
+	Both C and C++17 bindings, with a
 	<link linkend="courier-unicode">complete manual page
 	documentation set</link>.
       </para>
@@ -397,18 +397,16 @@ See COPYING for distribution information.
     <para>
       To use the library, <quote>#include &lt;courier-unicode.h&gt;</quote> and link
       with <literal>-lcourier-unicode</literal>.
-      The C++ compiler must have C++11 support. Minimum usable version of
-      gcc appears to be gcc 4.4 with the <literal>-std=c++0x</literal> flag.
-      Current versions of gcc use C++11, or higher, by default and do not
-      require extra flags. For C++ code, as usual, the compiler and compilation
+      The C++ compiler must have C++17 support.
+      For C++ code, as usual, the compiler and compilation
       flags for compiling any code that uses this library must be ABI-compatible
 	too.
     </para>
 
     <para>
       The Courier Unicode library installs an
-      <application>autoconf</application> macro to probe for C++11 support.
-      In your <filename>configure.ac</filename>
+      <application>autoconf</application> macro to verify C++17 support.
+      In your <filename>configure.ac</filename>:
     </para>
 
     <blockquote>
@@ -451,7 +449,7 @@ See COPYING for distribution information.
     <para>
       <varname>AX_COURIER_UNICODE_CXXFLAGS</varname> sets
       <varname>COURIER_UNICODE_CXXFLAGS</varname> to the appropriate option
-      for older gcc compilers that require an option to enable C++11
+      for older gcc compilers that require an option to enable C++17
       support.
     </para>
 
@@ -512,9 +510,8 @@ See COPYING for distribution information.
 	  </para>
 
 	  <para>
-	    The C++ compiler must have C++11 support. Minimum usable version of
-	    gcc appears to be gcc 4.4 with the <literal>-std=c++0x</literal>
-	    flag. Current versions of gcc use C++11, or higher, by default and
+	    The C++ compiler must have C++17 support.
+	    Current versions of gcc use C++17, or higher, by default and
 	    do not require extra flags. Consult the packaging documentation
 	    for the Courier Unicode Library for information on any
 	    compiler flags that are needed to build software that links

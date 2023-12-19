@@ -114,13 +114,12 @@ unicode::init_chset::init_chset()
 	unicode_default_chset();
 }
 
-size_t unicode_wcwidth(const std::u32string &uc)
+size_t unicode_wcwidth(const std::u32string_view &uc)
 {
 	size_t w=0;
 
-	for (std::u32string::const_iterator
-		     b(uc.begin()), e(uc.end()); b != e; ++b)
-		w += unicode_wcwidth(*b);
+	for (auto &b:uc)
+		w += unicode_wcwidth(b);
 	return w;
 }
 
@@ -139,7 +138,7 @@ int unicode::iconvert::converted(const char *, size_t)
 }
 
 bool unicode::iconvert::begin(const std::string &src_chset,
-			   const std::string &dst_chset)
+			      const std::string &dst_chset)
 {
 	end();
 
@@ -185,9 +184,9 @@ bool unicode::iconvert::operator()(const char32_t *str, size_t cnt)
 }
 
 std::string unicode::iconvert::convert(const std::string &text,
-				    const std::string &charset,
-				    const std::string &dstcharset,
-				    bool &errflag)
+				       const std::string &charset,
+				       const std::string &dstcharset,
+				       bool &errflag)
 {
 	std::string buf;
 	int errptr;
@@ -211,9 +210,9 @@ std::string unicode::iconvert::convert(const std::string &text,
 }
 
 
-std::string unicode::iconvert::convert(const std::u32string &uc,
-				    const std::string &dstcharset,
-				    bool &errflag)
+std::string unicode::iconvert::convert(const std::u32string_view &uc,
+				       const std::string &dstcharset,
+				       bool &errflag)
 {
 	std::string buf;
 
@@ -252,21 +251,21 @@ std::string unicode::iconvert::convert(const std::u32string &uc,
 	return buf;
 }
 
-bool unicode::iconvert::convert(const std::string &text,
-			     const std::string &charset,
-			     std::u32string &uc)
+bool unicode::iconvert::convert(const std::string_view &text,
+				const std::string &charset,
+				std::u32string &uc)
 {
 	int err;
 
 	char32_t *ucbuf;
 	size_t ucsize;
 
-	if (unicode_convert_tou_tobuf(text.c_str(),
-					text.size(),
-					charset.c_str(),
-					&ucbuf,
-					&ucsize,
-					&err))
+	if (unicode_convert_tou_tobuf(text.data(),
+				      text.size(),
+				      charset.c_str(),
+				      &ucbuf,
+				      &ucsize,
+				      &err))
 		return false;
 
 	try {
@@ -300,7 +299,7 @@ int unicode::iconvert::tou::converted(const char *ptr, size_t cnt)
 }
 
 std::pair<std::u32string, bool>
-unicode::iconvert::tou::convert(const std::string &str,
+unicode::iconvert::tou::convert(const std::string_view &str,
 				const std::string &chset)
 {
 	std::pair<std::u32string, bool> ret;
@@ -315,7 +314,7 @@ bool unicode::iconvert::fromu::begin(const std::string &chset)
 }
 
 std::pair<std::string, bool>
-unicode::iconvert::fromu::convert(const std::u32string &ubuf,
+unicode::iconvert::fromu::convert(const std::u32string_view &ubuf,
 				  const std::string &chset)
 {
 	std::pair<std::string, bool> ret;
@@ -571,9 +570,9 @@ std::string unicode::tolower(const std::string &string,
 	return unicode::iconvert::convert(tolower(uc), charset);
 }
 
-std::u32string unicode::tolower(const std::u32string &u)
+std::u32string unicode::tolower(const std::u32string_view &u)
 {
-	std::u32string copy=u;
+	std::u32string copy{u.begin(), u.end()};
 
 	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_lc);
 	return copy;
@@ -594,9 +593,9 @@ std::string unicode::toupper(const std::string &string,
 	return unicode::iconvert::convert(toupper(uc), charset);
 }
 
-std::u32string unicode::toupper(const std::u32string &u)
+std::u32string unicode::toupper(const std::u32string_view &u)
 {
-	std::u32string copy=u;
+	std::u32string copy{u.begin(), u.end()};
 
 	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_uc);
 
@@ -669,7 +668,7 @@ unicode::bidi_calc(const bidi_calc_types &st,
 	if (st.s.size())
 	{
 		std::get<1>(ret)=
-			unicode_bidi_calc_levels(st.s.c_str(),
+			unicode_bidi_calc_levels(st.s.data(),
 						 &st.types[0],
 						 st.s.size(),
 						 &std::get<0>(ret)[0],
@@ -888,7 +887,7 @@ extern "C" {
 	}
 }
 
-int unicode::bidi_embed(const std::u32string &string,
+int unicode::bidi_embed(const std::u32string_view &string,
 			const std::vector<unicode_bidi_level_t> &levels,
 			unicode_bidi_level_t paragraph_embedding,
 			const std::function<void (const char32_t *string,
@@ -912,7 +911,7 @@ int unicode::bidi_embed(const std::u32string &string,
 	return 0;
 }
 
-std::u32string unicode::bidi_embed(const std::u32string &string,
+std::u32string unicode::bidi_embed(const std::u32string_view &string,
 				   const std::vector<unicode_bidi_level_t
 				   > &levels,
 				   unicode_bidi_level_t paragraph_embedding)
@@ -932,17 +931,18 @@ std::u32string unicode::bidi_embed(const std::u32string &string,
 	return new_string;
 }
 
-char32_t unicode::bidi_embed_paragraph_level(const std::u32string &string,
+char32_t unicode::bidi_embed_paragraph_level(const std::u32string_view &string,
 					     unicode_bidi_level_t level)
 {
-	return unicode_bidi_embed_paragraph_level(string.c_str(),
+	return unicode_bidi_embed_paragraph_level(string.data(),
 						  string.size(),
 						  level);
 }
 
-unicode_bidi_direction unicode::bidi_get_direction(const std::u32string &string,
-						   size_t starting_pos,
-						   size_t n)
+unicode_bidi_direction unicode::bidi_get_direction(
+	const std::u32string_view &string,
+	size_t starting_pos,
+	size_t n)
 {
 	if (starting_pos >= string.size())
 		starting_pos=string.size();
@@ -950,10 +950,10 @@ unicode_bidi_direction unicode::bidi_get_direction(const std::u32string &string,
 	if (string.size()-starting_pos < n)
 		n=string.size()-starting_pos;
 
-	return unicode_bidi_get_direction(string.c_str()+starting_pos, n);
+	return unicode_bidi_get_direction(string.data()+starting_pos, n);
 }
 
-bool unicode::bidi_needs_embed(const std::u32string &string,
+bool unicode::bidi_needs_embed(const std::u32string_view &string,
 			       const std::vector<unicode_bidi_level_t> &levels,
 			       const unicode_bidi_level_t *paragraph_embedding,
 			       size_t starting_pos,
@@ -970,13 +970,13 @@ bool unicode::bidi_needs_embed(const std::u32string &string,
 	if (n > s-starting_pos)
 		n=s-starting_pos;
 
-	return unicode_bidi_needs_embed(string.c_str(),
+	return unicode_bidi_needs_embed(string.data(),
 					n == 0 ? NULL : &levels[starting_pos],
 					n,
 					paragraph_embedding) != 0;
 }
 
-std::u32string unicode::bidi_override(const std::u32string &s,
+std::u32string unicode::bidi_override(const std::u32string_view &s,
 				      unicode_bidi_level_t direction,
 				      int cleanup_options)
 {
@@ -1012,7 +1012,7 @@ extern "C" {
 	}
 };
 
-void unicode::bidi_combinings(const std::u32string &string,
+void unicode::bidi_combinings(const std::u32string_view &string,
 			      const std::vector<unicode_bidi_level_t> &levels,
 			      const std::function<void (unicode_bidi_level_t,
 							size_t level_start,
@@ -1033,7 +1033,7 @@ void unicode::bidi_combinings(const std::u32string &string,
 	cb.rethrow();
 }
 
-void unicode::bidi_combinings(const std::u32string &string,
+void unicode::bidi_combinings(const std::u32string_view &string,
 			      const std::function<void (unicode_bidi_level_t,
 							size_t level_start,
 							size_t n_chars,

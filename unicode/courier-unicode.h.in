@@ -10,6 +10,7 @@
 #ifdef	__cplusplus
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <list>
 #include <functional>
@@ -1470,7 +1471,7 @@ int unicode_compose(char32_t *string,
 #ifdef	__cplusplus
 }
 
-extern size_t unicode_wcwidth(const std::u32string &uc);
+extern size_t unicode_wcwidth(const std::u32string_view &uc);
 
 namespace unicode {
 
@@ -1564,13 +1565,13 @@ class iconvert {
 
 	/* Convert from unicode to a charset */
 
-	static std::string convert(const std::u32string &uc,
+	static std::string convert(const std::u32string_view &uc,
 				   const std::string &dstcharset,
 				   bool &errflag);
 
 	/* Convert from unicode to a charset */
 
-	static std::string convert(const std::u32string &uc,
+	static std::string convert(const std::u32string_view &uc,
 				   const std::string &dstcharset)
 	{
 		bool dummy;
@@ -1580,7 +1581,7 @@ class iconvert {
 
 	/* Convert charset to unicode */
 
-	static bool convert(const std::string &text,
+	static bool convert(const std::string_view &text,
 			    const std::string &charset,
 			    std::u32string &uc);
 
@@ -1676,7 +1677,7 @@ class iconvert::tou : public iconvert {
 	}
 
 	static std::pair<std::u32string, bool>
-		convert(const std::string &str,
+		convert(const std::string_view &str,
 			const std::string &chset);
 };
 
@@ -1778,7 +1779,7 @@ class iconvert::fromu : public iconvert {
 	}
 
 	static std::pair<std::string, bool>
-		convert(const std::u32string &ubuf,
+		convert(const std::u32string_view &ubuf,
 			const std::string &chset);
 };
 
@@ -2355,11 +2356,11 @@ std::string toupper(const std::string &string,
 
 //! Convert unicode to lowercase
 
-std::u32string tolower(const std::u32string &u);
+std::u32string tolower(const std::u32string_view &u);
 
 //! Convert unicode to uppercase
 
-std::u32string toupper(const std::u32string &u);
+std::u32string toupper(const std::u32string_view &u);
 
 //! Calculate bidirectional character types
 
@@ -2379,13 +2380,12 @@ struct bidi_calc_types {
 	//! an existing std::u32string.
 	bidi_calc_types(const std::u32string &);
 
-#if __cplusplus >= 201103L
 	//! Deleted constructor
 
 	//! bidi_calc_types cannot be constructed from a temporary
 	//! std::u32string.
-	bidi_calc_types(std::u32string &&)=delete;
-#endif
+	bidi_calc_types(std::u32string_view &&)=delete;
+
 	//! Replace all paragraph breaks by newlines.
 
 	void setbnl(std::u32string &);
@@ -2498,7 +2498,7 @@ void bidi_logical_order(std::vector<unicode_bidi_level_t> &levels,
 
 //! Whether directional and isolation markers are needed.
 
-bool bidi_needs_embed(const std::u32string &string,
+bool bidi_needs_embed(const std::u32string_view &string,
 		      const std::vector<unicode_bidi_level_t> &levels,
 		      const unicode_bidi_level_t *paragraph_embedding=0,
 		      size_t starting_pos=0,
@@ -2511,7 +2511,7 @@ bool bidi_needs_embed(const std::u32string &string,
 //! The lambda gets called repeatedly, to specify the contents of the
 //! string with embedded direction markers.
 
-int bidi_embed(const std::u32string &string,
+int bidi_embed(const std::u32string_view &string,
 	       const std::vector<unicode_bidi_level_t> &levels,
 	       unicode_bidi_level_t paragraph_embedding,
 	       const std::function<void (const char32_t *string,
@@ -2525,7 +2525,7 @@ int bidi_embed(const std::u32string &string,
 //! Provides a lambda that collects the new string, and returns it. An
 //! empty string gets returned if the string and levels' sizes do not match.
 
-std::u32string bidi_embed(const std::u32string &string,
+std::u32string bidi_embed(const std::u32string_view &string,
 			  const std::vector<unicode_bidi_level_t> &levels,
 			  unicode_bidi_level_t paragraph_embedding);
 
@@ -2534,7 +2534,7 @@ std::u32string bidi_embed(const std::u32string &string,
 
 //! Bounded by each embedding level.
 
-void bidi_combinings(const std::u32string &string,
+void bidi_combinings(const std::u32string_view &string,
 		     const std::vector<unicode_bidi_level_t> &levels,
 		     const std::function<void (unicode_bidi_level_t level,
 					       size_t level_start,
@@ -2544,7 +2544,7 @@ void bidi_combinings(const std::u32string &string,
 
 //! Identify contiguous sequences of composition characters
 
-void bidi_combinings(const std::u32string &string,
+void bidi_combinings(const std::u32string_view &string,
 		     const std::function<void (unicode_bidi_level_t level,
 					       size_t level_start,
 					       size_t n_chars,
@@ -2556,17 +2556,17 @@ void bidi_combinings(const std::u32string &string,
 //! In order for the unicode string to have the specified default
 //! paragraph embedding level.
 
-char32_t bidi_embed_paragraph_level(const std::u32string &string,
+char32_t bidi_embed_paragraph_level(const std::u32string_view &string,
 				    unicode_bidi_level_t level);
 
 //! Compute default direction of text
 
-unicode_bidi_direction bidi_get_direction(const std::u32string &string,
+unicode_bidi_direction bidi_get_direction(const std::u32string_view &string,
 					  size_t starting_pos=0,
 					  size_t n=(size_t)-1);
 
 //! Override bidi direction.
-std::u32string bidi_override(const std::u32string &s,
+std::u32string bidi_override(const std::u32string_view &s,
 			     unicode_bidi_level_t direction,
 			     int cleanup_options=0);
 

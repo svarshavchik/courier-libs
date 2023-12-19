@@ -13,8 +13,9 @@ AC_LANG_PUSH([C++])
 
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <string>
+#include <string_view>
 
-void func(std::u32string, char32_t);
+void func(std::u32string_view, char32_t);
 
 ]], [[
      std::u32string s;
@@ -26,31 +27,14 @@ void func(std::u32string, char32_t);
      ],
      [
 
-COURIER_UNICODE_CXXFLAGS="-std=c++11"
+COURIER_UNICODE_CXXFLAGS="-std=c++17"
 CXXFLAGS="$save_CFLAGS $COURIER_UNICODE_CXXFLAGS"
 
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <string>
+#include <string_view>
 
-void func(std::u32string, char32_t);
-
-]], [[
-     std::u32string s;
-     char32_t c=0;
-
-     func(s, c);
-     ]])],
-     [
-     ],
-     [
-
-COURIER_UNICODE_CXXFLAGS="-std=c++0x"
-CXXFLAGS="$save_CFLAGS $COURIER_UNICODE_CXXFLAGS"
-
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <string>
-
-void func(std::u32string, char32_t);
+void func(std::u32string_view, char32_t);
 
 ]], [[
      std::u32string s;
@@ -61,8 +45,7 @@ void func(std::u32string, char32_t);
      [
      ],
      [
-AC_MSG_ERROR([*** A compiler with C++11 Unicode support was not found])
-])
+AC_MSG_ERROR([*** A compiler with C++17 Unicode support was not found])
 ])
 ])
 CXXFLAGS="$save_FLAGS"
