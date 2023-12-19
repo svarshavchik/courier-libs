@@ -1,3 +1,10 @@
+2025-05-11  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* ABI break. Update the C++ API to C++17. Several functions'
+	std::u32string parameter replaced with a std::u32string_view,
+	where possible. Fill in a small functional gap, implement
+	unicode::totitle().
+
 2.3.2
 
 2025-04-05  Sam Varshavchik  <mrsam@courier-mta.com>

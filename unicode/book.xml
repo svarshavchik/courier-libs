@@ -13,7 +13,7 @@
 
 <!--
 
-Copyright 2014-2023 Double Precision, Inc.
+Copyright 2014-2025 Double Precision, Inc.
 See COPYING for distribution information.
 
 -->
@@ -404,30 +404,14 @@ See COPYING for distribution information.
     </para>
 
     <para>
-      The Courier Unicode library installs an
-      <application>autoconf</application> macro to verify C++17 support.
       In your <filename>configure.ac</filename>:
     </para>
 
     <blockquote>
       <informalexample>
 	<programlisting>
-	AX_COURIER_UNICODE_VERSION
-	AX_COURIER_UNICODE_CXXFLAGS
-
-	AC_SUBST(COURIER_UNICODE_CXXFLAGS)
-	</programlisting>
-      </informalexample>
-    </blockquote>
-
-    <para>
-      Then, in <filename>Makefile.am</filename>:
-    </para>
-
-    <blockquote>
-      <informalexample>
-	<programlisting>
-	  AM_CXXFLAGS = @COURIER_UNICODE_CXXFLAGS@
+          AX_CXX_COMPILE_STDCXX_17
+	  AX_COURIER_UNICODE_VERSION
 	</programlisting>
       </informalexample>
     </blockquote>
@@ -445,13 +429,6 @@ See COPYING for distribution information.
 	AX_COURIER_UNICODE_VERSION(2.2.0)</programlisting>
       </informalexample>
     </blockquote>
-
-    <para>
-      <varname>AX_COURIER_UNICODE_CXXFLAGS</varname> sets
-      <varname>COURIER_UNICODE_CXXFLAGS</varname> to the appropriate option
-      for older gcc compilers that require an option to enable C++17
-      support.
-    </para>
 
     <para>
       The starting point for the library documentation is
@@ -560,6 +537,9 @@ See COPYING for distribution information.
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_uc">
 	      <citerefentry><refentrytitle>unicode_uc</refentrytitle>
+	      <manvolnum>3</manvolnum></citerefentry></link>,
+	    <link linkend="unicode_wcwidth">
+	      <citerefentry><refentrytitle>unicode_wcwidth</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode_word_break">
 	      <citerefentry><refentrytitle>unicode_word_break</refentrytitle>
@@ -701,9 +681,8 @@ See COPYING for distribution information.
 	    <funcprototype>
 	      <funcdef>int <function>unicode_bidi_needs_embed</function></funcdef>
               <paramdef>const char32_t *<parameter>string</parameter></paramdef>
-              <paramdef>const unicode_bidi_level_t *<parameter>levels</parameter></paramdef>
               <paramdef>size_t <parameter>n</parameter></paramdef>
-              <paramdef>const unicode_bidi_level_t <parameter>*paragraph_embedding</parameter></paramdef>
+              <paramdef>const unicode_bidi_level_t *<parameter>paragraph_embedding</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -4357,29 +4336,144 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	      <citerefentry>
 		<refentrytitle>courier-unicode</refentrytitle>
 		<manvolnum>7</manvolnum></citerefentry></link>,
-	    <link linkend="unicode_convert">
-	      <citerefentry>
-		<refentrytitle>unicode_convert</refentrytitle>
-		<manvolnum>3</manvolnum></citerefentry></link>,
-	      <link linkend="unicode_default_chset">
-		<citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
-		<manvolnum>3</manvolnum></citerefentry></link>,
-		<link linkend="unicode_html40ent_lookup">
-		  <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
-		  <manvolnum>3</manvolnum></citerefentry></link>,
-		  <link linkend="unicode_category_lookup">
-		    <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
-		    <manvolnum>3</manvolnum></citerefentry></link>,
-		    <link linkend="unicode_grapheme_break">
-		      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
+		<link linkend="unicode_wcwidth">
+		  <citerefentry>
+		    <refentrytitle>unicode_wcwidth</refentrytitle>
+		    <manvolnum>3</manvolnum>
+		  </citerefentry>
+		  </link>,
+		  <link linkend="unicode_convert">
+		    <citerefentry>
+		      <refentrytitle>unicode_convert</refentrytitle>
 		      <manvolnum>3</manvolnum></citerefentry></link>,
-		      <link linkend="unicode_word_break">
-			<citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+		      <link linkend="unicode_default_chset">
+			<citerefentry><refentrytitle>unicode_default_chset</refentrytitle>
 			<manvolnum>3</manvolnum></citerefentry></link>,
-			<link linkend="unicode_line_break">
-			  <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
-			  <manvolnum>3</manvolnum></citerefentry></link>.
+			<link linkend="unicode_html40ent_lookup">
+			  <citerefentry><refentrytitle>unicode_html40ent_lookup</refentrytitle>
+			  <manvolnum>3</manvolnum></citerefentry></link>,
+			  <link linkend="unicode_category_lookup">
+			    <citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
+			    <manvolnum>3</manvolnum></citerefentry></link>,
+			    <link linkend="unicode_grapheme_break">
+			      <citerefentry><refentrytitle>unicode_grapheme_break</refentrytitle>
+			      <manvolnum>3</manvolnum></citerefentry></link>,
+			      <link linkend="unicode_word_break">
+				<citerefentry><refentrytitle>unicode_word_break</refentrytitle>
+				<manvolnum>3</manvolnum></citerefentry></link>,
+				<link linkend="unicode_line_break">
+				  <citerefentry><refentrytitle>unicode_line_break</refentrytitle>
+				  <manvolnum>3</manvolnum></citerefentry></link>
+	  </para>
+	</refsect1>
+      </refentry>
 
+      <refentry id="unicode_wcwidth">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+	<refmeta>
+	  <refentrytitle>unicode_wcwidth</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode_wcwidth</refname>
+	  <refname>unicode_wcwidth_str</refname>
+	  <refpurpose>width of a Unicode character string</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <funcsynopsis>
+	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
+	    <funcprototype>
+              <funcdef>int <function>unicode_wcwidth</function></funcdef>
+              <paramdef>char32_t <parameter>c</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	  <funcsynopsis>
+	    <funcprototype>
+              <funcdef>size_t <function>unicode_wcwidth_str</function></funcdef>
+              <paramdef>const char32_t *<parameter>str</parameter></paramdef>
+	    </funcprototype>
+	  </funcsynopsis>
+	</refsynopsisdiv>
+	<refsect1 id="unicode_wcwidth_descr">
+	  <title>DESCRIPTION</title>
+	  <para>
+	    <function>unicode_wcwidth</function> returns 1 for regular
+	    Unicode characters, 0 for control characters, and 2 for characters
+	    that normally take up the width of two regular characters on a
+	    text console.
+	  </para>
+	  <para>
+	    <function>unicode_wcwidth_str</function> adds up
+	    <function>unicode_wcwidth</function> of all characters in the
+	    null-terminated string and returns the total
+	  </para>
+	</refsect1>
+
+	<refsect1 id="unicode_wcwidth_bugs">
+	  <title>BUGS</title>
+	  <para>
+	    The width of a Unicode character is looked up in the Unicode
+	    database, and not your terminal's character set font. Hopefully
+	    your terminal's character set font is Unicide-compatible.
+	  </para>
+	</refsect1>
+
+	<refsect1 id="unicode_wcwidth_seealso">
+	  <title>SEE ALSO</title>
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum>
+	      </citerefentry>
+	      </link>,
+	      <link linkend="unicode_uc">
+		<citerefentry>
+		  <refentrytitle>unicode_uc</refentrytitle>
+		  <manvolnum>3</manvolnum>
+		</citerefentry>
+		</link>,
+		<link linkend="unicode_convert">
+		  <citerefentry>
+		    <refentrytitle>unicode_convert</refentrytitle>
+		    <manvolnum>3</manvolnum>
+		  </citerefentry>
+		  </link>,
+		  <link linkend="unicode_default_chset">
+		    <citerefentry>
+		      <refentrytitle>unicode_default_chset</refentrytitle>
+		      <manvolnum>3</manvolnum>
+		    </citerefentry>
+		    </link>,
+		    <link linkend="unicode_html40ent_lookup">
+		      <citerefentry>
+			<refentrytitle>unicode_html40ent_lookup</refentrytitle>
+			<manvolnum>3</manvolnum>
+		      </citerefentry>
+		      </link>,
+		      <link linkend="unicode_category_lookup">
+			<citerefentry><refentrytitle>unicode_category_lookup</refentrytitle>
+			<manvolnum>3</manvolnum>
+			</citerefentry>
+			</link>,
+			<link linkend="unicode_grapheme_break">
+			  <citerefentry>
+			    <refentrytitle>unicode_grapheme_break</refentrytitle>
+			  <manvolnum>3</manvolnum></citerefentry>
+			  </link>,
+			  <link linkend="unicode_word_break">
+			    <citerefentry>
+			      <refentrytitle>unicode_word_break</refentrytitle>
+			    <manvolnum>3</manvolnum></citerefentry>
+			    </link>,
+			    <link linkend="unicode_line_break">
+			      <citerefentry>
+				<refentrytitle>unicode_line_break</refentrytitle>
+				<manvolnum>3</manvolnum>
+			      </citerefentry>
+			      </link>.
 	  </para>
 	</refsect1>
       </refentry>
@@ -4504,14 +4598,14 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_combinings</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>const std::function &lt;void (unicode_bidi_level_t level, size_t level_start, size_t n_chars, size_t comb_start, size_t n_comb_chars)&gt; &amp;<parameter>callback</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>void <function>unicode::bidi_combinings</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::function &lt;void (unicode_bidi_level_t level, size_t level_start, size_t n_chars, size_t comb_start, size_t n_comb_chars)&gt; &amp;<parameter>callback</parameter></paramdef>
 	    </funcprototype>
 
@@ -4526,7 +4620,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 
 	    <funcprototype>
               <funcdef>bool <function>unicode::bidi_needs_embed</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>const unicode_bidi_level_t (<parameter>paragraph_embedding</parameter>=NULL</paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
@@ -4535,7 +4629,7 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 
 	    <funcprototype>
               <funcdef>int <function>unicode::bidi_embed</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::u32string_new &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>const std::vector &lt;unicode_bidi_level_t&gt; &amp;<parameter>levels</parameter></paramdef>
 	      <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
 	      <paramdef>const std::function&lt;void (const char32_t *, size_t, bool)&gt; &amp;<parameter>callback</parameter></paramdef>
@@ -4549,21 +4643,21 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
             </funcprototype>
 
 	    <funcprototype>
-	      <funcdef>char32_t <function>unicode_bidi_embed_paragraph_level</function></funcdef>
-              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+	      <funcdef>char32_t <function>unicode::bidi_embed_paragraph_level</function></funcdef>
+              <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
               <paramdef>unicode_bidi_level_t <parameter>paragraph_embedding</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>unicode_bidi_direction <function>bidi_get_direction</function></funcdef>
-              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+              <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
 	      <paramdef>size_t <parameter>starting_pos</parameter>=0</paramdef>
 	      <paramdef>size_t <parameter>n</parameter>=(size_t)-1</paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
 	      <funcdef>std::u32string <function>bidi_override</function></funcdef>
-              <paramdef>const std::u32string &amp;<parameter>string</parameter></paramdef>
+              <paramdef>const std::u32string_view &amp;<parameter>string</parameter></paramdef>
               <paramdef>unicode_bidi_level_t <parameter>direction</parameter></paramdef>
 	      <paramdef>int <parameter>cleanup_options</parameter>=0</paramdef>
 	    </funcprototype>
@@ -4676,7 +4770,7 @@ auto [levels, direction]=unicode::bidi_calc(types);
 		pointer and the embedding level buffer, and a single parameter
 		that specifies the size of both.
 		The equivalent C++ function takes two discrete parameters,
-		a <classname>std::u32string</classname> and a
+		a <classname>std::u32string_view</classname> and a
 		<classname>std::vector</classname> and returns an
 		<classname>int</classname>; a negative value if their sizes
 		differ, and 0 if their sizes match, and the requested function
@@ -4980,22 +5074,22 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::u32string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::u32string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
               <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>bool <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>std::vector&lt;char32_t&gt; &amp;<parameter>text</parameter></paramdef>
+              <paramdef>std::u32string &amp;<parameter>text</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -5019,14 +5113,14 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <listitem>
 	      <para>
-		A vector of unicode characters (not null-terminated) to
+		A Unicode string to
 		a character string in a supported character set.
 	      </para>
 	    </listitem>
 
 	    <listitem>
 	      <para>
-		Initialize a vector of unicode characters, passed by
+		Initialize a Unicode string, passed by
 		reference, by converting a text string in a given character
 		set to unicode.
 	      </para>
@@ -5205,7 +5299,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::pair&lt;std::string, bool&gt; <function>unicode::iconvert::fromu::convert</function></funcdef>
-              <paramdef>const std::u32string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::u32string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
@@ -5300,7 +5394,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::pair&lt;std::u32string, bool&gt; <function>convert</function></funcdef>
-              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
@@ -5573,12 +5667,15 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	<refnamediv>
 	  <refname>unicode::tolower</refname>
 	  <refname>unicode::toupper</refname>
+	  <refname>unicode::totitle</refname>
 	  <refpurpose>unicode version of
 	  <citerefentry><refentrytitle>tolower</refentrytitle>
 	  <manvolnum>3</manvolnum></citerefentry>
 	  and
 	  <citerefentry><refentrytitle>toupper</refentrytitle>
-	  <manvolnum>3</manvolnum></citerefentry>
+	  <manvolnum>3</manvolnum></citerefentry> and
+	  <citerefentry><refentrytitle>totitle</refentrytitle>
+	  <manvolnum>3</manvolnum></citerefentry> (if there was such a thing)
 	  </refpurpose>
 	</refnamediv>
 
@@ -5598,7 +5695,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	    <funcprototype>
               <funcdef>std::u32string <function>unicode::tolower</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>u</parameter></paramdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -5614,7 +5711,23 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	    <funcprototype>
               <funcdef>std::u32string <function>unicode::toupper</function></funcdef>
-	      <paramdef>const std::u32string &amp;<parameter>u</parameter></paramdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>u</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::totitle</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::string <function>unicode::totitle</function></funcdef>
+	      <paramdef>const std::string &amp;<parameter>string</parameter></paramdef>
+	      <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
+	    </funcprototype>
+
+	    <funcprototype>
+              <funcdef>std::u32string <function>unicode::totitle</function></funcdef>
+	      <paramdef>const std::u32string_view &amp;<parameter>u</parameter></paramdef>
 	    </funcprototype>
 	  </funcsynopsis>
 	</refsynopsisdiv>
@@ -5631,9 +5744,12 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 	      to unicode, replace each character with
 	      <link linkend="unicode_uc">
 		<citerefentry><refentrytitle>unicode_lc</refentrytitle>
-		<manvolnum>3</manvolnum></citerefentry></link> or
+		<manvolnum>3</manvolnum></citerefentry></link>, or
 	      <link linkend="unicode_uc">
 		<citerefentry><refentrytitle>unicode_uc</refentrytitle>
+		<manvolnum>3</manvolnum></citerefentry></link> or
+	      <link linkend="unicode_uc">
+		<citerefentry><refentrytitle>unicode_tc</refentrytitle>
 		<manvolnum>3</manvolnum></citerefentry></link>,
 		then convert it back to the same character set, returning
 		the resulting string.
@@ -5641,7 +5757,7 @@ std::copy(beg_iter, end_iter, std::back_insert_iterator&lt;std::vector&lt;int&gt
 
 	  <para>
 	    Passing a
-	    <classname>const std::u32string &amp;</classname>
+	    <classname>const std::u32string_view &amp;</classname>
 	    directly also converts it accordingly, returning the converted
 	    unicode string.
 	  </para>

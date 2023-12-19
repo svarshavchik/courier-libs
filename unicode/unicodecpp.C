@@ -602,6 +602,28 @@ std::u32string unicode::toupper(const std::u32string_view &u)
 	return copy;
 }
 
+std::string unicode::totitle(const std::string &string)
+{
+	return totitle(string, unicode_default_chset());
+}
+
+std::string unicode::totitle(const std::string &string,
+			     const std::string &charset)
+{
+	std::u32string uc;
+
+	unicode::iconvert::convert(string, charset, uc);
+
+	return unicode::iconvert::convert(totitle(uc), charset);
+}
+
+std::u32string unicode::totitle(const std::u32string_view &u)
+{
+	std::u32string copy{u.begin(), u.end()};
+
+	std::transform(copy.begin(), copy.end(), copy.begin(), unicode_tc);
+	return copy;
+}
 
 unicode::bidi_calc_types::bidi_calc_types(const std::u32string &s)
 	: s{s}

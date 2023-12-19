@@ -2344,6 +2344,10 @@ std::string tolower(const std::string &string);
 
 std::string toupper(const std::string &string);
 
+//! Convert string in unicode_default_chset() to titlecase
+
+std::string totitle(const std::string &string);
+
 //! Convert string in the given character set to lowercase
 
 std::string tolower(const std::string &string,
@@ -2354,6 +2358,11 @@ std::string tolower(const std::string &string,
 std::string toupper(const std::string &string,
 		    const std::string &charset);
 
+//! Convert string in the given character set to titlecase
+
+std::string totitle(const std::string &string,
+		    const std::string &charset);
+
 //! Convert unicode to lowercase
 
 std::u32string tolower(const std::u32string_view &u);
@@ -2361,6 +2370,10 @@ std::u32string tolower(const std::u32string_view &u);
 //! Convert unicode to uppercase
 
 std::u32string toupper(const std::u32string_view &u);
+
+//! Convert unicode to title
+
+std::u32string totitle(const std::u32string_view &u);
 
 //! Calculate bidirectional character types
 

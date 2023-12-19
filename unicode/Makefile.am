@@ -28,7 +28,7 @@ noinst_PROGRAMS=unicodetest graphemetest linebreaktest wordbreaktest \
 	enttest scripttest biditest biditest2 normalizetest
 
 aclocaldir=$(datadir)/aclocal
-aclocal_DATA=m4/courier-unicode.m4 courier-unicode-version.m4
+aclocal_DATA=courier-unicode-version.m4
 
 update-www:
 	@$(MAKE) update-www-unicode
@@ -129,6 +129,7 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 \
         $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 \
         $(srcdir)/man/unicode[\:][\:]tolower.3 \
+        $(srcdir)/man/unicode[\:][\:]totitle.3 \
         $(srcdir)/man/unicode[\:][\:]toupper.3 \
         $(srcdir)/man/unicode[\:][\:]ucs_2.3 \
         $(srcdir)/man/unicode[\:][\:]ucs_4.3 \
@@ -246,6 +247,8 @@ man_MANS= \
         $(srcdir)/man/unicode_wbscan_end.3 \
         $(srcdir)/man/unicode_wbscan_init.3 \
         $(srcdir)/man/unicode_wbscan_next.3 \
+        $(srcdir)/man/unicode_wcwidth.3 \
+        $(srcdir)/man/unicode_wcwidth_str.3 \
         $(srcdir)/man/unicode_word_break.3
 
 libcourier_unicode_la_SOURCES=\
@@ -288,7 +291,6 @@ dist-hook:
 	@PERL@ -p -i -e 's/\@DATE\@/'"$(DATE)"'/' $(distdir)/packaging/debian/changelog
 
 EXTRA_DIST=$(noinst_SCRIPTS) $(man_MANS) $(PACKAGE).spec \
-	m4/courier-unicode.m4 \
 	packaging/freebsd10/pkg-descr
 
 EXTRA_DIST += \
