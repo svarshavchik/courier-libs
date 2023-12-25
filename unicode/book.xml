@@ -3238,11 +3238,6 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	  </funcsynopsis>
 	  <funcsynopsis>
 	    <funcprototype>
-	      <paramdef>char32_t <parameter>c</parameter></paramdef>
-	    </funcprototype>
-	  </funcsynopsis>
-	  <funcsynopsis>
-	    <funcprototype>
 	      <funcdef>int <function>unicode_derived_grapheme_link_lookup</function></funcdef>
 	      <paramdef>char32_t <parameter>c</parameter></paramdef>
 	    </funcprototype>
