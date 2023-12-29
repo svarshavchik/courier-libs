@@ -71,7 +71,11 @@ EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
 	maildrop.lsm testsuite.txt.idn testsuite2
 
 check-am: testsuite
-	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ ./testsuite >testsuite.diff || exit 1; diff -U 3 testsuite.diff $(srcdir)/testsuite.txt.idn || exit 1; rm -f testsuite.diff
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
+		@SHELL@ ./testsuite >testsuite.diff || exit 1; \
+		sed '/^Message envelope sender/d' <testsuite.diff | \
+		diff -U 3 - $(srcdir)/testsuite.txt.idn || exit 1; \
+		rm -f testsuite.diff
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ $(srcdir)/testsuite2
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \

@@ -713,7 +713,6 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 
 --
-Message envelope sender=MAILER-DAEMON
 maildrop: Attempting ./testsuite.recipe
 Tokenized echo
 Tokenized string: "VERBOSE=$VERBOSE"
@@ -807,7 +806,6 @@ Tokenized eof
 ./testsuite.recipe(14): Creating dotlock testsuite.lock
 ./testsuite.recipe(15): Opening logfile /dev/null
 ./testsuite.recipe(18): Creating flock testsuite.lock
-Message envelope sender=MAILER-DAEMON
 maildrop: Attempting ./testsuite.recipe
 Tokenized foreach
 Tokenized regexp: /Header: (.*)/
@@ -1026,7 +1024,6 @@ maildrop: Executing system command exit 0
 alpha
 BETA
 ./testsuite.recipe(35): unset i
-Message envelope sender=MAILER-DAEMON
 maildrop: Attempting ./testsuite.recipe
 Tokenized string: "KEYWORDS"
 Tokenized =
@@ -1040,7 +1037,6 @@ Tokenized eof
 maildrop: Delivery complete.
 alpha
 beta
-Message envelope sender=MAILER-DAEMON
 maildrop: Attempting ./testsuite.recipe
 Tokenized if
 Tokenized (

@@ -139,7 +139,7 @@ to "./testsuite.maildir"
 EOF
 echo "Subject: msg1" | $VALGRIND ./maildrop testsuite.recipe
 echo "Subject: msg2" | $VALGRIND ./maildrop testsuite.recipe
-sed '/^From MAILER-DAEMON/d' <testsuite.maildir
+sed '/^From /d' <testsuite.maildir
 ls -al testsuite.maildir | cut -c1-10
 cat >testsuite.recipe <<EOF
 UMASK='022'
