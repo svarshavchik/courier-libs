@@ -2173,13 +2173,13 @@ int main(int argc, char **argv)
 	const char *prefork;
 	int n;
 
-#if 0
-	if (getenv("SQWEBMAIL_DEBUG"))
+	if (argc == 3 && strcmp(argv[1], "form") == 0)
 	{
-		main2();
-		return (0);
+		init_default_locale();
+		cgi_setup();
+		output_form(argv[2]);
+		return 0;
 	}
-#endif
 
 	courier_authdebug_login_init();
 

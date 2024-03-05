@@ -3269,6 +3269,8 @@ char	*dir=xlate_shmdir(folder);
 
 	if (!dir)	return;
 
+	mkdir (MAILDIRCURCACHE, 0700);
+
 	while ( chkcache(folder) )
 	{
 		closedb();
