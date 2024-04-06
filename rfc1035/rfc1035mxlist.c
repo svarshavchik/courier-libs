@@ -132,6 +132,8 @@ records weren't found.
 		second_a=RFC1035_TYPE_A;
 	}
 
+	/* Read cached records, for the less-preferred address type */
+
 	if (mxreply && !(opts & RFC1035_MX_QUERYALL))
 	{
 		rc2=harvest_records(res, list, mxreply, mxpreference,
@@ -140,7 +142,21 @@ records weren't found.
 
 		if (rc2 != RFC1035_MX_OK && rc2 != RFC1035_MX_SOFTERR)
 			return rc2;
+	}
 
+	/* If there's nothing cached make an explicit query */
+
+	rc2=harvest_records(res, list, mxreply, mxpreference, mxname,
+			    second_a, &found, HARVEST_AUTOQUERY,
+			    port);
+
+	if (rc2 != RFC1035_MX_OK && rc2 != RFC1035_MX_SOFTERR)
+		return rc2;
+
+	/* Read cached records, for the preferred address type */
+
+	if (mxreply && !(opts & RFC1035_MX_QUERYALL))
+	{
 		rc=harvest_records(res, list, mxreply, mxpreference,
 				   mxname, first_a, &found, 0,
 				   port);
@@ -152,12 +168,7 @@ records weren't found.
 			return rc;
 	}
 
-	rc2=harvest_records(res, list, mxreply, mxpreference, mxname,
-			    second_a, &found, HARVEST_AUTOQUERY,
-			    port);
-
-	if (rc2 != RFC1035_MX_OK && rc2 != RFC1035_MX_SOFTERR)
-		return rc2;
+	/* If there's nothing cached make an explicit query */
 
 	rc=harvest_records(res, list, mxreply, mxpreference, mxname,
 			   first_a, &found, HARVEST_AUTOQUERY,
@@ -288,7 +299,8 @@ static int harvest_records(struct rfc1035_res *res,
 				memcpy(&sin6, &q->address, sizeof(sin6));
 
 				if (memcmp(&sin6.sin6_addr, &in, sizeof(in))
-					== 0 && q->priority == mxpreference)
+					== 0 && q->priority == mxpreference &&
+				    strcmp(q->hostname, mxname) == 0)
 					break;
 			}
 			if (q)	continue;
