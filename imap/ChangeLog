@@ -1,3 +1,7 @@
+2024-04-06  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* courier-imap.spec.in: Packaging fixes.
+
 2023-12-23  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Update rpm spec to match updated courier-authlib packaging.
