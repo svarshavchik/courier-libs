@@ -219,3 +219,7 @@ testlogindomainlist_SOURCES=testlogindomainlist.c logindomainlist.c
 check-am:
 	./testhtml <$(srcdir)/testhtml.tst | diff -U 3 $(srcdir)/testhtml.txt -
 	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -
+
+check-version:
+	test "$(VERSION)" = "$(TOPLEVEL_VERSION)" && exit 0; \
+		echo "Makefile.am version mismatch"; exit 1

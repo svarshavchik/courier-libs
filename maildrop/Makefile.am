@@ -139,3 +139,7 @@ maildropfilter.html: maildropfilter.html.in
 
 maildropfilter.7: maildropfilter.7.in
 	./config.status --file=$@
+
+check-version:
+	test "$(VERSION)" = "$(TOPLEVEL_VERSION)" && exit 0; \
+		echo "Makefile.am version mismatch"; exit 1
