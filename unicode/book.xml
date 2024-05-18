@@ -69,9 +69,8 @@ See COPYING for distribution information.
 	entity (such as <quote>&amp;amp;</quote>, for example), and
 	determining the normal width or a double-width status of a unicode
 	character. Also, an adaptation of the
-	<ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	<citerefentry><refentrytitle>iconv</refentrytitle>
-	<manvolnum>3</manvolnum></citerefentry></ulink>
+	<manvolnum>3</manvolnum></citerefentry>
 	API for this unicode library.
       </para>
     </listitem>
@@ -393,10 +392,7 @@ See COPYING for distribution information.
 	<citerefentry>
 	  <refentrytitle>courier-unicode</refentrytitle>
 	  <manvolnum>7</manvolnum></citerefentry></link>.
-	  Refer to the included manual pages,
-	  and
-	  <ulink url="https://www.courier-mta.org/unicode/manpages.html"> the HTML
-	  version of the man pages</ulink> for more information.
+	  Refer to the included manual pages for more information.
     </para>
   </section>
 
@@ -431,9 +427,8 @@ See COPYING for distribution information.
 	    <ulink url="https://www.unicode.org/standard/standard.html">Unicode
 	    Standard</ulink>.
 	    This library uses
-	    <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html"
-		   ><citerefentry><refentrytitle>iconv</refentrytitle>
-	    <manvolnum>3</manvolnum></citerefentry></ulink> to convert
+	    <citerefentry><refentrytitle>iconv</refentrytitle>
+	    <manvolnum>3</manvolnum></citerefentry> to convert
 	      text in a given character set to unicode. Any character set
 	      displayed by <command>iconv --list</command> can be specified
 	      for the corresponding character set parameter. Additionally,
@@ -2867,9 +2862,8 @@ if (unicode_composition_init(str, strsize, flags, &compositions) == 0)
 	    <function>unicode_convert_init</function>(),
 	    <function>unicode_convert</function>(), and
 	    <function>unicode_convert_deinit</function>() are an adaption of th
-	    <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink> API that uses the same
+	      <manvolnum>3</manvolnum></citerefentry> API that uses the same
 	      calling convention as the other algorithms in this unicode library,
 	      with some value-added features.
 	      These functions use
@@ -5011,9 +5005,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+	      <manvolnum>3</manvolnum></citerefentry>.
 
 	  </para>
 	</refsect1>
@@ -5101,9 +5094,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+	      <manvolnum>3</manvolnum></citerefentry>.
 
 	  </para>
 	</refsect1>
@@ -5198,9 +5190,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+	      <manvolnum>3</manvolnum></citerefentry>.
 
 	  </para>
 	</refsect1>
@@ -5297,9 +5288,8 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <link linkend="unicode_convert">
 	      <citerefentry><refentrytitle>unicode_convert</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
-	      <ulink url="https://manpages.courier-mta.org/htmlman3/iconv.3.html">
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></ulink>.
+	      <manvolnum>3</manvolnum></citerefentry>.
 
 	  </para>
 	</refsect1>
