@@ -438,10 +438,17 @@ static int mksocket(const char *ipaddrarg,	/* Host/IP address */
 	{
 		int dummy=1;
 
+#ifdef IP_FREEBIND
+		if (setsockopt(fd, IPPROTO_IP, IP_FREEBIND,
+			       (const char *)&dummy, sizeof(dummy)) < 0)
+		{
+			perror("setsockopt(IP_FREEBIND)");
+		}
+#endif
 		if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
 		       (const char *)&dummy, sizeof(dummy)) < 0)
 		{
-			perror("setsockopt");
+			perror("setsockopt(SO_REUSEADDR)");
 		}
 	}
 
