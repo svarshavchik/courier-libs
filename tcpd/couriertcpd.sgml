@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2000-2020 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2000-2024 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry id="couriertcpd">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -271,12 +271,52 @@ variables (see below).</para>
       </varlistentry>
 
       <varlistentry>
-	<term>-noidentlookup</term>
+	<term>-haproxy<replaceable>=timeout</replaceable></term>
 	<listitem>
 	  <para>
-Do not perform an <emphasis>ident</emphasis>
-lookup, and do not initialize the <envar>TCPREMOTEINFO</envar> environment
-variable.</para>
+	    Use version 1 of the HAProxy protocol for all accepted
+	    connections. This option has the following requirements:
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		A firewall is required to restrict all connections to
+		connections coming only from the HAProxy server, this is
+		something that needs to be done separately. Do not use
+		<option>-haproxy</option> without a firewall that blocks
+		all other connections.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		The network connection between the HAProxy server and
+		<command>couriertcpd</command> must be a high availability,
+		and a high quality connection.
+		After accepting each client connection
+		<command>couriertcpd</command> waits to read the HAProxy
+		protocol header before accepting any connections.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+
+	  <para>
+	    The <replaceable>timeout</replaceable> value is optional and
+	    sets a failsafe timeout in seconds (defaults to 15
+	    seconds). <command>couriertcpd</command> closes the socket
+	    if the HAProxy protocol header is not received in the set
+	    timeout.
+	  </para>
+
+	  <para>
+	    The default 15 second timeout setting should be sufficiently
+	    conservative. On a high quality, reliable network, with a fast
+	    HAProxy server that provides the protocol header in a matter of
+	    seconds: it should not be a problem to use a short timeout of
+	    four or five seconds in order to minimize the impact of rare,
+	    momentary, network hiccups.
+	  </para>
 	</listitem>
       </varlistentry>
 
@@ -954,15 +994,30 @@ completely.</para>
 	<term>TCPLOCALIP</term>
 	<listitem>
 	  <para>
-The IP address of the local end of the network connection.</para>
-	</listitem>
+	    The IP address of the local end of the network connection.
+	  </para>
+	  <note>
+	    <para>
+	      With the <option>-haproxy</option> option this is the local
+	      end of the connection on the HAProxy server.
+	    </para>
+	  </note>
+      </listitem>
       </varlistentry>
 
       <varlistentry>
 	<term>TCPLOCALPORT</term>
 	<listitem>
 	  <para>
-Rhe number of the port of the local end of the network connection.</para>
+	    The number of the port of the local end of the network
+	    connection.
+	  </para>
+	  <note>
+	    <para>
+	      With the <option>-haproxy</option> option this is the local
+	      end of the connection on the HAProxy server.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
 
@@ -976,21 +1031,21 @@ The hostname of the connecting host. Like
       </varlistentry>
 
       <varlistentry>
-	<term>TCPREMOTEIP</term>
+	<term>TCPREMOTEINFO</term>
 	<listitem>
 	  <para>
-Connecting IP address.</para>
+	    This is set only when the <option>-haproxy</option> option is used,
+	    and contains a short string that gets included in the
+	    <literal>Received:</literal> header.
+	  </para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>TCPREMOTEINFO</term>
+	<term>TCPREMOTEIP</term>
 	<listitem>
 	  <para>
-Identification string received from the
-IDENT server on the remote IP address. Not set if the IDENT server
-returned an error, or if the <option>-noidentlookup</option> option was
-specified.</para>
+Connecting IP address.</para>
 	</listitem>
       </varlistentry>
 

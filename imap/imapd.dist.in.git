@@ -66,12 +66,15 @@ MAXPERIP=4
 
 PIDFILE=@piddir@/imapd.pid
 
-##NAME: TCPDOPTS:0
+##NAME: TCPDOPTS:1
 #
-# Miscellaneous couriertcpd options that shouldn't be changed.
+# Other couriertcpd(1) options.  The following defaults should be fine.
 #
+# See the couriertcpd(1) manual page for a list of other options. Namely:
+# -haproxy enables HAProxy version 1 support, see the manual page for more
+# information.
 
-TCPDOPTS="-nodnslookup -noidentlookup"
+TCPDOPTS="-nodnslookup"
 
 ##NAME: ACCESSFILE:0
 #
