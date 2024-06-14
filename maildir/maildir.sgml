@@ -231,7 +231,7 @@ and <quote>cnt</quote> is the message's size, in bytes.</para>
 
       <para>
 The <quote>,S=<replaceable>cnt</replaceable></quote>
-part optimizes the <ulink url="http://www.courier-mta.org"><application>Courier</application></ulink> mail server's
+part optimizes the <ulink url="https://www.courier-mta.org"><application>Courier</application></ulink> mail server's
 maildir quota enhancement; it allows the size of all the mail stored in
 the maildir to be added up without issuing the
 <citerefentry><refentrytitle>stat</refentrytitle><manvolnum>2</manvolnum></citerefentry>

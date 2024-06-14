@@ -87,7 +87,7 @@ in the default mailbox.</para>
 files; it
 also knows how to deliver to maildirs. A <literal>maildir</literal> is a
 directory-based mail format used by the
-<ulink url="http://www.courier-mta.org"><application>Courier</application></ulink>
+<ulink url="https://www.courier-mta.org"><application>Courier</application></ulink>
 and
 <application>Qmail</application>
 mail servers.
@@ -143,7 +143,7 @@ then <filename>$HOME/.mailfilter</filename>.</para>
 	  <para>
 <command>maildrop</command> functions as a part of another application.
 The embedded mode is used by the
-<ulink url="http://www.courier-mta.org"><application>Courier</application></ulink>
+<ulink url="https://www.courier-mta.org"><application>Courier</application></ulink>
 mail server to integrate mail filtering directly
 into the process of receiving mail from a remote mail relay, thus rejecting
 unwanted mail before it is even accepted for local mail delivery.
@@ -160,7 +160,7 @@ See below for a more extensive description of the embedded mode.</para>
 
     <para>
 It is safe to install <command>maildrop</command> as a root setuid program.
-<ulink url="http://www.courier-mta.org">The <application>Courier</application> mail server</ulink>
+<ulink url="https://www.courier-mta.org">The <application>Courier</application> mail server</ulink>
 installs <command>maildrop</command> as a root setuid program by default,
 in order to be able to use <command>maildrop</command> in embedded mode.
 If root runs <command>maildrop</command> (or it is setuided to root)
@@ -434,7 +434,7 @@ Note that <command>maildrop</command> looks for -default files ONLY if
 	  <para>
 This option is reserved for use by the version of
 <command>maildrop</command> that comes integrated with the
-<ulink url="http://www.courier-mta.org"><application>Courier</application> mail server</ulink>.</para>
+<ulink url="https://www.courier-mta.org"><application>Courier</application> mail server</ulink>.</para>
 	</listitem>
       </varlistentry>
 

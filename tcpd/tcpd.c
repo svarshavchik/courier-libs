@@ -116,6 +116,15 @@ static struct portinfo {
 
 	int fd1, fd2;		/* BSD may need both IPv4 and IPv6 sockets */
 } *fdlist=0;
+
+/* Local ports for haproxy */
+
+static struct haproxyinfo {
+	struct haproxyinfo *next;
+	int port;
+	time_t timeout;
+} *haproxylist=0;
+
 static int maxfd;
 
 static int nprocs, maxperc, maxperip, nwarn;
@@ -278,6 +287,68 @@ static struct portinfo *createport(const char *a, const char *s)
 	p->servname=s;
 	p->fd1=p->fd2= -1;
 	return (p);
+}
+
+/*
+** Parse the -haproxy parameter.
+*/
+
+static void parsehaproxy1(char *p)
+{
+	for ( ; (p=strtok(p, ",")) != 0; p=0)
+	{
+		struct haproxyinfo *info;
+
+		char *q;
+		int timeout=0;
+		int port=0;
+
+		while ((q=strrchr(p, '/')) != 0)
+		{
+			*q++=0;
+
+			if (strncmp(q, "port=", 5) == 0)
+			{
+				port=atoi(q+5);
+			}
+		}
+
+		if (*p)
+			timeout=atoi(p);
+
+		if (timeout <= 0)
+			timeout=15;
+
+		if ((info=malloc(sizeof(struct haproxyinfo))) == 0)
+		{
+			perror("malloc");
+			exit(1);
+		}
+
+		memset(info, 0, sizeof(*info));
+
+		info->next=haproxylist;
+
+		haproxylist=info;
+
+		info->port=port;
+		info->timeout=timeout;
+	}
+}
+
+static void parsehaproxy()
+{
+	char *p;
+
+	if (!haproxy)
+		return;
+
+	p=strdup(haproxy);
+	if (!p)
+		return;
+
+	parsehaproxy1(p);
+	free(p);
 }
 
 static int parseaddr(const char *p)
@@ -645,6 +716,8 @@ int	lockfd=-1;
 		return (-1);
 	}
 
+	parsehaproxy();
+
 	if (mksockets())
 	{
 		close(lockfd);
@@ -881,7 +954,7 @@ int	lockfd=-1;
 static void run(int, const RFC1035_ADDR *, int,
 		RFC1035_NETADDR *lsin,
 		socklen_t lsinl,
-		const char *, char **);
+		const char *, char **, int);
 
 static void doreap(pid_t p, int wait_stat)
 {
@@ -1189,7 +1262,8 @@ static void denied(int sockfd)
 
 static int get_haproxy(int sockfd, RFC1035_NETADDR *sin, int *sinl,
 		       RFC1035_NETADDR *lsin,
-		       socklen_t *lsinl)
+		       socklen_t *lsinl,
+		       int *using_haproxy)
 {
 	char buf[256];
 	char *bufptr=buf;
@@ -1200,15 +1274,29 @@ static int get_haproxy(int sockfd, RFC1035_NETADDR *sin, int *sinl,
 	const char *localip_str;
 	const char *remoteport_str;
 	const char *localport_str;
-	time_t timeout;
-	int expiration = *haproxy ? atoi(haproxy):-1;
+	struct haproxyinfo *info;
+	time_t  timeout;
+	int	addrport;
+
+	*using_haproxy=0;
+	if (rfc1035_sockaddrport(lsin, *lsinl, &addrport))
+	{
+		fprintf(stderr, "haproxy: cannot get local port number\n");
+		return -1;
+	}
+
+	addrport=ntohs(addrport);
+	for (info=haproxylist; info; info=info->next)
+	{
+		if (info->port == 0 || info->port == addrport)
+			break;
+	}
+	if (!info)
+		return 0;
 
 	time(&timeout);
 
-	if (expiration <= 0)
-		expiration = 15;
-
-	timeout += expiration;
+	timeout += info->timeout;
 
 	while (1)
 	{
@@ -1366,6 +1454,7 @@ static int get_haproxy(int sockfd, RFC1035_NETADDR *sin, int *sinl,
 			family_str);
 		return -1;
 	}
+	*using_haproxy=1;
 	return 0;
 }
 
@@ -1383,6 +1472,7 @@ static void accepted(int n, int sockfd, RFC1035_NETADDR *sin, int sinl,
 #endif
 	pid_t	p;
 	int cnt;
+	int using_haproxy;
 
 #ifdef	SO_KEEPALIVE
 	dummy=1;
@@ -1412,8 +1502,7 @@ static void accepted(int n, int sockfd, RFC1035_NETADDR *sin, int sinl,
 		return;
 	}
 
-	if (haproxy && get_haproxy(sockfd, sin, &sinl,
-				   &lsin, &lsinl))
+	if (get_haproxy(sockfd, sin, &sinl, &lsin, &lsinl, &using_haproxy))
 	{
 		sox_close(sockfd);
 		return;
@@ -1487,7 +1576,8 @@ static void accepted(int n, int sockfd, RFC1035_NETADDR *sin, int sinl,
 			denied(sockfd);
 		}
 
-		run(sockfd, &addr, addrport, &lsin, lsinl, prog, args);
+		run(sockfd, &addr, addrport, &lsin, lsinl, prog, args,
+		    using_haproxy);
 	}
 	pids[n]=p;
 
@@ -2037,7 +2127,8 @@ static void proxy();
 static void run(int fd, const RFC1035_ADDR *addr, int addrport,
 		RFC1035_NETADDR *lsin,
 		socklen_t i,
-		const char *prog, char **argv)
+		const char *prog, char **argv,
+		int using_haproxy)
 {
 	RFC1035_ADDR laddr;
 	int	lport;
@@ -2052,17 +2143,6 @@ static void run(int fd, const RFC1035_ADDR *addr, int addrport,
 	{
 		fprintf(stderr, "getsockname failed.\n");
 		exit(1);
-	}
-
-	if (haproxy)
-	{
-		char tcpremoteinfo_buf[256];
-
-		snprintf(tcpremoteinfo_buf, sizeof(tcpremoteinfo_buf),
-			 "proxy via %s, port %s",
-			 getenv("TCPLOCALIP"),
-			 getenv("TCPLOCALPORT"));
-		mysetenv("TCPREMOTEINFO", tcpremoteinfo_buf);
 	}
 
 /* check if it's an exception to the global ip limit */
@@ -2112,6 +2192,17 @@ static void run(int fd, const RFC1035_ADDR *addr, int addrport,
 	sprintf(buf, "%d", ntohs(lport));
 	mysetenv("TCPLOCALPORT", buf);
 	ip2host(&laddr, "TCPLOCALHOST");
+
+	if (using_haproxy)
+	{
+		char tcpremoteinfo_buf[256];
+
+		snprintf(tcpremoteinfo_buf, sizeof(tcpremoteinfo_buf),
+			 "proxy via %s, port %s",
+			 getenv("TCPLOCALIP"),
+			 getenv("TCPLOCALPORT"));
+		mysetenv("TCPREMOTEINFO", tcpremoteinfo_buf);
+	}
 
 	for (bl=blocklist; bl; bl=bl->next)
 		check_blocklist(bl, addr);

@@ -79,7 +79,7 @@ enables a compatible locking mechanism to update the message's keywords.</para>
 <option>-c</option> enables case-sensitive keywords.
 IMAP keywords are normally case insensitive.
 <option>-c</option> needs to be used if the
-<ulink url="http://www.courier-mta.org/cone/smap1.html">SMAP1</ulink>
+<ulink url="https://www.courier-mta.org/cone/smap1.html">SMAP1</ulink>
 protocol extension is used, which uses case sensitive keywords.</para>
 
   </refsect1>

@@ -118,7 +118,7 @@ to $FILE
       <para>
 	There's one exception to this rule which applies to the version of
 	<command>maildrop</command> that comes with the
-	<ulink url="http://www.courier-mta.org/"><application>Courier</application> mail server</ulink>.  The following
+	<ulink url="https://www.courier-mta.org/"><application>Courier</application> mail server</ulink>.  The following
 	does not apply to the standalone version of <command>maildrop</command>:
 	when running in
 	delivery mode, if the <option>-d</option> flag was not used, or if it specifies
@@ -447,7 +447,7 @@ MAILBOX="${HOME-WORD}/Mailbox"
 	      The <varname>KEYWORDS</varname> variable is used only when delivering a
 	      message to a maildir, and implements the optional IMAP keyword extension
 	      as implemented in the
-	      <ulink url="http://www.courier-mta.org/"><application>Courier</application> IMAP server</ulink>.
+	      <ulink url="https://www.courier-mta.org/"><application>Courier</application> IMAP server</ulink>.
 	      It may be optionally initialized to contain a comma-separate list of keywords.
 	      The <link linkend="to"><command>to</command></link>, or the
 	      <link linkend="cc"><command>cc</command></link> command, delivers the message

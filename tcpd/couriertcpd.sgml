@@ -116,8 +116,8 @@ that <literal>-address=127.0.0.1</literal> accepts connections only from the
 local system. When multiple port numbers are specified, it is also
 possible to selectively bind different network addresses to each port
 number when <replaceable>list</replaceable> specifies more than one port
-number. See "<ulink url="#list">Multiple port list</ulink>" below for more
-information.</para>
+number. See <xref linkend="couriertcpd_multiple_port_list" />
+below for information.</para>
 	</listitem>
       </varlistentry>
 
@@ -226,8 +226,7 @@ POP3 server at the same time.</para>
 	    The <option>-maxperip</option> option can be overridden for
 	    a given IP address by setting the
 	    <envar>MAXCPERIP</envar> environment
-	    variable, see <quote><link linkend="envar">Setting environment
-	    variables</link></quote> for more information.
+	    variable, see <xref linkend="envar" /> for more information.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -271,51 +270,13 @@ variables (see below).</para>
       </varlistentry>
 
       <varlistentry>
-	<term>-haproxy<replaceable>=timeout</replaceable></term>
+	<term>-haproxy<replaceable>=options</replaceable></term>
 	<listitem>
 	  <para>
-	    Use version 1 of the HAProxy protocol for all accepted
-	    connections. This option has the following requirements:
-	  </para>
-
-	  <itemizedlist>
-	    <listitem>
-	      <para>
-		A firewall is required to restrict all connections to
-		connections coming only from the HAProxy server, this is
-		something that needs to be done separately. Do not use
-		<option>-haproxy</option> without a firewall that blocks
-		all other connections.
-	      </para>
-	    </listitem>
-
-	    <listitem>
-	      <para>
-		The network connection between the HAProxy server and
-		<command>couriertcpd</command> must be a high availability,
-		and a high quality connection.
-		After accepting each client connection
-		<command>couriertcpd</command> waits to read the HAProxy
-		protocol header before accepting any connections.
-	      </para>
-	    </listitem>
-	  </itemizedlist>
-
-	  <para>
-	    The <replaceable>timeout</replaceable> value is optional and
-	    sets a failsafe timeout in seconds (defaults to 15
-	    seconds). <command>couriertcpd</command> closes the socket
-	    if the HAProxy protocol header is not received in the set
-	    timeout.
-	  </para>
-
-	  <para>
-	    The default 15 second timeout setting should be sufficiently
-	    conservative. On a high quality, reliable network, with a fast
-	    HAProxy server that provides the protocol header in a matter of
-	    seconds: it should not be a problem to use a short timeout of
-	    four or five seconds in order to minimize the impact of rare,
-	    momentary, network hiccups.
+	    Use version 1 of the <application>HAProxy</application>
+	    protocol for all accepted
+	    connections. See <xref linkend="couriertcpd_haproxy" />
+	    for more information.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -421,14 +382,12 @@ superuser can specify <option>-user</option>.</para>
   <refsect1 id="couriertcpd_multiple_port_list">
     <title>MULTIPLE PORT LIST</title>
 
-    <anchor id="list"/>
-
     <para>
-The <replaceable>list</replaceable> argument can be a comma-separated list of
-multiple port
-numbers. <command>couriertcpd</command> will create network connections on any
-listed port. Each port number can be optionally specified as "address.port",
-for example:</para>
+      The <replaceable>list</replaceable> argument can be a comma-separated
+      list of multiple port numbers.
+      <command>couriertcpd</command> listens for network connections on every
+      listed port. Each port number is optionally specified as "address.port",
+      for example:</para>
 
     <informalexample>
       <programlisting format="linespecific">
@@ -490,9 +449,8 @@ address.</para>
 
     <para>
 Both IPv4 and IPv6 addresses can be specified, if IPv6 support is
-available. A non-standard syntax is currently used to specify IPv6 addresses.
-This is subject to change in the near future. IPv6 support is currently
-considered to be experimental.</para>
+available. A slightly non-standard syntax is used to specify IPv6
+addresses.</para>
 
     <para>
 The access file is a binary database file that's usually created by a
@@ -517,7 +475,7 @@ netblock&lt;tab&gt;deny
       </informalexample>
 
       <para><replaceable>netblock</replaceable> is an IP address, such as
-<literal>192.68.0.2</literal>. <token>&lt;tab&gt;</token>
+<literal>192.168.0.2</literal>. <token>&lt;tab&gt;</token>
 is the ASCII tab character. There MUST be exactly one tab character after the
 IP address and the word "deny".</para>
 
@@ -526,13 +484,13 @@ You can also block connections from an entire network C block:</para>
 
       <informalexample>
 	<programlisting format="linespecific">
-192.68.0&lt;tab&gt;deny
+192.168.0&lt;tab&gt;deny
 </programlisting>
       </informalexample>
 
       <para>
-This blocks connections from IP addresses <literal>192.68.0.0</literal>
-through <literal>192.68.0.255</literal>.
+This blocks connections from IP addresses <literal>192.168.0.0</literal>
+through <literal>192.168.0.255</literal>.
 Blocking connections from an entire B or A network block works the same
 way.</para>
 
@@ -543,14 +501,14 @@ from that IP address or netblock. For example:</para>
 
       <informalexample>
 	<programlisting format="linespecific">
-192.68.0&lt;tab&gt;deny
-192.68.0.10&lt;tab&gt;allow
+192.168.0&lt;tab&gt;deny
+192.168.0.10&lt;tab&gt;allow
 </programlisting>
       </informalexample>
 
       <para>
-This blocks all connections from <literal>192.68.0.0</literal> to
-<literal>192.68.0.255</literal> except for <literal>192.68.0.10</literal>.
+This blocks all connections from <literal>192.168.0.0</literal> to
+<literal>192.168.0.255</literal> except for <literal>192.168.0.10</literal>.
 These two lines can occur in any order. <command>couriertcpd</command>
 always uses the line with the most specific IP address.</para>
 
@@ -569,13 +527,6 @@ connections to be rejected:</para>
 
     <refsect2 id="couriertcpd_ipv6_addresses">
       <title>IPv6 addresses</title>
-
-      <note>
-	<para>
-IPv6 support in the access file is experimental, and is subject to
-change in a future release.  The following syntax is subject to change at any
-time.</para>
-      </note>
 
       <para>
 The access file can also specify IPv6 addresses, if IPv6 support is
@@ -626,7 +577,6 @@ This will deny entire 3ffe::/16 (6bone network, which is phased out).
       <para>
 This will deny 2002:c0a8::/32 (6to4 addresses derived from private
 address space).</para>
-
     </refsect2>
 
     <refsect2 id="envar">
@@ -641,27 +591,27 @@ access lists (see below). For example:</para>
 
       <informalexample>
 	<programlisting format="linespecific">
-192.68.0&lt;tab&gt;allow,RELAYCLIENT
-192.68.0.10&lt;tab&gt;allow,RELAYCLIENT,SIZELIMIT=1000000
+192.168.0&lt;tab&gt;allow,RELAYCLIENT
+192.168.0.10&lt;tab&gt;allow,RELAYCLIENT,SIZELIMIT=1000000
 </programlisting>
       </informalexample>
 
       <para>
 This sets <envar>RELAYCLIENT</envar> environment variable for connections
-from the <literal>192.68.0</literal> block. In addition to that, the <envar>SIZELIMIT</envar>
+from the <literal>192.168.0</literal> block. In addition to that, the <envar>SIZELIMIT</envar>
 environment variable is set to <literal>1000000</literal> if the connection comes from the IP
-address <literal>192.68.0.10</literal>.</para>
+address <literal>192.168.0.10</literal>.</para>
 
       <para>
 Note that <envar>RELAYCLIENT</envar> must be explicitly specified for the IP
-address <literal>192.68.0.10</literal>. The first line is NOT used for
+address <literal>192.168.0.10</literal>. The first line is NOT used for
 connections from this IP
 address. <command>couriertcpd</command> only reads one entry from the access
 file, the entry for the most specific IP address.</para>
 
       <informalexample>
 	<programlisting format="linespecific">
-192.68.0.10&lt;tab&gt;allow,MAXCPERIP=100
+192.168.0.10&lt;tab&gt;allow,MAXCPERIP=100
 </programlisting>
       </informalexample>
 
@@ -963,6 +913,186 @@ file, the entry for the most specific IP address.</para>
 	</ulink>.
       </para>
     </refsect2>
+
+    <refsect2 id="couriertcpd_cidr">
+      <title>Using CIDR notation for IPv4 and IPv6 addresses</title>
+
+      <para>
+	<ulink url="makesmtpaccess.html"><citerefentry><refentrytitle>makesmtpaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink> and
+	<ulink url="makeimapaccess.html"><citerefentry><refentrytitle>makeimapaccess</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink>
+	scripts check if the Perl <literal>Net::CIDR</literal> module is
+	installed. This allows netblocks in the access files to
+	use the CIDR notation:
+      </para>
+
+      <informalexample>
+	<programlisting format="linespecific">
+192.168.0.0/22&lt;tab&gt;allow,RELAYCLIENT
+</programlisting>
+      </informalexample>
+
+      <para>
+	The scripts internally duplicate this access file entry for
+	<quote>192.168.0</quote>,
+	<quote>192.168.1</quote>,
+	<quote>192.168.2</quote>, and
+	<quote>192.168.3</quote>.
+      </para>
+    </refsect2>
+  </refsect1>
+
+  <refsect1 id="couriertcpd_haproxy">
+    <title>Enabling <application>HAProxy</application></title>
+
+    <para>
+      The <option>-haproxy</option> option enables support for
+      <application>HAProxy</application> version 1.
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>-haproxy</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      The default value of this option makes
+      all connections, on all ports (see
+      <xref linkend="couriertcpd_multiple_port_list" />) use the
+      <ulink url="https://www.haproxy.org"><application>HAProxy</application> protocol</ulink>
+      (see below on additional settings for controlling this).
+
+      The <option>-haproxy</option> option has the following requirements:
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>
+	  A firewall is required to blocks all connections
+	  except the ones from <application>HAProxy</application> server's
+	  IP address (to ports that use
+	  the <application>HAProxy</application> protocol), this is
+	  something that must be done separately. Do not use
+	  <option>-haproxy</option> without a firewall that blocks
+	  all other connections (to the listening port).
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  The network connection between the
+	  <application>HAProxy</application> server and
+	  <command>couriertcpd</command> must be a high availability,
+	  and a high quality connection.
+	  After accepting each client connection
+	  <command>couriertcpd</command> waits to read the
+	  <application>HAProxy</application>
+	  protocol header
+	  <emphasis>before accepting any more connections</emphasis>.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>-haproxy=5</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      An optional <option>-haproxy</option> value
+      sets a failsafe timeout in seconds (defaults to 15
+      seconds). <command>couriertcpd</command> closes the socket
+      if the <application>HAProxy</application> protocol header is not
+      received in the set
+      timeout.
+    </para>
+
+    <para>
+      The default 15 second timeout setting should be sufficiently
+      conservative. Additionally:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<simpara>With a high quality, reliable network, and</simpara>
+      </listitem>
+      <listitem>
+	<simpara>A robust <application>HAProxy</application> server
+	  that sends the protocol header instantly, without delay:</simpara>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      It should not be a problem to use a short timeout of
+      four or five seconds in order to minimize the impact of rare,
+      momentary, network hiccups.
+    </para>
+
+    <note>
+      <para>
+	Enabling TCP Fast Open (TFO)
+	with <application>HAProxy</application>
+	effectively guarantees an immediate receipt of the protocol header
+	for most connections. It is recommended that TFO is enabled on the
+	the <application>HAProxy</application> (the TFO client) and
+	<command>couriertcpd</command> (the TFO server).
+      </para>
+    </note>
+
+    <para>
+      Additional settings follow the timeout value, each setting is prefixed
+      with a <quote>/</quote>:
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>-haproxy=5/port=143
+
+	  -haproxy=/port=143</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      The <quote>/</quote> is still required when
+      the default timeout value is ommited. One setting is available:
+    </para>
+
+    <variablelist>
+      <varlistentry>
+	<term><literal>/port=<replaceable>n</replaceable></literal></term>
+	<listitem>
+	  <para>
+	    Enable <application>HAProxy</application> support only for
+	    connections to this port (this is when
+	    when <command>couriertcpd</command> accepts connections on
+	    multiple ports, see
+	    <xref linkend="couriertcpd_multiple_port_list" />).
+	    <replaceable>n</replaceable> is one of the ports that
+	    <command>couriertcpd</command> listens for connection
+	    (no error is reported if <replaceable>n</replaceable> is not,
+	    and this gets ignored). Connections to any other port, that
+	    <command>couriertcpd</command> listens on, will not have
+	    <application>HAProxy</application> support enabled.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>
+      <option>-haproxy</option> option's value is actually a comma-separated
+      list:
+    </para>
+
+    <blockquote>
+      <informalexample>
+	<programlisting>-haproxy=/port=25,/port=587</programlisting>
+      </informalexample>
+    </blockquote>
+
+    <para>
+      This is equivalent to using multiple <option>-haproxy</option>
+      options for each value.
+    </para>
   </refsect1>
 
   <refsect1 id="couriertcpd_environment_variables">
@@ -999,7 +1129,8 @@ completely.</para>
 	  <note>
 	    <para>
 	      With the <option>-haproxy</option> option this is the local
-	      end of the connection on the HAProxy server.
+	      end of the connection on the <application>HAProxy</application>
+	      server.
 	    </para>
 	  </note>
       </listitem>
@@ -1015,7 +1146,8 @@ completely.</para>
 	  <note>
 	    <para>
 	      With the <option>-haproxy</option> option this is the local
-	      end of the connection on the HAProxy server.
+	      end of the connection on the <application>HAProxy</application>
+	      server.
 	    </para>
 	  </note>
 	</listitem>
@@ -1035,7 +1167,9 @@ The hostname of the connecting host. Like
 	<listitem>
 	  <para>
 	    This is set only when the <option>-haproxy</option> option is used,
-	    and contains a short string that gets included in the
+	    and contains brief text that repeats the contents of
+	    <envar>TCPLOCALIP</envar> and <envar>TCPLOCALPORT</envar>.
+	    <application>Courier</application> adds this text to the
 	    <literal>Received:</literal> header.
 	  </para>
 	</listitem>
@@ -1046,6 +1180,13 @@ The hostname of the connecting host. Like
 	<listitem>
 	  <para>
 Connecting IP address.</para>
+	  <note>
+	    <para>
+	      With the <option>-haproxy</option> option this is the remote
+	      end of the connection on the <application>HAProxy</application>
+	      server.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
 
@@ -1054,6 +1195,13 @@ Connecting IP address.</para>
 	<listitem>
 	  <para>
 TCP port of the remote end of the network connection.</para>
+	  <note>
+	    <para>
+	      With the <option>-haproxy</option> option this is the remote
+	      end of the connection on the <application>HAProxy</application>
+	      server.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
     </variablelist>
