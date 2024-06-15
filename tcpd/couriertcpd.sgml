@@ -1046,9 +1046,7 @@ file, the entry for the most specific IP address.</para>
 
     <blockquote>
       <informalexample>
-	<programlisting>-haproxy=5/port=143
-
-	  -haproxy=/port=143</programlisting>
+	<programlisting>-haproxy=5/port=143&#10;&#10;-haproxy=/port=143</programlisting>
       </informalexample>
     </blockquote>
 
@@ -1090,8 +1088,8 @@ file, the entry for the most specific IP address.</para>
     </blockquote>
 
     <para>
-      This is equivalent to using multiple <option>-haproxy</option>
-      options for each value.
+      This is equivalent to using two <option>-haproxy</option>
+      options, one for each value.
     </para>
   </refsect1>
 
