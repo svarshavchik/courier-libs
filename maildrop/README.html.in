@@ -33,14 +33,14 @@
   <p>I've started a list of "<a href="maildroptips.html">tips and tricks</a>"
   for writing mail filters with maildrop.</p>
   <p>The HTML version of the <em>maildrop</em> README is located at
-  <code>http://www.courier-mta.org/maildrop/</code>. Although the following
+  <code>https://www.courier-mta.org/maildrop/</code>. Although the following
   files may also be found there, please check your favorite archive for any
   local copies:</p>
   <p>The RPMs are signed with my GnuPG key: <code><a href=
-  "http://www.courier-mta.org/KEYS.bin">http://www.courier-mta.org/KEYS.bin</a></code>.</p>
+  "https://www.courier-mta.org/KEYS.bin">https://www.courier-mta.org/KEYS.bin</a></code>.</p>
   <p><em>maildrop</em> includes documentation in HTML, as well as traditional
   man pages. The HTML versions may also be found at <code><a href=
-  "maildrop.html">http://www.courier-mta.org/maildrop/maildrop.html</a>.</code></p>
+  "maildrop.html">https://www.courier-mta.org/maildrop/maildrop.html</a>.</code></p>
   <h2>Introduction</h2>
   <p><em>maildrop</em> is a replacement for your local mail delivery agent.
   <em>maildrop</em> reads a mail message from standard input, then delivers the

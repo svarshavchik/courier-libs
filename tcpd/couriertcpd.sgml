@@ -386,7 +386,8 @@ superuser can specify <option>-user</option>.</para>
       The <replaceable>list</replaceable> argument can be a comma-separated
       list of multiple port numbers.
       <command>couriertcpd</command> listens for network connections on every
-      listed port. Each port number is optionally specified as "address.port",
+      listed port. Each port number is optionally specified as
+      <quote>address.port</quote>,
       for example:</para>
 
     <informalexample>
@@ -1074,6 +1075,27 @@ file, the entry for the most specific IP address.</para>
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry>
+	<term><literal>/port=<replaceable>ip</replaceable>.<replaceable>n</replaceable></literal></term>
+	<listitem>
+	  <para>
+	    A port number is optionally specified as
+	    <quote>address.port</quote>,
+	    for example:</para>
+	  <blockquote>
+	    <informalexample>
+	      <programlisting>-haproxy=/port=192.168.0.1.8000</programlisting>
+	    </informalexample>
+	  </blockquote>
+	  <para>
+	    This enables <application>HAProxy</application> for connections
+	    to port 8000 with IP address 192.168.0.1 (presumably this
+	    machine's IP address). Connections to port 8000 via the loopback
+	    interface (<literal>localhost</literal>)
+	    will not use <application>HAProxy</application>.
+	  </para>
+	</listitem>
+      </varlistentry>
     </variablelist>
 
     <para>
@@ -1088,8 +1110,10 @@ file, the entry for the most specific IP address.</para>
     </blockquote>
 
     <para>
-      This is equivalent to using two <option>-haproxy</option>
-      options, one for each value.
+      This is logically equivalent to using two <option>-haproxy</option>
+      options, one for each value (but only one <option>-haproxy</option>
+      option is allowed as a command-line argument, so this is the only way
+      to specify multiple proxy endpoints).
     </para>
   </refsect1>
 

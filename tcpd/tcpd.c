@@ -121,6 +121,7 @@ static struct portinfo {
 
 static struct haproxyinfo {
 	struct haproxyinfo *next;
+	RFC1035_ADDR addr;
 	int port;
 	time_t timeout;
 } *haproxylist=0;
@@ -301,15 +302,38 @@ static void parsehaproxy1(char *p)
 
 		char *q;
 		int timeout=0;
+		RFC1035_ADDR addr;
 		int port=0;
 
+		memset(&addr, 0, sizeof(addr));
 		while ((q=strrchr(p, '/')) != 0)
 		{
 			*q++=0;
 
 			if (strncmp(q, "port=", 5) == 0)
 			{
-				port=atoi(q+5);
+				char *r;
+
+				q += 5;
+
+				r=strrchr(q, '.');
+
+				if (r)
+				{
+					*r++=0;
+
+					if (rfc1035_aton(q, &addr) < 0)
+					{
+						fprintf(stderr,
+							"Invalid IP address:"
+							" %s\n", q);
+						exit(1);
+					}
+				}
+				else
+					r=q;
+
+				port=atoi(r);
 			}
 		}
 
@@ -331,6 +355,7 @@ static void parsehaproxy1(char *p)
 
 		haproxylist=info;
 
+		info->addr=addr;
 		info->port=port;
 		info->timeout=timeout;
 	}
@@ -1278,17 +1303,30 @@ static int get_haproxy(int sockfd, RFC1035_NETADDR *sin, int *sinl,
 	time_t  timeout;
 	int	addrport;
 
+	RFC1035_ADDR defaultaddr, socketaddr;
+
 	*using_haproxy=0;
+	memset(&defaultaddr, 0, sizeof(defaultaddr));
+
 	if (rfc1035_sockaddrport(lsin, *lsinl, &addrport))
 	{
 		fprintf(stderr, "haproxy: cannot get local port number\n");
 		return -1;
 	}
 
+	if (rfc1035_sockaddrip(lsin, *lsinl, &socketaddr))
+	{
+		fprintf(stderr, "haproxy: cannot get local address\n");
+		return -1;
+	}
+
 	addrport=ntohs(addrport);
 	for (info=haproxylist; info; info=info->next)
 	{
-		if (info->port == 0 || info->port == addrport)
+		if ((info->port == 0 || info->port == addrport) &&
+		    (memcmp(&info->addr, &defaultaddr, sizeof(defaultaddr)) == 0
+		     ||
+		     memcmp(&info->addr, &socketaddr, sizeof(socketaddr)) == 0))
 			break;
 	}
 	if (!info)
