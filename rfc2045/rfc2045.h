@@ -70,6 +70,7 @@ struct rfc2045 {
 	char *content_location;
 	struct  rfc2045ac *rfc2045acptr;
 	int	has8bitchars;	/* For rewriting */
+	int	hasraw8bitchars; /* For rewriting */
 	int	haslongline;	/* For rewriting */
 	unsigned rfcviolation;	/* Boo-boos */
 

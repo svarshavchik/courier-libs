@@ -273,9 +273,8 @@ variables (see below).</para>
 	<term>-haproxy<replaceable>=options</replaceable></term>
 	<listitem>
 	  <para>
-	    Use version 1 of the <application>HAProxy</application>
-	    protocol for all accepted
-	    connections. See <xref linkend="couriertcpd_haproxy" />
+	    Enable the <application>HAProxy</application>
+	    protocol. See <xref linkend="couriertcpd_haproxy" />
 	    for more information.
 	  </para>
 	</listitem>

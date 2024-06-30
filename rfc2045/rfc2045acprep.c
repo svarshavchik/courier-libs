@@ -76,7 +76,10 @@ static void do_rwprep(const char * p, size_t n)
 			else if (++curlinepos > 500)
 				currwp->haslongline=1;
 			if ((unsigned char)*p >= 127)
+			{
 				currwp->has8bitchars=1;
+				currwp->hasraw8bitchars=1;
+			}
 			break;
 		case qpseeneq:
 			if (*p == '\n')
