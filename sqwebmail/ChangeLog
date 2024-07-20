@@ -1,3 +1,9 @@
+6.2.8
+
+2024-07-20  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix spec file dependencies
+
 6.2.7
 
 2024-05-05  Sam Varshavchik  <mrsam@courier-mta.com>
