@@ -21,19 +21,24 @@ cp -pr packaging/debian .
 
 if test "$DEBGCC" = ""
 then
-	DEBGCC=`readlink /usr/bin/gcc | sed 's/gcc-//'`
+    DEBGCC=`readlink /usr/bin/gcc | sed 's/gcc-//'`
 
-	case "$DEBGCC" in
+    case "$DEBGCC" in
 	[1-9]*([0-9]))
 		      ;;
 	*)
 	    echo "Cannot determine gcc version"
 	    exit 1
 	    ;;
-	esac
+    esac
 fi
 
-DEBGCC="-$DEBGCC"
+if test "$DEBGCC" = "default"
+then
+    DEBGCC=""
+else
+    DEBGCC="-$DEBGCC"
+fi
 
 for f in debian/rules debian/control
 do

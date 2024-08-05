@@ -243,13 +243,47 @@ See COPYING for distribution information.
 
 	<para>
 	  Setting the <envar>DEBGCC</envar> environment variable
-	  selects a non-default gcc version.
+	  selects a non-default gcc version. If unset,
+	  <command>courier-debuild</command> determines the default version
+	  of gcc. The resulting deb package explicitly specifies this version
+	  of gcc as a dependency if the source package gets rebuilt.
+	  When using <command>pbuilder</command> to build Courier packages
+	  for a different distribution it is often desirable to leave the
+	  version of gcc unspecified:
+	</para>
+
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ DEBGCC=default ./courier-debuild -us -uc
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  This builds this package using the default gcc version but without
+	  pegging the resulting package with an explicit gcc version, so
+	  that <command>pbuilder</command> will pick up the default version
+	  of gcc when building the source package on a different distribution.
 	</para>
 
 	<note>
 	  <para>
+	    Courier packages have mutual dependencies. After building each
+	    one it should get installed in the targeted distribution before
+	    the next one gets built.
+	  </para>
+
+	  <para>
+	    The <command>pde-local</command> script
+	    (<ulink url="https://github.com/svarshavchik/pbuilder-dist-extras"><command>https://github.com/svarshavchik/pbuilder-dist-extras</command></ulink>)
+	    is a convenient way to automate this process.
+	  </para>
+	</note>
+	<note>
+	  <para>
 	    All Courier packages should be built using the same version of
-	    gcc.
+	    gcc, on the same distribution.
 	  </para>
 	</note>
       </section>
