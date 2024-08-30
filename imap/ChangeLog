@@ -1,3 +1,10 @@
+5.2.10
+
+2024-08-29  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* pop3login.c (login_pop3): Fix a problem when proxying UTF8 POP3
+	connections.
+
 5.2.9
 
 2024-08-05  Sam Varshavchik  <mrsam@courier-mta.com>

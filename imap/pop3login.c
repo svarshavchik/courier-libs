@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2021 Double Precision, Inc.
+** Copyright 1998 - 2024 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -563,6 +563,28 @@ static int login_pop3(int fd, const char *hostname, void *void_arg)
 		fprintf(stderr, "WARN: Did not receive greeting from %s\n",
 			hostname);
 		return -1;
+	}
+
+	if (utf8_enabled)
+	{
+		if (proxy_write(fd, hostname, "UTF8\r\n", 6))
+		{
+			return -1;
+		}
+
+		if (proxy_readline(fd, &pb, linebuf, sizeof(linebuf), 1) < 0)
+		{
+			return -1;
+		}
+
+		DPRINTF("%s: %s", hostname, linebuf);
+
+		if (linebuf[0] != '+')
+		{
+			fprintf(stderr, "WARN: UTF8 rejected by %s\n",
+				hostname);
+			return -1;
+		}
 	}
 
 	cmd=malloc(strlen(ppi->uid) + strlen(ppi->pwd)+100);
