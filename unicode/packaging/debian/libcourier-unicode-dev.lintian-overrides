@@ -1,4 +1,4 @@
 #
 # Manual pages generated using Docbook stylesheet
 #
-groff-message usr/share/man/man3/*
+groff-message *

@@ -1,3 +1,8 @@
+2024-09-07  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* packaging/debian/auto_install.sh.in: Fix deb packaging of systemd
+	service.
+
 6.2.9
 
 2024-08-05  Sam Varshavchik  <mrsam@courier-mta.com>
