@@ -90,5 +90,5 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %changelog
-* Sun Jan 12 2014 Sam Varshavchik <mrsam@octopus.email-scan.com> - 1.0
-- Initial build.
+* @DATE@ Sam Varshavchik <mrsam@courier-mta.com>
+- Update Makefile
