@@ -150,7 +150,7 @@ AC_SUBST(SOVERSION)
 
 AM_CONDITIONAL(HAVE_DOCS,[test -f $srcdir/docbook/icon.gif])
 
-DATE=`env LC_ALL=en_US perl -e 'use POSIX qw(strftime); print strftime("%a %b %d %Y", localtime)'`
+DATE=`env LC_ALL=C perl -e 'use POSIX qw(strftime); print strftime("%a %b %d %Y", localtime)'`
 AC_SUBST(DATE)
 
 AC_CONFIG_FILES(Makefile
