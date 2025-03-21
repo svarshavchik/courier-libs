@@ -1,3 +1,7 @@
+2025-03-20  "Hanno Böck" <hanno@hboeck.de>
+
+	* gcc compatibility fixes
+
 2024-09-21  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* packaging: Fix rpm packaging, use a synthesized changelog entry

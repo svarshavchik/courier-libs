@@ -522,7 +522,7 @@ static int connect_completed(ssl_handle ssl, int fd)
 	return (1);
 }
 
-static void child_handler()
+static void child_handler(int signum)
 {
 	alarm(10);
 }

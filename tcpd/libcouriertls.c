@@ -59,7 +59,7 @@
 
 struct proto_ops {
     char *n;
-    const SSL_METHOD * (*m)();
+    const SSL_METHOD * (*m)(void);
     int o;
 };
 
