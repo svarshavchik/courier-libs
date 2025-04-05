@@ -1,3 +1,9 @@
+2.3.2
+
+2025-04-05  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix warning messages from recent versions of gcc
+
 2024-09-07  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* deb packaging fixes.

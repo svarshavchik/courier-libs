@@ -2,7 +2,7 @@
 #define	courier_unicode_h
 
 /*
-** Copyright 2000-2024 Double Precision, Inc.
+** Copyright 2000-2025 Double Precision, Inc.
 ** See COPYING for distribution information.
 **
 */
@@ -1006,8 +1006,8 @@ struct unicode_convert_hdr;
 typedef struct unicode_convert_hdr *unicode_convert_handle_t;
 
 /*
-** unicode_convert_init() returns a non-NULL handle for the requested
-** conversion, or NULL if the requested conversion is not available.
+** unicode_convert_init() returns a non-nullptr handle for the requested
+** conversion, or nullptr if the requested conversion is not available.
 */
 
 unicode_convert_handle_t
@@ -1049,7 +1049,7 @@ int unicode_convert(/* The conversion handle */
 ** from this call, or prior unicode_convert() calls), or 0 if all
 ** invocations of the output function returned 0.
 **
-** If the errptr is not NULL, *errptr is set to non-zero if there were any
+** If the errptr is not nullptr, *errptr is set to non-zero if there were any
 ** conversion errors -- if there was any text that could not be converted to
 ** the destination character text.
 */
@@ -1182,7 +1182,7 @@ unicode_convert_tocbuf_fromutf8_init(const char *dst_chset,
 /*
 ** Convert a character string to UTF-8.
 **
-** Returns a malloc-ed buffer holding the UTF-8 string, or NULL if an
+** Returns a malloc-ed buffer holding the UTF-8 string, or nullptr if an
 ** error occurred.
 */
 char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
@@ -1192,7 +1192,7 @@ char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 			       const char *charset,
 
 			       /*
-			       ** If non-NULL, and a non-NULL pointer is
+			       ** If non-nullptr, and a non-nullptr pointer is
 			       ** returned, *error is set to non-zero if
 			       ** a character conversion error has occurred.
 			       */
@@ -1202,7 +1202,7 @@ char *unicode_convert_toutf8(/* Text to convert to UTF-8 */
 ** Convert UTF-8 text to another character set.
 **
 ** Returns a malloc-ed buffer holding the string converted to the specified
-** character set, or NULL if an error occurred.
+** character set, or nullptr if an error occurred.
 */
 
 char *unicode_convert_fromutf8(/* A UTF-8 string */
@@ -1216,7 +1216,7 @@ char *unicode_convert_fromutf8(/* A UTF-8 string */
 				 const char *charset,
 
 				 /*
-				 ** If non-NULL, and a non-NULL pointer is
+				 ** If non-nullptr, and a non-nullptr pointer is
 				 ** returned, *error is set to non-zero if
 				 ** a character conversion error has occurred.
 				 */
@@ -1227,7 +1227,7 @@ char *unicode_convert_fromutf8(/* A UTF-8 string */
 ** buffer.
 **
 ** Returns a malloc-ed buffer holding the string converted to the specified
-** character set, or NULL if an error occurred.
+** character set, or nullptr if an error occurred.
 */
 
 char *unicode_convert_tobuf(/* A string to convert */
@@ -1245,7 +1245,7 @@ char *unicode_convert_tobuf(/* A string to convert */
 			      const char *dstcharset,
 
 			      /*
-			      ** If non-NULL, and a non-NULL pointer is
+			      ** If non-nullptr, and a non-nullptr pointer is
 			      ** returned, *error is set to non-zero if
 			      ** a character conversion error has occurred.
 			      */
@@ -1329,7 +1329,7 @@ int unicode_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 
 				  /*
 				  ** If unicode_convert_fromu_tobuf()
-				  ** returns 0 and this is not NULL,
+				  ** returns 0 and this is not nullptr,
 				  ** *err is set to non-0 if there was a
 				  ** conversion error to the requested
 				  ** character set.
@@ -1344,7 +1344,7 @@ int unicode_convert_fromu_tobuf(/* Unicode array to convert to a char str */
 ** applying the title_func and char_func, then using
 ** unicode_convert_fromu_tobuf().
 **
-** A NULL return indicates that the requested conversion cannot be performed.
+** A nullptr return indicates that the requested conversion cannot be performed.
 */
 
 char *unicode_convert_tocase( /* String to convert */
@@ -1363,7 +1363,7 @@ char *unicode_convert_tocase( /* String to convert */
 
 			       /*
 			       ** Conversion of the second and the remaining
-			       ** character in str. If NULL, same as
+			       ** character in str. If nullptr, same as
 			       ** first_char_func.
 			       */
 			       char32_t (*char_func)(char32_t));
@@ -1541,7 +1541,7 @@ class iconvert {
 
 	bool end()
 	{
-		return end(NULL);
+		return end(nullptr);
 	}
 
 	/* Convert between two different charsets */
@@ -1597,9 +1597,9 @@ class iconvert {
 			       /* First character: unicode_uc, unicode_lc, or unicode_tc */
 			       char32_t (*first_char_func)(char32_t),
 
-			       /* If not NULL, second and subsequent chars */
+			       /* If not nullptr, second and subsequent chars */
 			       char32_t (*char_func)(char32_t)
-			       =NULL)
+			       =nullptr)
 	{
 		bool dummy;
 
@@ -1623,9 +1623,9 @@ class iconvert {
 			       /* First character: unicode_uc, unicode_lc, or unicode_tc */
 			       char32_t (*first_char_func)(char32_t),
 
-			       /* If not NULL, second and subsequent chars */
+			       /* If not nullptr, second and subsequent chars */
 			       char32_t (*char_func)(char32_t)
-			       =NULL);
+			       =nullptr);
  private:
 	bool end(bool *);
 
@@ -1947,7 +1947,7 @@ private:
 
 	void fill() const
 	{
-		if (buf == NULL)
+		if (buf == nullptr)
 			return;
 
 		while (buf->lb_buf.empty())
@@ -1958,7 +1958,7 @@ private:
 				if (buf->lb_buf.empty())
 				{
 					delete buf;
-					buf=NULL;
+					buf=nullptr;
 				}
 				break;
 			}
@@ -1978,7 +1978,7 @@ public:
 	{
 	}
 
-	linebreak_iter() : buf(NULL)
+	linebreak_iter() : iter_value{}, end_iter_value{}, buf{nullptr}
 	{
 	}
 
@@ -1995,7 +1995,7 @@ public:
 	}
 
 	linebreak_iter(const linebreak_iter<input_t> &v)
-		: buf(NULL)
+		: iter_value{}, end_iter_value{}, buf{nullptr}
 	{
 		operator=(v);
 	}
@@ -2008,7 +2008,7 @@ public:
 		buf=v.buf;
 		iter_value=v.iter_value;
 		end_iter_value=v.end_iter_value;
-		v.buf=NULL;
+		v.buf=nullptr;
 		return *this;
 	}
 
@@ -2017,7 +2017,7 @@ public:
 		fill();
 		v.fill();
 
-		return buf == NULL && v.buf == NULL;
+		return buf == nullptr && v.buf == nullptr;
 	}
 
 	bool operator!=(const linebreak_iter<input_t> &v) const
@@ -2028,7 +2028,7 @@ public:
 	value_type operator*() const
 	{
 		fill();
-		return buf == NULL ? UNICODE_LB_MANDATORY:
+		return buf == nullptr ? UNICODE_LB_MANDATORY:
 			buf->lb_buf.front();
 	}
 
@@ -2147,7 +2147,7 @@ private:
 
 	void fill() const
 	{
-		if (buf == NULL)
+		if (buf == nullptr)
 			return;
 
 		while (buf->lb_buf.empty())
@@ -2158,7 +2158,7 @@ private:
 				if (buf->lb_buf.empty())
 				{
 					delete buf;
-					buf=NULL;
+					buf=nullptr;
 				}
 				break;
 			}
@@ -2173,13 +2173,13 @@ private:
 public:
 	linebreakc_iter(const input_t &iter_valueArg,
 			const input_t &iter_endvalueArg)
-		: iter_value(iter_valueArg),
-		  end_iter_value(iter_endvalueArg),
-		  buf(new linebreakc_callback_save_buf)
+		: iter_value{iter_valueArg},
+		  end_iter_value{iter_endvalueArg},
+		  buf{new linebreakc_callback_save_buf}
 	{
 	}
 
-	linebreakc_iter() : buf(NULL)
+	linebreakc_iter() : iter_value{}, end_iter_value{}, buf{nullptr}
 	{
 	}
 
@@ -2190,7 +2190,7 @@ public:
 	}
 
 	linebreakc_iter(const linebreakc_iter<input_t> &v)
-		: buf(NULL)
+		: iter_value{}, end_iter_value{}, buf{nullptr}
 	{
 		operator=(v);
 	}
@@ -2203,7 +2203,7 @@ public:
 		buf=v.buf;
 		iter_value=v.iter_value;
 		end_iter_value=v.end_iter_value;
-		v.buf=NULL;
+		v.buf=nullptr;
 		return *this;
 	}
 
@@ -2212,7 +2212,7 @@ public:
 		fill();
 		v.fill();
 
-		return buf == NULL && v.buf == NULL;
+		return buf == nullptr && v.buf == nullptr;
 	}
 
 	bool operator!=(const linebreakc_iter<input_t> &v) const
@@ -2223,7 +2223,7 @@ public:
 	value_type operator*() const
 	{
 		fill();
-		return buf == NULL ?
+		return buf == nullptr ?
 			std::make_pair(UNICODE_LB_MANDATORY,
 				       (char32_t)0):
 			buf->lb_buf.front();
