@@ -1590,7 +1590,7 @@ static void accepted(int n, int sockfd, RFC1035_NETADDR *sin, int sinl,
 
 	if (p == 0)
 	{
-		wait_restore(childsig);
+		wait_restore();
 
 		if (accesslocal) /* Lookup local interface address too? */
 		{
