@@ -1,3 +1,9 @@
+5.2.11
+
+2025-04-06  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* gcc compatibility fixes
+
 2025-03-20  "Hanno Böck" <hanno@hboeck.de>
 
 	* gcc compatibility fixes
