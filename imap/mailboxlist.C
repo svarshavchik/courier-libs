@@ -268,12 +268,8 @@ static void folder_entry(std::string folder, const std::string &pattern,
 	if (!need_add_folders && !need_add_hier)
 		return; /* Nothing to do */
 
-	{
-		CHECK_RIGHTSM(folder, have_rights, ACL_LOOKUP);
-
-		if (!have_rights[0])
-			return;
-	}
+	if (!acl_check_rights(folder, ACL_LOOKUP))
+		return;
 
 	if (need_add_folders)
 		(void) add_hier(folders, folder);

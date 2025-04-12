@@ -2081,7 +2081,7 @@ static int do_copymsg(unsigned long n, void *voidptr)
 
 	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
-	fp=maildir_mkfilename(cqinfo->destmailbox,
+	fp=maildir_mkfilename(cqinfo->destmailbox.c_str(),
 			      &new_flags, stat_buf.st_size,
 			      tmpname, newname);
 
@@ -2158,7 +2158,7 @@ static int do_movemsg(unsigned long n, void *voidptr)
 
 	std::string newfilename;
 
-	newfilename.reserve(strlen(cqinfo->destmailbox) + sizeof("/cur")-1
+	newfilename.reserve(cqinfo->destmailbox.size() + sizeof("/cur")-1
 			    + (filename.size()-filename.rfind('/')));
 
 	newfilename=cqinfo->destmailbox;
@@ -2428,13 +2428,9 @@ static int do_copyto(const smapmsgset_t &msgset,
 		     const char *acls)
 {
 	int has_quota=0;
-	struct copyquotainfo cqinfo;
+	acl_check_rights rights{acls};
+	copyquotainfo cqinfo{toFolder, rights};
 	struct maildirsize quotainfo;
-
-	cqinfo.destmailbox=toFolder;
-	cqinfo.nbytes=0;
-	cqinfo.nfiles=0;
-	cqinfo.acls=acls;
 
 	if (maildirquota_countfolder(toFolder))
 	{

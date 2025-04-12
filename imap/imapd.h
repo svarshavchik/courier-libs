@@ -1,15 +1,13 @@
 #ifndef	imapd_h
 #define	imapd_h
 
+#include <string>
+#include "imapflags.h"
+
 /*
 ** Copyright 1998 - 1999 S. Varshavchik.
 ** See COPYING for distribution information.
 */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 
 #define	HIERCH	'.'		/* Hierarchy separator char */
 #define	HIERCHS	"."		/* Hierarchy separator char */
@@ -24,17 +22,35 @@ extern int enabled_utf8;
 
 #define	SUBSCRIBEFILE	"courierimapsubscribed"
 
-#ifdef __cplusplus
-}
-#include <string>
+class acl_check_rights {
+	const char *rights_requested;
+	std::string rights_granted;
 
-extern void check_rights(const std::string &mailbox,
-			 char *rights_buf);
-#endif
+public:
+	acl_check_rights(const std::string &rights_granted)
+		: rights_granted{rights_granted}
+	{
+		rights_requested=rights_granted.c_str();
+	}
 
-#define CHECK_RIGHTSM(mailbox, varname, rights) \
-	char varname[sizeof(rights)]; \
-	strcpy(varname, rights); \
-	check_rights(mailbox, varname);
+	acl_check_rights(const std::string &mailbox,
+			 const char *rights_requested);
+
+	operator bool() const
+	{
+		return rights_requested == rights_granted;
+	}
+
+	bool operator()(char c) const
+	{
+		return rights_granted.find(c) != rights_granted.npos;
+	}
+
+	bool operator>>(imapflags &flags) const;
+
+	auto rights_granted_c_str() const {
+		return rights_granted.c_str();
+	}
+};
 
 #endif

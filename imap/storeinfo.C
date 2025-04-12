@@ -362,9 +362,7 @@ int do_copy_message(unsigned long n, int byuid, void *voidptr)
 	get_message_flags(&current_maildir_info.msgs.at(n), 0, &new_flags);
 
 	if (copy_message(fd, cpy_info, &new_flags,
-
-			 acl_flags_adjust(cpy_info->acls,
-					  &new_flags)
+			 !(cpy_info->acls >> new_flags)
 			 ? keywords_t{}
 			 : current_maildir_info.msgs[n].keywords,
 			 current_maildir_info.msgs[n].uid))
@@ -393,7 +391,7 @@ int do_copy_quota_calc(unsigned long n, int byuid, void *voidptr)
 
 	get_message_flags(&current_maildir_info.msgs[n], NULL, &flags);
 
-	(void)acl_flags_adjust(info->acls, &flags);
+	info->acls >> flags;
 
 	auto ff=get_reflagged_filename(filename, flags);
 

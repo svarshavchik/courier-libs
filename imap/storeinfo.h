@@ -9,12 +9,8 @@
 #include	"imapflags.h"
 #include	"imapscanclient.h"
 #include	"numlib/numlib.h"
-
+#include	"imapd.h"
 #include	<vector>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef enum {none=0, plus='+', minus='-'} plusminus_t;
 
@@ -33,7 +29,7 @@ int do_copy_quota_calc(unsigned long, int, void *);
 
 struct do_copy_info {
 	const char *mailbox;
-	const char *acls;
+	acl_check_rights &acls;
 
 	std::vector<uidplus_info> uidplus;
 };
@@ -43,15 +39,16 @@ struct do_copy_info {
 */
 
 struct copyquotainfo {
-	const char *destmailbox;
-	int64_t nbytes;
-	int nfiles;
 
-	const char *acls;
+	std::string destmailbox;
+	int64_t nbytes=0;
+	int nfiles=0;
 
-	} ;
-#ifdef __cplusplus
-}
-#endif
+	acl_check_rights &acls;
+
+	copyquotainfo(const std::string &destmailbox,
+		      acl_check_rights &acls)
+		: destmailbox{destmailbox}, acls{acls} {}
+} ;
 
 #endif

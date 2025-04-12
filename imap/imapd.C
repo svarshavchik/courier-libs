@@ -2443,19 +2443,21 @@ std::string compute_myrights(maildir::aclt_list &l, const std::string &l_owner)
 	return aa;
 }
 
-void check_rights(const std::string &mailbox, char *rights_buf)
+acl_check_rights::acl_check_rights(const std::string &mailbox,
+				   const char *rights_requested)
+	: rights_requested{rights_requested},
+	  rights_granted{rights_requested}
 {
 	auto r=get_myrightson(mailbox);
-	char *p, *q;
 
-	for (p=q=rights_buf; *p; p++)
-	{
-		if (r.find(*p) == r.npos)
-			continue;
-
-		*q++ = *p;
-	}
-	*q=0;
+	rights_granted.erase(
+		std::remove_if(rights_granted.begin(),
+			       rights_granted.end(),
+			       [&](auto &c)
+			       {
+				       return r.find(c) == r.npos;
+			       }),
+		rights_granted.end());
 }
 
 static void list_myrights(const std::string &mailbox,
@@ -2827,12 +2829,8 @@ static int aclstore(const char *tag,
 			continue;
 		}
 
+		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-			CHECK_RIGHTSM(mailbox.mailbox,
-				      acl_rights,
-				      ACL_ADMINISTER);
-			if (acl_rights[0] == 0)
-			{
 				writes("* ACLFAILED \"");
 				writemailbox(mailbox.mailbox);
 				writes("\"");
@@ -2841,7 +2839,6 @@ static int aclstore(const char *tag,
 					     ACL_ADMINISTER);
 				mailbox.mailbox.clear();
 				continue;
-			}
 		}
 
 		if (!acl_read_folder(aclt_list, mi.homedir, mi.maildir))
@@ -2917,12 +2914,8 @@ static int aclset(const char *tag,
 			continue;
 		}
 
+		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-			CHECK_RIGHTSM(mailbox.mailbox,
-				      acl_rights,
-				      ACL_ADMINISTER);
-			if (acl_rights[0] == 0)
-			{
 				writes("* ACLFAILED \"");
 				writemailbox(mailbox.mailbox);
 				writes("\"");
@@ -2930,7 +2923,6 @@ static int aclset(const char *tag,
 					     ACL_ADMINISTER);
 				mailbox.mailbox.clear();
 				continue;
-			}
 		}
 
 		if (!acl_lock(mi.homedir,
@@ -2978,12 +2970,8 @@ static int acldelete(const char *tag,
 		if (!mi)
 			continue;
 
+		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-			CHECK_RIGHTSM(mailbox.mailbox,
-				      acl_rights,
-				      ACL_ADMINISTER);
-			if (acl_rights[0] == 0)
-			{
 				writes("* ACLFAILED \"");
 				writemailbox(mailbox.mailbox);
 				writes("\"");
@@ -2992,7 +2980,6 @@ static int acldelete(const char *tag,
 					     ACL_ADMINISTER);
 				mailbox.mailbox.clear();
 				continue;
-			}
 		}
 
 		if (!acl_lock(
@@ -3105,20 +3092,20 @@ int do_folder_delete(const std::string &mailbox_name)
 	return -1;
 }
 
-int acl_flags_adjust(const char *access_rights,
-		     struct imapflags *flags)
+bool acl_check_rights::operator>>(imapflags &flags) const
 {
-	if (strchr(access_rights, ACL_DELETEMSGS[0]) == NULL)
-		flags->deleted=false;
-	if (strchr(access_rights, ACL_SEEN[0]) == NULL)
-		flags->seen=false;
+	if (rights_granted.find(ACL_DELETEMSGS[0]) == rights_granted.npos)
+		flags.deleted=false;
 
-	if (strchr(access_rights, ACL_WRITE[0]) == NULL)
+	if (rights_granted.find(ACL_SEEN[0]) == rights_granted.npos)
+		flags.seen=false;
+
+	if (rights_granted.find(ACL_WRITE[0]) == rights_granted.npos)
 	{
-		flags->answered=flags->flagged=flags->drafts=false;
-		return 1;
+		flags.answered=flags.flagged=flags.drafts=false;
+		return false;
 	}
-	return 0;
+	return true;
 }
 
 static int append(const char *tag, const std::string &mailbox,
@@ -3128,7 +3115,6 @@ static int append(const char *tag, const std::string &mailbox,
 	mail::keywords::list keywords;
 
 	time_t	timestamp=0;
-	char access_rights[8];
 	imaptoken curtoken;
 	int need_rparen;
 	int utf8_error=0;
@@ -3140,22 +3126,17 @@ static int append(const char *tag, const std::string &mailbox,
 		return (0);
 	}
 
-	{
-		CHECK_RIGHTSM(mailbox,
-			      append_rights,
-			      ACL_INSERT ACL_DELETEMSGS
-			      ACL_SEEN ACL_WRITE);
+	acl_check_rights access_rights{mailbox,
+				       ACL_INSERT ACL_DELETEMSGS
+				       ACL_SEEN ACL_WRITE};
 
-		if (strchr(append_rights, ACL_INSERT[0]) == NULL)
-		{
+	if (!access_rights(ACL_INSERT[0]))
+	{
 			writes(tag);
 			accessdenied("APPEND",
 				     mailbox,
 				     ACL_INSERT);
 			return 0;
-		}
-
-		strcpy(access_rights, append_rights);
 	}
 
 	if (path == current_maildir_info.current_mailbox && current_mailbox_ro)
@@ -3219,7 +3200,7 @@ static int append(const char *tag, const std::string &mailbox,
 	}
 
 	auto ret=store_mailbox(tag, path.c_str(), &flags,
-			       acl_flags_adjust(access_rights, &flags)
+			       !(access_rights >> flags)
 			       ? mail::keywords::list{}:keywords,
 			       timestamp,
 			       curtoken, &utf8_error);
@@ -3273,11 +3254,8 @@ static int check_parent_create(const char *tag,
 	if (parentPtr)
 	{
 		folder=folder.substr(0, parentPtr);
-		CHECK_RIGHTSM(folder,
-			      create_rights,
-			      ACL_CREATE);
 
-		if (create_rights[0])
+		if (acl_check_rights(folder, ACL_CREATE))
 		{
 			return 0;
 		}
@@ -3854,16 +3832,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
+		if (!acl_check_rights(orig_mailbox, ACL_READ))
 		{
-			CHECK_RIGHTSM(orig_mailbox, status_rights, ACL_READ);
-
-			if (!status_rights[0])
-			{
 				writes(tag);
 				accessdenied("STATUS", orig_mailbox,
 					     ACL_READ);
 				return 0;
-			}
 		}
 
 		imapscaninfo other_info{new_mailbox},
@@ -4083,8 +4057,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		*/
 
 		{
-			CHECK_RIGHTSM(mailbox_tokenbuf, create_rights,
-				      ACL_CREATE);
+			acl_check_rights create_rights{
+				mailbox_tokenbuf, ACL_CREATE
+			};
 		}
 
 		imapscaninfo minfo{mailbox};
@@ -4159,18 +4134,13 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
+		if (!acl_check_rights(foldername, ACL_DELETEFOLDER))
 		{
-			CHECK_RIGHTSM(foldername,
-				      delete_rights,
-				      ACL_DELETEFOLDER);
-			if (delete_rights[0] == 0)
-			{
 				writes(tag);
 				accessdenied("DELETE",
 					     foldername,
 					     ACL_DELETEFOLDER);
 				return 0;
-			}
 		}
 
 		if (!broken_uidvs())
@@ -4234,17 +4204,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
+		if (!acl_check_rights(mailbox, ACL_DELETEFOLDER))
 		{
-			CHECK_RIGHTSM(mailbox,
-				      rename_rights, ACL_DELETEFOLDER);
-
-			if (rename_rights[0] == 0)
-			{
 				writes(tag);
 				accessdenied("RENAME", curtoken->tokenbuf,
 					     ACL_DELETEFOLDER);
 				return (0);
-			}
 		}
 
 		curtoken=nexttoken_nouc();
@@ -4617,17 +4582,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 		}
 
+		if (!acl_check_rights(mailbox, ACL_ADMINISTER))
 		{
-			CHECK_RIGHTSM(mailbox.c_str(),
-				      acl_rights,
-				      ACL_ADMINISTER);
-			if (acl_rights[0] == 0)
-			{
 				writes(tag);
 				accessdenied(origcmd, mailbox.c_str(),
 					     ACL_ADMINISTER);
 				return 0;
-			}
 		}
 
 		maildir::aclt_list aclt_list;
@@ -4677,17 +4637,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (f.empty())
 			return -1;
 
+		if (!acl_check_rights(f, ACL_ADMINISTER))
 		{
-			CHECK_RIGHTSM(f,
-				      acl_rights,
-				      ACL_ADMINISTER);
-			if (acl_rights[0] == 0)
-			{
 				writes(tag);
 				accessdenied("GETACL", f,
 					     ACL_ADMINISTER);
 				return 0;
-			}
 		}
 
 		if (!get_acllist(l, f))
@@ -5386,12 +5341,9 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	if (curtoken->tokenbuf == "COPY")
 	{
 	struct maildirsize quotainfo;
-	struct copyquotainfo cqinfo;
 	int	has_quota;
 	int	isshared;
-	struct do_copy_info copy_info;
 	unsigned long copy_uidv;
-	char access_rights[8];
 
 		curtoken=nexttoken();
 		if (!ismsgset(curtoken))	return (-1);
@@ -5425,18 +5377,19 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (-1);
 		}
 
-		{
-			auto f=maildir::imap_foldername_to_filename(
-				enabled_utf8,
-				curtoken->tokenbuf);
-			if (f.empty())
-				return -1;
-			CHECK_RIGHTSM(f,
-				      append_rights,
-				      ACL_INSERT ACL_DELETEMSGS
-				      ACL_SEEN ACL_WRITE);
+		auto f=maildir::imap_foldername_to_filename(
+			enabled_utf8,
+			curtoken->tokenbuf);
+		if (f.empty())
+			return -1;
 
-			if (strchr(append_rights, ACL_INSERT[0]) == NULL)
+		acl_check_rights access_rights{
+			f,
+			ACL_INSERT ACL_DELETEMSGS
+			ACL_SEEN ACL_WRITE
+		};
+
+		if (!access_rights(ACL_INSERT[0]))
 			{
 				writes(tag);
 				accessdenied("COPY",
@@ -5444,8 +5397,6 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 					     ACL_INSERT);
 				return 0;
 			}
-			strcpy(access_rights, append_rights);
-		}
 
 		if (nexttoken()->tokentype != IT_EOL)
 		{
@@ -5460,8 +5411,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		fetch_free_cache();
-		cqinfo.destmailbox=dest_mailbox.c_str();
-		cqinfo.acls=access_rights;
+
+		copyquotainfo cqinfo{dest_mailbox, access_rights};
 
 		/*
 		** If the destination is a shared folder, copy it into the
@@ -5469,10 +5420,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		*/
 
 		isshared=0;
-		if (is_sharedsubdir(cqinfo.destmailbox))
+		if (is_sharedsubdir(dest_mailbox.c_str()))
 		{
 			dest_mailbox += "/shared";
-			cqinfo.destmailbox=dest_mailbox.c_str();
+			cqinfo.destmailbox=dest_mailbox;
 			isshared=1;
 		}
 
@@ -5480,7 +5431,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		cqinfo.nfiles=0;
 
 		has_quota=0;
-		if (!isshared && maildirquota_countfolder(cqinfo.destmailbox))
+		if (!isshared && maildirquota_countfolder(
+			    cqinfo.destmailbox.c_str()))
 		{
 			if (maildir_openquotafile(&quotainfo,
 						  ".") == 0)
@@ -5555,8 +5507,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			}
 		}
 
-		copy_info.mailbox=dest_mailbox.c_str();
-		copy_info.acls=access_rights;
+		do_copy_info copy_info{dest_mailbox.c_str(), access_rights};
 
 		if (has_quota < 0 ||
 		    !do_msgset(msgset,
