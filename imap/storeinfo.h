@@ -6,7 +6,7 @@
 ** See COPYING for distribution information.
 */
 
-#include	"imaptoken.h"
+#include	"imapflags.h"
 #include	"imapscanclient.h"
 #include	"numlib/numlib.h"
 
@@ -16,9 +16,11 @@
 extern "C" {
 #endif
 
+typedef enum {none=0, plus='+', minus='-'} plusminus_t;
+
 struct storeinfo {
-	int plusminus=0;
-	int silent=0;
+	plusminus_t plusminus{plusminus_t::none};
+	bool silent{false};
 	imapflags flags;
 	mail::keywords::list keywords;
 } ;

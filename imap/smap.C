@@ -984,15 +984,15 @@ static void parseflags(char *q, struct imapflags *flags)
 		}
 
 		if (strcmp(p, "SEEN") == 0)
-			flags->seen=1;
+			flags->seen=true;
 		else if (strcmp(p, "REPLIED") == 0)
-			flags->answered=1;
+			flags->answered=true;
 		else if (strcmp(p, "DRAFT") == 0)
-			flags->drafts=1;
+			flags->drafts=true;
 		else if (strcmp(p, "DELETED") == 0)
-			flags->deleted=1;
+			flags->deleted=true;
 		else if (strcmp(p, "MARKED") == 0)
-			flags->flagged=1;
+			flags->flagged=true;
 
 	}
 }
@@ -2864,17 +2864,17 @@ void smap()
 					if (strchr(rights_buf,
 						   ACL_SEEN[0])
 					    == NULL)
-						add_flags.seen=0;
+						add_flags.seen=false;
 					if (strchr(rights_buf,
 						   ACL_DELETEMSGS[0])
 					    == NULL)
-						add_flags.deleted=0;
+						add_flags.deleted=false;
 					if (strchr(rights_buf,
 						   ACL_WRITE[0])
 					    == NULL)
 						add_flags.answered=
 							add_flags.flagged=
-							add_flags.drafts=0;
+							add_flags.drafts=false;
 
 					okmsg="FLAGS set";
 				}
@@ -3704,11 +3704,16 @@ void smap()
 						     })) != 0)
 						break;
 				}
-				else if (strncmp(p, "+FLAGS=", 7) == 0 ||
-					 strncmp(p, "-FLAGS=", 7) == 0)
+				else if ((*p ==
+					  static_cast<char>(plusminus_t::plus)
+					  || *p ==
+					  static_cast<char>(plusminus_t::minus)
+					 ) && strncmp(p+1, "FLAGS=", 6) == 0)
 				{
 					up(p);
-					si.plusminus=p[0];
+					si.plusminus=static_cast<plusminus_t>(
+						p[0]
+					);
 					parseflags(p, &si.flags);
 					if ((dummy=applymsgset(
 						     msgset,
@@ -3739,11 +3744,15 @@ void smap()
 					if (dummy != 0)
 						break;
 				}
-				else if ((strncmp(p, "+KEYWORDS=", 10) == 0 ||
-					  strncmp(p, "-KEYWORDS=", 10) == 0) &&
-					 keywords())
+				else if ((*p ==
+					  static_cast<char>(plusminus_t::plus)
+					  || *p ==
+					  static_cast<char>(plusminus_t::minus)
+					 ) && strncmp(p+1, "KEYWORDS=", 9) == 0)
 				{
-					si.plusminus=p[0];
+					si.plusminus=static_cast<plusminus_t>(
+						p[0]
+					);
 					parsekeywords(p, si.keywords);
 					dummy=applymsgset(
 						msgset,

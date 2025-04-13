@@ -318,7 +318,7 @@ int do_fetch(unsigned long n, int byuid, const std::list<fetchinfo> &filist)
 				0, &flags);
 		if (!flags.seen)
 		{
-			flags.seen=1;
+			flags.seen=true;
 			reflag_filename(&current_maildir_info.msgs[n-1],&flags,
 				fileno(fp));
 			current_maildir_info.msgs[n-1].changedflags=1;

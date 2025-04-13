@@ -64,12 +64,14 @@ bool storeinfo_init(struct storeinfo &si)
 	const char *p;
 
 	if (t->tokentype != IT_ATOM)	return false;
-	si.plusminus=0;
-	si.silent=0;
+
+	si.plusminus=plusminus_t::none;
+	si.silent=false;
 
 	p=t->tokenbuf.c_str();
-	if (*p == '+' || *p == '-')
-		si.plusminus= *p++;
+	if (*p == static_cast<char>(plusminus_t::plus) ||
+	    *p == static_cast<char>(plusminus_t::minus))
+		si.plusminus= static_cast<plusminus_t>(*p++);
 	if (strncmp(p, "FLAGS", 5))	return false;
 	p += 5;
 	if (*p)
@@ -130,11 +132,7 @@ int do_store(unsigned long n, int byuid, storeinfo *si)
 
 	if (si->plusminus == '+')
 	{
-		if (si->flags.drafts)	new_flags.drafts=1;
-		if (si->flags.seen)	new_flags.seen=1;
-		if (si->flags.answered)	new_flags.answered=1;
-		if (si->flags.deleted)	new_flags.deleted=1;
-		if (si->flags.flagged)	new_flags.flagged=1;
+		new_flags += si->flags;
 
 		for (const auto &kw:si->keywords)
 		{
@@ -163,11 +161,7 @@ int do_store(unsigned long n, int byuid, storeinfo *si)
 	}
 	else if (si->plusminus == '-')
 	{
-		if (si->flags.drafts)	new_flags.drafts=0;
-		if (si->flags.seen)	new_flags.seen=0;
-		if (si->flags.answered)	new_flags.answered=0;
-		if (si->flags.deleted)	new_flags.deleted=0;
-		if (si->flags.flagged)	new_flags.flagged=0;
+		new_flags -= si->flags;
 
 		for (const auto &kw:si->keywords)
 		{

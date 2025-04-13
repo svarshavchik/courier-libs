@@ -518,15 +518,15 @@ bool get_flagname(std::string s, struct imapflags *flags)
 		       });
 
 	if (s == "\\SEEN")
-		flags->seen=1;
+		flags->seen=true;
 	else if (s == "\\ANSWERED")
-		flags->answered=1;
+		flags->answered=true;
 	else if (s == "\\DRAFT")
-		flags->drafts=1;
+		flags->drafts=true;
 	else if (s == "\\DELETED")
-		flags->deleted=1;
+		flags->deleted=true;
 	else if (s == "\\FLAGGED")
-		flags->flagged=1;
+		flags->flagged=true;
 	else return false;
 	return true;
 }
@@ -582,8 +582,7 @@ void get_message_flags(
 		*buf=0;
 
 	if (flags)
-		flags->seen=flags->answered=flags->deleted=flags->flagged
-		=flags->recent=flags->drafts=0;
+		*flags=imapflags{};
 
 	auto p=mi->filename.rfind(MDIRSEP[0]);
 
@@ -608,35 +607,35 @@ void get_message_flags(
 	if (mi->filename.find('D', p) != mi->filename.npos)
 	{
 		if (buf) strcat(buf, DRAFT);
-		if (flags)  flags->drafts=1;
+		if (flags)  flags->drafts=true;
 	}
 
 	if (mi->filename.find('F', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), FLAGGED);
-		if (flags)	flags->flagged=1;
+		if (flags)	flags->flagged=true;
 	}
 	if (mi->filename.find('R', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), REPLIED);
-		if (flags)	flags->answered=1;
+		if (flags)	flags->answered=true;
 	}
 
 	if (mi->filename.find('S', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), SEEN);
-		if (flags)	flags->seen=1;
+		if (flags)	flags->seen=true;
 	}
 
 	if (mi->filename.find('T', p) != mi->filename.npos)
 	{
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), DELETED);
-		if (flags)	flags->deleted=1;
+		if (flags)	flags->deleted=true;
 	}
 
 	if (mi->recentflag)
 	{
-		if (flags) flags->recent=1;
+		if (flags) flags->recent=true;
 		if (buf) strcat(strcat(buf, *buf ? SPC:""), RECENT);
 	}
 }
@@ -3110,12 +3109,13 @@ int acl_flags_adjust(const char *access_rights,
 		     struct imapflags *flags)
 {
 	if (strchr(access_rights, ACL_DELETEMSGS[0]) == NULL)
-		flags->deleted=0;
+		flags->deleted=false;
 	if (strchr(access_rights, ACL_SEEN[0]) == NULL)
-		flags->seen=0;
+		flags->seen=false;
+
 	if (strchr(access_rights, ACL_WRITE[0]) == NULL)
 	{
-		flags->answered=flags->flagged=flags->drafts=0;
+		flags->answered=flags->flagged=flags->drafts=false;
 		return 1;
 	}
 	return 0;
@@ -3217,8 +3217,6 @@ static int append(const char *tag, const std::string &mailbox,
 		convert_literal_tokens(curtoken);
 		return (-1);
 	}
-
-	acl_flags_adjust(access_rights, &flags);
 
 	auto ret=store_mailbox(tag, path.c_str(), &flags,
 			       acl_flags_adjust(access_rights, &flags)

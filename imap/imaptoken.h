@@ -11,6 +11,7 @@
 #include	<time.h>
 
 #include	<string>
+#include	"imapflags.h"
 
 struct imaptoken_buf {
 	short	tokentype;
@@ -62,16 +63,6 @@ extern void readflush();
 
 void read_string(char **, unsigned long *, unsigned long);
 
-/* Flags */
-
-struct imapflags {
-	char	seen=0;
-	char	answered=0;
-	char	deleted=0;
-	char	flagged=0;
-	char	drafts=0;
-	char	recent=0;
-	} ;
 
 struct imapkeywords {
 	struct imapflags flags;
