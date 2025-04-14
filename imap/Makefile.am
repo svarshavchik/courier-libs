@@ -212,10 +212,10 @@ check-am:
 	@test "@MAKECHECKBROKEN@" = "Y" || exit 0; echo "" ; echo "Error: --with-trashquota or the --enable-workarounds-for-imap-client-bugs" ; echo "option was specified to the configure script."; echo ""; echo "As INSTALL told you, make check fails if these options are used, and I wasn't"; echo "kidding when I wrote it.  Reconfigure and rebuild without these options, then"; echo "rerun make and make check.  If make check passes, reconfigure again with your"; echo "original options, and proceed with installing this server.  Have fun!"; exit 1
 	@rm -f conftest1
 	@chmod +x testsuitefix.pl
-	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
-	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/testsuite.txt
-	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
-	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | cmp -s - $(srcdir)/smaptestsuite.txt
+	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | diff -U 3 $(srcdir)/testsuite.txt -
+	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; $(srcdir)/testsuite | ./testsuitefix.pl | sort | diff -U 3 $(srcdir)/testsuite.txt -
+	unset IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | diff -U 3 $(srcdir)/smaptestsuite.txt -
+	IMAP_USELOCKS=1; export IMAP_USELOCKS; LC_ALL=C; export LC_ALL; test "@smap@" = "yes" || exit 0; export PERL=@PERL@; @SHELL@ $(srcdir)/smaptestsuite | ./testsuitefix.pl | sort | diff -U 3 $(srcdir)/smaptestsuite.txt -
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		IMAP_USELOCKS=1; export IMAP_USELOCKS; \
 		LC_ALL=C; export LC_ALL; \
@@ -230,7 +230,7 @@ check-am:
 		export PERL=@PERL@; @SHELL@ -x $(srcdir)/smaptestsuite 2>&1 | tee confmderror.txt; test -f confmdmemleak || exit 0; exit 1
 	rm -f confmderror.txt
 	rm -rf confmdtest
-	@SHELL@ $(srcdir)/pop3testsuite | sed 's/^--=_.*/--mimeboundary/;s/ENOMEM.*/ENOMEM/;s/boundary=.*/boundary=/' | cmp -s - $(srcdir)/pop3testsuite.txt
+	@SHELL@ $(srcdir)/pop3testsuite | sed 's/^--=_.*/--mimeboundary/;s/ENOMEM.*/ENOMEM/;s/boundary=.*/boundary=/' | diff -U 3 $(srcdir)/pop3testsuite.txt -
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 	   rm -f confmdmemleak; \
 	   POP3INVOKE='@SHELL@ $(srcdir)/testsuitevalgrind ./pop3d.testmock' \
