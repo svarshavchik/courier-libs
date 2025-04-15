@@ -2831,14 +2831,14 @@ static int aclstore(const char *tag,
 
 		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-				writes("* ACLFAILED \"");
-				writemailbox(mailbox.mailbox);
-				writes("\"");
-				accessdenied("ACL STORE",
-					     mailbox.mailbox,
-					     ACL_ADMINISTER);
-				mailbox.mailbox.clear();
-				continue;
+			writes("* ACLFAILED \"");
+			writemailbox(mailbox.mailbox);
+			writes("\"");
+			accessdenied("ACL STORE",
+				     mailbox.mailbox,
+				     ACL_ADMINISTER);
+			mailbox.mailbox.clear();
+			continue;
 		}
 
 		if (!acl_read_folder(aclt_list, mi.homedir, mi.maildir))
@@ -2916,13 +2916,13 @@ static int aclset(const char *tag,
 
 		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-				writes("* ACLFAILED \"");
-				writemailbox(mailbox.mailbox);
-				writes("\"");
-				accessdenied("ACL SET", mailbox.mailbox,
-					     ACL_ADMINISTER);
-				mailbox.mailbox.clear();
-				continue;
+			writes("* ACLFAILED \"");
+			writemailbox(mailbox.mailbox);
+			writes("\"");
+			accessdenied("ACL SET", mailbox.mailbox,
+				     ACL_ADMINISTER);
+			mailbox.mailbox.clear();
+			continue;
 		}
 
 		if (!acl_lock(mi.homedir,
@@ -2972,14 +2972,14 @@ static int acldelete(const char *tag,
 
 		if (!acl_check_rights(mailbox.mailbox, ACL_ADMINISTER))
 		{
-				writes("* ACLFAILED \"");
-				writemailbox(mailbox.mailbox);
-				writes("\"");
-				accessdenied("ACL DELETE",
-					     mailbox.mailbox,
-					     ACL_ADMINISTER);
-				mailbox.mailbox.clear();
-				continue;
+			writes("* ACLFAILED \"");
+			writemailbox(mailbox.mailbox);
+			writes("\"");
+			accessdenied("ACL DELETE",
+				     mailbox.mailbox,
+				     ACL_ADMINISTER);
+			mailbox.mailbox.clear();
+			continue;
 		}
 
 		if (!acl_lock(
@@ -3834,10 +3834,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!acl_check_rights(orig_mailbox, ACL_READ))
 		{
-				writes(tag);
-				accessdenied("STATUS", orig_mailbox,
-					     ACL_READ);
-				return 0;
+			writes(tag);
+			accessdenied("STATUS", orig_mailbox,
+				     ACL_READ);
+			return 0;
 		}
 
 		imapscaninfo other_info{new_mailbox},
@@ -4136,11 +4136,11 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!acl_check_rights(foldername, ACL_DELETEFOLDER))
 		{
-				writes(tag);
-				accessdenied("DELETE",
-					     foldername,
-					     ACL_DELETEFOLDER);
-				return 0;
+			writes(tag);
+			accessdenied("DELETE",
+				     foldername,
+				     ACL_DELETEFOLDER);
+			return 0;
 		}
 
 		if (!broken_uidvs())
@@ -4206,10 +4206,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!acl_check_rights(mailbox, ACL_DELETEFOLDER))
 		{
-				writes(tag);
-				accessdenied("RENAME", curtoken->tokenbuf,
-					     ACL_DELETEFOLDER);
-				return (0);
+			writes(tag);
+			accessdenied("RENAME", curtoken->tokenbuf,
+				     ACL_DELETEFOLDER);
+			return (0);
 		}
 
 		curtoken=nexttoken_nouc();
@@ -4584,10 +4584,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!acl_check_rights(mailbox, ACL_ADMINISTER))
 		{
-				writes(tag);
-				accessdenied(origcmd, mailbox.c_str(),
-					     ACL_ADMINISTER);
-				return 0;
+			writes(tag);
+			accessdenied(origcmd, mailbox.c_str(),
+				     ACL_ADMINISTER);
+			return 0;
 		}
 
 		maildir::aclt_list aclt_list;
@@ -4639,10 +4639,10 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 
 		if (!acl_check_rights(f, ACL_ADMINISTER))
 		{
-				writes(tag);
-				accessdenied("GETACL", f,
-					     ACL_ADMINISTER);
-				return 0;
+			writes(tag);
+			accessdenied("GETACL", f,
+				     ACL_ADMINISTER);
+			return 0;
 		}
 
 		if (!get_acllist(l, f))
