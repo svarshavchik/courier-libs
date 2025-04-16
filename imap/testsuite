@@ -897,9 +897,11 @@ R077 COPY 1 INBOX.x
 R078 SELECT INBOX.x
 R079 FETCH 4 (FLAGS)
 R080 SELECT INBOX
+R081 ACL STORE INBOX user=systemuser3 alr
+R022 CREATE INBOX.x2
 RDONE LOGOUT
 EOF
-
+sed 's/^/R023 /' <confmdtest/.x2/courierimapacl
 rm -rf confmdtest
 ../maildir/maildirmake confmdtest || exit 1
 ../maildir/maildirmake -f a confmdtest || exit 1
