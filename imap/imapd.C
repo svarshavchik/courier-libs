@@ -409,7 +409,6 @@ static std::string decode_valid_mailbox_utf8(const std::string &p,
 	if (mi.mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
 		const char *q;
-		char *r;
 
 		if ((q=strchr(p.c_str(), '.')) == NULL)
 		{
@@ -417,26 +416,23 @@ static std::string decode_valid_mailbox_utf8(const std::string &p,
 			return "";
 		}
 
-		r=maildir_shareddir(".", q+1);
-		if (!r)
+		auto r=maildir::shareddir(".", q+1);
+		if (r.empty())
 		{
 			errno=EINVAL;
 			return "";
 		}
 
-		if (access(r, 0) == 0)
+		if (access(r.c_str(), 0) == 0)
 		{
-			std::string ret{r};
-			free(r);
-			return ret;
+			return r;
 		}
 
-		maildir_shared_subscribe(".", q+1);
-		if (access(r, 0) == 0)
+		maildir::shared_subscribe(".", q+1);
+
+		if (access(r.c_str(), 0) == 0)
 		{
-			std::string ret{r};
-			free(r);
-			return ret;
+			return r;
 		}
 	}
 	return "";
