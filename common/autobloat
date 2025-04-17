@@ -16,12 +16,21 @@ doit() {
 
 echo `pwd`:
 
-	if test -f po/Makefile.in.in
+	if test -f po/Makevars
 	then
-		if test ! -f po/Makefile
+		rm -rf backup
+		mkdir backup
+		if test -f ChangeLog
 		then
-			cp po/Makefile.in.in po/Makefile
+			mv ChangeLog backup
 		fi
+		mv configure.ac Makefile.am backup
+		cp backup/* .
+		sed 's@dev/tty@dev/null@' <`which gettextize` >fixed
+		sh fixed -f
+		rm -f ABOUT-NLS ChangeLog fixed
+		mv backup/* .
+		rmdir backup
 	fi
 
 	if grep -q LT_INIT configure.ac
