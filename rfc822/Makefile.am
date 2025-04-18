@@ -45,3 +45,6 @@ endif
 check-am:
 	./testsuite | cmp -s - $(srcdir)/testsuite.txt
 	./reftest | cmp -s - $(srcdir)/reftest.txt
+
+clean-local:
+	rm -rf $(DEPDIR)

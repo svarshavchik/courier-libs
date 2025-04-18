@@ -146,6 +146,7 @@ quotawarnmsg.h: config.status
 
 clean-local:
 	rm -rf testmd
+	rm -rf $(DEPDIR)
 
 check-am:
 	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | diff -U 3 $(srcdir)/testsuite.txt -
