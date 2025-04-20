@@ -38,7 +38,8 @@ char	buf[2];
 		{
 			printf("%s: ", buf[0] == '"' ? "Quote":
 				buf[0] == '(' ? "Comment":"Atom");
-			if (fwrite(tp->tokens[i].ptr, tp->tokens[i].len, 1,
+			if (tp->tokens[i].len &&
+			    fwrite(tp->tokens[i].ptr, tp->tokens[i].len, 1,
 				   stdout) != 1)
 				exit(1);
 
@@ -65,6 +66,18 @@ int main()
 	struct	rfc822t *t1, *t2, *t3, *t4, *t5, *t6;
 	struct	rfc822a *a1, *a2, *a3, *a4, *a5, *a6;
 	char *c;
+
+	rfc822t_free(tokenize("(Break 1"));
+	rfc822t_free(tokenize("(Break 2\\"));
+	rfc822t_free(tokenize("(Break 3\\))"));
+	rfc822t_free(tokenize("(Break 4())"));
+	rfc822t_free(tokenize("\"Quote 1"));
+	rfc822t_free(tokenize("\"Quote 2\\"));
+	rfc822t_free(tokenize("\"Quote 3\\\""));
+	rfc822t_free(tokenize("=?Atom 1()"));
+	rfc822t_free(tokenize("=?Atom 2?"));
+	rfc822t_free(tokenize("=?Atom 3?="));
+	rfc822t_free(tokenize("<>"));
 
 	t1=tokenize("nobody@example.com (Nobody (is) here\\) right)");
 	t2=tokenize("Distribution  list: nobody@example.com daemon@example.com");

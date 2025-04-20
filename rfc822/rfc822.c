@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2009 Double Precision, Inc.
+** Copyright 1998 - 2025 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -11,19 +11,28 @@
 #include	<stdlib.h>
 #include	<string.h>
 
-static void tokenize(const char *p, struct rfc822token *tokp, int *toklen,
-	void (*err_func)(const char *, int, void *), void *voidp)
+void rfc822_tokenize(const char *p,
+		     size_t plen,
+		     void (*parsed_func)(char token,
+					 const char *ptr, size_t len,
+					 void *voidp),
+		     void *voidp_parsed_func,
+		     void (*err_func)(const char *, int, void *),
+		     void *voidp_err_func)
 {
-const char *addr=p;
-int	i=0;
-int	inbracket=0;
+	const char *addr=p;
+	int	i=0;
+	int	inbracket=0;
 
-	*toklen=0;
-	while (*p)
+	char	tokp_token;
+	const char *tokp_ptr;
+	size_t  tokp_len;
+
+	while (plen)
 	{
 		if (isspace((int)(unsigned char)*p))
 		{
-			p++;
+			++p; --plen;
 			i++;
 			continue;
 		}
@@ -34,98 +43,99 @@ int	inbracket=0;
 		int	level;
 
 		case '(':
-			if (tokp)
-			{
-				tokp->token='(';
-				tokp->ptr=p;
-				tokp->len=0;
-			}
+
+			tokp_token='(';
+			tokp_ptr=p;
+			tokp_len=0;
+
 			level=0;
 			for (;;)
 			{
-				if (!*p)
+				if (plen == 0)
 				{
-					if (err_func) (*err_func)(addr, i,
-								  voidp);
-					if (tokp) tokp->token='"';
-					++*toklen;
+					(*err_func)(addr, i, voidp_err_func);
+					tokp_token='"';
+					(*parsed_func)(tokp_token,
+						       tokp_ptr, tokp_len,
+						       voidp_parsed_func);
 					return;
 				}
 				if (*p == '(')
 					++level;
 				if (*p == ')' && --level == 0)
 				{
-					p++;
+					++p; --plen;
 					i++;
-					if (tokp)	tokp->len++;
+					tokp_len++;
 					break;
 				}
-				if (*p == '\\' && p[1])
+				if (*p == '\\' && plen > 1)
 				{
-					p++;
+					++p; --plen;
 					i++;
-					if (tokp)	tokp->len++;
+					tokp_len++;
 				}
 
 				i++;
-				if (tokp)	tokp->len++;
-				p++;
+				tokp_len++;
+				++p; --plen;
 			}
-			if (tokp)	++tokp;
-			++*toklen;
+			(*parsed_func)(tokp_token, tokp_ptr, tokp_len,
+				       voidp_parsed_func);
 			continue;
 
 		case '"':
-			p++;
+			++p; --plen;
 			i++;
 
-			if (tokp)
-			{
-				tokp->token='"';
-				tokp->ptr=p;
-			}
+			tokp_token='"';
+			tokp_ptr=p;
+			tokp_len=0;
+
 			while (*p != '"')
 			{
-				if (!*p)
+				if (plen == 0)
 				{
-					if (err_func) (*err_func)(addr, i,
-								  voidp);
-					++*toklen;
+					(*err_func)(addr, i, voidp_err_func);
+					(*parsed_func)(tokp_token,
+						       tokp_ptr, tokp_len,
+						       voidp_parsed_func);
 					return;
 				}
-				if (*p == '\\' && p[1])
+				if (*p == '\\' && plen > 1)
 				{
-					if (tokp)	tokp->len++;
-					p++;
+					tokp_len++;
+					++p; --plen;
 					i++;
 				}
-				if (tokp)	tokp->len++;
-				p++;
+				tokp_len++;
+				++p; --plen;
 				i++;
 			}
-			++*toklen;
-			if (tokp)	++tokp;
-			p++;
+			(*parsed_func)(tokp_token, tokp_ptr, tokp_len,
+				       voidp_parsed_func);
+			++p; --plen;
 			i++;
 			continue;
 		case '\\':
 		case ')':
-			if (err_func) (*err_func)(addr, i, voidp);
-			++p;
+			(*err_func)(addr, i, voidp_err_func);
+			++p; --plen;
 			++i;
 			continue;
 
 		case '=':
 
-			if (p[1] == '?')
+			if (plen > 1 && p[1] == '?')
 			{
 				int j;
 
 			/* exception: =? ... ?= */
 
-				for (j=2; p[j]; j++)
+				for (j=2; j < plen; j++)
 				{
-					if (p[j] == '?' && p[j+1] == '=')
+					if (p[j] == '?' && j+1 < plen &&
+					    p[j+1] == '=')
 						break;
 
 					if (p[j] == '?' || p[j] == '=')
@@ -136,19 +146,18 @@ int	inbracket=0;
 						break;
 				}
 
-				if (p[j] == '?' && p[j+1] == '=')
+				if (j+1 < plen && p[j] == '?' && p[j+1] == '=')
 				{
 					j += 2;
-					if (tokp)
-					{
-						tokp->token=0;
-						tokp->ptr=p;
-						tokp->len=j;
-						++tokp;
-					}
-					++*toklen;
 
-					p += j;
+					tokp_token=0;
+					tokp_ptr=p;
+					tokp_len=j;
+					(*parsed_func)(tokp_token,
+						       tokp_ptr, tokp_len,
+						       voidp_parsed_func);
+
+					p += j; plen -= j;
 					i += j;
 					continue;
 				}
@@ -172,8 +181,8 @@ int	inbracket=0;
 			if ( (*p == '<' && inbracket) ||
 				(*p == '>' && !inbracket))
 			{
-				if (err_func) (*err_func)(addr, i, voidp);
-				++p;
+				(*err_func)(addr, i, voidp_err_func);
+				++p; --plen;
 				++i;
 				continue;
 			}
@@ -184,62 +193,55 @@ int	inbracket=0;
 			if (*p == '>')
 				inbracket=0;
 
-			if (tokp)
-			{
-				tokp->token= *p;
-				tokp->ptr=p;
-				tokp->len=1;
-				++tokp;
-			}
-			++*toklen;
+			tokp_token= *p;
+			tokp_ptr=p;
+			tokp_len=1;
+			(*parsed_func)(tokp_token, tokp_ptr, tokp_len,
+				       voidp_parsed_func);
 
-			if (*p == '<' && p[1] == '>')
+			if (*p == '<' && plen > 1 && p[1] == '>')
 					/* Fake a null address */
 			{
-				if (tokp)
-				{
-					tokp->token=0;
-					tokp->ptr="";
-					tokp->len=0;
-					++tokp;
-				}
-				++*toklen;
+				tokp_token=0;
+				tokp_ptr=p+1;
+				tokp_len=0;
+				(*parsed_func)(tokp_token, tokp_ptr, tokp_len,
+					       voidp_parsed_func);
 			}
-			++p;
+			++p; --plen;
 			++i;
 			continue;
 		default:
 
-			if (tokp)
+			tokp_token=0;
+			tokp_ptr=p;
+			tokp_len=0;
+
+			while (plen &&
+			       !isspace((int)(unsigned char)*p) &&
+			       strchr(SPECIALS, *p) == 0)
 			{
-				tokp->token=0;
-				tokp->ptr=p;
-				tokp->len=0;
-			}
-			while (*p && !isspace((int)(unsigned char)*p) && strchr(
-				SPECIALS, *p) == 0)
-			{
-				if (tokp)	++tokp->len;
-				++p;
+				++tokp_len;
+				++p; --plen;
 				++i;
 			}
 			if (i == 0)	/* Idiot check */
 			{
-				if (err_func) (*err_func)(addr, i, voidp);
-				if (tokp)
-				{
-					tokp->token='"';
-					tokp->ptr=p;
-					tokp->len=1;
-					++tokp;
-				}
-				++*toklen;
-				++p;
+				(*err_func)(addr, i, voidp_err_func);
+
+				tokp_token='"';
+				tokp_ptr=p;
+				tokp_len=1;
+				(*parsed_func)(tokp_token,
+					       tokp_ptr, tokp_len,
+					       voidp_parsed_func);
+				++p; --plen;
 				++i;
 				continue;
 			}
-			if (tokp)	++tokp;
-			++*toklen;
+			(*parsed_func)(tokp_token,
+				       tokp_ptr, tokp_len,
+				       voidp_parsed_func);
 		}
 	}
 }
@@ -786,15 +788,40 @@ int	i;
 	}
 }
 
+static void ignore_errors(const char *, int, void *)
+{
+}
+
+static void count_token(char, const char *, size_t, void *voidp)
+{
+	struct rfc822t *p=(struct rfc822t *)voidp;
+
+	++p->ntokens;
+}
+
+static void save_token(char token, const char *ptr, size_t len, void *voidp)
+{
+	struct rfc822token **tptr=(struct rfc822token **)voidp;
+
+	(*tptr)->token=token;
+	(*tptr)->ptr=ptr;
+	(*tptr)->len=len;
+	++*tptr;
+}
+
 struct rfc822t *rfc822t_alloc_new(const char *addr,
 	void (*err_func)(const char *, int, void *), void *voidp)
 {
-struct rfc822t *p=(struct rfc822t *)malloc(sizeof(struct rfc822t));
+	struct rfc822t *p=(struct rfc822t *)malloc(sizeof(struct rfc822t));
+	struct rfc822token *q;
+	size_t l=strlen(addr);
 
 	if (!p)	return (NULL);
 	memset(p, 0, sizeof(*p));
 
-	tokenize(addr, NULL, &p->ntokens, err_func, voidp);
+	if (!err_func)
+		err_func=ignore_errors;
+	rfc822_tokenize(addr, l, count_token, p, err_func, voidp);
 	p->tokens=p->ntokens ? (struct rfc822token *)
 			calloc(p->ntokens, sizeof(struct rfc822token)):0;
 	if (p->ntokens && !p->tokens)
@@ -802,7 +829,8 @@ struct rfc822t *p=(struct rfc822t *)malloc(sizeof(struct rfc822t));
 		rfc822t_free(p);
 		return (NULL);
 	}
-	tokenize(addr, p->tokens, &p->ntokens, NULL, NULL);
+	q=p->tokens;
+	rfc822_tokenize(addr, l, save_token, &q, ignore_errors, NULL);
 	return (p);
 }
 
