@@ -43,8 +43,8 @@ rfc822.3: rfc822.sgml ../docbook/sgml2html
 endif
 
 check-am:
-	./testsuite | cmp -s - $(srcdir)/testsuite.txt
-	./reftest | cmp -s - $(srcdir)/reftest.txt
+	./testsuite | diff -U 3 $(srcdir)/testsuite.txt -
+	./reftest | diff -U 3  $(srcdir)/reftest.txt -
 
 clean-local:
 	rm -rf $(DEPDIR)

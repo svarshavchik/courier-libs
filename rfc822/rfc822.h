@@ -17,6 +17,9 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
+#if 0
+}
+#endif
 
 #define RFC822_SPECIALS "()<>[]:;@\\,.\""
 
@@ -85,6 +88,8 @@ struct rfc822t {
 	int	ntokens;
 } ;
 
+/* The passed-in string must exist unti rfc822t_free() is called */
+
 struct rfc822t *rfc822t_alloc_new(const char *p,
 	void (*err_func)(const char *, int, void *), void *);
 	/* Parse addresses */
@@ -105,6 +110,7 @@ struct rfc822a {
 	int	naddrs;
 } ;
 
+/* The passed_in rfc822t object must exist until rfc822a_free() is called */
 struct rfc822a *rfc822a_alloc(struct rfc822t *);
 void rfc822a_free(struct rfc822a *);		/* Free rfc822 structure */
 
@@ -290,6 +296,9 @@ char *rfc822_display_addr_str_tobuf(const char *tok,
 char *rfc822_encode_domain(const char *address,
 			   const char *charset);
 
+#if 0
+{
+#endif
 #ifdef  __cplusplus
 }
 #endif
