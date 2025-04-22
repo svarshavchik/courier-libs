@@ -1,3 +1,40 @@
+Tokenize: (Break 1
+Quote: (Break 1
+Tokenize: (Break 2\
+Quote: (Break 2\
+Tokenize: (Break 3\))
+Comment: (Break 3\))
+Tokenize: (Break 4())
+Comment: (Break 4())
+Tokenize: "Quote 1
+Quote: Quote 1
+Tokenize: "Quote 2\
+Quote: Quote 2\
+Tokenize: "Quote 3\"
+Quote: Quote 3\"
+Tokenize: =?Atom 1()
+Token: =
+Token: ?
+Atom: Atom
+Atom: 1
+Comment: ()
+Tokenize: =?Atom 2?
+Token: =
+Token: ?
+Atom: Atom
+Atom: 2
+Token: ?
+Tokenize: =?Atom 3?=
+Token: =
+Token: ?
+Atom: Atom
+Atom: 3
+Token: ?
+Token: =
+Tokenize: <>
+Token: <
+Atom: 
+Token: >
 Tokenize: nobody@example.com (Nobody (is) here\) right)
 Atom: nobody
 Token: @
@@ -85,6 +122,24 @@ Atom: example
 Token: .
 Atom: com
 Token: >
+Tokenize: "Quoted \\ \" String" <nobody@example.com>,"Trailing slash \\" <nobody@example.com>
+Quote: Quoted \\ \" String
+Token: <
+Atom: nobody
+Token: @
+Atom: example
+Token: .
+Atom: com
+Token: >
+Token: ,
+Quote: Trailing slash \\
+Token: <
+Atom: nobody
+Token: @
+Atom: example
+Token: .
+Atom: com
+Token: >
 ----
 nobody@example.com (Nobody (is) here\) right)
 ----
@@ -95,6 +150,14 @@ Mr Nobody <nobody@example.com>, "Mr. Nobody" <nobody@example.com>
 nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>
 ----
 =?UTF-8?Q?Test?= <nobody@example.com>, "foo=bar" <nobody@example.com>
+----
+"Quoted \\ \" String" <nobody@example.com>, "Trailing slash \\" <nobody@example.com>
+[nobody@example.com, nobody@example.com,
+"Mr. Nobody" <nobody@example.com>]
+[nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>]
+[nobody@example.com,
+nobody@example.com,
+"Mr. Nobody" <nobody@example.com>]
 =?utf-8?B?4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk?=
 =?utf-8?B?4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk?= =?utf-8?B?4oWk?=
 =?utf-8?B?4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk4oWk?= =?utf-8?B?4oWkzIA=?=
