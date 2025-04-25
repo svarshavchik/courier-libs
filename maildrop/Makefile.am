@@ -74,7 +74,7 @@ check-am: testsuite
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
 		@SHELL@ ./testsuite >testsuite.diff || exit 1; \
 		sed '/^Message envelope sender/d' <testsuite.diff | \
-		diff -U 3 - $(srcdir)/testsuite.txt.idn || exit 1; \
+		diff -U 3 $(srcdir)/testsuite.txt.idn - || exit 1; \
 		rm -f testsuite.diff
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ $(srcdir)/testsuite2
 

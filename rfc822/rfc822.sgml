@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2001-2007 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2001-2025 Double Precision, Inc.  See COPYING for -->
 <!-- distribution information. -->
 <refentry id="rfc822">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -44,7 +44,7 @@ information is defined by
 <ulink url="http://www.rfc-editor.org/rfc/rfc2822.txt">RFC 2822</ulink>).
 The format allows the actual E-mail
 address and the sender/recipient name to be expressed together, for example:
-<literal moreinfo="none">John Smith &lt;jsmith@example.com&gt;</literal></para>
+<literal>John Smith &lt;jsmith@example.com&gt;</literal></para>
 
     <para>
 The main purposes of the rfc822 library is to:</para>
@@ -66,7 +66,7 @@ convert it back into a text string.</para>
       <informalexample>
 	<programlisting format="linespecific">
 struct rfc822t *tokens=rfc822t_alloc_new(const char *header,
-                void (*err_func)(const char *, int, void *),
+                void (*err_func)(const char *, size_t, void *),
                 void *func_arg);
 
 void rfc822t_free(tokens);
@@ -74,48 +74,48 @@ void rfc822t_free(tokens);
       </informalexample>
 
       <para>
-The <function moreinfo="none">rfc822t_alloc_new</function>() function (superceeds
-<function moreinfo="none">rfc822t_alloc</function>(), which is now
-obsolete) accepts an E-mail <parameter moreinfo="none">header</parameter>, and parses it into
+The <function>rfc822t_alloc_new</function>() function (superceeds
+<function>rfc822t_alloc</function>(), which is now
+obsolete) accepts an E-mail <parameter>header</parameter>, and parses it into
 individual tokens. This function allocates and returns a pointer to an
 <structname>rfc822t</structname>
 structure, which is later used by
-<function moreinfo="none">rfc822a_alloc</function>() to extract
+<function>rfc822a_alloc</function>() to extract
 individual addresses from these tokens.</para>
 
       <para>
-If <parameter moreinfo="none">err_func</parameter> argument, if not NULL, is a pointer
+If <parameter>err_func</parameter> argument, if not NULL, is a pointer
 to a callback
 function.  The function is called in the event that the E-mail header is
 corrupted to the point that it cannot even be parsed.  This is a rare instance
 -- most forms of corruption are still valid at least on the lexical level.
 The only time this error is reported is in the event of mismatched
 parenthesis, angle brackets, or quotes.  The callback function receives the
-<parameter moreinfo="none">header</parameter> pointer, an index to the syntax error in the
-header string, and the <parameter moreinfo="none">func_arg</parameter> argument.</para>
+<parameter>header</parameter> pointer, an index to the syntax error in the
+header string, and the <parameter>func_arg</parameter> argument.</para>
 
       <para>
-The semantics of <parameter moreinfo="none">err_func</parameter> are subject to change.  It is recommended
+The semantics of <parameter>err_func</parameter> are subject to change.  It is recommended
 to leave this argument as NULL in the current version of the library.</para>
 
       <para>
-<function moreinfo="none">rfc822t_alloc</function>() returns a pointer to a
+<function>rfc822t_alloc</function>() returns a pointer to a
 dynamically-allocated <structname>rfc822t</structname>
 structure. A NULL pointer is returned if there's insufficient memory to
-allocate this structure. The <function moreinfo="none">rfc822t_free</function>() function
+allocate this structure. The <function>rfc822t_free</function>() function
 destroys
 <structname>rfc822t</structname> structure and frees all
 dynamically allocated memory.</para>
 
       <note>
 	<para>
-Until <function moreinfo="none">rfc822t_free</function>() is called, the contents of
-<parameter moreinfo="none">header</parameter> MUST
+Until <function>rfc822t_free</function>() is called, the contents of
+<parameter>header</parameter> MUST
 NOT be destroyed or altered in any way. The contents of
-<parameter moreinfo="none">header</parameter> are not
-modified by <function moreinfo="none">rfc822t_alloc</function>(), however the
+<parameter>header</parameter> are not
+modified by <function>rfc822t_alloc</function>(), however the
 <structname>rfc822t</structname> structure contains
-pointers to portions of the supplied <parameter moreinfo="none">header</parameter>,
+pointers to portions of the supplied <parameter>header</parameter>,
 and they must remain valid.</para>
       </note>
     </refsect2>
@@ -132,15 +132,15 @@ void rfc822a_free(addrs);
       </informalexample>
 
       <para>
-The <function moreinfo="none">rfc822a_alloc</function>() function returns a
+The <function>rfc822a_alloc</function>() function returns a
 dynamically-allocated <structname>rfc822a</structname>
 structure, that contains individual addresses that were logically parsed
 from a <structname>rfc822t</structname> structure.  The
-<function moreinfo="none">rfc822a_alloc</function>() function returns NULL if
+<function>rfc822a_alloc</function>() function returns NULL if
 there was insufficient memory to allocate the <structname>rfc822a</structname> structure. The
-<function moreinfo="none">rfc822a_free</function>() function destroys the <structname>rfc822a</structname> function, and frees all
+<function>rfc822a_free</function>() function destroys the <structname>rfc822a</structname> function, and frees all
 associated dynamically-allocated memory. The <structname>rfc822t</structname> structure passed
-to <function moreinfo="none">rfc822a_alloc</function>() must not be destroyed before <function moreinfo="none">rfc822a_free</function>() destroys the
+to <function>rfc822a_alloc</function>() must not be destroyed before <function>rfc822a_free</function>() destroys the
 <structname>rfc822a</structname> structure.</para>
 
       <para>
@@ -170,15 +170,15 @@ To: recipient-list: tom@example.com, john@example.com;
 </programlisting>
       </informalexample>
 
-      <para>Typically, all of this, except for "<literal moreinfo="none">To:</literal>",
-is tokenized by <function moreinfo="none">rfc822t_alloc</function>(), then parsed by
-<function moreinfo="none">rfc822a_alloc</function>().
-"<literal moreinfo="none">recipient-list:</literal>" and
+      <para>Typically, all of this, except for "<literal>To:</literal>",
+is tokenized by <function>rfc822t_alloc</function>(), then parsed by
+<function>rfc822a_alloc</function>().
+"<literal>recipient-list:</literal>" and
 the trailing semicolon is a legacy mailing list specification that is no
 longer in widespread use, but must still must be accounted for. The resulting
 <structname>rfc822a</structname> structure will have four
 <structname>rfc822addr</structname> structures: one for
-"<literal moreinfo="none">recipient-list:</literal>";
+"<literal>recipient-list:</literal>";
 one for each address; and one for the trailing semicolon.
 Each <structname>rfc822a</structname> structure has the following
 fields:</para>
@@ -195,7 +195,7 @@ struct rfc822addr {
 If <structfield>tokens</structfield> is a null pointer, this structure
 represents some
 non-address portion of the original header, such as
-"<literal moreinfo="none">recipient-list:</literal>" or a
+"<literal>recipient-list:</literal>" or a
 semicolon.  Otherwise it points to a structure that represents the E-mail
 address in tokenized form.</para>
 
@@ -205,11 +205,11 @@ non-address portion of
 the original header, or to a tokenized form of the recipient's name.
 <structfield>name</structfield> will be NULL if the recipient name was not provided. For the
 following address:
-<literal moreinfo="none">Tom Jones &lt;tjones@example.com&gt;</literal> - the
+<literal>Tom Jones &lt;tjones@example.com&gt;</literal> - the
 <structfield>tokens</structfield> field points to the tokenized form of
-"<literal moreinfo="none">tjones@example.com</literal>",
+"<literal>tjones@example.com</literal>",
 and <structfield>name</structfield> points to the tokenized form of
-"<literal moreinfo="none">Tom Jones</literal>".</para>
+"<literal>Tom Jones</literal>".</para>
 
       <para>
 Each <structname>rfc822token</structname> structure contains the following
@@ -253,8 +253,8 @@ The value of the ascii quote - this is a quoted string.</para>
 	    <para>
 This is an old style comment.  A deprecated form of E-mail
 addressing uses - for example -
-"<literal moreinfo="none">john@example.com (John Smith)</literal>" instead of
-"<literal moreinfo="none">John Smith &lt;john@example.com&gt;</literal>".
+"<literal>john@example.com (John Smith)</literal>" instead of
+"<literal>John Smith &lt;john@example.com&gt;</literal>".
 This old-style notation defined
 parenthesized content as arbitrary comments.
 The <structname>rfc822token</structname> with
@@ -281,9 +281,9 @@ field contains the number of characters included.
 The macro rfc822_is_atom(token) indicates whether
 <structfield>ptr</structfield> and <structfield>len</structfield> are used for
 the given <structfield>token</structfield>.
-Currently <function moreinfo="none">rfc822_is_atom</function>() returns true if
-<structfield>token</structfield> is a zero byte, '<literal moreinfo="none">"</literal>', or
-'<literal moreinfo="none">(</literal>'.</para>
+Currently <function>rfc822_is_atom</function>() returns true if
+<structfield>token</structfield> is a zero byte, '<literal>"</literal>', or
+'<literal>(</literal>'.</para>
 
       <para>
 Note that it's possible that <structfield>len</structfield> might be zero.
@@ -298,10 +298,10 @@ notifications.</para>
 void rfc822_deladdr(struct rfc822a *addrs, int index);
 
 void rfc822tok_print(const struct rfc822token *list,
-        void (*func)(char, void *), void *func_arg);
+        void (*func)(const char *, size_t, void *), void *func_arg);
 
 void rfc822_print(const struct rfc822a *addrs,
-        void (*print_func)(char, void *),
+        void (*print_func)(const char *, size_t, void *),
         void (*print_separator)(const char *, void *), void *callback_arg);
 
 void rfc822_addrlist(const struct rfc822a *addrs,
@@ -339,84 +339,88 @@ char *rfc822_getaddrs_wrap(const struct rfc822a *, int);
 
       <para>
 These functions are used to work with individual addresses that are parsed
-by <function moreinfo="none">rfc822a_alloc</function>().</para>
+by <function>rfc822a_alloc</function>().</para>
 
       <para>
-<function moreinfo="none">rfc822_deladdr</function>() removes a single
+<function>rfc822_deladdr</function>() removes a single
 <structname>rfc822addr</structname> structure, whose
-<parameter moreinfo="none">index</parameter> is given, from the address array in
+<parameter>index</parameter> is given, from the address array in
 <structname>rfc822addr</structname>.
 <structfield>naddrs</structfield> is decremented by one.</para>
 
       <para>
-<function moreinfo="none">rfc822tok_print</function>() converts a tokenized
-<parameter moreinfo="none">list</parameter> of <structname>rfc822token</structname>
+<function>rfc822tok_print</function>() converts a tokenized
+<parameter>list</parameter> of <structname>rfc822token</structname>
 objects into a text string. The callback function,
-<parameter moreinfo="none">func</parameter>, is called one
-character at a time, for every character in the tokenized objects. An
-arbitrary pointer, <parameter moreinfo="none">func_arg</parameter>, is passed unchanged as
+<parameter>func</parameter>, is called repeatedly, it receives a pointer
+to a string <quote>chunk</quote>,
+a string with the number of characters in the string
+specified by its second parameter
+(the string chunk is not necessary \0-terminated), until the entire string
+representing the tokenized objects is generated. An
+arbitrary pointer, <parameter>func_arg</parameter>, is passed unchanged as
 the additional argument to the callback function.
-<function moreinfo="none">rfc822tok_print</function>() is not usually the most
+<function>rfc822tok_print</function>() is not usually the most
 convenient and efficient function, but it has its uses.</para>
 
       <para>
-<function moreinfo="none">rfc822_print</function>() takes an entire
+<function>rfc822_print</function>() takes an entire
 <structname>rfc822a</structname> structure, and uses the
 callback functions to print the contained addresses, in their original form,
 separated by commas. The function pointed to by
-<parameter moreinfo="none">print_func</parameter> is used to
-print each individual address, one character at a time.  Between the
-addresses, the <parameter moreinfo="none">print_separator</parameter> function is called to
+<parameter>print_func</parameter> is used to
+print each individual address, one chunk at a time.  Between the
+addresses, the <parameter>print_separator</parameter> function is called to
 print the address separator, usually the string ", ".
-The <parameter moreinfo="none">callback_arg</parameter> argument is passed
+The <parameter>callback_arg</parameter> argument is passed
 along unchanged, as an additional argument to these functions.</para>
 
       <para>
-The functions <function moreinfo="none">rfc822_addrlist</function>() and
-<function moreinfo="none">rfc822_namelist</function>() also print the
+The functions <function>rfc822_addrlist</function>() and
+<function>rfc822_namelist</function>() also print the
 contents of the entire <structname>rfc822a</structname> structure, but in a
 different way.
-<function moreinfo="none">rfc822_addrlist</function>() prints just the actual E-mail
+<function>rfc822_addrlist</function>() prints just the actual E-mail
 addresses, not the recipient
 names or comments.  Each E-mail address is followed by a newline character.
-<function moreinfo="none">rfc822_namelist</function>() prints just the names or comments,
+<function>rfc822_namelist</function>() prints just the names or comments,
 followed by newlines.</para>
 
       <para>
-The functions <function moreinfo="none">rfc822_praddr</function>() and
-<function moreinfo="none">rfc822_prname</function>() are just like
-<function moreinfo="none">rfc822_addrlist</function>() and
-<function moreinfo="none">rfc822_namelist</function>(), except that they print a single name
+The functions <function>rfc822_praddr</function>() and
+<function>rfc822_prname</function>() are just like
+<function>rfc822_addrlist</function>() and
+<function>rfc822_namelist</function>(), except that they print a single name
 or address in the <structname>rfc822a</structname> structure, given its
-<parameter moreinfo="none">index</parameter>. The
-functions <function moreinfo="none">rfc822_gettok</function>(),
-<function moreinfo="none">rfc822_getaddrs</function>(), <function moreinfo="none">rfc822_getaddr</function>(),
-and <function moreinfo="none">rfc822_getname</function>() are equivalent to
-<function moreinfo="none">rfc822tok_print</function>(), <function moreinfo="none">rfc822_print</function>(),
-<function moreinfo="none">rfc822_praddr</function>() and <function moreinfo="none">rfc822_prname</function>(),
+<parameter>index</parameter>. The
+functions <function>rfc822_gettok</function>(),
+<function>rfc822_getaddrs</function>(), <function>rfc822_getaddr</function>(),
+and <function>rfc822_getname</function>() are equivalent to
+<function>rfc822tok_print</function>(), <function>rfc822_print</function>(),
+<function>rfc822_praddr</function>() and <function>rfc822_prname</function>(),
 but, instead of using a callback function
 pointer, these functions write the output into a dynamically allocated buffer.
-That buffer must be destroyed by <function moreinfo="none">free</function>(3) after use.
+That buffer must be destroyed by <function>free</function>(3) after use.
 These functions will
 return a null pointer in the event of a failure to allocate memory for the
 buffer.</para>
 
       <para>
-<function moreinfo="none">rfc822_prname_orlist</function>() is similar to
-<function moreinfo="none">rfc822_prname</function>(), except that it will
+<function>rfc822_prname_orlist</function>() is similar to
+<function>rfc822_prname</function>(), except that it will
 also print the legacy RFC822 group list syntax (which are also parsed by
-<function moreinfo="none">rfc822a_alloc</function>()).  <function moreinfo="none">rfc822_praddr</function>()
+<function>rfc822a_alloc</function>()).  <function>rfc822_praddr</function>()
 will print an empty string for an index
 that corresponds to a group list name (or terminated semicolon).
-<function moreinfo="none">rfc822_prname</function>() will also print an empty string.
-<function moreinfo="none">rfc822_prname_orlist</function>() will
+<function>rfc822_prname</function>() will also print an empty string.
+<function>rfc822_prname_orlist</function>() will
 instead print either the name of the group list, or a single string ";".
-<function moreinfo="none">rfc822_getname_orlist</function>() will instead save it into a
+<function>rfc822_getname_orlist</function>() will instead save it into a
 dynamically allocated buffer.</para>
 
       <para>
-The function <function moreinfo="none">rfc822_getaddrs_wrap</function>() is similar to
-<function moreinfo="none">rfc822_getaddrs</function>(), except
+The function <function>rfc822_getaddrs_wrap</function>() is similar to
+<function>rfc822_getaddrs</function>(), except
 that the generated text is wrapped on or about the 73rd column, using
 newline characters.</para>
 
@@ -434,16 +438,16 @@ void rfc822_mkdate_buf(time_t timestamp, char *buffer);
 
       <para>
 These functions convert between timestamps and dates expressed in the
-<literal moreinfo="none">Date:</literal> E-mail header format.</para>
+<literal>Date:</literal> E-mail header format.</para>
 
       <para>
-<function moreinfo="none">rfc822_parsedt</function>() returns the timestamp corresponding to
+<function>rfc822_parsedt</function>() returns the timestamp corresponding to
 the given date string (0 if there was a syntax error).</para>
 
       <para>
-<function moreinfo="none">rfc822_mkdate</function>() returns a date string corresponding to
+<function>rfc822_mkdate</function>() returns a date string corresponding to
 the given timestamp.
-<function moreinfo="none">rfc822_mkdate_buf</function>() writes the date string into the
+<function>rfc822_mkdate_buf</function>() writes the date string into the
 given buffer instead,
 which must be big enough to accommodate it.</para>
 
@@ -487,7 +491,7 @@ These functions provide additional logic to encode or decode 8-bit content
 in 7-bit RFC 822 headers, as specified in RFC 2047.</para>
 
       <para>
-<function moreinfo="none">rfc2047_decode</function>() is a basic RFC 2047 decoding function.
+<function>rfc2047_decode</function>() is a basic RFC 2047 decoding function.
 It receives a
 pointer to some 7bit RFC 2047-encoded text, and a callback function.  The
 callback function is repeatedly called. Each time it's called it receives a
@@ -497,67 +501,67 @@ the text fragment. The character set pointer is NULL for portions of the
 original text that are not RFC 2047-encoded.</para>
 
       <para>
-The callback function also receives <parameter moreinfo="none">callback_arg</parameter>, as
+The callback function also receives <parameter>callback_arg</parameter>, as
 its last
 argument. If the callback function returns a non-zero value,
-<function moreinfo="none">rfc2047_decode</function>()
+<function>rfc2047_decode</function>()
 terminates, returning that value.  Otherwise,
-<function moreinfo="none">rfc2047_decode</function>() returns 0 after
-a successful decoding. <function moreinfo="none">rfc2047_decode</function>() returns -1 if it
+<function>rfc2047_decode</function>() returns 0 after
+a successful decoding. <function>rfc2047_decode</function>() returns -1 if it
 was unable to allocate sufficient memory.</para>
 
       <para>
-<function moreinfo="none">rfc2047_decode_simple</function>() and
-<function moreinfo="none">rfc2047_decode_enhanced</function>() are alternatives to
-<function moreinfo="none">rfc2047_decode</function>() which forego a callback function, and
+<function>rfc2047_decode_simple</function>() and
+<function>rfc2047_decode_enhanced</function>() are alternatives to
+<function>rfc2047_decode</function>() which forego a callback function, and
 return the decoded text
 in a dynamically-allocated memory buffer. The buffer must be
-<function moreinfo="none">free</function>(3)-ed after
-use. <function moreinfo="none">rfc2047_decode_simple</function>() discards all character set
+<function>free</function>(3)-ed after
+use. <function>rfc2047_decode_simple</function>() discards all character set
 specifications, and
-merely decodes any 8-bit text. <function moreinfo="none">rfc2047_decode_enhanced</function>()
+merely decodes any 8-bit text. <function>rfc2047_decode_enhanced</function>()
 is a compromise to
 discarding all character set information.  The local character set being used
 is specified as the second argument to
-<function moreinfo="none">rfc2047_decode_enhanced</function>().  Any RFC
+<function>rfc2047_decode_enhanced</function>().  Any RFC
 2047-encoded text in a different character set will be prefixed by the name of
 the character set, in brackets, in the resulting output.</para>
 
       <para>
-<function moreinfo="none">rfc2047_decode_simple</function>() and
-<function moreinfo="none">rfc2047_decode_enhanced</function>() return a null pointer
+<function>rfc2047_decode_simple</function>() and
+<function>rfc2047_decode_enhanced</function>() return a null pointer
 if they are unable to allocate sufficient memory.</para>
 
       <para>
-The <function moreinfo="none">rfc2047_print</function>() function is equivalent to
-<function moreinfo="none">rfc822_print</function>(), followed by
-<function moreinfo="none">rfc2047_decode_enhanced</function>() on the result.  The callback
+The <function>rfc2047_print</function>() function is equivalent to
+<function>rfc822_print</function>(), followed by
+<function>rfc2047_decode_enhanced</function>() on the result.  The callback
 functions are used in
 an identical fashion, except that they receive text that's already
 decoded.</para>
 
       <para>
-The function <function moreinfo="none">rfc2047_encode_str</function>() takes a
-<parameter moreinfo="none">string</parameter> and <parameter moreinfo="none">charset</parameter>
+The function <function>rfc2047_encode_str</function>() takes a
+<parameter>string</parameter> and <parameter>charset</parameter>
 being the name of the local character set, then encodes any 8-bit portions of
-<parameter moreinfo="none">string</parameter> using RFC 2047 encoding.
-<function moreinfo="none">rfc2047_encode_str</function>() returns a
+<parameter>string</parameter> using RFC 2047 encoding.
+<function>rfc2047_encode_str</function>() returns a
 dynamically-allocated buffer with the result, which must be
-<function moreinfo="none">free</function>(3)-ed after
+<function>free</function>(3)-ed after
 use, or NULL if there was insufficient memory to allocate the buffer.</para>
 
       <para>
-The function <function moreinfo="none">rfc2047_encode_callback</function>() is similar to
-<function moreinfo="none">rfc2047_encode_str</function>()
+The function <function>rfc2047_encode_callback</function>() is similar to
+<function>rfc2047_encode_str</function>()
 except that the callback function is repeatedly called to received the
 encoding string.  Each invocation of the callback function receives a pointer
 to a portion of the encoded text, the number of characters in this portion,
-and <parameter moreinfo="none">callback_arg</parameter>.</para>
+and <parameter>callback_arg</parameter>.</para>
 
       <para>
-The function <function moreinfo="none">rfc2047_encode_header</function>() is basically
-equivalent to <function moreinfo="none">rfc822_getaddrs</function>(), followed by
-<function moreinfo="none">rfc2047_encode_str</function>();</para>
+The function <function>rfc2047_encode_header</function>() is basically
+equivalent to <function>rfc822_getaddrs</function>(), followed by
+<function>rfc2047_encode_str</function>();</para>
 
     </refsect2>
 
@@ -577,7 +581,7 @@ This function takes the contents of the subject header, and returns the
 "core" subject header that's used in the specification of the IMAP THREAD
 function. This function is designed to strip all subject line artifacts that
 might've been added in the process of forwarding or replying to a message.
-Currently, <function moreinfo="none">rfc822_coresubj</function>() performs the following transformations:</para>
+Currently, <function>rfc822_coresubj</function>() performs the following transformations:</para>
       <variablelist>
 	<varlistentry>
 	  <term>Whitespace</term>
@@ -599,16 +603,16 @@ the subject line.</para>
 
       <para>Note that this function does NOT do MIME decoding.  In order to
 implement IMAP THREAD, it is necessary to call something like
-<function moreinfo="none">rfc2047_decode</function>() before
-calling <function moreinfo="none">rfc822_coresubj</function>().</para>
+<function>rfc2047_decode</function>() before
+calling <function>rfc822_coresubj</function>().</para>
 
       <para>
 This function returns a pointer to a dynamically-allocated buffer, which
-must be <function moreinfo="none">free</function>(3)-ed after use.</para>
+must be <function>free</function>(3)-ed after use.</para>
 
       <para>
-<function moreinfo="none">rfc822_coresubj_nouc</function>() is like
-<function moreinfo="none">rfc822_coresubj</function>(), except that the subject
+<function>rfc822_coresubj_nouc</function>() is like
+<function>rfc822_coresubj</function>(), except that the subject
 is not converted to uppercase.</para>
     </refsect2>
   </refsect1>

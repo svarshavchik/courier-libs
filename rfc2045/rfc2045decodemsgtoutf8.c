@@ -53,7 +53,7 @@ static void doconvtoutf8_write_noeol(const char *p, size_t n,
 	}
 }
 
-static void doconvtoutf8_error(const char *p, int n,
+static void doconvtoutf8_error(const char *p, size_t n,
 			       void *void_arg)
 {
 	struct doconvtoutf8_info *ptr=(struct doconvtoutf8_info *)void_arg;

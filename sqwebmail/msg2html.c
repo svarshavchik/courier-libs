@@ -331,10 +331,10 @@ static void showmsgrfc822_addressheader(struct msg2html_info *info,
 	rfc822t_free(rfcp);
 }
 
-static void showrfc2369_printheader(char c, void *p)
+static void showrfc2369_printheader(const char *c, size_t l, void *p)
 {
 	p=p;
-	putchar(c);
+	fwrite(c, l, 1, stdout);
 }
 
 struct showmsgrfc2369_buflist {
@@ -433,7 +433,7 @@ static void showmsgrfc2369_header(struct msg2html_info *info, const char *p)
 	}
 
 	rfc822_print(rfca, showrfc2369_printheader,
-				showaddressheader_printsep_plain, NULL);
+		     showaddressheader_printsep_plain, NULL);
 
 	while (buflist)
 	{

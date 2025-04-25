@@ -7,26 +7,31 @@
 */
 #include	"rfc822.h"
 #include	<stdlib.h>
+#include	<string.h>
 
-static void cntlen(char c, void *p)
+static void cntlen(const char *c, size_t l, void *p)
 {
 	c=c;
-	++ *(size_t *)p;
+	*(size_t *)p += l;
 }
 
 static void cntlensep(const char *p, void *ptr)
 {
-	while (*p)	cntlen(*p++, ptr);
+	cntlen(p, strlen(p), ptr);
 }
 
-static void saveaddr(char c, void *ptr)
+static void saveaddr(const char *c, size_t l, void *ptr)
 {
-	*(*(char **)ptr)++=c;
+	char **p=(char **)ptr;
+
+	memcpy(*p, c, l);
+
+	*p += l;
 }
 
 static void saveaddrsep(const char *p, void *ptr)
 {
-	while (*p)	saveaddr(*p++, ptr);
+	saveaddr(p, strlen(p), ptr);
 }
 
 char *rfc822_getaddrs(const struct rfc822a *rfc)
@@ -53,12 +58,25 @@ char *rfc822_getaddrs(const struct rfc822a *rfc)
 
 static void saveaddrsep_wrap(const char *p, void *ptr)
 {
-int	c;
+	size_t i=0, n=strlen(p);
 
-	while ((c=*p++) != 0)
+	while (i < n)
 	{
-		if (c == ' ')	c='\n';
-		saveaddr(c, ptr);
+		size_t j;
+
+		for (j=i; j<n; j++)
+			if (p[j] == ' ')
+				break;
+
+		if (j == i)
+		{
+			saveaddr("\n", 1, ptr);
+			++i;
+			continue;
+		}
+
+		saveaddr(p+i, j-i, ptr);
+		i=j;
 	}
 }
 

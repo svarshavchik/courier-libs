@@ -27,7 +27,8 @@ static char *a_rfc2047_encode_str(const char *str, const char *charset,
 
 static void rfc2047_encode_header_do(const struct rfc822a *a,
 				     const char *charset,
-				     void (*print_func)(char, void *),
+				     void (*print_func)(const char *, size_t,
+							void *),
 				     void (*print_separator)(const char *,
 							     void *), void *ptr)
 {
@@ -169,9 +170,9 @@ static char *a_rfc2047_encode_str(const char *str, const char *charset,
 	return rfc2047_encode_str(str, charset, rfc2047_qp_allow_word);
 }
 
-static void count(char c, void *p);
+static void count(const char *c, size_t l, void *p);
 static void counts2(const char *c, void *p);
-static void save(char c, void *p);
+static void save(const char *c, size_t l, void *p);
 static void saves2(const char *c, void *p);
 
 char *rfc2047_encode_header_addr(const struct rfc822a *a,
@@ -216,37 +217,41 @@ char *rfc2047_encode_header_tobuf(const char *name, /* Header name */
 	return rfc2047_encode_str(header, charset, rfc2047_qp_allow_word);
 }
 
-static void count(char c, void *p)
+static void count(const char *c, size_t l, void *p)
 {
-	++*(size_t *)p;
+	*(size_t *)p += l;
 }
 
 static void counts2(const char *c, void *p)
 {
 	if (*c == ',')
-		count(*c++, p);
+	{
+		count(c, 1, p);
+		++c;
+	}
 
-	count('\n', p);
-	count(' ', p);
+	count("\n ", 2, p);
 
-	while (*c)	count(*c++, p);
+	count(c, strlen(c), p);
 }
 
-static void save(char c, void *p)
+static void save(const char *c, size_t l, void *p)
 {
-	**(char **)p=c;
-	++*(char **)p;
+	memcpy(*(char **)p, c, l);
+	*(char **)p += l;
 }
 
 static void saves2(const char *c, void *p)
 {
 	if (*c == ',')
-		save(*c++, p);
+	{
+		save(c, 1, p);
+		++c;
+	}
 
-	save('\n', p);
-	save(' ', p);
+	save("\n ", 2, p);
 
-	while (*c)	save(*c++, p);
+	save(c, strlen(c), p);
 }
 
 static int encodebase64(const char *ptr, size_t len, const char *charset,

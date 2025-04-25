@@ -84,7 +84,7 @@ TESTSUITE=testsuite.txt.noidn
 endif
 
 check-am:
-	@SHELL@ $(srcdir)/testsuite | cmp -s - $(srcdir)/$(TESTSUITE)
-	@SHELL@ $(srcdir)/testsuitemm | cmp -s - $(srcdir)/testsuitemm.txt
+	@SHELL@ $(srcdir)/testsuite | diff -U 3 $(srcdir)/$(TESTSUITE) -
+	@SHELL@ $(srcdir)/testsuitemm | diff -U 3 $(srcdir)/testsuitemm.txt -
 	@SHELL@ $(srcdir)/testrfc3676parsersuite | diff -U 3 $(srcdir)/testrfc3676parsersuite.txt -
 	./testrfc6533parser

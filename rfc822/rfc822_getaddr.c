@@ -8,19 +8,29 @@
 #include	"rfc822.h"
 #include	<stdlib.h>
 
-static void cntlen(char c, void *p)
+static void cntlen(const char *c, size_t n, void *p)
 {
-	if (c != '\n')
-		++ *(size_t *)p;
+	while (n)
+	{
+		if (*c != '\n')
+			++ *(size_t *)p;
+		++c;
+		--n;
+	}
 }
 
-static void saveaddr(char c, void *p)
+static void saveaddr(const char *c, size_t n, void *p)
 {
-	if (c != '\n')
+	while (n)
 	{
-	char **cp=(char **)p;
+		if (*c != '\n')
+		{
+			char **cp=(char **)p;
 
-		*(*cp)++=c;
+			*(*cp)++=*c;
+		}
+		++c;
+		--n;
 	}
 }
 

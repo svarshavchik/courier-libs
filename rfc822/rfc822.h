@@ -46,7 +46,7 @@ struct rfc822token {
 #define	rfc822_is_atom(p)	( (p) == 0 || (p) == '"' || (p) == '(' )
 
 	const char *ptr;	/* Pointer to value for the token. */
-	int len;		/* Length of token value */
+	size_t len;		/* Length of token value */
 } ;
 
 /*
@@ -91,13 +91,14 @@ struct rfc822t {
 /* The passed-in string must exist unti rfc822t_free() is called */
 
 struct rfc822t *rfc822t_alloc_new(const char *p,
-	void (*err_func)(const char *, int, void *), void *);
+	void (*err_func)(const char *, size_t, void *), void *);
 	/* Parse addresses */
 
 void rfc822t_free(struct rfc822t *);		/* Free rfc822 structure */
 
-void rfc822tok_print(const struct rfc822token *, void (*)(char, void *), void *);
-						/* Print the tokens */
+void rfc822tok_print(const struct rfc822token *,
+		     void (*)(const char *, size_t, void *), void *);
+/* Print the tokens */
 
 /***************************************************************************
 **
@@ -122,16 +123,16 @@ void rfc822_deladdr(struct rfc822a *, int);
 */
 
 int rfc822_print(const struct rfc822a *a,
-	void (*print_func)(char, void *),
-	void (*print_separator)(const char *, void *), void *);
+		 void (*print_func)(const char *, size_t, void *),
+		 void (*print_separator)(const char *, void *), void *);
 
 /* rfc822_print_common is an internal function */
 
 int rfc822_print_common(const struct rfc822a *a,
-			 char *(*decode_func)(const char *, const char *, int),
-			 const char *chset,
-			 void (*print_func)(char, void *),
-			 void (*print_separator)(const char *, void *), void *);
+			char *(*decode_func)(const char *, const char *, int),
+			const char *chset,
+			void (*print_func)(const char *, size_t, void *),
+			void (*print_separator)(const char *, void *), void *);
 
 /* Extra functions */
 
@@ -179,7 +180,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 			    const char *charset,
 			    void (*display_func)(const char *, size_t,
 						 void *),
-			    void (*err_func)(const char *, int, void *),
+			    void (*err_func)(const char *, size_t, void *),
 			    void *ptr);
 
 /*
@@ -192,7 +193,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 char *rfc822_display_hdrvalue_tobuf(const char *hdrname,
 				    const char *hdrvalue,
 				    const char *charset,
-				    void (*err_func)(const char *, int,
+				    void (*err_func)(const char *, size_t,
 						     void *),
 				    void *ptr);
 
@@ -295,6 +296,31 @@ char *rfc822_display_addr_str_tobuf(const char *tok,
 */
 char *rfc822_encode_domain(const char *address,
 			   const char *charset);
+
+
+/* Internal functions */
+void rfc822_tokenize(const char *p,
+		     size_t plen,
+		     void (*parsed_func)(char token,
+					 const char *ptr, size_t len,
+					 void *voidp),
+		     void *voidp_parsed_func,
+		     void (*err_func)(const char *, size_t, void *),
+		     void *voidp_err_func);
+
+void rfc822_parseaddr(size_t ntokens,
+		      char (*get_nth_token)(size_t, void *),
+		      void (*consume_n_tokens)(size_t, void *),
+		      void (*make_quoted_token)(size_t, void *),
+		      void (*define_addr_name)(size_t, int, void *),
+		      void (*define_addr_tokens)(size_t, int, void *),
+		      void *voidp);
+
+void rfc822print_token(int token_token,
+		       const char *token_ptr,
+		       size_t token_len,
+		       void (*print_func)(const char *, size_t, void *),
+		       void *ptr);
 
 #if 0
 {

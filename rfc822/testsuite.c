@@ -9,10 +9,10 @@
 #include	<stdlib.h>
 
 
-static void print_func(char c, void *p)
+static void print_func(const char *c, size_t n, void *p)
 {
 	p=p;
-	putchar(c);
+	fwrite(c, n, 1, stdout);
 }
 
 static void print_separator(const char *s, void *p)

@@ -548,7 +548,7 @@ static int rfc2047_print_unicode_addrstr(const char *addrheader,
 					 const char *charset,
 					 void (*print_func)(char, void *),
 					 void (*print_separator)(const char *, void *),
-					 void (*err_func)(const char *, int, void *),
+					 void (*err_func)(const char *, size_t, void *),
 					 void *ptr)
 {
 	struct rfc822t *t;
@@ -602,7 +602,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 			    const char *charset,
 			    void (*display_func)(const char *, size_t,
 						 void *),
-			    void (*err_func)(const char *, int, void *),
+			    void (*err_func)(const char *, size_t, void *),
 			    void *ptr)
 {
 	struct rfc822_display_hdrvalue_s s;
@@ -616,7 +616,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 						     charset,
 						     rfc822_display_hdrvalue_print_func,
 						     rfc822_display_hdrvalue_print_separator,
-						     NULL,
+						     err_func,
 						     &s);
 	}
 
@@ -624,7 +624,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 }
 
 struct rfc822_display_hdrvalue_tobuf_s {
-	void (*orig_err_func)(const char *, int, void *);
+	void (*orig_err_func)(const char *, size_t, void *);
 	void *orig_ptr;
 
 	size_t cnt;
@@ -647,10 +647,10 @@ static void rfc822_display_hdrvalue_tobuf_save(const char *ptr, size_t cnt,
 	((struct rfc822_display_hdrvalue_tobuf_s *)s)->buf += cnt;
 }
 
-static void rfc822_display_hdrvalue_tobuf_errfunc(const char *ptr, int index,
+static void rfc822_display_hdrvalue_tobuf_errfunc(const char *ptr, size_t index,
 						  void *s)
 {
-	void (*f)(const char *, int, void *)=
+	void (*f)(const char *, size_t, void *)=
 		((struct rfc822_display_hdrvalue_tobuf_s *)s)->orig_err_func;
 
 	if (f)
@@ -694,7 +694,7 @@ char *rfc822_display_addr_tobuf(const struct rfc822a *rfcp, int index,
 char *rfc822_display_hdrvalue_tobuf(const char *hdrname,
 				    const char *hdrvalue,
 				    const char *charset,
-				    void (*err_func)(const char *, int,
+				    void (*err_func)(const char *, size_t,
 						     void *),
 				    void *ptr)
 {
