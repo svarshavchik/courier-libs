@@ -327,6 +327,468 @@ void rfc822print_token(int token_token,
 #endif
 #ifdef  __cplusplus
 }
+
+#include <string_view>
+#include <vector>
+#include <functional>
+#include <iterator>
+
+namespace rfc822 {
+#if 0
+}
+#endif
+
+// C++ version of rfc822token C struct.
+
+struct token {
+	int type=0; // rfc822token.token value
+	std::string_view str;
+};
+
+// C++ version of rfc822t
+
+struct tokens : std::vector<token> {
+
+	// Tokenize a character string.
+	//
+	// The passed-in string must exist until this object is destroyed.
+
+	tokens(std::string_view str,
+	       std::function<void (size_t)> err_func);
+
+	using std::vector<token>::vector;
+
+	~tokens()=default;
+
+	// Print a token sequence, C++ version of rfc822tok_print.
+	// The token sequence gets printed to an output iterator, returns the
+	// output iterator value after the sequence is printed.
+
+	template<typename iter_type, typename out_iter_type>
+	static out_iter_type print(iter_type b, iter_type e, out_iter_type iter)
+	{
+		bool prev_is_atom=false;
+
+		while (b != e)
+		{
+			auto &t=*b++;
+
+			bool isatom=rfc822_is_atom(t.type);
+
+			if (prev_is_atom && isatom)
+			{
+				*iter++=' ';
+			}
+
+			rfc822print_token(
+				t.type, t.str.data(), t.str.size(),
+				[](const char *s, size_t l, void *voidp)
+				{
+					auto iterp=static_cast<out_iter_type *>(
+						voidp
+					);
+
+					while (l)
+					{
+						*(*iterp)++=*s;
+						++s;
+						--l;
+					}
+				}, &iter);
+			prev_is_atom=isatom;
+		}
+
+		return iter;
+	}
+
+	// Equivalent to rfc822tok_print
+
+	template<typename out_iter_type> out_iter_type print(out_iter_type iter)
+	{
+		return print(this->begin(), this->end(), iter);
+	}
+};
+
+// The C++ equivalent of rfc822addr
+
+struct address {
+	tokens name;
+	tokens address;
+
+	// Print this address to an output iterator, returning the final value
+	// of the output iterator.
+
+	template<typename iter_type> iter_type print(iter_type iter)
+	{
+		if (address.empty())
+			return this->name.print(iter);
+
+		if (!name.empty() && name.begin()->type == '(')
+		{
+			// old style
+
+			iter=this->address.print(iter);
+
+			*iter++=' ';
+
+			return this->name.print(iter);
+		}
+
+		bool print_braces=false;
+
+		if (!name.empty())
+		{
+			iter=name.print(iter);
+
+			*iter++=' ';
+			print_braces=true;
+		}
+		else
+		{
+			bool prev_is_atom=false;
+
+			for (auto &t:address)
+			{
+				bool is_atom=rfc822_is_atom(t.type);
+
+				if (is_atom && prev_is_atom)
+				{
+					print_braces=true;
+					break;
+				}
+				prev_is_atom=is_atom;
+			}
+		}
+		if (print_braces)
+		{
+			*iter++='<';
+		}
+		iter=address.print(iter);
+		if (print_braces)
+		{
+			*iter++='>';
+		}
+		return iter;
+	}
+};
+
+// Tokens converted to addresses.
+
+struct addresses : std::vector<address> {
+
+	// Convert tokens to addresses
+	//
+	// The passed-in tokens may be modified.
+	//
+	// The string that was tokenized must exist until the address vector is
+	// destroyed.
+
+	addresses(tokens &);
+
+	using std::vector<address>::vector;
+	~addresses()=default;
+
+	// Default separator printer
+
+	template<typename out_iter_type>
+	static out_iter_type print_separator(out_iter_type iter,
+					     const char *sep)
+	{
+		while (*sep)
+			*iter++=*sep++;
+
+		return iter;
+	}
+
+	// Print a sequence of addresses, comma separated, to an output iterator
+
+	template<typename iter_type, typename out_iter_type,
+		typename print_separator_type=out_iter_type(out_iter_type,
+							    const char *sep)>
+	static out_iter_type print(iter_type b, iter_type e,
+				   out_iter_type iter,
+				   print_separator_type print_separator_cb=
+				   print_separator<out_iter_type>)
+	{
+		const char *sep="";
+
+		while (b != e)
+		{
+			if (*sep)
+				iter=print_separator_cb(iter, sep);
+
+			sep=", ";
+
+			if (b->address.empty() && !b->name.empty())
+				switch ((--b->name.end())->type) {
+				case ':':
+				case ';':
+					sep=" ";
+					break;
+				}
+
+			iter=b->print(iter);
+			++b;
+		}
+		return iter;
+	}
+
+	// The C++ version of rfc822_print(), the addresses are printed to
+	// an output iterator, the new value of the output iterator gets
+	// returned.
+
+	template<typename out_iter_type,
+		 typename print_separator_type=out_iter_type(out_iter_type,
+							     const char *sep)>
+	out_iter_type print(out_iter_type iter,
+			    print_separator_type print_separator_cb=
+			    print_separator<out_iter_type>)
+	{
+		return print(this->begin(), this->end(), iter,
+			     print_separator_cb);
+	}
+
+	/////////////////////////////////////////////////////////////////////
+	//
+	// C++ version of rfc822_getaddrs_wrap.
+
+	// Receives characters from print() via add(). Holds an output iterator
+	// for the wrapped address list.
+	//
+	// flush_if_more() gets called before add() gets called with a space
+	// character in the separator sequence, ", " or " ".
+	//
+	// end() gets called after the entire address list gets written.
+
+	template<typename out_iter_type>
+        struct wrap_out_iter_impl {
+
+		// The real output iterator for the wrapped address list.
+		out_iter_type iter;
+
+		// Width of characters being wrapped to.
+		const size_t max_l;
+
+		wrap_out_iter_impl(out_iter_type iter, size_t max_l)
+			: iter{std::move(iter)}, max_l{max_l}
+		{
+		}
+
+		// Accumulated add()ed characters.
+		std::string accumulated_line;
+
+		// Index of the most recent space character, captured
+		// by flush_if_more().
+		size_t last_sep_spc=0;
+
+		void add(char c)
+		{
+			accumulated_line.push_back(c);
+		}
+
+		// If the accumulated line exceeds the maximum length,
+		// dump everything up to the index of the space character
+		// followed by a newline (the space is effectively replaced
+		// by a newline)/
+
+		bool flush_if_more()
+		{
+			if (accumulated_line.size() <= max_l)
+			{
+				// Remember the index of the last space.
+				last_sep_spc=accumulated_line.size();
+				return false;
+			}
+
+			// If last_sep_spc is 0 this means that the first
+			// address exceeded the maximum length. Arrange that
+			// everything that was add()ed will go out before
+			// the newline.
+			bool excessive=false;
+
+			if (last_sep_spc == 0)
+			{
+				excessive=true;
+
+				last_sep_spc=accumulated_line.size();
+			}
+
+			auto b=accumulated_line.begin();
+			auto e=b+last_sep_spc;
+
+			while (b != e)
+			{
+				*iter++=*b++;
+			}
+
+			if (!excessive)
+			{
+				// This is going to be a space character,
+				// guaranteed./
+				++b;
+			}
+			accumulated_line.erase(accumulated_line.begin(), b);
+			*iter++='\n';
+			last_sep_spc=0;
+
+			return excessive;
+		}
+
+		void end()
+		{
+			// Borrow flush_if_more() if what's left is above
+			// the limit.
+			if (accumulated_line.size() > max_l &&
+			    last_sep_spc > 0)
+				flush_if_more();
+
+			// And just write it out.
+			for (auto &c:accumulated_line)
+				*iter++=c;
+		}
+	};
+
+	// The actual iterator that gets passed to print(), instead of
+	// wrap_out_iter_impl. This one doesn't mind being copied or
+	// assigned to. write_out_iter_impl is uncopyable.
+
+	template<typename out_iter_type>
+	struct wrap_out_iter {
+		wrap_out_iter_impl<out_iter_type> &impl;
+
+		wrap_out_iter(wrap_out_iter_impl<out_iter_type> &impl)
+			: impl{impl} {}
+
+		auto &operator=(const wrap_out_iter<out_iter_type> &)
+		{
+			return *this;
+		}
+
+		// Iterator semantics.
+		using iterator_category=std::output_iterator_tag;
+		using value_type=void;
+		using pointer=void;
+		using reference=void;
+		using difference_type=void;
+
+		auto &operator=(char c)
+		{
+			impl.add(c);
+			return *this;
+		}
+
+		auto &operator++(int)
+		{
+			return *this;
+		}
+
+		auto &operator*()
+		{
+			return *this;
+		}
+	};
+
+	// Pass this as the separator writer, for print(). It detects the
+	// guaranteed space in the separator string, and strategically
+	// calls flush_if_more().
+
+	struct wrap_out_iter_sep {
+
+		template<typename iter> auto operator()(iter i,
+							const char *sep)
+		{
+			for ( ; *sep; ++sep)
+			{
+				if (*sep == ' ')
+				{
+					// If flush_if_more() uncorked an
+					// address in excess of the maximum
+					// length, everything that was add()ed
+					// then we eat this space. Otherwise
+					// it get add()ed like everything else.
+					//
+					// Otherwise the space is added
+					// to the accumulated line, because
+					// that's what we promised to
+					// flush_is_more().
+
+					if (i.impl.flush_if_more())
+						continue;
+				}
+
+				i=*sep;
+			}
+
+			return i;
+		}
+	};
+
+	// C++ version of rfc822_getaddrs_wrap() that writes out the
+	// wrapped addresses to an output iterator. The sequence of addresses
+	// is defined by a beginning and an ending iterator sequence.
+
+	template<typename iter_type, typename out_iter_type>
+	static out_iter_type print_wrapped(iter_type b, iter_type e,
+					   size_t max_l,
+					   out_iter_type iter)
+	{
+		wrap_out_iter_impl wrapper{iter, max_l};
+
+		print(b, e,
+		      wrap_out_iter{wrapper},
+		      wrap_out_iter_sep{});
+
+		wrapper.end();
+
+		return wrapper.iter;
+	}
+
+	// wrap() uses print_wrapped() to write the wrapped addresses into
+	// a plain std::string
+	//
+	// Two passes are done. The first pass counts the number of wrapped
+	// character, by passing a pseudo-iterator, a length_counter, that
+	// just counts things.
+
+	struct length_counter {
+		using iterator_category=std::output_iterator_tag;
+		using value_type=void;
+		using pointer=void;
+		using reference=void;
+		using difference_type=void;
+
+		size_t l=0;
+
+		length_counter &operator=(char) { ++l; return *this; }
+		length_counter &operator++(int) { return *this; }
+		auto &operator*()
+		{
+			return *this;
+		}
+	};
+
+	std::string wrap(size_t max_l)
+	{
+		std::string s;
+
+		// Size up the length.
+
+		auto l=print_wrapped(begin(), end(), max_l, length_counter{});
+
+		s.reserve(l.l);
+		print_wrapped(begin(), end(), max_l,
+			      std::back_inserter(s));
+
+		return s;
+	}
+};
+
+#if 0
+{
+#endif
+}
+
+
 #endif
 
 #endif

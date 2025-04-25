@@ -6,6 +6,7 @@
 noinst_LTLIBRARIES=libencode.la librfc822.la
 
 librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdr.h \
+		  rfc822cpp.C \
 		  rfc822_getaddr.c rfc822_getaddrs.c \
                   rfc822_mkdate.c rfc822_parsedt.c rfc2047u.c \
                   rfc2047.c rfc2047.h imapsubj.c imaprefs.h imaprefs.c \
@@ -21,11 +22,16 @@ libencode_la_SOURCES=encode.c encode.h
 BUILT_SOURCES=rfc822.3 rfc822.html
 noinst_DATA=$(BUILT_SOURCES)
 
-noinst_PROGRAMS=testsuite reftest
+noinst_PROGRAMS=testsuite testsuitecpp reftest
 testsuite_SOURCES=testsuite.c
 testsuite_DEPENDENCIES=librfc822.la
 testsuite_LDADD=librfc822.la -lcourier-unicode
 testsuite_LDFLAGS=-static
+
+testsuitecpp_SOURCES=testsuitecpp.C
+testsuitecpp_DEPENDENCIES=librfc822.la
+testsuitecpp_LDADD=librfc822.la -lcourier-unicode
+testsuitecpp_LDFLAGS=-static
 
 reftest_SOURCES=reftest.c imaprefs.h
 reftest_DEPENDENCIES=librfc822.la

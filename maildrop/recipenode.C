@@ -1397,49 +1397,20 @@ static void parse_backslash(const std::string &in, std::string &s)
 
 void RecipeNode::rfc822getaddr(std::string &buf)
 {
+	rfc822::tokens tokens{buf, [](size_t){}};
+	rfc822::addresses addresses{tokens};
 
-	struct	rfc822t	*p=rfc822t_alloc_new(buf.c_str(), NULL, NULL);
+	std::string newbuf;
 
-	if (!p)	outofmem();
-
-	struct	rfc822a	*a=rfc822a_alloc(p);
-
-	if (!a) outofmem();
-
-	try
+	for (auto &a:addresses)
 	{
-		int n;
-		std::string newbuf;
-
-		for (n=0; n<a->naddrs; n++)
-			if (a->addrs[n].tokens)
-			{
-				char *p=rfc822_display_addr_tobuf(a, n,
-								  NULL);
-
-				if (p)
-					try {
-					        newbuf += p;
-						newbuf += "\n";
-					} catch (...)
-					{
-						free(p);
-						throw;
-					}
-
-				free(p);
-			}
-
-		buf=newbuf;
+		if (!a.address.empty())
+		{
+			a.address.print(std::back_inserter(newbuf));
+			newbuf.push_back('\n');
+		}
 	}
-	catch (...)
-	{
-		rfc822a_free(a);
-		rfc822t_free(p);
-		throw;
-	}
-	rfc822a_free(a);
-	rfc822t_free(p);
+	buf=newbuf;
 }
 
 int RecipeNode::rfc822hasaddr(std::string &buf)
@@ -1509,44 +1480,27 @@ int RecipeNode::rfc822hasaddr(const char *addr, std::string &header)
 		merr << "maildrop: hasaddr: rfc822 parsing: "
 			<< header.c_str() << "\n";
 
-	struct	rfc822t	*p=rfc822t_alloc_new(header.c_str(), NULL, NULL);
+	rfc822::tokens tokens{header, [](size_t){}};
 
-	if (!p)	outofmem();
+	rfc822::addresses addresses{tokens};
 
-	struct	rfc822a	*a=rfc822a_alloc(p);
+	std::string s;
 
-	if (!a)	outofmem();
-
-int	i;
-std::string	rfc822buf;
-int	found=0;
-
-	for (i=0; i<a->naddrs; i++)
+	for (auto &a:addresses)
 	{
-		char *p=rfc822_getaddr(a, i);
-
-		if (!p)
+		if (a.address.empty())
 			continue;
 
-		char *q;
+		s.clear();
+		a.address.print(std::back_inserter(s));
 
-		for (q=p; *q; q++)
-			*q=tolower(*q);
+		for (auto &c:s)
+			c=tolower(c);
 
-		rfc822buf=p;
-		free(p);
-		if (VerboseLevel() > 5)
-			merr << "maildrop: hasaddr: rfc822 parsed: "
-				<< rfc822buf.c_str() << "\n";
-		if (strcmp(addr, rfc822buf.c_str()) == 0)
-		{
-			found=1;
-			break;
-		}
+		if (s == addr)
+			return 1;
 	}
-	rfc822a_free(a);
-	rfc822t_free(p);
-	return (found);
+	return 0;
 }
 
 int RecipeNode::dolookup(std::string &strng, std::string &filename, std::string &opts)

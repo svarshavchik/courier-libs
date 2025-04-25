@@ -15,6 +15,7 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CXX
 LT_INIT
 
 if test "$GCC" = yes ; then
@@ -22,6 +23,7 @@ if test "$GCC" = yes ; then
         CFLAGS="$CFLAGS -Wall"
 fi
 
+CXXFLAGS="$CXXFLAGS -I.. -I$srcdir/.."
 CFLAGS="$CFLAGS -I.. -I$srcdir/.."
 
 dnl Checks for libraries.

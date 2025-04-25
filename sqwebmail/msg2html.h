@@ -8,6 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct msg2html_smiley_list {
 	struct msg2html_smiley_list *next;
 	char *code;
@@ -162,6 +169,10 @@ void msg2html_textplain(struct msg2html_textplain_info *info,
 			size_t cnt);
 
 int msg2html_textplain_end(struct msg2html_textplain_info *info);
-
+#if 0
+{
 #endif
-
+#ifdef  __cplusplus
+}
+#endif
+#endif

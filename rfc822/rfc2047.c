@@ -589,12 +589,12 @@ static int do_encode_words(const char32_t *uc,
 /*
 ** RFC2047-encoding pass.
 */
-static int rfc2047_encode_callback(const char32_t *uc,
-				   size_t ucsize,
-				   const char *charset,
-				   int (*qp_allow)(char),
-				   int (*func)(const char *, size_t, void *),
-				   void *arg)
+int rfc2047_encode_callback(const char32_t *uc,
+			    size_t ucsize,
+			    const char *charset,
+			    int (*qp_allow)(char),
+			    int (*func)(const char *, size_t, void *),
+			    void *arg)
 {
 	int	rc;
 	size_t	i;

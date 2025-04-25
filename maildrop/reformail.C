@@ -168,7 +168,7 @@ const char *add_from_filter_header();
 const char *add_from_filter()
 {
 const	char *p;
-int n;
+
 	while ((p=NextLine()) && *p == '\n')
 		;
 	if (!p)	return (0);
@@ -230,40 +230,18 @@ static std::string	from_header;
 	}
 	if (return_path.size() == 0)	return_path=from_header;
 
-	struct rfc822t *rfc=rfc822t_alloc_new( return_path.c_str(),
-					       NULL, NULL);
+	rfc822::tokens rfc{return_path, [](size_t){}};
 
-	if (!rfc)	outofmem();
+	rfc822::addresses addresses{rfc};
 
-	struct rfc822a *rfca=rfc822a_alloc( rfc);
-
-	if (!rfca)	outofmem();
-
-	from_header.clear();
-
-	for (n=0; n<rfca->naddrs; ++n)
+	for (auto &a:addresses)
 	{
-		if (rfca->addrs[n].tokens)
+		if (!a.address.empty())
 		{
-			char *p=rfc822_display_addr_tobuf(rfca, n, NULL);
-
-			if (p)
-			{
-				try {
-					from_header=p;
-				} catch (...)
-				{
-					free(p);
-					throw;
-				}
-				free(p);
-				break;
-			}
+			from_header.clear();
+			a.address.print(std::back_inserter(from_header));
 		}
 	}
-
-	rfc822a_free(rfca);
-	rfc822t_free(rfc);
 
 	if (from_header.size() == 0)	from_header="root";
 	return_path="From ";
