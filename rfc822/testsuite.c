@@ -110,6 +110,7 @@ int main()
 	rfc822a_free(a3);
 	rfc822a_free(a2);
 	rfc822a_free(a1);
+	rfc822t_free(t6);
 	rfc822t_free(t5);
 	rfc822t_free(t4);
 	rfc822t_free(t3);

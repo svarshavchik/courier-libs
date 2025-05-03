@@ -765,9 +765,9 @@ char *rfc822_display_addr_str_tobuf(const char *tok, const char *chset)
 }
 
 
-static const char xdigit[]="0123456789ABCDEFabcdef";
+const char rfc2047_xdigit[]="0123456789ABCDEFabcdef";
 
-static const unsigned char decode64tab[]={
+const unsigned char rfc2047_decode64tab[]={
 	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62,  0,  0,  0, 63,
@@ -791,12 +791,12 @@ static int nyb(int c)
 	const char	*p;
 	int n;
 
-	p=strchr(xdigit, c);
+	p=strchr(rfc2047_xdigit, c);
 
 	if (!p)
 		return 0;
 
-	n=p-xdigit;
+	n=p-rfc2047_xdigit;
 
 	if (n > 15)
 		n -= 6;
@@ -816,10 +816,10 @@ static size_t decodebase64(const char *ptr, size_t cnt,
 	k=0;
 	for (j=0; j<i; j += 4)
 	{
-		int     w=decode64tab[(int)(unsigned char)ptr[j]];
-		int     x=decode64tab[(int)(unsigned char)ptr[j+1]];
-		int     y=decode64tab[(int)(unsigned char)ptr[j+2]];
-		int     z=decode64tab[(int)(unsigned char)ptr[j+3]];
+		int     w=rfc2047_decode64tab[(int)(unsigned char)ptr[j]];
+		int     x=rfc2047_decode64tab[(int)(unsigned char)ptr[j+1]];
+		int     y=rfc2047_decode64tab[(int)(unsigned char)ptr[j+2]];
+		int     z=rfc2047_decode64tab[(int)(unsigned char)ptr[j+3]];
 
 		a= (w << 2) | (x >> 4);
 		b= (x << 4) | (y >> 2);

@@ -49,8 +49,11 @@ rfc822.3: rfc822.sgml ../docbook/sgml2html
 endif
 
 check-am:
-	./testsuite | diff -U 3 $(srcdir)/testsuite.txt -
+	./testsuite | diff -U 5 $(srcdir)/testsuite.txt -
+	./testsuitecpp | diff -U 5 $(srcdir)/testsuite.txt -
 	./reftest | diff -U 3  $(srcdir)/reftest.txt -
-
+	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -vx; \
+		valgrind --tool=memcheck --leak-check=yes ./testsuite >/dev/null || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes ./testsuitecpp >/dev/null
 clean-local:
 	rm -rf $(DEPDIR)
