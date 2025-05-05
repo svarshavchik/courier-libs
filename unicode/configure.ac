@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode],[2.3.2],[courier-users@lists.sourceforge.net])
+AC_INIT([courier-unicode],[2.3.2.20250504],[courier-users@lists.sourceforge.net])
 
 AC_CONFIG_SRCDIR(unicodecpp.C)
 
@@ -18,6 +18,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 AX_COURIER_UNICODE_CXXFLAGS
 
 AC_SUBST(COURIER_UNICODE_CXXFLAGS)

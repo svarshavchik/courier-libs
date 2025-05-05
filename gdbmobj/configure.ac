@@ -18,6 +18,7 @@ AC_PROG_CC
 AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_AWK
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 LT_INIT
 
 dnl Checks for libraries.

@@ -567,7 +567,8 @@ static void rfc822_prname_int(const struct rfc822addr *addrs,
 	}
 }
 
-static void rfc822_print_common_nameaddr_cntlen(const char *, size_t l, void *p)
+static void rfc822_print_common_nameaddr_cntlen(const char *c, size_t l,
+						void *p)
 {
 	*(size_t *)p += l;
 }
@@ -807,11 +808,11 @@ int	i;
 	}
 }
 
-static void ignore_errors(const char *, size_t, void *)
+static void ignore_errors(const char *ptr, size_t n, void *voidp)
 {
 }
 
-static void count_token(char, const char *, size_t, void *voidp)
+static void count_token(char c, const char *ptr, size_t n, void *voidp)
 {
 	struct rfc822t *p=(struct rfc822t *)voidp;
 

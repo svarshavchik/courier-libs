@@ -30,7 +30,7 @@ See COPYING for distribution information.
   <itemizedlist>
     <listitem>
       <para>
-	Both C and C++11 bindings, with a
+	Both C and C++ bindings, with a
 	<link linkend="courier-unicode">complete manual page
 	documentation set</link>.
       </para>
@@ -162,6 +162,25 @@ See COPYING for distribution information.
 	  compatibility package's library at runtime, while new software
 	  can be built against the newer ABI.
 	</para>
+
+	<section id="rockyrhel8">
+	  <title>Rocky/RHEL 8 notes</title>
+
+	  <para>
+	    Courier packages require at least C++17 support, but the default
+	    version of gcc does not fully support it, and a newer gcc
+	    is needed:
+	  </para>
+
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+	    $ sudo dnf install --enablerepo=crb -y gcc-toolset-14
+	    $ scl enable gcc-toolset-14 "rpmbuild -ta courier-unicode-VERSION.tar.bz2"
+	    ]]></programlisting>
+	    </informalexample>
+	  </blockquote>
+	</section>
       </section>
 
       <section id="debbuild">
@@ -286,6 +305,22 @@ See COPYING for distribution information.
 	    gcc, on the same distribution.
 	  </para>
 	</note>
+	<section id="ubuntu20">
+	  <title>Ubuntu 20</title>
+	  <para>
+	    Courier packages require at least C++17 support, but the default
+	    version of gcc does not fully support it, and a newer gcc
+	    is needed:
+	  </para>
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+	    $ sudo apt install -y gcc-10 g++-10
+	    $ DEBGCC=10 ./courier-debuild -us -uc
+	    ]]></programlisting>
+	    </informalexample>
+	  </blockquote>
+	</section>
       </section>
     </section>
 
