@@ -539,7 +539,7 @@ inline void decode_rfc2047_atom(iter<in_iter> &inp,
 template<typename in_iter, typename callback_closure, typename error_closure>
 void decode(in_iter &&b, in_iter &&e,
 	    callback_closure &&callback,
-	    error_closure &&error)
+	    error_closure &&error=[](auto b, auto e, auto error_message){})
 {
 	std::string charset;
 	std::string language;
@@ -616,5 +616,7 @@ void decode(in_iter &&b, in_iter &&e,
 };
 
 #endif
+
+#include "rfc822/rfc822_2047.h"
 
 #endif

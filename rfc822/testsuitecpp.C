@@ -9,6 +9,7 @@
 #include	<iterator>
 #include	<string_view>
 #include	<sstream>
+#include	<unistd.h>
 
 auto tokenize(const char *p)
 {
@@ -131,8 +132,279 @@ void rfc2047decode_test()
 	}
 }
 
+static void printaddress_test()
+{
+	rfc822::tokens t{
+		std::string_view{
+			"Nobody1 <test1@example.com>, test2@example.com, "
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= <test3@xn--80akhbyknj4f.net>"
+		}
+	};
+
+	rfc822::addresses a{t};
+
+#if 1
+	static const struct {
+		const char *str;
+		const char32_t *ustr;
+		const char *str2;
+		const char *str3;
+		const char32_t *ustr2;
+	} results[]={
+		{
+			"Nobody1/"
+			"test1@example.com/"
+			"Nobody1/"
+			"test1@example.com",
+
+			U"Nobody1/"
+			U"test1@example.com",
+
+			"Nobody1 <test1@example.com>",
+			"Nobody1 <test1@example.com>",
+			U"Nobody1 <test1@example.com>"
+		},
+		{
+			"/"
+			"test2@example.com/"
+			"/"
+			"test2@example.com",
+
+			U"/"
+			U"test2@example.com",
+
+			"test2@example.com",
+			"test2@example.com",
+			U"test2@example.com"
+		},
+		{
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?=/"
+			"test3@xn--80akhbyknj4f.net/"
+			"NobÒdy/"
+			"test3@испытание.net",
+
+			U"NobÒdy/"
+			U"test3@испытание.net",
+
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= <test3@xn--80akhbyknj4f.net>",
+			"NobÒdy <test3@испытание.net>",
+			U"NobÒdy <test3@испытание.net>"
+		},
+	};
+
+	auto resb=std::begin(results);
+	auto rese=std::end(results);
+
+#define CHECK_TEST_RESULTS 1
+#else
+#define CHECK_TEST_RESULTS 0
+#endif
+	for (auto &i:a)
+	{
+		std::string names, addresss;
+		auto nameiter=std::back_insert_iterator(names);
+
+		std::u32string nameu, addressu;
+		auto nameuiter=std::back_insert_iterator(nameu);
+
+		i.name.print(nameiter);
+
+		nameiter=i.address.print(std::back_insert_iterator(addresss));
+
+		std::string named, addressd;
+
+		auto namediter=std::back_insert_iterator(named);
+		i.display_name("utf-8", namediter);
+
+		namediter=i.display_address(
+			"utf-8",
+			std::back_insert_iterator(addressd)
+		);
+
+
+		i.unicode_name(nameuiter);
+		nameuiter=i.unicode_address(
+			std::back_insert_iterator(addressu)
+		);
+
+		std::string email_address, email_address2;
+		std::string display_address, display_address2;
+		std::u32string email_address_unicode, email_address_unicode2;;
+
+		auto email_address_iter=std::back_inserter(email_address);
+		auto display_address_iter=std::back_inserter(display_address);
+		auto email_address_unicode_iter=
+			std::back_inserter(email_address_unicode);
+
+		i.print(email_address_iter);
+		email_address_iter=i.print(std::back_inserter(email_address2));
+
+		i.display("utf-8", display_address_iter);
+		display_address_iter=i.display(
+			"utf-8", std::back_inserter(display_address2));
+		i.unicode(email_address_unicode_iter);
+		email_address_unicode_iter=
+			i.unicode(std::back_inserter(email_address_unicode2));
+
+#if CHECK_TEST_RESULTS
+		auto result=names + "/" + addresss + "/" +
+			named + "/" + addressd;
+
+		auto exp=resb != rese ? resb->str:"";
+
+		if (result != exp)
+		{
+			std::cout << "printaddress_test expected (1): "
+				  << exp << "\n";
+			std::cout << "printaddress_test actual (1):   "
+				  << result << "\n";
+		}
+
+		auto uresult=nameu + U"/" + addressu;
+		auto uexp=resb != rese ? resb->ustr:U"";
+
+		if (uresult != uexp)
+		{
+			std::cout << "printaddress_test expected (2): "
+				  << unicode::iconvert::fromu::convert(
+					  uexp, "utf-8"
+				  ).first << "\n";
+			std::cout << "printaddress_test actual (2):   "
+				  << unicode::iconvert::fromu::convert(
+					  uresult, "utf-8"
+				  ).first << "\n";
+		}
+
+		if (email_address != (resb != rese ? resb->str2:""))
+		{
+			std::cout << "printaddress_test expected (3): "
+				  << (resb != rese ? resb->str2:"") << "\n";
+			std::cout << "printaddress_test actual (3):   "
+				  << email_address << "\n";
+		}
+
+		if (display_address != (resb != rese ? resb->str3:""))
+		{
+			std::cout << "printaddress_test expected (4): "
+				  << (resb != rese ? resb->str3:"") << "\n";
+			std::cout << "printaddress_test actual (4):   "
+				  << display_address << "\n";
+		}
+
+		if (email_address_unicode != (resb != rese ? resb->ustr2:U""))
+		{
+			std::cout << "printaddress_test expected (4): "
+				  << unicode::iconvert::fromu::convert(
+					  (resb != rese ? resb->ustr2:U""),
+					  "utf-8"
+				  ).first << "\n";
+			std::cout << "printaddress_test actual (4):   "
+				  << unicode::iconvert::fromu::convert(
+					  email_address_unicode, "utf-8"
+				  ).first << "\n";
+		}
+		if (resb != rese)
+			++resb;
+#else
+		std::cout <<
+			"\t\t{\n"
+			"\t\t\t\"" << names << "/\"\n"
+			"\t\t\t\"" << addresss << "/\"\n"
+			"\t\t\t\"" << named << "/\"\n"
+			"\t\t\t\"" << addressd << "\",\n\n"
+			"\t\t\tU\"" << unicode::iconvert::fromu::convert(
+				nameu, "utf-8"
+			).first << "/\"\n"
+			"\t\t\tU\"" << unicode::iconvert::fromu::convert(
+				addressu, "utf-8"
+			).first << "\",\n\n"
+			"\t\t\t\"" << email_address << "\",\n"
+			"\t\t\t\"" << display_address << "\",\n"
+			"\t\t\tU\"" << unicode::iconvert::fromu::convert(
+				email_address_unicode, "utf-8"
+			).first << "\"\n"
+			"\t\t},\n";
+#endif
+	}
+#if CHECK_TEST_RESULTS
+
+	if (resb != rese)
+	{
+		std::cout << "printaddress_test: too few test results\n";
+	}
+#endif
+
+	t=rfc822::tokens{
+		std::string_view{
+			"Test =?utf-8?b?0LjRgdC/0YvRgtCw0L3QuNC1?= <test5@xn--80akhbyknj4f.net>"
+		}};
+	a=rfc822::addresses{t};
+
+	for (auto &i:a)
+	{
+		std::string name;
+
+		i.display_name("iso-8859-1", std::back_inserter(name));
+		name += "\n";
+		i.display_address("iso-8859-1", std::back_inserter(name));
+		name += "\n";
+		i.display("iso-8859-1", std::back_inserter(name));
+		name += "\n";
+
+		if (name !=
+		    "Test [decoding error]\n"
+		    "test5@.net[decoding error]\n"
+		    "Test [decoding error] <test5@.net[decoding error]>\n")
+		{
+			std::cout << "print_address unexpected error test "
+				"results:\n" << name;
+		}
+	}
+}
+
+void template_compile_test(std::vector<rfc822::address> &va,
+			   std::string &s)
+{
+	std::ostringstream os;
+	std::ostreambuf_iterator<char> o{os};
+
+	va.resize(1);
+	va[0].name.print(o);
+	o=va[0].name.print(std::ostreambuf_iterator<char>(os));
+
+	std::u32string us;
+	auto usb=std::back_inserter(us);
+
+	va[0].name.unicode_address(usb);
+	usb=va[0].name.unicode_address(std::back_inserter(us));
+
+	va[0].name.unicode_name(usb);
+	usb=va[0].name.unicode_name(std::back_inserter(us));
+
+	va[0].name.display_address("utf-8", o);
+	o=va[0].name.display_address("utf-8", std::ostreambuf_iterator<char>(os));
+
+	va[0].name.display_name("utf-8", o);
+	o=va[0].name.display_name("utf-8", std::ostreambuf_iterator<char>(os));
+
+	va[0].print(o);
+	o=va[0].print(std::ostreambuf_iterator<char>(os));
+	va[0].unicode_address(usb);
+	usb=va[0].unicode_address(std::back_inserter(us));
+
+	va[0].unicode_name(usb);
+	usb=va[0].unicode_name(std::back_inserter(us));
+
+	va[0].display_address("utf-8", o);
+	o=va[0].display_address("utf-8", std::ostreambuf_iterator<char>(os));
+
+	va[0].display_name("utf-8", o);
+	o=va[0].display_name("utf-8", std::ostreambuf_iterator<char>(os));
+}
+
 int main()
 {
+	alarm(60);
 	tokenize("(Break 1");
 	tokenize("(Break 2\\");
 	tokenize("(Break 3\\))");
@@ -165,10 +437,167 @@ int main()
 		a5=doaddr(t5),
 		a6=doaddr(t6);
 
-	std::cout << "[" << a4.wrap(70) << "]\n"
-		  << "[" << a4.wrap(160) << "]\n"
-		  << "[" << a4.wrap(10) << "]\n";
-	#define FIVEUTF8 "\xe2\x85\xa4"
+	std::vector<std::string> lines=a4.wrap(70);
+
+	const char *sep="[";
+
+	for (auto &l:lines)
+	{
+		std::cout << sep << l;
+
+		sep="\n";
+	}
+
+	std::cout << "]\n";
+
+	std::vector<std::u32string> ulines=a4.wrap_unicode(70);
+	std::vector<std::string> linesu;
+
+	for (auto &u:ulines)
+		linesu.push_back(unicode::iconvert::fromu::convert(
+					 u, "utf-8").first);
+	if (linesu != lines)
+	{
+		std::cout << "Unicode version:\n";
+		for (auto &l:lines)
+			std::cout << l << "\n";
+	}
+
+	lines=a4.wrap(160);
+	sep="[";
+
+	for (auto &l:lines)
+	{
+		std::cout << sep << l;
+
+		sep="\n";
+	}
+	std::cout << "]\n";
+
+	ulines=a4.wrap_unicode(160);
+	linesu.clear();
+
+	for (auto &u:ulines)
+		linesu.push_back(unicode::iconvert::fromu::convert(
+					 u, "utf-8").first);
+	if (linesu != lines)
+	{
+		std::cout << "Unicode version:\n";
+		for (auto &l:lines)
+			std::cout << l << "\n";
+	}
+
+	lines=a4.wrap(16);
+	sep="[";
+
+	for (auto &l:lines)
+	{
+		std::cout << sep << l;
+
+		sep="\n";
+	}
+	std::cout << "]\n";
+
+	ulines=a4.wrap_unicode(16);
+	linesu.clear();
+
+	for (auto &u:ulines)
+		linesu.push_back(unicode::iconvert::fromu::convert(
+					 u, "utf-8").first);
+	if (linesu != lines)
+	{
+		std::cout << "Unicode version:\n";
+		for (auto &l:lines)
+			std::cout << l << "\n";
+	}
+
+	std::vector<std::string> check2;
+	auto check2_push=[&](std::string &&s)
+	{
+		check2.push_back(std::move(s));
+	};
+
+	rfc822::addresses::print_wrapped(
+		a4.begin(), a4.end(), 16,
+		check2_push);
+
+	if (check2 != lines)
+	{
+		std::cout << "Unexpected results from print_wrapped() (1)\n";
+	}
+
+	check2.clear();
+	auto check2_pushb=rfc822::addresses::print_wrapped(
+		a4.begin(), a4.end(), 16,
+		[&](std::string &&s)
+		{
+			check2.push_back(std::move(s));
+		});
+	(void)check2_pushb;
+
+	if (check2 != lines)
+	{
+		std::cout << "Unexpected results from print_wrapped() (2)\n";
+	}
+
+	std::vector<std::u32string> ucheck2;
+	auto ucheck2_push=[&](std::u32string &&s)
+	{
+		ucheck2.push_back(std::move(s));
+	};
+
+	rfc822::addresses::unicode_wrapped(
+		a4.begin(), a4.end(), 16,
+		ucheck2_push);
+
+	if (ucheck2 != ulines)
+	{
+		std::cout << "Unexpected results from unicode_wrapped() (1)\n";
+	}
+
+	ucheck2.clear();
+	auto ucheck2_pushb=rfc822::addresses::unicode_wrapped(
+		a4.begin(), a4.end(), 16,
+		[&](std::u32string &&s)
+		{
+			ucheck2.push_back(std::move(s));
+		});
+	(void)ucheck2_pushb;
+
+	if (ucheck2 != ulines)
+	{
+		std::cout << "Unexpected results from unicode_wrapped() (2)\n";
+	}
+
+	if (a4.wrap_display(16, "utf-8") != lines)
+	{
+		std::cout << "Unexpected result from wrap_display() (1)\n";
+	}
+
+	check2.clear();
+	rfc822::addresses::wrap_display(a4.begin(), a4.end(), 16, "utf-8",
+					check2_push);
+	if (check2 != lines)
+	{
+		std::cout << "Unexpected result from wrap_display() (2)\n";
+	}
+
+	check2.clear();
+
+	auto check2_pushb2=
+		rfc822::addresses::wrap_display(
+			a4.begin(), a4.end(), 16, "utf-8",
+			[&](std::string &&s)
+			{
+				check2.push_back(std::move(s));
+			});
+	(void)check2_pushb2;
+	if (check2 != lines)
+	{
+		std::cout << "Unexpected result from wrap_display() (3)\n";
+	}
+
+#define FIVEUTF8 "\xe2\x85\xa4"
 
 #define FIVETIMES4 FIVEUTF8 FIVEUTF8 FIVEUTF8 FIVEUTF8
 
@@ -186,4 +615,10 @@ int main()
 				     rfc2047_qp_allow_any).first << "\n";
 
 	rfc2047decode_test();
+	printaddress_test();
+
+	std::vector<rfc822::address> vra;
+	std::string ss;
+
+	template_compile_test(vra, ss);
 }

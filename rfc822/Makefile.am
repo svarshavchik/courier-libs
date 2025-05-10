@@ -6,7 +6,7 @@
 noinst_LTLIBRARIES=libencode.la librfc822.la
 
 librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdr.h \
-		  rfc822cpp.C \
+		  rfc822_2047.h rfc822cpp.C \
 		  rfc822_getaddr.c rfc822_getaddrs.c \
                   rfc822_mkdate.c rfc822_parsedt.c rfc2047u.c \
                   rfc2047.c rfc2047.h imapsubj.c imaprefs.h imaprefs.c \
@@ -53,7 +53,7 @@ check-am:
 	./testsuitecpp | diff -U 5 $(srcdir)/testsuite.txt -
 	./reftest | diff -U 3  $(srcdir)/reftest.txt -
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -vx; \
-		valgrind --tool=memcheck --leak-check=yes ./testsuite >/dev/null || exit 1; \
-		valgrind --tool=memcheck --leak-check=yes ./testsuitecpp >/dev/null
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite >/dev/null || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp >/dev/null
 clean-local:
 	rm -rf $(DEPDIR)

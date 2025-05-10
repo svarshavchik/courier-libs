@@ -4,6 +4,8 @@
 */
 
 #include	"rfc822.h"
+#include	"rfc2047.h"
+#include	<idn2.h>
 
 rfc822::tokens::tokens(std::string_view str,
 		       std::function<void (size_t)> err_func)
@@ -202,4 +204,108 @@ rfc822::addresses::addresses(tokens &addrvec)
 			 make_quoted_token,
 			 define_addr_name, define_addr_tokens,
 			 &info);
+}
+
+std::u32string rfc822::idn2unicode(std::string &idn)
+{
+	// Invalid UTF-8 can make libidn go off the deep end. Add
+	// padding as a workaround.
+
+	for (size_t i=0; i<16; i++)
+		idn.push_back(0);
+
+	uint32_t *u32_ptr;
+
+	auto err=idn2_to_unicode_8z4z(idn.c_str(), &u32_ptr, 0);
+
+	if (err != IDNA_SUCCESS)
+	{
+		return std::u32string{
+			U"[encoding error: "
+		} + std::u32string{idn.begin(), idn.end()} + U"]";
+	}
+
+	std::u32string u32{reinterpret_cast<char32_t *>(u32_ptr)};
+	free(u32_ptr);
+
+	return u32;
+}
+
+void rfc822::address::do_print::output()
+{
+	if (a.address.empty())
+	{
+		emit_name();
+		return;
+	}
+
+	if (!a.name.empty() && a.name.begin()->type == '(')
+	{
+		// old style
+
+		emit_address();
+		emit_char(' ');
+		emit_name();
+		return;
+	}
+
+	bool print_braces=false;
+
+	if (!a.name.empty())
+	{
+		emit_name();
+		emit_char(' ');
+		print_braces=true;
+	}
+	else
+	{
+		bool prev_is_atom=false;
+
+		for (auto &t:a.address)
+		{
+			bool is_atom=rfc822_is_atom(t.type);
+
+			if (is_atom && prev_is_atom)
+			{
+				print_braces=true;
+				break;
+			}
+			prev_is_atom=is_atom;
+		}
+	}
+
+	if (print_braces)
+	{
+		emit_char('<');
+	}
+	emit_address();
+	if (print_braces)
+	{
+		emit_char('>');
+	}
+}
+
+void rfc822::addresses::do_print::output()
+{
+	const char *sep="";
+
+	while (!eof())
+	{
+		if (*sep)
+			print_separator(sep);
+
+		sep=", ";
+
+		auto &this_address=ref();
+
+		if (this_address.address.empty() && !this_address.name.empty())
+			switch ((--this_address.name.end())->type) {
+			case ':':
+			case ';':
+				sep=" ";
+				break;
+			}
+
+		print();
+	}
 }
