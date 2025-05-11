@@ -1,7 +1,10 @@
 Source: courier-unicode
 Priority: optional
 Maintainer: Sam Varshavchik <mrsam@courier-mta.com>
-Build-Depends: debhelper-compat (= 12), gcc%DEBGCC%, g++%DEBGCC%
+Build-Depends: debhelper-compat (= 12),
+	       autoconf-archive
+	       gcc%DEBGCC%,
+	       g++%DEBGCC%
 Standards-Version: 4.4.1
 Section: contrib/libs
 Homepage: https://www.courier-mta.org/unicode/
@@ -10,7 +13,9 @@ Rules-Requires-Root: no
 Package: libcourier-unicode-dev
 Section: contrib/libdevel
 Architecture: any
-Depends: libcourier-unicode%SOVERSION% (= ${binary:Version}), ${misc:Depends}
+Depends: libcourier-unicode%SOVERSION% (= ${binary:Version}),
+	 autoconf-archive,
+	 ${misc:Depends}
 Description: Courier Unicode Library (header files and development libraries)
  This package contains development files for the Courier Unicode Library.
  Install this package if you want to develop applications that uses this
@@ -26,4 +31,3 @@ Description: Courier Unicode Library
  This package installs only the run-time libraries needed by applications that
  use this library. Install the "courier-unicode-dev" package if you want
  to develop new applications using this library.
-

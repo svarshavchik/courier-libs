@@ -17,6 +17,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: perl-interpreter
 BuildRequires: gcc-c++
 BuildRequires: %{__make}
+BuildRequires: autoconf-archive
 
 %if 0%{?compat:1}
 
@@ -25,6 +26,7 @@ BuildRequires: %{__make}
 Summary: Courier Unicode Library development files
 Group: Development/Libraries
 Requires: %{name} = 0:%{version}-%{release}
+Requires: autoconf-archive
 %endif
 
 %description
