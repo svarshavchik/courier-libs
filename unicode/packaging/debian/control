@@ -2,7 +2,7 @@ Source: courier-unicode
 Priority: optional
 Maintainer: Sam Varshavchik <mrsam@courier-mta.com>
 Build-Depends: debhelper-compat (= 12),
-	       autoconf-archive
+	       autoconf-archive,
 	       gcc%DEBGCC%,
 	       g++%DEBGCC%
 Standards-Version: 4.4.1
