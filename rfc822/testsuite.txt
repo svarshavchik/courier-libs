@@ -140,6 +140,25 @@ Atom: example
 Token: .
 Atom: com
 Token: >
+Tokenize: undisclosed-recipients: ;
+Atom: undisclosed-recipients
+Token: :
+Token: ;
+Tokenize: mailing-list: nobody@example.com, nobody@example.com;
+Atom: mailing-list
+Token: :
+Atom: nobody
+Token: @
+Atom: example
+Token: .
+Atom: com
+Token: ,
+Atom: nobody
+Token: @
+Atom: example
+Token: .
+Atom: com
+Token: ;
 ----
 nobody@example.com (Nobody (is) here\) right)
 ----
@@ -152,6 +171,10 @@ nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>
 =?UTF-8?Q?Test?= <nobody@example.com>, "foo=bar" <nobody@example.com>
 ----
 "Quoted \\ \" String" <nobody@example.com>, "Trailing slash \\" <nobody@example.com>
+----
+undisclosed-recipients: ;
+----
+mailing-list: nobody@example.com, nobody@example.com;
 [nobody@example.com, nobody@example.com,
 "Mr. Nobody" <nobody@example.com>]
 [nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>]

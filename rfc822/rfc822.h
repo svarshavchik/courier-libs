@@ -398,7 +398,7 @@ struct tokens : std::vector<token> {
 
 			bool isatom=rfc822_is_atom(t.type);
 
-			if (prev_is_atom && isatom)
+			if (prev_is_atom && (isatom || t.type == ';'))
 			{
 				*iter++=' ';
 			}
@@ -433,6 +433,78 @@ struct tokens : std::vector<token> {
 		print(std::forward<iter_typeb>(b),
 		      std::forward<iter_typee>(e),
 		      iter);
+
+		return iter;
+	}
+
+	template<typename iter_typeb,
+		 typename iter_typee, typename out_iter_type>
+	static void unquote(iter_typeb &&b, iter_typee &&e,
+			    out_iter_type &iter)
+	{
+		bool prev_is_atom=false;
+
+		while (b != e)
+		{
+			auto &t=*b++;
+
+			bool isatom=rfc822_is_atom(t.type);
+
+			if (prev_is_atom && (isatom || t.type == ';'))
+			{
+				*iter++=' ';
+			}
+
+			if (t.type == '"' || t.type == '(')
+			{
+				auto p=t.str.data();
+				auto s=t.str.size();
+
+				if (t.type == '(' && s >= 2)
+				{
+					++p;
+					s -= 2;
+				}
+
+				while (s)
+				{
+					if (*p == '\\' && s > 1)
+					{
+						++p;
+						--s;
+					}
+
+					*iter++=*p++;
+					--s;
+				}
+			}
+			else rfc822print_token(
+				t.type, t.str.data(), t.str.size(),
+				[](const char *s, size_t l, void *voidp)
+				{
+					auto iterp=static_cast<out_iter_type *>(
+						voidp
+					);
+
+					while (l)
+					{
+						*(*iterp)++=*s;
+						++s;
+						--l;
+					}
+				}, &iter);
+			prev_is_atom=isatom;
+		}
+	}
+
+	template<typename iter_typeb,
+		 typename iter_typee, typename out_iter_type>
+	static out_iter_type unquote(iter_typeb &&b, iter_typee &&e,
+				     out_iter_type &&iter)
+	{
+		unquote(std::forward<iter_typeb>(b),
+			std::forward<iter_typee>(e),
+			iter);
 
 		return iter;
 	}
@@ -711,6 +783,19 @@ struct address {
 		return iter;
 	}
 
+	template<typename iter_type> auto unquote_name(iter_type &&iter)
+	{
+		if (name.empty())
+		{
+			return address.print(std::forward<iter_type>(iter));
+		}
+
+		return tokens::unquote(
+			name.begin(),
+			name.end(),
+			std::forward<iter_type>(iter)
+		);
+	}
 	// Convert the email address to Unicode, using idn encoding.
 	//
 	// The address is written to an output iterator that's passed as a

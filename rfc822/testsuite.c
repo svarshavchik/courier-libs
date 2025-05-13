@@ -63,8 +63,8 @@ struct rfc822a *a=rfc822a_alloc(t);
 
 int main()
 {
-	struct	rfc822t *t1, *t2, *t3, *t4, *t5, *t6;
-	struct	rfc822a *a1, *a2, *a3, *a4, *a5, *a6;
+	struct	rfc822t *t1, *t2, *t3, *t4, *t5, *t6, *t7, *t8;
+	struct	rfc822a *a1, *a2, *a3, *a4, *a5, *a6, *a7, *a8;
 	char *c;
 
 	rfc822t_free(tokenize("(Break 1"));
@@ -87,6 +87,8 @@ int main()
 	t5=tokenize("=?UTF-8?Q?Test?= <nobody@example.com>, foo=bar <nobody@example.com>");
 	t6=tokenize("\"Quoted \\\\ \\\" String\" <nobody@example.com>,"
 		    "\"Trailing slash \\\\\" <nobody@example.com>");
+	t7=tokenize("undisclosed-recipients: ;");
+	t8=tokenize("mailing-list: nobody@example.com, nobody@example.com;");
 
 	a1=doaddr(t1);
 	a2=doaddr(t2);
@@ -94,6 +96,8 @@ int main()
 	a4=doaddr(t4);
 	a5=doaddr(t5);
 	a6=doaddr(t6);
+	a7=doaddr(t7);
+	a8=doaddr(t8);
 
 	c=rfc822_getaddrs_wrap(a4, 70);
 	printf("[%s]\n", c);
@@ -104,12 +108,16 @@ int main()
 	c=rfc822_getaddrs_wrap(a4, 10);
 	printf("[%s]\n", c);
 	free(c);
+	rfc822a_free(a8);
+	rfc822a_free(a7);
 	rfc822a_free(a6);
 	rfc822a_free(a5);
 	rfc822a_free(a4);
 	rfc822a_free(a3);
 	rfc822a_free(a2);
 	rfc822a_free(a1);
+	rfc822t_free(t8);
+	rfc822t_free(t7);
 	rfc822t_free(t6);
 	rfc822t_free(t5);
 	rfc822t_free(t4);

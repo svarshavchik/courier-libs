@@ -428,6 +428,8 @@ int main()
 	), t5=tokenize("=?UTF-8?Q?Test?= <nobody@example.com>, foo=bar <nobody@example.com>"
 	), t6=tokenize("\"Quoted \\\\ \\\" String\" <nobody@example.com>,"
 		       "\"Trailing slash \\\\\" <nobody@example.com>"
+	), t7=tokenize("undisclosed-recipients: ;"
+	), t8=tokenize("mailing-list: nobody@example.com, nobody@example.com;"
 	);
 
 	auto a1=doaddr(t1),
@@ -435,7 +437,9 @@ int main()
 		a3=doaddr(t3),
 		a4=doaddr(t4),
 		a5=doaddr(t5),
-		a6=doaddr(t6);
+		a6=doaddr(t6),
+		a7=doaddr(t7),
+		a8=doaddr(t8);
 
 	std::vector<std::string> lines=a4.wrap(70);
 

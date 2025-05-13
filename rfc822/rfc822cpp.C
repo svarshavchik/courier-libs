@@ -291,20 +291,28 @@ void rfc822::addresses::do_print::output()
 
 	while (!eof())
 	{
+		int trailer=0;
+
+		auto &this_address=ref();
+
+		if (this_address.address.empty() && !this_address.name.empty())
+			trailer=(--this_address.name.end())->type;
+
+		if (trailer == ';')
+			if (*sep == ',')
+				sep="";
+
 		if (*sep)
 			print_separator(sep);
 
 		sep=", ";
 
-		auto &this_address=ref();
-
-		if (this_address.address.empty() && !this_address.name.empty())
-			switch ((--this_address.name.end())->type) {
-			case ':':
-			case ';':
-				sep=" ";
-				break;
-			}
+		switch (trailer) {
+		case ':':
+		case ';':
+			sep=" ";
+			break;
+		}
 
 		print();
 	}
