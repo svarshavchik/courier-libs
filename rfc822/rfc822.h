@@ -398,7 +398,7 @@ struct tokens : std::vector<token> {
 
 			bool isatom=rfc822_is_atom(t.type);
 
-			if (prev_is_atom && (isatom || t.type == ';'))
+			if (prev_is_atom && isatom)
 			{
 				*iter++=' ';
 			}
@@ -450,7 +450,7 @@ struct tokens : std::vector<token> {
 
 			bool isatom=rfc822_is_atom(t.type);
 
-			if (prev_is_atom && (isatom || t.type == ';'))
+			if (prev_is_atom && isatom)
 			{
 				*iter++=' ';
 			}

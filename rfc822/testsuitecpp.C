@@ -429,7 +429,8 @@ int main()
 	), t6=tokenize("\"Quoted \\\\ \\\" String\" <nobody@example.com>,"
 		       "\"Trailing slash \\\\\" <nobody@example.com>"
 	), t7=tokenize("undisclosed-recipients: ;"
-	), t8=tokenize("mailing-list: nobody@example.com, nobody@example.com;"
+	), t8=tokenize("mailing-list: nobody@example.com, nobody@example.com; "
+		       "admins: all@example.com;"
 	);
 
 	auto a1=doaddr(t1),

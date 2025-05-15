@@ -144,7 +144,7 @@ Tokenize: undisclosed-recipients: ;
 Atom: undisclosed-recipients
 Token: :
 Token: ;
-Tokenize: mailing-list: nobody@example.com, nobody@example.com;
+Tokenize: mailing-list: nobody@example.com, nobody@example.com; admins: all@example.com;
 Atom: mailing-list
 Token: :
 Atom: nobody
@@ -154,6 +154,14 @@ Token: .
 Atom: com
 Token: ,
 Atom: nobody
+Token: @
+Atom: example
+Token: .
+Atom: com
+Token: ;
+Atom: admins
+Token: :
+Atom: all
 Token: @
 Atom: example
 Token: .
@@ -174,7 +182,7 @@ nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>
 ----
 undisclosed-recipients: ;
 ----
-mailing-list: nobody@example.com, nobody@example.com;
+mailing-list: nobody@example.com, nobody@example.com; admins: all@example.com;
 [nobody@example.com, nobody@example.com,
 "Mr. Nobody" <nobody@example.com>]
 [nobody@example.com, nobody@example.com, "Mr. Nobody" <nobody@example.com>]
