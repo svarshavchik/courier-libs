@@ -8,6 +8,8 @@
 #include	<iostream>
 #include	<iterator>
 #include	<string_view>
+#include	<type_traits>
+#include	<utility>
 #include	<sstream>
 #include	<unistd.h>
 
@@ -402,6 +404,53 @@ void template_compile_test(std::vector<rfc822::address> &va,
 	o=va[0].display_name("utf-8", std::ostreambuf_iterator<char>(os));
 }
 
+static void unquote_name_test()
+{
+	rfc822::tokens t{
+		std::string_view{
+			"John Doe <john@example.com>,"
+			"\"John Q. Public\" <john@example.com>,"
+			"\"John \\\"Q.\\\" Public\" <john@example.com>,"
+			"john@example.com (John Doe),"
+			"john@example.com"
+		}};
+	rfc822::addresses a{t};
+
+	std::string names;
+
+	for (auto &an:a)
+	{
+		static_assert(
+			std::is_same_v<decltype(
+				an.unquote_name(
+					std::declval<
+					std::back_insert_iterator<std::string>&
+					>()
+				)), void>, "unquote_name updates iter by ref");
+		static_assert(
+			std::is_same_v<decltype(
+				an.unquote_name(
+					std::declval<
+					std::back_insert_iterator<std::string>
+					>()
+				)), std::back_insert_iterator<std::string>>,
+			"unquote_name returns iter by value");
+		an.unquote_name(std::back_inserter(names));
+		names.push_back('\n');
+	}
+
+	if (names !=
+	    "John Doe\n"
+	    "John Q. Public\n"
+	    "John \"Q.\" Public\n"
+	    "John Doe\n"
+	    "john@example.com\n")
+	{
+		std::cout << "Unexpected result of unquote_name:"
+			  << names;
+	}
+}
+
 int main()
 {
 	alarm(60);
@@ -621,6 +670,7 @@ int main()
 
 	rfc2047decode_test();
 	printaddress_test();
+	unquote_name_test();
 
 	std::vector<rfc822::address> vra;
 	std::string ss;

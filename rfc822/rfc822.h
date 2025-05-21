@@ -1,5 +1,3 @@
-/*
-*/
 #ifndef	rfc822_h
 #define	rfc822_h
 
@@ -437,6 +435,13 @@ struct tokens : std::vector<token> {
 		return iter;
 	}
 
+	// unquote is an alternative print() that:
+	//
+	// Removes the quotes and parenthesis from quoted strings and
+	// comment atoms, and removes backslashes from their string contents.
+	//
+	// The unquoted string is written to an output iterator that gets
+	// passed by reference.
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
 	static void unquote(iter_typeb &&b, iter_typee &&e,
@@ -455,7 +460,7 @@ struct tokens : std::vector<token> {
 				*iter++=' ';
 			}
 
-			if (t.type == '"' || t.type == '(')
+			if (t.type == '"' || t.type == '(' || t.type == 0)
 			{
 				auto p=t.str.data();
 				auto s=t.str.size();
@@ -478,24 +483,14 @@ struct tokens : std::vector<token> {
 					--s;
 				}
 			}
-			else rfc822print_token(
-				t.type, t.str.data(), t.str.size(),
-				[](const char *s, size_t l, void *voidp)
-				{
-					auto iterp=static_cast<out_iter_type *>(
-						voidp
-					);
+			else *iter++=static_cast<char>(t.type);
 
-					while (l)
-					{
-						*(*iterp)++=*s;
-						++s;
-						--l;
-					}
-				}, &iter);
 			prev_is_atom=isatom;
 		}
 	}
+
+	// An overloaded unquote(), the output iterator is passed by value
+	// and its final value is returned.
 
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
@@ -782,6 +777,11 @@ struct address {
 		display(chset, iter);
 		return iter;
 	}
+
+	// If there is no name, calls print() on the address portion, otherwise
+	// calls unquote() on the name portion. The output iterator is passed
+	// in as a parameter. If passed in by reference it gets updated in
+	// place, else its final value is returned.
 
 	template<typename iter_type> auto unquote_name(iter_type &&iter)
 	{
