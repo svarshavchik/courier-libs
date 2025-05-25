@@ -1663,11 +1663,11 @@ class iconvert::tou : public iconvert {
 			    const std::string &chset,
 			    bool &flag,
 			    output_iter_t &&out_iter)
-		-> std::conditional<std::is_same_v<output_iter_t,
-						   output_iter_t &>,
-				    void, std::remove_cv<
-					    std::remove_reference_t<
-						    output_iter_t>>>;
+		-> std::conditional_t<std::is_same_v<output_iter_t,
+						     output_iter_t &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      output_iter_t>>>;
 
 	template<typename from_iter_t,
 		 typename to_iter_t>
@@ -1731,11 +1731,11 @@ auto iconvert::tou::convert(from_iter_t &&from_iter,
 			    const std::string &chset,
 			    bool &flag,
 			    output_iter_t &&out_iter)
-	-> std::conditional<std::is_same_v<output_iter_t,
-					   output_iter_t &>,
-			    void, std::remove_cv<
-				    std::remove_reference_t<
-					    output_iter_t>>>
+	-> std::conditional_t<std::is_same_v<output_iter_t,
+					     output_iter_t &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      output_iter_t>>>
 {
 	class to_iter_class<output_iter_t> out{out_iter};
 
@@ -1788,11 +1788,11 @@ class iconvert::fromu : public iconvert {
 			    const std::string &chset,
 			    output_iter_t &&out_iter,
 			    bool &errflag)
-		-> std::conditional<std::is_same_v<output_iter_t,
-						   output_iter_t &>,
-				    void, std::remove_cv<
-					    std::remove_reference_t<
-						    output_iter_t>>>;
+		-> std::conditional_t<std::is_same_v<output_iter_t,
+						     output_iter_t &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      output_iter_t>>>;
 
 	template<typename input_iter_t>
 		static void convert(input_iter_t from_iter,
@@ -1851,11 +1851,11 @@ auto iconvert::fromu::convert(from_iter_t &&from_iter,
 			      const std::string &chset,
 			      output_iter_t &&out_iter,
 			      bool &errflag)
-	-> std::conditional<std::is_same_v<output_iter_t,
-					   output_iter_t &>,
-			    void, std::remove_cv<
-				    std::remove_reference_t<
-					    output_iter_t>>>
+	-> std::conditional_t<std::is_same_v<output_iter_t,
+					     output_iter_t &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      output_iter_t>>>
 {
 	errflag=true;
 
