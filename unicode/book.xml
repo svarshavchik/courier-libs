@@ -5280,11 +5280,11 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 
 	    <funcprototype>
-              <funcdef>output_iter_t <function>unicode::iconvert::fromu::convert</function></funcdef>
-              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
-              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <funcdef>auto <function>unicode::iconvert::fromu::convert</function></funcdef>
+              <paramdef>beg_iter_t &amp;&amp;<parameter>beg_iter</parameter></paramdef>
+              <paramdef>end_iter_t &amp;&amp;<parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
-              <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
+              <paramdef>output_iter_t &amp;&amp;<parameter>output_iter</parameter></paramdef>
               <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
 	    </funcprototype>
 
@@ -5319,6 +5319,11 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <function>convert</function>()
 	    iterates over <classname>char</classname>s in the specified
 	    character set.
+	    If <parameter>output_iter</parameter> is an lvalue,
+	    <function>convert</function>()'s parameter is a reference to the
+	    output iterator which gets updated in place and
+	    <function>convert</function>() returns <classname>void</classname>.
+	    If <parameter>output_iter</parameter> is an rvalue
 	    <function>convert</function>() returns the value of the output
 	    iterator after iterating over the converted character sequence.
 	    <parameter>err_flag</parameter> gets set to <literal>true</literal>
@@ -5376,12 +5381,12 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    <funcsynopsisinfo>#include &lt;courier-unicode.h&gt;</funcsynopsisinfo>
 
 	    <funcprototype>
-              <funcdef>output_iter_t <function>convert</function></funcdef>
-              <paramdef>input_iter_t <parameter>beg_iter</parameter></paramdef>
-              <paramdef>input_iter_t <parameter>end_iter</parameter></paramdef>
+              <funcdef>auto <function>convert</function></funcdef>
+              <paramdef>beg_iter_t &amp;&amp;<parameter>beg_iter</parameter></paramdef>
+              <paramdef>end_iter_t &amp;&amp;<parameter>end_iter</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>charset</parameter></paramdef>
 	      <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
-              <paramdef>output_iter_t <parameter>output_iter</parameter></paramdef>
+              <paramdef>output_iter_t <parameter>&amp;&amp;output_iter</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
@@ -5412,7 +5417,15 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	    character set. They get converted to unicode characters.
 	    <parameter>output_iter</parameter> is an output iterator that
 	    <function>convert</function>()
-	    iterates over <classname>char32_t</classname>s.
+	    iterates over <classname>char32_t</classname>s:
+	  </para>
+
+	  <para>
+	    If <parameter>output_iter</parameter> is an lvalue,
+	    <function>convert</function>()'s parameter is a reference to the
+	    output iterator which gets updated in place and
+	    <function>convert</function>() returns <classname>void</classname>.
+	    If <parameter>output_iter</parameter> is an rvalue
 	    <function>convert</function>() returns the value of the output
 	    iterator after iterating over the converted character sequence.
 	    <parameter>errflag</parameter>, passed by reference, gets set to

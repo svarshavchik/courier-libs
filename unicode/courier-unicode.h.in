@@ -1651,19 +1651,30 @@ class iconvert::tou : public iconvert {
  public:
 	template<typename iter_t> class to_iter_class;
 
-	template<typename input_iter_t,
-		typename output_iter_t>
-		static output_iter_t convert(input_iter_t from_iter,
-					     input_iter_t to_iter,
-					     const std::string &chset,
-					     bool &flag,
-					     output_iter_t out_iter);
+	template<typename from_iter_t,
+		 typename to_iter_t,
+		 typename output_iter_t,
+		 typename=std::enable_if_t<!std::is_same_v<
+			 std::remove_cv_t<std::remove_reference_t<
+				 output_iter_t>>,
+			 std::u32string>>>
+	static auto convert(from_iter_t &&from_iter,
+			    to_iter_t &&to_iter,
+			    const std::string &chset,
+			    bool &flag,
+			    output_iter_t &&out_iter)
+		-> std::conditional<std::is_same_v<output_iter_t,
+						   output_iter_t &>,
+				    void, std::remove_cv<
+					    std::remove_reference_t<
+						    output_iter_t>>>;
 
-	template<typename input_iter_t>
-		static bool convert(input_iter_t from_iter,
-				    input_iter_t to_iter,
-				    const std::string &chset,
-				    std::u32string &out_buf)
+	template<typename from_iter_t,
+		 typename to_iter_t>
+	static bool convert(from_iter_t &&from_iter,
+			    to_iter_t &&to_iter,
+			    const std::string &chset,
+			    std::u32string &out_buf)
 	{
 		bool flag;
 
@@ -1671,7 +1682,9 @@ class iconvert::tou : public iconvert {
 		std::back_insert_iterator<std::u32string >
 			insert_iter(out_buf);
 
-		convert(from_iter, to_iter, chset, flag, insert_iter);
+		convert(std::forward<from_iter_t>(from_iter),
+			std::forward<to_iter_t>(to_iter),
+			chset, flag, insert_iter);
 
 		return flag;
 	}
@@ -1686,15 +1699,13 @@ class iconvert::tou : public iconvert {
 template<typename iter_t>
 class iconvert::tou::to_iter_class : public iconvert::tou {
 
-	iter_t iter;
+	iter_t &iter;
  public:
 
- to_iter_class(iter_t iterValue)
-	 : iter(iterValue) {}
+	to_iter_class(iter_t &iterValue)
+		: iter{iterValue} {}
 
 	using tou::operator();
-
-	operator iter_t() const { return iter; }
 
  private:
 	int converted(const char32_t *ptr, size_t cnt) override
@@ -1711,37 +1722,46 @@ class iconvert::tou::to_iter_class : public iconvert::tou {
 	}
 };
 
-template<typename input_iter_t,
-	typename output_iter_t>
-	output_iter_t iconvert::tou::convert(input_iter_t from_iter,
-					     input_iter_t to_iter,
-					     const std::string &chset,
-					     bool &flag,
-					     output_iter_t out_iter)
+template<typename from_iter_t,
+	 typename to_iter_t,
+	 typename output_iter_t,
+	 typename sfinae>
+auto iconvert::tou::convert(from_iter_t &&from_iter,
+			    to_iter_t &&to_iter,
+			    const std::string &chset,
+			    bool &flag,
+			    output_iter_t &&out_iter)
+	-> std::conditional<std::is_same_v<output_iter_t,
+					   output_iter_t &>,
+			    void, std::remove_cv<
+				    std::remove_reference_t<
+					    output_iter_t>>>
 {
-	class to_iter_class<output_iter_t> out(out_iter);
+	class to_iter_class<output_iter_t> out{out_iter};
 
-	if (!out.begin(chset))
-		return out;
-
-	std::vector<char> string;
-
-	while (from_iter != to_iter)
+	if (out.begin(chset))
 	{
-		string.push_back(*from_iter++);
 
-		if (string.size() > 31)
+		std::vector<char> string;
+
+		while (from_iter != to_iter)
 		{
-			out(&string[0], string.size());
-			string.clear();
+			string.push_back(*from_iter++);
+
+			if (string.size() > 31)
+			{
+				out(&string[0], string.size());
+				string.clear();
+			}
 		}
+
+		if (string.size() > 0)
+			out(&string[0], string.size());
+
+		out.end(flag);
 	}
-
-	if (string.size() > 0)
-		out(&string[0], string.size());
-
-	out.end(flag);
-	return out;
+	if constexpr(!std::is_same_v<output_iter_t, output_iter_t &>)
+		return out_iter;
 }
 
 /* Convert output of iconvert from char32_ts. */
@@ -1755,13 +1775,24 @@ class iconvert::fromu : public iconvert {
 
 	template<typename iter_t> class to_iter_class;
 
-	template<typename input_iter_t,
-		typename output_iter_t>
-		static output_iter_t convert(input_iter_t from_iter,
-					     input_iter_t to_iter,
-					     const std::string &chset,
-					     output_iter_t out_iter,
-					     bool &errflag);
+
+	template<typename from_iter_t,
+		 typename to_iter_t,
+		 typename output_iter_t,
+		 typename=std::enable_if_t<!std::is_same_v<
+			 std::remove_cv_t<std::remove_reference_t<
+				 output_iter_t>>,
+			 std::string>>>
+	static auto convert(from_iter_t &&from_iter,
+			    to_iter_t &&to_iter,
+			    const std::string &chset,
+			    output_iter_t &&out_iter,
+			    bool &errflag)
+		-> std::conditional<std::is_same_v<output_iter_t,
+						   output_iter_t &>,
+				    void, std::remove_cv<
+					    std::remove_reference_t<
+						    output_iter_t>>>;
 
 	template<typename input_iter_t>
 		static void convert(input_iter_t from_iter,
@@ -1788,17 +1819,15 @@ class iconvert::fromu : public iconvert {
 template<typename iter_t>
 class iconvert::fromu::to_iter_class : public iconvert::fromu {
 
-	iter_t iter;
- public:
+	iter_t &iter;
+public:
 
- to_iter_class(iter_t iterValue)
-	 : iter(iterValue) {}
+	to_iter_class(iter_t &iterValue)
+		: iter{iterValue} {}
 
 	using fromu::operator();
 
-	operator iter_t() const { return iter; }
-
- private:
+private:
 	int converted(const char *ptr, size_t cnt) override
 	{
 		while (cnt)
@@ -1813,39 +1842,47 @@ class iconvert::fromu::to_iter_class : public iconvert::fromu {
 	}
 };
 
-template<typename input_iter_t,
-	typename output_iter_t>
-	output_iter_t iconvert::fromu::convert(input_iter_t from_iter,
-					       input_iter_t to_iter,
-					       const std::string &chset,
-					       output_iter_t out_iter,
-					       bool &errflag)
+template<typename from_iter_t,
+	 typename to_iter_t,
+	 typename output_iter_t,
+	 typename sfinae>
+auto iconvert::fromu::convert(from_iter_t &&from_iter,
+			      to_iter_t &&to_iter,
+			      const std::string &chset,
+			      output_iter_t &&out_iter,
+			      bool &errflag)
+	-> std::conditional<std::is_same_v<output_iter_t,
+					   output_iter_t &>,
+			    void, std::remove_cv<
+				    std::remove_reference_t<
+					    output_iter_t>>>
 {
 	errflag=true;
 
 	class to_iter_class<output_iter_t> out(out_iter);
 
-	if (!out.begin(chset))
-		return out;
-
-	std::u32string string;
-
-	while (from_iter != to_iter)
+	if (out.begin(chset))
 	{
-		string.push_back(*from_iter++);
+		std::u32string string;
 
-		if (string.size() > 31)
+		while (from_iter != to_iter)
 		{
-			out(&string[0], string.size());
-			string.clear();
+			string.push_back(*from_iter++);
+
+			if (string.size() > 31)
+			{
+				out(&string[0], string.size());
+				string.clear();
+			}
 		}
+
+		if (string.size() > 0)
+			out(&string[0], string.size());
+
+		out.end(errflag);
 	}
-
-	if (string.size() > 0)
-		out(&string[0], string.size());
-
-	out.end(errflag);
-	return out;
+	if constexpr(!std::is_same_v<output_iter_t, output_iter_t &>)
+		return out_iter;
 }
 
 /*

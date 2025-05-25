@@ -1,3 +1,7 @@
+2025-05-25  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Use C++17 features for templates.
+
 2025-05-11  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* ABI break. Update the C++ API to C++17. Several functions'
