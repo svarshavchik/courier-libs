@@ -1794,9 +1794,10 @@ class iconvert::fromu : public iconvert {
 					      std::remove_reference_t<
 						      output_iter_t>>>;
 
-	template<typename input_iter_t>
-		static void convert(input_iter_t from_iter,
-				    input_iter_t to_iter,
+	template<typename from_iter_t,
+		 typename to_iter_t>
+		static void convert(from_iter_t &&from_iter,
+				    to_iter_t &&to_iter,
 				    const std::string &chset,
 				    std::string &out_buf,
 				    bool &errflag)
