@@ -117,8 +117,9 @@ namespace rfc2047 {
 // Returns a string am a bool flag that's true if there was an encoding
 // error.
 
-template<typename iter>
-std::pair<std::string, bool> encode(iter b, iter e, const std::string &charset,
+template<typename iterb, typename itere>
+std::pair<std::string, bool> encode(iterb &&b, itere &&e,
+				    const std::string &charset,
 				    int (*qp_allow)(char))
 {
 	std::pair<std::string, bool> ret;
@@ -128,7 +129,9 @@ std::pair<std::string, bool> encode(iter b, iter e, const std::string &charset,
 	std::u32string ustr;
 
 	unicode::iconvert::tou::convert(
-		b, e, charset,
+		std::forward<iterb>(b),
+		std::forward<itere>(e),
+		charset,
 		std::get<1>(ret),
 		std::back_inserter(ustr));
 
@@ -540,7 +543,7 @@ inline void decode_rfc2047_atom(in_iter &inp,
 
 template<typename in_iterb,
 	 typename in_itere, typename callback_closure, typename error_closure>
-void decode(in_iterb &&b, in_itere &&e,
+void decode(in_iterb b, in_itere e,
 	    callback_closure &&callback,
 	    error_closure &&error=[](auto b, auto e, auto error_message){})
 {

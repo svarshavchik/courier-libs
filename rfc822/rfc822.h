@@ -871,8 +871,8 @@ struct addresses : std::vector<address> {
 		 typename print_separator_cb_t>
 	struct do_print_raw : do_print {
 
-		iter_b &b;
-		iter_e &e;
+		iter_b b;
+		iter_e e;
 		out_iter_type &out_iter;
 		print_separator_cb_t &&print_separator_cb;
 

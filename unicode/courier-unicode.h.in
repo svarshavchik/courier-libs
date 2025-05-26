@@ -1658,8 +1658,8 @@ class iconvert::tou : public iconvert {
 			 std::remove_cv_t<std::remove_reference_t<
 				 output_iter_t>>,
 			 std::u32string>>>
-	static auto convert(from_iter_t &&from_iter,
-			    to_iter_t &&to_iter,
+	static auto convert(from_iter_t from_iter,
+			    to_iter_t to_iter,
 			    const std::string &chset,
 			    bool &flag,
 			    output_iter_t &&out_iter)
@@ -1726,8 +1726,8 @@ template<typename from_iter_t,
 	 typename to_iter_t,
 	 typename output_iter_t,
 	 typename sfinae>
-auto iconvert::tou::convert(from_iter_t &&from_iter,
-			    to_iter_t &&to_iter,
+auto iconvert::tou::convert(from_iter_t from_iter,
+			    to_iter_t to_iter,
 			    const std::string &chset,
 			    bool &flag,
 			    output_iter_t &&out_iter)
@@ -1783,8 +1783,8 @@ class iconvert::fromu : public iconvert {
 			 std::remove_cv_t<std::remove_reference_t<
 				 output_iter_t>>,
 			 std::string>>>
-	static auto convert(from_iter_t &&from_iter,
-			    to_iter_t &&to_iter,
+	static auto convert(from_iter_t from_iter,
+			    to_iter_t to_iter,
 			    const std::string &chset,
 			    output_iter_t &&out_iter,
 			    bool &errflag)
@@ -1806,7 +1806,9 @@ class iconvert::fromu : public iconvert {
 		std::back_insert_iterator<std::string>
 			insert_iter(out_buf);
 
-		convert(from_iter, to_iter, chset, insert_iter,
+		convert(std::forward<from_iter_t>(from_iter),
+			std::forward<to_iter_t>(to_iter),
+			chset, insert_iter,
 			errflag);
 	}
 
@@ -1847,8 +1849,8 @@ template<typename from_iter_t,
 	 typename to_iter_t,
 	 typename output_iter_t,
 	 typename sfinae>
-auto iconvert::fromu::convert(from_iter_t &&from_iter,
-			      to_iter_t &&to_iter,
+auto iconvert::fromu::convert(from_iter_t from_iter,
+			      to_iter_t to_iter,
 			      const std::string &chset,
 			      output_iter_t &&out_iter,
 			      bool &errflag)
