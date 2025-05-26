@@ -371,37 +371,94 @@ void template_compile_test(std::vector<rfc822::address> &va,
 	std::ostreambuf_iterator<char> o{os};
 
 	va.resize(1);
-	va[0].name.print(o);
+	static_assert(std::is_same_v<decltype(va[0].name.print(o)), void>,
+		      "name.print returns void");
 	o=va[0].name.print(std::ostreambuf_iterator<char>(os));
 
 	std::u32string us;
 	auto usb=std::back_inserter(us);
 
-	va[0].name.unicode_address(usb);
+	static_assert(std::is_same_v<decltype(va[0].name.unicode_address(usb)),
+		      void>, "name.unicode_address returns void");
 	usb=va[0].name.unicode_address(std::back_inserter(us));
 
-	va[0].name.unicode_name(usb);
+	static_assert(std::is_same_v<decltype(va[0].name.unicode_name(usb)),
+		      void>, "unicode_name returns void");
 	usb=va[0].name.unicode_name(std::back_inserter(us));
 
-	va[0].name.display_address("utf-8", o);
+	static_assert(std::is_same_v<decltype(va[0].name.display_address(
+						      "utf-8", o)),
+		      void>, "name.display_address returns void");
 	o=va[0].name.display_address("utf-8", std::ostreambuf_iterator<char>(os));
 
-	va[0].name.display_name("utf-8", o);
+	static_assert(std::is_same_v<decltype(va[0].name.display_name(
+						      "utf-8", o)),
+		      void>, "name.display_name returns void");
 	o=va[0].name.display_name("utf-8", std::ostreambuf_iterator<char>(os));
 
-	va[0].print(o);
+	static_assert(std::is_same_v<decltype(va[0].print(o)), void>,
+		      "print returns void");
+
 	o=va[0].print(std::ostreambuf_iterator<char>(os));
-	va[0].unicode_address(usb);
+	static_assert(std::is_same_v<decltype(va[0].unicode_address(usb)),
+		      void>, "unicode_address returns void");
 	usb=va[0].unicode_address(std::back_inserter(us));
 
-	va[0].unicode_name(usb);
+	static_assert(std::is_same_v<decltype(va[0].unicode_name(usb)),
+		      void>, "unicode_name returns void");
 	usb=va[0].unicode_name(std::back_inserter(us));
 
-	va[0].display_address("utf-8", o);
+	static_assert(std::is_same_v<decltype(va[0].display_address(
+						      "utf-8", o)
+		      ), void>, "display_address returns void");
 	o=va[0].display_address("utf-8", std::ostreambuf_iterator<char>(os));
 
-	va[0].display_name("utf-8", o);
+	static_assert(std::is_same_v<decltype(va[0].display_name("utf-8", o)),
+		      void>, "display_name returns void");
 	o=va[0].display_name("utf-8", std::ostreambuf_iterator<char>(os));
+
+	static_assert(
+		std::is_same_v<
+		decltype(
+			rfc822::display_header_unicode(
+				"x", "y",
+				std::declval<std::back_insert_iterator<
+				std::u32string> &>())),
+		void>,
+		"display_header_unicode returns void");
+
+	static_assert(
+		std::is_same_v<
+		decltype(
+			rfc822::display_header_unicode(
+				"x", "y",
+				std::declval<std::back_insert_iterator<
+				std::u32string> &&>())),
+		std::back_insert_iterator<std::u32string>>,
+		"display_header_unicode returns iterator");
+
+	static_assert(
+		std::is_same_v<
+		decltype(
+			rfc822::display_header(
+				"x", "y",
+				std::declval<const std::string &>(),
+				std::declval<std::back_insert_iterator<
+				std::string> &>())),
+		void>,
+		"display_header returns void");
+
+	static_assert(
+		std::is_same_v<
+		decltype(
+			rfc822::display_header(
+				"x", "y",
+				std::declval<const std::string &>(),
+				std::declval<std::back_insert_iterator<
+				std::string> &&>())),
+		std::back_insert_iterator<std::string>>,
+		"display_header returns iterator");
+
 }
 
 static void unquote_name_test()
@@ -676,4 +733,27 @@ int main()
 	std::string ss;
 
 	template_compile_test(vra, ss);
+
+	std::string s;
+
+	auto biter=std::back_inserter(s);
+	biter=rfc822::display_header(
+		"TO",
+		"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?="
+		" <test3@xn--80akhbyknj4f.net>, Nobody <nobody@example.com>",
+		"utf-8",
+		std::move(biter));
+
+	std::cout << s << "\n";
+
+	s.clear();
+
+	auto cout_iter=std::ostreambuf_iterator<char>(std::cout);
+	rfc822::display_header(
+		"SUBJECT",
+		"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?="
+		" <test3@xn--80akhbyknj4f.net>, nobody@example.com",
+		"utf-8",
+		cout_iter);
+	std::cout << "\n";
 }

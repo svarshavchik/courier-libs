@@ -9,9 +9,13 @@ namespace rfc822 {
 
 std::u32string idn2unicode(std::string &idn);
 
-template<typename out_iter_type> void tokens::unicode_address(
-	out_iter_type &iter
-) const
+template<typename out_iter_type> auto tokens::unicode_address(
+	out_iter_type &&iter
+) const -> std::conditional_t<std::is_same_v<out_iter_type,
+					     out_iter_type &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      out_iter_type>>>
 {
 	std::string s;
 
@@ -51,11 +55,18 @@ template<typename out_iter_type> void tokens::unicode_address(
 	{
 		*iter++=c;
 	}
+
+	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+		return iter;
 }
 
-template<typename out_iter_type> void tokens::unicode_name(
-	out_iter_type &iter
-) const
+template<typename out_iter_type> auto tokens::unicode_name(
+	out_iter_type &&iter
+) const -> std::conditional_t<std::is_same_v<out_iter_type,
+					     out_iter_type &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      out_iter_type>>>
 {
 	struct proxy {
 		out_iter_type &iter;
@@ -139,6 +150,9 @@ template<typename out_iter_type> void tokens::unicode_name(
 				*iter++=c;
 			}
 		});
+
+	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+		return iter;
 }
 
 template<typename out_iter_type> struct u2iterator : unicode::iconvert::fromu {
@@ -170,10 +184,14 @@ template<typename out_iter_type> struct u2iterator : unicode::iconvert::fromu {
 	u2iterator &operator*() { return *this; }
 };
 
-template<typename out_iter_type> void tokens::display_address(
+template<typename out_iter_type> auto tokens::display_address(
 	const std::string &chset,
-	out_iter_type &iter
-) const
+	out_iter_type &&iter
+) const -> std::conditional_t<std::is_same_v<out_iter_type,
+					     out_iter_type &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      out_iter_type>>>
 {
 	u2iterator u{iter};
 	if (u.begin(chset))
@@ -183,17 +201,30 @@ template<typename out_iter_type> void tokens::display_address(
 		bool errflag{false};
 
 		if (u.end(errflag) && !errflag)
-			return;
+		{
+			if constexpr(!std::is_same_v<out_iter_type,
+				     out_iter_type &>)
+				return iter;
+			else
+				return;
+		}
 	}
 
 	for (char c: std::string_view{"[decoding error]"})
 		*iter++=c;
+
+	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+		return iter;
 }
 
-template<typename out_iter_type> void tokens::display_name(
+template<typename out_iter_type> auto tokens::display_name(
 	const std::string &chset,
-	out_iter_type &iter
-) const
+	out_iter_type &&iter
+) const -> std::conditional_t<std::is_same_v<out_iter_type,
+					     out_iter_type &>,
+			      void, std::remove_cv_t<
+				      std::remove_reference_t<
+					      out_iter_type>>>
 {
 	u2iterator u{iter};
 	if (u.begin(chset))
@@ -203,11 +234,101 @@ template<typename out_iter_type> void tokens::display_name(
 		bool errflag{false};
 
 		if (u.end(errflag) && !errflag)
-			return;
+		{
+			if constexpr(!std::is_same_v<out_iter_type,
+				     out_iter_type &>)
+				return iter;
+			else
+				return;
+		}
 	}
 
 	for (char c: std::string_view{"[decoding error]"})
 		*iter++=c;
+
+	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+		return iter;
+}
+
+// Here's the name of a header, and here's its encoded contents. Convert
+// the header to Unicode.
+//
+// If the header contain addresses, parse them as addresses, decoding RFC 2047
+// atoms in the name portion, and punycode in domain names.
+//
+// Non-address headers get decoded using RFC 2047.
+
+template<typename out_iter>
+auto display_header_unicode(std::string_view headername,
+			    std::string_view headercontents,
+			    out_iter &&iter)
+{
+	if (header_is_addr(headername))
+	{
+		tokens t{headercontents};
+		addresses a{t};
+
+		const char32_t *sep=U"";
+
+		for (auto &address:a)
+		{
+			while (*sep)
+				*iter++=*sep++;
+
+			address.unicode(iter);
+			sep=U", ";
+		}
+	}
+	else
+	{
+		rfc2047::decode_unicode(
+			headercontents.begin(),
+			headercontents.end(),
+			iter,
+			[&](auto &&b, auto &&e, auto &&error_message)
+			{
+				std::string_view emsg{error_message};
+
+				for (auto c:emsg)
+				{
+					*iter++=c;
+				}
+			});
+	}
+
+	if constexpr(!std::is_same_v<out_iter, out_iter &>)
+		return iter;
+}
+
+// Call display_unicode(), then convert Unicode to the given character set.
+//
+// The fourth parameter is an output iterator over char.
+
+template<typename out_iter>
+auto display_header(std::string_view headername,
+		    std::string_view headercontents,
+		    const std::string &chset,
+		    out_iter &&iter)
+{
+	std::u32string us;
+
+	auto uiter=std::back_inserter(us);
+
+	display_header_unicode(headername, headercontents, uiter);
+
+	bool errflag;
+
+	unicode::iconvert::fromu::convert(us.begin(), us.end(), chset,
+					  iter, errflag);
+
+	if (errflag)
+	{
+		for (char c: std::string_view{"unicode conversion error"})
+			*iter++ = c;
+	}
+
+	if constexpr(!std::is_same_v<out_iter, out_iter &>)
+		return iter;
 }
 
 #if 0

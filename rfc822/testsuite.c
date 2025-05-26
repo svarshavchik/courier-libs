@@ -166,5 +166,31 @@ int main()
 		}
 	}
 
+	{
+		char *p=rfc822_display_hdrvalue_tobuf(
+			"To",
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?="
+			" <test3@xn--80akhbyknj4f.net>, \"Nobody\" <nobody@example.com>",
+			"utf-8",
+			NULL,
+			NULL
+		);
+
+		printf("%s\n", p);
+		free(p);
+	}
+	{
+		char *p=rfc822_display_hdrvalue_tobuf(
+			"Subject",
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?="
+			" <test3@xn--80akhbyknj4f.net>, nobody@example.com",
+			"utf-8",
+			NULL,
+			NULL
+		);
+
+		printf("%s\n", p);
+		free(p);
+	}
 	return (0);
 }

@@ -102,6 +102,7 @@ int rfc2047_encode_callback(const char32_t *uc,
 
 #include <string>
 #include <utility>
+#include <iterator>
 
 namespace rfc2047 {
 #if 0
@@ -183,12 +184,13 @@ inline std::pair<std::string, bool> encode(const std::string &s,
 // Implements an undo buffer. decode_rfc2047() needs the ability to
 // undo the read sequence.
 
-template<typename in_iter> struct iter {
-	in_iter &b, &e;
+template<typename in_iterb, typename in_itere> struct iter {
+	in_iterb &b;
+	in_itere &e;
 
 	std::string undo_buf;
 
-	iter(in_iter &b, in_iter &e) : b{b}, e{e} {}
+	iter(in_iterb &b, in_itere &e) : b{b}, e{e} {}
 
 	// Next character, possibly cached. EOF signaled by -1.
 	int peek() const
@@ -243,7 +245,7 @@ template<typename in_iter> struct iter {
 // read ahead sequece is undone and false gets returned.
 
 template<typename in_iter, typename callback_closure, typename error_closure>
-inline bool do_decode_rfc2047_atom(iter<in_iter> &inp,
+inline bool do_decode_rfc2047_atom(in_iter &inp,
 				   std::string &charset,
 				   std::string &language,
 				   std::string &skip_buf,
@@ -506,7 +508,7 @@ inline bool do_decode_rfc2047_atom(iter<in_iter> &inp,
 // Extract consecutive RFC 2047 atoms
 
 template<typename in_iter, typename callback_closure, typename error_closure>
-inline void decode_rfc2047_atom(iter<in_iter> &inp,
+inline void decode_rfc2047_atom(in_iter &inp,
 				std::string &charset,
 				std::string &language,
 				std::string &skip_buf,
@@ -536,15 +538,16 @@ inline void decode_rfc2047_atom(iter<in_iter> &inp,
 //
 // Note that the 2nd closure can call the error closure too.
 
-template<typename in_iter, typename callback_closure, typename error_closure>
-void decode(in_iter &&b, in_iter &&e,
+template<typename in_iterb,
+	 typename in_itere, typename callback_closure, typename error_closure>
+void decode(in_iterb &&b, in_itere &&e,
 	    callback_closure &&callback,
 	    error_closure &&error=[](auto b, auto e, auto error_message){})
 {
 	std::string charset;
 	std::string language;
 	std::string skip_buf;
-	iter<in_iter> inp{b, e};
+	iter<in_iterb, in_itere> inp{b, e};
 
 	int c;
 
@@ -608,6 +611,45 @@ void decode(in_iter &&b, in_iter &&e,
 				}
 			});
 	}
+}
+
+// decode(), then convert the decoded text to unicode, using the
+// character set indication. The third parameter is a char32_t output
+// iterator.
+
+template<typename in_iterb,
+	 typename in_itere,
+	 typename unicode_iter, typename error_closure>
+auto decode_unicode(in_iterb &&b, in_itere &&e,
+		    unicode_iter &&iter,
+		    error_closure &&error=[](auto b, auto e,
+					     auto error_message){})
+{
+	std::string buffer;
+
+	decode(std::forward<in_iterb>(b),
+	       std::forward<in_itere>(e),
+	       [&]
+	       (const auto &charset, const auto &language, auto &&callback)
+	       {
+		       buffer.clear();
+
+		       auto striter=std::back_inserter(buffer);
+		       callback(striter);
+
+		       bool errflag;
+
+		       unicode::iconvert::tou::convert(
+			       buffer.begin(),
+			       buffer.end(),
+			       charset, errflag, iter);
+
+		       if (errflag)
+			       error(b, e, "[unicode encoding error]");
+	       },
+	       std::forward<error_closure>(error));
+	if constexpr(!std::is_same_v<unicode_iter, unicode_iter &>)
+		return iter;
 }
 
 #if 0

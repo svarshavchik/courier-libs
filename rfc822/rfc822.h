@@ -380,13 +380,18 @@ struct tokens : std::vector<token> {
 	~tokens()=default;
 
 	// Print a token sequence, C++ version of rfc822tok_print.
-	// The token sequence gets printed to an output iterator, that's
-	// passed by reference.
+	// The token sequence gets printed to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
-	static void print(iter_typeb &&b, iter_typee &&e,
-			  out_iter_type &iter)
+	static auto print(iter_typeb &&b, iter_typee &&e,
+			  out_iter_type &&iter)
 	{
 		bool prev_is_atom=false;
 
@@ -405,9 +410,11 @@ struct tokens : std::vector<token> {
 				t.type, t.str.data(), t.str.size(),
 				[](const char *s, size_t l, void *voidp)
 				{
-					auto iterp=static_cast<out_iter_type *>(
-						voidp
-					);
+					auto iterp=static_cast<
+						std::remove_cv_t<
+							std::remove_reference_t<
+								out_iter_type
+								>> *>(voidp);
 
 					while (l)
 					{
@@ -418,34 +425,29 @@ struct tokens : std::vector<token> {
 				}, &iter);
 			prev_is_atom=isatom;
 		}
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
 	}
 
-	// Overloaded print(), the output iterator is passed by value, and
-	// its final value is returned.
-
-	template<typename iter_typeb,
-		 typename iter_typee, typename out_iter_type>
-	static out_iter_type print(iter_typeb &&b, iter_typee &&e,
-				   out_iter_type &&iter)
-	{
-		print(std::forward<iter_typeb>(b),
-		      std::forward<iter_typee>(e),
-		      iter);
-
-		return iter;
-	}
 
 	// unquote is an alternative print() that:
 	//
 	// Removes the quotes and parenthesis from quoted strings and
 	// comment atoms, and removes backslashes from their string contents.
 	//
-	// The unquoted string is written to an output iterator that gets
-	// passed by reference.
+	// The unquoted string is written to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
+
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
-	static void unquote(iter_typeb &&b, iter_typee &&e,
-			    out_iter_type &iter)
+	static auto unquote(iter_typeb &&b, iter_typee &&e,
+			    out_iter_type &&iter)
 	{
 		bool prev_is_atom=false;
 
@@ -487,138 +489,97 @@ struct tokens : std::vector<token> {
 
 			prev_is_atom=isatom;
 		}
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
 	}
 
-	// An overloaded unquote(), the output iterator is passed by value
-	// and its final value is returned.
+	// Equivalent to rfc822tok_print, writes to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename iter_typeb,
-		 typename iter_typee, typename out_iter_type>
-	static out_iter_type unquote(iter_typeb &&b, iter_typee &&e,
-				     out_iter_type &&iter)
-	{
-		unquote(std::forward<iter_typeb>(b),
-			std::forward<iter_typee>(e),
-			iter);
 
-		return iter;
-	}
-
-	// Equivalent to rfc822tok_print, writes to an output iterator
-	// that's passed by reference.
-
-	template<typename out_iter_type> void print(out_iter_type &iter)
+	template<typename out_iter_type> auto print(out_iter_type &&iter)
 		const
 	{
-		print(this->begin(), this->end(), iter);
-	}
-
-	// Overloaded print(), the output iterator is passed by value,
-	// returns the new value of the output iterator.
-
-	template<typename out_iter_type>
-	out_iter_type print(out_iter_type &&iter) const
-	{
-		print(this->begin(), this->end(),
-		      std::forward<out_iter_type>(iter));
-
-		return iter;
+		return print(this->begin(), this->end(),
+			     std::forward<out_iter_type>(iter));
 	}
 
 	// Convert this email address to Unicode, using idn encoding.
 	//
-	// The address is written to an output iterator that's passed as a
-	// 2nd parameter.
+	// The address is written to an output iterator over char32_t.
 	//
-	// The iterator is over char32_t.
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename out_iter_type> void unicode_address(
-		out_iter_type &iter
-	) const;
-
-	// Overload where the output iterator is passed by value, its new
-	// value is returned.
-
-	template<typename out_iter_type> out_iter_type unicode_address(
+	template<typename out_iter_type> auto unicode_address(
 		out_iter_type &&iter
-	) const
-	{
-		unicode_address(iter);
-		return iter;
-	}
+	) const -> std::conditional_t<std::is_same_v<out_iter_type,
+						     out_iter_type &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      out_iter_type>>>;
 
 	// Convert this name to Unicode, using RFC2047 decoding.
 	//
-	// The address is written to an output iterator that's passed as a
-	// 2nd parameter.
-	//
-	// The iterator is over char32_t.
+	// The address is written to an output iterator over char32_t.
 
-	template<typename out_iter_type> void unicode_name(
-		out_iter_type &iter
-	) const;
-
-	// Overload where the output iterator is passed by value, its new
-	// value is returned.
-
-	template<typename out_iter_type> out_iter_type unicode_name(
+	template<typename out_iter_type> auto unicode_name(
 		out_iter_type &&iter
-	) const
-	{
-		unicode_name(iter);
-		return iter;
-	}
+	) const -> std::conditional_t<std::is_same_v<out_iter_type,
+						     out_iter_type &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      out_iter_type>>>;
+
 
 	// Convert this email address for display in the given character
 	// set, using idn encoding.
 	//
-	// The address is written to an output iterator that's passed as a
-	// 2nd parameter.
+	// The address is written to an output iterator over char.
 	//
-	// The iterator is over char.
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename out_iter_type> void display_address(
-		const std::string &chset,
-		out_iter_type &iter
-	) const;
-
-	// Overload where the output iterator is passed by value, its new
-	// value is returned.
-
-	template<typename out_iter_type> out_iter_type display_address(
+	template<typename out_iter_type> auto display_address(
 		const std::string &chset,
 		out_iter_type &&iter
-	) const
-	{
-		display_address(chset, iter);
-		return iter;
-	}
+	) const -> std::conditional_t<std::is_same_v<out_iter_type,
+						     out_iter_type &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      out_iter_type>>>;
 
 	// Convert this name for display in the given character set,
 	// using RFC2047 decoding.
 	//
-	// The address is written to an output iterator that's passed as a
-	// 2nd parameter.
+	// The address is written to an output iterator over char32_t.
 	//
-	// The iterator is over char32_t.
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename out_iter_type> void display_name(
-		const std::string &chset,
-		out_iter_type &iter
-	) const;
-
-	// Overload where the output iterator is passed by value, its new
-	// value is returned.
-
-	template<typename out_iter_type> out_iter_type display_name(
+	template<typename out_iter_type> auto display_name(
 		const std::string &chset,
 		out_iter_type &&iter
-	) const
-	{
-		display_name(chset, iter);
-		return iter;
-	}
-
+	) const -> std::conditional_t<std::is_same_v<out_iter_type,
+						     out_iter_type &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      out_iter_type>>>;
 };
 
 // The C++ equivalent of rfc822addr
@@ -664,22 +625,22 @@ struct address {
 		}
 	};
 
-	// Print this address to an output iterator, passed by reference.
+	// Print this address to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename iter_type> void print(iter_type &iter) const
+	template<typename iter_type> auto print(iter_type &&iter) const
 	{
 		do_print_raw printer{*this, iter};
 
 		printer.output();
-	}
 
-	// The output iterator is passed by value, the output iterator's
-	// final value gets returned.
-
-	template<typename iter_type> iter_type print(iter_type &&iter) const
-	{
-		print(iter);
-		return iter;
+		if constexpr(!std::is_same_v<iter_type, iter_type &>)
+			return iter;
 	}
 
 	template<typename out_iter>
@@ -710,22 +671,22 @@ struct address {
 
 	// Print this address in Unicode, for display, converting IDN-encoded
 	// domains and RFC 2047-encoded name portions. The Unicode is
-	// written to an output iterator over char32_t, passed by reference.
+	// written to an output iterator over char32_t.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename iter_type> void unicode(iter_type &iter) const
+	template<typename iter_type> auto unicode(iter_type &&iter) const
 	{
 		do_print_unicode printer{*this, iter};
 
 		printer.output();
-	}
 
-	// Overload that takes an output iterator by value, returning the new
-	// value of the output iterator.
-
-	template<typename iter_type> iter_type unicode(iter_type &&iter) const
-	{
-		unicode(iter);
-		return iter;
+		if constexpr(!std::is_same_v<iter_type, iter_type &>)
+			return iter;
 	}
 
 	template<typename out_iter>
@@ -758,30 +719,34 @@ struct address {
 
 	// Convert this address to a given character set, converting IDN-encoded
 	// domains and RFC 2047-encoded name portions. The address is
-	// written to an output iterator passed by reference.
+	// written to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
-	template<typename iter_type> void display(const std::string &chset,
-						  iter_type &iter) const
+	template<typename iter_type> auto display(const std::string &chset,
+						  iter_type &&iter) const
 	{
 		do_print_display printer{*this, iter, chset};
 
 		printer.output();
-	}
 
-	// Overload that takes an output iterator by value, returning the new
-	// value of the output iterator.
-
-	template<typename iter_type> iter_type display(const std::string &chset,
-						       iter_type &&iter) const
-	{
-		display(chset, iter);
-		return iter;
+		if constexpr(!std::is_same_v<iter_type, iter_type &>)
+			return iter;
 	}
 
 	// If there is no name, calls print() on the address portion, otherwise
 	// calls unquote() on the name portion. The output iterator is passed
-	// in as a parameter. If passed in by reference it gets updated in
-	// place, else its final value is returned.
+	// in as a parameter.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
 	template<typename iter_type> auto unquote_name(iter_type &&iter)
 	{
@@ -947,8 +912,8 @@ struct addresses : std::vector<address> {
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type, typename print_separator_t>
-	static void print_impl(iterb_type &&b, itere_type &&e,
-			       out_iter_type &out_iter,
+	static auto print_impl(iterb_type &&b, itere_type &&e,
+			       out_iter_type &&out_iter,
 			       print_separator_t &&print_separator)
 	{
 		do_print_raw printer{b, e, out_iter,
@@ -957,18 +922,33 @@ struct addresses : std::vector<address> {
 				     )};
 
 		printer.output();
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return out_iter;
 	}
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type>
-	static void print_impl(iterb_type &&b, itere_type &&e,
-			       out_iter_type &out_iter)
+	static auto print_impl(iterb_type &&b, itere_type &&e,
+			       out_iter_type &&out_iter)
 	{
 		print_impl(std::forward<iterb_type>(b),
-		      std::forward<itere_type>(e),
-		      out_iter,
-		      make_default_print_separator<char>(out_iter));
+			   std::forward<itere_type>(e),
+			   out_iter,
+			   make_default_print_separator<char>(out_iter));
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return out_iter;
 	}
+
+	// C++ version of rfc822_print, the addresses are defined as a pair
+	// of beginning and ending iterators.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type, typename ...Args>
@@ -981,12 +961,18 @@ struct addresses : std::vector<address> {
 			   out_iter,
 			   std::forward<Args>(args)...);
 
-		return out_iter;
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return out_iter;
 	}
 
 	// The C++ version of rfc822_print(), the addresses are printed to
-	// an output iterator, the new value of the output iterator gets
-	// returned.
+	// an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
 
 	template<typename out_iter_type, typename ...Args>
 	auto print(out_iter_type &&out_iter, Args && ...args)
@@ -1199,12 +1185,18 @@ struct addresses : std::vector<address> {
 	// repeatedly with a std::string containing a line of addressed,
 	// that does not exceed the given width, unless a single address
 	// is bigger than the given width.
+	//
+	// If the last parameter is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the last parameter by rvalue (reference) returns the final
+	// value of the the passed in object.
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type>
-	static void print_wrapped(iterb_type &&b, itere_type &&e,
+	static auto print_wrapped(iterb_type &&b, itere_type &&e,
 				  size_t max_l,
-				  out_iter_type &iter)
+				  out_iter_type &&iter)
 	{
 		wrap_out_iter_impl<char, out_iter_type> wrapper{iter, max_l};
 		wrap_out_iter char_wrapper{wrapper};
@@ -1215,22 +1207,9 @@ struct addresses : std::vector<address> {
 		      wrap_out_iter_sep{wrapper});
 
 		wrapper.end();
-	}
 
-	// Overload that takes the output iterator by value. The new value of
-	// the output iterator is returned.
-
-	template<typename iterb_type, typename itere_type,
-		 typename out_iter_type>
-	static out_iter_type print_wrapped(iterb_type &&b, itere_type &&e,
-					   size_t max_l,
-					   out_iter_type &&iter)
-	{
-		print_wrapped(std::forward<iterb_type>(b),
-			      std::forward<itere_type>(e),
-			      max_l, iter);
-
-		return iter;
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
 	}
 
 	// wrap() uses print_wrapped() to write the wrapped addresses into
@@ -1273,12 +1252,18 @@ struct addresses : std::vector<address> {
 	// repeatedly with a std::u32string containing a line of addressed,
 	// that does not exceed the given width, unless a single address
 	// is bigger than the given width.
+	//
+	// If the last parameter is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the last parameter by rvalue (reference) returns the final
+	// value of the the passed in object.
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type>
-	static void unicode_wrapped(iterb_type &&b, itere_type &&e,
+	static auto unicode_wrapped(iterb_type &&b, itere_type &&e,
 				    size_t max_l,
-				    out_iter_type &iter)
+				    out_iter_type &&iter)
 	{
 		wrap_out_iter_impl<char32_t, out_iter_type> wrapper{
 			iter, max_l
@@ -1291,22 +1276,9 @@ struct addresses : std::vector<address> {
 		      wrap_out_iter_sep{wrapper});
 
 		wrapper.end();
-	}
 
-	// Overload that takes the output iterator by value. The new value of
-	// the output iterator is returned.
-
-	template<typename iterb_type, typename itere_type,
-		 typename out_iter_type>
-	static out_iter_type unicode_wrapped(iterb_type &&b, itere_type &&e,
-					     size_t max_l,
-					     out_iter_type &&iter)
-	{
-		unicode_wrapped(std::forward<iterb_type>(b),
-			      std::forward<itere_type>(e),
-			      max_l, iter);
-
-		return iter;
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
 	}
 
 	// wrap_unicode() uses unicode_wrapped() to write the wrapped
@@ -1351,13 +1323,19 @@ struct addresses : std::vector<address> {
 	// that does not exceed the given width, in the converted character
 	// set, unless a single address
 	// is bigger than the given width.
+	//
+	// If the last parameter is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the last parameter by rvalue (reference) returns the final
+	// value of the the passed in object.
 
 	template<typename iterb_type, typename itere_type,
 		 typename out_iter_type>
-	static void wrap_display(iterb_type &&b, itere_type &&e,
+	static auto wrap_display(iterb_type &&b, itere_type &&e,
 				 size_t max_l,
 				 const std::string &chset,
-				 out_iter_type &iter)
+				 out_iter_type &&iter)
 	{
 		unicode_wrapped(
 			std::forward<iterb_type>(b),
@@ -1374,25 +1352,9 @@ struct addresses : std::vector<address> {
 						" [decoding error]";
 				iter(std::move(ret.first));
 			});
-	}
 
-	// Overload that takes the output iterator by value. The new value of
-	// the output iterator is returned.
-
-
-	template<typename iterb_type, typename itere_type,
-		 typename out_iter_type>
-	static out_iter_type wrap_display(iterb_type &&b, itere_type &&e,
-					     size_t max_l,
-					     const std::string &chset,
-					     out_iter_type &&iter)
-	{
-		wrap_display(std::forward<iterb_type>(b),
-			     std::forward<itere_type>(e),
-			     max_l,
-			     chset,
-			     iter);
-		return iter;
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
 	}
 
 	// wrap_unicode() uses unicode_wrapped() to write the wrapped
@@ -1416,6 +1378,11 @@ struct addresses : std::vector<address> {
 		return w;
 	}
 };
+
+// Return true if header_name is To, Cc, Bcc, or other headers that contain
+// a list of addresses.
+
+bool header_is_addr(std::string_view header_name);
 
 #if 0
 {

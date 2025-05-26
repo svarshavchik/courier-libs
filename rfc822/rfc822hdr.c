@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2011 Double Precision, Inc.
+** Copyright 2001-2025 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -149,12 +149,5 @@ int rfc822hdr_namecmp(const char *a, const char *b)
 
 int rfc822hdr_is_addr(const char *hdr)
 {
-	return rfc822hdr_namecmp(hdr, "from") == 0 ||
-		rfc822hdr_namecmp(hdr, "to") == 0 ||
-		rfc822hdr_namecmp(hdr, "cc") == 0 ||
-		rfc822hdr_namecmp(hdr, "bcc") == 0 ||
-		rfc822hdr_namecmp(hdr, "resent-from") == 0 ||
-		rfc822hdr_namecmp(hdr, "resent-to") == 0 ||
-		rfc822hdr_namecmp(hdr, "resent-cc") == 0 ||
-		rfc822hdr_namecmp(hdr, "resent-bcc") == 0;
+	return RFC822HDR_IS_ADDR(0 == rfc822hdr_namecmp, hdr);
 }

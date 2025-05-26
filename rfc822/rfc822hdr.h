@@ -1,5 +1,3 @@
-/*
-*/
 #ifndef	rfc822hdr_h
 #define	rfc822hdr_h
 
@@ -41,6 +39,18 @@ void rfc822hdr_collapse(struct rfc822hdr *);
 
 int rfc822hdr_namecmp(const char *a, const char *b);
 int rfc822hdr_is_addr(const char *hdr);
+
+#define RFC822HDR_IS_ADDR(x,hdr)				\
+	x(hdr, "from") ||					\
+	x(hdr, "to") ||						\
+	x(hdr, "cc") ||						\
+	x(hdr, "bcc") ||					\
+	x(hdr, "in-reply-to") ||				\
+	x(hdr, "resent-from") ||				\
+	x(hdr, "resent-to") ||					\
+	x(hdr, "resent-cc") ||					\
+	x(hdr, "resent-bcc")
+
 
 #ifdef  __cplusplus
 }
