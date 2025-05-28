@@ -1569,7 +1569,7 @@ int imapenhancedidle(void)
 	if ((w=maildirwatch_alloc(current_mailbox)) == NULL)
 	{
 		perror(current_mailbox);
-		fprintf(stderr, "This may be a problem with FAM or Gamin\n");
+		fprintf(stderr, "This may be a problem with number of inotify handles (/proc/sys/fs/inotify/max_user_instances)\n");
 		return (-1);
 	}
 

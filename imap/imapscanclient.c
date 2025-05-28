@@ -308,15 +308,6 @@ void imapscanfail(const char *p)
 #if	HAVE_STRERROR
 	fprintf(stderr, "ERR: Error: %s\n", strerror(errno));
 #endif
-
-#if	HAVE_FAM
-	if (errno == EIO)
-	{
-		fprintf(stderr,
-			"ERR: Check for proper operation and configuration\n"
-			"ERR: of the File Access Monitor daemon (famd).\n");
-	}
-#endif
 }
 
 static char *readbuf;
