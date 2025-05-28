@@ -524,6 +524,12 @@ inline void decode_rfc2047_atom(in_iter &inp,
 		;
 }
 
+template<typename in_iter_b, typename in_iter_e>
+void ignore_decoding_error(const in_iter_b &, const in_iter_e &,
+			   const char *)
+{
+}
+
 // C++ version of rfc2047_decoder, the raw RFC 2047 decoder.
 //
 // An input sequence is defined by a beginning and an ending iterator.
@@ -542,10 +548,12 @@ inline void decode_rfc2047_atom(in_iter &inp,
 // Note that the 2nd closure can call the error closure too.
 
 template<typename in_iterb,
-	 typename in_itere, typename callback_closure, typename error_closure>
+	 typename in_itere, typename callback_closure,
+	 typename error_closure=void(const in_iterb &, const in_itere &,
+				     const char *)>
 void decode(in_iterb b, in_itere e,
 	    callback_closure &&callback,
-	    error_closure &&error=[](auto b, auto e, auto error_message){})
+	    error_closure &&error=ignore_decoding_error<in_iterb, in_itere>)
 {
 	std::string charset;
 	std::string language;
@@ -622,11 +630,12 @@ void decode(in_iterb b, in_itere e,
 
 template<typename in_iterb,
 	 typename in_itere,
-	 typename unicode_iter, typename error_closure>
+	 typename unicode_iter,
+	 typename error_closure=void(in_iterb, in_itere, const char *)>
 auto decode_unicode(in_iterb &&b, in_itere &&e,
 		    unicode_iter &&iter,
-		    error_closure &&error=[](auto b, auto e,
-					     auto error_message){})
+		    error_closure &&error=ignore_decoding_error<in_iterb,
+		    in_itere>)
 {
 	std::string buffer;
 

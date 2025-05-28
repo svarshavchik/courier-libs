@@ -390,7 +390,7 @@ struct tokens : std::vector<token> {
 
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
-	static auto print(iter_typeb &&b, iter_typee &&e,
+	static auto print(iter_typeb b, iter_typee e,
 			  out_iter_type &&iter)
 	{
 		bool prev_is_atom=false;
@@ -446,7 +446,7 @@ struct tokens : std::vector<token> {
 
 	template<typename iter_typeb,
 		 typename iter_typee, typename out_iter_type>
-	static auto unquote(iter_typeb &&b, iter_typee &&e,
+	static auto unquote(iter_typeb b, iter_typee e,
 			    out_iter_type &&iter)
 	{
 		bool prev_is_atom=false;
