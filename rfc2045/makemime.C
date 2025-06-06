@@ -223,7 +223,7 @@ int	c;
 		argp->arg=strcpy((char *)(argp+1), q);
 	}
 
-	if ((*argvp=malloc(sizeof (char *) * (*argcp+1))) == 0)
+	if ((*argvp=static_cast<char **>(malloc(sizeof (char *) * (*argcp+1)))) == 0)
 	{
 		perror("malloc");
 		exit(1);
@@ -335,7 +335,7 @@ Recursively build the mimestruct tree.
 
 struct mimestruct *parseargs(int *argcp, char ***argvp)
 {
-struct mimestruct *m=malloc(sizeof(struct mimestruct));
+	struct mimestruct *m=static_cast<mimestruct *>(malloc(sizeof(struct mimestruct)));
 int argc= *argcp;
 char **argv= *argvp;
 
@@ -554,7 +554,7 @@ char **argv= *argvp;
 			while (isspace((int)(unsigned char)*f))
 				++f;
 
-			a=malloc(sizeof(struct arg_list));
+			a=static_cast<arg_list *>(malloc(sizeof(struct arg_list)));
 			if (!a)
 			{
 				perror("malloc");
@@ -945,7 +945,7 @@ int	c;
 		{
 			if (old_boundary == 0)
 			{
-				old_boundary=malloc(strlen(buffer)+1);
+				old_boundary=static_cast<char *>(malloc(strlen(buffer)+1));
 				if (!old_boundary)
 				{
 					perror("malloc");

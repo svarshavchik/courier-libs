@@ -103,7 +103,7 @@ for a formal definition of MIME-formatted messages.</para>
 Each file in a MIME message is encoded as a single MIME section. A MIME
 section consists of at least one header line,
 "<literal moreinfo="none">Content-Type:</literal>".
-The "<literal moreinfo="none">Content-Type:</literal>" header gives the type of the data 
+The "<literal moreinfo="none">Content-Type:</literal>" header gives the type of the data
 ontained in the file. Other header lines may also be present.
 Their relative order does not matter. MIME
 headers are followed by a blank line, then the contents of the file, encoded
@@ -168,7 +168,7 @@ headers. It simply
 includes them, and their content, upon request.</para>
 
       <para>
-Multiple files are formatted as a single message MIME message in two steps:
+Multiple files are formatted as a single MIME message in two steps:
 first, by creating a MIME section for each file;
 and then creating a single MIME section that contains other MIME sections.
 A "<literal moreinfo="none">multipart/mixed</literal>" MIME section contains a

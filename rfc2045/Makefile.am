@@ -41,7 +41,7 @@ reformime_DEPENDENCIES =  librfc2045.la ../rfc822/libencode.la ../rfc822/librfc8
 reformime_LDADD = $(reformime_DEPENDENCIES) -lcourier-unicode
 reformime_LDFLAGS=-static
 
-makemime_SOURCES=makemime.c
+makemime_SOURCES=makemime.C
 makemime_DEPENDENCIES= ../rfc822/libencode.la librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 makemime_LDADD = $(makemime_DEPENDENCIES) -lcourier-unicode
 makemime_LDFLAGS=-static
