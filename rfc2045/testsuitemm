@@ -29,6 +29,15 @@ echo "Tést" >confmdtest
 echo "Test Test Test Test Tést" >confmdtest
 ./makemime -c auto -C utf-8 -N text8bit confmdtest
 
+echo 'Plain text' >mmcontents1
+echo 'HTML' >mmcontents2
+
+./makemime -j \( -m multipart/mixed -a 'Mime-Version: 1.0' \( -c text/plain -C iso-8859-1 -a 'Content-Description: something' mmcontents1 \) \) -o mmtest1 \( -c text/html -C utf-8 -N name -e base64 mmcontents2 \)
+
+sed 's/boundary=.*//;/^--/d' <mmtest1
+
+rm -f mmcontents[12] mmtest1
+
 x="1234567890"
 x="$x$x$x$x$x$x$x$x$x$x"
 x="$x$x$x$x$x$x$x$x$x$x"
@@ -41,6 +50,16 @@ x="$x$x$x$x$x$x$x$x$x$x"
 x="$x$x$x$x$x$x$x$x$x$x"
 echo $x >confmdtest
 ./makemime -c auto -C utf-8 -N textbase64 confmdtest
+
+echo "test" >confmdtest
+x="1::::::::0"
+x="$x$x$x"
+x="$x$x"
+./makemime -c auto -C utf-8 -N "longname:$x" confmdtest
+./makemime -c auto -C iso-8859-1 -N "shortname" confmdtest
+./makemime -c auto -C iso-8859-1 -N "user@domain" confmdtest
+./makemime -c auto -C iso-8859-1 -N "shortname:encoded" confmdtest
+
 rm -f confmdtest
 
 ./reformime -o 'дададададададададада'

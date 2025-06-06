@@ -23,6 +23,25 @@ Content-Type: text/plain; charset="utf-8";
 Content-Transfer-Encoding: 8bit
 
 Test Test Test Test Tést
+Mime-Version: 1.0
+Content-Type: multipart/mixed; 
+Content-Transfer-Encoding: 8bit
+
+This is a MIME-formatted message.  If you see this text it means that your
+E-mail software does not support MIME-formatted messages.
+
+Content-Description: something
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+
+Plain text
+
+Content-Type: text/html; charset="utf-8";
+  name="name"
+Content-Transfer-Encoding: base64
+
+SFRNTAo=
+
 Content-Type: text/plain; charset="utf-8";
   name="textqp"
 Content-Transfer-Encoding: quoted-printable
@@ -63,6 +82,28 @@ w6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nD
 qcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOp
 w6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nD
 qcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqQo=
+Content-Type: text/plain; charset="utf-8";
+  name*0*=utf-8''longname%3A1%3A%3A%3A%3A%3A%3A%3A%3A01%3A%3A%3A%3A%3A%3A%3A;
+  name*1*=%3A01%3A%3A%3A%3A%3A%3A%3A%3A01%3A%3A%3A%3A%3A%3A%3A%3A01%3A%3A%3A;
+  name*2*=%3A%3A%3A%3A%3A01%3A%3A%3A%3A%3A%3A%3A%3A0
+Content-Transfer-Encoding: 7bit
+
+test
+Content-Type: text/plain; charset="iso-8859-1";
+  name="shortname"
+Content-Transfer-Encoding: 7bit
+
+test
+Content-Type: text/plain; charset="iso-8859-1";
+  name="user@domain"
+Content-Transfer-Encoding: 7bit
+
+test
+Content-Type: text/plain; charset="iso-8859-1";
+  name*0*=iso-8859-1''shortname%3Aencoded
+Content-Transfer-Encoding: 7bit
+
+test
 =?UTF-8?B?0LTQsNC00LDQtNCw0LTQsNC00LDQtNCw0LTQsNC00LDQtNCw0LTQsA==?=
 дададададададададада
 =?UTF-8?B?0LTQsNC00LDQtNCw0LTQsNC00LDQtNCw0LTQsNC00LDQtNCw0LTQsCDQtNCw0LQ=?= =?UTF-8?B?0LDQtNCw0LTQsNC00LDQtNCw0LTQsNC00LDQtNCw0LTQsA==?=
