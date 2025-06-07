@@ -314,7 +314,7 @@ to <replaceable>outputfile</replaceable>.</para>
 
       <cmdsynopsis sepchar=" ">
 	<command moreinfo="none">makemime</command>
-	<arg choice="req" rep="norepeat">-j <replaceable>file1</replaceable>"</arg>
+	<arg choice="req" rep="norepeat">-j <replaceable>file1</replaceable></arg>
 	<arg choice="opt" rep="norepeat">-o <replaceable>outputfile</replaceable></arg>
 	<arg choice="req" rep="norepeat"><replaceable>file2</replaceable></arg>
       </cmdsynopsis>

@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2010 Double Precision, Inc.  See COPYING for
+** Copyright 2000-2025 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -35,16 +35,14 @@
 #endif
 #include	"numlib/numlib.h"
 
+#include	<vector>
+#include	<string>
+#include	<algorithm>
+
 #if     HAS_GETHOSTNAME
 #else
 int gethostname(const char *, size_t);
 #endif
-
-
-struct arg_list {
-	struct arg_list *next;
-	char *arg;
-	} ;
 
 /******************************************************************************
 
@@ -166,15 +164,15 @@ Build argv/argc from a file.
 
 ******************************************************************************/
 
-static void read_args(int *argcp, char ***argvp, const char *file)
+static void read_args(std::vector<std::string> &args, std::string file)
 {
-FILE	*fp=openfile_or_pipe(file, "r");
-struct arg_list *argfirst=0, *arglast=0, *argp;
-char	buffer[BUFSIZ];
-char	*p;
-int	c;
+	FILE	*fp=openfile_or_pipe(file.c_str(), "r");
+	char	buffer[BUFSIZ];
+	char	*p;
+	int	c;
 
-	*argcp=0;
+	args.clear();
+
 	while (fgets(buffer, sizeof(buffer), fp) != 0)
 	{
 	const	char *q;
@@ -206,35 +204,8 @@ int	c;
 			break;
 		}
 
-		argp=(struct arg_list *)malloc(sizeof(struct arg_list)+1+
-			strlen(q));
-		if (!argp)
-		{
-			perror("malloc");
-			exit(1);
-		}
-		if (arglast)
-			arglast->next=argp;
-		else
-			argfirst=argp;
-		arglast=argp;
-		++*argcp;
-		argp->next=0;
-		argp->arg=strcpy((char *)(argp+1), q);
+		args.push_back(q);
 	}
-
-	if ((*argvp=static_cast<char **>(malloc(sizeof (char *) * (*argcp+1)))) == 0)
-	{
-		perror("malloc");
-		exit(1);
-	}
-	c=0;
-	for (argp=argfirst; argp; argp=argp->next)
-	{
-		(*argvp)[c]= argp->arg;
-		++c;
-	}
-	(*argvp)[c]=0;
 }
 
 static void usage()
@@ -294,38 +265,47 @@ struct mimestruct {
 	** Later, we open a file pointer in either case.
 	*/
 
-	const char *inputfile1, *inputfile2;
-	struct mimestruct *inputchild1, *inputchild2;
-	FILE *inputfp1, *inputfp2;
-	pid_t	child1, child2;
+	const char *inputfile1=nullptr, *inputfile2=nullptr;
+
+	// Child mimestructs, each vector will have at most 1 child struct
+	std::vector<mimestruct> inputchild1, inputchild2;
+	FILE *inputfp1=nullptr, *inputfp2=nullptr;
+	pid_t	child1=0, child2=0;
 
 	/* Output file.  Defaults to "-", stdout */
 
-	const char *outputfile;
-	FILE	*outputfp;
+	const char *outputfile=nullptr;
+	FILE	*outputfp=nullptr;
 
 		/* The handler and open functions */
 
-	void (*handler_func)(struct mimestruct *);
-	void (*open_func)(struct mimestruct *);
+	void (mimestruct::*handler_func)()=nullptr;
+	void (mimestruct::*open_func)()=nullptr;
 
+	void createsimplemime();
+	void createmultipartmime();
+	void joinmultipart();
+
+	void opencreatesimplemime();
+	void opencreatemultipartmime();
+	void openjoinmultipart();
+
+	FILE *openchild(mimestruct *child,
+			pid_t	*pidptr,
+			int usescratch);
+
+	void openoutput();
 		/* The new mime type, and encoding (-e) */
-	const char *mimetype;
-	const char *mimeencoding;
-	const char *textplaincharset;
-	const char *contentname;
+	const char *mimetype=nullptr;
+	const char *mimeencoding=nullptr;
+	const char *textplaincharset=nullptr;
+	const char *contentname=nullptr;
 
 		/* A list of -a headers */
-	struct arg_list *a_first, *a_last;
-	} ;
+	std::vector<std::string> aheaders;
 
-static void createsimplemime(struct mimestruct *);
-static void createmultipartmime(struct mimestruct *);
-static void joinmultipart(struct mimestruct *);
-
-static void opencreatesimplemime(struct mimestruct *);
-static void opencreatemultipartmime(struct mimestruct *);
-static void openjoinmultipart(struct mimestruct *);
+	void goodexit(int exitcode);
+} ;
 
 /******************************************************************************
 
@@ -333,94 +313,79 @@ Recursively build the mimestruct tree.
 
 ******************************************************************************/
 
-struct mimestruct *parseargs(int *argcp, char ***argvp)
+mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
+		     std::vector<std::string>::const_iterator &argse)
 {
-	struct mimestruct *m=static_cast<mimestruct *>(malloc(sizeof(struct mimestruct)));
-int argc= *argcp;
-char **argv= *argvp;
+	mimestruct m;
 
-	if (!m)
+	if (argsb == argse)	usage();
+
+	if (argsb->compare(0, 2, "-c") == 0)
 	{
-		perror("malloc");
-		exit(1);
-	}
-	memset(m, 0, sizeof(*m));
-
-	if (argc == 0 || argv[0][0] != '-')	usage();
-
-	if (strncmp(argv[0], "-c", 2) == 0)
-	{
-		m->handler_func= &createsimplemime;
-		m->open_func= &opencreatesimplemime;
-		if (argv[0][2])
+		m.handler_func= &mimestruct::createsimplemime;
+		m.open_func= &mimestruct::opencreatesimplemime;
+		if (argsb->size() > 2)
 		{
-			m->mimetype=argv[0]+2;
-			--argc;
-			++argv;
+			m.mimetype=argsb->c_str()+2;
+			++argsb;
 		}
 		else
 		{
-			--argc;
-			++argv;
-			if (argc && argv[0][0] != '-' && argv[0][0] != ')')
+			++argsb;
+			if (argsb != argse &&
+			    *argsb->c_str() != '-' && *argsb->c_str() != ')')
 			{
-				m->mimetype=argv[0];
-				--argc;
-				++argv;
+				m.mimetype=argsb->c_str();
+				++argsb;
 			}
 			else
-				m->mimetype="application/octet-stream";
+				m.mimetype="application/octet-stream";
 		}
 
-		while (isspace((int)(unsigned char)*m->mimetype))
-			++m->mimetype;
+		while (isspace((int)(unsigned char)*m.mimetype))
+			++m.mimetype;
 	}
-	else if (strncmp(argv[0], "-m", 2) == 0)
+	else if (argsb->compare(0, 2, "-m") == 0)
 	{
-		m->handler_func= &createmultipartmime;
-		m->open_func= &opencreatemultipartmime;
-		if (argv[0][2])
+		m.handler_func= &mimestruct::createmultipartmime;
+		m.open_func= &mimestruct::opencreatemultipartmime;
+		if (argsb->size() > 2)
 		{
-			m->mimetype=argv[0]+2;
-			--argc;
-			++argv;
+			m.mimetype=argsb->c_str()+2;
+			++argsb;
 		}
 		else
 		{
-			--argc;
-			++argv;
-			if (argc && argv[0][0] != '-' && argv[0][0] != ')')
+			++argsb;
+			if (argsb != argse && *argsb->c_str() != '-' &&
+			    *argsb->c_str() != ')')
 			{
-				m->mimetype=argv[0];
-				--argc;
-				++argv;
+				m.mimetype=argsb->c_str();
+				++argsb;
 			}
 			else
-				m->mimetype="multipart/mixed";
+				m.mimetype="multipart/mixed";
 		}
-		while (isspace((int)(unsigned char)*m->mimetype))
-			++m->mimetype;
+		while (isspace((int)(unsigned char)*m.mimetype))
+			++m.mimetype;
 	}
-	else if (strncmp(argv[0], "-j", 2) == 0)
+	else if (argsb->compare(0, 2, "-j") == 0)
 	{
-	const char *filename;
+		const char *filename;
 
-		m->handler_func= &joinmultipart;
-		m->open_func= &openjoinmultipart;
-		if (argv[0][2])
+		m.handler_func= &mimestruct::joinmultipart;
+		m.open_func= &mimestruct::openjoinmultipart;
+		if (argsb->size() > 2)
 		{
-			filename=argv[0]+2;
-			--argc;
-			++argv;
+			filename=argsb->c_str()+2;
+			++argsb;
 		}
 		else
 		{
-			--argc;
-			++argv;
-			if (argc == 0)	usage();
-			filename=argv[0];
-			--argc;
-			++argv;
+			++argsb;
+			if (argsb == argse)	usage();
+			filename=argsb->c_str();
+			++argsb;
 		}
 
 		while (isspace((int)(unsigned char)*filename))
@@ -428,144 +393,131 @@ char **argv= *argvp;
 
 		if (strcmp(filename, "(") == 0)
 		{
-			m->inputchild2=parseargs(&argc, &argv);
-			if (argc == 0 || strcmp(argv[0], ")"))
+			m.inputchild2.push_back(parseargs(argsb, argse));
+			if (argsb == argse || *argsb != ")")
 				usage();
-			--argc;
-			++argv;
+			++argsb;
 		}
 		else
-			m->inputfile2=filename;
+			m.inputfile2=filename;
 	}
 	else
 		usage();
 
 	/* Handle common options */
 
-	while (argc)
+	while (argsb != argse)
 	{
-		if (strncmp(argv[0], "-o", 2) == 0)
+		if (argsb->compare(0, 2, "-o") == 0)
 		{
-		const char *f=argv[0]+2;
+			const char *f=argsb->c_str()+2;
 
-			++argv;
-			--argc;
+			++argsb;
 			if (*f == 0)
 			{
-				if (!argc)	usage();
-				f=argv[0];
-				++argv;
-				--argc;
+				if (argsb == argse)	usage();
+				f=argsb->c_str();
+				++argsb;
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m->outputfile=f;
+			m.outputfile=f;
 			continue;
 		}
 
-		if (strncmp(argv[0], "-C", 2) == 0)
+		if (argsb->compare(0, 2, "-C") == 0)
 		{
-			char *f=argv[0]+2;
+			const char *f=argsb->c_str()+2;
 
-			++argv;
-			--argc;
-
+			++argsb;
 
 			if (*f == 0)
 			{
-				if (!argc)	usage();
-				f=argv[0];
-				++argv;
-				--argc;
+				if (argsb == argse)	usage();
+				f=argsb->c_str();
+				++argsb;
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m->textplaincharset=f;
+			m.textplaincharset=f;
 			continue;
 		}
 
-		if (strncmp(argv[0], "-N", 2) == 0)
+		if (argsb->compare(0, 2, "-N") == 0)
 		{
-			char *f=argv[0]+2;
+			const char *f=argsb->c_str()+2;
 
-			++argv;
-			--argc;
-
+			++argsb;
 
 			if (*f == 0)
 			{
-				if (!argc)	usage();
-				f=argv[0];
-				++argv;
-				--argc;
+				if (argsb == argse)	usage();
+				f=argsb->c_str();
+				++argsb;
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m->contentname=f;
+			m.contentname=f;
 			continue;
 		}
 
-		if (strncmp(argv[0], "-e", 2) == 0)
+		if (argsb->compare(0, 2, "-e") == 0)
 		{
-		char *f=argv[0]+2, *q;
+			const char *f=argsb->c_str()+2;
 
-			++argv;
-			--argc;
+			++argsb;
 
 			if (*f == 0)
 			{
-				if (!argc)	usage();
-				f=argv[0];
-				++argv;
-				--argc;
+				if (argsb == argse)	usage();
+				f=argsb->c_str();
+				++argsb;
 			}
-
-			for (q=f; *q; q++)
-				*q=tolower((int)(unsigned char)*q);
 
 			while (isspace((int)(unsigned char)*f))
 				++f;
 
-			if (strcmp(f, "7bit") && strcmp(f, "8bit") &&
-				strcmp(f, "quoted-printable") &&
-				strcmp(f, "base64"))
+			std::string buf{f};
+
+			std::for_each(buf.begin(), buf.end(),
+				      []
+				      (auto &c)
+				      {
+					      c=tolower(c);
+				      });
+
+			if (buf == "7bit")
+				f="7bit";
+			else if (buf == "8bit")
+				f="8bit";
+			else if (buf == "quoted-printable")
+				f="quoted_printable";
+			else if (buf == "base64")
+				f="base64";
+			else
 				usage();
 
-			m->mimeencoding=f;
+			m.mimeencoding=f;
 			continue;
 		}
 
-		if (strncmp(argv[0], "-a", 2) == 0)
+		if (argsb->compare(0, 2, "-a") == 0)
 		{
-		char *f=argv[0]+2;
-		struct arg_list *a;
+			const char *f=argsb->c_str()+2;
 
-			++argv;
-			--argc;
+			++argsb;
 
 			if (*f == 0)
 			{
-				if (!argc)	usage();
-				f=argv[0];
-				++argv;
-				--argc;
+				if (argsb == argse)	usage();
+				f=argsb->c_str();
+				++argsb;
 			}
 
 			while (isspace((int)(unsigned char)*f))
 				++f;
 
-			a=static_cast<arg_list *>(malloc(sizeof(struct arg_list)));
-			if (!a)
-			{
-				perror("malloc");
-				exit(1);
-			}
-			if (m->a_last)
-				m->a_last->next=a;
-			else	m->a_first=a;
-			m->a_last=a;
-			a->arg=f;
-			a->next=0;
+			m.aheaders.push_back(f);
 			continue;
 		}
 		break;
@@ -573,27 +525,22 @@ char **argv= *argvp;
 
 	/* We must now have the input file argument */
 
-	if (!argc)	usage();
+	if (argsb == argse)	usage();
 
-	if (strcmp(argv[0], "(") == 0)
+	if (*argsb == "(")
 	{
-		--argc;
-		++argv;
-		m->inputchild1=parseargs(&argc, &argv);
-		if (argc == 0 || strcmp(argv[0], ")"))
+		++argsb;
+		m.inputchild1.push_back(parseargs(argsb, argse));
+		if (argsb == argse || *argsb != ")")
 			usage();
-		--argc;
-		++argv;
+		++argsb;
 	}
 	else
 	{
-		m->inputfile1=argv[0];
-		--argc;
-		++argv;
+		m.inputfile1=argsb->c_str();
+		++argsb;
 	}
 
-	*argcp=argc;
-	*argvp=argv;
 	return (m);
 }
 
@@ -605,9 +552,9 @@ code thus propagating any child's non-zero exit code to parent.
 
 ******************************************************************************/
 
-static void goodexit(struct mimestruct *m, int exitcode)
+void mimestruct::goodexit(int exitcode)
 {
-	if (m->outputfp && (fflush(m->outputfp) || ferror(m->outputfp)))
+	if (outputfp && (fflush(outputfp) || ferror(outputfp)))
 	{
 		perror("makemime");
 		exit(1);
@@ -618,44 +565,44 @@ static void goodexit(struct mimestruct *m, int exitcode)
 	** a SIGPIPE.
 	*/
 
-	while (m->inputfp1 && !feof(m->inputfp1) && !ferror(m->inputfp1))
-		getc(m->inputfp1);
+	while (inputfp1 && !feof(inputfp1) && !ferror(inputfp1))
+		getc(inputfp1);
 
-	while (m->inputfp2 && !feof(m->inputfp2) && !ferror(m->inputfp2))
-		getc(m->inputfp2);
+	while (inputfp2 && !feof(inputfp2) && !ferror(inputfp2))
+		getc(inputfp2);
 
-	if (m->inputfp1)
+	if (inputfp1)
 	{
-		if (ferror(m->inputfp1))
+		if (ferror(inputfp1))
 		{
 			perror("makemime");
 			exitcode=1;
 		}
 
-		fclose(m->inputfp1);
+		fclose(inputfp1);
 	}
-	if (m->inputfp2)
+	if (inputfp2)
 	{
-		if (ferror(m->inputfp2))
+		if (ferror(inputfp2))
 		{
 			perror("makemime");
 			exitcode=1;
 		}
 
-		fclose(m->inputfp2);
+		fclose(inputfp2);
 	}
 
-	while (m->child1 > 0 && m->child2 > 0)
+	while (child1 > 0 && child2 > 0)
 	{
 	int	waitstat;
 	pid_t	p=wait(&waitstat);
 
 		if (p <= 0 && errno == ECHILD)	break;
 
-		if (p == m->child1)
-			m->child1=0;
-		else if (p == m->child2)
-			m->child2=0;
+		if (p == child1)
+			child1=0;
+		else if (p == child2)
+			child2=0;
 		else	continue;
 		if (waitstat)	exitcode=1;
 	}
@@ -664,23 +611,26 @@ static void goodexit(struct mimestruct *m, int exitcode)
 
 int main(int argc, char **argv)
 {
-struct	mimestruct *m;
-
 	signal(SIGCHLD, SIG_DFL);
-	if (argc > 1 && argv[1][0] == '@')
-		read_args(&argc, &argv, argv[1]+1);
-	else if (argc > 1)
+
+	if (argc)
 	{
 		--argc;
 		++argv;
 	}
 
-	m=parseargs(&argc, &argv);
-	if (argc)	usage();	/* Some arguments left */
+	std::vector<std::string> args{argv, argv+argc};
 
-	(*m->open_func)(m);
-	(*m->handler_func)(m);
-	goodexit(m, 0);
+	if (!args.empty() && *args[0].c_str() == '@')
+		read_args(args, args[0].substr(1));
+
+	auto b=args.cbegin(), e=args.cend();
+	mimestruct m{parseargs(b, e)};
+	if (b != e)	usage();	/* Some arguments left */
+
+	(m.*m.open_func)();
+	(m.*m.handler_func)();
+	m.goodexit(0);
 	return (0);
 }
 
@@ -695,16 +645,15 @@ static int do_printRfc2231Attr(const char *param,
 			       const char *value,
 			       void *voidArg)
 {
-	fprintf( ((struct mimestruct *)voidArg)->outputfp,
+	fprintf( ((mimestruct *)voidArg)->outputfp,
 		 ";\n  %s=%s", param, value);
 	return 0;
 }
 
-static void createsimplemime(struct mimestruct *m)
+void mimestruct::createsimplemime()
 {
-struct	arg_list *a;
-struct libmail_encode_info encode_info;
-const char *orig_charset=m->textplaincharset;
+	struct libmail_encode_info encode_info;
+	const char *orig_charset=textplaincharset;
 
 	/* Determine encoding by reading the file, as follows:
 	**
@@ -713,73 +662,73 @@ const char *orig_charset=m->textplaincharset;
 	** Use base64 if a null byte is found.
 	*/
 
-	if (m->mimeencoding == 0)
+	if (mimeencoding == 0)
 	{
-		long	orig_pos=ftell(m->inputfp1);
+		long	orig_pos=ftell(inputfp1);
 		int	binaryflag;
 
 		if (orig_pos == -1)
 		{
 			perror("ftell");
-			goodexit(m, 1);
+			goodexit(1);
 		}
 
-		m->mimeencoding=libmail_encode_autodetect_fpoff(m->inputfp1,
+		mimeencoding=libmail_encode_autodetect_fpoff(inputfp1,
 								0,
 								0, -1,
 								&binaryflag);
 
-		if (ferror(m->inputfp1)
-			|| fseek(m->inputfp1, orig_pos, SEEK_SET)<0)
+		if (ferror(inputfp1)
+			|| fseek(inputfp1, orig_pos, SEEK_SET)<0)
 		{
 			perror("fseek");
-			goodexit(m, 1);
+			goodexit(1);
 		}
 
-		if (strcmp(m->mimetype, "auto") == 0)
-			m->mimetype=binaryflag
+		if (strcmp(mimetype, "auto") == 0)
+			mimetype=binaryflag
 				? (orig_charset=0,
 				   "application/octet-stream"):"text/plain";
 	}
 
-	for (a=m->a_first; a; a=a->next)
-		fprintf(m->outputfp, "%s\n", a->arg);
+	for (auto &a:aheaders)
+		fprintf(outputfp, "%s\n", a.c_str());
 
-	fprintf(m->outputfp, "Content-Type: %s", m->mimetype);
+	fprintf(outputfp, "Content-Type: %s", mimetype);
 	if (orig_charset && *orig_charset)
 	{
 		const char *c;
 
-		fprintf(m->outputfp, "; charset=\"");
+		fprintf(outputfp, "; charset=\"");
 		for (c=orig_charset; *c; c++)
 		{
 			if (*c != '"' && *c != '\\')
-				putc(*c, m->outputfp);
+				putc(*c, outputfp);
 		}
-		fprintf(m->outputfp, "\"");
+		fprintf(outputfp, "\"");
 	}
 
-	if (m->contentname && *m->contentname)
+	if (contentname && *contentname)
 	{
-		const char *chset=m->textplaincharset ? m->textplaincharset
+		const char *chset=textplaincharset ? textplaincharset
 			: "utf-8";
 
-		rfc2231_attrCreate("name", m->contentname, chset, NULL,
-				   do_printRfc2231Attr, m);
+		rfc2231_attrCreate("name", contentname, chset, NULL,
+				   do_printRfc2231Attr, this);
 	}
 
-	fprintf(m->outputfp, "\nContent-Transfer-Encoding: %s\n\n",
-		m->mimeencoding);
+	fprintf(outputfp, "\nContent-Transfer-Encoding: %s\n\n",
+		mimeencoding);
 
-	libmail_encode_start(&encode_info, m->mimeencoding,
+	libmail_encode_start(&encode_info, mimeencoding,
 			     &encode_outfp,
-			     &m->outputfp);
+			     &outputfp);
 	{
 		char input_buf[BUFSIZ];
 		int n;
 
 		while ((n=fread(input_buf, 1, sizeof(input_buf),
-				m->inputfp1)) > 0)
+				inputfp1)) > 0)
 		{
 			if ( libmail_encode(&encode_info, input_buf, n))
 				break;
@@ -796,7 +745,7 @@ appear in the contents of the bounded section.
 
 ******************************************************************************/
 
-static int tryboundary(struct mimestruct *m, FILE *f, const char *bbuf)
+static int tryboundary(mimestruct *m, FILE *f, const char *bbuf)
 {
 char	buf[BUFSIZ];
 char	*p;
@@ -807,7 +756,7 @@ long	orig_pos=ftell(f);
 	if (orig_pos == -1)
 	{
 		perror("ftell");
-		goodexit(m, 1);
+		m->goodexit(1);
 	}
 
 	while ((p=fgets(buf, sizeof(buf), f)) != 0)
@@ -825,7 +774,7 @@ long	orig_pos=ftell(f);
 	if (ferror(f) || fseek(f, orig_pos, SEEK_SET)<0)
 	{
 		perror("fseek");
-		goodexit(m, 1);
+		m->goodexit(1);
 	}
 
 	return (p ? 1:0);
@@ -837,7 +786,7 @@ Create a MIME boundary for some content.
 
 ******************************************************************************/
 
-static const char *mkboundary(struct mimestruct *m, FILE *f)
+static const char *mkboundary(mimestruct *m, FILE *f)
 {
 pid_t	pid=getpid();
 time_t	t;
@@ -859,30 +808,29 @@ char	buf[NUMBUFSIZE];
 	return (bbuf);
 }
 
-static void createmultipartmime(struct mimestruct *m)
+void mimestruct::createmultipartmime()
 {
-const char *b=mkboundary(m, m->inputfp1);
-struct arg_list *a;
-int	c;
+	const char *b=mkboundary(this, inputfp1);
+	int	c;
 
-	if (m->mimeencoding == 0)
-		m->mimeencoding="8bit";
+	if (mimeencoding == 0)
+		mimeencoding="8bit";
 
-	for (a=m->a_first; a; a=a->next)
-		fprintf(m->outputfp, "%s\n", a->arg);
-	fprintf(m->outputfp, "Content-Type: %s; boundary=\"%s\"\n"
+	for (auto &a:aheaders)
+		fprintf(outputfp, "%s\n", a.c_str());
+	fprintf(outputfp, "Content-Type: %s; boundary=\"%s\"\n"
 			"Content-Transfer-Encoding: %s\n\n"
 			RFC2045MIMEMSG
 			"\n--%s\n",
-		m->mimetype, b,
-		m->mimeencoding,
+		mimetype, b,
+		mimeencoding,
 		b);
-	while ((c=getc(m->inputfp1)) != EOF)
-		putc(c, m->outputfp);
-	fprintf(m->outputfp, "\n--%s--\n", b);
+	while ((c=getc(inputfp1)) != EOF)
+		putc(c, outputfp);
+	fprintf(outputfp, "\n--%s--\n", b);
 }
 
-static void joinmultipart(struct mimestruct *m)
+void mimestruct::joinmultipart()
 {
 const char *new_boundary;
 char	*old_boundary=0;
@@ -893,14 +841,14 @@ int	c;
 
 	do
 	{
-		new_boundary=mkboundary(m, m->inputfp1);
-	} while (tryboundary(m, m->inputfp2, new_boundary));
+		new_boundary=mkboundary(this, inputfp1);
+	} while (tryboundary(this, inputfp2, new_boundary));
 
 	/* Copy the header */
 
 	for (;;)
 	{
-		if (fgets(buffer, sizeof(buffer), m->inputfp2) == 0)
+		if (fgets(buffer, sizeof(buffer), inputfp2) == 0)
 		{
 			buffer[0]=0;
 			break;
@@ -912,29 +860,29 @@ int	c;
 
 		if (strncasecmp(buffer, "content-type:", 13))
 		{
-			fprintf(m->outputfp, "%s", buffer);
+			fprintf(outputfp, "%s", buffer);
 			if ((p=strchr(buffer, '\n')) != 0)	continue;
-			while ((c=getc(m->inputfp2)) != EOF && c != '\n')
-				putc(c, m->outputfp);
+			while ((c=getc(inputfp2)) != EOF && c != '\n')
+				putc(c, outputfp);
 			continue;
 		}
 
 		if ((p=strchr(buffer, '\n')) == 0)
-			while ((c=getc(m->inputfp2)) != EOF && c != '\n')
+			while ((c=getc(inputfp2)) != EOF && c != '\n')
 				;
 
 		p=strchr(buffer+13, ';');
 		if (p)	*p=0;
-		fprintf(m->outputfp, "Content-Type:%s; boundary=\"%s\"\n",
+		fprintf(outputfp, "Content-Type:%s; boundary=\"%s\"\n",
 			buffer+13, new_boundary);
 
 		for (;;)
 		{
-			c=getc(m->inputfp2);
-			if (c != EOF)	ungetc(c, m->inputfp2);
+			c=getc(inputfp2);
+			if (c != EOF)	ungetc(c, inputfp2);
 			if (c == '\n' || !isspace((int)(unsigned char)c))
 				break;
-			while ((c=getc(m->inputfp2)) != EOF && c != '\n')
+			while ((c=getc(inputfp2)) != EOF && c != '\n')
 				;
 		}
 	}
@@ -971,7 +919,7 @@ int	c;
 			{
 				if ((p=strchr(buffer, '\n')) != 0)
 					*p=0;
-				else while ((c=getc(m->inputfp2)) != '\n'
+				else while ((c=getc(inputfp2)) != '\n'
 					&& c != EOF)
 					;
 
@@ -981,24 +929,24 @@ int	c;
 
 				if (c >= 4 && strcmp(buffer+(c-2), "--") == 0)
 					break;
-				fprintf(m->outputfp, "--%s\n",
+				fprintf(outputfp, "--%s\n",
 					new_boundary);
 				continue;
 			}
 		}
-		fprintf(m->outputfp, "%s", buffer);
+		fprintf(outputfp, "%s", buffer);
 		if ((p=strchr(buffer, '\n')) == 0)
-			while ((c=getc(m->inputfp2)) != '\n' && c != EOF)
+			while ((c=getc(inputfp2)) != '\n' && c != EOF)
 				;
-	} while (fgets(buffer, sizeof(buffer), m->inputfp2) != 0);
+	} while (fgets(buffer, sizeof(buffer), inputfp2) != 0);
 
-	fprintf(m->outputfp, "--%s\n", new_boundary);
+	fprintf(outputfp, "--%s\n", new_boundary);
 
-	while ((c=getc(m->inputfp1)) != EOF)
-		putc(c, m->outputfp);
+	while ((c=getc(inputfp1)) != EOF)
+		putc(c, outputfp);
 
-	fprintf(m->outputfp, "\n--%s--\n", new_boundary);
-	goodexit(m, 0);
+	fprintf(outputfp, "\n--%s--\n", new_boundary);
+	goodexit(0);
 }
 
 /******************************************************************************
@@ -1007,9 +955,9 @@ Open input from a child process
 
 ******************************************************************************/
 
-static FILE *openchild(struct mimestruct *parent, struct mimestruct *child,
-	pid_t	*pidptr,
-	int usescratch)
+FILE *mimestruct::openchild(mimestruct *child,
+			    pid_t	*pidptr,
+			    int usescratch)
 {
 int	pipefd[2];
 char	buf[NUMBUFSIZE];
@@ -1040,14 +988,14 @@ FILE	*fp;
 
 		/* Close any input files opened by parent */
 
-		if (parent->inputfp1)	fclose(parent->inputfp1);
-		if (parent->inputfp2)	fclose(parent->inputfp2);
+		if (inputfp1)	fclose(inputfp1);
+		if (inputfp2)	fclose(inputfp2);
 
 		/* Open, then execute the child process */
 
-		(*child->open_func)(child);
-		(*child->handler_func)(child);
-		goodexit(child, 0);
+		(child->*child->open_func)();
+		(child->*child->handler_func)();
+		child->goodexit(0);
 	}
 	close(pipefd[1]);
 
@@ -1064,47 +1012,47 @@ FILE	*fp;
 	return (fp);
 }
 
-static void openoutput(struct mimestruct *m)
+void mimestruct::openoutput()
 {
-	if (!m->outputfile)
-		m->outputfile="-";
+	if (!outputfile)
+		outputfile="-";
 
-	m->outputfp= openfile_or_pipe(m->outputfile, "w");
+	outputfp= openfile_or_pipe(outputfile, "w");
 }
 
-static void openjoinmultipart(struct mimestruct *m)
+void mimestruct::openjoinmultipart()
 {
 	/* number two is the multipart section */
-	if (m->inputchild2)
-		m->inputfp2=openchild(m, m->inputchild2, &m->child2, 1);
+	if (inputchild2.size())
+		inputfp2=openchild(&inputchild2[0], &child2, 1);
 	else
-		m->inputfp2=openfile(m->inputfile2);
+		inputfp2=openfile(inputfile2);
 
 
-	if (m->inputchild1)
-		m->inputfp1=openchild(m, m->inputchild1, &m->child1, 1);
+	if (inputchild1.size())
+		inputfp1=openchild(&inputchild1[0], &child1, 1);
 	else
-		m->inputfp1=openfile(m->inputfile1);
-	openoutput(m);
+		inputfp1=openfile(inputfile1);
+	openoutput();
 }
 
-static void opencreatesimplemime(struct mimestruct *m)
+void mimestruct::opencreatesimplemime()
 {
-	if (m->inputchild1)
-		m->inputfp1=openchild(m, m->inputchild1, &m->child1,
-			m->mimeencoding ? 0:1);
+	if (inputchild1.size())
+		inputfp1=openchild(&inputchild1[0], &child1,
+			mimeencoding ? 0:1);
 	else
-		m->inputfp1= m->mimeencoding
-			? openfile_or_pipe(m->inputfile1, "r")
-			: openfile(m->inputfile1);
-	openoutput(m);
+		inputfp1= mimeencoding
+			? openfile_or_pipe(inputfile1, "r")
+			: openfile(inputfile1);
+	openoutput();
 }
 
-static void opencreatemultipartmime(struct mimestruct *m)
+void mimestruct::opencreatemultipartmime()
 {
-	if (m->inputchild1)
-		m->inputfp1=openchild(m, m->inputchild1, &m->child1, 1);
+	if (inputchild1.size())
+		inputfp1=openchild(&inputchild1[0], &child1, 1);
 	else
-		m->inputfp1=openfile_or_pipe(m->inputfile1, "r");
-	openoutput(m);
+		inputfp1=openfile_or_pipe(inputfile1, "r");
+	openoutput();
 }
