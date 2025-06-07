@@ -24,6 +24,7 @@
 #include <map>
 #include <optional>
 #include <variant>
+#include <charconv>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 
@@ -754,6 +755,216 @@ char *rfc6533_decode(const char *address);
 #endif
 
 #ifdef  __cplusplus
+}
+
+/*
+  Build an RFC 2231-encoded name*=value.
+
+  name, value, charset, language: see RFC 2231.
+
+  The callback gets called 1 or more time, with two const char *parameters,
+
+  NOTE: the sum total of name+charset+language cannot exceed 60 characters.
+
+  RFC2231 encoding is not used if:
+
+  - the sum total of octets in name and value does not exceed 75 characters,
+
+  - the value does not contain 8 bit or special characters.
+
+  - language is an empty string.
+
+  - charset is either empty, "us-ascii", "utf-8" or "iso-8859-1".
+
+  If so the callback gets invoked once, with the name and address passed in,
+  as is. Otherwise RFC 2231 encoding is used and the callback gets invoked
+  one or more times.
+
+  rfc2331_attr_encode returns the value returned from the callback (possibly
+  void). Additionally, if the callback returns an integral value: a non-zero
+  return from the callback aborts encoding (if RFC 2231 encoding is in use)
+  and returns the non-0 returned value, and a 0 value is returned if all
+  calls to the callback returned 0.
+*/
+
+
+inline bool rfc2231_do_encode(char c)
+{
+	switch (c) {
+	case '(':
+	case ')':
+	case '\'':
+	case '"':
+	case '\\':
+	case '%':
+	case ':':
+	case ';':
+	case '=':
+		return true;
+	}
+
+	return c <= ' ' || c >= 127;
+}
+
+template<typename C, bool integral_return=std::is_integral_v<decltype(
+	std::declval<C &&>()(std::declval<const char *>(),
+			     std::declval<const char *>()))>>
+auto rfc2231_attr_encode(std::string_view name,
+			 std::string_view value,
+			 std::string_view charset,
+			 std::string_view language,
+			 C &&callback)
+{
+	if (name.size() > 60 ||
+	    charset.size() > 60 ||
+	    language.size() > 60 ||
+	    name.size()+charset.size()+language.size() > 60)
+	{
+		// Sanity check
+
+		errno=EINVAL;
+		if constexpr(integral_return)
+		{
+			return -1;
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	if (name.size() + value.size() <= 75 &&
+	    language.empty() &&
+	    std::find_if(value.begin(), value.end(), rfc2231_do_encode) ==
+	    value.end())
+	{
+		if (charset.size() < 20)
+		{
+			char buf[20];
+
+			*std::transform(charset.begin(),
+					charset.end(),
+					buf,
+					[]
+					(char c)
+					{
+						if (c >= 'A' && c <= 'Z')
+						{
+							c += 'a'-'A';
+						}
+						return c;
+					})=0;
+
+			std::string_view sbuf{buf};
+
+			if (sbuf.empty() ||
+			    sbuf == "utf-8" ||
+			    sbuf == "us-ascii" ||
+			    sbuf == "iso-8859-1")
+			{
+				char name_buf[name.size()+1];
+				char value_buf[value.size()+3];
+
+				*std::copy(name.data(), name.data()+
+					   name.size(), name_buf)=0;
+
+				bool quotes_needed=std::find_if(
+					value.begin(),
+					value.end(),
+					[]
+					(char c)
+					{
+						static const char specials[]=
+							RFC822_SPECIALS;
+
+						return std::find(
+							std::begin(specials),
+							std::end(specials),
+							c) !=
+							std::end(specials);
+					}) != value.end();
+
+				char *p=value_buf;
+
+				if (quotes_needed)
+					*p++='"';
+				p=std::copy(value.data(), value.data()+
+					    value.size(), p);
+
+				if (quotes_needed)
+					*p++='"';
+				*p=0;
+
+				return callback(name_buf, value_buf);
+			}
+		}
+	}
+
+	size_t n=0;
+
+	auto vb=value.begin();
+	auto ve=value.end();
+
+	// name+charset+language is less than 60 chars
+
+	char buf[100];
+
+	do
+	{
+		auto b=std::begin(buf);
+		auto e=b+70;
+
+		b=std::copy(name.begin(), name.end(), b);
+		*b++='*';
+
+		b=std::to_chars(b, e, n).ptr;
+
+		*b++='*';
+		*b++=0;
+		char *value_begin=b;
+
+		if (n == 0)
+		{
+			b=std::copy(charset.begin(), charset.end(), b);
+			*b++='\'';
+			b=std::copy(language.begin(), language.end(), b);
+			*b++='\'';
+		}
+
+		++n;
+
+		while (b < e && vb < ve)
+		{
+			if (rfc2231_do_encode(*vb))
+			{
+				*b++='%';
+				*b++="0123456789ABCDEF"[ (*vb >> 4) & 15];
+				*b++="0123456789ABCDEF"[ *vb & 15];
+			}
+			else
+				*b++=*vb;
+			++vb;
+		}
+
+		*b=0;
+
+		if constexpr(integral_return)
+		{
+			auto v=callback(buf, value_begin);
+
+			if (v != 0)
+				return v;
+		}
+		else
+		{
+			callback(buf, value_begin);
+		}
+	} while (vb < ve);
+
+	if constexpr (integral_return)
+	{
+		return 0;
+	}
 }
 
 /*

@@ -219,7 +219,7 @@ line-count: 6
 body-line-count: 1
 
 Content-Type: application/octet-stream; charset="utf-8";
-  name="footest"
+  name=footest
 Content-Transfer-Encoding: 7bit
 
 foo
@@ -229,8 +229,8 @@ Content-Transfer-Encoding: 7bit
 
 foo
 Content-Type: application/octet-stream; charset="utf-8";
-  name*0*=utf-8''f%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A;
-  name*1*=%3A%3A%3A%3A%3A%3A1
+  name*0*=utf-8''f%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A;
+  name*1*=%3A%3A%3A%3A%3A%3A%3A1
 Content-Transfer-Encoding: 7bit
 
 foo

@@ -30,7 +30,7 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C \
 		     rfc2045decodemimesectionu.c rfc2045header.c \
 		     rfc2045reply.c \
 		     rfc2045decodemsgtoutf8.c \
-		     rfc2231.c rfc2231encode.c \
+		     rfc2231.c rfc2231encode.C \
 		     rfc3676parser.h rfc3676parser.c rfc3676parsercpp.C \
                      rfc6533.c \
 		     base64.c base64.h
@@ -42,9 +42,10 @@ reformime_LDADD = $(reformime_DEPENDENCIES) -lcourier-unicode
 reformime_LDFLAGS=-static
 
 makemime_SOURCES=makemime.c
-makemime_DEPENDENCIES= ../rfc822/libencode.la ../rfc822/librfc822.la librfc2045.la ../numlib/libnumlib.la
+makemime_DEPENDENCIES= ../rfc822/libencode.la librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 makemime_LDADD = $(makemime_DEPENDENCIES) -lcourier-unicode
 makemime_LDFLAGS=-static
+nodist_EXTRA_makemime_SOURCES=forcecpp.cc
 
 headercheck_SOURCES=headercheck.c
 headercheck_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
