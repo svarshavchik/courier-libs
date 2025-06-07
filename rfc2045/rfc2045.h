@@ -52,6 +52,14 @@ int rfc2045_message_headers_content_type(const char *);
 #define	RFC2045_ISMIME1(p)	((p) && atoi(p) == 1)
 #define	RFC2045_ISMIME1DEF(p)	(!(p) || atoi(p) == 1)
 
+#define	RFC2045_ERR8BITHEADER	1	/* 8 bit characters in headers */
+	/* But this is now OK, in UTF8 mode */
+
+#define	RFC2045_ERR8BITCONTENT	2	/* 8 bit contents, but no 8bit
+					content-transfer-encoding */
+#define	RFC2045_ERR2COMPLEX	4	/* Too many nested contents */
+#define RFC2045_ERRBADBOUNDARY	8	/* Overlapping MIME boundaries */
+
 struct rfc2045 {
 #ifdef __cplusplus
 	class entity;
@@ -115,14 +123,6 @@ struct rfc2045 {
 	int	hasraw8bitchars; /* For rewriting */
 	int	haslongline;	/* For rewriting */
 	unsigned rfcviolation;	/* Boo-boos */
-
-#define	RFC2045_ERR8BITHEADER	1	/* 8 bit characters in headers */
-	/* But this is now OK, in UTF8 mode */
-
-#define	RFC2045_ERR8BITCONTENT	2	/* 8 bit contents, but no 8bit
-					content-transfer-encoding */
-#define	RFC2045_ERR2COMPLEX	4	/* Too many nested contents */
-#define RFC2045_ERRBADBOUNDARY	8	/* Overlapping MIME boundaries */
 
 	unsigned numparts;	/* # of parts allocated */
 
