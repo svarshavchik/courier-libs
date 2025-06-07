@@ -2,7 +2,6 @@
 # Copyright 1998 - 2005 Double Precision, Inc.  See COPYING for
 # distribution information.
 
-AM_CXXFLAGS=@COURIER_UNICODE_CXXFLAGS@
 AM_CFLAGS=@PCRE_CFLAGS@
 
 noinst_LTLIBRARIES=libmaildir.la

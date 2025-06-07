@@ -101,6 +101,5 @@ esac
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
-echo "libidn=$libidn" >rfc822.config
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

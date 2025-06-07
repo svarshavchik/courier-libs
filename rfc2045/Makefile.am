@@ -11,7 +11,7 @@ AM_CXXFLAGS=@COURIER_UNICODE_CXXFLAGS@
 BUILT_SOURCES=reformime.html reformime.1 makemime.html makemime.1 \
 	rfc2045.html rfc2045.3
 
-EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn testsuite.txt.noidn \
+EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn \
 	testsuitemm testsuitemm.txt \
 	testrfc3676parsersuite testrfc3676parsersuite.txt
 
@@ -77,14 +77,8 @@ rfc2045.3: rfc2045.sgml ../docbook/sgml2html
 	../docbook/sgml2man rfc2045.sgml rfc2045.3 "--stringparam man.base.url.for.relative.links http://www.courier-mta.org/maildrop/"
 endif
 
-if HAVE_LIBIDN
-TESTSUITE=testsuite.txt.idn
-else
-TESTSUITE=testsuite.txt.noidn
-endif
-
 check-am:
-	@SHELL@ $(srcdir)/testsuite | diff -U 3 $(srcdir)/$(TESTSUITE) -
+	@SHELL@ $(srcdir)/testsuite | diff -U 3 $(srcdir)/testsuite.txt.idn -
 	@SHELL@ $(srcdir)/testsuitemm | diff -U 3 $(srcdir)/testsuitemm.txt -
 	@SHELL@ $(srcdir)/testrfc3676parsersuite | diff -U 3 $(srcdir)/testrfc3676parsersuite.txt -
 	./testrfc6533parser

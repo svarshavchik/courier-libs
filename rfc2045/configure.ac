@@ -87,8 +87,5 @@ AC_SUBST(RFC2045CHARSET)
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
-. ../rfc822/rfc822.config
-
-AM_CONDITIONAL(HAVE_LIBIDN, test "$libidn" = "yes")
 AC_CONFIG_FILES([Makefile rfc2045charset.h])
 AC_OUTPUT
