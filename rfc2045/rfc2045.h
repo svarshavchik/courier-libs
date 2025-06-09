@@ -25,14 +25,11 @@
 #include <optional>
 #include <variant>
 #include <charconv>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
-
-extern "C" {
-#endif
-
-#if 0
-}
 #endif
 
 #define RFC2045_MIME_MESSAGE_RFC822 "message/rfc822"
@@ -45,9 +42,25 @@ extern "C" {
 #define RFC2045_MIME_MESSAGE_HEADERS "text/rfc822-headers"
 #define RFC2045_MIME_MESSAGE_GLOBAL_HEADERS "message/global-headers"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if 0
+}
+#endif
+
 int rfc2045_message_content_type(const char *);
 int rfc2045_delivery_status_content_type(const char *);
 int rfc2045_message_headers_content_type(const char *);
+
+#if 0
+{
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #define	RFC2045_ISMIME1(p)	((p) && atoi(p) == 1)
 #define	RFC2045_ISMIME1DEF(p)	(!(p) || atoi(p) == 1)
@@ -65,6 +78,8 @@ struct rfc2045 {
 	class entity;
 	class entity_info;
 	class entity_parse_meta;
+	class entity_parser_base;
+	template<bool crlf> class entity_parser;
 
 	enum class cte { error=0, sevenbit='7', eightbit='8', qp='Q',
 			 base64='B'};
@@ -171,6 +186,13 @@ struct rfc2045attr {
 	char *name;
 	char *value;
 	} ;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 
 struct rfc2045 *rfc2045_alloc();
 void rfc2045_parse(struct rfc2045 *, const char *, size_t);
@@ -2100,6 +2122,103 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		);
 	}
 }
+
+/* Push interface for the rfc2045 parser
+
+   Push content to parse via rfc2045 one chunk at a time.
+
+   A separate execution thread gets started, which invokes parse(), and
+   the parsed chunks are fed to it.
+
+   entity_parser<bool> parser;
+
+   parser.parse(std::istreambuf_iterator<char>(stream),
+                std::istreambuf_iterator<char>{});
+
+   entity e=parser.parsed_entity();
+
+   The template parameter specifies whether the MIME entity uses LF (false)
+   or CRLF (true) newline sequences.
+
+   After constructing parse() can be called repeatedly to define the MIME
+   entity to parse. Each call to parse() might block to wait for the
+   execution thread to finish parsing the previous block.
+
+   After the entire MIME entity is parse()d, parsed_entity() stops the
+   execution thread and returns the parsed entity.
+ */
+
+class rfc2045::entity_parser_base {
+
+protected:
+	entity entity_getting_parsed;
+	std::thread parsing_thread;
+private:
+
+	std::mutex m;
+	std::condition_variable c;
+
+	bool thread_finished{false};
+	bool end_of_parse{false};
+
+	bool has_content_to_parse{false};
+	std::string content_to_parse;
+
+public:
+	entity_parser_base();
+	~entity_parser_base();
+
+
+#ifndef RFC2045_ENTITY_PARSER_TEST
+#define RFC2045_ENTITY_PARSER_TEST(a) do {} while (0)
+#define RFC2045_ENTITY_PARSER_DECL(a) do {} while (0)
+#endif
+
+	template<typename beg_iter, typename end_iter>
+	void parse(beg_iter &&b, end_iter &&e)
+	{
+		std::unique_lock lock{m};
+
+		c.wait(lock,
+		       [this]
+		       {
+			       return thread_finished || end_of_parse ||
+				       !has_content_to_parse;
+		       });
+
+		if (thread_finished || end_of_parse)
+		{
+			RFC2045_ENTITY_PARSER_TEST("parser: chunk (ignored)");
+			return;
+		}
+
+		content_to_parse.clear();
+
+		std::copy(b, e, std::back_inserter(content_to_parse));
+		has_content_to_parse=true;
+		RFC2045_ENTITY_PARSER_TEST("parser: chunk");
+		c.notify_all();
+	}
+
+	// Used internally to retrieve the next chunk to parse
+	bool get_next_chunk(std::string &chunk);
+
+	entity &&parsed_entity();
+};
+
+template<bool crlf>
+class rfc2045::entity_parser : entity_parser_base {
+
+public:
+	entity_parser();
+	~entity_parser();
+
+	using entity_parser_base::parse;
+	using entity_parser_base::parsed_entity;
+};
+
+extern template class rfc2045::entity_parser<false>;
+extern template class rfc2045::entity_parser<true>;
 
 #endif
 

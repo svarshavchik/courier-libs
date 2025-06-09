@@ -4,7 +4,7 @@
 
 noinst_LTLIBRARIES=librfc2045.la
 noinst_PROGRAMS=reformime makemime headercheck testrfc3676parser \
-	testsuitecpp \
+	testsuitecpp testsuitecpp2 \
 	testrfc6533parser
 
 AM_CXXFLAGS=@COURIER_UNICODE_CXXFLAGS@
@@ -60,9 +60,13 @@ testrfc6533parser_SOURCES=testrfc6533parser.c
 testrfc6533parser_DEPENDENCIES=librfc2045.la
 testrfc6533parser_LDADD=$(testrfc6533parser_DEPENDENCIES) -lcourier-unicode
 
-testsuitecpp_SOURCES=testsuitecpp.C
+testsuitecpp_SOURCES=testsuitecpp.C testsuitecpp.H
 testsuitecpp_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la
 testsuitecpp_LDADD=$(testsuitecpp_DEPENDENCIES) -lcourier-unicode
+
+testsuitecpp2_SOURCES=testsuitecpp2.C testsuitecpp.H
+testsuitecpp2_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la
+testsuitecpp2_LDADD=$(testsuitecpp2_DEPENDENCIES) -lcourier-unicode -lpthread
 
 if HAVE_SGML
 reformime.html: reformime.sgml ../docbook/sgml2html
@@ -90,3 +94,4 @@ check-am:
 	@SHELL@ $(srcdir)/testrfc3676parsersuite | diff -U 3 $(srcdir)/testrfc3676parsersuite.txt -
 	./testrfc6533parser
 	./testsuitecpp
+	./testsuitecpp2
