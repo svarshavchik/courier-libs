@@ -1,5 +1,5 @@
 /*
-** Copyright 2003-2011 Double Precision, Inc.  See COPYING for
+** Copyright 2003-2025 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -9,31 +9,28 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<courier-unicode.h>
+#include	<functional>
 
 namespace {
 #if 0
 }
 #endif
 
-template<typename GETC>
-static const char *libmail_encode_autodetect(int use7bit,
-					     GETC &&getc,
-					     int *binaryflag)
-{
-	int	l=0;
-	int	longline=0;
-	int c;
+struct libmail_encode_autodetect {
 
-	size_t charcnt=0;
-	size_t bit8cnt=0;
+	bool use7bit{false};
+	bool binaryflag{false};
 
-	if (binaryflag)
-		*binaryflag=0;
+	size_t l{0};
+	bool longline{false};
 
-	while ((c = getc()) != EOF)
+	size_t charcnt{0};
+	size_t bit8cnt{0};
+
+	const char *encoding{0};
+
+	void operator()(unsigned char ch)
 	{
-		unsigned char ch= (unsigned char)c;
-
 		++charcnt;
 
 		++l;
@@ -48,30 +45,36 @@ static const char *libmail_encode_autodetect(int use7bit,
 
 		if (ch == 0)
 		{
-			if (binaryflag)
-				*binaryflag=1;
-
-			return "base64";
+			binaryflag=true;
+			encoding="base64";
 		}
 
 		if (ch == '\n')	l=0;
 		else if (l > 990)
 		{
-			longline=1;
+			longline=true;
 		}
-
 	}
 
-	if (use7bit || longline)
+	operator const char *()
 	{
-		if (bit8cnt > charcnt / 10)
-			return "base64";
-
-		return "quoted-printable";
+		if (!encoding)
+		{
+			if (use7bit || longline)
+			{
+				if (bit8cnt > charcnt / 10)
+					encoding="base64";
+				else
+					encoding="quoted-printable";
+			}
+			else
+			{
+				encoding=bit8cnt ? "8bit":"7bit";
+			}
+		}
+		return encoding;
 	}
-
-	return bit8cnt ? "8bit":"7bit";
-}
+};
 
 #if 0
 {
@@ -101,17 +104,29 @@ const char *libmail_encode_autodetect_fpoff(FILE *fp, int use7bit,
 			pos = start_pos;
 	}
 
-	rc = libmail_encode_autodetect(use7bit,
-				       [&]
-				       {
-					       if (end_pos >= 0 &&
-						   pos > end_pos)
-						       return EOF;
+	libmail_encode_autodetect detect;
 
-					       ++pos;
-					       return getc(fp);
-				       },
-				       binaryflag);
+	detect.use7bit=use7bit != 0;
+
+	while (!detect.encoding)
+	{
+		if (end_pos >= 0 && pos > end_pos)
+			break;
+
+		++pos;
+
+		auto ch=getc(fp);
+
+		if (ch == EOF)
+			break;
+
+		detect(ch);
+	}
+
+	rc=detect;
+
+	if (binaryflag)
+		*binaryflag=detect.binaryflag ? 1:0;
 
 	if (fseek(fp, orig_pos, SEEK_SET) == (off_t)-1)
 		return NULL;
@@ -120,15 +135,17 @@ const char *libmail_encode_autodetect_fpoff(FILE *fp, int use7bit,
 
 const char *libmail_encode_autodetect_buf(const char *str, int use7bit)
 {
-	return libmail_encode_autodetect(use7bit,
-					 [&]
-					 ()-> int
-					 {
-						 if (!*str)
-							 return EOF;
-						 return static_cast<
-							 unsigned char
-							 >(*str++);
-					 },
-					 NULL);
+	libmail_encode_autodetect detect;
+
+	detect.use7bit=use7bit != 0;
+
+	while (*str)
+	{
+		if (detect.encoding)
+			break;
+
+		detect(*str++);
+	}
+
+	return detect;
 }

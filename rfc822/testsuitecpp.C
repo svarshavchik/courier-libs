@@ -756,4 +756,133 @@ int main()
 		"utf-8",
 		cout_iter);
 	std::cout << "\n";
+
+	FILE *fp=tmpfile();
+
+#ifndef BUFSIZ
+#define BUFSIZ 8192
+#endif
+
+	for (int i=0; i<BUFSIZ*2 / 256; ++i)
+	{
+		for (int j=0; j<256; ++j)
+		{
+			fputc(i, fp);
+		}
+	}
+	fflush(fp);
+
+#define FAIL() do { std::cout << "fdstreambuf test failed at " \
+			      << __LINE__ << "\n"; } while(0);
+
+	rfc822::fdstreambuf fds{dup(fileno(fp))};
+
+	fds.pubseekpos(0);
+
+	std::iostream ios{&fds};
+
+	for (int i=0; i<256; ++i)
+		if (ios.get() != 0) FAIL();
+
+	{
+		rfc822::fdstreambuf fds2{ std::move(fds) };
+
+		std::iostream ios2(&fds2);
+
+		if (ios2.get() != 1) FAIL();
+
+		fds=std::move(fds2);
+	}
+
+	if (ios.get() != 1) FAIL();
+	fds.pubseekoff(-3, std::ios_base::cur);
+	if (ios.get() != 0) FAIL();
+
+	ios << "AA";
+
+	if (ios.get() != 1) FAIL();
+	fds.pubseekpos(255);
+
+	if (ios.get() != 0) FAIL();
+	if (ios.get() != 'A') FAIL();
+	if (ios.get() != 'A') FAIL();
+	if (ios.get() != 1) FAIL();
+	fds.pubseekpos(0);
+
+	for (char i='A'; i <= 'Z'; ++i)
+		for (int j=0; j<1024; ++j)
+			ios << i;
+
+	fds.pubseekpos(0);
+	for (char i='A'; i <= 'Z'; ++i)
+		for (int j=0; j<1024; ++j)
+			if (ios.get() != i) FAIL();
+
+	fds.pubseekpos(0);
+	for (int i=0; i<128; i++)
+		if (ios.get() < 0) FAIL();
+
+	char *p=new char[26 * 1024];
+	char *q=new char[26 * 1024];
+
+	for (int i='a'; i <= 'z'; ++i)
+	{
+		for (int j=0; j<1024; ++j)
+			p[(i-'a')*1024+j]=i;
+	}
+
+	if (fds.sputn(p, 26 * 1024) != 26 * 1024) FAIL();
+
+	fds.pubseekpos(0);
+	for (int i=0; i<128; i++)
+		if (ios.get() < 0) FAIL();
+
+	if (fds.sgetn(q, 26 * 1024) != 26 * 1024) FAIL();
+
+	for (int i=0; i<26 * 1024; ++i)
+		if (p[i] != q[i]) FAIL();
+
+	for (int i=0; i<256; ++i)
+		p[i]=i;
+
+	fds.pubseekpos(0);
+
+	for (int i=0; i<64; ++i)
+		ios << p[i];
+
+	if (fds.sputn(p+64,128) != 128) FAIL();
+
+	for (int i=64+128; i<256; ++i)
+		ios << p[i];
+
+	fds.pubseekpos(0);
+
+	for (int i=0; i<32; ++i)
+		if ((char)ios.get() != p[i]) FAIL();
+
+	if (fds.sgetn(q+32, 128) != 128) FAIL();
+
+	for (int i=32; i<32+128; ++i)
+		if (q[i] != p[i]) FAIL();
+
+	for (int i=32+128; i<256; ++i)
+		if ((char)ios.get() != p[i]) FAIL();
+
+	delete[] p;
+	delete[] q;
+	fclose(fp);
+
+	fp=tmpfile();
+	{
+		rfc822::fdstreambuf fds{dup(fileno(fp))};
+
+		std::ostream o{&fds};
+
+		o << 'X';
+	}
+
+	fseek(fp, 0L, SEEK_SET);
+	if (fgetc(fp) != 'X') FAIL();
+
+	return 0;
 }

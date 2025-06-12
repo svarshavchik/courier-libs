@@ -332,6 +332,7 @@ void rfc822print_token(int token_token,
 #include <functional>
 #include <iterator>
 #include <type_traits>
+#include <streambuf>
 
 namespace rfc822 {
 #if 0
@@ -1383,6 +1384,54 @@ struct addresses : std::vector<address> {
 // a list of addresses.
 
 bool header_is_addr(std::string_view header_name);
+
+// Subclass std::streambuf and implement it on top of a file descriptor. The
+// file descriptor is not owned by fdstreambuf.
+//
+// Maybe someday this nonsense will really be a part of C++
+
+class fdstreambuf : public std::streambuf {
+
+	int fd{-1};
+
+	char *defaultbuf{nullptr};
+
+public:
+	fdstreambuf(int fd=-1) : fd{fd} {}
+
+	fdstreambuf(fdstreambuf &&o) noexcept
+	{
+		operator=(std::move(o));
+	}
+	~fdstreambuf();
+
+	int fileno() const { return fd; }
+
+	pos_type tell()
+	{
+		return pubseekoff(0, std::ios_base::cur);
+	}
+	fdstreambuf &operator=(fdstreambuf &&) noexcept;
+
+protected:
+	fdstreambuf *setbuf(char *, std::streamsize) override;
+
+	pos_type seekoff(off_type off, std::ios_base::seekdir dir,
+			 std::ios_base::openmode which) override;
+
+	pos_type seekpos(pos_type pos,
+			 std::ios_base::openmode which) override;
+
+	int sync() override;
+
+	int_type underflow() override;
+
+	std::streamsize xsgetn(char* s, std::streamsize count ) override;
+
+	int_type overflow(int_type ch) override;
+
+	std::streamsize xsputn(const char *s, std::streamsize count ) override;
+};
 
 #if 0
 {
