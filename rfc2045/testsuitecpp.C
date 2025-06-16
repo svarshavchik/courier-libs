@@ -562,8 +562,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 2
@@ -580,8 +579,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 3
@@ -599,8 +597,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 4
@@ -617,8 +614,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 5
@@ -635,8 +631,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 6
@@ -657,8 +652,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 7
@@ -685,7 +679,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					61   , // startpos
@@ -699,8 +692,7 @@ void testmimeparse()
 					"", cte::eightbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		},
@@ -736,7 +728,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					95   , // startpos
@@ -750,8 +741,7 @@ void testmimeparse()
 					"", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				},
 				{
 					158  , // startpos
@@ -765,8 +755,7 @@ void testmimeparse()
 					"", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		},
@@ -808,7 +797,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					86   , // startpos
@@ -823,7 +811,6 @@ void testmimeparse()
 					0, // has8bitheader
 					0, // has8bitbody
 					0, // has8bitcontentchar
-					0, // haslongquotedline
 					{
 						{
 							141  , // startpos
@@ -837,8 +824,7 @@ void testmimeparse()
 							"", cte::sevenbit,
 							0, // has8bitheader
 							0, // has8bitbody
-							0, // has8bitcontentchar
-							0  // haslongquotedline
+							0  // has8bitcontentchar
 						},
 						{
 							176  , // startpos
@@ -852,8 +838,7 @@ void testmimeparse()
 							"", cte::sevenbit,
 							0, // has8bitheader
 							0, // has8bitbody
-							0, // has8bitcontentchar
-							0  // haslongquotedline
+							0  // has8bitcontentchar
 						}
 					}
 				},
@@ -869,8 +854,7 @@ void testmimeparse()
 					"", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		},
@@ -923,7 +907,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					88   , // startpos
@@ -938,7 +921,6 @@ void testmimeparse()
 					0, // has8bitheader
 					0, // has8bitbody
 					0, // has8bitcontentchar
-					0, // haslongquotedline
 					{
 						{
 							89   , // startpos
@@ -952,8 +934,7 @@ void testmimeparse()
 							"", cte::sevenbit,
 							0, // has8bitheader
 							0, // has8bitbody
-							0, // has8bitcontentchar
-							0  // haslongquotedline
+							0  // has8bitcontentchar
 						}
 					}
 				},
@@ -970,7 +951,6 @@ void testmimeparse()
 					0, // has8bitheader
 					0, // has8bitbody
 					0, // has8bitcontentchar
-					0, // haslongquotedline
 					{
 						{
 							115  , // startpos
@@ -985,7 +965,6 @@ void testmimeparse()
 							0, // has8bitheader
 							0, // has8bitbody
 							0, // has8bitcontentchar
-							0, // haslongquotedline
 							{
 								{
 									213  , // startpos
@@ -999,8 +978,7 @@ void testmimeparse()
 									"", cte::sevenbit,
 									0, // has8bitheader
 									0, // has8bitbody
-									0, // has8bitcontentchar
-									0  // haslongquotedline
+									0  // has8bitcontentchar
 								},
 								{
 									250  , // startpos
@@ -1014,8 +992,7 @@ void testmimeparse()
 									"", cte::sevenbit,
 									0, // has8bitheader
 									0, // has8bitbody
-									0, // has8bitcontentchar
-									0  // haslongquotedline
+									0  // has8bitcontentchar
 								}
 							}
 						}
@@ -1034,7 +1011,6 @@ void testmimeparse()
 					0, // has8bitheader
 					0, // has8bitbody
 					0, // has8bitcontentchar
-					0, // haslongquotedline
 					{
 						{
 							297  , // startpos
@@ -1048,8 +1024,7 @@ void testmimeparse()
 							"", cte::sevenbit,
 							0, // has8bitheader
 							0, // has8bitbody
-							0, // has8bitcontentchar
-							0  // haslongquotedline
+							0  // has8bitcontentchar
 						}
 					}
 				}
@@ -1075,7 +1050,6 @@ void testmimeparse()
 			0, // has8bitheader
 			1, // has8bitbody
 			1, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					48   , // startpos
@@ -1090,7 +1064,6 @@ void testmimeparse()
 					1, // has8bitheader
 					0, // has8bitbody
 					1, // has8bitcontentchar
-					0  // haslongquotedline
 				}
 			}
 		},
@@ -1118,7 +1091,6 @@ void testmimeparse()
 			0, // has8bitheader
 			1, // has8bitbody
 			1, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					48   , // startpos
@@ -1132,8 +1104,7 @@ void testmimeparse()
 					"", cte::eightbit,
 					0, // has8bitheader
 					1, // has8bitbody
-					1, // has8bitcontentchar
-					0  // haslongquotedline
+					1  // has8bitcontentchar
 				}
 			}
 		},
@@ -1162,7 +1133,6 @@ void testmimeparse()
 			0, // has8bitheader
 			1, // has8bitbody
 			1, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					69   , // startpos
@@ -1177,7 +1147,6 @@ void testmimeparse()
 					1, // has8bitheader
 					0, // has8bitbody
 					1, // has8bitcontentchar
-					0  // haslongquotedline
 				}
 			}
 		},
@@ -1207,7 +1176,6 @@ void testmimeparse()
 			0, // has8bitheader
 			1, // has8bitbody
 			1, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					69   , // startpos
@@ -1221,8 +1189,7 @@ void testmimeparse()
 					"", cte::eightbit,
 					0, // has8bitheader
 					1, // has8bitbody
-					1, // has8bitcontentchar
-					0  // haslongquotedline
+					1  // has8bitcontentchar
 				}
 			}
 		},
@@ -1245,8 +1212,7 @@ void testmimeparse()
 			"", cte::qp,
 			0, // has8bitheader
 			0, // has8bitbody
-			1, // has8bitcontentchar
-			0  // haslongquotedline
+			1  // has8bitcontentchar
 		},
 
 		// Test 16
@@ -1267,8 +1233,7 @@ void testmimeparse()
 			"", cte::qp,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 17
@@ -1289,8 +1254,7 @@ void testmimeparse()
 			"", cte::qp,
 			0, // has8bitheader
 			0, // has8bitbody
-			1, // has8bitcontentchar
-			0  // haslongquotedline
+			1  // has8bitcontentchar
 		},
 
 		// Test 18
@@ -1310,8 +1274,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			1, // has8bitbody
-			1, // has8bitcontentchar
-			0  // haslongquotedline
+			1  // has8bitcontentchar
 		},
 
 		// Test 19
@@ -1330,8 +1293,7 @@ void testmimeparse()
 			"", cte::sevenbit,
 			0, // has8bitheader
 			0, // has8bitbody
-			0, // has8bitcontentchar
-			0  // haslongquotedline
+			0  // has8bitcontentchar
 		},
 
 		// Test 20
@@ -1362,7 +1324,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					68   , // startpos
@@ -1376,8 +1337,7 @@ void testmimeparse()
 					"aa1", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		},
@@ -1410,7 +1370,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					72   , // startpos
@@ -1424,8 +1383,7 @@ void testmimeparse()
 					"aa1", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		},
@@ -1458,7 +1416,6 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
-			0, // haslongquotedline
 			{
 				{
 					72   , // startpos
@@ -1472,8 +1429,7 @@ void testmimeparse()
 					"aa12", cte::eightbit,
 					0, // has8bitheader
 					0, // has8bitbody
-					0, // has8bitcontentchar
-					0  // haslongquotedline
+					0  // has8bitcontentchar
 				}
 			}
 		}
@@ -1716,11 +1672,14 @@ void testmimeparse()
 		std::cout << "\t" << entity.haslongquotedline << "\n}";
 		sep=",\n";
 #else
-		if (entity.haslongquotedline != t.haslongquotedline)
+		if ((entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE ?
+		     true:false)
+		    != t.haslongquotedline)
 		{
 			std::cout << "Test " << testnum << ":\n";
 			std::cout << "   haslongquotedline: "
-				  << entity.haslongquotedline
+				  << (entity.errors &
+				      RFC2045_ERRLONGQUOTEDPRINTABLE ? 1:0)
 				  << "\n";
 			exit(1);
 		}
@@ -1967,7 +1926,8 @@ void testmimelimits()
 		rfc2045::entity entity;
 		entity.parse(parser);
 
-		if (entity.haslongquotedline != s-50)
+		if ((entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE ? 1:0)
+		    != s-50)
 		{
 			std::cout << "limit test 5, part "
 				  << s-49 << ", failed\n";

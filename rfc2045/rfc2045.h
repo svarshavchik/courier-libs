@@ -27,6 +27,7 @@
 #include <charconv>
 #include <thread>
 #include <mutex>
+#include <streambuf>
 #include <condition_variable>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
@@ -80,6 +81,7 @@ struct rfc2045 {
 	class entity_parse_meta;
 	class entity_parser_base;
 	template<bool crlf> class entity_parser;
+	class headers_base;
 
 	enum class cte { error=0, sevenbit='7', eightbit='8', qp='Q',
 			 base64='B'};
@@ -994,8 +996,12 @@ auto rfc2231_attr_encode(std::string_view name,
 
   Summary:
 
-  std::ostreambuf_iterator<char) b{input_stream};
-  std::ostreambuf_iterator<char> e{};
+  rfc822::fdstreambuf fdstream;
+
+  std::istream input_stream{&fdstream};
+
+  std::istreambuf_iterator<char) b{input_stream};
+  std::istreambuf_iterator<char> e{};
 
   rfc2045::entity::line_iter<false>::iter parser{b, e}
 
@@ -1006,6 +1012,10 @@ auto rfc2231_attr_encode(std::string_view name,
   The iterator class's constructor takes a reference to an iterator to
   the beginning of an input sequence that defines a MIME message and an ending
   iterator value.
+
+  Typically, rfc822::fdstreambuf provides a std::streambuf for a file
+  descriptor, it is fed to a std::istream, and then used to create
+  std::istreambuf_iterators that construct the parser.
 
   The iterators must be passed by reference. parse() updates them, and normally
   the beginning iterator gets advanced to the ending iterator, unless a fatal
@@ -1032,16 +1042,17 @@ auto rfc2231_attr_encode(std::string_view name,
   multiple physical lines. An "=" at the end of the line in a quoted-printable
   MIME entity indicates that the logical lines continues on the next line.
 
-  longquotedlinesize sets the maximum number of characters in a logical line
+  longquotedlinesize sets the maximum number of characters in a quoted-printable
+  encoded MIME entity that forms a single encoded line.
   that continues into multiple physical lines.
 
-  if (entity.haslongquotedline)
+  if (entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE)
 
-  A MIME entity has this flag set if it has a logical line that exceeds the
-  longquotedlinesize characters. Long quoted lines have no effect on general
-  MIME parsing, this is merely tracked and serves as an indication that the
-  MIME entity should not be reencoded into 7bit or 8bit encoding because this
-  will result in very long lines.
+  A MIME entity has this flag set if it has a quoted-printable content that'
+  exceeds longquotedlinesize characters in size. Long quoted lines have no
+  effect on general MIME parsing, this is merely tracked and serves as an
+  indication that the MIME entity should not be reencoded into 7bit or 8bit
+  encoding because this will result in very long lines.
 
   if (entity.has8bitheader)
 
@@ -1081,15 +1092,79 @@ auto rfc2231_attr_encode(std::string_view name,
   the MIME entity. Ntoe - a MIME entity that does not have a trailing newline
   seuqnece ends with a partial line. This line is included in the count.
 
-  errors - a bitmask of errors that occured while parsing. RFC2045_ERRFATAL is
-  set when the error is fatal and parsing is aborted. parse() may return before
-  the starting iterator becomes equal to the ending iterator.
+  errors - a bitmask of events that occured while parsing. Not all bitmask flags
+  comprise an error event, and RFC2045_ERRFATAL is set when the error is fatal
+  and parsing is aborted. parse() may return before the starting iterator
+  becomes equal to the ending iterator.
 
   mime1 - indicates the presence of a "MIME-Version: 1.0" header, an explicit
   one, or an implicit one for a subentity of a MIME 1.0 entity.
 
   content_type, content_type_charset, content_transfer_encoding - corresponding
   parts of the header, converted to lowercase.
+
+  Header parsing
+  ==============
+
+  rfc2045::entity::line_iter<false>::headers headers{entity, input_stream};
+
+  headers.name_lc=true;
+  headers.keep_eol=false;
+
+  std::string_view current_header{headers.current_header()};
+
+  const auto &[name, content] = headers.name_content();
+
+  bool flag=headers.next();
+
+  The headers class is actually a template, whose template parameter gets
+  deduced from the constructor's second parameter. The template implements
+  reading one header at a time, of a MIME entity's headers. It's constructed
+  from a MIME entity object, and a std::streambuf object or another object
+  with the following methods that are compatible with std::streambuf's:
+
+  - pubseekpos - seek to the given position of the underlying message, the
+  constructor retrieve sthe passed in MIME entity's headers' starting position
+  and seeks to it.
+
+  - sgetc - read a character without advancing the input position
+
+  - sbumpc - read a cahracter and consume it, advancing the input to the next
+  position.
+
+  NOTE: the input stream object must not go out of scope and get destruoyed
+  as long as the parser template instance is in use.
+
+  The constructor positions the underlying at the start of the entity's headers.
+  current_header() returns a single std::string_view containing the current
+  header (initially the first header in the MIME entity).
+
+  name_content() parses out the current header's name and content (trimming off
+  the leading and trailing whitespace from the content).
+
+  next() advances to the next MIME entity's header. Subsequent calls to
+  current_header() or name_content() reference the next header.
+
+  The headers template contains the following fields:
+
+  - name_lc (true by default): whether the header's name, as returned by
+  by current_header() and name_content(), is converted to lowercase.
+
+  - keep_eol (false by default): setting this field to true has the effect
+  of not removing newlines from the header's contents. name_content() still
+  trims off all leading and trailing whitespace, but current_header() returns
+  the entire header, as is, including the trailing whitespace.
+
+  These fields must be set before the first call to current_header(),
+  name_content(), and next().
+
+  next() returns false if there are no more headers in the MIME entity. Note
+  that the empty line that separates the MIME entity's headers from its body
+  is considered to be a header, and is included in the headers returned here.
+
+  Note: the headers template reads as big of a header as exists in the MIME
+  entity. RFC2045_ERRLONGUNFOLDEDHEADER can be consulted, if desired.
+
  */
 
 class rfc2045::entity_info {
@@ -1121,7 +1196,6 @@ class rfc2045::entity_info {
 	bool has8bitheader{false};
 	bool has8bitbody{false};
 	bool has8bitcontentchar{false};
-	bool haslongquotedline{false};
 
 	bool multipart() const
 	{
@@ -1141,6 +1215,7 @@ class rfc2045::entity_info {
 #define RFC2045_ERRLONGUNFOLDEDHEADER	0x0100
 #define RFC2045_ERRUNKNOWNTE		0x0200
 #define RFC2045_ERRINVALIDBASE64	0x0400
+#define RFC2045_ERRLONGQUOTEDPRINTABLE  0x0800
 #define RFC2045_ERRFATAL		0x8000
 
 /*
@@ -1192,8 +1267,17 @@ struct rfc2045::entity_parse_meta {
 
 	void consumed_body_line(size_t c);
 
+	// Set the error bit in the entity being parsed and its parent entities
 	void report_error(rfc2045::entity_info::errors_t code);
+
+	// Set the error bit only in the entity being parsed.
+	void report_error_here(rfc2045::entity_info::errors_t code);
 	bool fatal_error();
+
+	// Default value for the maximum size of an unfolded header, otherwise
+	// RFC2045_ERRLONGUNFOLDEDHEADER errors flag gets set.
+
+	static constexpr size_t longunfoldedheadersize=(1024 * 10);
 };
 
 class rfc2045::entity : public entity_info {
@@ -1220,12 +1304,15 @@ class rfc2045::entity : public entity_info {
 		tolowercase(c.begin(), c.end());
 	}
 
-	// Factory for iterators that use LF(false) or CRLF(true) newline
-	// sequence.
+	// Factory for iterators and parsers that use LF(false) or CRLF(true)
+	// newline sequence.
 
 	template<bool crlf> struct line_iter {
 		template<typename beg_iter_type, typename end_iter_type>
 		struct iter;
+
+		template<typename src_type>
+		struct headers;
 	};
 
 	entity() {}
@@ -1313,11 +1400,16 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 	// Buffered contents of the current line being processed
 	std::string buffer;
 
-	// Maximum number of characters read in each line, the rest are skipped
-	// (but counted).
+	// If a logical line in a quoted-printable MIME entity exceeds these
+	// number of characters, this set the RFC2045_ERRLONGQUOTEDPRINTABLE
+	// flag.
+
 	size_t longquotedlinesize=1020;
 
-	size_t longunfoldedheadersize=(1024 * 10);
+	// Default value for the maximum size of an unfolded header, otherwise
+	// RFC2045_ERRLONGUNFOLDEDHEADER errors flag gets set.
+	size_t longunfoldedheadersize=entity_parse_meta::longunfoldedheadersize;
+
 	// The maximum number of MIME entities that are parsed, and the
 	// maximum nesting level.
 	size_t mimeentityparselimit=300;
@@ -1621,9 +1713,9 @@ private:
 
 		if (unquoted_line_size > longquotedlinesize)
 		{
-			if (!parsing_entities.empty())
-				// Sanity check
-				parsing_entities.back()->haslongquotedline=true;
+			report_error_here(
+				RFC2045_ERRLONGQUOTEDPRINTABLE
+			);
 		}
 
 		unquoted_line_size=0;
@@ -1818,9 +1910,7 @@ public:
 			auto s=bp;
 
 			while (bp != ep && (
-				       *bp == ' ' || *bp == '\r'
-				       || *bp == '\n'
-				       || *bp == '\t'))
+				       *bp == ' ' || *bp == '\t'))
 			{
 				++bp;
 			}
@@ -1839,7 +1929,9 @@ public:
 			if (l+buffer.size() > longunfoldedheadersize)
 			{
 				l=longunfoldedheadersize-buffer.size();
-				report_error(RFC2045_ERRLONGUNFOLDEDHEADER);
+				report_error_here(
+					RFC2045_ERRLONGUNFOLDEDHEADER
+				);
 			}
 			// The first character is always a space
 
@@ -2215,6 +2307,114 @@ public:
 
 	using entity_parser_base::parse;
 	using entity_parser_base::parsed_entity;
+};
+
+// Parts of rfc2045::entity::line_iter::headers that does not depend on
+// template parameters.
+
+struct rfc2045::headers_base {
+
+protected:
+	size_t left; // How many characters left until the end of headers.
+
+	std::string header_line;
+
+	virtual bool next()=0;
+
+public:
+	bool name_lc{true};
+	bool keep_eol{false};
+
+	std::string_view current_header();
+	std::tuple<std::string_view, std::string_view> name_content();
+};
+
+template<bool crlf>
+template <typename src_type>
+struct rfc2045::entity::line_iter<crlf>::headers : headers_base {
+
+	src_type &src;
+
+public:
+
+	headers(const entity &e, src_type &src)
+		: src{src}
+	{
+		left=e.startbody-e.startpos;
+		src.pubseekpos(e.startpos);
+	}
+
+	~headers()=default;
+
+	headers(const headers &)=default;
+	headers(headers &&)=default;
+
+	headers &operator=(const headers &)=delete;
+	headers &operator=(headers &&)=delete;
+
+	bool next() override
+	{
+		header_line.clear();
+
+		if (!left)
+			return false;
+
+		char prev_ch=0;
+		while (left)
+		{
+			auto ch=src.sbumpc();
+			--left;
+			if (ch == std::streambuf::traits_type::eof())
+			{
+				left=0;
+				break;
+			}
+
+			header_line.push_back(ch);
+
+			size_t s;
+
+			if constexpr (crlf)
+			{
+				if (prev_ch != '\r' || ch != '\n')
+				{
+					prev_ch=ch;
+					continue;
+				}
+				s=header_line.size()-2;
+			}
+			else
+			{
+				if (ch != '\n')
+					continue;
+				s=header_line.size()-1;
+			}
+
+			if (!keep_eol)
+				header_line.resize(s);
+
+			if (left)
+			{
+				switch (src.sgetc()) {
+				case ' ':
+				case '\t':
+					continue;
+				default:
+					break;
+				}
+			}
+			break;
+		}
+
+		if (name_lc)
+		{
+			auto b=header_line.begin(), e=header_line.end();
+			auto p=std::find(b, e, ':');
+
+			entity::tolowercase(b, p);
+		}
+		return true;
+	}
 };
 
 extern template class rfc2045::entity_parser<false>;

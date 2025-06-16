@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <unistd.h>
 
 #if 0
@@ -88,8 +89,7 @@ void test1()
 		"", cte::sevenbit,
 		0, // has8bitheader
 		0, // has8bitbody
-		0, // has8bitcontentchar
-		0  // haslongquotedline
+		0  // has8bitcontentchar
 	};
 
 	if (expected_results != entity)
@@ -190,6 +190,259 @@ void test2()
 #endif
 }
 
+void test34_setup(std::stringstream &ss, const char *nl)
+{
+	ss << "Mime-Version: 1.0" << nl
+	   << "Content-Type: multipart/mixed; boundary=aaa" << nl
+	   << nl
+	   << "--aaa" << nl
+	   << "Content-Type: text/plain" << nl
+	   << "Content-Description: MIME" << nl
+	   << " section 1" << nl
+	   << nl
+	   << "--aaa--" << nl;
+
+	ss.seekg(0);
+}
+
+template<bool crlf>
+void test3()
+{
+	const char *nl = crlf ? "\r\n":"\n";
+
+	std::stringstream ss;
+
+	test34_setup(ss, nl);
+
+	auto b=std::istreambuf_iterator<char>{ss};
+	auto e=std::istreambuf_iterator<char>{};
+
+	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+
+	rfc2045::entity entity;
+
+	entity.parse(iter);
+
+	if (entity.subentities.size() != 1)
+	{
+		std::cout << "test2 (" << (crlf ? "\\r\\n":"\\n") << "): "
+			" unexpected parsing error.\n";
+		exit(1);
+	}
+
+	typename rfc2045::entity::line_iter<crlf>::headers h{
+		entity.subentities[0],
+		*ss.rdbuf()
+	};
+
+#if UPDATE_TESTSUITECPP
+	bool flag;
+
+	do
+	{
+		const auto &[n, c]=h.name_content();
+
+		std::cout << "{\n\t\"" << h.current_header() << "\",\n"
+			"\t\"" << n << "\", \"" << c << "\", ";
+
+		flag=h.next();
+
+		std::cout << flag << "\n},\n";
+	} while (flag);
+#else
+	static const struct {
+		const char *header, *name, *content;
+		bool next;
+	} default_test[]={
+		{
+			"content-type: text/plain",
+			"content-type", "text/plain", 1
+		},
+		{
+			"content-description: MIME section 1",
+			"content-description", "MIME section 1", 1
+		},
+		{
+			"",
+			"", "", 0
+		},
+	};
+
+	for (const auto &t:default_test)
+	{
+		auto full=h.current_header();
+		const auto &[n, c]=h.name_content();
+
+		if (full != t.header || n != t.name || c != t.content)
+		{
+			std::cout << "test3: unexpected result (default_test)\n"
+				"Got: " << full << "\n    " << n
+				  << "\n    " << c << "\n"
+				"Exp: " << t.header << "\n    " << t.name
+				  << "\n    " << t.content << "\n";
+			exit(1);
+		}
+
+		if (h.next() != t.next)
+		{
+			std::cout << "test3: unexpected result (default_test)\n"
+				  << "Got next=" << !t.next
+				  << " for \"" << t.header << "\"\n";
+			exit(1);
+		}
+	}
+#endif
+}
+
+template<bool crlf>
+void test4()
+{
+	const char *nl = crlf ? "\r\n":"\n";
+
+	std::stringstream ss;
+
+	test34_setup(ss, nl);
+
+	auto b=std::istreambuf_iterator<char>{ss};
+	auto e=std::istreambuf_iterator<char>{};
+
+	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+
+	rfc2045::entity entity;
+
+	entity.parse(iter);
+
+	if (entity.subentities.size() != 1)
+	{
+		std::cout << "test2 (" << (crlf ? "\\r\\n":"\\n") << "): "
+			" unexpected parsing error.\n";
+		exit(1);
+	}
+
+	typename rfc2045::entity::line_iter<crlf>::headers h{
+		entity.subentities[0],
+		*ss.rdbuf()
+	};
+
+	h.name_lc=false;
+	h.keep_eol=true;
+
+#if UPDATE_TESTSUITECPP
+	bool flag;
+
+	do
+	{
+		const auto &[n, c]=h.name_content();
+
+		std::cout << "{";
+
+		for (const auto &str
+			     : std::array<std::string_view, 3>{
+			     h.current_header(), n, c})
+		{
+			std::cout << "\n\t";
+
+			if (str.empty())
+			{
+				std::cout << "\"\"";
+			}
+			else
+			{
+				bool has_prev=false;
+				bool prev_was_nl=true;
+
+				for (char c:str)
+				{
+					if (c != '\n')
+					{
+						if (prev_was_nl)
+						{
+							if (has_prev)
+							{
+								std::cout <<
+									" + ";
+							}
+							std::cout <<
+								"std::string{"
+								"\"";
+						}
+						std::cout << c;
+						has_prev=true;
+						prev_was_nl=false;
+					}
+					else
+					{
+						if (has_prev)
+						{
+							if (!prev_was_nl)
+								std::cout <<
+									"\"}";
+							std::cout << " + ";
+						}
+						std::cout << "nl";
+						has_prev=true;
+						prev_was_nl=true;
+					}
+				}
+
+				if (!prev_was_nl)
+					std::cout << "\"}";
+			}
+			std::cout << ",";
+		}
+
+		flag=h.next();
+
+		std::cout << " " << flag << "\n},\n";
+	} while (flag);
+#else
+	const struct {
+		std::string header, name, content;
+		bool next;
+	} default_test[]={
+		{
+			std::string{"Content-Type: text/plain"} + nl,
+			std::string{"Content-Type"},
+			std::string{"text/plain"} + nl, 1
+		},
+		{
+			std::string{"Content-Description: MIME"} + nl + std::string{" section 1"} + nl,
+			std::string{"Content-Description"},
+			std::string{"MIME"} + nl + std::string{" section 1"} + nl, 1
+		},
+		{
+			nl,
+			nl,
+			"", 0
+		},
+	};
+
+	for (const auto &t:default_test)
+	{
+		auto full=h.current_header();
+		const auto &[n, c]=h.name_content();
+
+		if (full != t.header || n != t.name || c != t.content)
+		{
+			std::cout << "test3: unexpected result (default_test)\n"
+				"Got: " << full << "\n    " << n
+				  << "\n    " << c << "\n"
+				"Exp: " << t.header << "\n    " << t.name
+				  << "\n    " << t.content << "\n";
+			exit(1);
+		}
+
+		if (h.next() != t.next)
+		{
+			std::cout << "test3: unexpected result (default_test)\n"
+				  << "Got next=" << !t.next
+				  << " for \"" << t.header << "\"\n";
+			exit(1);
+		}
+	}
+#endif
+}
+
 int main()
 {
 	alarm(60);
@@ -198,6 +451,10 @@ int main()
 	// test1<true>();
 
 	// test2<false>();
+
+	// test3<false>();
+
+	test4<false>();
 #else
 	for (int i=0; i<100; ++i)
 	{
@@ -207,6 +464,12 @@ int main()
 
 	test2<false>();
 	test2<true>();
+
+	test3<false>();
+	test3<true>();
+
+	test4<false>();
+	test4<true>();
 #endif
 	return 0;
 }

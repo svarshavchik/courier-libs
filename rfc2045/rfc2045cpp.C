@@ -14,6 +14,14 @@ void rfc2045::entity_parse_meta::report_error(
 		e->errors |= code;
 }
 
+void rfc2045::entity_parse_meta::report_error_here(
+	rfc2045::entity_info::errors_t code
+)
+{
+	if (!parsing_entities.empty()) // Sanity check
+		parsing_entities.back()->errors |= code;
+}
+
 bool rfc2045::entity_parse_meta::fatal_error()
 {
 	return !parsing_entities.empty() // Sanity check
@@ -518,3 +526,40 @@ template<bool crlf> rfc2045::entity_parser<crlf>::entity_parser()
 
 template class rfc2045::entity_parser<false>;
 template class rfc2045::entity_parser<true>;
+
+
+std::string_view rfc2045::headers_base::current_header()
+{
+	// If a line was read in next(), header_line is always
+	// non-empty except if left=0. So if it is empty, then
+	// this is either the first header, or at the end, and
+	// it does no harm to next() again.
+
+	if (header_line.empty())
+		next();
+
+	return header_line;
+}
+
+std::tuple<std::string_view, std::string_view>
+rfc2045::headers_base::name_content()
+{
+	auto sv=current_header();
+
+	auto b=sv.begin(), e=sv.end();
+	auto p=std::find(b, e, ':');
+
+	auto q=p;
+
+	if (q < e) ++q;
+
+	while (q < e)
+	{
+		if (*q != ' ' && *q != '\t')
+			break;
+		++q;
+	}
+
+	return { {b, static_cast<std::string_view::size_type>(p-b)},
+		 {q, static_cast<std::string_view::size_type>(e-q)} };
+}

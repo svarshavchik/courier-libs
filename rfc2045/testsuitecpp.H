@@ -21,7 +21,6 @@ struct parsed_mime_info {
 	bool has8bitheader;
 	bool has8bitbody;
 	bool has8bitcontentchar;
-	bool haslongquotedline;
 
 	std::vector<parsed_mime_info> subentities;
 
@@ -61,9 +60,7 @@ struct parsed_mime_info {
 			== content_transfer_encoding &&
 			entity.has8bitheader == has8bitheader &&
 			entity.has8bitbody   == has8bitbody &&
-			entity.has8bitcontentchar == has8bitcontentchar
-			&&
-			entity.haslongquotedline == haslongquotedline;
+			entity.has8bitcontentchar == has8bitcontentchar;
 	}
 
 #if UPDATE_TESTSUITECPP
@@ -87,7 +84,8 @@ struct parsed_mime_info {
 			errcodes += "|RFC2045_ERRUNDECLARED8BIT";
 		if (entity.errors & RFC2045_ERRWRONGBOUNDARY)
 			errcodes += "|RFC2045_ERRWRONGBOUNDARY";
-
+		if (entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE)
+			errcodes += "|RFC2045_ERRLONGQUOTEDPRINTABLE";
 		if (entity.errors & RFC2045_ERRFATAL)
 			errcodes += "|RFC2045_ERRFATAL";
 
@@ -148,17 +146,15 @@ struct parsed_mime_info {
 			  << ", // has8bitheader\n" << line_pfix
 			  << "    " << entity.has8bitbody
 			  << ", // has8bitbody\n" << line_pfix
-			  << "    " << entity.has8bitcontentchar
-			  << ", // has8bitcontentchar\n" << line_pfix
-			  << "    " << entity.haslongquotedline;
+			  << "    " << entity.has8bitcontentchar;
 
 		if (entity.subentities.empty())
 		{
-			std::cout << "  // haslongquotedline\n";
+			std::cout << "  // has8bitcontentchar\n";
 		}
 		else
 		{
-			std::cout << ", // haslongquotedline\n"
+			std::cout << ", // has8bitcontentchar\n"
 				  << line_pfix << "{\n";
 
 			std::string next_sep;
@@ -230,8 +226,6 @@ struct parsed_mime_info {
 			  << entity.has8bitbody
 			  << nl << "8bit content: "
 			  << entity.has8bitcontentchar
-			  << nl << " long quoted: "
-			  << entity.haslongquotedline
 			  << "\n";
 
 		if (entity.subentities.size())
