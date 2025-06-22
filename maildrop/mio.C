@@ -130,13 +130,22 @@ int Mio::flush(int c)
 	return (0);
 }
 
-int Mio::Rewind()
+off_t Mio::Rewind()
 {
 	readstartpos= -1;
-	return ( seek (0L, SEEK_SET) );
+
+	if (pubseekpos(0) == static_cast<off_t>(-1))
+		return static_cast<off_t>(-1);
+
+	return 0;
 }
 
-int Mio::seek(off_t off, int whence)
+off_t Mio::pubseekpos(off_t p)
+{
+	return seek(p, SEEK_SET);
+}
+
+off_t Mio::seek(off_t off, int whence)
 {
 	if (fd_ < 0)	return (-1);
 	if (writeptr > buf && flush(-1) < 0)	return (-1);
@@ -149,7 +158,7 @@ int Mio::seek(off_t off, int whence)
 	{
 		readptr = buf + (off - readstartpos);
 		readcnt = readsize - (off - readstartpos);
-		return (0);
+		return (off);
 	}
 
 	if (mseek(fd_, off, whence) < 0)
@@ -160,7 +169,7 @@ int Mio::seek(off_t off, int whence)
 	err=0;
 	readcnt=0;
 	readptr=buf;
-	return (0);
+	return (off);
 }
 
 int Mio::write(const void *p, int cnt)

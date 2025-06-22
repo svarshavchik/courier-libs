@@ -1,6 +1,6 @@
 if test "$VALGRIND" != ""
 then
-    VALGRIND="$VALGRIND --tool=memcheck --error-exitcode=1"
+    VALGRIND="$VALGRIND --tool=memcheck --leak-check=full --error-exitcode=1"
 fi
 
 cat >testsuite.msg <<EOF

@@ -9,7 +9,7 @@ static int rfc2045_seek_func(off_t pos, void *arg)
 {
 	Message *p=reinterpret_cast<Message *>(arg);
 
-	p->seek(pos);
+	p->pubseekpos(pos);
 	return 0;
 }
 
@@ -21,7 +21,7 @@ static ssize_t rfc2045_read_func(char *buf, size_t cnt, void *arg)
 
 	while (cnt)
 	{
-		int c=p->get_c();
+		int c=p->sbumpc();
 
 		if (c < 0)
 			return -1;
@@ -100,7 +100,7 @@ void Message::Init(int fd, const std::string &extra_headers)
 
 	int	c;
 
-		while ((c=mio.get()) >= 0)
+		while ((c=mio.sbumpc()) >= 0)
 			if (c == '\n')	msglines++;
 		mio.rfc2045p=0;
 		return;
@@ -250,7 +250,7 @@ int Message::appendline(std::string &buf, int stripcr)
 	int	eof= 1;
 	int	lastc=0;
 
-		while ((c=get_c()) > 0 && c != '\n')
+		while ((c=sbumpc()) > 0 && c != '\n')
 		{
 			eof=0;
 			buf.push_back(c);

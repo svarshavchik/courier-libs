@@ -33,11 +33,11 @@ class	Lexer {
 	// Calling curchar() does NOT actual "read" the character, this
 	// is a "peek" function.
 
-	int	curchar() {	return (file.peek()); }
+	int	curchar() {	return (file.sgetc()); }
 
 	// nextchar() is used to actually read the next character.
 
-	int	nextchar() { int c=file.get();
+	int	nextchar() { int c=file.sbumpc();
 
 				if (c == '\n')	++linenum;
 				return (c);

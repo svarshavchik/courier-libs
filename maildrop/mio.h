@@ -40,13 +40,14 @@ public:
 	virtual ~Mio();
 	int Open(const char *, int, mode_t=0666);
 	void Close();
-	int peek() { return (readcnt ? *readptr:
+	int sgetc() { return (readcnt ? *readptr:
 			fill() < 0 ? -1:(++readcnt,*--readptr)); }
-	int get() { return (readcnt ? (--readcnt,*readptr++):fill()); }
+	int sbumpc() { return (readcnt ? (--readcnt,*readptr++):fill()); }
 	int put(int c) { return (writecnt ?
 				(--writecnt,*writeptr++=c):flush(c)); }
-	int seek(off_t, int);
-	int Rewind();
+	off_t pubseekpos(off_t);
+	off_t seek(off_t, int);
+	off_t Rewind();
 	off_t tell();
 	virtual int write(const void *, int);
 	int fd() { return (fd_); }

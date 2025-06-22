@@ -211,7 +211,7 @@ FormatMbox	format_mbox;
 #endif
 		if (S_ISREG(stat_buf.st_mode))
 		{
-			if (mio.seek(0L, SEEK_END) < 0)
+			if (mio.seek(0L, SEEK_END) == (off_t)-1)
 				throw "Seek error on mailbox.";
 			dotlock.trap_truncate(mio.fd(), stat_buf.st_size);
 		}

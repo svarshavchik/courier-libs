@@ -18,7 +18,7 @@ ReMatchMsg::~ReMatchMsg()
 int ReMatchMsg::CurrentChar()
 {
 	if (eof)	return (-1);
-	return (msg->peek());
+	return (msg->sgetc());
 }
 
 int ReMatchMsg::NextChar()
@@ -29,7 +29,7 @@ int	c;
 
 	for (;;)
 	{
-		c=msg->get_c();
+		c=msg->sbumpc();
 
 		if (c < 0)
 		{
@@ -46,7 +46,7 @@ int	c;
 
 		if (c == '\n')
 		{
-		int	nextc=msg->peek();
+		int	nextc=msg->sgetc();
 
 			if (nextc == '\r' || nextc == '\n')
 			{
@@ -73,13 +73,13 @@ void ReMatchMsg::SetCurrentPos(off_t p)
 	if (p < msg->tell())	eof=0;
 	if ( p < start || p == 0)
 	{
-		msg->seek(start);
+		msg->pubseekpos(start);
 		lastc=0;
 	}
 	else
 	{
-		msg->seek(p-1);
-		lastc=msg->get_c();
+		msg->pubseekpos(p-1);
+		lastc=msg->sbumpc();
 	}
 	if (p < end_headers)	mergelines=1;
 	if (!mergelines && header_only)	eof=1;

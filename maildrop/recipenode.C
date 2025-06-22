@@ -1173,7 +1173,7 @@ std::string	buf;
 			// Strip leading/trailing spaces.  Newlines are
 			// replaced by spaces.
 
-			while ((rc=maildrop.savemsgptr->get_c()) >= 0
+			while ((rc=maildrop.savemsgptr->sbumpc()) >= 0
 				&& isspace(rc))
 					;	// Skip leading space
 			while (rc >= 0)
@@ -1181,7 +1181,7 @@ std::string	buf;
 				if (rc == '\r' || rc == '\n')	rc=' ';
 				b.push_back(rc);
 				if (!isspace(rc))	l=b.size();
-				rc=maildrop.savemsgptr->get_c();
+				rc=maildrop.savemsgptr->sbumpc();
 			}
 			maildrop.savemsgptr->Init();
 			b.resize(l);
@@ -1527,7 +1527,7 @@ Mio	fp;
 	const	char *p;
 
 		errbuf.clear();
-		while ((c=fp.get()) >= 0 && c != '\r' && c != '\n')
+		while ((c=fp.sbumpc()) >= 0 && c != '\r' && c != '\n')
 			errbuf.push_back(c);
 		if (c < 0 && errbuf.size() == 0)	break;
 

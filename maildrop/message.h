@@ -69,10 +69,10 @@ public:
 	void Rewind();		// Start reading the message
 	void RewindIgnore();	// Rewind, ignore msginfo
 	int appendline(std::string &, int=1);	// Read newline-terminated line.
-	void seek(off_t);
+	off_t pubseekpos(off_t);
 	off_t tell();
-	int get_c();
-	int peek();
+	int sbumpc();
+	int sgetc();
 	off_t MessageSize();
 	off_t MessageLines() { return (msglines); }
 	void setmsgsize();
@@ -86,7 +86,7 @@ public:
 #include	"funcs.h"
 #include	"maildrop.h"
 
-inline int Message::peek()		// Current character.
+inline int Message::sgetc()		// Current character.
 {
 	if (extra_headersptr)
 		return ( (unsigned char) *extra_headersptr );
@@ -95,7 +95,7 @@ inline int Message::peek()		// Current character.
 	{
 		errno=0;
 
-	int	c=mio.peek();
+	int	c=mio.sgetc();
 
 		if (c < 0 && errno)	readerr();
 		return (c);
@@ -105,7 +105,7 @@ inline int Message::peek()		// Current character.
 	return ( (int)(unsigned char)*bufptr );
 }
 
-inline int Message::get_c()		// Get character.
+inline int Message::sbumpc()		// Get character.
 {
 int	c;
 
@@ -120,7 +120,7 @@ int	c;
 	{
 		errno=0;
 
-		c=mio.get();
+		c=mio.sbumpc();
 		if (c < 0 && errno)	readerr();
 		return (c);
 	}
@@ -150,7 +150,7 @@ off_t	pos;
 	return (pos);
 }
 
-inline void Message::seek(off_t n)
+inline off_t Message::pubseekpos(off_t n)
 {
 int	l=0;
 
@@ -166,13 +166,15 @@ int	l=0;
 	}
 	if (mio.fd() >= 0)
 	{
-		if (mio.seek(n, SEEK_SET) < 0)	seekerr();
+		if (mio.pubseekpos(n) == (off_t)-1)	seekerr();
 	}
 	else
 	{
 		if (n > msgsize)	n=msgsize;
 		bufptr=buffer+n;
 	}
+
+	return n;
 }
 
 inline off_t Message::MessageSize()
