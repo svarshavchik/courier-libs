@@ -136,7 +136,10 @@ int rfc2045_decodemsgtoutf8(struct rfc2045src *src,
 
 			if (doconvtoutf8_rfc822hdr(header, value,
 						   callback) < 0)
+			{
+				rfc2045header_end(hi);
 				return -1;
+			}
 		}
 		rfc2045header_end(hi);
 	}
