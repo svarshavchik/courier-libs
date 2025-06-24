@@ -319,6 +319,8 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 			enc=0;
 	}
 
+	const char *error_msg=nullptr;
+
 	switch (enc) {
 	case 'q':
 	case 'Q':
@@ -389,7 +391,7 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 					);
 				}
 
-				error(inp.b, inp.e, "qp decoding error");
+				error_msg="qp decoding error";
 			});
 		break;
 	case 'b':
@@ -467,7 +469,7 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 						break;
 				}
 
-				error(inp.b, inp.e, "base64 decoding error");
+				error_msg="64 decoding error";
 			});
 		break;
 	default:
@@ -475,6 +477,11 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 		return false;
 	}
 
+	if (error_msg)
+	{
+		error(inp.b, inp.e, error_msg);
+		return false;
+	}
 	// Check for another RFC 2047 atom.
 	//
 	// We'll always clean up skip_buf afterwards, so it's always

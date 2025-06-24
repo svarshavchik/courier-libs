@@ -145,10 +145,12 @@ template<typename out_iter_type> auto tokens::unicode_name(
 		{
 			std::string_view s{error_message};
 
+			*iter++='(';
 			for (auto c:s)
 			{
 				*iter++=c;
 			}
+			*iter++=')';
 		});
 
 	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
@@ -210,7 +212,7 @@ template<typename out_iter_type> auto tokens::display_address(
 		}
 	}
 
-	for (char c: std::string_view{"[decoding error]"})
+	for (char c: std::string_view{"(decoding error)"})
 		*iter++=c;
 
 	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
@@ -243,7 +245,7 @@ template<typename out_iter_type> auto tokens::display_name(
 		}
 	}
 
-	for (char c: std::string_view{"[decoding error]"})
+	for (char c: std::string_view{"(decoding error)"})
 		*iter++=c;
 
 	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
@@ -289,10 +291,12 @@ auto display_header_unicode(std::string_view headername,
 			{
 				std::string_view emsg{error_message};
 
+				*iter++='(';
 				for (auto c:emsg)
 				{
 					*iter++=c;
 				}
+				*iter++=')';
 			});
 	}
 
@@ -323,7 +327,7 @@ auto display_header(std::string_view headername,
 
 	if (errflag)
 	{
-		for (char c: std::string_view{"unicode conversion error"})
+		for (char c: std::string_view{"[unicode conversion error]"})
 			*iter++ = c;
 	}
 

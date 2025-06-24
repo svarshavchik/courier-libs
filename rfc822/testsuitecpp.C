@@ -354,9 +354,9 @@ static void printaddress_test()
 		name += "\n";
 
 		if (name !=
-		    "Test [decoding error]\n"
-		    "test5@.net[decoding error]\n"
-		    "Test [decoding error] <test5@.net[decoding error]>\n")
+		    "Test (decoding error)\n"
+		    "test5@.net(decoding error)\n"
+		    "Test (decoding error) <test5@.net(decoding error)>\n")
 		{
 			std::cout << "print_address unexpected error test "
 				"results:\n" << name;
