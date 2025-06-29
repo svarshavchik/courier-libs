@@ -317,3 +317,223 @@ void rfc822::addresses::do_print::output()
 		print();
 	}
 }
+
+rfc2047::qpdecoder_base::qpdecoder_base()
+	: handler{&qpdecoder_base::do_char}
+{
+}
+
+rfc2047::qpdecoder_base::~qpdecoder_base()=default;
+
+void rfc2047::qpdecoder_base::process_char(const char *p, size_t n)
+{
+	while (n)
+	{
+		auto done=(this->*handler)(p, n);
+
+		p += done;
+		n -= done;
+	}
+}
+
+size_t rfc2047::qpdecoder_base::do_char(const char *p, size_t n)
+{
+	size_t i;
+
+	for (i=0; i<n; ++i)
+		if (p[i] == '=')
+			break;
+
+	if (i == 0)
+	{
+		handler=&qpdecoder_base::do_prev_equal;
+		return 1;
+	}
+
+	emit(p, i);
+	return i;
+}
+
+void rfc2047::qpdecoder_base::finished()
+{
+	if (handler != &qpdecoder_base::do_char)
+		report_error();
+}
+
+void rfc2047::qpdecoder_base::report_error()
+{
+	handler=&qpdecoder_base::do_char;
+	if (error_occured)
+		return;
+	error_occured=true;
+
+	std::string_view msg{" [quoted-printable decoding error] "};
+	emit(msg.data(), msg.size());
+}
+
+size_t rfc2047::qpdecoder_base::do_prev_equal(const char *p, size_t n)
+{
+	if (*p == '\r')
+	{
+		handler=&qpdecoder_base::do_prev_equal_cr;
+		return 1;
+	}
+	if (*p == '\n')
+	{
+		handler=&qpdecoder_base::do_char;
+		return 1;
+	}
+
+	auto found=strchr(rfc2047_xdigit, *p);
+	if (!found)
+	{
+		report_error();
+		return 1;
+	}
+
+	int h=found-rfc2047_xdigit;
+
+	if (h > 15) h-=6;
+
+	nybble=(h << 4);
+	handler=&qpdecoder_base::do_prev_equal_h1;
+	return 1;
+}
+
+size_t rfc2047::qpdecoder_base::do_prev_equal_cr(const char *p, size_t n)
+{
+	handler=&qpdecoder_base::do_char;
+	if (*p != '\n')
+	{
+		report_error();
+	}
+	return 1;
+}
+
+size_t rfc2047::qpdecoder_base::do_prev_equal_h1(const char *p, size_t n)
+{
+	handler=&qpdecoder_base::do_char;
+
+	auto found=strchr(rfc2047_xdigit, *p);
+	if (!found)
+	{
+		report_error();
+		return 1;
+	}
+
+	int l=found-rfc2047_xdigit;
+
+	if (l > 15) l-=6;
+
+	char c=static_cast<char>(nybble | l);
+
+	emit(&c, 1);
+	return 1;
+}
+
+rfc2047::base64decoder_base::base64decoder_base()=default;
+rfc2047::base64decoder_base::~base64decoder_base()=default;
+
+void rfc2047::base64decoder_base::process_char(const char *p, size_t n)
+{
+	size_t bufsiz=n+4;
+
+	if (bufsiz > BUFSIZ)
+		bufsiz=BUFSIZ;
+
+	char out_buf[bufsiz];
+	size_t out_bufptr=0;
+
+	while (n)
+	{
+		char ch = *p++;
+		--n;
+
+		if (ch >= '0' && ch <= '9')
+			;
+		else if (ch >= 'A' && ch <= 'Z')
+			;
+		else if (ch >= 'a' && ch <= 'z')
+			;
+		else switch (ch) {
+			case '+':
+			case '/':
+			case '=':
+				break;
+			case ' ':
+			case '\t':
+			case '\r':
+			case '\n':
+				continue;
+			}
+
+		if (seen_end)
+		{
+			report_error();
+			return;
+		}
+
+		if (bufferp && buffer[bufferp-1] == '=' && ch != '=')
+		{
+			report_error();
+			return;
+		}
+		buffer[bufferp++]=ch;
+
+		if (bufferp < 4)
+			continue;
+
+		bufferp=0;
+
+		int w=rfc2047_decode64tab[buffer[0]];
+		int x=rfc2047_decode64tab[buffer[1]];
+		int y=rfc2047_decode64tab[buffer[2]];
+		int z=rfc2047_decode64tab[buffer[3]];
+
+		unsigned char g= (w << 2) | (x >> 4);
+		unsigned char h= (x << 4) | (y >> 2);
+		unsigned char i= (y << 6) | z;
+
+		char out[3]={static_cast<char>(g),
+			     static_cast<char>(h),
+			     static_cast<char>(i)};
+
+		size_t n=1;
+
+		if (buffer[2] != '=')
+			++n;
+		if (buffer[3] != '=')
+			++n;
+		else seen_end=true;
+
+		if (out_bufptr + n > bufsiz)
+		{
+			emit(out_buf, out_bufptr);
+			out_bufptr=0;
+		}
+
+		for (size_t i=0; i<n; ++i)
+		{
+			out_buf[out_bufptr++]=out[i];
+		}
+	}
+
+	if (out_bufptr)
+		emit(out_buf, out_bufptr);
+}
+
+void rfc2047::base64decoder_base::finished()
+{
+	if (bufferp)
+		report_error();
+}
+
+void rfc2047::base64decoder_base::report_error()
+{
+	if (error_occured)
+		return;
+	error_occured=true;
+
+	std::string_view msg{" [base64 decoding error] "};
+	emit(msg.data(), msg.size());
+}

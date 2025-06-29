@@ -103,6 +103,7 @@ int rfc2047_encode_callback(const char32_t *uc,
 #include <string>
 #include <utility>
 #include <iterator>
+#include <type_traits>
 
 namespace rfc2047 {
 #if 0
@@ -224,6 +225,164 @@ template<typename in_iterb, typename in_itere> struct iter {
 	}
 };
 
+/*
+  Standalone quoted-printable and base64 decoders
+
+  qpdecoder decoder{closure};
+  base64decoder decoder{closure};
+
+  The closure object is an object that's callable with two parameters,
+  a const char * and a size_t. The object gets repeatedly called with decoded
+  content, passing a chunk at a time.
+
+  Both qpdecoder and base64decoder are templates, and the default deduction
+  guide takes care of the template parameters. The closure parameter may be
+  passed in by reference or by value. If passed in by value it gets copied
+  and stored in the decoder object. After decoding is complete, and just
+  before the decoder object gets destroyed, the final value of the closure
+  is extracted via an overloaded closure operator:
+
+  closure=decoder;
+
+  decoder is itself a callable object, with a const char * and a size_t
+  parameter. This defines the quoted-printable or base64-encoded content,
+  a chunk at a time.
+
+  Note: the closure object can be called just before the decoder object is
+  destroyed, to emit the final chunk, or chunks, of decoded contents, or
+  it can be called when extracting the final value of the closure object from
+  the decoder, for the same reason. Both the extraction operator overload, and
+  a destructor, signals the end of the encoded content.
+
+  If the encoded sequence is bad, the decoded content will have an obnoxious
+  error message (but only on the first encounter of the badness, the others are
+  swallowed silently). This can happen in the destructor or the extraction
+  operator, if the encoded sequence is truncated in a manner that breaks the
+  encoding.
+
+*/
+
+struct qpdecoder_base {
+private:
+
+	unsigned char nybble;
+	size_t (qpdecoder_base::*handler)(const char *, size_t);
+	size_t do_char(const char *, size_t);
+	size_t do_prev_equal(const char *, size_t);
+	size_t do_prev_equal_cr(const char *, size_t);
+	size_t do_prev_equal_h1(const char *, size_t);
+
+	bool error_occured{false};
+	void report_error();
+
+	virtual void emit(const char *, size_t)=0;
+
+protected:
+	void finished();
+public:
+	qpdecoder_base();
+	~qpdecoder_base();
+
+	void process_char(const char *, size_t);
+};
+
+template<typename out_iter_type>
+struct qpdecoder : qpdecoder_base {
+
+private:
+	std::conditional_t<
+		std::is_same_v<out_iter_type, out_iter_type &>,
+		out_iter_type,
+		std::remove_cv_t<
+			std::remove_reference_t<out_iter_type>>> out_iter;
+
+	void emit(const char *ptr, size_t n) override
+	{
+		out_iter(ptr, n);
+	}
+public:
+	qpdecoder(out_iter_type &&out_iter) : out_iter{
+			std::forward<out_iter_type>(out_iter)
+		}
+	{
+	}
+
+	~qpdecoder()
+	{
+		this->finished();
+	}
+
+	void operator()(const char *p, size_t n)
+	{
+		this->process_char(p, n);
+	}
+
+	operator decltype(out_iter)()
+	{
+		this->finished();
+
+		return out_iter;
+	}
+};
+
+struct base64decoder_base {
+private:
+	unsigned char buffer[4];
+	size_t bufferp{0};
+
+	bool error_occured{false};
+
+	virtual void emit(const char *, size_t)=0;
+	bool seen_end{false};
+
+protected:
+	void finished();
+public:
+	base64decoder_base();
+	~base64decoder_base();
+
+	void report_error();
+	void process_char(const char *, size_t);
+};
+
+template<typename out_iter_type>
+struct base64decoder : base64decoder_base {
+
+private:
+	std::conditional_t<
+		std::is_same_v<out_iter_type, out_iter_type &>,
+		out_iter_type,
+		std::remove_cv_t<
+			std::remove_reference_t<out_iter_type>>> out_iter;
+
+	void emit(const char *p, size_t n) override
+	{
+		out_iter(p, n);
+	}
+public:
+	base64decoder(out_iter_type &&out_iter)
+		: out_iter{std::forward<out_iter_type>(out_iter)}
+	{
+	}
+
+	~base64decoder()
+	{
+		this->finished();
+	}
+
+	void operator()(const char *p, size_t n)
+	{
+		this->process_char(p, n);
+	}
+
+	operator decltype(out_iter)()
+	{
+		this->finished();
+
+		return out_iter;
+	}
+};
+
 // Invoked from decoder(), decode an RFC-2047 atom after a "=?"
 //
 // inp defined the input sequence.
@@ -329,6 +488,17 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 			[&]
 			(auto &out)
 			{
+				qpdecoder decoder{
+					[&]
+					(const char *p, size_t n)
+					{
+						while (n)
+						{
+							*out++=*p++;
+							--n;
+						}
+					}};
+
 				while (1)
 				{
 					int c=inp.peek();
@@ -356,39 +526,9 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 
 					inp.next();
 
-					if (c != '=')
-					{
-						*out++=c;
-						continue;
-					}
+					char ch=static_cast<char>(c);
 
-					const char *hi, *lo;
-
-					c=inp.peek();
-
-					if (c < 0 ||
-					    (hi=strchr(rfc2047_xdigit, c))
-					    == NULL)
-						break;
-
-					inp.next();
-					c=inp.peek();
-
-					if (c < 0 ||
-					    (lo=strchr(rfc2047_xdigit, c))
-					    == NULL)
-						break;
-					inp.next();
-
-					int h=hi-rfc2047_xdigit;
-					int l=lo-rfc2047_xdigit;
-
-					if (h > 15) h-=6;
-					if (l > 15) l-=6;
-
-					*out++=static_cast<char>(
-						(h << 4) | l
-					);
+					decoder(&ch, 1);
 				}
 
 				error_msg="qp decoding error";
@@ -401,6 +541,17 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 			[&]
 			(auto &out)
 			{
+				base64decoder decoder{
+					[&]
+					(const char *p, size_t n)
+					{
+						while (n)
+						{
+							*out++=*p++;
+							--n;
+						}
+					}};
+
 				while (1)
 				{
 					int wc=inp.peek();
@@ -420,56 +571,15 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 							return;
 						}
 
-						if (c2 < 0)
-							// Error no matter what
-							break;
-
-						inp.undo(c2);
+						break;
 					}
 
-					int xc=inp.peek();
+					char wcc=wc;
 
-					if (xc < 0 || xc == '?')
-						break;
-					xc=static_cast<unsigned char>(xc);
-
-					inp.next();
-
-					int yc=inp.peek();
-					if (yc < 0 || yc == '?')
-						break;
-
-					yc=static_cast<unsigned char>(yc);
-
-					inp.next();
-
-					int zc=inp.peek();
-
-					if (zc < 0 || zc == '?')
-						break;
-					zc=static_cast<unsigned char>(zc);
-
-					inp.next();
-
-					int w=rfc2047_decode64tab[wc];
-					int x=rfc2047_decode64tab[xc];
-					int y=rfc2047_decode64tab[yc];
-					int z=rfc2047_decode64tab[zc];
-
-					unsigned char g= (w << 2) | (x >> 4);
-					unsigned char h= (x << 4) | (y >> 2);
-					unsigned char i= (y << 6) | z;
-
-					*out++=g;
-					if (yc != '=')
-						*out++=h;
-					if (zc != '=')
-						*out++=i;
-					else if (inp.peek() != '?')
-						break;
+					decoder(&wcc, 1);
 				}
-
-				error_msg="64 decoding error";
+				decoder.report_error();
+				// Error no matter how we got here.
 			});
 		break;
 	default:

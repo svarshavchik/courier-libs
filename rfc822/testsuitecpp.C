@@ -75,18 +75,18 @@ void rfc2047decode_test()
 		{"=?iso-8859-1?qr", "[utf-8::r]:error"},
 		{"=?iso-8859-1?q?r?", "[iso-8859-1::r]:error"},
 		{"=?iso-8859-1?q?r?st", "[iso-8859-1::r?st]:error"},
-		{"=?iso-8859-1?q?=", "[iso-8859-1::]:error"},
-		{"=?iso-8859-1?q?=a", "[iso-8859-1::]:error"},
-		{"=?iso-8859-1?q?=2", "[iso-8859-1::]:error"},
-		{"=?iso-8859-1?q?=2x", "[iso-8859-1::][utf-8::x]:error"},
-		{"=?iso-8859-1?b?MTIz?", "[iso-8859-1::123]:error"},
-		{"=?iso-8859-1?b?MTI=?", "[iso-8859-1::12]:error"},
-		{"=?iso-8859-1?b?MQ==?", "[iso-8859-1::1]:error"},
-		{"=?iso-8859-1?b?M===?", "[iso-8859-1::6]:error"},
-		{"=?iso-8859-1?b?MTIz", "[iso-8859-1::123]:error"},
-		{"=?iso-8859-1?b?MTI=", "[iso-8859-1::12]:error"},
-		{"=?iso-8859-1?b?MQ==", "[iso-8859-1::1]:error"},
-		{"=?iso-8859-1?b?M===", "[iso-8859-1::6]:error"},
+		{"=?iso-8859-1?q?=", "[iso-8859-1:: [quoted-printable decoding error] ]:error"},
+		{"=?iso-8859-1?q?=a", "[iso-8859-1:: [quoted-printable decoding error] ]:error"},
+		{"=?iso-8859-1?q?=2", "[iso-8859-1:: [quoted-printable decoding error] ]:error"},
+		{"=?iso-8859-1?q?=2x", "[iso-8859-1:: [quoted-printable decoding error] ]:error"},
+		{"=?iso-8859-1?b?MTIz?", "[iso-8859-1::123 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?MTI=?", "[iso-8859-1::12 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?MQ==?", "[iso-8859-1::1 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?M===?", "[iso-8859-1::6 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?MTIz", "[iso-8859-1::123 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?MTI=", "[iso-8859-1::12 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?MQ==", "[iso-8859-1::1 [base64 decoding error] ]"},
+		{"=?iso-8859-1?b?M===", "[iso-8859-1::6 [base64 decoding error] ]"},
 	};
 
 	for (auto &t:tests)
@@ -120,9 +120,10 @@ void rfc2047decode_test()
 		if (errflag)
 			o << ":error";
 
-		// std::cout << "{\"" << t.input << "\", \""
-		//	  << o.str() << "\"},\n";
-
+#if 0
+		std::cout << "{\"" << t.input << "\", \""
+			  << o.str() << "\"},\n";
+#else
 		if (o.str() != t.expected_output)
 		{
 			std::cout << "rfc2047_decode error: "
@@ -131,6 +132,7 @@ void rfc2047decode_test()
 				  << "\n    result:   " << o.str()
 				  << "\n";
 		}
+#endif
 	}
 }
 
