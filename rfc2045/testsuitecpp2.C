@@ -443,6 +443,123 @@ void test4()
 #endif
 }
 
+template<bool crlf>
+void test5()
+{
+	std::string nl = crlf ? "\r\n":"\n";
+
+	std::stringstream ss;
+
+	ss << "Subject: =?utf-8?q?nob=c3=92dy?=" << nl
+	   << " subject" << nl
+	   << "From: Nobody1 <test1@example.com>, test2@example.com," << nl
+	   << "  =?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= "
+		"<test3@xn--80akhbyknj4f.net>" << nl
+	   << "Mime-Version: 1.0" << nl
+	   << "Content-Type: multipart/mixed; boundary=aaa" << nl
+	   << nl
+	   << "preable" << nl
+	   << "--aaa" << nl
+	   << "Content-Type: text/plain; charset=iso-8859-1" << nl
+	   << "Content-Description: =?utf-8?q?quoted-?= "
+		"=?utf8?q?printable?=" << nl
+	   << "Content-Transfer-Encoding: quoted-printable" << nl
+	   << nl
+	   << "H=E9llo =" << nl
+	   << "H=E9llo" << nl
+	   << nl
+	   << "--aaa" << nl
+	   << "Content-Type: text/plain; charset=iso-8859-1" << nl
+	   << "Content-Description: base64 decoded" << nl
+	   << "Content-Transfer-Encoding: base64" << nl
+	   << nl
+	   << "SOlsbG8=" << nl
+	   << nl
+	   << "--aaa--" << nl << nl;
+
+	auto b=std::istreambuf_iterator<char>{ss};
+	auto e=std::istreambuf_iterator<char>{};
+
+	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+
+	rfc2045::entity entity;
+
+	entity.parse(iter);
+
+	std::string decoded;
+
+	{
+		typename rfc2045::entity::line_iter<crlf>::decoder decoder{
+			*ss.rdbuf(),
+			[&]
+			(const char *ptr, size_t n)
+			{
+				decoded.insert(decoded.end(), ptr, ptr+n);
+			}, "utf-8"
+		};
+
+		decoder.decode(entity);
+
+		decoded.erase(std::remove(decoded.begin(), decoded.end(),
+					  '\r'), decoded.end());
+	}
+#if UPDATE_TESTSUITECPP
+
+	auto db=decoded.begin(), de=decoded.end();
+
+	const char *str_plus="\t\t";
+
+	while (db != de)
+	{
+		auto p=std::find(db, de, '\n');
+
+		if (p != de)
+			++p;
+
+		std::cout << str_plus << "\"";
+
+		for ( ; db != p; ++db)
+		{
+			if (*db == '\n')
+				std::cout << "\\n";
+			else if (*db == '"')
+				std::cout << "\\\"";
+			else
+				std::cout << *db;
+		}
+		std::cout << "\"";
+		str_plus="\n\t\t";
+	}
+	std::cout << "\n";
+#else
+	std::string expected =
+		"subject: nobÒdy subject\n"
+		"from: Nobody1 <test1@example.com>, test2@example.com, NobÒdy <test3@испытание.net>\n"
+		"mime-version: 1.0\n"
+		"content-type: multipart/mixed; boundary=aaa\n"
+		"\n"
+		"content-type: text/plain; charset=iso-8859-1\n"
+		"content-description: quoted-printable\n"
+		"content-transfer-encoding: quoted-printable\n"
+		"\n"
+		"Héllo Héllo\n"
+		"\n"
+		"content-type: text/plain; charset=iso-8859-1\n"
+		"content-description: base64 decoded\n"
+		"content-transfer-encoding: base64\n"
+		"\n"
+		"Héllo\n";
+
+	if (expected != decoded)
+	{
+		std::cout << "test5 (" << (crlf ? "\\r\\n":"\\n") << "): "
+			" unexpected decoding result:\n"
+			  << decoded << "\n";
+		exit(1);
+	}
+#endif
+}
+
 int main()
 {
 	alarm(60);
@@ -454,7 +571,9 @@ int main()
 
 	// test3<false>();
 
-	test4<false>();
+	// test4<false>();
+
+	test5<false>();
 #else
 	for (int i=0; i<100; ++i)
 	{
@@ -470,6 +589,9 @@ int main()
 
 	test4<false>();
 	test4<true>();
+
+	test5<false>();
+	test5<true>();
 #endif
 	return 0;
 }

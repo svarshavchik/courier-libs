@@ -95,3 +95,7 @@ check-am:
 	./testrfc6533parser
 	./testsuitecpp
 	./testsuitecpp2
+	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testrfc6533parser ; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp ; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp2

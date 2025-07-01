@@ -1165,6 +1165,51 @@ auto rfc2231_attr_encode(std::string_view name,
   Note: the headers template reads as big of a header as exists in the MIME
   entity. RFC2045_ERRLONGUNFOLDEDHEADER can be consulted, if desired.
 
+  DECODING MIME ENTITIES
+  ======================
+
+  rfc2045::entity::line_iter<false>::decoder decoder{input_stream, out,
+			  "utf-8"
+  };
+
+  decoder.decode_header=true;
+  decoder.decode_body=true;
+  decoder.decode_entities=true;
+
+  decoder.decode(entity);
+
+  The decoder class is actually a template, whose template parameters are
+  deduced from the constructor's parameters. The first constructor parameter is
+  a std::streambuf object or another object that implements pubseekpos,
+  sgetc, sbumpc, and sgetn function like std::streambuf does. This object
+  must be the same object that was used to parse a MIME entity to be decoded.
+  The second parameter is an object that's callable with a const char * and
+  a size_t parameter, which gets repeatedly invoked to produce the decoded
+  content. The callable object may be passed in by reference, which saves
+  a reference to the callable object (which then must remain in scope and
+  not get destroyed while the decoder object is in use), or by value, which
+  saves a copy of the value in the decoder object.
+
+  Finally the third parameter is a character set. The first two
+  parameters get passed by reference.
+
+  The decode() method takes the parsed MIME entity and its decoded contents,
+  and writes the following to the output iterator:
+
+  - the decode_header class member (default: true): decode the MIME entity's
+  headers. Folded headers are unfolded, each line consists of the header
+  name converted to lowercase, followed by its contents. RFC 2047-encoded
+  words are decoded, and punycoded domain names are converted, to the character
+  set specified by the third parameter.
+
+  - the decode_body class member (default: true): extract the MIME entity's
+  contents (except for a multipart or a message MIME content type). base64
+  and quoted-printable encoding gets decoded. text content gets converted to
+  the character set specified by the third parameter to the constructor.
+
+  - decode_subentity: recursively process decpde_header and decode_bopdy
+  for all MIME subentities
+
  */
 
 class rfc2045::entity_info {
@@ -1284,6 +1329,15 @@ class rfc2045::entity : public entity_info {
 
  public:
 
+	template<typename out_iter> class converter;
+	template<typename src_type, typename out_chunk> bool decode_body(
+		src_type &&src,
+		out_chunk &&out
+	) const;
+	template<typename src_type, typename out_chunk> bool decode_body_to(
+		src_type &&src,
+		out_chunk &&out
+	) const;
 	template<typename iter>
 	static void tolowercase(iter b, iter e)
 	{
@@ -1313,6 +1367,9 @@ class rfc2045::entity : public entity_info {
 
 		template<typename src_type>
 		struct headers;
+
+		template<typename out_iter,
+			 typename src_type> class decoder;
 	};
 
 	entity() {}
@@ -2420,6 +2477,216 @@ public:
 extern template class rfc2045::entity_parser<false>;
 extern template class rfc2045::entity_parser<true>;
 
+template<typename out_iter>
+class rfc2045::entity::converter : unicode::iconvert {
+	out_iter &out;
+
+public:
+	converter(out_iter &out) : out{out} {}
+
+	using unicode::iconvert::operator();
+	using unicode::iconvert::begin;
+
+	bool end(bool &flag)
+	{
+		return unicode::iconvert::end(flag);
+	}
+private:
+	int converted(const char *p, size_t n) override
+	{
+		out(p, n);
+		return 0;
+	}
+};
+
+template<bool crlf>
+template<typename out_iter_type,
+	 typename src_type>
+class rfc2045::entity::line_iter<crlf>::decoder {
+
+	src_type &src;
+	typedef std::conditional_t<
+		std::is_same_v<out_iter_type, out_iter_type &>,
+		out_iter_type,
+		std::remove_cv_t<
+			std::remove_reference_t<out_iter_type>>> out_type_t;
+	out_type_t out;
+	std::string charset;
+
+ public:
+	decoder(src_type &src, out_iter_type &&out,
+		std::string charset)
+		: src{src}, out{std::forward<out_iter_type>(out)},
+		  charset{std::move(charset)}
+	{
+	}
+
+	bool decode_header=true;
+	bool decode_body=true;
+	bool decode_entities=true;
+
+	void decode(const entity &e);
+	~decoder()=default;
+};
+
+template<bool crlf>
+template<typename out_iter,
+	 typename src_type>
+void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
+	const entity &e
+)
+{
+	if (decode_header)
+	{
+		headers parser{e, src};
+
+		std::string header;
+
+		do
+		{
+			const auto &[name, content]=parser.name_content();
+
+			out(name.data(), name.size());
+
+			if (!name.empty())
+			{
+				out(": ", 2);
+			}
+
+			header.clear();
+			rfc822::display_header(name, content, charset,
+					       std::back_inserter(header));
+
+			if constexpr (crlf)
+			{
+				header.push_back('\r');
+			}
+			header.push_back('\n');
+			out(header.data(), header.size());
+		} while (parser.next());
+
+		if (!e.subentities.empty())
+		{
+			if (decode_entities)
+			{
+				for (auto &subentity:e.subentities)
+				{
+					decode(subentity);
+				}
+			}
+			return;
+		}
+	}
+
+	if (!decode_body)
+		return;
+
+	bool errflag=false;
+
+	if (e.content_type.substr(0, 5) != "text/")
+	{
+		if (!e.decode_body(src, std::forward<out_type_t>(out)))
+			errflag=true;
+	}
+	else
+	{
+		rfc2045::entity::converter converter{out};
+
+		if (!converter.begin(e.content_type_charset, charset)
+		    || !e.decode_body(src,
+				      [&]
+				      (const char *ptr, size_t n)
+				      {
+					      converter(ptr, n);
+				      }))
+		{
+			errflag=true;
+		}
+
+		bool conversion_error;
+		converter.end(conversion_error);
+
+		if (conversion_error)
+			errflag=true;
+	}
+
+	if (errflag)
+	{
+		std::string_view error_message{"[MIME decoding error]"};
+		out(error_message.data(), error_message.size());
+	}
+	out("\n", 1);
+}
+
+template<typename src_type,
+	 typename out_chunk> bool rfc2045::entity::decode_body(
+		 src_type &&src,
+		 out_chunk &&out
+	 ) const
+{
+	bool errflag=false;
+
+	switch (content_transfer_encoding) {
+	case cte::base64:
+		{
+			rfc2047::base64decoder decoder{
+				std::forward<out_chunk>(out)
+			};
+
+			if (!decode_body_to(src, decoder))
+				errflag=true;
+		}
+		break;
+	case cte::qp:
+		{
+			rfc2047::qpdecoder decoder{
+				std::forward<out_chunk>(out)
+			};
+
+			if (!decode_body_to(src, decoder))
+				errflag=true;
+		}
+		break;
+	default:
+		if (!decode_body_to(src, std::forward<out_chunk>(out)))
+			errflag=true;
+		break;
+	}
+
+	return !errflag;
+}
+
+template<typename src_type,
+	 typename out_chunk> bool rfc2045::entity::decode_body_to(
+		 src_type &&src,
+		 out_chunk &&out
+	 ) const
+{
+	char buf[BUFSIZ];
+
+	src.pubseekpos(startbody);
+
+	auto s=endbody-startbody;
+
+	while (s)
+	{
+		auto n=s;
+
+		if (n > BUFSIZ)
+		{
+			n=BUFSIZ;
+		}
+
+		auto done=src.sgetn(buf, n);
+
+		if (done != static_cast<decltype(done)>(n))
+			return false;
+		out(buf, n);
+		s -= n;
+	}
+
+	return true;
+}
 #endif
 
 #endif
