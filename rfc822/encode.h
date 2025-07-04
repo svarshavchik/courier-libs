@@ -50,6 +50,96 @@ int libmail_encode_end(struct libmail_encode_info *info);
 
 #ifdef  __cplusplus
 }
+
+#include <type_traits>
+#include <utility>
+
+namespace rfc822 {
+
+	// C++ wrapper for libmail_encode()
+	//
+	// This is a template, and the template parameters get deduced from
+	// the constructor's parameter.
+	//
+	// The first parameter is an object that's callable with a const char *
+	// and a size_t parameter, and it gets called, repeatedly, with the
+	// encoded contents, a chunk at a time (the output object).
+	//
+	// If the output object is passed by reference, then the reference
+	// to the object is saved, and the referenced object must exist
+	// as long as the encode object is used. If the first parameter is
+	// passed by value a copy of it gets copied/moved into encode. The
+	// encode object instance has a conversion operator that returns the
+	// copy of the output chunk-receiving object, which can be called after
+	// end() to retrieve its final value, if it has any meaning.
+	//
+	// The second parameter specifies the content transfer encoding.
+	//
+	// The encode instance is called repeatedly, with const char * and
+	// size_t parameter to define the unencoded content, in chunks.
+	// end() gets called to formally define the end of the unencoded
+	// content. The encoded content is buffered internally and end() will
+	// likely result in the output object getting called with the final
+	// encoded contents. The destructor also calls end().
+
+	template<typename out_iter_type>
+	class encode : private libmail_encode_info {
+
+		std::conditional_t<
+			std::is_same_v<out_iter_type, out_iter_type &>,
+			out_iter_type,
+			std::remove_cv_t<
+				std::remove_reference_t<out_iter_type>>
+			> out_iter;
+
+	public:
+		encode(out_iter_type &&out_iter, const char *encoding)
+			: out_iter{std::forward<out_iter_type>(out_iter)}
+		{
+			libmail_encode_start(
+				this, encoding,
+				trampoline,
+				reinterpret_cast<void *>(this)
+			);
+		}
+
+		static int trampoline(const char *ptr,
+				      size_t l,
+				      void *voidptr)
+		{
+			auto me=reinterpret_cast<encode<out_iter_type> *>(
+				voidptr
+			);
+			me->out_iter(ptr, l);
+			return 0;
+		}
+
+		void operator()(const char *ptr, size_t cnt)
+		{
+			libmail_encode(this, ptr, cnt);
+		}
+
+		void end()
+		{
+			libmail_encode_end(this);
+		}
+
+		~encode()
+		{
+			end();
+		}
+
+		operator std::remove_cv_t<
+			std::remove_reference_t<out_iter_type>>() const
+		{
+			return out_iter;
+		}
+
+		encode &operator=(const encode &)=delete;
+		encode(const encode &)=delete;
+	};
+}
+
 #endif
 
 #endif

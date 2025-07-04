@@ -10,6 +10,7 @@
 #include	<stdlib.h>
 #include	<courier-unicode.h>
 #include	<functional>
+#include	"rfc2045/rfc2045.h"
 
 namespace {
 #if 0
@@ -148,4 +149,35 @@ const char *libmail_encode_autodetect_buf(const char *str, int use7bit)
 	}
 
 	return detect;
+}
+
+std::tuple<const char *, bool>
+rfc822::libmail_encode_autodetect(std::streambuf &i,
+				  bool use7bit)
+{
+	char buf[BUFSIZ];
+	::libmail_encode_autodetect detect;
+
+	detect.use7bit=use7bit;
+
+	for (auto cnt=i.sgetn(buf, BUFSIZ); cnt > 0;
+	     cnt=i.sgetn(buf, BUFSIZ))
+	{
+		char *b=buf;
+		char *e=buf+cnt;
+
+		while (b != e)
+		{
+			if (detect.encoding)
+				break;
+
+			detect(*b++);
+		}
+
+		if (detect.encoding)
+			break;
+	}
+
+	const char *encoding=detect;
+	return std::tuple{encoding, detect.binaryflag};
 }
