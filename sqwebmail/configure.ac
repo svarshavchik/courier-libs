@@ -17,6 +17,8 @@ AC_PROG_MAKE_SET
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 LT_INIT
 
 if test "$GCC" = yes ; then

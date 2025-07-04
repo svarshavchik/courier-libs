@@ -190,6 +190,21 @@ struct rfc2045attr {
 	} ;
 
 #ifdef __cplusplus
+
+namespace rfc822 {
+
+	// Returns:
+	//
+	// - "base64", "quoted-printable", "7bit" or "8bit"
+	//
+	// - a bool flag indicating whether or not a raw binary was detected
+
+	std::tuple<const char *, bool>
+	libmail_encode_autodetect(
+		std::streambuf &,
+		bool use7bit
+	);
+}
 extern "C" {
 #endif
 #if 0
@@ -798,13 +813,13 @@ char *rfc6533_decode(const char *address);
 
   - language is an empty string.
 
-  - charset is either empty, "us-ascii", "utf-8" or "iso-8859-1".
+  - charset is either empty, "us-ascii", or "utf-8".
 
   If so the callback gets invoked once, with the name and address passed in,
   as is. Otherwise RFC 2231 encoding is used and the callback gets invoked
   one or more times.
 
-  rfc2331_attr_encode returns the value returned from the callback (possibly
+  rfc2231_attr_encode returns the value returned from the callback (possibly
   void). Additionally, if the callback returns an integral value: a non-zero
   return from the callback aborts encoding (if RFC 2231 encoding is in use)
   and returns the non-0 returned value, and a 0 value is returned if all
@@ -883,8 +898,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
 			if (sbuf.empty() ||
 			    sbuf == "utf-8" ||
-			    sbuf == "us-ascii" ||
-			    sbuf == "iso-8859-1")
+			    sbuf == "us-ascii")
 			{
 				char name_buf[name.size()+1];
 				char value_buf[value.size()+3];

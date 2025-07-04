@@ -98,6 +98,7 @@ sqwebmaild_SOURCES=acl.c acl.h \
 
 sqwebmaild_LDADD=libwebmail.la @NETLIBS@ @LDAUTH@ -lcourierauth `cat ../maildir/libmaildir.deps`
 sqwebmaild_DEPENDENCIES=libwebmail.la ../maildir/libmaildir.deps
+nodist_EXTRA_sqwebmaild_SOURCES=forcecpp.cc
 
 sqwebmail_SOURCES=sqwebmaild.c
 sqwebmail_DEPENDENCIES= ../cgi/libcgi.la

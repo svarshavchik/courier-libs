@@ -17,6 +17,7 @@ unset CHARSET
 unset MM_CHARSET
 export LANG
 export LC_ALL
+export MM_CHARSET=utf-8
 
 echo "foo" >confmdtest
 
@@ -24,8 +25,23 @@ echo "foo" >confmdtest
 ./makemime -c auto -C utf-8 -N text7bit confmdtest
 echo "foox" | tr 'x' '\000' >confmdtest
 ./makemime -c auto -C utf-8 -N binarybase64 confmdtest
-echo "Tést" >confmdtest
-./makemime -c auto -C utf-8 -N text8bit confmdtest
+
+cat >confmdtest <<EOF
+   -c
+   auto
+
+   -C
+   utf-8
+
+   -N
+   text8bit
+
+   &3
+
+   -
+Tést
+EOF
+./makemime "@&3" 3<confmdtest
 echo "Test Test Test Test Tést" >confmdtest
 ./makemime -c auto -C utf-8 -N text8bit confmdtest
 

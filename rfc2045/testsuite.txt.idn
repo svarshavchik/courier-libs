@@ -224,12 +224,12 @@ Content-Transfer-Encoding: 7bit
 
 foo
 Content-Type: application/octet-stream; charset="utf-8";
-  name*0*=utf-8''footest%3A1
+  name*0*=UTF-8''footest%3A1
 Content-Transfer-Encoding: 7bit
 
 foo
 Content-Type: application/octet-stream; charset="utf-8";
-  name*0*=utf-8''f%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A;
+  name*0*=UTF-8''f%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A%3A;
   name*1*=%3A%3A%3A%3A%3A%3A%3A1
 Content-Transfer-Encoding: 7bit
 

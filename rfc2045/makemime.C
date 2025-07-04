@@ -24,6 +24,8 @@
 #include	<pwd.h>
 #include	<fcntl.h>
 #include	<signal.h>
+
+#include	"rfc822/rfc822.h"
 #include	"rfc822/encode.h"
 #include	"rfc2045.h"
 #include	"rfc2045charset.h"
@@ -35,9 +37,13 @@
 #endif
 #include	"numlib/numlib.h"
 
+#include	<iostream>
 #include	<vector>
 #include	<string>
+#include	<string_view>
 #include	<algorithm>
+#include	<memory>
+#include	<courier-unicode.h>
 
 #if     HAS_GETHOSTNAME
 #else
@@ -67,13 +73,22 @@ Determine the file descriptor wanted, if any.
 
 ******************************************************************************/
 
-static int fd_wanted(const char *filename, const char *mode)
+static int fd_wanted(std::string_view filename, std::string_view mode)
 {
-	if (strcmp(filename, "-") == 0)		/* stdin or stdout */
-		return strcmp(mode, "r") ? 1:0;
-	if (*filename == '&')
-		return atoi(filename+1);	/* file descriptor */
-	return -1;				/* or a file */
+	if (filename == "-")		/* stdin or stdout */
+		return mode != "r" ? 1:0;
+	if (filename.size() && filename[0] == '&')
+	{
+		int fd=0;
+
+		for (char c:filename)
+			if (c >= '0' && c <= '9')
+			{
+				fd=fd*10 + (c-'0');
+			}
+		return fd;	/* file descriptor */
+	}
+	return -1;		/* or a file */
 }
 
 /******************************************************************************
@@ -82,32 +97,27 @@ Open some file or a pipe for reading and writing.
 
 ******************************************************************************/
 
-static FILE *openfile_or_pipe(const char *filename, const char *mode)
+static rfc822::fdstreambuf openfile_or_pipe(std::string_view filename,
+					    std::string_view mode)
 {
-int	fd, fd_to_dup = fd_wanted(filename, mode);
-FILE	*fp;
-
-	if (fd_to_dup == 0)
-		return stdin;
+	int	fd, fd_to_dup = fd_wanted(filename, mode);
 
 	if (fd_to_dup >= 0)
 		fd = dup(fd_to_dup);
 	else
-		fd=open(filename, (strcmp(mode, "r") ?
-			O_WRONLY|O_CREAT|O_TRUNC:O_RDONLY), 0666);
-
+	{
+		std::string s{filename.begin(), filename.end()};
+		fd=open(s.c_str(), (mode != "r") ?
+			O_WRONLY|O_CREAT|O_TRUNC:O_RDONLY, 0666);
+	}
 	if (fd < 0)
 	{
-		perror(filename);
+		std::string s{filename.begin(), filename.end()};
+		perror(s.c_str());
 		exit(1);
 	}
-	fp=fdopen(fd, mode);
-	if (!fp)
-	{
-		perror("fdopen");
-		exit(1);
-	}
-	return (fp);
+
+	return rfc822::fdstreambuf{fd};
 }
 
 /******************************************************************************
@@ -117,15 +127,26 @@ contents into it.
 
 ******************************************************************************/
 
-static FILE *openfile(const char *filename)
+static rfc822::fdstreambuf openfile(std::string_view filename)
 {
-FILE	*fp=openfile_or_pipe(filename, "r");
-int	fd=fileno(fp);
+	rfc822::fdstreambuf fp=openfile_or_pipe(filename, "r");
+	int	fd=fp.fileno();;
 
 	if (!isreg(fd))	/* Must be a pipe */
 	{
-	FILE *t=tmpfile();
-	int	c;
+		FILE *t=tmpfile();
+		int tfd=dup(fileno(t));
+
+		if (tfd < 0)
+		{
+			perror("dup");
+			exit(1);
+		}
+
+		rfc822::fdstreambuf tfile{tfd};
+		fclose(t);
+
+		char buf[BUFSIZ];
 
 		if (!t)
 		{
@@ -133,25 +154,39 @@ int	fd=fileno(fp);
 			exit(1);
 		}
 
-		while ((c=getc(fp)) != EOF)
-			putc(c, t);
-		if (ferror(fp) || fflush(t)
-			|| ferror(t) || fseek(t, 0L, SEEK_SET) == -1)
+		while (1)
 		{
-			perror("write");
+			auto n=fp.sgetn(buf, BUFSIZ);
+
+			if (n < 0)
+			{
+				perror("read");
+				exit(1);
+			}
+
+			if (n == 0)
+				break;
+
+			if (tfile.sputn(buf, n) != n)
+			{
+				perror("write");
+				exit(1);
+			}
+		}
+
+		if (tfile.pubseekpos(0) != 0)
+		{
+			perror("seek");
 			exit(1);
 		}
-		fclose(fp);
-		fp=t;
+
+		fp=std::move(tfile);
 	}
 	else
 	{
-	off_t	orig_pos = lseek(fd, 0L, SEEK_CUR);
-
-		if (orig_pos == -1 ||
-			fseek(fp, orig_pos, SEEK_SET) == -1)
+		if (fp.tell() < 0)
 		{
-			perror("fseek");
+			perror("seek");
 			exit(1);
 		}
 	}
@@ -166,36 +201,38 @@ Build argv/argc from a file.
 
 static void read_args(std::vector<std::string> &args, std::string file)
 {
-	FILE	*fp=openfile_or_pipe(file.c_str(), "r");
-	char	buffer[BUFSIZ];
-	char	*p;
-	int	c;
+	auto streambuf=openfile_or_pipe(file, "r");
+	std::istream i{&streambuf};
+	std::string buffer;
 
 	args.clear();
 
-	while (fgets(buffer, sizeof(buffer), fp) != 0)
+	while (std::getline(i, buffer))
 	{
-	const	char *q;
-
-		if ((p=strchr(buffer, '\n')) != 0)
-			*p=0;
-		else while ((c=getc(fp)) != '\n' && c != EOF)
-			;	/* Just dump the excess */
-
 		/* Skip the filler. */
 
-		q=buffer;
-		while (*q && isspace((int)(unsigned char)*q))
-			++q;
-		if (!*q)	continue;
-		if (*q == '#')	continue;
-		if (strcmp(buffer, "-") == 0)
+		auto b=buffer.begin(), e=buffer.end();
+
+		b=std::find_if(b, e, [](char c){
+			return !isspace((int)(unsigned char)c);
+		});
+
+		if (b == e || *b == '#') continue;
+
+		while (e > b && isspace(e[-1]))
+			--e;
+
+		if (std::string_view{&*b,
+				     static_cast<size_t>(e-b)} == "-")
 		{
-			if (isreg(fileno(fp)))
+			if (isreg(streambuf.fileno()))
 			{
-				long orig_pos = ftell(fp);
+				auto orig_pos=streambuf.pubseekoff(
+					0, std::ios_base::cur
+				);
 				if (orig_pos == -1 ||
-					lseek(fileno(fp), orig_pos, SEEK_SET) == -1)
+				    lseek(streambuf.fileno(), orig_pos,
+					  SEEK_SET) == -1)
 				{
 					perror("seek");
 					exit(1);
@@ -204,7 +241,7 @@ static void read_args(std::vector<std::string> &args, std::string file)
 			break;
 		}
 
-		args.push_back(q);
+		args.push_back(std::string(b, e));
 	}
 }
 
@@ -265,17 +302,21 @@ struct mimestruct {
 	** Later, we open a file pointer in either case.
 	*/
 
-	const char *inputfile1=nullptr, *inputfile2=nullptr;
+	std::string_view inputfile1, inputfile2;
 
-	// Child mimestructs, each vector will have at most 1 child struct
-	std::vector<mimestruct> inputchild1, inputchild2;
-	FILE *inputfp1=nullptr, *inputfp2=nullptr;
+	// Child mimestructs
+	std::unique_ptr<mimestruct> inputchild1, inputchild2;
+
+	rfc822::fdstreambuf inputfilebuf1, inputfilebuf2;
+	std::istream inputfp1, inputfp2;
+
 	pid_t	child1=0, child2=0;
 
 	/* Output file.  Defaults to "-", stdout */
 
-	const char *outputfile=nullptr;
-	FILE	*outputfp=nullptr;
+	std::string_view outputfile{"-"};
+	rfc822::fdstreambuf outputfilebuf;
+	std::ostream outputfp;
 
 		/* The handler and open functions */
 
@@ -289,10 +330,15 @@ struct mimestruct {
 	void opencreatesimplemime();
 	void opencreatemultipartmime();
 	void openjoinmultipart();
+	void copyfilebuf1();
+	void copyfilebuf2();
+	void copyfilebuf(rfc822::fdstreambuf &);
+	bool tryboundary(rfc822::fdstreambuf &sb, std::string_view bbuf);
+	std::string mkboundary(rfc822::fdstreambuf &sb);
 
-	FILE *openchild(mimestruct *child,
-			pid_t	*pidptr,
-			int usescratch);
+	rfc822::fdstreambuf openchild(mimestruct &child,
+				      pid_t	*pidptr,
+				      int usescratch);
 
 	void openoutput();
 		/* The new mime type, and encoding (-e) */
@@ -305,6 +351,12 @@ struct mimestruct {
 	std::vector<std::string> aheaders;
 
 	void goodexit(int exitcode);
+
+	mimestruct(std::vector<std::string>::const_iterator &argsb,
+		   std::vector<std::string>::const_iterator &argse);
+
+	mimestruct(const mimestruct &)=delete;
+	mimestruct &operator=(const mimestruct &)=delete;
 } ;
 
 /******************************************************************************
@@ -313,20 +365,21 @@ Recursively build the mimestruct tree.
 
 ******************************************************************************/
 
-mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
-		     std::vector<std::string>::const_iterator &argse)
+mimestruct::mimestruct(std::vector<std::string>::const_iterator &argsb,
+		       std::vector<std::string>::const_iterator &argse)
+	: inputfp1{&inputfilebuf1},
+	  inputfp2{&inputfilebuf2},
+	  outputfp{&outputfilebuf}
 {
-	mimestruct m;
-
 	if (argsb == argse)	usage();
 
 	if (argsb->compare(0, 2, "-c") == 0)
 	{
-		m.handler_func= &mimestruct::createsimplemime;
-		m.open_func= &mimestruct::opencreatesimplemime;
+		handler_func= &mimestruct::createsimplemime;
+		open_func= &mimestruct::opencreatesimplemime;
 		if (argsb->size() > 2)
 		{
-			m.mimetype=argsb->c_str()+2;
+			mimetype=argsb->c_str()+2;
 			++argsb;
 		}
 		else
@@ -335,23 +388,23 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			if (argsb != argse &&
 			    *argsb->c_str() != '-' && *argsb->c_str() != ')')
 			{
-				m.mimetype=argsb->c_str();
+				mimetype=argsb->c_str();
 				++argsb;
 			}
 			else
-				m.mimetype="application/octet-stream";
+				mimetype="application/octet-stream";
 		}
 
-		while (isspace((int)(unsigned char)*m.mimetype))
-			++m.mimetype;
+		while (isspace((int)(unsigned char)*mimetype))
+			++mimetype;
 	}
 	else if (argsb->compare(0, 2, "-m") == 0)
 	{
-		m.handler_func= &mimestruct::createmultipartmime;
-		m.open_func= &mimestruct::opencreatemultipartmime;
+		handler_func= &mimestruct::createmultipartmime;
+		open_func= &mimestruct::opencreatemultipartmime;
 		if (argsb->size() > 2)
 		{
-			m.mimetype=argsb->c_str()+2;
+			mimetype=argsb->c_str()+2;
 			++argsb;
 		}
 		else
@@ -360,21 +413,21 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			if (argsb != argse && *argsb->c_str() != '-' &&
 			    *argsb->c_str() != ')')
 			{
-				m.mimetype=argsb->c_str();
+				mimetype=argsb->c_str();
 				++argsb;
 			}
 			else
-				m.mimetype="multipart/mixed";
+				mimetype="multipart/mixed";
 		}
-		while (isspace((int)(unsigned char)*m.mimetype))
-			++m.mimetype;
+		while (isspace((int)(unsigned char)*mimetype))
+			++mimetype;
 	}
 	else if (argsb->compare(0, 2, "-j") == 0)
 	{
 		const char *filename;
 
-		m.handler_func= &mimestruct::joinmultipart;
-		m.open_func= &mimestruct::openjoinmultipart;
+		handler_func= &mimestruct::joinmultipart;
+		open_func= &mimestruct::openjoinmultipart;
 		if (argsb->size() > 2)
 		{
 			filename=argsb->c_str()+2;
@@ -393,13 +446,13 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 
 		if (strcmp(filename, "(") == 0)
 		{
-			m.inputchild2.push_back(parseargs(argsb, argse));
+			inputchild2=std::make_unique<mimestruct>(argsb, argse);
 			if (argsb == argse || *argsb != ")")
 				usage();
 			++argsb;
 		}
 		else
-			m.inputfile2=filename;
+			inputfile2=filename;
 	}
 	else
 		usage();
@@ -421,7 +474,7 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m.outputfile=f;
+			outputfile=f;
 			continue;
 		}
 
@@ -439,7 +492,7 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m.textplaincharset=f;
+			textplaincharset=f;
 			continue;
 		}
 
@@ -457,7 +510,7 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			}
 			while (isspace((int)(unsigned char)*f))
 				++f;
-			m.contentname=f;
+			contentname=f;
 			continue;
 		}
 
@@ -497,7 +550,7 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			else
 				usage();
 
-			m.mimeencoding=f;
+			mimeencoding=f;
 			continue;
 		}
 
@@ -517,7 +570,7 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 			while (isspace((int)(unsigned char)*f))
 				++f;
 
-			m.aheaders.push_back(f);
+			aheaders.push_back(f);
 			continue;
 		}
 		break;
@@ -530,18 +583,16 @@ mimestruct parseargs(std::vector<std::string>::const_iterator &argsb,
 	if (*argsb == "(")
 	{
 		++argsb;
-		m.inputchild1.push_back(parseargs(argsb, argse));
+		inputchild1=std::make_unique<mimestruct>(argsb, argse);
 		if (argsb == argse || *argsb != ")")
 			usage();
 		++argsb;
 	}
 	else
 	{
-		m.inputfile1=argsb->c_str();
+		inputfile1=argsb->c_str();
 		++argsb;
 	}
-
-	return (m);
 }
 
 /******************************************************************************
@@ -554,7 +605,7 @@ code thus propagating any child's non-zero exit code to parent.
 
 void mimestruct::goodexit(int exitcode)
 {
-	if (outputfp && (fflush(outputfp) || ferror(outputfp)))
+	if (outputfilebuf.pubsync() < 0 || !outputfp)
 	{
 		perror("makemime");
 		exit(1);
@@ -565,32 +616,25 @@ void mimestruct::goodexit(int exitcode)
 	** a SIGPIPE.
 	*/
 
-	while (inputfp1 && !feof(inputfp1) && !ferror(inputfp1))
-		getc(inputfp1);
-
-	while (inputfp2 && !feof(inputfp2) && !ferror(inputfp2))
-		getc(inputfp2);
-
-	if (inputfp1)
 	{
-		if (ferror(inputfp1))
-		{
-			perror("makemime");
-			exitcode=1;
-		}
+		char buf[BUFSIZ];
 
-		fclose(inputfp1);
+		while (inputfilebuf1.sgetn(buf, BUFSIZ) > 0)
+			;
+
+		while (inputfilebuf2.sgetn(buf, BUFSIZ) > 0)
+			;
 	}
-	if (inputfp2)
+
+	if (!inputfp1 || !inputfp2)
 	{
-		if (ferror(inputfp2))
-		{
-			perror("makemime");
-			exitcode=1;
-		}
-
-		fclose(inputfp2);
+		perror("makemime");
+		exitcode=1;
 	}
+
+	inputfilebuf1=rfc822::fdstreambuf{};
+	inputfilebuf2=rfc822::fdstreambuf{};
+	outputfilebuf=rfc822::fdstreambuf{};
 
 	while (child1 > 0 && child2 > 0)
 	{
@@ -625,7 +669,7 @@ int main(int argc, char **argv)
 		read_args(args, args[0].substr(1));
 
 	auto b=args.cbegin(), e=args.cend();
-	mimestruct m{parseargs(b, e)};
+	mimestruct m{b, e};
 	if (b != e)	usage();	/* Some arguments left */
 
 	(m.*m.open_func)();
@@ -634,38 +678,19 @@ int main(int argc, char **argv)
 	return (0);
 }
 
-static int encode_outfp(const char *p, size_t n, void *vp)
-{
-	if (fwrite(p, n, 1, *(FILE **)vp) != 1)
-		return -1;
-	return 0;
-}
-
-static int do_printRfc2231Attr(const char *param,
-			       const char *value,
-			       void *voidArg)
-{
-	fprintf( ((mimestruct *)voidArg)->outputfp,
-		 ";\n  %s=%s", param, value);
-	return 0;
-}
-
 void mimestruct::createsimplemime()
 {
-	struct libmail_encode_info encode_info;
 	const char *orig_charset=textplaincharset;
 
-	/* Determine encoding by reading the file, as follows:
-	**
-	** Default to 7bit.  Use 8bit if high-ascii bytes found.  Use
-	** quoted printable if lines more than 200 characters found.
-	** Use base64 if a null byte is found.
+	/*
+	** Determine encoding by reading the file, running it through
+	** encodeautodetect
 	*/
 
 	if (mimeencoding == 0)
 	{
-		long	orig_pos=ftell(inputfp1);
-		int	binaryflag;
+		auto	orig_pos=inputfilebuf1.tell();
+		bool	binaryflag;
 
 		if (orig_pos == -1)
 		{
@@ -673,13 +698,12 @@ void mimestruct::createsimplemime()
 			goodexit(1);
 		}
 
-		mimeencoding=libmail_encode_autodetect_fpoff(inputfp1,
-								0,
-								0, -1,
-								&binaryflag);
+		std::tie(mimeencoding, binaryflag)=
+			 rfc822::libmail_encode_autodetect(
+				 inputfilebuf1, false
+			 );
 
-		if (ferror(inputfp1)
-			|| fseek(inputfp1, orig_pos, SEEK_SET)<0)
+		if (inputfilebuf1.pubseekpos(orig_pos) < 0)
 		{
 			perror("fseek");
 			goodexit(1);
@@ -692,49 +716,74 @@ void mimestruct::createsimplemime()
 	}
 
 	for (auto &a:aheaders)
-		fprintf(outputfp, "%s\n", a.c_str());
+		outputfp << a << "\n";
 
-	fprintf(outputfp, "Content-Type: %s", mimetype);
+	outputfp << "Content-Type: " << mimetype;
+
 	if (orig_charset && *orig_charset)
 	{
 		const char *c;
 
-		fprintf(outputfp, "; charset=\"");
+		outputfp << "; charset=\"";
 		for (c=orig_charset; *c; c++)
 		{
 			if (*c != '"' && *c != '\\')
-				putc(*c, outputfp);
+				outputfp << *c;
 		}
-		fprintf(outputfp, "\"");
+		outputfp << "\"";
 	}
 
 	if (contentname && *contentname)
 	{
-		const char *chset=textplaincharset ? textplaincharset
-			: "utf-8";
-
-		rfc2231_attrCreate("name", contentname, chset, NULL,
-				   do_printRfc2231Attr, this);
+		rfc2231_attr_encode(
+			"name",
+			contentname,
+			unicode_default_chset(),
+			"",
+			[this]
+			(const char *param,
+			 const char *value)
+			{
+				outputfp << ";\n  " << param << "=" << value;
+			});
 	}
 
-	fprintf(outputfp, "\nContent-Transfer-Encoding: %s\n\n",
-		mimeencoding);
+	outputfp << "\nContent-Transfer-Encoding: "
+		   << mimeencoding << "\n\n";
 
-	libmail_encode_start(&encode_info, mimeencoding,
-			     &encode_outfp,
-			     &outputfp);
+	rfc822::encode encoder{
+		[this]
+		(const char *p, size_t n)
+		{
+			if (outputfilebuf.sputn(p, n) < 0)
+			{
+				perror("write");
+				exit(1);
+			}
+		},
+		mimeencoding
+	};
+
 	{
 		char input_buf[BUFSIZ];
-		int n;
 
-		while ((n=fread(input_buf, 1, sizeof(input_buf),
-				inputfp1)) > 0)
+		while (1)
 		{
-			if ( libmail_encode(&encode_info, input_buf, n))
-				break;
-		}
+			auto n=inputfilebuf1.sgetn(
+				input_buf, sizeof(input_buf)
+			);
 
-		libmail_encode_end(&encode_info);
+			if (n < 0)
+			{
+				perror("read");
+				exit(1);
+			}
+
+			if (n == 0)
+				break;
+
+			encoder(input_buf, n);
+		}
 	}
 }
 
@@ -745,39 +794,38 @@ appear in the contents of the bounded section.
 
 ******************************************************************************/
 
-static int tryboundary(mimestruct *m, FILE *f, const char *bbuf)
+bool mimestruct::tryboundary(rfc822::fdstreambuf &sb, std::string_view bbuf)
 {
-char	buf[BUFSIZ];
-char	*p;
-int	l=strlen(bbuf);
-int	c;
-long	orig_pos=ftell(f);
+	std::string s;
+	auto	orig_pos=sb.tell();
 
 	if (orig_pos == -1)
 	{
-		perror("ftell");
-		m->goodexit(1);
+		perror("tell");
+		goodexit(1);
 	}
 
-	while ((p=fgets(buf, sizeof(buf), f)) != 0)
+	bool tryagain=false;
+
+	std::istream i{&sb};
+	while (std::getline(i, s))
 	{
+		const char *p=s.c_str();
 		if (p[0] == '-' && p[1] == '-' &&
-			strncmp(p+2, bbuf, l) == 0)
+		    strncmp(p+2, bbuf.data(), bbuf.size()) == 0)
+		{
+			tryagain=true;
 			break;
-
-		if ((p=strchr(buf, '\n')) != 0)
-			*p=0;
-		else while ((c=getc(f)) != EOF && c != '\n')
-			;
+		}
 	}
 
-	if (ferror(f) || fseek(f, orig_pos, SEEK_SET)<0)
+	if (!i.eof() || sb.pubseekpos(orig_pos) < 0)
 	{
 		perror("fseek");
-		m->goodexit(1);
+		goodexit(1);
 	}
 
-	return (p ? 1:0);
+	return tryagain;
 }
 
 /******************************************************************************
@@ -786,13 +834,13 @@ Create a MIME boundary for some content.
 
 ******************************************************************************/
 
-static const char *mkboundary(mimestruct *m, FILE *f)
+std::string mimestruct::mkboundary(rfc822::fdstreambuf &sb)
 {
-pid_t	pid=getpid();
-time_t	t;
-static unsigned n=0;
-static char bbuf[NUMBUFSIZE*4];
-char	buf[NUMBUFSIZE];
+	pid_t	pid=getpid();
+	time_t	t;
+	static unsigned n=0;
+	char bbuf[NUMBUFSIZE*4];
+	char	buf[NUMBUFSIZE];
 
 	time(&t);
 
@@ -804,148 +852,187 @@ char	buf[NUMBUFSIZE];
 		strcat(bbuf, libmail_str_time_t(t, buf));
 		strcat(bbuf, "_");
 		strcat(bbuf, libmail_str_pid_t(pid, buf));
-	} while (tryboundary(m, f, bbuf));
+	} while (tryboundary(sb, bbuf));
 	return (bbuf);
 }
 
 void mimestruct::createmultipartmime()
 {
-	const char *b=mkboundary(this, inputfp1);
-	int	c;
+	auto b=mkboundary(inputfilebuf1);
 
 	if (mimeencoding == 0)
 		mimeencoding="8bit";
 
 	for (auto &a:aheaders)
-		fprintf(outputfp, "%s\n", a.c_str());
-	fprintf(outputfp, "Content-Type: %s; boundary=\"%s\"\n"
-			"Content-Transfer-Encoding: %s\n\n"
-			RFC2045MIMEMSG
-			"\n--%s\n",
-		mimetype, b,
-		mimeencoding,
-		b);
-	while ((c=getc(inputfp1)) != EOF)
-		putc(c, outputfp);
-	fprintf(outputfp, "\n--%s--\n", b);
+		outputfp << a << "\n";
+	outputfp <<"Content-Type: "
+		 << mimetype
+		 << "; boundary=\""
+		 << b
+		 << "\"\n"
+		"Content-Transfer-Encoding: "
+		 << mimeencoding
+		 << "\n\n"
+		RFC2045MIMEMSG
+		"\n--"
+		 << b
+		 << "\n";
+
+	copyfilebuf1();
+
+	outputfp << "\n--" << b << "--\n";
+}
+
+void mimestruct::copyfilebuf1()
+{
+	copyfilebuf(inputfilebuf1);
+}
+
+void mimestruct::copyfilebuf2()
+{
+	copyfilebuf(inputfilebuf2);
+}
+
+void mimestruct::copyfilebuf(rfc822::fdstreambuf &sb)
+{
+
+	char buf[BUFSIZ];
+
+	while (1)
+	{
+		auto n=sb.sgetn(buf, BUFSIZ);
+		if (n < 0)
+		{
+			perror("read");
+			goodexit(1);
+		}
+
+		if (n == 0)
+			break;
+
+		if (outputfilebuf.sputn(buf, n) != n)
+		{
+			perror("write");
+			goodexit(1);
+		}
+	}
 }
 
 void mimestruct::joinmultipart()
 {
-const char *new_boundary;
-char	*old_boundary=0;
-int	old_boundary_len=0;
-char	buffer[BUFSIZ];
-char	*p;
-int	c;
+	std::string new_boundary;
+	std::string old_boundary;
+	std::string s;
 
 	do
 	{
-		new_boundary=mkboundary(this, inputfp1);
-	} while (tryboundary(this, inputfp2, new_boundary));
+		new_boundary=mkboundary(inputfilebuf1);
+	} while (tryboundary(inputfilebuf2, new_boundary));
 
 	/* Copy the header */
 
+	std::string headername;
+
 	for (;;)
 	{
-		if (fgets(buffer, sizeof(buffer), inputfp2) == 0)
+		if (!std::getline(inputfp2, s))
 		{
-			buffer[0]=0;
+			s.clear();
 			break;
 		}
 
-		if (strcmp(buffer, "\r\n") == 0 ||
-		    buffer[0] == '\n' || strncmp(buffer, "--", 2) == 0)
+		if (s == "\r" || s == "" || strncmp(s.c_str(), "--", 2) == 0)
 			break;
 
-		if (strncasecmp(buffer, "content-type:", 13))
+		headername.clear();
+		headername.insert(headername.end(),
+				  s.begin(),
+				  std::find(s.begin(), s.end(), ':'));
+
+		for (auto &c:headername)
+			if (c >= 'A' && c <= 'Z')
+				c += 'a'-'A';
+
+		if (headername != "content-type")
 		{
-			fprintf(outputfp, "%s", buffer);
-			if ((p=strchr(buffer, '\n')) != 0)	continue;
-			while ((c=getc(inputfp2)) != EOF && c != '\n')
-				putc(c, outputfp);
+			outputfp << s << "\n";
 			continue;
 		}
 
-		if ((p=strchr(buffer, '\n')) == 0)
-			while ((c=getc(inputfp2)) != EOF && c != '\n')
-				;
+		auto p=std::find(s.begin(), s.end(), ';');
 
-		p=strchr(buffer+13, ';');
-		if (p)	*p=0;
-		fprintf(outputfp, "Content-Type:%s; boundary=\"%s\"\n",
-			buffer+13, new_boundary);
+		outputfp << std::string_view{s.c_str(),
+				static_cast<size_t>(p-s.begin())}
+			<<"; boundary=\""
+			 << new_boundary << "\"\n";
 
-		for (;;)
+		while (1)
 		{
-			c=getc(inputfp2);
-			if (c != EOF)	ungetc(c, inputfp2);
-			if (c == '\n' || !isspace((int)(unsigned char)c))
+			auto c=inputfilebuf2.sgetc();
+
+			if (c < 0)
 				break;
-			while ((c=getc(inputfp2)) != EOF && c != '\n')
-				;
+
+			if (c == '\n' || (c != ' '))
+				break;
+
+			std::getline(inputfp2, s);
 		}
 	}
 
+	std::string boundary_candidate;
+
 	do
 	{
-		if (strncmp(buffer, "--", 2) == 0)
+		if (strncmp(s.c_str(), "--", 2) == 0)
 		{
-			if (old_boundary == 0)
+			if (old_boundary.empty())
 			{
-				old_boundary=static_cast<char *>(malloc(strlen(buffer)+1));
-				if (!old_boundary)
+				old_boundary=s;
+				if (old_boundary.back() == '\r')
+					old_boundary.pop_back();
+
+				auto ptr=old_boundary.end();
+
+				if (ptr[-1] == '-' && ptr[-2] == '-')
 				{
-					perror("malloc");
-					exit(1);
+					old_boundary.pop_back();
+					old_boundary.pop_back();
 				}
-				strcpy(old_boundary, buffer);
-				if ((p=strchr(old_boundary, '\n')) != 0)
-				{
-					if (p > old_boundary && p[-1] == '\r')
-						--p;
-					*p=0;
-				}
-				p=old_boundary+strlen(old_boundary);
-				if (p >= old_boundary+4 &&
-					strcmp(p-2, "--") == 0)
-					p[-2]=0;
-				old_boundary_len=strlen(old_boundary);
+				for (auto &c:old_boundary)
+					if (c >= 'A' && c <= 'Z')
+						c += 'a'-'A';
 			}
 
+			boundary_candidate=s;
 
-			if (strncasecmp(buffer, old_boundary,
-				old_boundary_len) == 0)
+			for (auto &c:boundary_candidate)
+				if (c >= 'A' && c <= 'Z')
+					c += 'a'-'A';
+
+			if (s.size() >= old_boundary.size() &&
+			    std::equal(old_boundary.begin(), old_boundary.end(),
+				       s.begin()))
 			{
-				if ((p=strchr(buffer, '\n')) != 0)
-					*p=0;
-				else while ((c=getc(inputfp2)) != '\n'
-					&& c != EOF)
-					;
+				if (s.back() == '\r')
+					s.pop_back();
 
-				c=strlen(buffer);
-				if (c > 0 && buffer[c-1] == '\r')
-					buffer[--c]=0;
-
-				if (c >= 4 && strcmp(buffer+(c-2), "--") == 0)
+				if (s.size() >= 4 && std::string_view{
+						s.c_str()+s.size()-2, 2}
+					== "--")
 					break;
-				fprintf(outputfp, "--%s\n",
-					new_boundary);
+				outputfp << "--" << new_boundary << "\n";
 				continue;
 			}
 		}
-		fprintf(outputfp, "%s", buffer);
-		if ((p=strchr(buffer, '\n')) == 0)
-			while ((c=getc(inputfp2)) != '\n' && c != EOF)
-				;
-	} while (fgets(buffer, sizeof(buffer), inputfp2) != 0);
+		outputfp << s << "\n";;
+	} while (std::getline(inputfp2, s));
 
-	fprintf(outputfp, "--%s\n", new_boundary);
+	outputfp << "--" << new_boundary << "\n";
 
-	while ((c=getc(inputfp1)) != EOF)
-		putc(c, outputfp);
+	copyfilebuf1();
 
-	fprintf(outputfp, "\n--%s--\n", new_boundary);
+	outputfp << "\n--" << new_boundary << "--\n";
 	goodexit(0);
 }
 
@@ -955,14 +1042,13 @@ Open input from a child process
 
 ******************************************************************************/
 
-FILE *mimestruct::openchild(mimestruct *child,
-			    pid_t	*pidptr,
-			    int usescratch)
+rfc822::fdstreambuf mimestruct::openchild(mimestruct &child,
+					  pid_t	*pidptr,
+					  int usescratch)
 {
 int	pipefd[2];
-char	buf[NUMBUFSIZE];
+char	buf[NUMBUFSIZE+1];
 char	buf2[NUMBUFSIZE+1];
-FILE	*fp;
 
 	if (pipe(pipefd) < 0)
 	{
@@ -988,14 +1074,14 @@ FILE	*fp;
 
 		/* Close any input files opened by parent */
 
-		if (inputfp1)	fclose(inputfp1);
-		if (inputfp2)	fclose(inputfp2);
+		inputfilebuf1=rfc822::fdstreambuf{};
+		inputfilebuf2=rfc822::fdstreambuf{};
 
 		/* Open, then execute the child process */
 
-		(child->*child->open_func)();
-		(child->*child->handler_func)();
-		child->goodexit(0);
+		(child.*(child.open_func))();
+		(child.*(child.handler_func))();
+		child.goodexit(0);
 	}
 	close(pipefd[1]);
 
@@ -1007,42 +1093,41 @@ FILE	*fp;
 	buf[0]='&';
 	strcpy(buf+1, libmail_str_size_t(pipefd[0], buf2));
 
-	fp= usescratch ? openfile(buf):openfile_or_pipe(buf, "r");
+	rfc822::fdstreambuf fp=
+		usescratch ? openfile(buf)
+		:openfile_or_pipe(buf, "r");
 	close(pipefd[0]);	/* fd was duped by openfile */
 	return (fp);
 }
 
 void mimestruct::openoutput()
 {
-	if (!outputfile)
-		outputfile="-";
-
-	outputfp= openfile_or_pipe(outputfile, "w");
+	outputfilebuf=openfile_or_pipe(outputfile, std::string_view{"w"});
 }
 
 void mimestruct::openjoinmultipart()
 {
 	/* number two is the multipart section */
-	if (inputchild2.size())
-		inputfp2=openchild(&inputchild2[0], &child2, 1);
+	if (inputchild2)
+		inputfilebuf2=openchild(*inputchild2, &child2, 1);
 	else
-		inputfp2=openfile(inputfile2);
+		inputfilebuf2=openfile(inputfile2);
 
 
-	if (inputchild1.size())
-		inputfp1=openchild(&inputchild1[0], &child1, 1);
+	if (inputchild1)
+		inputfilebuf1=openchild(*inputchild1, &child1, 1);
 	else
-		inputfp1=openfile(inputfile1);
+		inputfilebuf1=openfile(inputfile1);
 	openoutput();
 }
 
 void mimestruct::opencreatesimplemime()
 {
-	if (inputchild1.size())
-		inputfp1=openchild(&inputchild1[0], &child1,
+	if (inputchild1)
+		inputfilebuf1=openchild(*inputchild1, &child1,
 			mimeencoding ? 0:1);
 	else
-		inputfp1= mimeencoding
+		inputfilebuf1= mimeencoding
 			? openfile_or_pipe(inputfile1, "r")
 			: openfile(inputfile1);
 	openoutput();
@@ -1050,9 +1135,9 @@ void mimestruct::opencreatesimplemime()
 
 void mimestruct::opencreatemultipartmime()
 {
-	if (inputchild1.size())
-		inputfp1=openchild(&inputchild1[0], &child1, 1);
+	if (inputchild1)
+		inputfilebuf1=openchild(*inputchild1, &child1, 1);
 	else
-		inputfp1=openfile_or_pipe(inputfile1, "r");
+		inputfilebuf1=openfile_or_pipe(inputfile1, "r");
 	openoutput();
 }
