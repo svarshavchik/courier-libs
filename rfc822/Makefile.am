@@ -18,7 +18,7 @@ DISTCLEANFILES=rfc822.config
 
 AM_CFLAGS = $(LIBIDN_CFLAGS)
 
-libencode_la_SOURCES=encode.c encode.h
+libencode_la_SOURCES=encode.C encode.h
 
 BUILT_SOURCES=rfc822.3 rfc822.html
 noinst_DATA=$(BUILT_SOURCES)
