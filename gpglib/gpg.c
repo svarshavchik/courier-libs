@@ -34,7 +34,7 @@
 #include "mimegpgfork.h"
 #include "tempname.h"
 #include "gpglib.h"
-#include "rfc822/encode.h"
+#include "rfc2045/encode.h"
 #include "rfc2045/rfc2045.h"
 
 static int my_rewind(FILE *fp)
@@ -1981,7 +1981,7 @@ static void libmail_gpg_errfunc(const char *errmsg, void *vp)
 						eh->options->errhandler_arg);
 	}
 }
- 
+
 static int input_func_from_fp(char *buf, size_t cnt, void *vp)
 {
 	if (fgets(buf, cnt, (FILE *)vp) == NULL)

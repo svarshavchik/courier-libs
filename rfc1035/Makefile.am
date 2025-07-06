@@ -20,20 +20,20 @@ librfc1035_a_SOURCES= \
 noinst_PROGRAMS=testlookup testspf
 
 testlookup_SOURCES=testlookup.c
-testlookup_DEPENDENCIES=librfc1035.a ../rfc822/libencode.la ../md5/libmd5.la \
+testlookup_DEPENDENCIES=librfc1035.a ../rfc2045/libencode.la ../md5/libmd5.la \
 	../random128/librandom128.la ../soxwrap/libsoxwrap.a \
 	../soxwrap/soxlibs.dep
-testlookup_LDADD=librfc1035.a ../rfc822/libencode.la ../soxwrap/libsoxwrap.a ../md5/libmd5.la \
+testlookup_LDADD=librfc1035.a ../rfc2045/libencode.la ../soxwrap/libsoxwrap.a ../md5/libmd5.la \
 	../random128/librandom128.la `cat ../soxwrap/soxlibs.dep` @LIBIDN_LIBS@
 testlookup_LDFLAGS=-static
 
 EXTRA_DIST=testsuite.txt
 
 testspf_SOURCES=testspf.c
-testspf_DEPENDENCIES=librfc1035.a ../rfc822/libencode.la ../md5/libmd5.la \
+testspf_DEPENDENCIES=librfc1035.a ../rfc2045/libencode.la ../md5/libmd5.la \
 	../random128/librandom128.la ../soxwrap/libsoxwrap.a \
 	../soxwrap/soxlibs.dep
-testspf_LDADD=librfc1035.a ../rfc822/libencode.la ../md5/libmd5.la \
+testspf_LDADD=librfc1035.a ../rfc2045/libencode.la ../md5/libmd5.la \
 	../random128/librandom128.la ../soxwrap/libsoxwrap.a \
 	`cat ../soxwrap/soxlibs.dep` @LIBIDN_LIBS@
 testspf_LDFLAGS=-static

@@ -885,6 +885,7 @@ int main()
 
 	fseek(fp, 0L, SEEK_SET);
 	if (fgetc(fp) != 'X') FAIL();
+	fclose(fp);
 
 	return 0;
 }

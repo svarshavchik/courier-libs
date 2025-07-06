@@ -8,7 +8,7 @@
 #endif
 #include	"rfc2045.h"
 #include	"rfc2045charset.h"
-#include	"rfc822/encode.h"
+#include	"encode.h"
 #include	"rfc822/rfc822hdr.h"
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
