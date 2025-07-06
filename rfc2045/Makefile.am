@@ -2,7 +2,7 @@
 # Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
 # distribution information.
 
-noinst_LTLIBRARIES=librfc2045.la
+noinst_LTLIBRARIES=librfc2045.la libencode.la
 noinst_PROGRAMS=reformime makemime headercheck testrfc3676parser \
 	testsuitecpp testsuitecpp2 \
 	testrfc6533parser
@@ -18,7 +18,7 @@ EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn \
 
 noinst_DATA=$(BUILT_SOURCES)
 
-librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C \
+librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc2045defs.c rfc2045src.h \
 		     rfc2045acchk.c rfc2045acprep.c \
 		     rfc2045appendurl.c rfc2045cdecode.c rfc2045decode.c \
@@ -35,14 +35,16 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C \
                      rfc6533.c \
 		     base64.c base64.h
 
+libencode_la_SOURCES=encode.C encode.h encodeautodetect.C
+
 reformime_SOURCES=reformime.c
-reformime_DEPENDENCIES =  librfc2045.la ../rfc822/libencode.la ../rfc822/librfc822.la \
+reformime_DEPENDENCIES =  librfc2045.la libencode.la ../rfc822/librfc822.la \
 		../numlib/libnumlib.la
 reformime_LDADD = $(reformime_DEPENDENCIES) -lcourier-unicode
 reformime_LDFLAGS=-static
 
 makemime_SOURCES=makemime.C
-makemime_DEPENDENCIES= ../rfc822/libencode.la librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
+makemime_DEPENDENCIES= libencode.la librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 makemime_LDADD = $(makemime_DEPENDENCIES) -lcourier-unicode
 makemime_LDFLAGS=-static
 nodist_EXTRA_makemime_SOURCES=forcecpp.cc

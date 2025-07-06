@@ -3,22 +3,19 @@
 # distribution information.
 
 
-noinst_LTLIBRARIES=libencode.la librfc822.la
+noinst_LTLIBRARIES=librfc822.la
 
 librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdrcpp.C rfc822hdr.h \
 		  rfc822_2047.h rfc822cpp.C \
 		  rfc822_getaddr.c rfc822_getaddrs.c \
 		  rfc822_fdstreambuf.C \
                   rfc822_mkdate.c rfc822_parsedt.c rfc2047u.c \
-                  rfc2047.c rfc2047.h imapsubj.c imaprefs.h imaprefs.c \
-		  encodeautodetect.C
+                  rfc2047.c rfc2047.h imapsubj.c imaprefs.h imaprefs.c
 librfc822_la_LIBADD = $(LIBIDN_LIBS)
 
 DISTCLEANFILES=rfc822.config
 
 AM_CFLAGS = $(LIBIDN_CFLAGS)
-
-libencode_la_SOURCES=encode.C encode.h
 
 BUILT_SOURCES=rfc822.3 rfc822.html
 noinst_DATA=$(BUILT_SOURCES)

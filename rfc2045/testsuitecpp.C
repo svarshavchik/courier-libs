@@ -17,7 +17,11 @@ void testrfc2045line_iter_testset(int &testnum, test_types &tests)
 		auto b=s.begin();
 		auto e=s.end();
 
-		typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+		typename rfc2045::entity::line_iter<crlf>::iter<
+			std::string_view::iterator,
+			std::string_view::iterator
+			>
+			iter{b, e};
 
 		std::vector<std::tuple<std::string, size_t>> output;
 

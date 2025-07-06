@@ -1023,7 +1023,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
   entity.parse(parser);
 
-  The iterator class's constructor takes a reference to an iterator to
+  The iter class's constructor takes a reference to an iterator to
   the beginning of an input sequence that defines a MIME message and an ending
   iterator value.
 
@@ -1035,11 +1035,16 @@ auto rfc2231_attr_encode(std::string_view name,
   the beginning iterator gets advanced to the ending iterator, unless a fatal
   parsing error occured.
 
-  The iter class is a template, and the template parameters get deduced from
-  the constructor's parameters. line_iter's template parameter must be
-  explicit, the "false" value specifies that NL gets recognized as the newline
-  sequence, "true" value specifies that CRNL gets recognized as the newline
-  sequence of the MIME message.
+  The iter class is a template, and the template parameters should get deduced
+  from the constructor's parameters. Older C++17 compilers may not fully
+  implement template parameter deductions, so they must be specified. iter
+  has two template parameters, the beginning and the ending iterator type (they
+  don't need to be the same).
+
+  line_iter's template parameter must be always explicit, the "false" value
+  specifies that NL gets recognized as the newline sequence, "true" value
+  specifies that CRNL gets recognized as the newline sequence of the MIME
+  message.
 
   parse() reads the sequence that defines the MIME message and fills in the
   class's members that specify where the MIME entity's header and body
@@ -1146,8 +1151,13 @@ auto rfc2231_attr_encode(std::string_view name,
   - sbumpc - read a cahracter and consume it, advancing the input to the next
   position.
 
-  NOTE: the input stream object must not go out of scope and get destruoyed
+  NOTE: the input stream object must not go out of scope and get destroyed
   as long as the parser template instance is in use.
+
+  Older C++17 compilers may not fully implement template parameter deductions,
+  so they must be specified. The headers class has one template parameter,
+  the type of the source object, the referene to this type gets passed as
+  the second parameter to the constructor.
 
   The constructor positions the underlying at the start of the entity's headers.
   current_header() returns a single std::string_view containing the current
@@ -1192,8 +1202,8 @@ auto rfc2231_attr_encode(std::string_view name,
 
   decoder.decode(entity);
 
-  The decoder class is actually a template, whose template parameters are
-  deduced from the constructor's parameters. The first constructor parameter is
+  The decoder class is actually a template, whose template parameters should
+  get deduced from the constructor's parameters. The first parameter is
   a std::streambuf object or another object that implements pubseekpos,
   sgetc, sbumpc, and sgetn function like std::streambuf does. This object
   must be the same object that was used to parse a MIME entity to be decoded.
@@ -1204,8 +1214,13 @@ auto rfc2231_attr_encode(std::string_view name,
   not get destroyed while the decoder object is in use), or by value, which
   saves a copy of the value in the decoder object.
 
-  Finally the third parameter is a character set. The first two
-  parameters get passed by reference.
+  Finally the third parameter is a character set. The first parameter gets
+  passed by reference, the second parameter can be passed by reference or by
+  value. If passed by value it's copied and stored in the decoder object.
+
+  Older C++17 compilers may not fully implement template parameter deductions,
+  so they must be specified. The decoder class has two template parameters:
+  the callable object type, and the input iterator class.
 
   The decode() method takes the parsed MIME entity and its decoded contents,
   and writes the following to the output iterator:

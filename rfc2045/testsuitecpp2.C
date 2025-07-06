@@ -217,7 +217,10 @@ void test3()
 	auto b=std::istreambuf_iterator<char>{ss};
 	auto e=std::istreambuf_iterator<char>{};
 
-	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+	typename rfc2045::entity::line_iter<crlf>::iter<
+		std::istreambuf_iterator<char>,
+		std::istreambuf_iterator<char>
+		> iter{b, e};
 
 	rfc2045::entity entity;
 
@@ -230,7 +233,8 @@ void test3()
 		exit(1);
 	}
 
-	typename rfc2045::entity::line_iter<crlf>::headers h{
+	typename rfc2045::entity::line_iter<crlf>::
+		template headers<std::streambuf> h{
 		entity.subentities[0],
 		*ss.rdbuf()
 	};
@@ -306,7 +310,10 @@ void test4()
 	auto b=std::istreambuf_iterator<char>{ss};
 	auto e=std::istreambuf_iterator<char>{};
 
-	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+	typename rfc2045::entity::line_iter<crlf>::iter<
+		std::istreambuf_iterator<char>,
+		std::istreambuf_iterator<char>
+		> iter{b, e};
 
 	rfc2045::entity entity;
 
@@ -319,7 +326,8 @@ void test4()
 		exit(1);
 	}
 
-	typename rfc2045::entity::line_iter<crlf>::headers h{
+	typename rfc2045::entity::line_iter<crlf>::
+		template headers<std::streambuf> h{
 		entity.subentities[0],
 		*ss.rdbuf()
 	};
@@ -480,7 +488,10 @@ void test5()
 	auto b=std::istreambuf_iterator<char>{ss};
 	auto e=std::istreambuf_iterator<char>{};
 
-	typename rfc2045::entity::line_iter<crlf>::iter iter{b, e};
+	typename rfc2045::entity::line_iter<crlf>::iter<
+		std::istreambuf_iterator<char>,
+		std::istreambuf_iterator<char>
+		> iter{b, e};
 
 	rfc2045::entity entity;
 
@@ -489,7 +500,9 @@ void test5()
 	std::string decoded;
 
 	{
-		typename rfc2045::entity::line_iter<crlf>::decoder decoder{
+		typename rfc2045::entity::line_iter<crlf>::template decoder<
+			std::function<void (const char *, size_t)>,
+			std::streambuf> decoder{
 			*ss.rdbuf(),
 			[&]
 			(const char *ptr, size_t n)

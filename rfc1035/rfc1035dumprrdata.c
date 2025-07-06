@@ -4,7 +4,7 @@
 */
 
 #include	"rfc1035.h"
-#include	"rfc822/encode.h"
+#include	"rfc2045/encode.h"
 #include	<string.h>
 #include	<stdlib.h>
 #include	<sys/types.h>

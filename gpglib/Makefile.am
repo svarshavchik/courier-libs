@@ -23,10 +23,10 @@ testgpg_LDFLAGS=-static
 
 mimegpg_SOURCES=mimegpg.c
 mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
-		../rfc822/libencode.la ../numlib/libnumlib.la \
+		../rfc2045/libencode.la ../numlib/libnumlib.la \
 		-lcourier-unicode
 mimegpg_DEPENDENCIES=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la\
-		../rfc822/libencode.la ../numlib/libnumlib.la
+		../rfc2045/libencode.la ../numlib/libnumlib.la
 BUILT_SOURCES=gpg.h mimegpg.html mimegpg.1
 EXTRA_DIST=mimegpg.html mimegpg.1 README.html
 
