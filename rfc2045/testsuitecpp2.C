@@ -503,12 +503,11 @@ void test5()
 		typename rfc2045::entity::line_iter<crlf>::template decoder<
 			std::function<void (const char *, size_t)>,
 			std::streambuf> decoder{
-			*ss.rdbuf(),
 			[&]
 			(const char *ptr, size_t n)
 			{
 				decoded.insert(decoded.end(), ptr, ptr+n);
-			}, "utf-8"
+			}, *ss.rdbuf(), "utf-8"
 		};
 
 		decoder.decode(entity);

@@ -83,6 +83,7 @@ struct rfc2045 {
 	template<bool crlf> class entity_parser;
 	class headers_base;
 
+	// Possible Content-Transfer-Encoding values
 	enum class cte { error=0, sevenbit='7', eightbit='8', qp='Q',
 			 base64='B'};
 
@@ -105,6 +106,30 @@ struct rfc2045 {
 
 		return cte::error;
 	}
+
+	// What kind of Content-Transfer-Encoding: conversion is requested
+
+	enum class convert {
+
+		// Only add missing Content-Type and
+		// Content-Transfer-Encoding headers
+		standardize='0',
+
+		// Replace 8-bit content with quoted-printable, and
+		// replace 7-bit content with haslongline set with
+		// quoted-printable
+		sevenbit='7',
+
+		// Replace quoted-printable with 8bit if the resulting
+		// line length is not haslongline
+
+		eightbit='8',
+
+		// Always replace quoted-printable with 8bit, even if the
+		// end result produces long lines (in which case it's
+		// converted to 8bit or 7bit, as appropriate)
+		eightbit_always='A'
+	};
 
 #endif
 	struct rfc2045 *parent;
@@ -1055,7 +1080,7 @@ auto rfc2231_attr_encode(std::string_view name,
   member with an entity for each sub-entity (whose headers will not obviously
   start at position 0 in the input sequence).
 
-  iter.longquotedlinesize=1020;
+  iter.longquotedlinesize=500;
 
   quoted-printable-encoded MIME entities may split logical lines into
   multiple physical lines. An "=" at the end of the line in a quoted-printable
@@ -1154,11 +1179,6 @@ auto rfc2231_attr_encode(std::string_view name,
   NOTE: the input stream object must not go out of scope and get destroyed
   as long as the parser template instance is in use.
 
-  Older C++17 compilers may not fully implement template parameter deductions,
-  so they must be specified. The headers class has one template parameter,
-  the type of the source object, the referene to this type gets passed as
-  the second parameter to the constructor.
-
   The constructor positions the underlying at the start of the entity's headers.
   current_header() returns a single std::string_view containing the current
   header (initially the first header in the MIME entity).
@@ -1218,10 +1238,6 @@ auto rfc2231_attr_encode(std::string_view name,
   passed by reference, the second parameter can be passed by reference or by
   value. If passed by value it's copied and stored in the decoder object.
 
-  Older C++17 compilers may not fully implement template parameter deductions,
-  so they must be specified. The decoder class has two template parameters:
-  the callable object type, and the input iterator class.
-
   The decode() method takes the parsed MIME entity and its decoded contents,
   and writes the following to the output iterator:
 
@@ -1250,6 +1266,9 @@ class rfc2045::entity_info {
 
 	std::vector<rfc2045::entity> subentities;
 
+	// Parent entity. rfc2045::entity will update this, nullptr for top lvl
+	rfc2045::entity *parent_entity=nullptr;
+
 	size_t	startpos=0,	/* Position where this entity's header begins */
 		endpos=0,	/* Where it ends */
 		startbody=0,	/* Where the body of the entity starts */
@@ -1263,9 +1282,32 @@ class rfc2045::entity_info {
 
 	cte content_transfer_encoding{cte::sevenbit};
 
+	// Used by autoconvert_check(), haslongline is also set in
+	// consume_line(), cte::error means no conversion needed
+
+	cte rewrite_transfer_encoding{cte::error}; // Convert to this encoding
+
+	// has8bitchars: content has 8-bit content, quoted-printable encodes
+	// characters with high bit set.
+	bool has8bitchars{false};
+
+	// hasraw8bitchars: content has 8-bit content
+	bool hasraw8bitchars{false};
+
+	// Either long physical line, or a long quoted-printable line
+	bool haslongline{false};
+
 	std::string content_type{"text/plain"}; /* content-type in lowercase */
 	std::string content_type_charset{"iso-8859-1"};
 	std::string content_type_boundary;
+
+	// content_type and content_type_charset is defaulted. This tells me
+	// if they were explicitly set.
+	bool has_content_type_header{false};
+	bool has_content_type_charset{false};
+
+	// Whether Content-Transfer-Encoding: was specified
+	bool has_content_transfer_encoding{false};
 
 	bool has8bitheader{false};
 	bool has8bitbody{false};
@@ -1399,9 +1441,38 @@ class rfc2045::entity : public entity_info {
 
 		template<typename out_iter,
 			 typename src_type> class decoder;
+
+
+		template<typename out_iter,
+			 typename src_type>
+		decoder(out_iter &, src_type &)
+			-> decoder<out_iter &, src_type>;
+
+		template<typename out_iter,
+			 typename src_type>
+		decoder(out_iter &&, src_type &)
+			-> decoder<out_iter, src_type>;
+
+		template<typename src_type> static bool try_boundary(
+			src_type &&src,
+			std::string boundary,
+			entity &e
+		);
 	};
 
-	entity() {}
+	entity() noexcept;
+
+	entity(const entity &) noexcept;
+
+	entity(entity &&) noexcept;
+
+	entity &operator=(const entity &) noexcept;
+
+	entity &operator=(entity &&) noexcept;
+
+private:
+	void update_parent_ptr();
+public:
 
 	// A parameter of a structured MIME header.
 	struct header_parameter_value {
@@ -1462,6 +1533,8 @@ class rfc2045::entity : public entity_info {
 
 		auto &subentity=subentities.back();
 
+		subentity.parent_entity=this;
+
 		// Initialize subentity positions appropriately. In case of a
 		// rfc2045_message_content_type we just started its body,
 		// and my startbody and endbody are the same. In case of a
@@ -1474,6 +1547,21 @@ class rfc2045::entity : public entity_info {
 
 		return subentity;
 	}
+
+	static std::string new_boundary(unsigned &counter);
+
+	template<typename src_type> std::string new_boundary(
+		src_type &&src,
+		unsigned &counter
+	);
+
+	// Determine whether MIME entities should have their Content-Type
+	// and/or Content-Transfer-Encoding header updated accordingly.
+	//
+	// Drop the sub-entities of multipart/signed MIME entities, so that
+	// it's treated as a single MIME entity (and never rewritten).
+
+	bool autoconvert_check(convert rwmode);
 };
 
 template<bool crlf>
@@ -1490,7 +1578,7 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 	// number of characters, this set the RFC2045_ERRLONGQUOTEDPRINTABLE
 	// flag.
 
-	size_t longquotedlinesize=1020;
+	size_t longquotedlinesize=500;
 
 	// Default value for the maximum size of an unfolded header, otherwise
 	// RFC2045_ERRLONGUNFOLDEDHEADER errors flag gets set.
@@ -1703,13 +1791,16 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 	// The current line is no longer looked at. consume_line(), then
 	// update the header/body_position.
 
-	size_t consume_line_and_update_position(cte encoding, bool &has8bit)
+	size_t consume_line_and_update_position(
+		rfc2045::entity &entity,
+		cte encoding,
+		bool &has8bit)
 	{
 		// Note where we are before calling consume_line.
 
 		bool was_in_header=in_header();
 
-		size_t c{consume_line(encoding, has8bit)};
+		size_t c{consume_line(entity, encoding, has8bit)};
 
 		if (was_in_header)
 			consumed_header_line(c);
@@ -1739,7 +1830,8 @@ private:
 
 	size_t unquoted_line_size{0};
 
-	void check_qp(char prev_prev_ch, char prev_ch, char ch, bool &has8bit)
+	void check_qp(rfc2045::entity &entity,
+		      char prev_prev_ch, char prev_ch, char ch, bool &has8bit)
 	{
 		++unquoted_line_size;
 
@@ -1759,6 +1851,9 @@ private:
 		if (prev_ch == '=' && ch > '7')
 		{
 			has8bit=true;
+
+			entity.has8bitchars=true;
+			entity.hasraw8bitchars=true;
 		}
 	}
 
@@ -1787,7 +1882,7 @@ private:
 		report_error(RFC2045_ERRINVALIDBASE64);
 	}
 
-	void check_qp_toolong(char last_ch)
+	void check_qp_toolong(rfc2045::entity &entity, char last_ch)
 	{
 		if (last_ch == '=')
 		{
@@ -1799,6 +1894,7 @@ private:
 
 		if (unquoted_line_size > longquotedlinesize)
 		{
+			entity.haslongline=true;
 			report_error_here(
 				RFC2045_ERRLONGQUOTEDPRINTABLE
 			);
@@ -1807,7 +1903,8 @@ private:
 		unquoted_line_size=0;
 	}
 
-	size_t consume_line(cte encoding, bool &has8bit)
+	size_t consume_line(rfc2045::entity &entity,
+			    cte encoding, bool &has8bit)
 	{
 		const auto &[p,q]=current_line();
 
@@ -1821,7 +1918,8 @@ private:
 		{
 			for (auto i=p; i != q; ++i)
 			{
-				check_qp(prev_prev_ch, prev_ch, *i, has8bit);
+				check_qp(entity,
+					 prev_prev_ch, prev_ch, *i, has8bit);
 
 				prev_prev_ch=prev_ch;
 				prev_ch=*i;
@@ -1832,7 +1930,10 @@ private:
 			for (auto i=p; i != q; ++i)
 			{
 				if (*i & 0x80)
+				{
 					has8bit=true;
+					entity.hasraw8bitchars=true;
+				}
 				else if (encoding == cte::base64)
 				{
 					check_base64(*i);
@@ -1847,13 +1948,19 @@ private:
 
 			if (encoding == cte::qp)
 			{
-				check_qp_toolong(prev_ch);
+				check_qp_toolong(entity, prev_ch);
 			}
 
 			size_t s=buffer.size();
+
+			if (s > longquotedlinesize)
+				entity.haslongline=true;
+
 			buffer.clear();
 			return s;
 		}
+
+		entity.haslongline=true;
 
 		// Truncated. Do more work, read until the
 		// true EOL.
@@ -1868,7 +1975,7 @@ private:
 			{
 				if (encoding == cte::qp)
 				{
-					check_qp_toolong(prev_ch);
+					check_qp_toolong(entity, prev_ch);
 				}
 				break;
 			}
@@ -1878,7 +1985,8 @@ private:
 
 			if (encoding == cte::qp)
 			{
-				check_qp(prev_prev_ch, prev_ch, ch, has8bit);
+				check_qp(entity,
+					 prev_prev_ch, prev_ch, ch, has8bit);
 			}
 			else
 			{
@@ -1887,7 +1995,10 @@ private:
 					check_base64(ch);
 				}
 				if (ch & 0x80)
+				{
 					has8bit=true;
+					entity.hasraw8bitchars=true;
+				}
 			}
 			if ((!crlf || prev_ch == '\r') &&
 			    ch == '\n')
@@ -1899,7 +2010,7 @@ private:
 					unquoted_line_size -=
 						(crlf ? 2:1);
 
-					check_qp_toolong(
+					check_qp_toolong(entity,
 						crlf ? prev_prev_ch:prev_ch
 					);
 				}
@@ -1976,7 +2087,7 @@ public:
 			if (bp == ep && !line.empty())
 				break;
 
-			consume_line_and_update_position(cte::sevenbit,
+			consume_line_and_update_position(e, cte::sevenbit,
 							 e.has8bitheader);
 
 			if (!std::holds_alternative<eof_no>(
@@ -2092,12 +2203,15 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 			content_type=ct.value;
 
+			has_content_type_header=true;
+
 			auto p=ct.parameters.find("charset");
 			if (p != ct.parameters.end())
 			{
 				content_type_charset=p->second.value;
 
 				tolowercase(content_type_charset);
+				has_content_type_charset=true;
 			}
 
 			p=ct.parameters.find("boundary");
@@ -2112,6 +2226,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			content_transfer_encoding=to_cte(
 				header.size() ? *header.data():0);
 
+			has_content_transfer_encoding=true;
 			if (content_transfer_encoding==cte::error)
 			{
 				iter.report_error(RFC2045_ERRUNKNOWNTE
@@ -2265,6 +2380,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			}
 
 			iter.consume_line_and_update_position(
+				*this,
 				cte::sevenbit,
 				has8bitbody);
 
@@ -2287,13 +2403,14 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		if (iter.fatal_error())
 			break;
 
-		iter.consume_line_and_update_position(cte::sevenbit,
+		iter.consume_line_and_update_position(*this, cte::sevenbit,
 						      has8bitbody);
 	}
 
 	while (std::holds_alternative<entity_parse_meta::eof_no>(iter.eof()))
 	{
 		iter.consume_line_and_update_position(
+			*this,
 			content_transfer_encoding,
 			*(content_transfer_encoding == cte::qp ?
 			  &has8bitcontentchar:&has8bitbody)
@@ -2534,18 +2651,15 @@ template<typename out_iter_type,
 class rfc2045::entity::line_iter<crlf>::decoder {
 
 	src_type &src;
-	typedef std::conditional_t<
-		std::is_same_v<out_iter_type, out_iter_type &>,
-		out_iter_type,
-		std::remove_cv_t<
-			std::remove_reference_t<out_iter_type>>> out_type_t;
-	out_type_t out;
+
+	out_iter_type out;
 	std::string charset;
 
  public:
-	decoder(src_type &src, out_iter_type &&out,
-		std::string charset)
-		: src{src}, out{std::forward<out_iter_type>(out)},
+	template<typename T>
+	decoder(T &&out, src_type &src,
+		std::string charset="")
+		: src{src}, out{std::forward<T>(out)},
 		  charset{std::move(charset)}
 	{
 	}
@@ -2612,9 +2726,9 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 
 	bool errflag=false;
 
-	if (e.content_type.substr(0, 5) != "text/")
+	if (charset.empty() || e.content_type.substr(0, 5) != "text/")
 	{
-		if (!e.decode_body(src, std::forward<out_type_t>(out)))
+		if (!e.decode_body(src, out))
 			errflag=true;
 	}
 	else
@@ -2655,7 +2769,12 @@ template<typename src_type,
 {
 	bool errflag=false;
 
-	switch (content_transfer_encoding) {
+	switch (subentities.empty()
+		? content_transfer_encoding
+
+		// We ended up here because of multipart/signed, which we
+		// quietly pass along as is.
+		: cte::eightbit) {
 	case cte::base64:
 		{
 			rfc2047::base64decoder decoder{
@@ -2716,6 +2835,99 @@ template<typename src_type,
 
 	return true;
 }
+
+template<bool crlf>
+template<typename src_type>
+bool rfc2045::entity::line_iter<crlf>::try_boundary(
+	src_type &&src, std::string boundary, entity &e
+)
+{
+	// base64-encoded content is never decoded, and will never match
+	// a boundary.
+
+	if (e.content_transfer_encoding == cte::base64 ||
+	    e.content_transfer_encoding == cte::error)
+		return false;
+
+	if (!e.subentities.empty() && e.content_type != "multipart/signed")
+	{
+		for (auto &subentity:e.subentities)
+			if (try_boundary(
+				    std::move(src),
+				    boundary,
+				    subentity))
+				return true;
+		return false;
+	}
+
+	bool found=false;
+	std::string line;
+
+	tolowercase(boundary);
+
+	std::function<void (const char *, size_t)> closure=
+		[&]
+		(const char *ptr, size_t n)
+		{
+			if (found)
+				return;
+
+			for (size_t j=0; j<n; j++)
+			{
+				char c=ptr[j];
+
+				if (c >= 'A' && c <= 'Z')
+					c += 'a'-'A';
+
+				if (line.size() <= boundary.size()+2)
+					line.push_back(c);
+
+				if (ptr[j] == '\n')
+				{
+					line.clear();
+					continue;
+				}
+
+				if (line.size() < boundary.size()+2)
+					continue;
+
+				if (line[0] == '-' && line[1] == '-' &&
+				    std::equal(boundary.begin(),
+					       boundary.end(),
+					       line.begin()+2))
+				{
+					found=true;
+				}
+			}
+
+		};
+
+	decoder do_decoder{closure, src};
+
+	do_decoder.decode_header=true;
+	do_decoder.decode(e);
+
+	return found;
+}
+template<typename src_type>
+std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)
+{
+	char fmtbuf[ std::max({sizeof(unsigned), sizeof(time_t), sizeof(pid_t)}
+		) *2+2];
+
+	std::string boundary;
+
+	do
+	{
+		boundary=new_boundary(counter);
+	} while( line_iter<false>::try_boundary(
+			 std::forward<src_type>(src),
+			 boundary,
+			 *this));
+
+	return boundary;
+}
+
 #endif
 
 #endif

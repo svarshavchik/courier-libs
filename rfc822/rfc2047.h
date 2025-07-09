@@ -301,8 +301,9 @@ private:
 		out_iter(ptr, n);
 	}
 public:
-	qpdecoder(out_iter_type &&out_iter) : out_iter{
-			std::forward<out_iter_type>(out_iter)
+	template<typename T>
+	qpdecoder(T &&out_iter) : out_iter{
+			std::forward<T>(out_iter)
 		}
 	{
 	}
@@ -324,6 +325,12 @@ public:
 		return out_iter;
 	}
 };
+
+template<typename out_iter_type>
+qpdecoder(out_iter_type &&) -> qpdecoder<out_iter_type>;;
+
+template<typename out_iter_type>
+qpdecoder(out_iter_type &) -> qpdecoder<out_iter_type &>;
 
 struct base64decoder_base {
 private:
@@ -360,8 +367,9 @@ private:
 		out_iter(p, n);
 	}
 public:
-	base64decoder(out_iter_type &&out_iter)
-		: out_iter{std::forward<out_iter_type>(out_iter)}
+	template<typename T>
+	base64decoder(T &&out_iter)
+		: out_iter{std::forward<T>(out_iter)}
 	{
 	}
 
@@ -382,6 +390,12 @@ public:
 		return out_iter;
 	}
 };
+
+template<typename out_iter_type>
+base64decoder(out_iter_type &&) -> base64decoder<out_iter_type>;;
+
+template<typename out_iter_type>
+base64decoder(out_iter_type &) -> base64decoder<out_iter_type &>;
 
 // Invoked from decoder(), decode an RFC-2047 atom after a "=?"
 //

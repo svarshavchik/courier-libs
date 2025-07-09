@@ -59,6 +59,42 @@ void rfc2045::entity_parse_meta::consumed_body_line(size_t c)
 	}
 }
 
+rfc2045::entity::entity() noexcept=default;
+
+rfc2045::entity::entity(const entity &o) noexcept
+	: entity_info{o}
+{
+	update_parent_ptr();
+}
+
+rfc2045::entity::entity(entity &&o) noexcept
+	: entity_info{std::move(o)}
+{
+	update_parent_ptr();
+}
+
+rfc2045::entity &rfc2045::entity::operator=(const entity &o) noexcept
+{
+	entity_info::operator=(o);
+	update_parent_ptr();
+	return *this;
+}
+
+rfc2045::entity &rfc2045::entity::operator=(entity &&o) noexcept
+{
+	entity_info::operator=(std::move(o));
+	update_parent_ptr();
+	return *this;
+}
+
+void rfc2045::entity::update_parent_ptr()
+{
+	for (auto &e:subentities)
+	{
+		e.parent_entity=this;
+	}
+}
+
 // The constructor takes the entire header value as a parameter and fully
 // parses it.
 

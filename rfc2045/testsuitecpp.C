@@ -1,6 +1,7 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+#include <sstream>
 #include <string_view>
 #include <algorithm>
 #include "rfc2045/rfc2045.h"
@@ -24,6 +25,7 @@ void testrfc2045line_iter_testset(int &testnum, test_types &tests)
 			iter{b, e};
 
 		std::vector<std::tuple<std::string, size_t>> output;
+		rfc2045::entity entity;
 
 		iter.entered_body();
 		while (std::holds_alternative<
@@ -39,6 +41,7 @@ void testrfc2045line_iter_testset(int &testnum, test_types &tests)
 			output.emplace_back(
 				s,
 				iter.consume_line_and_update_position(
+					entity,
 					rfc2045::cte::eightbit,
 					ignore
 				)
@@ -1968,6 +1971,640 @@ void testmimelimits()
 	}
 }
 
+void testtryboundary()
+{
+	rfc2045::entity e;
+	std::stringstream message;
+
+	message <<
+		"Mime-Version: 1.0\n"
+		"Content-Type: multipart/mixed; boundary=bbb\n"
+		"\n"
+		"--bbb\n"
+		"Content-Type: text/plain; charset=iso-8859-1\n"
+		"Content-Transfer-Encoding: quoted-printable\n"
+		"\n"
+		"--=61=61=61\n"
+		"\n"
+		"--bbb--\n";
+
+	message.rdbuf()->pubseekpos(0);
+	{
+		std::istreambuf_iterator<char> biter{message}, eiter;
+		rfc2045::entity::line_iter<false>::iter parser{biter, eiter};
+
+		e.parse(parser);
+	}
+
+	if (e.subentities.size() != 1)
+	{
+		std::cout << "testtryboundary: MIME parse failed\n";
+		exit(1);
+	}
+
+	if (!rfc2045::entity::line_iter<false>::try_boundary(
+		    *message.rdbuf(),
+		    "AA",
+		    e))
+	{
+		std::cout << "try_boundary test failed\n";
+		exit(1);
+	}
+}
+
+void testautoconvert_check()
+{
+	rfc2045::entity entity;
+
+#define CHARS10 "1234567890"
+#define CHARS60 CHARS10 CHARS10 CHARS10 CHARS10 CHARS10 CHARS10
+#define CHARS120 CHARS60 CHARS60
+
+
+	{
+		std::string_view message{
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain\n"
+			"\n"
+			CHARS120 "\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			CHARS60 "=\n"
+			CHARS60 "\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"12345Ā\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=iso-8859-1\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"123=A0\n"
+			"\n"
+			"--aaa--\n"
+			"Hiyo!"
+		};
+
+		auto b=message.begin();
+		auto e=message.end();
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		parser.longquotedlinesize=100;
+
+		entity.parse(parser);
+	}
+
+	std::vector<std::tuple<bool, bool, bool>> results;
+
+	results.reserve(entity.subentities.size());
+
+	for (auto &e:entity.subentities)
+		results.emplace_back(e.has8bitchars,
+				     e.hasraw8bitchars,
+				     e.haslongline);
+	bool error=false;
+
+#if 1
+	if (results !=
+	    std::vector<std::tuple<bool, bool, bool>>{{
+			    {
+				    false,	// has8bitchars
+				    false,	// hasraw8bitchars
+				    true	// haslongline
+			    },
+			    {
+				    false,	// has8bitchars
+				    false,	// hasraw8bitchars
+				    true	// haslongline
+			    },
+			    {
+				    false,	// has8bitchars
+				    true,	// hasraw8bitchars
+				    false	// haslongline
+			    },
+			    {
+				    true,	// has8bitchars
+				    true,	// hasraw8bitchars
+				    false	// haslongline
+			    }
+		    }})
+	{
+		error=true;
+		std::cerr << "autoconvert test 1 failed:\n\n";
+#if 0
+	}
+#endif
+#else
+	{
+#endif
+		for (auto &res:results)
+		{
+			auto &[has8bitchars, hasraw8bitchars, haslongline]
+				= res;
+
+			std::cout << "{\n"
+				"\t" << (has8bitchars ? "true":"false")
+				  << ",\t// has8bitchars\n"
+				"\t" << (hasraw8bitchars ? "true":"false")
+				  << ",\t// hasraw8bitchars\n"
+				"\t" << (haslongline ? "true":"false")
+				  << "\t// haslongline\n},\n";
+		}
+	}
+
+	if (error)
+		exit(1);
+
+	const struct {
+		std::string_view message;
+		bool has8bitchars;
+		bool hasraw8bitchars;
+	} tests[]={
+		{
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=iso-8859-1\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"12345Ā\n"
+			"\n"
+			"--aaa--\n",
+
+			false,
+			true
+		},
+		{
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=iso-8859-1\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"=A0\n"
+			"\n"
+			"--aaa--\n",
+			true,
+			true
+		},
+	};
+
+	for (const auto &test:tests)
+	{
+		auto b=test.message.begin();
+		auto e=test.message.end();
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		parser.longquotedlinesize=100;
+
+		entity={};
+		entity.parse(parser);
+
+		entity.autoconvert_check(rfc2045::convert::eightbit);
+
+		if (entity.has8bitchars != test.has8bitchars ||
+		    entity.hasraw8bitchars != test.hasraw8bitchars)
+		{
+			std::cout << "autoconvert test 2 failed\n";
+			exit(1);
+		}
+	}
+
+	const struct test3_info {
+		const char *test_name;
+		std::string_view message;
+		bool rewrite7;
+		rfc2045::cte rewrite7_to;
+		bool rewrite8;
+		rfc2045::cte rewrite8_to;
+		bool rewritealways;
+		rfc2045::cte rewritealways_to;
+		bool rewritedefault;
+		rfc2045::cte rewritedefault_to;
+	} tests3[]={
+		{
+			"no mime",
+			"Subject: test\n"
+			"\n"
+			"test\n",
+			0,
+			rfc2045::cte::error,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			0,
+			rfc2045::cte::error,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"no mime (subentity)",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"\n"
+			"Hello\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::error,	// rewrite7
+			1,
+			rfc2045::cte::error,	// rewrite8
+			1,
+			rfc2045::cte::error,	// rewritealways
+			1,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"no content headers",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"\n"
+			"HelloĀ\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::qp,	// rewrite7
+			1,
+			rfc2045::cte::error,	// rewrite8
+			1,
+			rfc2045::cte::error,	// rewritealways
+			1,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"missing charset, encoding",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain\n"
+			"\n"
+			"HelloĀ\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::qp,	// rewrite7
+			1,
+			rfc2045::cte::error,	// rewrite8
+			1,
+			rfc2045::cte::error,	// rewritealways
+			1,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"8-bit content",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"HelloĀ\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::qp,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			0,
+			rfc2045::cte::error,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"7-bit content",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: 7bit\n"
+			"\n"
+			"Hello\n"
+			"--aaa--\n",
+			0,
+			rfc2045::cte::error,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			0,
+			rfc2045::cte::error,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"quoted 8bit content",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"Hello=C4=80\n"
+			"--aaa--\n",
+			0,
+			rfc2045::cte::error,	// rewrite7
+			1,
+			rfc2045::cte::eightbit,	// rewrite8
+			1,
+			rfc2045::cte::eightbit,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"quoted 7bit content",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"Hello\n"
+			"--aaa--\n",
+			0,
+			rfc2045::cte::error,	// rewrite7
+			1,
+			rfc2045::cte::sevenbit,	// rewrite8
+			1,
+			rfc2045::cte::sevenbit,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"long line",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: 7bit\n"
+			"\n"
+			"[CHARS120]\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::qp,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			0,
+			rfc2045::cte::error,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"quoted seven bit long line",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"[CHARS60]=\n"
+			"[CHARS60]\n"
+			"--aaa--\n",
+			1,
+			rfc2045::cte::qp,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			1,
+			rfc2045::cte::sevenbit,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		},
+		{
+			"multipart/signed",
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/signed; boundary=aaa\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"content\n"
+			"\n"
+			"--aaa\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"signature\n"
+			"\n"
+			"--aaa--\n",
+			0,
+			rfc2045::cte::error,	// rewrite7
+			0,
+			rfc2045::cte::error,	// rewrite8
+			0,
+			rfc2045::cte::error,	// rewritealways
+			0,
+			rfc2045::cte::error	// standardize
+		}
+	};
+
+#define UPDATE_AUTOCONV 0
+
+	const char *prefix="";
+	(void)prefix;
+
+	for (const auto &test:tests3)
+	{
+#if UPDATE_AUTOCONV
+		auto b=test.message.begin();
+		auto e=test.message.end();
+		std::cout << prefix << "\t\t{\n\t\t\t\""
+			  << test.test_name << "\",\n";
+		bool need_final=false;
+
+		const char *first="";
+		do
+		{
+			std::cout << first << "\t\t\t\"";
+			first="\n";
+
+			while (b != e)
+			{
+				if (*b == '\n')
+				{
+					std::cout << "\\n\"";
+					++b;
+					need_final=false;
+					break;
+				}
+				std::cout << *b;
+				++b;
+				need_final=true;
+			}
+		} while (b != e);
+
+		if (need_final)
+			std::cout << "\"";
+
+		std::string trailing_comment;
+#endif
+		for (const auto &testinfo :
+			     std::array<std::tuple<
+			     const char *,
+			     rfc2045::convert,
+			     bool test3_info::*,
+			     rfc2045::cte test3_info::*>, 4>{
+			     {
+				     {
+					     "rewrite7",
+					     rfc2045::convert::sevenbit,
+					     &test3_info::rewrite7,
+					     &test3_info::rewrite7_to
+				     },
+				     {
+					     "rewrite8",
+					     rfc2045::convert::eightbit,
+					     &test3_info::rewrite8,
+					     &test3_info::rewrite8_to
+				     },
+				     {
+					     "rewritealways",
+					     rfc2045::convert::eightbit_always,
+					     &test3_info::rewritealways,
+					     &test3_info::rewritealways_to
+				     },
+				     {
+					     "standardize",
+					     rfc2045::convert::standardize,
+					     &test3_info::rewritedefault,
+					     &test3_info::rewritedefault_to
+				     },
+			     }
+		     })
+		{
+			const auto &[name, convert_type,
+				     rewrite_ref, rewrite_to_ref] = testinfo;
+
+			const bool &rewrite_value_ref=test.*rewrite_ref;
+			const rfc2045::cte &rewrite_value_toref=
+				test.*rewrite_to_ref;
+
+			(void)name;
+			(void)rewrite_value_ref;
+			(void)rewrite_value_toref;
+
+			std::string message{test.message};
+
+			auto n=message.find("[CHARS120]");
+
+			while (n != message.npos)
+			{
+				message=message.substr(0, n) + CHARS120 +
+					message.substr(n+10);
+				n=message.find("[CHARS120]");
+			}
+
+			n=message.find("[CHARS60]");
+			while (n != message.npos)
+			{
+				message=message.substr(0, n) + CHARS60 +
+					message.substr(n+9);
+				n=message.find("[CHARS60]");
+			}
+
+			auto message_b=message.begin();
+			auto message_e=message.end();
+			rfc2045::entity::line_iter<false>::iter parser{
+				message_b, message_e
+			};
+
+			parser.longquotedlinesize=100;
+			entity={};
+			entity.parse(parser);
+
+			bool flag=entity.autoconvert_check(convert_type);
+#if UPDATE_AUTOCONV
+			if (entity.content_type == "multipart/signed" &&
+			    !entity.subentities.empty())
+			{
+				std::cout
+					<< "test 3 failed: "
+					"multipart/signed content was not"
+					" hidden\n";
+				exit(1);
+			}
+			std::cout << "," << trailing_comment
+				  << "\n\t\t\t" << (flag ? 1:0)
+				  << ",\n\t\t\trfc2045::cte::";
+
+			trailing_comment=std::string{"\t// "} + name;
+
+			switch ((entity.subentities.empty() ? &entity:
+				 &entity.subentities[0]
+				)->rewrite_transfer_encoding) {
+			case rfc2045::cte::error:
+				std::cout << "error";
+				break;
+			case rfc2045::cte::sevenbit:
+				std::cout << "sevenbit";
+				break;
+			case rfc2045::cte::eightbit:
+				std::cout << "eightbit";
+				break;
+			case rfc2045::cte::qp:
+				std::cout << "qp";
+				break;
+			case rfc2045::cte::base64:
+				std::cout << "base64";
+				break;
+			}
+#else
+			if (flag != rewrite_value_ref)
+			{
+				std::cout << "test 3 failed: "
+					  << test.test_name << ": "
+					  << test.message
+					  << name << ": convert="
+					  << flag << "\n";
+				exit(1);
+			}
+
+			auto actual_to=(
+				entity.subentities.empty() ? &entity:
+				&entity.subentities[0]
+			)->rewrite_transfer_encoding;
+
+			if (rewrite_value_toref != actual_to)
+			{
+				std::cout << "test 3 failed: "
+					  << test.test_name << ": "
+					  << name << ": conversion="
+					  << (actual_to != rfc2045::cte::error
+					      ? static_cast<char>(
+						      actual_to
+					      ) : '?') << "\n";
+				exit(1);
+			}
+
+#endif
+		}
+#if UPDATE_AUTOCONV
+		std::cout << trailing_comment << "\n\t\t}";
+		prefix=",\n";
+#endif
+	}
+
+#if UPDATE_AUTOCONV
+	std::cout << "\n";
+#endif
+}
+
 int main()
 {
 	testrfc2045line_iter();
@@ -1975,5 +2612,7 @@ int main()
 	testrfc2231headers();
 	testmimeparse();
 	testmimelimits();
+	testtryboundary();
+	testautoconvert_check();
 	return 0;
 }

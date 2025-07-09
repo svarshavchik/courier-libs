@@ -836,22 +836,15 @@ Create a MIME boundary for some content.
 
 std::string mimestruct::mkboundary(rfc822::fdstreambuf &sb)
 {
-	pid_t	pid=getpid();
-	time_t	t;
 	static unsigned n=0;
-	char bbuf[NUMBUFSIZE*4];
-	char	buf[NUMBUFSIZE];
 
-	time(&t);
+	rfc2045::entity e;
+
+	std::string bbuf;
 
 	do
 	{
-		strcpy(bbuf, "=_");
-		strcat(bbuf, libmail_str_size_t(++n, buf));
-		strcat(bbuf, "_");
-		strcat(bbuf, libmail_str_time_t(t, buf));
-		strcat(bbuf, "_");
-		strcat(bbuf, libmail_str_pid_t(pid, buf));
+		bbuf=rfc2045::entity::new_boundary(n);
 	} while (tryboundary(sb, bbuf));
 	return (bbuf);
 }
@@ -927,7 +920,8 @@ void mimestruct::joinmultipart()
 	do
 	{
 		new_boundary=mkboundary(inputfilebuf1);
-	} while (tryboundary(inputfilebuf2, new_boundary));
+	} while (tryboundary(inputfilebuf2, new_boundary) ||
+		 tryboundary(inputfilebuf1, new_boundary));
 
 	/* Copy the header */
 
