@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2025 Double Precision, Inc.  See COPYING for
 ** distribution information.
 */
 
@@ -18,8 +18,6 @@
 #include	"rfc2045.h"
 #include	"rfc822/rfc822.h"
 #include	"rfc2045charset.h"
-
-static char	*rfc2045_defcharset=0;
 
 int rfc2045_in_reformime=0;
 
@@ -1223,28 +1221,6 @@ const char *c;
 	if (!c)	c=rfc2045_getdefaultcharset();
 
 	*charset_s=c;
-}
-
-const char *rfc2045_getdefaultcharset()
-{
-const char *p=rfc2045_defcharset;
-
-	if (!p)	p=RFC2045CHARSET;
-	return (p);
-}
-
-void rfc2045_setdefaultcharset(const char *charset)
-{
-char	*p=strdup(charset);
-
-	if (!p)
-	{
-		rfc2045_enomem();
-		return;
-	}
-
-	if (rfc2045_defcharset)	free(rfc2045_defcharset);
-	rfc2045_defcharset=p;
 }
 
 const char *rfc2045_boundary(const struct rfc2045 *p)
