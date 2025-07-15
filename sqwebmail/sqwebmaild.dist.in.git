@@ -5,7 +5,7 @@
 # Do not alter lines that begin with ##, they are used when upgrading
 # this configuration.
 #
-#  Copyright 2004-2005 Double Precision, Inc.  See COPYING for
+#  Copyright 2004-2005, 2025 Double Precision, Inc.  See COPYING for
 #  distribution information.
 #
 #  Courier sqwebmaild daemon configuration
@@ -81,3 +81,16 @@ LOGGEROPTS=""
 # Each occurence of @ is replaced by the search key
 #
 # You may provide your own settings below.
+
+##NAME: SENDMAIL_ARGUMENTS:0
+#
+# Specify the arguments SqWebMail passes to sendmail.
+#
+# The default is '$DSN -f "$1"', which works well with Courier.  However, other
+# MTAs may require different arguments.
+#
+# The following is known to work with Exim and Postfix:
+#
+# SENDMAIL_ARGUMENTS='-oi -t -f "$1"'
+
+SENDMAIL_ARGUMENTS='$DSN -f "$1"'
