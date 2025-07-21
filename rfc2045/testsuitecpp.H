@@ -50,7 +50,7 @@ struct parsed_mime_info {
 			entity.nlines == nlines &&
 			entity.nbodylines == nbodylines &&
 			entity.mime1 == mime1 &&
-			entity.errors == errors &&
+			entity.errors.code == errors &&
 			entity.content_type == content_type &&
 			entity.content_type_charset
 			== content_type_charset &&
@@ -70,23 +70,21 @@ struct parsed_mime_info {
 	{
 		std::string errcodes;
 
-		if (entity.errors & RFC2045_ERR8BITCONTENT)
+		if (entity.errors.code & RFC2045_ERR8BITCONTENT)
 			errcodes += "|RFC2045_ERR8BITCONTENT";
-		if (entity.errors & RFC2045_ERR2COMPLEX)
+		if (entity.errors.code & RFC2045_ERR2COMPLEX)
 			errcodes += "|RFC2045_ERR2COMPLEX";
-		if (entity.errors & RFC2045_ERRBADBOUNDARY)
+		if (entity.errors.code & RFC2045_ERRBADBOUNDARY)
 			errcodes += "|RFC2045_ERRBADBOUNDARY";
-		if (entity.errors & RFC2045_ERR8BITINQP)
+		if (entity.errors.code & RFC2045_ERR8BITINQP)
 			errcodes += "|RFC2045_ERR8BITINQP";
-		if (entity.errors & RFC2045_ERRBADHEXINQP)
+		if (entity.errors.code & RFC2045_ERRBADHEXINQP)
 			errcodes += "|RFC2045_ERRBADHEXINQP";
-		if (entity.errors & RFC2045_ERRUNDECLARED8BIT)
-			errcodes += "|RFC2045_ERRUNDECLARED8BIT";
-		if (entity.errors & RFC2045_ERRWRONGBOUNDARY)
+		if (entity.errors.code & RFC2045_ERRWRONGBOUNDARY)
 			errcodes += "|RFC2045_ERRWRONGBOUNDARY";
-		if (entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE)
+		if (entity.errors.code & RFC2045_ERRLONGQUOTEDPRINTABLE)
 			errcodes += "|RFC2045_ERRLONGQUOTEDPRINTABLE";
-		if (entity.errors & RFC2045_ERRFATAL)
+		if (entity.errors.code & RFC2045_ERRFATAL)
 			errcodes += "|RFC2045_ERRFATAL";
 
 		if (errcodes.empty())
@@ -195,7 +193,7 @@ struct parsed_mime_info {
 			  << nl << "      nlines: " << entity.nlines
 			  << nl << "  nbodylines: " << entity.nbodylines
 			  << nl << "        mime: " << entity.mime1
-			  << nl << "      errors: " << entity.errors
+			  << nl << "      errors: " << entity.errors.code
 			  << nl << "content-type: "
 			  << entity.content_type
 			  << nl << "     charset: "

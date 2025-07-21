@@ -11,7 +11,7 @@ void rfc2045::entity_parse_meta::report_error(
 )
 {
 	for (auto &e:parsing_entities)
-		e->errors |= code;
+		e->errors.code |= code;
 }
 
 void rfc2045::entity_parse_meta::report_error_here(
@@ -19,13 +19,13 @@ void rfc2045::entity_parse_meta::report_error_here(
 )
 {
 	if (!parsing_entities.empty()) // Sanity check
-		parsing_entities.back()->errors |= code;
+		parsing_entities.back()->errors.code |= code;
 }
 
 bool rfc2045::entity_parse_meta::fatal_error()
 {
 	return !parsing_entities.empty() // Sanity check
-		&& parsing_entities[0]->errors & RFC2045_ERRFATAL;
+		&& parsing_entities[0]->errors.fatal();
 }
 
 void rfc2045::entity_parse_meta::consumed_header_line(size_t c)
@@ -362,7 +362,7 @@ rfc2045::entity_parse_meta::scope::~scope()
 		{
 			if (last->content_transfer_encoding != cte::eightbit)
 			{
-				info.report_error(RFC2045_ERRUNDECLARED8BIT);
+				info.report_error(RFC2045_ERR8BITCONTENT);
 			}
 		}
 	}
@@ -450,6 +450,11 @@ bool rfc2045::entity_parser_base::get_next_chunk(std::string &chunk)
 	return true;
 }
 
+rfc2045::headers_base::headers_base(size_t empty_line_size)
+	: empty_line_size{empty_line_size}
+{
+}
+
 std::string_view rfc2045::headers_base::current_header()
 {
 	// If a line was read in next(), header_line is always
@@ -484,4 +489,17 @@ rfc2045::headers_base::name_content()
 
 	return { {b, static_cast<std::string_view::size_type>(p-b)},
 		 {q, static_cast<std::string_view::size_type>(e-q)} };
+}
+
+std::tuple<std::string, bool> rfc2045::headers_base::convert_name_check_empty()
+{
+	const auto &[name, contentx] = name_content();
+
+	std::string name_lc{name.begin(), name.end()};
+	rfc2045::entity::tolowercase(name_lc);
+
+	return {
+		std::move(name_lc),
+		current_header().size() == empty_line_size
+	};
 }

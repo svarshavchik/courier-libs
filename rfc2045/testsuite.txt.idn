@@ -40,7 +40,6 @@ Content-Transfer-Encoding: 7bit
 
 test message
 
-
 --
 Subject: test
 Mime-Version: 1.0
@@ -84,7 +83,6 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 test message
-
 
 --
 Subject: test
@@ -130,7 +128,6 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 test message
-
 
 --
 Header: from

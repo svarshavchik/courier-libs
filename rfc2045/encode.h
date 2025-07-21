@@ -93,8 +93,9 @@ namespace rfc822 {
 			> out_iter;
 
 	public:
-		encode(out_iter_type &&out_iter, const char *encoding)
-			: out_iter{std::forward<out_iter_type>(out_iter)}
+		template<typename T>
+		encode(T &&out_iter, const char *encoding)
+			: out_iter{std::forward<T>(out_iter)}
 		{
 			libmail_encode_start(
 				this, encoding,
@@ -138,8 +139,16 @@ namespace rfc822 {
 		encode &operator=(const encode &)=delete;
 		encode(const encode &)=delete;
 	};
+
+	template<typename T>
+	encode(T &&out_iter, const char *) -> encode<T &&>;
+
+	template<typename T>
+	encode(T &out_iter, const char *) -> encode<T &>;
 }
 
+#define rfc2045_encode_h_included 1
+#include "rfc2045_encode.h"
 #endif
 
 #endif

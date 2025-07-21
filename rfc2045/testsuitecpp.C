@@ -5,6 +5,7 @@
 #include <string_view>
 #include <algorithm>
 #include "rfc2045/rfc2045.h"
+#include "rfc2045/encode.h"
 
 template<bool crlf, typename test_types>
 void testrfc2045line_iter_testset(int &testnum, test_types &tests)
@@ -1052,7 +1053,7 @@ void testmimeparse()
 			3    , // nlines
 			2    , // nbodylines
 			1    , // mime1
-			0, "message/rfc822", "iso-8859-1",
+			RFC2045_ERR8BITHEADER, "message/rfc822", "iso-8859-1",
 			"", cte::eightbit,
 			0, // has8bitheader
 			1, // has8bitbody
@@ -1066,11 +1067,11 @@ void testmimeparse()
 					2    , // nlines
 					0    , // nbodylines
 					0    , // mime1
-					0, "text/plain", "iso-8859-1",
+					RFC2045_ERR8BITHEADER, "text/plain", "iso-8859-1",
 					"", cte::sevenbit,
 					1, // has8bitheader
 					0, // has8bitbody
-					1, // has8bitcontentchar
+					1  // has8bitcontentchar
 				}
 			}
 		},
@@ -1135,7 +1136,7 @@ void testmimeparse()
 			3    , // nlines
 			7    , // nbodylines
 			1    , // mime1
-			0, "multipart/mixed", "iso-8859-1",
+			RFC2045_ERR8BITHEADER, "multipart/mixed", "iso-8859-1",
 			"aaa", cte::eightbit,
 			0, // has8bitheader
 			1, // has8bitbody
@@ -1149,11 +1150,11 @@ void testmimeparse()
 					3    , // nlines
 					2    , // nbodylines
 					1    , // mime1
-					0, "text/plain", "iso-8859-1",
+					RFC2045_ERR8BITHEADER, "text/plain", "iso-8859-1",
 					"", cte::sevenbit,
 					1, // has8bitheader
 					0, // has8bitbody
-					1, // has8bitcontentchar
+					1  // has8bitcontentchar
 				}
 			}
 		},
@@ -1277,7 +1278,7 @@ void testmimeparse()
 			3    , // nlines
 			1    , // nbodylines
 			1    , // mime1
-			RFC2045_ERRUNDECLARED8BIT, "text/plain", "utf-8",
+			RFC2045_ERR8BITCONTENT, "text/plain", "utf-8",
 			"", cte::sevenbit,
 			0, // has8bitheader
 			1, // has8bitbody
@@ -1679,13 +1680,13 @@ void testmimeparse()
 		std::cout << "\t" << entity.haslongquotedline << "\n}";
 		sep=",\n";
 #else
-		if ((entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE ?
+		if ((entity.errors.code & RFC2045_ERRLONGQUOTEDPRINTABLE ?
 		     true:false)
 		    != t.haslongquotedline)
 		{
 			std::cout << "Test " << testnum << ":\n";
 			std::cout << "   haslongquotedline: "
-				  << (entity.errors &
+				  << (entity.errors.code &
 				      RFC2045_ERRLONGQUOTEDPRINTABLE ? 1:0)
 				  << "\n";
 			exit(1);
@@ -1717,7 +1718,7 @@ void testmimeparse()
 		rfc2045::entity::line_iter<false>::iter parser{b, e};
 		entity.parse(parser);
 
-		if (!(entity.errors & RFC2045_ERRINVALIDBASE64))
+		if (!(entity.errors.code & RFC2045_ERRINVALIDBASE64))
 		{
 			std::cout << "bad base64 test 1 failed\n";
 			exit(1);
@@ -1742,7 +1743,7 @@ void testmimeparse()
 		rfc2045::entity::line_iter<false>::iter parser{b, e};
 		entity.parse(parser);
 
-		if (entity.errors)
+		if (entity.errors.code)
 		{
 			std::cout << "base base64 test 2 failed\n";
 			exit(1);
@@ -1767,7 +1768,7 @@ void testmimeparse()
 		rfc2045::entity::line_iter<false>::iter parser{b, e};
 		entity.parse(parser);
 
-		if (!(entity.errors & RFC2045_ERRINVALIDBASE64))
+		if (!(entity.errors.code & RFC2045_ERRINVALIDBASE64))
 		{
 			std::cout << "bad base64 test 3 failed\n";
 			exit(1);
@@ -1796,7 +1797,7 @@ void testmimeparse()
 		rfc2045::entity::line_iter<false>::iter parser{b, e};
 		entity.parse(parser);
 
-		if (!(entity.errors & RFC2045_ERRINVALIDBASE64))
+		if (!(entity.errors.code & RFC2045_ERRINVALIDBASE64))
 		{
 			std::cout << "bad base64 test 4 failed\n";
 			exit(1);
@@ -1833,7 +1834,7 @@ void testmimelimits()
 		parser.mimeentityparselimit=11;
 		entity.parse(parser);
 
-		if (entity.errors)
+		if (entity.errors.code)
 		{
 			std::cout << "limit test 1 failed\n";
 			exit(1);
@@ -1850,7 +1851,7 @@ void testmimelimits()
 		parser.mimeentityparselimit=10;
 		entity.parse(parser);
 
-		if (!(entity.errors & RFC2045_ERR2COMPLEX))
+		if (!(entity.errors.code & RFC2045_ERR2COMPLEX))
 		{
 			std::cout << "limit test 2 failed\n";
 			exit(1);
@@ -1888,7 +1889,7 @@ void testmimelimits()
 		parser.mimeentitynestedlimit=11;
 		entity.parse(parser);
 
-		if (entity.errors)
+		if (entity.errors.code)
 		{
 			std::cout << "limit test 3 failed\n";
 			exit(1);
@@ -1905,7 +1906,7 @@ void testmimelimits()
 		parser.mimeentitynestedlimit=10;
 		entity.parse(parser);
 
-		if (!(entity.errors & RFC2045_ERR2COMPLEX))
+		if (!(entity.errors.code & RFC2045_ERR2COMPLEX))
 		{
 			std::cout << "limit test 4 failed\n";
 			exit(1);
@@ -1933,7 +1934,7 @@ void testmimelimits()
 		rfc2045::entity entity;
 		entity.parse(parser);
 
-		if ((entity.errors & RFC2045_ERRLONGQUOTEDPRINTABLE ? 1:0)
+		if ((entity.errors.code & RFC2045_ERRLONGQUOTEDPRINTABLE ? 1:0)
 		    != s-50)
 		{
 			std::cout << "limit test 5, part "
@@ -1961,7 +1962,7 @@ void testmimelimits()
 		rfc2045::entity entity;
 		entity.parse(parser);
 
-		if ( (entity.errors & RFC2045_ERRLONGUNFOLDEDHEADER)
+		if ( (entity.errors.code & RFC2045_ERRLONGUNFOLDEDHEADER)
 		     != (s <= 50 ? RFC2045_ERRLONGUNFOLDEDHEADER:0))
 		{
 			std::cout << "limit test 6, part "
@@ -2564,6 +2565,52 @@ void testautoconvert_check()
 				std::cout << "base64";
 				break;
 			}
+
+			std::string rewritten;
+
+			{
+				std::istringstream i{message};
+
+				std::function<void (const char *, size_t)>
+					closure{
+					[&]
+					(const char *p, size_t n)
+					{
+						rewritten.insert(
+							rewritten.end(),
+							p, p+n
+						);
+					}};
+
+				typedef rfc2045::entity::line_iter<false>
+					line_iter;
+
+				line_iter::autoconvert(
+					entity,
+					closure,
+					*i.rdbuf()
+				);
+
+				static_assert(
+					std::is_same_v<decltype(
+						line_iter::autoconvert(
+							entity,
+							closure,
+							*i.rdbuf
+						)), void>,
+					"Return type of autoconvert(by ref)");
+
+				static_assert(
+					std::is_same_v<decltype(
+						line_iter::autoconvert(
+							entity,
+							std::move(closure),
+							*i.rdbuf
+						)), decltype(closure)>,
+					"Return type of autoconvert(by val)");
+
+			}
+
 #else
 			if (flag != rewrite_value_ref)
 			{
@@ -2607,6 +2654,7 @@ void testautoconvert_check()
 
 int main()
 {
+	rfc2045_setdefaultcharset("iso-8859-1");
 	testrfc2045line_iter();
 	testrfc2045foldedline_iter();
 	testrfc2231headers();

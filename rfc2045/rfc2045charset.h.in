@@ -7,3 +7,10 @@
 #define	RFC2045CHARSET	"@RFC2045CHARSET@"
 
 #define	RFC2045MIMEMSG	"This is a MIME-formatted message.  If you see this text it means that your\nE-mail software does not support MIME-formatted messages.\n"
+
+#define	RFC2045MIMEARRAY						\
+	{								\
+		"This is a MIME-formatted message.  If you see this text it " \
+		"means that your",					\
+		"E-mail software does not support MIME-formatted messages." \
+	}

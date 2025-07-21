@@ -17,6 +17,7 @@
 #ifdef  __cplusplus
 #include <vector>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <algorithm>
@@ -28,9 +29,11 @@
 #include <thread>
 #include <mutex>
 #include <streambuf>
+#include <optional>
 #include <condition_variable>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
+#include "rfc2045/rfc2045charset.h"
 #endif
 
 #define RFC2045_MIME_MESSAGE_RFC822 "message/rfc822"
@@ -105,6 +108,23 @@ struct rfc2045 {
 		}
 
 		return cte::error;
+	}
+
+	static const char *to_cte(cte c)
+	{
+		switch (c) {
+		case cte::error:
+			break;
+		case cte::sevenbit:
+			return "7bit";
+		case cte::eightbit:
+			return "8bit";
+		case cte::qp:
+			return "quoted-printable";
+		case cte::base64:
+			return "base64";
+		}
+		return "error";
 	}
 
 	// What kind of Content-Transfer-Encoding: conversion is requested
@@ -1255,7 +1275,54 @@ auto rfc2231_attr_encode(std::string_view name,
   - decode_subentity: recursively process decpde_header and decode_bopdy
   for all MIME subentities
 
- */
+  REWRITING MIME ENTITIES
+  =======================
+
+  #include <rfc2045/encode.h>
+
+  bool flag=entity.autoconvert_check(rfc2045::convert::standardize);
+
+  This checks if the MIME entity should be rewritten. This must be called
+  before autoconvert(), and autoconvert_check() may make changes to the MIME
+  object. Specifically it collapses the structure of multipart/signed to
+  ensure that it remains unchanged. autoconvert_check() returns false if
+  the MIME object does not need rewriting, and true if autoconvert() will
+  make changes.
+
+  rfc2045::entity::line_iter<false>::autoconvert(
+      entity,
+      []
+      (const char *ptr, size_t l)
+      {
+         // ...
+      },
+      input_stream,
+      appid);
+
+  autoconvert() proceeds and rewrites the MIME entity, accordingly. The
+  second parameter is a callable object that gets called repeatedly with
+  the content of the rewritten entity, in chunks. autoconvert() returns the
+  final value of the callable object if it was passed by value. autoconvert()
+  returns void if the allable object is passed by reference.
+
+  The third parameter is a reference to a std::streambuf or another object
+  that implements the same functions as std::streambuf. This streambuf
+  represents the contents of the parsed mime entity.
+
+  The last parameter is optional. It's the name of the application that's
+  calling autoconvert(), this is recorded in the X-Mime-Autoconverted headers,
+  if any are added.
+
+*/
+
+#define RFC2045_ERR8BITINQP		0x0010
+#define RFC2045_ERRBADHEXINQP		0x0020
+#define RFC2045_ERRWRONGBOUNDARY	0x0040
+#define RFC2045_ERRLONGUNFOLDEDHEADER	0x0080
+#define RFC2045_ERRUNKNOWNTE		0x0100
+#define RFC2045_ERRINVALIDBASE64	0x0200
+#define RFC2045_ERRLONGQUOTEDPRINTABLE  0x0400
+#define RFC2045_ERRFATAL		0x8000
 
 class rfc2045::entity_info {
  public:
@@ -1277,7 +1344,18 @@ class rfc2045::entity_info {
 	size_t	nbodylines=0;	/* Number of lines only in the body */
 
 	typedef unsigned errors_t;
-	errors_t errors=0;	/* RFC2045_ERR codes, here or subentities */
+
+	struct parsing_error {
+		errors_t code=0; /* RFC2045_ERR codes, here or subentities */
+
+		bool fatal() const
+		{
+			return code & RFC2045_ERRFATAL;
+		}
+	};
+
+	parsing_error errors;
+
 	bool	mime1=false;    /* Mime-Version: 1.0 in effect */
 
 	cte content_transfer_encoding{cte::sevenbit};
@@ -1298,7 +1376,7 @@ class rfc2045::entity_info {
 	bool haslongline{false};
 
 	std::string content_type{"text/plain"}; /* content-type in lowercase */
-	std::string content_type_charset{"iso-8859-1"};
+	std::string content_type_charset{rfc2045_getdefaultcharset()};
 	std::string content_type_boundary;
 
 	// content_type and content_type_charset is defaulted. This tells me
@@ -1323,16 +1401,6 @@ class rfc2045::entity_info {
 		return std::string_view{content_type.data(), i} == "multipart";
 	}
 };
-
-#define RFC2045_ERR8BITINQP		0x0010
-#define RFC2045_ERRBADHEXINQP		0x0020
-#define RFC2045_ERRUNDECLARED8BIT	0x0040
-#define RFC2045_ERRWRONGBOUNDARY	0x0080
-#define RFC2045_ERRLONGUNFOLDEDHEADER	0x0100
-#define RFC2045_ERRUNKNOWNTE		0x0200
-#define RFC2045_ERRINVALIDBASE64	0x0400
-#define RFC2045_ERRLONGQUOTEDPRINTABLE  0x0800
-#define RFC2045_ERRFATAL		0x8000
 
 /*
   Metadata that's tracked during parsing.
@@ -1429,6 +1497,12 @@ class rfc2045::entity : public entity_info {
 		tolowercase(c.begin(), c.end());
 	}
 
+	static constexpr std::string_view default_mime_header{
+		"Mime-Version: 1.0"
+	};
+
+	static constexpr std::string_view boundary_msg[]=RFC2045MIMEARRAY;
+
 	// Factory for iterators and parsers that use LF(false) or CRLF(true)
 	// newline sequence.
 
@@ -1439,6 +1513,9 @@ class rfc2045::entity : public entity_info {
 		template<typename src_type>
 		struct headers;
 
+		static constexpr std::string_view eol{
+			crlf ? "\r\n":"\n"
+		};
 		template<typename out_iter,
 			 typename src_type> class decoder;
 
@@ -1456,8 +1533,37 @@ class rfc2045::entity : public entity_info {
 		template<typename src_type> static bool try_boundary(
 			src_type &&src,
 			std::string boundary,
-			entity &e
+			const entity &e
 		);
+
+		template<typename out_iter,
+			 typename src_type>
+		static auto autoconvert(const entity &e, out_iter &&closure,
+					src_type &src,
+					std::string_view appname="")
+		{
+			unsigned counter=0;
+
+			autoconvert(e, closure, src, counter, appname);
+
+			if constexpr (std::is_same_v<out_iter, out_iter &>)
+			{
+				return closure;
+			}
+		}
+
+		template<typename out_iter,
+			 typename src_type>
+		static void autoconvert(const entity &e, out_iter &closure,
+					src_type &src, unsigned &counter,
+					std::string_view);
+
+		template<typename out_iter,
+			 typename src_type>
+		static void autoconvert_entity(const entity &e,
+					       out_iter &closure,
+					       src_type &src,
+					       std::string_view appname);
 	};
 
 	entity() noexcept;
@@ -1553,7 +1659,7 @@ public:
 	template<typename src_type> std::string new_boundary(
 		src_type &&src,
 		unsigned &counter
-	);
+	) const;
 
 	// Determine whether MIME entities should have their Content-Type
 	// and/or Content-Transfer-Encoding header updated accordingly.
@@ -1906,6 +2012,7 @@ private:
 	size_t consume_line(rfc2045::entity &entity,
 			    cte encoding, bool &has8bit)
 	{
+		bool was_in_header=in_header();
 		const auto &[p,q]=current_line();
 
 		cached_eol_iter.reset();
@@ -1929,12 +2036,20 @@ private:
 		{
 			for (auto i=p; i != q; ++i)
 			{
-				if (*i & 0x80)
+				if (static_cast<unsigned char>(*i) & 0x80)
 				{
+					if (was_in_header)
+					{
+						report_error(
+							RFC2045_ERR8BITHEADER
+						);
+					}
+
 					has8bit=true;
 					entity.hasraw8bitchars=true;
 				}
-				else if (encoding == cte::base64)
+
+				if (encoding == cte::base64)
 				{
 					check_base64(*i);
 				}
@@ -1980,7 +2095,7 @@ private:
 				break;
 			}
 
-			char ch=*b++;
+			auto ch=static_cast<unsigned char>(*b++);
 			++c;
 
 			if (encoding == cte::qp)
@@ -1996,6 +2111,13 @@ private:
 				}
 				if (ch & 0x80)
 				{
+					if (was_in_header)
+					{
+						report_error(
+							RFC2045_ERR8BITHEADER
+						);
+					}
+
 					has8bit=true;
 					entity.hasraw8bitchars=true;
 				}
@@ -2215,7 +2337,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			}
 
 			p=ct.parameters.find("boundary");
-			if (p != ct.parameters.end())
+			if (p != ct.parameters.end() && multipart())
 			{
 				content_type_boundary=p->second.value;
 				tolowercase(content_type_boundary);
@@ -2238,6 +2360,11 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 	startbody=endbody=endpos;
 
+	if (hasraw8bitchars)
+	{
+		iter.report_error_here(RFC2045_ERR8BITHEADER);
+		hasraw8bitchars=0; // So it reflects body content.
+	}
 	bool is_multipart=false;
 
 	// Bail out of the MIME complexity is unreasonable, indicates a
@@ -2518,6 +2645,8 @@ public:
 struct rfc2045::headers_base {
 
 protected:
+	const size_t empty_line_size;
+
 	size_t left; // How many characters left until the end of headers.
 
 	std::string header_line;
@@ -2528,8 +2657,10 @@ public:
 	bool name_lc{true};
 	bool keep_eol{false};
 
+	headers_base(size_t empty_line_size);
 	std::string_view current_header();
 	std::tuple<std::string_view, std::string_view> name_content();
+	std::tuple<std::string, bool> convert_name_check_empty();
 };
 
 template<bool crlf>
@@ -2541,7 +2672,7 @@ struct rfc2045::entity::line_iter<crlf>::headers : headers_base {
 public:
 
 	headers(const entity &e, src_type &src)
-		: src{src}
+		: headers_base{crlf ? 2:1}, src{src}
 	{
 		left=e.startbody-e.startpos;
 		src.pubseekpos(e.startpos);
@@ -2757,8 +2888,8 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 	{
 		std::string_view error_message{"[MIME decoding error]"};
 		out(error_message.data(), error_message.size());
+		out(eol.data(), eol.size());
 	}
-	out("\n", 1);
 }
 
 template<typename src_type,
@@ -2839,7 +2970,7 @@ template<typename src_type,
 template<bool crlf>
 template<typename src_type>
 bool rfc2045::entity::line_iter<crlf>::try_boundary(
-	src_type &&src, std::string boundary, entity &e
+	src_type &&src, std::string boundary, const entity &e
 )
 {
 	// base64-encoded content is never decoded, and will never match
@@ -2911,10 +3042,8 @@ bool rfc2045::entity::line_iter<crlf>::try_boundary(
 }
 template<typename src_type>
 std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)
+	const
 {
-	char fmtbuf[ std::max({sizeof(unsigned), sizeof(time_t), sizeof(pid_t)}
-		) *2+2];
-
 	std::string boundary;
 
 	do
@@ -2927,6 +3056,161 @@ std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)
 
 	return boundary;
 }
+
+template<bool crlf>
+template<typename out_iter, typename src_type>
+void rfc2045::entity::line_iter<crlf>
+::autoconvert(const entity &e, out_iter &closure,
+	      src_type &src, unsigned &counter, std::string_view appname)
+{
+	if (e.subentities.empty())
+	{
+		autoconvert_entity(e, closure, src, appname);
+		return;
+	}
+
+	bool seen_content_type=false;
+
+	bool seen_mime_version=e.mime1;
+
+	if (!e.multipart()) // Must be message/ content type
+	{
+		headers existing_headers{e, src};
+
+		existing_headers.name_lc=false;
+		existing_headers.keep_eol=true;
+
+		do
+		{
+			auto [name_lc, last_line_is_empty] =
+				existing_headers.convert_name_check_empty();
+
+			if (!last_line_is_empty)
+			{
+				auto current_header=
+					existing_headers.current_header();
+				closure(current_header.data(),
+					current_header.size());
+			}
+		} while (existing_headers.next());
+
+		closure(eol.data(), eol.size());
+
+		if (!e.subentities.empty()) // Sanity check
+		{
+			autoconvert(e.subentities[0], closure, src, counter,
+				    appname);
+		}
+		return;
+	}
+
+	auto new_boundary=e.new_boundary(src, counter);
+
+	// Note: new_boundary() seeks, and headers seeks too, and it must
+	// win the seek race.
+
+	headers existing_headers{e, src};
+
+	existing_headers.name_lc=false;
+	existing_headers.keep_eol=true;
+
+	std::string new_content_type;
+
+	new_content_type.reserve(
+		sizeof("Content-Type: ; boundary=\"\"")
+		+ 2*eol.size()
+		+ e.content_type.size()
+		+ new_boundary.size());
+	new_content_type="Content-Type: ";
+
+	new_content_type += e.content_type;
+	new_content_type += "; boundary=\"";
+	new_content_type += new_boundary;
+	new_content_type += "\"";
+	new_content_type += eol;
+
+	do
+	{
+		auto [name_lc, last_line_is_empty] =
+			existing_headers.convert_name_check_empty();
+
+		if (name_lc == "content-type")
+		{
+			if (seen_content_type)
+				continue; // That's funny.
+
+			if (!seen_mime_version)
+			{
+				seen_mime_version=true;
+				closure(default_mime_header.data(),
+					default_mime_header.size());
+				closure(eol.data(), eol.size());
+			}
+			closure(new_content_type.data(),
+				new_content_type.size());
+
+			seen_content_type=true;
+			continue;
+		}
+
+		if (!last_line_is_empty)
+		{
+			auto current_header=existing_headers.current_header();
+
+			if (name_lc == "mime_version")
+			{
+				seen_mime_version=true;
+				current_header=default_mime_header;
+			}
+			closure(current_header.data(), current_header.size());
+		}
+	} while (existing_headers.next());
+
+	if (!seen_mime_version)
+	{
+		seen_mime_version=true;
+		closure(default_mime_header.data(),
+			default_mime_header.size());
+		closure(eol.data(), eol.size());
+	}
+	if (!seen_content_type)
+	{
+		closure(new_content_type.data(),
+			new_content_type.size());
+	}
+	std::string separator;
+
+	separator.reserve(400);
+
+	separator += eol;
+
+	for (const auto &line:boundary_msg)
+	{
+		separator += line;
+		separator += eol;
+	}
+
+	for (auto &subentity:e.subentities)
+	{
+		separator += eol;
+		separator += "--";
+		separator += new_boundary;
+		separator += eol;
+		closure(separator.data(), separator.size());
+		autoconvert(subentity, closure, src, counter, appname);
+		separator.clear();
+	}
+
+	separator += eol;
+	separator += "--";
+	separator += new_boundary;
+	separator += "--";
+	separator += eol;
+	closure(separator.data(), separator.size());
+}
+
+#define rfc2045_rfc2045_h_included 1
+#include "rfc2045_encode.h"
 
 #endif
 

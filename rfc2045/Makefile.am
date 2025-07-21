@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 2018 Double Precision, Inc.  See COPYING for
+# Copyright 1998 - 2025 Double Precision, Inc.  See COPYING for
 # distribution information.
 
 noinst_LTLIBRARIES=librfc2045.la libencode.la
@@ -65,7 +65,7 @@ testrfc6533parser_DEPENDENCIES=librfc2045.la
 testrfc6533parser_LDADD=$(testrfc6533parser_DEPENDENCIES) -lcourier-unicode
 
 testsuitecpp_SOURCES=testsuitecpp.C testsuitecpp.H
-testsuitecpp_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la
+testsuitecpp_DEPENDENCIES=librfc2045.la libencode.la ../rfc822/librfc822.la
 testsuitecpp_LDADD=$(testsuitecpp_DEPENDENCIES) -lcourier-unicode
 
 testsuitecpp2_SOURCES=testsuitecpp2.C testsuitecpp.H

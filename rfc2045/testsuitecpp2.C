@@ -182,7 +182,7 @@ void test2()
 		exit(1);
 	}
 
-	if (!(entity.errors & RFC2045_ERRUNKNOWNTE))
+	if (!(entity.errors.code & RFC2045_ERRUNKNOWNTE))
 	{
 		std::cout << "test2 did not receive expected error\n";
 		exit(1);
@@ -555,12 +555,11 @@ void test5()
 		"content-transfer-encoding: quoted-printable\n"
 		"\n"
 		"Héllo Héllo\n"
-		"\n"
 		"content-type: text/plain; charset=iso-8859-1\n"
 		"content-description: base64 decoded\n"
 		"content-transfer-encoding: base64\n"
 		"\n"
-		"Héllo\n";
+		"Héllo";
 
 	if (expected != decoded)
 	{
@@ -575,6 +574,7 @@ void test5()
 int main()
 {
 	alarm(60);
+	rfc2045_setdefaultcharset("iso-8859-1");
 #if UPDATE_TESTSUITECPP
 	// test1<false>();
 	// test1<true>();

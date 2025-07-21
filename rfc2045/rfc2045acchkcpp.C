@@ -81,7 +81,9 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 		if (rwmode == convert::sevenbit &&
 		    (is8bitte || haslongline))
 		{
-			rewrite_transfer_encoding=cte::qp;
+			rewrite_transfer_encoding =
+				haslongline || hasraw8bitchars
+				? cte::qp:cte::sevenbit;
 			flag=true;
 		}
 		else if (te == cte::qp &&
