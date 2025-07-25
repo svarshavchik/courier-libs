@@ -39,7 +39,7 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 
 libencode_la_SOURCES=encode.C encode.h encodeautodetect.C
 
-reformime_SOURCES=reformime.c
+reformime_SOURCES=reformime.C
 reformime_DEPENDENCIES =  librfc2045.la libencode.la ../rfc822/librfc822.la \
 		../numlib/libnumlib.la
 reformime_LDADD = $(reformime_DEPENDENCIES) -lcourier-unicode

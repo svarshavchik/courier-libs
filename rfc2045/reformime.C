@@ -119,8 +119,8 @@ char	*p;
 	hostnamebuf[sizeof(hostnamebuf)-1]=0;
 	if (gethostname(hostnamebuf, sizeof(hostnamebuf)))
 		hostnamebuf[0]=0;
-	p=malloc(strlen(tempdir)+strlen(pidbuf)+strlen(timebuf)+
-		strlen(hostnamebuf)+100);
+	p=(char *)malloc(strlen(tempdir)+strlen(pidbuf)+strlen(timebuf)+
+			 strlen(hostnamebuf)+100);
 	if (!p)	return (0);
 	sprintf(p, "%s/%s.%s-%u.%s", tempdir, timebuf, pidbuf, counter++,
 		hostnamebuf);
@@ -417,12 +417,12 @@ const char *disposition_filename_s;
 
 	if (ignore_filename)
 	{
-	char	numbuf[NUMBUFSIZE];
-	static size_t counter=0;
-	const char *p=libmail_str_size_t(++counter, numbuf);
+		char	numbuf[NUMBUFSIZE];
+		static size_t counter=0;
+		const char *p=libmail_str_size_t(++counter, numbuf);
 
-		dyn_disp_name=malloc(strlen(disposition_filename_s)
-			+ strlen(p)+2);
+		dyn_disp_name=(char *)malloc(strlen(disposition_filename_s)
+					     + strlen(p)+2);
 		if (!dyn_disp_name)
 		{
 			perror("malloc");
@@ -438,7 +438,8 @@ const char *disposition_filename_s;
 		disposition_filename_s=dyn_disp_name+2;	/* Skip over ./ */
 	}
 
-	p=malloc((pfix ? strlen(pfix):0)+strlen(disposition_filename_s)+1);
+	p=(char *)malloc((pfix ? strlen(pfix):0)+
+			 strlen(disposition_filename_s)+1);
 	if (!p)
 	{
 		perror("malloc");
@@ -598,15 +599,17 @@ int	waitstat;
 
 	if (pid == 0)
 	{
-        const char *content_type_s;
-        const char *content_transfer_encoding_s;
-        const char *charset_s;
+		const char *content_type_s;
+		const char *content_transfer_encoding_s;
+		const char *charset_s;
 
-		if (!f)	f="FILENAME=attachment.dat";
-		putenv(f);
+		const char *fc=f;
+
+		if (!fc)	fc="FILENAME=attachment.dat";
+		putenv(const_cast<char *>(fc));
 		rfc2045_mimeinfo(p, &content_type_s,
 			&content_transfer_encoding_s, &charset_s);
-		f=malloc(strlen(content_type_s)
+		f=(char *)malloc(strlen(content_type_s)
 			+sizeof("CONTENT_TYPE="));
 		if (!f)
 		{
@@ -833,7 +836,7 @@ char	**l;
 	struct	filelist *q;
 
 		if ((p=strchr(mimebuf, '\n')) != 0)	*p=0;
-		q=malloc(sizeof(struct filelist));
+		q=(filelist *)malloc(sizeof(struct filelist));
 		if (!q || !(q->fn=strdup(mimebuf)))
 		{
 			perror("malloc");
@@ -848,7 +851,7 @@ char	**l;
 	}
 	if (pcnt == 0)	return;
 
-	if ( (l=malloc(sizeof (char *) * pcnt)) == 0)
+	if ( (l=(char **)malloc(sizeof (char *) * pcnt)) == 0)
 	{
 		perror("malloc");
 	}
@@ -881,7 +884,7 @@ static void mimedigest1(int argc, char **argv)
 
 	time (&t);
 
-	utf8=malloc(sizeof(int)*argc);
+	utf8=(int *)malloc(sizeof(int)*argc);
 
 	/* Search for a suitable boundary */
 
@@ -984,7 +987,7 @@ char	*section=0;
 int	doinfo=0, dodecode=0, dorewrite=0, dodsn=0, domimedigest=0;
 int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0, doencodemimehdr=0;
 
-char	*decode_header="";
+const char	*decode_header="";
 struct	rfc2045 *p;
 int	rwmode=0;
 int     convtoutf8=0;
