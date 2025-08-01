@@ -28,6 +28,7 @@
 #include	<fcntl.h>
 #include	<signal.h>
 #include	"rfc2045.h"
+#include	"encode.h"
 #include	"rfc822/rfc822.h"
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045charset.h"
@@ -40,6 +41,8 @@
 #include	<sys/wait.h>
 #endif
 #include	"numlib/numlib.h"
+#include	<iostream>
+#include	<algorithm>
 
 #if     HAS_GETHOSTNAME
 #else
@@ -328,21 +331,33 @@ struct	rfc2045 *s;
 	do_print_section(s, stdout);
 }
 
-void rewrite(struct rfc2045 *p, int rwmode)
+void rewrite(rfc2045::entity &message, rfc822::fdstreambuf &src,
+	     rfc2045::convert rwmode)
 {
-	struct rfc2045src *src;
+	auto out_p=std::cout.rdbuf();
 
-	rfc2045_ac_check(p, rwmode);
-
-	src=rfc2045src_init_fd(fileno(stdin));
-
-	if (src == NULL || rfc2045_rewrite(p, src, fileno(stdout),
-		"reformime (" RFC2045PKG " " RFC2045VER ")"))
+	if (!message.autoconvert_check(rwmode))
 	{
-		perror("reformime");
-		exit(1);
+		std::copy(std::istreambuf_iterator<char>{&src},
+			  std::istreambuf_iterator<char>{},
+			  std::ostreambuf_iterator<char>{out_p});
+		return;
 	}
-	rfc2045src_deinit(src);
+
+	rfc2045::entity::line_iter<false>::autoconvert(
+		message,
+		[&]
+		(const char *p, size_t n)
+		{
+			if (static_cast<size_t>(out_p->sputn(p, n)) != n)
+			{
+				perror("write");
+				exit(1);
+			}
+		},
+		src,
+		"reformime (" RFC2045PKG " " RFC2045VER ")"
+	);
 }
 
 static char *get_suitable_filename(struct rfc2045 *r, const char *pfix,
@@ -979,22 +994,24 @@ static int doconvtoutf8_stdout(const char *ptr, size_t n, void *dummy)
 
 static int main2(const char *mimecharset, int argc, char **argv)
 {
-int	argn;
-char	optc;
-char	*optarg;
-char	*mimesection=0;
-char	*section=0;
-int	doinfo=0, dodecode=0, dorewrite=0, dodsn=0, domimedigest=0;
-int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0, doencodemimehdr=0;
+	int	argn;
+	char	optc;
+	char	*optarg;
+	char	*mimesection=0;
+	char	*section=0;
+	bool dorewrite{false};
+	int	doinfo=0, dodecode=0, dodsn=0, domimedigest=0;
+	int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0,
+		doencodemimehdr=0;
 
-const char	*decode_header="";
-struct	rfc2045 *p;
-int	rwmode=0;
-int     convtoutf8=0;
-int	dovalidate=0;
-void	(*do_extract)(struct rfc2045 *, const char *, int, char **)=0;
-const char *extract_filename=0;
-int rc=0;
+	const char	*decode_header="";
+	struct	rfc2045 *p;
+	rfc2045::convert rwmode{rfc2045::convert::standardize};
+	int     convtoutf8=0;
+	int	dovalidate=0;
+	void	(*do_extract)(struct rfc2045 *, const char *, int, char **)=0;
+	const char *extract_filename=0;
+	int rc=0;
 
 
 	rfc2045_in_reformime=1;
@@ -1040,13 +1057,13 @@ int rc=0;
 			dodecode=1;
 			break;
 		case 'r':
-			dorewrite=1;
+			dorewrite=true;
 			if (optarg && *optarg == '7')
-				rwmode=RFC2045_RW_7BIT;
+				rwmode=rfc2045::convert::sevenbit;
 			if (optarg && *optarg == '8')
-				rwmode=RFC2045_RW_8BIT;
+				rwmode=rfc2045::convert::eightbit;;
 			if (optarg && *optarg == 'U')
-				rwmode=RFC2045_RW_8BIT_ALWAYS;
+				rwmode=rfc2045::convert::eightbit_always;
 			break;
 		case 'm':
 			domimedigest=1;
@@ -1185,6 +1202,35 @@ int rc=0;
 
 	p=read_message();
 
+	rfc2045::entity message;
+
+	int fd=dup(0);
+
+	if (fd < 0)
+	{
+		perror("dup");
+		exit(1);
+	}
+
+	rfc822::fdstreambuf src{fd};
+
+	if (src.pubseekpos(0) < 0)
+	{
+		perror("seek");
+		exit(1);
+	}
+
+	{
+		std::istreambuf_iterator<char> b{&src}, e;
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+		message.parse(parser);
+		if (src.pubseekpos(0) < 0)
+		{
+			perror("seek");
+			exit(1);
+		}
+	}
+
 	if (doinfo)
 	{
 		mimesection = section ? strtok(section, ","):NULL;
@@ -1208,7 +1254,7 @@ int rc=0;
 		} while (mimesection != NULL);
 	}
 	else if (dorewrite)
-		rewrite(p, rwmode);
+		rewrite(message, src, rwmode);
 	else if (dodsn)
 		dsn(p, dodsn == 2);
 	else if (do_extract)
@@ -1253,6 +1299,12 @@ int rc=0;
 	else
 		print_structure(p);
 	rfc2045_free(p);
+
+	if (std::cout.rdbuf()->pubsync() < 0)
+	{
+		perror("write");
+		rc=1;
+	}
 	exit(rc);
 	return (rc);
 }
