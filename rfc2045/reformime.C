@@ -163,11 +163,6 @@ int	l;
 	return (p);
 }
 
-void print_structure(struct rfc2045 *p)
-{
-	rfc2045_decode(p, &do_print_structure, 0);
-}
-
 static void notfound(const char *p)
 {
 	fprintf(stderr, "reformime: MIME section %s not found.\n", p);
@@ -999,8 +994,8 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	char	*optarg;
 	char	*mimesection=0;
 	char	*section=0;
-	bool dorewrite{false};
-	int	doinfo=0, dodecode=0, dodsn=0, domimedigest=0;
+	bool dorewrite{false}, doinfo{false};
+	int	dodecode=0, dodsn=0, domimedigest=0;
 	int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0,
 		doencodemimehdr=0;
 
@@ -1051,7 +1046,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			if (optarg && *optarg)	section=strdup(optarg);
 			break;
 		case 'i':
-			doinfo=1;
+			doinfo=true;
 			break;
 		case 'e':
 			dodecode=1;
@@ -1297,7 +1292,22 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		}
 	}
 	else
-		print_structure(p);
+	{
+		message.enumerate(
+			[]
+			(const auto &id, const auto &)
+			{
+				const char *sep="";
+
+				for (auto v:id)
+				{
+					std::cout << sep << v;
+					sep=".";
+				}
+				std::cout << "\n";
+			}
+		);
+	}
 	rfc2045_free(p);
 
 	if (std::cout.rdbuf()->pubsync() < 0)

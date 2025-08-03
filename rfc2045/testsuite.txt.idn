@@ -179,6 +179,9 @@ Header: Message-ID
 Value: <a@b>
 Header: Subject
 Value: Example subject
+1
+1.1
+1.2
 section: 1
 content-type: multipart/mixed
 content-transfer-encoding: 8bit

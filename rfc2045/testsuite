@@ -57,9 +57,9 @@ test message
 
 --aaa---
 EOF
-LANG=en_US.utf-8 ./reformime -r <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
-LANG=en_US.utf-8 ./reformime -r7 <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
-LANG=en_US.utf-8 ./reformime -r8 <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
+./reformime -r <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
+./reformime -r7 <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
+./reformime -r8 <testsuite.dat | sed 's/=_.*//;s/X-Mime-Autoconverted:.*//'
 
 cat >testsuite.dat <<EOF
 From: nobody
@@ -118,7 +118,8 @@ Testing
 
 --aaa---
 EOF
-LANG=en_US.utf-8 ./reformime -i <testsuite.dat | sed 's/^charset:.*/charset: iso-8859-1/'
+./reformime <testsuite.dat
+./reformime -i <testsuite.dat | sed 's/^charset:.*/charset: iso-8859-1/'
 
 echo "foo" >confmdtest
 
@@ -127,7 +128,7 @@ echo "foo" >confmdtest
 ./makemime -c application/octet-stream -C utf-8 -N footest:1 confmdtest
 ./makemime -c application/octet-stream -C utf-8 -N f:::::::::::::::::::::::::1 confmdtest
 
-LANG=en_US.utf-8 ./reformime -h '=?iso-8859-1?Q?H=F3la!?= test =?iso-8859-1?Q?H=F3la!_?=  =?iso-8859-1?Q?H=F3la!?=  test'
+./reformime -h '=?iso-8859-1?Q?H=F3la!?= test =?iso-8859-1?Q?H=F3la!_?=  =?iso-8859-1?Q?H=F3la!?=  test'
 rm -f confmdtest
 
 cat >testsuite.dat <<EOF
@@ -139,16 +140,16 @@ Content-Description: =?iso-8859-1?Q?H=F3la!?= test =?iso-8859-1?Q?H=F3la!_?=
 
 testing
 EOF
-LANG=en_US.utf-8 ./reformime -i <./testsuite.dat
-LANG=en_US.utf-8 ./reformime -H '=?iso-8859-1?Q?H=F3la!?= test <test1@example.com>'
-LANG=en_US.utf-8 ./reformime -H '=?iso-8859-1?Q?H=F3la=22?= test <test1@example.com>'
-LANG=en_US.utf-8 ./reformime -O 'Hóla <user@Hóla.example.com>, user@example.com (Hóla), John Smith <user@example.com>, user2@example.com, "John Smith (Accounting)" <user3@example.com>, "Hóla Smith (Accounting)" <user4@example.com>, john smith <user@hóla.example.com>'
+./reformime -i <./testsuite.dat
+./reformime -H '=?iso-8859-1?Q?H=F3la!?= test <test1@example.com>'
+./reformime -H '=?iso-8859-1?Q?H=F3la=22?= test <test1@example.com>'
+./reformime -O 'Hóla <user@Hóla.example.com>, user@example.com (Hóla), John Smith <user@example.com>, user2@example.com, "John Smith (Accounting)" <user3@example.com>, "Hóla Smith (Accounting)" <user4@example.com>, john smith <user@hóla.example.com>'
 
-LANG=en_US.utf-8 ./reformime -H '=?UTF-8?B?SMOzbGE=?= <user@xn--hla-gna.example.com>, =?UTF-8?B?SMOzbGE=?= <user@example.com>, John Smith <user@example.com>, user2@example.com, "John Smith (Accounting)" <user3@example.com>, =?UTF-8?B?SMOzbGE=?= Smith =?UTF-8?B?KEFjY291bnRpbmcp?= <user4@example.com>, john smith <user@xn--hla-gna.example.com>'
+./reformime -H '=?UTF-8?B?SMOzbGE=?= <user@xn--hla-gna.example.com>, =?UTF-8?B?SMOzbGE=?= <user@example.com>, John Smith <user@example.com>, user2@example.com, "John Smith (Accounting)" <user3@example.com>, =?UTF-8?B?SMOzbGE=?= Smith =?UTF-8?B?KEFjY291bnRpbmcp?= <user4@example.com>, john smith <user@xn--hla-gna.example.com>'
 
-LANG=en_US.utf-8 ./reformime -H 'list: address1 <address1@example.com>, address2 <address2@example.com>;'
+./reformime -H 'list: address1 <address1@example.com>, address2 <address2@example.com>;'
 
-LANG=en_US.utf-8 ./reformime -O 'list: address1 <address1@example.com>, address2 <address2@example.com>;'
+./reformime -O 'list: address1 <address1@example.com>, address2 <address2@example.com>;'
 
 ./reformime -u <<EOF
 From: Sam =?iso-8859-1?B?SOhsbG8=?= <nobody@xn--8ca.example.com>

@@ -1313,6 +1313,27 @@ auto rfc2231_attr_encode(std::string_view name,
   calling autoconvert(), this is recorded in the X-Mime-Autoconverted headers,
   if any are added.
 
+  ENUMERATING MIME STRUCTURE
+  ==========================
+
+  entity.enumerate(
+	  []
+	  (const std::vector<int> &id, const rfc2045::entity &e)
+	  {
+	  }
+  );
+
+  This enumerates the MIME structure of this MIME entity and all of its
+  subentities (if any). The passed-in callable object gets repeatedly invoked
+  with two parameters: a vector of integers that gives the identifier of the
+  MIME entity (with respect to the entity whose enumerate() method is called)
+  that's give in the second parameter.
+
+  A vector with a single value 1 identifies the MIME entity being enumerated.
+  If it's a multipart subentity then each one of them is identified by the
+  second value in the vector, starting with 1 for the first subentity, 2 for
+  the second, and so on. If the subentities have their own subentities they
+  get enumerated by additional values, and so on.
 */
 
 #define RFC2045_ERR8BITINQP		0x0010
@@ -1672,6 +1693,31 @@ public:
 	// it's treated as a single MIME entity (and never rewritten).
 
 	bool autoconvert_check(convert rwmode);
+
+	template<typename closure_type>
+	void enumerate(closure_type &&closure) const
+	{
+		std::vector<int> id;
+
+		id.reserve(5);
+		id.push_back(1);
+		enumerate(id, std::forward<closure_type>(closure));
+	}
+
+	template<typename closure_type>
+	void enumerate(std::vector<int> &id, closure_type &&closure) const
+	{
+		closure(const_cast<const std::vector<int> &>(id), *this);
+
+		id.push_back(1);
+
+		for (auto &sube:subentities)
+		{
+			sube.enumerate(id, std::forward<closure_type>(closure));
+			++id.back();
+		}
+		id.pop_back();
+	}
 };
 
 template<bool crlf>
@@ -2618,7 +2664,6 @@ public:
 		c.notify_all();
 	}
 
-	// Used internally to retrieve the next chunk to parse
 	bool get_next_chunk(std::string &chunk);
 
 	entity &&parsed_entity();
