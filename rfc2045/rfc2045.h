@@ -1375,16 +1375,60 @@ class rfc2045::entity_info {
 	// Either long physical line, or a long quoted-printable line
 	bool haslongline{false};
 
-	std::string content_type{"text/plain"}; /* content-type in lowercase */
-	std::string content_type_charset{rfc2045_getdefaultcharset()};
-	std::string content_type_boundary;
+	// A parameter of a structured MIME header.
+	struct header_parameter_value {
 
-	// content_type and content_type_charset is defaulted. This tells me
-	// if they were explicitly set.
+		// If RFC 2231 was used to encode the character set
+		std::string charset;
+
+		// If RFC 2231 was used to encode the language
+		std::string language;
+
+		// Finally, the value.
+		std::string value;
+
+		template<typename C, typename L, typename V>
+		header_parameter_value(C && charset,
+				       L && language,
+				       V && value)
+			: charset{std::forward<C>(charset)},
+			  language{std::forward<L>(language)},
+			  value{std::forward<V>(value)}
+		{
+		}
+
+		bool operator==(const header_parameter_value &o) const
+		{
+			return charset == o.charset &&
+				language == o.language &&
+				value == o.value;
+		}
+	};
+
+	// A structured MIME header, a value, and parameters, optionally encoded
+	// using RFC 2231
+	struct rfc2231_header {
+		std::string value;
+		std::unordered_map<std::string,
+				   header_parameter_value> parameters;
+
+		// Parses a folded header value.
+		rfc2231_header(const std::string_view &);
+
+		void lowercase_value(const char *name);
+	};
+
+	// We look into Content-Type: so often we might as well store its
+	// parsed contents
+	rfc2231_header content_type{"text/plain"};
+
+	std::string_view content_type_charset() const;
+	std::string_view content_type_boundary() const;
+
+	// Whether an explicit Content-Type: header was parsed.
 	bool has_content_type_header{false};
-	bool has_content_type_charset{false};
 
-	// Whether Content-Transfer-Encoding: was specified
+	// Whether Content-Transfer-Encoding: was parsed
 	bool has_content_transfer_encoding{false};
 
 	bool has8bitheader{false};
@@ -1393,12 +1437,13 @@ class rfc2045::entity_info {
 
 	bool multipart() const
 	{
-		size_t i=content_type.find('/');
+		size_t i=content_type.value.find('/');
 
-		if (i > content_type.size())
-			i=content_type.size();
+		if (i > content_type.value.size())
+			i=content_type.value.size();
 
-		return std::string_view{content_type.data(), i} == "multipart";
+		return std::string_view{content_type.value.data(), i}
+			== "multipart";
 	}
 };
 
@@ -1580,47 +1625,6 @@ private:
 	void update_parent_ptr();
 public:
 
-	// A parameter of a structured MIME header.
-	struct header_parameter_value {
-
-		// If RFC 2231 was used to encode the character set
-		std::string charset;
-
-		// If RFC 2231 was used to encode the language
-		std::string language;
-
-		// Finally, the value.
-		std::string value;
-
-		template<typename C, typename L, typename V>
-		header_parameter_value(C && charset,
-				       L && language,
-				       V && value)
-			: charset{std::forward<C>(charset)},
-			  language{std::forward<L>(language)},
-			  value{std::forward<V>(value)}
-		{
-		}
-
-		bool operator==(const header_parameter_value &o) const
-		{
-			return charset == o.charset &&
-				language == o.language &&
-				value == o.value;
-		}
-	};
-
-	// A structured MIME header, a value, and parameters, optionally encoded
-	// using RFC 2231
-	struct rfc2231_header {
-		std::string value;
-		std::unordered_map<std::string,
-				   header_parameter_value> parameters;
-
-		// Parses a folded header value.
-		rfc2231_header(const std::string_view &);
-	};
-
 	template<typename line_iter_type>
 	void parse(line_iter_type &iter);
 
@@ -1777,7 +1781,7 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 
 				for (auto e:parsing_entities)
 				{
-					auto &b=e->content_type_boundary;
+					auto b=e->content_type_boundary();
 					if (b.empty())
 						continue;
 					if (b.size() >
@@ -2321,27 +2325,12 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 		if (name == "content-type")
 		{
-			rfc2231_header ct{header};
-
-			content_type=ct.value;
+			content_type=rfc2231_header{header};
 
 			has_content_type_header=true;
 
-			auto p=ct.parameters.find("charset");
-			if (p != ct.parameters.end())
-			{
-				content_type_charset=p->second.value;
-
-				tolowercase(content_type_charset);
-				has_content_type_charset=true;
-			}
-
-			p=ct.parameters.find("boundary");
-			if (p != ct.parameters.end() && multipart())
-			{
-				content_type_boundary=p->second.value;
-				tolowercase(content_type_boundary);
-			}
+			content_type.lowercase_value("charset");
+			content_type.lowercase_value("boundary");
 		}
 		if (name == "content-transfer-encoding")
 		{
@@ -2379,7 +2368,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	}
 	else if (mime1)
 	{
-		if (rfc2045_message_content_type(content_type.c_str()) &&
+		if (rfc2045_message_content_type(content_type.value.c_str()) &&
 		    (content_transfer_encoding == cte::sevenbit ||
 		     content_transfer_encoding == cte::eightbit))
 		{
@@ -2389,8 +2378,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 		if (multipart())
 		{
-			size_t l=content_type_boundary.size();
-			auto lp=content_type_boundary.data();
+			auto b=content_type_boundary();
+			size_t l=b.size();
+			auto lp=b.data();
 
 			if (l == 0)
 			{
@@ -2408,7 +2398,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				if (e == this)
 					continue; // Last one is us
 
-				auto &eb=e->content_type_boundary;
+				auto eb=e->content_type_boundary();
 				size_t m=eb.size();
 
 				if (m == 0) // message/subtype
@@ -2431,7 +2421,12 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	bool multipart_ongoing=false;
 
 	if (!is_multipart)
-		content_type_boundary.clear(); // Get rid of any strays...
+	{
+		auto ctb=content_type.parameters.find("boundary");
+		if (ctb != content_type.parameters.end())
+			// Get rid of any strays...
+			content_type.parameters.erase(ctb);
+	}
 	else
 	{
 		if (content_transfer_encoding == cte::base64)
@@ -2515,8 +2510,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 			new_subentity.mime1=true;
 
-			if (content_type == "multipart/digest")
-				new_subentity.content_type="message/rfc822";
+			if (content_type.value == "multipart/digest")
+				new_subentity.content_type.value=
+					"message/rfc822";
 
 			new_subentity.parse(iter);
 
@@ -2857,7 +2853,9 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 
 	bool errflag=false;
 
-	if (charset.empty() || e.content_type.substr(0, 5) != "text/")
+	if (charset.empty() || std::string_view{
+			e.content_type.value
+		}.substr(0, 5) != "text/")
 	{
 		if (!e.decode_body(src, out))
 			errflag=true;
@@ -2866,7 +2864,9 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 	{
 		rfc2045::entity::converter converter{out};
 
-		if (!converter.begin(e.content_type_charset, charset)
+		auto echarset=e.content_type_charset();
+		if (!converter.begin({echarset.begin(), echarset.end()},
+				     charset)
 		    || !e.decode_body(src,
 				      [&]
 				      (const char *ptr, size_t n)
@@ -2980,7 +2980,8 @@ bool rfc2045::entity::line_iter<crlf>::try_boundary(
 	    e.content_transfer_encoding == cte::error)
 		return false;
 
-	if (!e.subentities.empty() && e.content_type != "multipart/signed")
+	if (!e.subentities.empty() &&
+	    e.content_type.value != "multipart/signed")
 	{
 		for (auto &subentity:e.subentities)
 			if (try_boundary(
@@ -3119,11 +3120,11 @@ void rfc2045::entity::line_iter<crlf>
 	new_content_type.reserve(
 		sizeof("Content-Type: ; boundary=\"\"")
 		+ 2*eol.size()
-		+ e.content_type.size()
+		+ e.content_type.value.size()
 		+ new_boundary.size());
 	new_content_type="Content-Type: ";
 
-	new_content_type += e.content_type;
+	new_content_type += e.content_type.value;
 	new_content_type += "; boundary=\"";
 	new_content_type += new_boundary;
 	new_content_type += "\"";

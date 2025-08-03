@@ -73,6 +73,24 @@ rfc2045::entity::entity(entity &&o) noexcept
 	update_parent_ptr();
 }
 
+std::string_view rfc2045::entity_info::content_type_charset() const
+{
+	auto p=content_type.parameters.find("charset");
+
+	return p == content_type.parameters.end()
+		? std::string_view{rfc2045_getdefaultcharset()}
+		: std::string_view{p->second.value};
+}
+
+std::string_view rfc2045::entity_info::content_type_boundary() const
+{
+	auto p=content_type.parameters.find("boundary");
+
+	return p == content_type.parameters.end()
+		? std::string_view{}
+		: std::string_view{p->second.value};
+}
+
 rfc2045::entity &rfc2045::entity::operator=(const entity &o) noexcept
 {
 	entity_info::operator=(o);
@@ -117,7 +135,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 	rfc822::tokens::unquote(tb, semicolon,
 				std::back_inserter(value));
 
-	tolowercase(value);
+	rfc2045::entity::tolowercase(value);
 
 	// Value of a structured header parameter, parsed according to RFC 2231.
 	// This is preliminary parsing, once it's parsed this'll get reassembled
@@ -173,7 +191,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 						std::back_inserter(value));
 		}
 
-		tolowercase(name);
+		rfc2045::entity::tolowercase(name);
 
 		// Let's dig into the parameter name, to see if RFC 2231 is used
 		// by checking for a trailing *, first.
@@ -238,7 +256,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 			if (s != value.end())
 				++s;
 
-			tolowercase(value.begin(), r);
+			rfc2045::entity::tolowercase(value.begin(), r);
 
 			parameter->second.charset.assign(value.begin(), p);
 			parameter->second.language.assign(q, r);
@@ -335,6 +353,13 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 	}
 }
 
+void rfc2045::entity::rfc2231_header::lowercase_value(const char *n)
+{
+	auto v=parameters.find(n);
+	if (v != parameters.end())
+		rfc2045::entity::tolowercase(v->second.value);
+}
+
 rfc2045::entity_parse_meta::scope::scope(entity_parse_meta &info,
 					 entity *e)
 	: info{info}
@@ -354,7 +379,10 @@ rfc2045::entity_parse_meta::scope::~scope()
 	if (last->has8bitbody)
 	{
 		if (last->multipart() ||
-		    rfc2045_message_content_type(last->content_type.c_str()))
+		    rfc2045_message_content_type(
+			    last->content_type.value.c_str()
+		    )
+		)
 		{
 			last->content_transfer_encoding=cte::eightbit;
 		}

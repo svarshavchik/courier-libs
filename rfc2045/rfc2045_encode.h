@@ -57,11 +57,12 @@ void rfc2045::entity::line_iter<crlf>
 	existing_headers.keep_eol=true;
 
 	std::string content_type_header="Content-Type: " +
-		e.content_type;
+		e.content_type.value;
 
-	if (e.content_type.substr(0, 5) == "text/")
+	if (std::string_view{e.content_type.value}.substr(0, 5) == "text/")
 	{
-		content_type_header += "; charset=" + e.content_type_charset;
+		content_type_header += "; charset=";
+		content_type_header += e.content_type_charset();
 	}
 	content_type_header += eol;
 

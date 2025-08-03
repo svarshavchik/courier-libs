@@ -51,10 +51,10 @@ struct parsed_mime_info {
 			entity.nbodylines == nbodylines &&
 			entity.mime1 == mime1 &&
 			entity.errors.code == errors &&
-			entity.content_type == content_type &&
-			entity.content_type_charset
+			entity.content_type.value == content_type &&
+			entity.content_type_charset()
 			== content_type_charset &&
-			entity.content_type_boundary
+			entity.content_type_boundary()
 			== content_type_boundary &&
 			entity.content_transfer_encoding
 			== content_transfer_encoding &&
@@ -195,11 +195,11 @@ struct parsed_mime_info {
 			  << nl << "        mime: " << entity.mime1
 			  << nl << "      errors: " << entity.errors.code
 			  << nl << "content-type: "
-			  << entity.content_type
+			  << entity.content_type.value
 			  << nl << "     charset: "
-			  << entity.content_type_charset
+			  << entity.content_type_charset()
 			  << nl << "    boundary: "
-			  << entity.content_type_boundary
+			  << entity.content_type_boundary()
 			  << nl << "    encoding: ";
 
 		switch (entity.content_transfer_encoding) {

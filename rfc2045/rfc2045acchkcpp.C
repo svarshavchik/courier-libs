@@ -13,7 +13,7 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 {
 	bool flag=false; // Flag - rewriting suggested
 
-	if (content_type == "multipart/signed")
+	if (content_type.value == "multipart/signed")
 	{
 		subentities.clear();
 		return flag;
@@ -39,11 +39,16 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 			flag=true;
 		}
 
-		if (!has_content_type_charset &&
-		    std::string_view{content_type}.substr(0, 5) == "text/")
+		if (std::string_view{content_type.value}.substr(0, 5)
+		    == "text/")
 		{
-			content_type_charset=rfc2045_getdefaultcharset();
-			flag=true;
+			if (content_type.parameters.try_emplace(
+				    "charset",
+				    "utf-8",
+				    "en",
+				    rfc2045_getdefaultcharset()
+			    ).second)
+				flag=true;
 		}
 
 		if (!has_content_transfer_encoding)
