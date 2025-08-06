@@ -13,6 +13,7 @@
 #include	<errno.h>
 #include	<string.h>
 #include	<langinfo.h>
+#include	<sstream>
 
 #if	HAVE_STRINGS_H
 #include	<strings.h>
@@ -43,6 +44,8 @@
 #include	"numlib/numlib.h"
 #include	<iostream>
 #include	<algorithm>
+#include	<charconv>
+#include	<fstream>
 
 #if     HAS_GETHOSTNAME
 #else
@@ -58,33 +61,6 @@ void rfc2045_error(const char *errmsg)
 {
 	fprintf(stderr, "reformime: %s\n", errmsg);
 	exit(1);
-}
-
-static void do_print_structure(struct rfc2045 *p, struct rfc2045id *id, void *ptr)
-{
-	ptr=p;
-
-	while (id)
-	{
-		printf("%d%c", id->idnum, id->next ? '.':'\n');
-		id=id->next;
-	}
-}
-
-static int decode_to_file(const char *p, size_t n, void *ptr)
-{
-FILE	*fp=(FILE *)ptr;
-
-	while (n)
-	{
-		--n;
-		if (putc((int)(unsigned char)*p++, fp) == EOF)
-		{
-			perror("write");
-			exit(1);
-		}
-	}
-	return (0);
 }
 
 void usage()
@@ -169,161 +145,96 @@ static void notfound(const char *p)
 	exit(1);
 }
 
-static void do_print_info(struct rfc2045 *s)
+std::string idstr(const std::vector<int> &id)
 {
-const char *content_type, *transfer_encoding, *charset;
-off_t start, end, body;
-char *content_name;
-off_t nlines, nbodylines;
-const char *p;
+	std::ostringstream o;
 
-char *disposition_name, *disposition_filename;
-
-	rfc2045_mimeinfo(s, &content_type, &transfer_encoding, &charset);
-	rfc2045_mimepos(s, &start, &end, &body, &nlines, &nbodylines);
-
-	if (rfc2231_udecodeType(s, "name", NULL, &content_name) < 0
-	    && (content_name=strdup("")) == NULL)
+	const char *idsep="";
+	for (int s:id)
 	{
-		perror("malloc");
-		exit(1);
+		o << idsep << s;
+		idsep=".";
+	}
+	return o.str();
+}
+
+void print_info(const rfc2045::entity &entity,
+		const std::vector<int> &id)
+{
+	std::cout << "section: " << idstr(id)
+		  << "\ncontent-type: " << entity.content_type.value
+		  << "\n";
+
+	auto value=entity.content_type.parameters.find("name");
+	if (value != entity.content_type.parameters.end())
+		std::cout << "content-name: "
+			  << value->second.value_in_charset()
+			  << "\n";
+
+	std::cout << "content-transfer-encoding: "
+		  << rfc2045::to_cte(entity.content_transfer_encoding)
+		  << "\n";
+	std::cout << "charset: " << entity.content_type_charset()
+		  << "\n";
+
+	rfc2045::entity::rfc2231_header content_disposition{
+		entity.content_disposition
+	};
+
+	if (content_disposition.value.size())
+		std::cout << "content-disposition: "
+			  << content_disposition.value << "\n";
+
+	auto cd_value=content_disposition.parameters.find("name");
+	if (cd_value != content_disposition.parameters.end())
+		std::cout << "content-disposition-name: "
+			  << cd_value->second.value_in_charset()
+			  << "\n";
+
+	cd_value=content_disposition.parameters.find("filename");
+	if (cd_value != content_disposition.parameters.end())
+		std::cout << "content-disposition-filename: "
+			  << cd_value->second.value_in_charset()
+			  << "\n";
+
+	if (!entity.content_id.empty())
+		std::cout << "content-id: <" << entity.content_id << ">\n";
+	if (!entity.content_description.empty())
+	{
+		std::cout << "content-description: ";
+		rfc822::display_header(
+			"content-description",
+			entity.content_description,
+			rfc2045_getdefaultcharset(),
+			std::ostreambuf_iterator<char>{std::cout});
+		std::cout << "\n";
 	}
 
-	printf("content-type: %s\n", content_type);
-	if (*content_name)
-	{
-		printf("content-name: %s\n", content_name);
-	}
-	free(content_name);
+	std::cout << "starting-pos: " << entity.startpos << "\n";
+	std::cout << "starting-pos-body: " << entity.startbody << "\n";
+	std::cout << "ending-pos: " << entity.endbody << "\n";
+	std::cout << "line-count: " << entity.nlines << "\n";
+	std::cout << "body-line-count: " << entity.nbodylines << "\n\n";
+}
 
-	printf("content-transfer-encoding: %s\n", transfer_encoding);
-	printf("charset: %s\n", charset);
-	if (s->content_disposition && *s->content_disposition)
-		printf("content-disposition: %s\n", s->content_disposition);
-
-	if ((rfc2231_udecodeDisposition(s, "name", NULL, &disposition_name) < 0
-	     && (disposition_name=strdup("")) == NULL)
-	    ||
-	    (rfc2231_udecodeDisposition(s, "filename", NULL,
-					&disposition_filename) < 0
-	     && (disposition_filename=strdup("")) == NULL))
-	{
-		perror("malloc");
-		exit(1);
-	}
-
-	if (*disposition_name)
-		printf("content-disposition-name: %s\n", disposition_name);
-
-	free(disposition_name);
-
-	if (*disposition_filename)
-	{
-		printf("content-disposition-filename: %s\n",
-		       disposition_filename);
-	}
-	free(disposition_filename);
-
-	if (*(p=rfc2045_content_id(s)))
-		printf("content-id: <%s>\n", p);
-	if (*(p=rfc2045_content_description(s)))
-	{
-		char *s=rfc822_display_hdrvalue_tobuf("content-description",
-						      p,
-						      defchset,
-						      NULL,
-						      NULL);
-
-		if (!s)
+void do_print_section(const rfc2045::entity &e,
+		      std::streambuf &src,
+		      std::streambuf &out)
+{
+	rfc2045::entity::line_iter<false>::decoder decoder{
+		[&]
+		(const char *p, size_t n)
 		{
-			perror("rfc2047_decode_unicode");
-			exit(1);
-		}
-		printf("content-description: %s\n", s);
-		free(s);
-	}
-	if (*(p=rfc2045_content_language(s)))
-		printf("content-language: %s\n", p);
-	if (*(p=rfc2045_content_md5(s)))
-		printf("content-md5: %s\n", p);
+			out.sputn(p, n);
+		},
+		src
+	};
 
-	printf("starting-pos: %lu\n", (unsigned long)start);
-	printf("starting-pos-body: %lu\n", (unsigned long)body);
-	printf("ending-pos: %lu\n", (unsigned long)end);
-	printf("line-count: %lu\n", (unsigned long)nlines);
-	printf("body-line-count: %lu\n", (unsigned long)nbodylines);
-}
+	decoder.decode_header=false;
+	decoder.decode_body=true;
+	decoder.decode_subentities=false;
 
-static void do_print_info_multiple(struct rfc2045 *p, struct rfc2045id *id,
-		void *ptr)
-{
-	printf("section: ");
-	do_print_structure(p, id, ptr);
-	do_print_info(p);
-	printf("\n");
-}
-
-void print_info(struct rfc2045 *p, const char *mimesection)
-{
-struct	rfc2045 *s;
-
-	if (mimesection)
-	{
-		s=rfc2045_find(p, mimesection);
-		if (!s)
-			notfound(mimesection);
-		printf("section: %s\n", mimesection);
-		do_print_info(s);
-		return;
-	}
-	rfc2045_decode(p, &do_print_info_multiple, 0);
-}
-
-static void do_print_section(struct rfc2045 *s, FILE *fp)
-{
-off_t start, end, body;
-off_t nlines;
-off_t nbodylines;
-
-	rfc2045_mimepos(s, &start, &end, &body, &nlines, &nbodylines);
-
-	if (fseek(stdin, body, SEEK_SET) == -1)
-	{
-		perror("fseek");
-		exit(1);
-	}
-
-	rfc2045_cdecode_start(s, &decode_to_file, fp);
-	while (body < end)
-	{
-	char	buf[BUFSIZ];
-	size_t	n=sizeof(buf);
-
-		if ((off_t)n > end-body)	n=end-body;
-		n=fread(buf, 1, n, stdin);
-		if (n == 0)
-		{
-			perror("fread");
-			exit(1);
-		}
-		rfc2045_cdecode(s, buf, n);
-		body += n;
-	}
-	rfc2045_cdecode_end(s);
-}
-
-void print_decode(struct rfc2045 *p, const char *mimesection)
-{
-struct	rfc2045 *s;
-
-	if (!mimesection)
-		usage();
-
-	s=rfc2045_find(p, mimesection);
-	if (!s)
-		notfound(mimesection);
-
-	do_print_section(s, stdout);
+	decoder.decode(e);
 }
 
 void rewrite(rfc2045::entity &message, rfc822::fdstreambuf &src,
@@ -355,238 +266,196 @@ void rewrite(rfc2045::entity &message, rfc822::fdstreambuf &src,
 	);
 }
 
-static char *get_suitable_filename(struct rfc2045 *r, const char *pfix,
-	int ignore_filename)
+std::string get_suitable_filename(const rfc2045::entity &message,
+				  std::string_view pfix,
+				  bool ignore_filename)
 {
-char *disposition_name;
-char *disposition_filename;
-char	*filename_buf;
-char *content_name;
-char	*p, *q;
-char	*dyn_disp_name=0;
+	std::string filename;
 
-const char *disposition_filename_s;
+	rfc2045::entity::rfc2231_header content_disposition{
+		message.content_disposition
+	};
 
-	if (rfc2231_udecodeDisposition(r, "name", NULL, &disposition_name) < 0)
-		disposition_name=NULL;
+	auto cd_value=content_disposition.parameters.find("filename");
+	if (cd_value != content_disposition.parameters.end())
+		filename=cd_value->second.value_in_charset();
 
-	if (rfc2231_udecodeDisposition(r, "filename", NULL,
-				       &disposition_filename) < 0)
-		disposition_filename=NULL;
-
-	if (rfc2231_udecodeType(r, "name", NULL,
-				&content_name) < 0)
-		content_name=NULL;
-
-	disposition_filename_s=disposition_filename;
-
-	if (!disposition_filename_s || !*disposition_filename_s)
-		disposition_filename_s=disposition_name;
-	if (!disposition_filename_s || !*disposition_filename_s)
-		disposition_filename_s=content_name;
-
-	filename_buf=strdup(disposition_filename_s ? disposition_filename_s:"");
-
-	if (!filename_buf)
+	if (filename.empty())
 	{
-		perror("strdup");
-		exit(1);
+		cd_value=content_disposition.parameters.find("name");
+		if (cd_value != content_disposition.parameters.end())
+			filename=cd_value->second.value_in_charset();
 	}
 
-	if (content_name)		free(content_name);
-	if (disposition_name)		free(disposition_name);
-	if (disposition_filename)	free(disposition_filename);
-
-	if (strlen(filename_buf) > 32)
+	if (filename.empty())
 	{
-		p=filename_buf;
-		q=filename_buf + strlen(filename_buf)-32;
-		while ( (*p++ = *q++) != 0)
-			;
+		auto cd_value=message.content_type.parameters.find("name");
+		if (cd_value != content_disposition.parameters.end())
+			filename=cd_value->second.value_in_charset();
 	}
 
-	/* Strip leading/trailing spaces */
+	// Strip leading/trailing spaces
 
-	p=filename_buf;
-	while (*p && isspace((int)(unsigned char)*p))
-		++p;
+	filename.erase(
+		filename.begin(),
+		std::find_if(filename.begin(), filename.end(),
+			     [](unsigned c){ return !isspace(c);})
+	);
 
-	q=filename_buf;
-	while ((*q=*p) != 0)
+	for (auto b=filename.begin(), e=filename.end(); b != e; --e)
 	{
-		++p;
-		++q;
+		unsigned char c=e[-1];
+
+		if (!isspace(c))
+		{
+			filename.erase(e, filename.end());
+			break;
+		}
 	}
 
-	for (p=q=filename_buf; *p; p++)
-		if (!isspace((int)(unsigned char)*p))
-			q=p+1;
-	*q=0;
+	for (auto b=filename.begin(), e=filename.end(); b != e; --e)
+	{
+		unsigned char c=e[-1];
 
-	disposition_filename_s=filename_buf;
+		if (c == '/' || c == '\\')
+		{
+			filename.erase(filename.begin(), e);
+			break;
+		}
+	}
+
+	if (filename.size()>32)
+	{
+		filename.erase(filename.begin(), filename.end()-32);
+	}
 
 	if (ignore_filename)
 	{
-		char	numbuf[NUMBUFSIZE];
+		char	numbuf[sizeof(size_t)*2+1];
 		static size_t counter=0;
-		const char *p=libmail_str_size_t(++counter, numbuf);
 
-		dyn_disp_name=(char *)malloc(strlen(disposition_filename_s)
-					     + strlen(p)+2);
-		if (!dyn_disp_name)
-		{
-			perror("malloc");
-			exit(1);
-		}
-		disposition_filename_s=strcat(strcat(strcpy(
-			dyn_disp_name, p), "-"),
-			disposition_filename_s);
+		auto p=std::to_chars(numbuf, numbuf+sizeof(numbuf)-1,
+				     ++counter, 16).ptr;
+
+		*p++='-';
+
+		filename.insert(filename.begin(), numbuf, p);
 	}
-	else if (!disposition_filename_s || !*disposition_filename_s)
+	else if (filename.empty())
 	{
-		dyn_disp_name=tempname(".");
-		disposition_filename_s=dyn_disp_name+2;	/* Skip over ./ */
+		filename=tempname(".");
+		filename.erase(filename.begin(),
+			       filename.begin()+2);	/* Skip over ./ */
 	}
 
-	p=(char *)malloc((pfix ? strlen(pfix):0)+
-			 strlen(disposition_filename_s)+1);
-	if (!p)
+	filename.insert(filename.begin(), pfix.begin(), pfix.end());
+
+	for (char &c:filename)
 	{
-		perror("malloc");
-		exit(1);
+		unsigned char d=c;
+		if (!isalnum(d) && d != '.' && d != '-' && d != '=')
+			c='_';
 	}
-	*p=0;
-	if (pfix)	strcpy(p, pfix);
-	q=p+strlen(p);
-	for (strcpy(q, disposition_filename_s); *q; q++)
-		if (!isalnum(*q) && *q != '.' && *q != '-')
-			*q='_';
-
-	if (dyn_disp_name)	free(dyn_disp_name);
-
-	if (!pfix)
+	if (pfix.size() == 0)
 	{
-        const char *content_type_s;
-        const char *content_transfer_encoding_s;
-        const char *charset_s;
-	int c;
-	static char filenamebuf[256];
-	char	*t;
-	FILE	*tty;
+		std::fstream tty{"/dev/tty"};
 
-		if ((tty=fopen("/dev/tty", "r+")) == 0)
+		if (!tty)
 		{
 			perror("/dev/tty");
 			exit(1);
 		}
 
-		rfc2045_mimeinfo(r, &content_type_s,
-			&content_transfer_encoding_s, &charset_s);
+		tty << "Extract " << message.content_type.value
+		    << "? " << std::flush;
 
-		fprintf (tty, "Extract %s? ", content_type_s);
-		fflush(tty);
-		c=getc(tty);
-		if (c != '\n' && c != EOF)
-		{
-		int	cc;
+		std::string resp;
 
-			while ((cc=getc(tty)) != '\n' && cc != EOF)
-				;
+		std::getline(tty, resp);
+
+		switch (*resp.c_str()) {
+		case 'y':
+		case 'Y':
+			break;
+		default:
+			filename.clear();
+			return filename;
 		}
-		if (c != 'y' && c != 'Y')
-		{
-			free(p);
-			fclose(tty);
-			free(filename_buf);
-			return (0);
-		}
-		fprintf (tty, "Filename [%s]: ", p);
-		if (fgets(filenamebuf, sizeof(filenamebuf)-1, tty) == NULL)
-			filenamebuf[0]=0;
 
-		fclose(tty);
-		t=strchr(filenamebuf, '\n');
-		if (t)	*t=0;
-		else
+		tty.close();
+		tty.open("/dev/tty");
+		if (!tty)
 		{
-			fprintf(stderr, "Filename too long.\n");
+			perror("/dev/tty");
 			exit(1);
 		}
-		if (filenamebuf[0])
-		{
-			free(p);
-			p=strdup(filenamebuf);
-			if (!p)
-			{
-				perror("malloc");
-				exit(1);
-			}
-		}
+		tty << "Filename [" << filename << "]: " << std::flush;
+		std::getline(tty, resp);
+
+		if (!resp.empty())
+			filename=resp;
 	}
-	free(filename_buf);
-	return (p);
+
+	return filename;
 }
 
-static void extract_file(struct rfc2045 *p,
-	const char *filename, int argc, char **argv)
+void extract_file(const rfc2045::entity &message,
+		  std::streambuf &source,
+		  std::string_view filename,
+		  int argc, char **argv)
 {
-char	*f;
-FILE	*fp;
-int	ignore=0;
+	bool ignore=false;
+	int fd;
 
 	for (;;)
 	{
-	int	fd;
+		auto f=get_suitable_filename(message, filename, ignore);
 
-		f=get_suitable_filename(p, filename, ignore);
-		if (!f)	return;
+		if (f.empty())
+			return;
 
-		fd=open(f, O_WRONLY|O_CREAT|O_EXCL, 0666);
+		fd=open(f.c_str(), O_WRONLY|O_CREAT|O_EXCL, 0666);
 		if (fd < 0)
 		{
 			if (errno == EEXIST)
 			{
-				printf("%s exists.\n", f);
-				free(f);
-				ignore=1;
+				std:: cout << f << " exists.\n";
+				ignore=true;
 				continue;
 			}
 
-			perror(f);
-			exit(1);
-		}
-		fp=fdopen(fd, "w");
-		if (!fp)
-		{
-			perror("fdopen");
+			perror(f.c_str());
 			exit(1);
 		}
 		break;
 	}
 
-	do_print_section(p, fp);
-	if (fflush(fp) || ferror(fp))
+	rfc822::fdstreambuf out{fd};
+
+	do_print_section(message, source, out);
+
+	if (out.pubsync() < 0)
 	{
 		perror("write");
 		exit(1);
 	}
-	fclose(fp);
-	free(f);
 }
 
-static void extract_pipe(struct rfc2045 *p,
-	const char *filename,
-	int argc, char **argv)
+void extract_pipe(const rfc2045::entity &message,
+		  std::streambuf &source,
+		  std::string_view filename,
+		  int argc, char **argv)
 {
-char	*f=get_suitable_filename(p, "FILENAME=", 0);
-int	pipefd[2];
-pid_t	pid, p2;
-FILE	*fp;
-int	waitstat;
+	pid_t	pid, p2;
+	int	waitstat;
+
+	auto f=get_suitable_filename(message, "FILENAME=", false);
+
+	int	pipefd[2];
 
 	if (argc == 0)
 	{
-		fprintf(stderr, "reformime: Invalid -X option.\n");
+		std::cerr << "reformime: Invalid -X option.\n";
 		exit(1);
 	}
 
@@ -596,55 +465,49 @@ int	waitstat;
 		exit(1);
 	}
 
-	if ((fp=fdopen(pipefd[1], "w")) == 0)
-	{
-		perror("fdopen");
-		exit(1);
-	}
+	rfc822::fdstreambuf out{pipefd[1]};
 
 	while ((pid=fork()) == -1)
 	{
+		perror("fork");
 		sleep(2);
 	}
 
 	if (pid == 0)
 	{
-		const char *content_type_s;
-		const char *content_transfer_encoding_s;
-		const char *charset_s;
+		out=rfc822::fdstreambuf{};
 
-		const char *fc=f;
+		putenv(const_cast<char *>(f.c_str()));
 
-		if (!fc)	fc="FILENAME=attachment.dat";
-		putenv(const_cast<char *>(fc));
-		rfc2045_mimeinfo(p, &content_type_s,
-			&content_transfer_encoding_s, &charset_s);
-		f=(char *)malloc(strlen(content_type_s)
-			+sizeof("CONTENT_TYPE="));
-		if (!f)
-		{
-			perror("malloc");
-			exit(1);
-		}
-		strcat(strcpy(f, "CONTENT_TYPE="), content_type_s);
-		putenv(f);
+		std::string content_type_env;
+
+		content_type_env.reserve(message.content_type.value.size()+
+					 sizeof("CONTENT_TYPE=")-1);
+
+		content_type_env="CONTENT_TYPE=";
+		content_type_env += message.content_type.value;
+		putenv(const_cast<char *>(content_type_env.c_str()));
+
 		dup2(pipefd[0], 0);
 		close(pipefd[0]);
-		close(pipefd[1]);
+
 		execv(argv[0], argv);
 		perror("exec");
 		_exit(1);
 	}
 	close(pipefd[0]);
 	signal(SIGPIPE, SIG_IGN);
-	do_print_section(p, fp);
+	do_print_section(message, source, out);
 	signal(SIGPIPE, SIG_DFL);
-	fclose(fp);
-	close(pipefd[1]);
+	if (out.pubsync() < 0)
+	{
+		perror("write");
+		exit(1);
+	}
+	out=rfc822::fdstreambuf{};
 
 	while ((p2=wait(&waitstat)) != pid && p2 != -1)
 		;
-	free(f);
 
 	if ((p2 == pid) && WIFEXITED(waitstat))
 	{
@@ -653,6 +516,60 @@ int	waitstat;
 			fprintf(stderr, "reformime: %s exited with status %d.\n",
 				argv[0], WEXITSTATUS(waitstat));
 			exit(WEXITSTATUS(waitstat) + 20);
+		}
+	}
+}
+
+static void for_mime_section(
+	const rfc2045::entity &message,
+	std::string_view mimesection,
+	std::function<void (const rfc2045::entity &,
+			    const std::vector<int> &)> cb)
+{
+	if (!mimesection.size())
+	{
+		message.enumerate(
+			[&]
+			(auto &id, auto &e)
+			{
+				cb(e, id);
+			}
+		);
+	}
+	else
+	{
+		while (mimesection.size())
+		{
+			auto s=mimesection.data(),p=s;
+			size_t n=mimesection.size();
+
+			for (; n; ++p, --n)
+			{
+				if (*p == ',')
+					break;
+			}
+
+			std::string_view this_id{
+				s, static_cast<size_t>(p-s)
+			};
+
+			message.enumerate(
+				[&]
+				(auto &id, auto &e)
+				{
+					if (idstr(id) != this_id)
+						return;
+
+					cb(e, id);
+				}
+			);
+
+			if (n)
+			{
+				++p;
+				--n;
+			}
+			mimesection=std::string_view{p, n};
 		}
 	}
 }
@@ -992,10 +909,9 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	int	argn;
 	char	optc;
 	char	*optarg;
-	char	*mimesection=0;
-	char	*section=0;
-	bool dorewrite{false}, doinfo{false};
-	int	dodecode=0, dodsn=0, domimedigest=0;
+	std::string_view mimesection;
+	bool dorewrite{false}, doinfo{false}, dodecode{false};
+	int	dodsn=0, domimedigest=0;
 	int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0,
 		doencodemimehdr=0;
 
@@ -1004,8 +920,12 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	rfc2045::convert rwmode{rfc2045::convert::standardize};
 	int     convtoutf8=0;
 	int	dovalidate=0;
-	void	(*do_extract)(struct rfc2045 *, const char *, int, char **)=0;
-	const char *extract_filename=0;
+	void	(*do_extract)(const rfc2045::entity &message,
+			      std::streambuf &source,
+			      std::string_view filename,
+			      int argc, char **argv)=nullptr;
+
+	std::string_view extract_filename;
 	int rc=0;
 
 
@@ -1043,13 +963,13 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		case 's':
 			if (!optarg && argn < argc)
 				optarg=argv[argn++];
-			if (optarg && *optarg)	section=strdup(optarg);
+			if (optarg && *optarg)	mimesection=optarg;
 			break;
 		case 'i':
 			doinfo=true;
 			break;
 		case 'e':
-			dodecode=1;
+			dodecode=true;
 			break;
 		case 'r':
 			dorewrite=true;
@@ -1226,42 +1146,63 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		}
 	}
 
-	if (doinfo)
+	if (doinfo || do_extract || dodecode)
 	{
-		mimesection = section ? strtok(section, ","):NULL;
-		do {
-			print_info(p, mimesection);
-			if (do_extract)
-				extract_section(p, mimesection,
-						extract_filename, argc-argn,
-						argv+argn, do_extract);
-			if (mimesection)
-				mimesection = strtok(NULL,",");
-		} while (mimesection != NULL);
-	}
-	else if (dodecode)
-	{
-		mimesection = section ? strtok(section,","):NULL;
-		do {
-			print_decode(p, mimesection);
-			if (mimesection)
-				mimesection = strtok(NULL,",");
-		} while (mimesection != NULL);
+		for_mime_section(
+			message, mimesection,
+			[&]
+			(const rfc2045::entity &e,
+			 const std::vector<int> &id)
+			{
+				if (doinfo)
+				{
+					print_info(e, id);
+				}
+
+				if (dodecode)
+				{
+					if (!e.subentities.size())
+					{
+						do_print_section(
+							e, src,
+							*std::cout.rdbuf());
+						return;
+					}
+				}
+				else
+				{
+					if (!do_extract)
+						return;
+
+					if (!e.subentities.size())
+					{
+						do_extract(
+							e,
+							src,
+							extract_filename,
+							argc-argn,
+							argv+argn
+						);
+						return;
+					}
+				}
+
+				if (mimesection.size())
+				{
+					std::cerr
+						<< e.content_type.value
+						<< " ("
+						<< idstr(id)
+						<< ") cannot be extracted.\n";
+					rc=1;
+				}
+			}
+		);
 	}
 	else if (dorewrite)
 		rewrite(message, src, rwmode);
 	else if (dodsn)
 		dsn(p, dodsn == 2);
-	else if (do_extract)
-	{
-		mimesection = section ? strtok(section, ","):NULL;
-		do {
-			extract_section(p, mimesection, extract_filename,
-					argc-argn, argv+argn, do_extract);
-			if (mimesection)
-				mimesection = strtok(NULL,",");
-		} while (mimesection != NULL);
-	}
 	else if (dovalidate)
 	{
 		rc=1;

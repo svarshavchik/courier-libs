@@ -88,6 +88,8 @@ int rfc822::fdstreambuf::sync()
 
 		if (n <= 0)
 		{
+			close(fd);
+			fd= -1;
 			error= -1;
 			break;
 		}
@@ -155,6 +157,11 @@ rfc822::fdstreambuf::pos_type rfc822::fdstreambuf::seekoff(
 		{
 			ps=static_cast<pos_type>(r);
 		}
+		else
+		{
+			close(fd);
+			fd= -1;
+		}
 	}
 	return ps;
 }
@@ -185,6 +192,11 @@ rfc822::fdstreambuf::pos_type rfc822::fdstreambuf::seekpos(
 		if (r >= 0)
 		{
 			ps=static_cast<pos_type>(r);
+		}
+		else
+		{
+			close(fd);
+			fd= -1;
 		}
 	}
 	return ps;
@@ -241,6 +253,11 @@ rfc822::fdstreambuf::int_type rfc822::fdstreambuf::underflow()
 					*(e-n)
 				)
 			);
+		}
+		else if (n < 0)
+		{
+			close(fd);
+			fd= -1;
 		}
 	}
 
@@ -361,6 +378,10 @@ std::streamsize rfc822::fdstreambuf::xsputn(const char *s,
 
 	if (r >= 0)
 		c += r;
-
+	else
+	{
+		close(fd);
+		fd= -1;
+	}
 	return c;
 }

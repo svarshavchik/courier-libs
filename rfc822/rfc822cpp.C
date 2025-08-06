@@ -318,8 +318,9 @@ void rfc822::addresses::do_print::output()
 	}
 }
 
-rfc2047::qpdecoder_base::qpdecoder_base()
-	: handler{&qpdecoder_base::do_char}
+rfc2047::qpdecoder_base::qpdecoder_base(bool mime_encoded_word)
+	: mime_encoded_word{mime_encoded_word},
+	  handler{&qpdecoder_base::do_char}
 {
 }
 
@@ -341,12 +342,19 @@ size_t rfc2047::qpdecoder_base::do_char(const char *p, size_t n)
 	size_t i;
 
 	for (i=0; i<n; ++i)
-		if (p[i] == '=')
+		if (p[i] == '=' || (mime_encoded_word && p[i] == '_'))
 			break;
 
 	if (i == 0)
 	{
-		handler=&qpdecoder_base::do_prev_equal;
+		if (p[0] == '_')
+		{
+			emit(" ", 1);
+		}
+		else
+		{
+			handler=&qpdecoder_base::do_prev_equal;
+		}
 		return 1;
 	}
 

@@ -360,12 +360,12 @@ void testrfc2045foldedline_iter()
 				  << s
 				  << "\",\n\t\t\t\"" << name
 				  << "\",\n\t\t\t\"" << contents
-				  << "\", " << entity.endpos
+				  << "\", " << entity.endbody
 				  << ", " << entity.nlines << "\n\t\t}";
 			sep=",\n";
 #else
 			results.emplace_back(s, name, contents,
-					     entity.endpos, entity.nlines);
+					     entity.endbody, entity.nlines);
 #endif
 		} while (!s.empty());
 
@@ -380,13 +380,13 @@ void testrfc2045foldedline_iter()
 			std::cout << "testrfc2045foldedline_iter test "
 				  << testnum << " failed:\n";
 
-			for (auto &[header, name, value, endpos, nlines]
+			for (auto &[header, name, value, endbody, nlines]
 				     :results)
 			{
 				std::cout << "\"" << header << "\", \""
 					  << name << "\", \""
 					  << value << "\", "
-					  << endpos << ", " << nlines
+					  << endbody << ", " << nlines
 					  << "\n";
 			}
 			exit(1);
@@ -560,7 +560,6 @@ void testmimeparse()
 		{
 			"",
 			0    , // startpos
-			0    , // endpos
 			0    , // startbody
 			0    , // endbody
 			0    , // nlines
@@ -577,7 +576,6 @@ void testmimeparse()
 		{
 			"\n",
 			0    , // startpos
-			1    , // endpos
 			1    , // startbody
 			1    , // endbody
 			1    , // nlines
@@ -595,7 +593,6 @@ void testmimeparse()
 			"Subject: something\n"
 			"\n",
 			0    , // startpos
-			20   , // endpos
 			20   , // startbody
 			20   , // endbody
 			2    , // nlines
@@ -612,7 +609,6 @@ void testmimeparse()
 		{
 			"Subject: something\n",
 			0    , // startpos
-			19   , // endpos
 			19   , // startbody
 			19   , // endbody
 			1    , // nlines
@@ -629,7 +625,6 @@ void testmimeparse()
 		{
 			"Subject: something",
 			0    , // startpos
-			18   , // endpos
 			18   , // startbody
 			18   , // endbody
 			1    , // nlines
@@ -650,10 +645,9 @@ void testmimeparse()
 			"\n"
 			"Content-Type: text/plain\n",
 			0    , // startpos
-			80   , // endpos
 			80   , // startbody
 			105  , // endbody
-			4    , // nlines
+			5    , // nlines
 			1    , // nbodylines
 			1    , // mime1
 			0, "text/plain", "utf-8",
@@ -676,10 +670,9 @@ void testmimeparse()
 			"\n"
 			"Hello\n",
 			0    , // startpos
-			61   , // endpos
 			61   , // startbody
 			177  , // endbody
-			4    , // nlines
+			10   , // nlines
 			6    , // nbodylines
 			1    , // mime1
 			0, "message/rfc822", "iso-8859-1",
@@ -690,10 +683,9 @@ void testmimeparse()
 			{
 				{
 					61   , // startpos
-					171  , // endpos
 					171  , // startbody
 					177  , // endbody
-					5    , // nlines
+					6    , // nlines
 					1    , // nbodylines
 					1    , // mime1
 					0, "text/plain", "utf-8",
@@ -725,10 +717,9 @@ void testmimeparse()
 			"--aa--\n"
 			"Postamble\n",
 			0    , // startpos
-			81   , // endpos
 			81   , // startbody
 			227  , // endbody
-			4    , // nlines
+			17   , // nlines
 			13   , // nbodylines
 			1    , // mime1
 			0, "multipart/mixed", "iso-8859-1",
@@ -739,11 +730,10 @@ void testmimeparse()
 			{
 				{
 					95   , // startpos
-					141  , // endpos
 					141  , // startbody
 					146  , // endbody
-					2    , // nlines
-					2    , // nbodylines
+					3    , // nlines
+					1    , // nbodylines
 					1    , // mime1
 					0, "text/plain", "iso-8859-1",
 					"", cte::sevenbit,
@@ -753,11 +743,10 @@ void testmimeparse()
 				},
 				{
 					158  , // startpos
-					204  , // endpos
 					204  , // startbody
 					209  , // endbody
-					2    , // nlines
-					2    , // nbodylines
+					3    , // nlines
+					1    , // nbodylines
 					1    , // mime1
 					0, "text/html", "'iso-8859-1",
 					"", cte::sevenbit,
@@ -794,10 +783,9 @@ void testmimeparse()
 			"\n"
 			"--aa--\n",
 			0    , // startpos
-			81   , // endpos
 			81   , // startbody
 			259  , // endbody
-			4    , // nlines
+			23   , // nlines
 			19   , // nbodylines
 			1    , // mime1
 			0, "multipart/mixed", "iso-8859-1",
@@ -808,11 +796,10 @@ void testmimeparse()
 			{
 				{
 					86   , // startpos
-					136  , // endpos
 					136  , // startbody
 					215  , // endbody
-					2    , // nlines
-					10   , // nbodylines
+					11   , // nlines
+					9    , // nbodylines
 					1    , // mime1
 					0, "multipart/alternative", "iso-8859-1",
 					"ab", cte::eightbit,
@@ -822,11 +809,10 @@ void testmimeparse()
 					{
 						{
 							141  , // startpos
-							166  , // endpos
 							166  , // startbody
 							170  , // endbody
 							2    , // nlines
-							1    , // nbodylines
+							0    , // nbodylines
 							1    , // mime1
 							0, "text/html", "iso-8859-1",
 							"", cte::sevenbit,
@@ -836,11 +822,10 @@ void testmimeparse()
 						},
 						{
 							176  , // startpos
-							202  , // endpos
 							202  , // startbody
 							208  , // endbody
-							2    , // nlines
-							2    , // nbodylines
+							3    , // nlines
+							1    , // nbodylines
 							1    , // mime1
 							0, "text/plain", "iso-8859-1",
 							"", cte::sevenbit,
@@ -852,11 +837,10 @@ void testmimeparse()
 				},
 				{
 					221  , // startpos
-					245  , // endpos
 					245  , // startbody
 					251  , // endbody
-					2    , // nlines
-					2    , // nbodylines
+					3    , // nlines
+					1    , // nbodylines
 					1    , // mime1
 					0, "text/csv", "iso-8859-1",
 					"", cte::sevenbit,
@@ -904,10 +888,9 @@ void testmimeparse()
 			"\n"
 			"--xxx--\n",
 			0    , // startpos
-			82   , // endpos
 			82   , // startbody
 			328  , // endbody
-			4    , // nlines
+			34   , // nlines
 			30   , // nbodylines
 			1    , // mime1
 			0, "multipart/digest", "iso-8859-1",
@@ -918,11 +901,10 @@ void testmimeparse()
 			{
 				{
 					88   , // startpos
-					89   , // endpos
 					89   , // startbody
 					107  , // endbody
-					1    , // nlines
-					4    , // nbodylines
+					4    , // nlines
+					3    , // nbodylines
 					1    , // mime1
 					0, "message/rfc822", "iso-8859-1",
 					"", cte::sevenbit,
@@ -932,11 +914,10 @@ void testmimeparse()
 					{
 						{
 							89   , // startpos
-							103  , // endpos
 							103  , // startbody
 							107  , // endbody
-							2    , // nlines
-							2    , // nbodylines
+							3    , // nlines
+							1    , // nbodylines
 							0    , // mime1
 							0, "text/plain", "iso-8859-1",
 							"", cte::sevenbit,
@@ -948,11 +929,10 @@ void testmimeparse()
 				},
 				{
 					114  , // startpos
-					115  , // endpos
 					115  , // startbody
 					289  , // endbody
-					1    , // nlines
-					15   , // nbodylines
+					15   , // nlines
+					14   , // nbodylines
 					1    , // mime1
 					0, "message/rfc822", "iso-8859-1",
 					"", cte::sevenbit,
@@ -962,11 +942,10 @@ void testmimeparse()
 					{
 						{
 							115  , // startpos
-							197  , // endpos
 							197  , // startbody
 							289  , // endbody
-							4    , // nlines
-							11   , // nbodylines
+							14   , // nlines
+							10   , // nbodylines
 							1    , // mime1
 							0, "multipart/alternative", "iso-8859-1",
 							"yyy", cte::eightbit,
@@ -976,11 +955,10 @@ void testmimeparse()
 							{
 								{
 									213  , // startpos
-									238  , // endpos
 									238  , // startbody
 									243  , // endbody
-									2    , // nlines
-									2    , // nbodylines
+									3    , // nlines
+									1    , // nbodylines
 									1    , // mime1
 									0, "text/html", "iso-8859-1",
 									"", cte::sevenbit,
@@ -990,11 +968,10 @@ void testmimeparse()
 								},
 								{
 									250  , // startpos
-									276  , // endpos
 									276  , // startbody
 									281  , // endbody
 									2    , // nlines
-									1    , // nbodylines
+									0    , // nbodylines
 									1    , // mime1
 									0, "text/plain", "iso-8859-1",
 									"", cte::sevenbit,
@@ -1008,11 +985,10 @@ void testmimeparse()
 				},
 				{
 					296  , // startpos
-					297  , // endpos
 					297  , // startbody
 					319  , // endbody
-					1    , // nlines
-					4    , // nbodylines
+					4    , // nlines
+					3    , // nbodylines
 					1    , // mime1
 					0, "message/rfc822", "iso-8859-1",
 					"", cte::sevenbit,
@@ -1022,11 +998,10 @@ void testmimeparse()
 					{
 						{
 							297  , // startpos
-							313  , // endpos
 							313  , // startbody
 							319  , // endbody
-							2    , // nlines
-							2    , // nbodylines
+							3    , // nlines
+							1    , // nbodylines
 							0    , // mime1
 							0, "text/plain", "iso-8859-1",
 							"", cte::sevenbit,
@@ -1047,13 +1022,12 @@ void testmimeparse()
 			"Subject: испытание\n"
 			"\n",
 			0    , // startpos
-			48   , // endpos
 			48   , // startbody
 			77   , // endbody
-			3    , // nlines
+			5    , // nlines
 			2    , // nbodylines
 			1    , // mime1
-			RFC2045_ERR8BITHEADER, "message/rfc822", "iso-8859-1",
+			0, "message/rfc822", "iso-8859-1",
 			"", cte::eightbit,
 			0, // has8bitheader
 			1, // has8bitbody
@@ -1061,7 +1035,6 @@ void testmimeparse()
 			{
 				{
 					48   , // startpos
-					77   , // endpos
 					77   , // startbody
 					77   , // endbody
 					2    , // nlines
@@ -1088,10 +1061,9 @@ void testmimeparse()
 			"\n"
 			"испытание\n",
 			0    , // startpos
-			48   , // endpos
 			48   , // startbody
 			172  , // endbody
-			3    , // nlines
+			9    , // nlines
 			6    , // nbodylines
 			1    , // mime1
 			0, "message/rfc822", "iso-8859-1",
@@ -1102,10 +1074,9 @@ void testmimeparse()
 			{
 				{
 					48   , // startpos
-					153  , // endpos
 					153  , // startbody
 					172  , // endbody
-					5    , // nlines
+					6    , // nlines
 					1    , // nbodylines
 					1    , // mime1
 					0, "text/plain", "utf-8",
@@ -1130,13 +1101,12 @@ void testmimeparse()
 			"\n"
 			"--aaa--\n",
 			0    , // startpos
-			63   , // endpos
 			63   , // startbody
 			137  , // endbody
-			3    , // nlines
+			10   , // nlines
 			7    , // nbodylines
 			1    , // mime1
-			RFC2045_ERR8BITHEADER, "multipart/mixed", "iso-8859-1",
+			0, "multipart/mixed", "iso-8859-1",
 			"aaa", cte::eightbit,
 			0, // has8bitheader
 			1, // has8bitbody
@@ -1144,11 +1114,10 @@ void testmimeparse()
 			{
 				{
 					69   , // startpos
-					123  , // endpos
 					123  , // startbody
 					128  , // endbody
-					3    , // nlines
-					2    , // nbodylines
+					4    , // nlines
+					1    , // nbodylines
 					1    , // mime1
 					RFC2045_ERR8BITHEADER, "text/plain", "iso-8859-1",
 					"", cte::sevenbit,
@@ -1173,10 +1142,9 @@ void testmimeparse()
 			"\n"
 			"--aaa--\n",
 			0    , // startpos
-			63   , // endpos
 			63   , // startbody
 			175  , // endbody
-			3    , // nlines
+			11   , // nlines
 			8    , // nbodylines
 			1    , // mime1
 			0, "multipart/mixed", "iso-8859-1",
@@ -1187,11 +1155,10 @@ void testmimeparse()
 			{
 				{
 					69   , // startpos
-					142  , // endpos
 					142  , // startbody
 					166  , // endbody
-					3    , // nlines
-					3    , // nbodylines
+					5    , // nlines
+					2    , // nbodylines
 					1    , // mime1
 					0, "text/plain", "utf-8",
 					"", cte::eightbit,
@@ -1210,10 +1177,9 @@ void testmimeparse()
 			"\n"
 			"=A0=20=ff=FF\n",
 			0    , // startpos
-			108  , // endpos
 			108  , // startbody
 			121  , // endbody
-			4    , // nlines
+			5    , // nlines
 			1    , // nbodylines
 			1    , // mime1
 			0, "text/plain", "iso-8859-1",
@@ -1231,10 +1197,9 @@ void testmimeparse()
 			"\n"
 			"и\n",
 			0    , // startpos
-			108  , // endpos
 			108  , // startbody
 			111  , // endbody
-			4    , // nlines
+			5    , // nlines
 			1    , // nbodylines
 			1    , // mime1
 			RFC2045_ERR8BITINQP, "text/plain", "iso-8859-1",
@@ -1252,10 +1217,9 @@ void testmimeparse()
 			"\n"
 			"=ZZ\n",
 			0    , // startpos
-			108  , // endpos
 			108  , // startbody
 			112  , // endbody
-			4    , // nlines
+			5    , // nlines
 			1    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRBADHEXINQP, "text/plain", "iso-8859-1",
@@ -1272,10 +1236,9 @@ void testmimeparse()
 			"\n"
 			"и",
 			0    , // startpos
-			59   , // endpos
 			59   , // startbody
 			61   , // endbody
-			3    , // nlines
+			4    , // nlines
 			1    , // nbodylines
 			1    , // mime1
 			RFC2045_ERR8BITCONTENT, "text/plain", "utf-8",
@@ -1291,7 +1254,6 @@ void testmimeparse()
 			"Content-Type: multipart/mixed\n"
 			"Test\n",
 			0    , // startpos
-			53   , // endpos
 			53   , // startbody
 			53   , // endbody
 			3    , // nlines
@@ -1321,10 +1283,9 @@ void testmimeparse()
 			"--AA1--\n"
 			"--AA--\n",
 			0    , // startpos
-			62   , // endpos
 			62   , // startbody
 			113  , // endbody
-			3    , // nlines
+			7    , // nlines
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
@@ -1335,7 +1296,6 @@ void testmimeparse()
 			{
 				{
 					68   , // startpos
-					113  , // endpos
 					113  , // startbody
 					113  , // endbody
 					2    , // nlines
@@ -1367,10 +1327,9 @@ void testmimeparse()
 			"--AA1--\n"
 			"--AA11--\n",
 			0    , // startpos
-			64   , // endpos
 			64   , // startbody
 			117  , // endbody
-			3    , // nlines
+			7    , // nlines
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
@@ -1381,7 +1340,6 @@ void testmimeparse()
 			{
 				{
 					72   , // startpos
-					117  , // endpos
 					117  , // startbody
 					117  , // endbody
 					2    , // nlines
@@ -1413,10 +1371,9 @@ void testmimeparse()
 			"--AA12--\n"
 			"--AA11--\n",
 			0    , // startpos
-			64   , // endpos
 			64   , // startbody
 			118  , // endbody
-			3    , // nlines
+			7    , // nlines
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRWRONGBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
@@ -1427,7 +1384,6 @@ void testmimeparse()
 			{
 				{
 					72   , // startpos
-					118  , // endpos
 					118  , // startbody
 					118  , // endbody
 					2    , // nlines

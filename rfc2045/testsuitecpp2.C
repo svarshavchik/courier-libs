@@ -79,10 +79,9 @@ void test1()
 
 	static const parsed_mime_info expected_results{
 		0    , // startpos
-		38+crlf*3   , // endpos
 		38+crlf*3   , // startbody
 		325+crlf*10  , // endbody
-		3    , // nlines
+		10   , // nlines
 		7    , // nbodylines
 		1    , // mime1
 		0, "text", "iso-8859-1",

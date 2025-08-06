@@ -38,12 +38,13 @@ void rfc2045::entity_parse_meta::consumed_header_line(size_t c)
 
 	--e;
 	++(*e)->nlines;
-	(*e)->endpos += c;
+	(*e)->endbody += c;
 
 	// And this is the body of all of its parents.
 
 	while (b != e)
 	{
+		++(*b)->nlines;
 		++(*b)->nbodylines;
 		(*b)->endbody += c;
 		++b;
@@ -54,9 +55,26 @@ void rfc2045::entity_parse_meta::consumed_body_line(size_t c)
 {
 	for (auto &ptr:parsing_entities)
 	{
+		++ptr->nlines;
 		++ptr->nbodylines;
 		ptr->endbody += c;
 	}
+}
+
+std::string rfc2045::entity::header_parameter_value::value_in_charset() const
+{
+	return value_in_charset(rfc2045_getdefaultcharset());
+}
+
+std::string rfc2045::entity::header_parameter_value::value_in_charset(
+	std::string_view dest_charset
+) const
+{
+	return unicode::iconvert::convert(
+		value,
+		charset,
+		{dest_charset.begin(), dest_charset.end()}
+	);
 }
 
 rfc2045::entity::entity() noexcept=default;
@@ -254,18 +272,19 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 			auto r=std::find(q, value.end(), '\'');
 			auto s=r;
 			if (s != value.end())
+			{
 				++s;
 
-			rfc2045::entity::tolowercase(value.begin(), r);
+				rfc2045::entity::tolowercase(value.begin(), r);
 
-			parameter->second.charset.assign(value.begin(), p);
-			parameter->second.language.assign(q, r);
+				parameter->second.charset.assign(
+					value.begin(), p
+				);
+				parameter->second.language.assign(q, r);
 
-			value.erase(value.begin(), s);
+				value.erase(value.begin(), s);
+			}
 		}
-
-		// The only thing left to do, in the case of a trailing
-		// squid, is %-decode this thing.
 
 		if (trailing_squid)
 		{

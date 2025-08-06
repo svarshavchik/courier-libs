@@ -228,12 +228,15 @@ template<typename in_iterb, typename in_itere> struct iter {
 /*
   Standalone quoted-printable and base64 decoders
 
-  qpdecoder decoder{closure};
+  qpdecoder decoder{closure, true};
   base64decoder decoder{closure};
 
   The closure object is an object that's callable with two parameters,
   a const char * and a size_t. The object gets repeatedly called with decoded
-  content, passing a chunk at a time.
+  content, passing a chunk at a time. qpdecoder's second bool parameter is
+  true if quoted-printable semantics in RFC 2047 are to be used (namely, _ is
+  decoded to a space), and false for the plain RFC 2045 quoted-printable
+  transfer encoding.
 
   Both qpdecoder and base64decoder are templates, and the default deduction
   guide takes care of the template parameters. The closure parameter may be
@@ -264,7 +267,7 @@ template<typename in_iterb, typename in_itere> struct iter {
 
 struct qpdecoder_base {
 private:
-
+	const bool mime_encoded_word;
 	unsigned char nybble;
 	size_t (qpdecoder_base::*handler)(const char *, size_t);
 	size_t do_char(const char *, size_t);
@@ -280,7 +283,7 @@ private:
 protected:
 	void finished();
 public:
-	qpdecoder_base();
+	qpdecoder_base(bool mime_encoded_word);
 	~qpdecoder_base();
 
 	void process_char(const char *, size_t);
@@ -302,7 +305,9 @@ private:
 	}
 public:
 	template<typename T>
-	qpdecoder(T &&out_iter) : out_iter{
+	qpdecoder(T &&out_iter, bool mime_encoded_word) :
+		qpdecoder_base{mime_encoded_word},
+		out_iter{
 			std::forward<T>(out_iter)
 		}
 	{
@@ -327,10 +332,10 @@ public:
 };
 
 template<typename out_iter_type>
-qpdecoder(out_iter_type &&) -> qpdecoder<out_iter_type>;;
+qpdecoder(out_iter_type &&, bool) -> qpdecoder<out_iter_type>;;
 
 template<typename out_iter_type>
-qpdecoder(out_iter_type &) -> qpdecoder<out_iter_type &>;
+qpdecoder(out_iter_type &, bool) -> qpdecoder<out_iter_type &>;
 
 struct base64decoder_base {
 private:
@@ -511,7 +516,7 @@ inline bool do_decode_rfc2047_atom(in_iter &inp,
 							*out++=*p++;
 							--n;
 						}
-					}};
+					}, true};
 
 				while (1)
 				{

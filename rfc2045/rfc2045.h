@@ -1143,14 +1143,14 @@ auto rfc2231_attr_encode(std::string_view name,
 
   Other rfc2045::entity members:
 
-  startpos, endpos - character offsets in the input sequence that define the
-  starting position, and one past the ending position of the MIME entity's
-  header section. A blank line that separates a MIME entity header from its
-  body is considered to be a part of the header.
+  startpos - character offset in the input sequence that defines the
+  starting position.
 
   startbody, endbody - character offsets in the input sequence that define the
   starting position, and one past the ending position, of the MIME entity's
-  body section.
+  body section. A blank line that separates a MIME entity header from its
+  body is considered to be a part of the header, and startbody points to the
+  start of the next line.
 
   nlines, nbodylines - number of lines in the header and the body portion of
   the MIME entity. Ntoe - a MIME entity that does not have a trailing newline
@@ -1232,7 +1232,7 @@ auto rfc2231_attr_encode(std::string_view name,
   DECODING MIME ENTITIES
   ======================
 
-  rfc2045::entity::line_iter<false>::decoder decoder{input_stream, out,
+  rfc2045::entity::line_iter<false>::decoder decoder{out, input_stream,
 			  "utf-8"
   };
 
@@ -1243,20 +1243,25 @@ auto rfc2231_attr_encode(std::string_view name,
   decoder.decode(entity);
 
   The decoder class is actually a template, whose template parameters should
-  get deduced from the constructor's parameters. The first parameter is
+  get deduced from the constructor's parameters. The seond parameter is
   a std::streambuf object or another object that implements pubseekpos,
   sgetc, sbumpc, and sgetn function like std::streambuf does. This object
   must be the same object that was used to parse a MIME entity to be decoded.
-  The second parameter is an object that's callable with a const char * and
+  The first parameter is an object that's callable with a const char * and
   a size_t parameter, which gets repeatedly invoked to produce the decoded
   content. The callable object may be passed in by reference, which saves
   a reference to the callable object (which then must remain in scope and
   not get destroyed while the decoder object is in use), or by value, which
   saves a copy of the value in the decoder object.
 
-  Finally the third parameter is a character set. The first parameter gets
-  passed by reference, the second parameter can be passed by reference or by
-  value. If passed by value it's copied and stored in the decoder object.
+  Finally the third parameter is a character set. A plain text MIME entity's
+  decoded contents get transcoded to the specified character set. This is
+  an optional parameter, no transcoding takes place when it's not specified.
+
+  The first parameter can be passed by reference or by value. If passed by
+  value it's copied and stored in the decoder object.
+
+  The second parameter always gets passed by reference,
 
   The decode() method takes the parsed MIME entity and its decoded contents,
   and writes the following to the output iterator:
@@ -1270,9 +1275,10 @@ auto rfc2231_attr_encode(std::string_view name,
   - the decode_body class member (default: true): extract the MIME entity's
   contents (except for a multipart or a message MIME content type). base64
   and quoted-printable encoding gets decoded. text content gets converted to
-  the character set specified by the third parameter to the constructor.
+  the character set specified by the optional third parameter to the
+  constructor.
 
-  - decode_subentity: recursively process decpde_header and decode_bopdy
+  - decode_subentities: recursively process decpde_header and decode_bopdy
   for all MIME subentities
 
   REWRITING MIME ENTITIES
@@ -1358,9 +1364,8 @@ class rfc2045::entity_info {
 	rfc2045::entity *parent_entity=nullptr;
 
 	size_t	startpos=0,	/* Position where this entity's header begins */
-		endpos=0,	/* Where it ends */
 		startbody=0,	/* Where the body of the entity starts */
-		endbody=0;	/* endpos - trailing CRLF terminator */
+		endbody=0;	/* Ending position */
 	size_t	nlines=0;	/* Number of lines in message */
 	size_t	nbodylines=0;	/* Number of lines only in the body */
 
@@ -1418,6 +1423,9 @@ class rfc2045::entity_info {
 		{
 		}
 
+		std::string value_in_charset() const;
+		std::string value_in_charset(std::string_view) const;
+
 		bool operator==(const header_parameter_value &o) const
 		{
 			return charset == o.charset &&
@@ -1445,6 +1453,14 @@ class rfc2045::entity_info {
 
 	std::string_view content_type_charset() const;
 	std::string_view content_type_boundary() const;
+
+	// We don't need to look at Content-Disposition: and
+	// Content-Descirption:, so we'll just grab them and parse them
+	// later.
+	std::string content_disposition, content_description;
+
+	// Parsed identifier
+	std::string content_id;
 
 	// Whether an explicit Content-Type: header was parsed.
 	bool has_content_type_header{false};
@@ -1672,7 +1688,7 @@ public:
 		// multipart subentity, my endbody is where it starts, so
 		// using endbody in either case gets this right.
 
-		subentity.startpos=subentity.endpos=
+		subentity.startpos=
 			subentity.startbody=subentity.endbody=endbody;
 		iter.entered_header();
 
@@ -2090,7 +2106,7 @@ private:
 				{
 					if (was_in_header)
 					{
-						report_error(
+						report_error_here(
 							RFC2045_ERR8BITHEADER
 						);
 					}
@@ -2163,7 +2179,7 @@ private:
 				{
 					if (was_in_header)
 					{
-						report_error(
+						report_error_here(
 							RFC2045_ERR8BITHEADER
 						);
 					}
@@ -2391,9 +2407,30 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				return;
 			}
 		}
+		if (name == "content-disposition")
+		{
+			content_disposition=header;
+		}
+		if (name == "content-description")
+		{
+			content_description=header;
+		}
+		if (name == "content-id")
+		{
+			content_id.clear();
+			content_id.reserve(header.size());
+
+			rfc822::tokens tokens{header};
+			rfc822::addresses addresses{tokens};
+
+			if (addresses.size())
+				addresses.back().unquote_name(
+					std::back_inserter(content_id)
+				);
+		}
 	}
 
-	startbody=endbody=endpos;
+	startbody=endbody;
 
 	if (hasraw8bitchars)
 	{
@@ -2513,6 +2550,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			// the trailing crlf, according to MIME spec,
 			// and recursively do the adjustment to its last
 			// subentity, if there is one.
+			//
+			// This also means that it has one fewer nlines and
+			// nbodylines.
 
 			auto adjusted_endbody=endbody - iter.eol_size();
 
@@ -2523,8 +2563,13 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				auto &last_se=se->end()[-1];
 
 				if (adjusted_endbody < last_se.endbody)
+				{
 					last_se.endbody=adjusted_endbody;
-
+					if (last_se.nbodylines)
+						--last_se.nbodylines;
+					if (last_se.nlines)
+						--last_se.nlines;
+				}
 				se= &last_se.subentities;
 			}
 
@@ -2838,7 +2883,7 @@ class rfc2045::entity::line_iter<crlf>::decoder {
 
 	bool decode_header=true;
 	bool decode_body=true;
-	bool decode_entities=true;
+	bool decode_subentities=true;
 
 	void decode(const entity &e);
 	~decoder()=default;
@@ -2882,7 +2927,7 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 
 		if (!e.subentities.empty())
 		{
-			if (decode_entities)
+			if (decode_subentities)
 			{
 				for (auto &subentity:e.subentities)
 				{
@@ -2964,7 +3009,7 @@ template<typename src_type,
 	case cte::qp:
 		{
 			rfc2047::qpdecoder decoder{
-				std::forward<out_chunk>(out)
+				std::forward<out_chunk>(out), false
 			};
 
 			if (!decode_body_to(src, decoder))

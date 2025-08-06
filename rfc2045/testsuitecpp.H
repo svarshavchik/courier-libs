@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 struct parsed_mime_info {
-	size_t startpos, endpos, startbody, endbody,
+	size_t startpos, startbody, endbody,
 		nlines, nbodylines;
 	bool mime1;
 	rfc2045::entity::errors_t errors;
@@ -44,7 +44,6 @@ struct parsed_mime_info {
 		}
 
 		return entity.startpos == startpos &&
-			entity.endpos == endpos &&
 			entity.startbody == startbody &&
 			entity.endbody == endbody &&
 			entity.nlines == nlines &&
@@ -70,6 +69,8 @@ struct parsed_mime_info {
 	{
 		std::string errcodes;
 
+		if (entity.errors.code & RFC2045_ERR8BITHEADER)
+			errcodes += "|RFC2045_ERR8BITHEADER";
 		if (entity.errors.code & RFC2045_ERR8BITCONTENT)
 			errcodes += "|RFC2045_ERR8BITCONTENT";
 		if (entity.errors.code & RFC2045_ERR2COMPLEX)
@@ -98,8 +99,6 @@ struct parsed_mime_info {
 			  << entity.startpos
 			  << ", // startpos\n" << line_pfix
 			  << std::left << std::setw(5) << std::setfill(' ')
-			  << entity.endpos
-			  << ", // endpos\n" << line_pfix
 			  << std::left << std::setw(5) << std::setfill(' ')
 			  << entity.startbody
 			  << ", // startbody\n" << line_pfix
@@ -116,10 +115,10 @@ struct parsed_mime_info {
 			  << entity.mime1
 			  << ", // mime1\n" << line_pfix
 			  << errcodes
-			  << ", \"" << entity.content_type
-			  << "\", \"" << entity.content_type_charset
+			  << ", \"" << entity.content_type.value
+			  << "\", \"" << entity.content_type_charset()
 			  << "\",\n" << line_pfix
-			  << "\"" << entity.content_type_boundary
+			  << "\"" << entity.content_type_boundary()
 			  << "\", ";
 
 		switch (entity.content_transfer_encoding) {
@@ -187,7 +186,6 @@ struct parsed_mime_info {
 
 		std::cout << line_pfix <<
 			"    startpos: " << entity.startpos
-			  << nl << "      endpos: " << entity.endpos
 			  << nl << "   startbody: " << entity.startbody
 			  << nl << "     endbody: " << entity.endbody
 			  << nl << "      nlines: " << entity.nlines

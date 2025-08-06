@@ -261,10 +261,8 @@ content type of each section.  Answer with 'y' or 'Y' to extract the MIME
 section. Specify the filename at the next prompt. <command>reformime</command>
 prompts with a default filename.
 <command>reformime</command> tries to choose the default
-filename based on the MIME headers, if possible. If not, the default
-filename will be <literal>attachment1.dat</literal> (if the -s option is not
-specified, the next filename will be <literal>attachment2.dat</literal>,
-and so on).</para>
+filename based on the MIME headers, if possible. If not, a randomly-generated
+filename is the default option.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>

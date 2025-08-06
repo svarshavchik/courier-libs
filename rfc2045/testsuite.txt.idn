@@ -195,7 +195,7 @@ body-line-count: 18
 section: 1.1
 content-type: text/plain
 content-name: nAme
-content-transfer-encoding: 8bit
+content-transfer-encoding: 7bit
 charset: iso-8859-1
 content-disposition: attachment
 content-disposition-filename: filen%41me.exe
@@ -208,7 +208,7 @@ body-line-count: 1
 section: 1.2
 content-type: text/plain
 content-name: name
-content-transfer-encoding: 8bit
+content-transfer-encoding: 7bit
 charset: iso-8859-1
 content-disposition: attachment
 content-disposition-filename: filen%41me.exe
@@ -237,7 +237,7 @@ foo
 Hóla! test Hóla! Hóla!  test
 section: 1
 content-type: text/plain
-content-transfer-encoding: 8bit
+content-transfer-encoding: 7bit
 charset: utf-8
 content-description: Hóla! test Hóla! Hóla!  test
 starting-pos: 0
