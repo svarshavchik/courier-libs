@@ -1378,6 +1378,8 @@ class rfc2045::entity_info {
 		{
 			return code & RFC2045_ERRFATAL;
 		}
+
+		std::vector<std::string> describe() const;
 	};
 
 	parsing_error errors;

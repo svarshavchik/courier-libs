@@ -65,22 +65,24 @@ void rfc2045_error(const char *errmsg)
 
 void usage()
 {
-	fprintf(stderr, "Usage: reformime [options]\n");
-	fprintf(stderr, "    -d - parse a delivery status notification.\n");
-	fprintf(stderr, "    -e - extract contents of MIME section.\n");
-	fprintf(stderr, "    -x - extract MIME section to a file.\n");
-	fprintf(stderr, "    -X - pipe MIME section to a program.\n");
-	fprintf(stderr, "    -i - show MIME info.\n");
-	fprintf(stderr, "    -s n.n.n.n[,n.n.n.n]* - specify MIME section(s).\n");
-	fprintf(stderr, "    -r - rewrite message, filling in missing MIME headers.\n");
-	fprintf(stderr, "    -r7 - also convert 8bit/raw encoding to quoted-printable, if possible.\n");
-	fprintf(stderr, "    -r8 - also convert quoted-printable encoding to 8bit, if possible.\n");
-	fprintf(stderr, "    -rU - convert quoted-printable encoding to 8bit, unconditionally.\n");
-	fprintf(stderr, "    -c charset - default charset for rewriting, -o, and -O.\n");
-	fprintf(stderr, "    -m [file] [file]... - create a MIME message digest.\n");
-	fprintf(stderr, "    -h \"header\" - decode RFC 2047-encoded header.\n");
-	fprintf(stderr, "    -o \"header\" - encode unstructured header using RFC 2047.\n");
-	fprintf(stderr, "    -O \"header\" - encode address list header using RFC 2047.\n");
+	std::cerr <<
+		"Usage: reformime [options]\n"
+		"    -d - parse a delivery status notification.\n"
+		"    -e - extract contents of MIME section.\n"
+		"    -x - extract MIME section to a file.\n"
+		"    -X - pipe MIME section to a program.\n"
+		"    -i - show MIME info.\n"
+		"    -V - Validate MIME correctness.\n"
+		"    -s n.n.n.n[,n.n.n.n]* - specify MIME section(s).\n"
+		"    -r - rewrite message, filling in missing MIME headers.\n"
+		"    -r7 - also convert 8bit/raw encoding to quoted-printable, if possible.\n"
+		"    -r8 - also convert quoted-printable encoding to 8bit, if possible.\n"
+		"    -rU - convert quoted-printable encoding to 8bit, unconditionally.\n"
+		"    -c charset - default charset for rewriting, -o, and -O.\n"
+		"    -m [file] [file]... - create a MIME message digest.\n"
+		"    -h \"header\" - decode RFC 2047-encoded header.\n"
+		"    -o \"header\" - encode unstructured header using RFC 2047.\n"
+		"    -O \"header\" - encode address list header using RFC 2047.\n\n";
 
 	exit(1);
 }
@@ -919,7 +921,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	struct	rfc2045 *p;
 	rfc2045::convert rwmode{rfc2045::convert::standardize};
 	int     convtoutf8=0;
-	int	dovalidate=0;
+	bool	dovalidate{false};
 	void	(*do_extract)(const rfc2045::entity &message,
 			      std::streambuf &source,
 			      std::string_view filename,
@@ -998,7 +1000,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			do_extract=extract_pipe;
 			break;
 		case 'V':
-			dovalidate=1;
+			dovalidate=true;
 			break;
 		case 'h':
 			if (!optarg && argn < argc)
@@ -1205,14 +1207,31 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		dsn(p, dodsn == 2);
 	else if (dovalidate)
 	{
-		rc=1;
+		for_mime_section(
+			message,
+			"",
+			[&]
+			(const rfc2045::entity &e,
+			 const std::vector<int> &id)
+			{
+				auto errors=e.errors.describe();
 
-		if (p->rfcviolation & RFC2045_ERR2COMPLEX)
-			printf("ERROR: MIME complexity.\n");
-		else if (p->rfcviolation & RFC2045_ERRBADBOUNDARY)
-			printf("ERROR: Ambiguous  MIME boundary delimiters.\n");
-		else rc=0;
+				if (e.errors.fatal())
+				{
+					std::cout << "Fatal error ("
+						  << idstr(id) <<"):\n";
+					rc=1;
+				}
+				else if (!errors.empty())
+				{
+					std::cout << "Warnings ("
+						  << idstr(id) << "):\n";
+				}
 
+				for (auto &msg:errors)
+					std::cout << "    " << msg
+						  << "\n";
+			});
 	}
 	else if (convtoutf8)
 	{

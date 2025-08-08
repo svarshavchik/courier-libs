@@ -41,7 +41,7 @@ structure of the message. The output consists of so-called
 For example:</para>
     <blockquote>
       <informalexample>
-<programlisting format="linespecific">
+<programlisting>
 1
 1.1
 1.2
@@ -67,7 +67,7 @@ to the entire message itself:</para>
 
 <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 1
 </programlisting>
 	</informalexample>
@@ -79,7 +79,7 @@ Here's the output from
 <literal>multipart/alternative</literal> section:</para>
 <blockquote>
 	<informalexample>
-	  <programlisting format="linespecific">
+	  <programlisting>
 1
 1.1
 1.1.1
@@ -156,6 +156,37 @@ and the character set.
 <command>reformime</command> also displays the byte offset in the message
 where each section starts and ends (and where the
 actual contents of the section start, after skipping all the headers).</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>-V</term>
+	<listitem>
+	  <para>
+	    Check for correctness of each section's MIME metadata.
+	    No output is produced when all MIME sections pass all tests.
+	    Any issues are reported, together with their MIME section,
+	    for example:
+	  </para>
+	  <blockquote>
+	    <informalexample>
+	      <programlisting><![CDATA[
+Warnings (1.1):
+    Bad hexadecimal quoted-printable encoding
+
+]]></programlisting>
+	    </informalexample>
+	  </blockquote>
+	  <para>
+	    Warning messages indicate which MIME section they're reported for,
+	    section 1.1 in this example had a problem with its encoding.
+	  </para>
+	  <para>
+	    Issues that affect the ability to parse the MIME message itself
+	    are reported as fatal errors (together with any warnings, if any,
+	    for whatever it's worth). Fatal errors result in
+	    <command>reformime</command> terminating with a non-0 exit
+	    code.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -276,7 +307,7 @@ The filename is formed by taking
 Note that there's no space between "-x" and "PREFIX". For example:</para>
 	    <blockquote>
 	      <informalexample>
-		<programlisting format="linespecific">
+		<programlisting>
 reformime -xfiles-
 </programlisting>
 	      </informalexample>
@@ -393,7 +424,7 @@ The decoding gets carried out as if the contents occurred in the
 <quote>Subject</quote> header.
 Example:</para>
 	    <informalexample>
-	      <programlisting format="linespecific">
+	      <programlisting>
 $ reformime -h '=?iso-8859-1?Q?H=F3la!?='
 H&#243;la!
 </programlisting>

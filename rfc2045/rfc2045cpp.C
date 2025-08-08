@@ -6,6 +6,50 @@
 
 #include	"rfc2045.h"
 
+std::vector<std::string> rfc2045::entity::parsing_error::describe() const
+{
+	std::vector<std::string> errors;
+
+	if (code & RFC2045_ERR8BITHEADER)
+		errors.push_back("8-bit header content");
+	if (code & RFC2045_ERR8BITHEADER)
+		errors.push_back(
+			"8-bit content without a Content-Transfer-Encoding "
+			"declaration"
+		);
+	if (code & RFC2045_ERR2COMPLEX)
+		errors.push_back("MIME complexity exceeds limits");
+
+	if (code & RFC2045_ERRBADBOUNDARY)
+		errors.push_back("Non-unique MIME boundary delimiters");
+
+	if (code & RFC2045_ERR8BITINQP)
+		errors.push_back(
+			"Unencoded 8-bit content in quoted-printable content");
+	if (code & RFC2045_ERRBADHEXINQP)
+		errors.push_back(
+			"Bad hexadecimal quoted-printable encoding"
+		);
+	if (code & RFC2045_ERRWRONGBOUNDARY)
+		errors.push_back(
+			"Unexpected MIME boundary delimiter"
+		);
+	if (code & RFC2045_ERRLONGUNFOLDEDHEADER)
+		errors.push_back(
+			"Unfolded quopted-printable line is excessive"
+		);
+	if (code & RFC2045_ERRUNKNOWNTE)
+		errors.push_back(
+			"Unknown Content-Transfer-Encoding"
+
+		);
+	if (code & RFC2045_ERRINVALIDBASE64)
+		errors.push_back(
+			"Invalid base64 encoding"
+		);
+	return errors;
+}
+
 void rfc2045::entity_parse_meta::report_error(
 	rfc2045::entity_info::errors_t code
 )
