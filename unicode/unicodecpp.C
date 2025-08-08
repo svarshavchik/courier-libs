@@ -188,7 +188,6 @@ std::string unicode::iconvert::convert(const std::string &text,
 				       const std::string &dstcharset,
 				       bool &errflag)
 {
-	std::string buf;
 	int errptr;
 
 	char *p=unicode_convert_tobuf(text.c_str(),
@@ -196,7 +195,16 @@ std::string unicode::iconvert::convert(const std::string &text,
 					dstcharset.c_str(),
 					&errptr);
 
+	if (!p)
+	{
+		errflag=true;
+		return "[conversion error: " + charset + " to "
+			+ dstcharset + "]";
+	}
+
 	errflag= errptr != 0;
+
+	std::string buf;
 
 	try {
 		buf=p;

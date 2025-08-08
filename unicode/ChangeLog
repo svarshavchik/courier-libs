@@ -1,3 +1,8 @@
+2025-08-07  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* unicodecpp.C (unicode::iconvert::convert): Fix null ptr
+	dereference.
+
 2025-05-25  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Use C++17 features for templates.
