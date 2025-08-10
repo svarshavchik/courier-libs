@@ -54,8 +54,8 @@ AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_TYPE_PID_T
 AC_SYS_LARGEFILE
-AX_COURIER_UNICODE_CXXFLAGS
-AC_SUBST(COURIER_UNICODE_CXXFLAGS)
+
+dnl AX_COURIER_UNICODE_VERSION(2.3.3)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(setlocale)
@@ -84,6 +84,13 @@ CXXFLAGS="$CXXFLAGS -I.. -I${srcdir}/.."
 AC_SUBST(rfc822includedir)
 
 AC_SUBST(RFC2045CHARSET)
+
+PKG_CHECK_MODULES(LIBIDN, libidn2 >= 2.0.5, [libidn=yes], [libidn=no])
+
+if test "$libidn" = "no"
+then
+	AC_MSG_ERROR(libidn2 not found)
+fi
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 

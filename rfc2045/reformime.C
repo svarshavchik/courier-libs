@@ -610,140 +610,6 @@ static void extract_section(struct rfc2045 *top_rfcp, const char *mimesection,
 		(*extract_func)(top_rfcp, extract_filename, argc, argv);
 }
 
-static void print_dsn_recip(char *addr, char *action)
-{
-char *p, *q;
-
-	if (!action || !addr)
-	{
-		if (action)	free(action);
-		if (addr)	free(addr);
-		return;
-	}
-
-	for (p=action; *p; ++p)
-		*p=tolower((int)(unsigned char)*p);
-
-	for (p=addr; *p && isspace((int)(unsigned char)*p); ++p)
-		;
-
-	if (strncasecmp(p, "rfc822;", 7) &&
-	    strncasecmp(p, "utf-8;", 6))
-	{
-		free(action);
-		free(addr);
-		return;
-	}
-	for (q=action; *q && isspace((int)(unsigned char)*q); ++q)
-		;
-
-	p=strchr(p, ';')+1;
-	while (*p && isspace((int)(unsigned char)*p))
-		++p;
-	printf("%s %s\n", q, p);
-	free(action);
-	free(addr);
-}
-
-static void dsn(struct rfc2045 *p, int do_orig)
-{
-const char *content_type_s;
-const char *content_transfer_encoding_s;
-const char *charset_s;
-off_t start_pos, end_pos, start_body;
-off_t dummy;
-const char *q;
-char	buf[BUFSIZ];
-unsigned i;
-int	ch;
-char *recip;
-char *action;
-char *orecip;
-
-	rfc2045_mimeinfo(p, &content_type_s, &content_transfer_encoding_s,
-		&charset_s);
-	if (strcasecmp(content_type_s, "multipart/report") ||
-		(q=rfc2045_getattr(p->content_type_attr, "report-type")) == 0 ||
-		strcasecmp(q, "delivery-status") ||
-		!p->firstpart || !p->firstpart->next ||
-		!p->firstpart->next->next)
-		_exit(1);
-	p=p->firstpart->next->next;
-	rfc2045_mimeinfo(p, &content_type_s, &content_transfer_encoding_s,
-		&charset_s);
-	rfc2045_mimepos(p, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-	if (!rfc2045_delivery_status_content_type(content_type_s) ||
-		fseek(stdin, start_body, SEEK_SET) == -1)
-		_exit(1);
-
-	i=0;
-	recip=0;
-	orecip=0;
-	action=0;
-	while (start_body < end_pos)
-	{
-		if ((ch=getchar()) == EOF)	break;
-		++start_body;
-		if (i < sizeof(buf)-1)
-			buf[i++]= ch;
-		if (ch != '\n')	continue;
-		ch=getchar();
-		if (ch != EOF)	ungetc(ch, stdin);
-		if (ch != '\n' && isspace((int)(unsigned char)ch))
-			continue;
-		buf[i-1]=0;
-		if (buf[0] == 0)
-		{
-			if (orecip)
-			{
-				if (recip)	free(recip);
-				recip=orecip;
-				orecip=0;
-			}
-			print_dsn_recip(recip, action);
-			recip=0;
-			action=0;
-		}
-		if (strncasecmp(buf, "Final-Recipient:", 16) == 0 &&
-			recip == 0)
-		{
-			recip=strdup(buf+16);
-			if (!recip)
-			{
-				perror("strdup");
-				exit(2);
-			}
-		}
-		if (strncasecmp(buf, "Original-Recipient:", 19) == 0 &&
-			orecip == 0 && do_orig)
-		{
-			orecip=strdup(buf+19);
-			if (!orecip)
-			{
-				perror("strdup");
-				exit(2);
-			}
-		}
-		if (strncasecmp(buf, "Action:", 7) == 0 && action == 0)
-		{
-			action=strdup(buf+7);
-			if (!action)
-			{
-				perror("strdup");
-				exit(2);
-			}
-		}
-		i=0;
-	}
-	if (orecip)
-	{
-		if (recip)	free(recip);
-		recip=orecip;
-		orecip=0;
-	}
-	print_dsn_recip(recip, action);
-}
-
 static void mimedigest1(int, char **);
 static char mimebuf[BUFSIZ];
 
@@ -1204,7 +1070,21 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	else if (dorewrite)
 		rewrite(message, src, rwmode);
 	else if (dodsn)
-		dsn(p, dodsn == 2);
+		message.getdsn(
+			src,
+			[&]
+			(const rfc2045::entity::dsn &dsn)
+			{
+				auto &addr= dodsn == 2 &&
+					!dsn.original_recipient.empty() ?
+					dsn.original_recipient:
+					dsn.final_recipient;
+
+				if (addr.empty())
+					return;
+
+				std::cout << dsn.action << " " << addr << "\n";
+			});
 	else if (dovalidate)
 	{
 		for_mime_section(

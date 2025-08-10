@@ -1340,6 +1340,44 @@ auto rfc2231_attr_encode(std::string_view name,
   second value in the vector, starting with 1 for the first subentity, 2 for
   the second, and so on. If the subentities have their own subentities they
   get enumerated by additional values, and so on.
+
+  PARSING DELIVERY STATUS NOTIFICATIONS
+  =====================================
+
+  bool flag=entity.dsn(src,
+		       []
+		       (const rfc2045::entity::dsn &dsn)
+		       {
+		           // ...
+		       });
+
+  dsn() parses a MIME entity containing a delivery status notification.
+  The first parameter is a std::streambuf or another object that implements
+  a compatible API that contains the parsed MIME entity.
+
+  The second parameter is a callable object that gets repeatedly invoked
+  with a rfc2045::entity::dsn parameter, which contains the following
+
+  - std::string_view action - the notification "action" value, in lowercase
+  - std::string_View original_recipient - the notification "original recipient"
+    address.
+  - std::string_view final_recipient - the notification "final recipient"
+    address.
+
+  The following applies to both the original_recipient and final_recipient
+  values:
+
+  * if not specified in the delivery status notification, the address value
+  is an empty string
+
+  * the address is converted to the rfc2045_getdefaultcharset(). An address
+  given directly in UTF-8 is converted to the character set, if it cannot
+  be displayed in this character set the non-displayable characters are
+  dumped in hexadecimal. An address given in ASCII-compatible encoding
+  is converted to rfc2045_getdefaultcharset(), if possible. Otherwise it
+  is left in its ACE encoding. Using rfc2045_setdefaultcharset("utf-8") (or
+  running in a native UTF-8 loale) produes the best results.
+
 */
 
 #define RFC2045_ERR8BITINQP		0x0010
@@ -1735,6 +1773,54 @@ public:
 			++id.back();
 		}
 		id.pop_back();
+	}
+
+	struct dsn {
+		std::string_view action;
+		std::string_view original_recipient;
+		std::string_view final_recipient;
+	};
+
+	using dsn_callback_t=std::function<void (const dsn &)>;
+private:
+	class dsn_handler {
+
+		std::string linebuf;
+		std::string origreceip;
+		std::string finalreceip;
+		std::string action;
+		const dsn_callback_t &callback;
+	public:
+		dsn_handler(const dsn_callback_t &);
+
+		const rfc2045::entity *report(const rfc2045::entity &entity);
+		void finish();
+		void operator()(const char *, size_t);
+	};
+public:
+	template<typename src_type>
+	bool getdsn(src_type &src, const dsn_callback_t &callback) const
+	{
+		dsn_handler handler{callback};
+
+		auto report=handler.report(*this);
+
+		if (!report)
+			return false;
+
+		line_iter<false>::decoder decoder{
+			handler,
+			src
+		};
+
+		decoder.decode_header=false;
+		decoder.decode_body=true;
+		decoder.decode_subentities=false;
+
+		decoder.decode(*report);
+
+		handler.finish();
+		return true;
 	}
 };
 

@@ -7,7 +7,7 @@ noinst_PROGRAMS=reformime makemime headercheck testrfc3676parser \
 	testsuitecpp testsuitecpp2 \
 	testrfc6533parser
 
-AM_CXXFLAGS=@COURIER_UNICODE_CXXFLAGS@
+AM_CXXFLAGS=$(LIBIDN_CFLAGS)
 
 BUILT_SOURCES=reformime.html reformime.1 makemime.html makemime.1 \
 	rfc2045.html rfc2045.3
@@ -19,6 +19,7 @@ EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn \
 noinst_DATA=$(BUILT_SOURCES)
 
 librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
+		     rfc2045cpp3.C \
 		     rfc2045defcharset.c \
 		     rfc2045defs.c rfc2045src.h \
 		     rfc2045acchk.c rfc2045acchkcpp.C rfc2045acprep.c \
@@ -36,6 +37,7 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc3676parser.h rfc3676parser.c rfc3676parsercpp.C \
                      rfc6533.c \
 		     base64.c base64.h
+librfc2045_la_LIBADD = $(LIBIDN_LIBS)
 
 libencode_la_SOURCES=encode.C encode.h encodeautodetect.C
 

@@ -101,7 +101,7 @@ Arbitrarily complex MIME constructs are possible.</para>
 	<listitem>
 	  <para>
 Parse a delivery status notification MIME message
-(<ulink url="http://www.rfc-editor.org/rfc/rfc1894.txt">RFC 1894</ulink>).
+(<ulink url="https://www.rfc-editor.org/rfc/rfc3464.txt">RFC 3464</ulink>).
 <command>reformime</command>
 expects to see on standard input a MIME message that consists of
 a delivery status notification, as defined by RFC 1894.
@@ -117,6 +117,15 @@ status, a space, and the address.
 <command>reformime</command> produces no output and terminates with an exit
 status of 1 if the standard input does not contain a delivery status
 notification.</para>
+	  <para>
+	    International domain names get converted to the system locale's
+	    encoding. If the conversion is not possible: an address given
+	    in the delivery status notification directly in UTF-8 has its
+	    non-converted characters replaced by their hexadecimal values;
+	    a punycode-encoded address gets displayed
+	    as is. For best results the system locale's encoding should be
+	    UTF-8.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>

@@ -225,4 +225,107 @@ $x
 EOF
 ) | tr 'X' '\244' | ./reformime -u | tail -32
 
+cat >testsuite.dat <<EOF
+From: MAILER-DAEMON@localhost.localdomain
+Subject: Undelivered Mail Returned to Sender
+To: user@localhost
+Mime-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status; boundary="aaaa"
+
+This is a MIME-formatted message.  If you see this text it means that your
+E-mail software does not support MIME-formatted messages.
+
+--aaaa
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Description: Notification
+
+Delivery Status Notification
+
+--aaaa
+Content-Type: message/delivery-status
+Content-Transfer-Encoding: quoted-printable
+Content-Description: Delivery report
+
+Reporting-MTA: dns; mx.domain.com
+
+Final-Recipient: RFC822; user1@localhost.com=20
+Original-Recipient: rfc822;lists@domain.com
+Action: FAILED
+Status: 5.0.0
+Remote-MTA: dns; mx.domain.com
+Diagnostic-Code: smtp; 517 SPF failure
+
+Final-Recipient: rfc822; user2@localhost.com
+Original-Recipient: rfc822;lists@domain.com
+Action: failed
+Status: 5.0.0
+Remote-MTA: dns; mx.domain.com
+Diagnostic-Code: smtp; 517 SPF failure
+
+--aaaa
+Content-Type: message/rfc822
+Content-Description: Undelivered Message
+
+Subject: Test
+
+--aaaa--
+EOF
+
+./reformime -d <testsuite.dat
+./reformime -D <testsuite.dat
+
+cat >testsuite.dat <<EOF
+From: MAILER-DAEMON@localhost.localdomain
+Subject: Undelivered Mail Returned to Sender
+To: user@localhost
+Mime-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status; boundary="aaaa"
+
+This is a MIME-formatted message.  If you see this text it means that your
+E-mail software does not support MIME-formatted messages.
+
+--aaaa
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Description: Notification
+
+Delivery Status Notification
+
+--aaaa
+Content-Type: message/delivery-status
+Content-Transfer-Encoding: 7bit
+Content-Description: Delivery report
+
+Reporting-MTA: dns; mx.domain.com
+
+Final-Recipient: rfc822; test2@xn--80akhbyknj4f.net
+Original-Recipient: utf-8; test12@испытание.net
+Action: failed
+Status: 5.0.0
+Remote-MTA: dns; mx.domain.com
+Diagnostic-Code: smtp; 517 SPF failure
+
+Final-Recipient: rfc822; test3@xn--tst-6la.example.com
+Original-Recipient: utf-8; test13@tèst.example.com
+Action: failed
+Status: 5.0.0
+Remote-MTA: dns; mx.domain.com
+Diagnostic-Code: smtp; 517 SPF failure
+
+--aaaa
+Content-Type: message/rfc822
+Content-Description: Undelivered Message
+
+Subject: Test
+
+--aaaa--
+EOF
+
+./reformime -d <testsuite.dat
+./reformime -D <testsuite.dat
+LANG=en_US.iso-8859-1 ./reformime -d <testsuite.dat
+LANG=en_US.iso-8859-1 ./reformime -D <testsuite.dat
+
+
 rm testsuite.dat
