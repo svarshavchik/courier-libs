@@ -501,6 +501,10 @@ is a structured header with RFC 2822 addresses.</para>
 	      decodes various kinds of header MIME encoding, the
 	      <literal>quoted-printable</literal> and <literal>base64</literal>
 	      transfer encodings of <quote>text</quote> MIME objects.
+	      An extra newline character is appended to each MIME entity,
+	      ensuring that MIME entities that don't end with a trailing
+	      newline will not end up having the next MIME entity's first
+	      header line glued to it.
 	    </para>
 	  </listitem>
 	</varlistentry>

@@ -108,37 +108,29 @@ char	*p;
 	return (p);
 }
 
-struct rfc2045 *read_message()
+void read_message()
 {
-char	buf[BUFSIZ];
-struct	rfc2045 *p=rfc2045_alloc_ac();
-FILE	*tempfp=0;
-int	l;
+	char	buf[BUFSIZ];
+	FILE	*tempfp=0;
+	ssize_t l;
 
 	if (fseek(stdin, 0L, SEEK_END) < 0 ||
 		fseek(stdin, 0L, SEEK_SET) < 0)	/* Pipe, save to temp file */
 	{
 		tempfp=tmpfile();
-	}
 
-	while ((l=fread(buf, 1, sizeof(buf), stdin)) > 0)
-	{
-
-		rfc2045_parse(p, buf, l);
-		if (tempfp && fwrite(buf, l, 1, tempfp) != 1)
+		while ((l=fread(buf, 1, sizeof(buf), stdin)) > 0)
 		{
-			perror("fwrite");
-			exit(1);
+			if (fwrite(buf, l, 1, tempfp) != 1)
+			{
+				perror("fwrite");
+				exit(1);
+			}
 		}
-	}
-	rfc2045_parse_partial(p);
 
-	if (tempfp)	/* Replace stdin */
-	{
 		dup2(fileno(tempfp), 0);
 		fclose(tempfp);
 	}
-	return (p);
 }
 
 static void notfound(const char *p)
@@ -764,14 +756,6 @@ static void display_decoded_header(const char *ptr, size_t cnt, void *dummy)
 		fwrite(ptr, cnt, 1, stdout);
 }
 
-static int doconvtoutf8_stdout(const char *ptr, size_t n, void *dummy)
-{
-	if (fwrite(ptr, n, 1, stdout) != 1)
-		return -1;
-
-	return 0;
-}
-
 static int main2(const char *mimecharset, int argc, char **argv)
 {
 	int	argn;
@@ -784,7 +768,6 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		doencodemimehdr=0;
 
 	const char	*decode_header="";
-	struct	rfc2045 *p;
 	rfc2045::convert rwmode{rfc2045::convert::standardize};
 	int     convtoutf8=0;
 	bool	dovalidate{false};
@@ -983,7 +966,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		return (0);
 	}
 
-	p=read_message();
+	read_message();
 
 	rfc2045::entity message;
 
@@ -1115,21 +1098,20 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	}
 	else if (convtoutf8)
 	{
-		struct rfc2045src *src;
-		struct rfc2045_decodemsgtoutf8_cb cb;
+		rfc2045::entity::line_iter<false>::decoder decoder{
+			[]
+			(const char *p, size_t n)
+			{
+				std::cout.write(p, n);
+			},
+			src,
+			unicode::utf_8
+		};
 
-		memset(&cb, 0, sizeof(cb));
+		decoder.add_eol=true;
+		decoder.header_name_lc=false;
 
-		cb.output_func=doconvtoutf8_stdout;
-		cb.arg=NULL;
-
-		src=rfc2045src_init_fd(0);
-
-		if (src)
-		{
-			rfc2045_decodemsgtoutf8(src, p, &cb);
-			rfc2045src_deinit(src);
-		}
+		decoder.decode(message);
 	}
 	else
 	{
@@ -1148,7 +1130,6 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			}
 		);
 	}
-	rfc2045_free(p);
 
 	if (std::cout.rdbuf()->pubsync() < 0)
 	{

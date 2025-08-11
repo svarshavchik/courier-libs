@@ -1238,7 +1238,9 @@ auto rfc2231_attr_encode(std::string_view name,
 
   decoder.decode_header=true;
   decoder.decode_body=true;
-  decoder.decode_entities=true;
+  decoder.add_eol=false;
+  decoder.header_name_lc=true;
+  decoder.decode_subentities=true;
 
   decoder.decode(entity);
 
@@ -1277,6 +1279,15 @@ auto rfc2231_attr_encode(std::string_view name,
   and quoted-printable encoding gets decoded. text content gets converted to
   the character set specified by the optional third parameter to the
   constructor.
+
+  - add_eol (default: false) - generate a newline after the decoded body
+  (effective only when decode_body is set). Multipart entities may not
+  terminate with a newline sequence, as per MIME specification, this
+  ensures that the decoded body always ends with a newline (note, the
+  newline gets added even if the decoded body has its own terminating newline).
+
+  - header_name_lc (default: true) - convert each header's name to lowercase
+  (effetive only when decode_header is set).
 
   - decode_subentities: recursively process decpde_header and decode_bopdy
   for all MIME subentities
@@ -1644,12 +1655,12 @@ class rfc2045::entity : public entity_info {
 
 		template<typename out_iter,
 			 typename src_type>
-		decoder(out_iter &, src_type &)
+		decoder(out_iter &, src_type &, std::string="")
 			-> decoder<out_iter &, src_type>;
 
 		template<typename out_iter,
 			 typename src_type>
-		decoder(out_iter &&, src_type &)
+		decoder(out_iter &&, src_type &, std::string="")
 			-> decoder<out_iter, src_type>;
 
 		template<typename src_type> static bool try_boundary(
@@ -2971,6 +2982,8 @@ class rfc2045::entity::line_iter<crlf>::decoder {
 
 	bool decode_header=true;
 	bool decode_body=true;
+	bool add_eol=false;
+	bool header_name_lc=true;
 	bool decode_subentities=true;
 
 	void decode(const entity &e);
@@ -2988,6 +3001,7 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 	{
 		headers parser{e, src};
 
+		parser.name_lc=header_name_lc;
 		std::string header;
 
 		do
@@ -3061,6 +3075,9 @@ void rfc2045::entity::line_iter<crlf>::decoder<out_iter, src_type>::decode(
 		if (conversion_error)
 			errflag=true;
 	}
+
+	if (add_eol)
+		out(eol.data(), eol.size());
 
 	if (errflag)
 	{
