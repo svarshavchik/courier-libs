@@ -38,7 +38,7 @@ static void test1()
 		0x00, 0x00, 0x04, 0x14,
 		0x00, 0x00, 0x04, 0x30,
 		0x00, 0x00, 0x00, 0x42};
-	char outputbuf[12];
+	char outputbuf[256];
 	struct collect_buf cb;
 	unicode_convert_handle_t h;
 	int checkflag;
@@ -61,7 +61,9 @@ static void test1()
 		perror("unicode_convert_deinit");
 		exit(1);
 	}
-	if (cb.cnt != 2 || memcmp(cb.ptr, "AB", 2) || !checkflag)
+	if (cb.cnt != 34 || memcmp(cb.ptr,
+				   "A<00><00><04><14><00><00><04><30>B", 34)
+	    || !checkflag)
 	{
 		fprintf(stderr, "Unexpected result from convert()\n");
 		exit(1);
@@ -69,6 +71,43 @@ static void test1()
 }
 
 static void test2()
+{
+	static const char teststr[]= {
+		0x00, 0x00, 0x00, 0x41,
+		0x00, 0x00, 0x04 };
+	char outputbuf[256];
+	struct collect_buf cb;
+	unicode_convert_handle_t h;
+	int checkflag;
+
+	cb.ptr=outputbuf;
+	cb.cnt=0;
+	cb.size=sizeof(outputbuf);
+
+	if ((h=unicode_convert_init("UCS-4BE", "ISO-8859-1",
+				      save_output, &cb)) == NULL)
+	{
+		perror("unicode_convert_init");
+		exit(1);
+	}
+
+	unicode_convert(h, teststr, sizeof(teststr));
+
+	if (unicode_convert_deinit(h, &checkflag))
+	{
+		perror("unicode_convert_deinit");
+		exit(1);
+	}
+	if (cb.cnt != 13 || memcmp(cb.ptr,
+				   "A<00><00><04>", 13)
+	    || !checkflag)
+	{
+		fprintf(stderr, "Unexpected result from convert()\n");
+		exit(1);
+	}
+}
+
+static void test3()
 {
 	char32_t *ucptr;
 	size_t ucsize;
@@ -248,6 +287,7 @@ int main(int argc, char **argv)
 	{
 		test1();
 		test2();
+		test3();
 	}
 	return 0;
 }

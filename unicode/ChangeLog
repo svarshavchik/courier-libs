@@ -1,3 +1,8 @@
+2025-08-10  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* unicode.c: when a conversion error is encountered try to include
+	the unconverted input in the output, as <##> sequences.
+
 2025-08-07  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* unicodecpp.C (unicode::iconvert::convert): Fix null ptr

@@ -1136,6 +1136,20 @@ static int convert_iconv(void *ptr,
 	return h->errflag;
 }
 
+static void emit_converr(struct unicode_convert_iconv *h,
+			 unsigned char c)
+{
+	static const char xdigit[]="0123456789ABCDEF";
+
+	char outbuf[4];
+	outbuf[0]='<';
+	outbuf[1]=xdigit[c >> 4];
+	outbuf[2]=xdigit[c & 15];
+	outbuf[3]='>';
+
+	(*h->output_func)(outbuf, 4, h->convert_arg);
+}
+
 /*
 ** Finish an iconv conversion module. Invoke convert_flush() to flush any
 ** buffered input. Invoke convert_flush_iconv() to return state to the initial
@@ -1153,7 +1167,12 @@ static int deinit_iconv(void *ptr, int *errptr)
 		convert_flush(h);
 
 	if (h->bufcnt && h->errflag == 0)
+	{
+		for (size_t i=0; i<h->bufcnt; ++i)
+			emit_converr(h, h->buffer[i]);
+
 		h->converr=1;
+	}
 
 	if (h->errflag == 0)
 		convert_flush_iconv(h, NULL, NULL);
@@ -1245,6 +1264,7 @@ static void convert_flush_iconv(struct unicode_convert_iconv *h,
 			{
 				/* Skipping after an EILSEQ */
 
+				emit_converr(h, **inbuf);
 				--h->skipleft;
 				--*inbytesleft;
 				++*inbuf;
