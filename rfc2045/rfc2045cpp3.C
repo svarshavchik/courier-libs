@@ -4,7 +4,7 @@
 **
 */
 
-#include "rfc2045.h"
+#include "rfc2045/rfc2045.h"
 #include <idn2.h>
 
 static std::string_view dsnaddr(std::string &addr)

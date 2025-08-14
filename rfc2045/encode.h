@@ -148,7 +148,7 @@ namespace rfc822 {
 }
 
 #define rfc2045_encode_h_included 1
-#include "rfc2045_encode.h"
+#include "rfc2045/rfc2045_encode.h"
 #endif
 
 #endif

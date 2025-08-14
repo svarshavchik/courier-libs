@@ -4,7 +4,7 @@
 **
 */
 
-#include	"rfc2045.h"
+#include	"rfc2045/rfc2045.h"
 
 std::vector<std::string> rfc2045::entity::parsing_error::describe() const
 {

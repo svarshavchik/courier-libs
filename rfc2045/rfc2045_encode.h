@@ -185,7 +185,7 @@ void rfc2045::entity::line_iter<crlf>
 	closure(eol.data(), eol.size());
 	closure(eol.data(), eol.size());
 
-	decoder do_decoder{reencoder, src};
+	rfc822::mime_decoder do_decoder{reencoder, src};
 
 	do_decoder.decode_header=false;
 	do_decoder.decode(e);

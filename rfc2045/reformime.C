@@ -28,11 +28,11 @@
 #include	<pwd.h>
 #include	<fcntl.h>
 #include	<signal.h>
-#include	"rfc2045.h"
-#include	"encode.h"
+#include	"rfc2045/rfc2045.h"
+#include	"rfc2045/encode.h"
 #include	"rfc822/rfc822.h"
 #include	"rfc822/rfc2047.h"
-#include	"rfc2045charset.h"
+#include	"rfc2045/rfc2045charset.h"
 #include	<courier-unicode.h>
 
 #if HAVE_UNISTD_H
@@ -215,7 +215,7 @@ void do_print_section(const rfc2045::entity &e,
 		      std::streambuf &src,
 		      std::streambuf &out)
 {
-	rfc2045::entity::line_iter<false>::decoder decoder{
+	rfc822::mime_decoder decoder{
 		[&]
 		(const char *p, size_t n)
 		{
@@ -1098,7 +1098,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	}
 	else if (convtoutf8)
 	{
-		rfc2045::entity::line_iter<false>::decoder decoder{
+		rfc822::mime_decoder decoder{
 			[]
 			(const char *p, size_t n)
 			{

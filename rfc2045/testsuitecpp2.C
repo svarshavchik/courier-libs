@@ -499,7 +499,7 @@ void test5()
 	std::string decoded;
 
 	{
-		typename rfc2045::entity::line_iter<crlf>::template decoder<
+		rfc822::mime_decoder<
 			std::function<void (const char *, size_t)>,
 			std::streambuf> decoder{
 			[&]
@@ -509,7 +509,7 @@ void test5()
 			}, *ss.rdbuf(), "utf-8"
 		};
 
-		decoder.decode(entity);
+		decoder.decode<crlf>(entity);
 
 		decoded.erase(std::remove(decoded.begin(), decoded.end(),
 					  '\r'), decoded.end());

@@ -4,7 +4,7 @@
 **
 */
 
-#include	"rfc2045.h"
+#include	"rfc2045/rfc2045.h"
 
 rfc2045::entity_parser_base::entity_parser_base()=default;
 
