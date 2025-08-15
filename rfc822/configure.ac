@@ -39,6 +39,7 @@ AC_STRUCT_TM
 AC_SYS_LARGEFILE
 
 dnl Checks for library functions.
+AX_COURIER_UNICODE_VERSION(2.4.0)
 
 PKG_CHECK_MODULES(LIBIDN, libidn2 >= 2.0.5, [libidn=yes], [libidn=no])
 

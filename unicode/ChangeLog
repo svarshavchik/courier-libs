@@ -1,3 +1,5 @@
+2.4.0
+
 2025-08-10  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* unicode.c: when a conversion error is encountered try to include

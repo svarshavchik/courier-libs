@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([courier-unicode],[2.3.2.20250810],[courier-users@lists.sourceforge.net])
+AC_INIT([courier-unicode],[2.4.0],[courier-users@lists.sourceforge.net])
 
 AC_CONFIG_SRCDIR(unicodecpp.C)
 
@@ -130,7 +130,7 @@ AC_SUBST(HVERSION)
 COMPATVERSION="`echo $VERSION | tr -d '.'`"
 AC_SUBST(COMPATVERSION)
 
-LIBVERSION_CURRENT=9
+LIBVERSION_CURRENT=10
 LIBVERSION_RELEASE=0
 LIBVERSION_AGE=0
 
