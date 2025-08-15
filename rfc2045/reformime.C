@@ -603,14 +603,11 @@ static void extract_section(struct rfc2045 *top_rfcp, const char *mimesection,
 }
 
 static void mimedigest1(int, char **);
-static char mimebuf[BUFSIZ];
 
 static void mimedigest(int argc, char **argv)
 {
-char	*p;
-struct filelist { struct filelist *next; char *fn; } *first=0, *last=0;
-unsigned pcnt=0;
-char	**l;
+	std::string mimebuf;
+	std::vector<std::vector<char>> filenames;
 
 	if (argc > 0)
 	{
@@ -618,142 +615,120 @@ char	**l;
 		return;
 	}
 
-	while (fgets(mimebuf, sizeof(mimebuf), stdin))
+	while (std::getline(std::cin, mimebuf))
 	{
-	struct	filelist *q;
+		std::vector<char> str;
 
-		if ((p=strchr(mimebuf, '\n')) != 0)	*p=0;
-		q=(filelist *)malloc(sizeof(struct filelist));
-		if (!q || !(q->fn=strdup(mimebuf)))
-		{
-			perror("malloc");
-			exit(1);
-		}
+		str.reserve(mimebuf.size()+1);
+		str.insert(str.end(), mimebuf.begin(), mimebuf.end());
+		str.push_back(0);
 
-		if (last)	last->next=q;
-		else	first=q;
-		last=q;
-		q->next=0;
-		++pcnt;
+		filenames.push_back(std::move(str));
 	}
-	if (pcnt == 0)	return;
 
-	if ( (l=(char **)malloc(sizeof (char *) * pcnt)) == 0)
+	std::vector<char *> strptrs;
+
+	strptrs.reserve(filenames.size());
+
+	for (auto &vec:filenames)
 	{
-		perror("malloc");
+		strptrs.push_back(vec.data());
 	}
-	pcnt=0;
 
-	for (last=first; last; last=last->next)
-		l[pcnt++]=last->fn;
-
-	mimedigest1(pcnt, l);
-	free(l);
-	while(first)
-	{
-		last=first->next;
-		free(first->fn);
-		free(first);
-		first=last;
-	}
+	mimedigest1(strptrs.size(), strptrs.data());
 }
 
 static void mimedigest1(int argc, char **argv)
 {
-	time_t	t;
-	char	boundarybuf[200];
+	std::string boundarybuf;
 	unsigned boundarycnt=0;
-	int	i;
-	FILE	*fp;
-	int	*utf8;
+	std::vector<bool> utf8;
+
 	if (argc == 0)
 		return;
 
-	time (&t);
-
-	utf8=(int *)malloc(sizeof(int)*argc);
-
-	/* Search for a suitable boundary */
-
 	do
 	{
-	int	l;
+		boundarybuf=rfc2045::entity::new_boundary(boundarycnt);
+		utf8.clear();
+		utf8.reserve(argc);
 
-		sprintf(boundarybuf, "reformime_%lu_%lu_%u",
-			(unsigned long)t,
-			(unsigned long)getpid(),
-			++boundarycnt);
-
-		l=strlen(boundarybuf);
-
-		for (i=0; i<argc; i++)
+		for (int i=0; i<argc; ++i)
 		{
-			int	err=0;
-			struct rfc2045 *parser=rfc2045_alloc();
+			std::ifstream fp{argv[i]};
 
-			if (!parser)
-			{
-				perror(argv[i]);
-				exit(1);
-			}
-			if ((fp=fopen(argv[i], "r")) == 0)
+			if (!fp)
 			{
 				perror(argv[i]);
 				exit(1);
 			}
 
-			while (fgets(mimebuf, sizeof(mimebuf), fp))
+			rfc2045::entity message;
+
 			{
-				rfc2045_parse(parser, mimebuf, strlen(mimebuf));
+				std::istreambuf_iterator<char> b{fp.rdbuf()}, e;
+				rfc2045::entity::line_iter<false>::iter parser{
+					b,
+					e
+				};
 
-				if (mimebuf[0] != '-' || mimebuf[1] != '-')
-					continue;
+				message.parse(parser);
 
-				if (strncasecmp(mimebuf+2, boundarybuf, l) == 0)
+				if (message.errors.fatal())
 				{
-					err=1;
+					auto errors=message.errors.describe();
+
+					std::cout << argv[i] << ":\n";
+
+					for (auto &message:errors)
+						std::cout << "    "
+							  << message
+							  << "\n";
+
+					exit(1);
+				}
+
+				utf8.push_back(
+					(message.all_errors()
+					 & RFC2045_ERR8BITHEADER) != 0
+				);
+
+
+				if (rfc2045::entity::line_iter<false>
+				    ::try_boundary(*fp.rdbuf(),
+						   boundarybuf,
+						   message))
+				{
+					boundarybuf.clear();
 					break;
 				}
 			}
-			fclose(fp);
-			utf8[i]=parser->rfcviolation & RFC2045_ERR8BITHEADER
-				? 1:0;
-			rfc2045_free(parser);
-			if (err)	break;
 		}
-	} while (i < argc);
+	} while (boundarybuf.empty());
 
-	printf("Mime-Version:1.0\n"
-		"Content-Type: multipart/digest; boundary=\"%s\"\n\n%s",
-			boundarybuf, RFC2045MIMEMSG);
+	std::cout << "Mime-Version:1.0\n"
+		"Content-Type: multipart/digest; boundary=\""
+		  << boundarybuf << "\"\n\n"
+		RFC2045MIMEMSG;
 
-	for (i=0; i<argc; i++)
+	for (int i=0; i<argc; i++)
 	{
-		if ((fp=fopen(argv[i], "r")) == 0)
+		std::ifstream fp{argv[i]};
+
+		if (!fp)
 		{
 			perror(argv[i]);
 			exit(1);
 		}
 
-		printf("\n--%s\nContent-Type: %s\n\n",
-		       boundarybuf,
-		       utf8[i] ? RFC2045_MIME_MESSAGE_GLOBAL:
-		       RFC2045_MIME_MESSAGE_RFC822);
-
-		while (fgets(mimebuf, sizeof(mimebuf), fp))
-			printf("%s", mimebuf);
-		fclose(fp);
+		std::cout << "\n--"
+			  << boundarybuf << "\nContent-Type: "
+			  << (utf8[i] ? RFC2045_MIME_MESSAGE_GLOBAL "\n\n":
+			      RFC2045_MIME_MESSAGE_RFC822 "\n\n"
+			  )
+			  << fp.rdbuf();
 	}
-	free(utf8);
-	printf("\n--%s--\n", boundarybuf);
-}
-
-static void display_decoded_header(const char *ptr, size_t cnt, void *dummy)
-{
-	if (cnt == 0)
-		putchar('\n');
-	else
-		fwrite(ptr, cnt, 1, stdout);
+	std::cout << "\n--" << boundarybuf << "--\n";
 }
 
 static int main2(const char *mimecharset, int argc, char **argv)
@@ -762,14 +737,14 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	char	optc;
 	char	*optarg;
 	std::string_view mimesection;
-	bool dorewrite{false}, doinfo{false}, dodecode{false};
-	int	dodsn=0, domimedigest=0;
-	int	dodecodehdr=0, dodecodeaddrhdr=0, doencodemime=0,
-		doencodemimehdr=0;
+	bool dorewrite{false}, doinfo{false}, dodecode{false},
+		domimedigest{false}, dodecodehdr{false},
+		dodecodeaddrhdr{false}, doencodemime{false},
+		doencodemimehdr{false}, convtoutf8{false};
+	int	dodsn=0;
 
 	const char	*decode_header="";
 	rfc2045::convert rwmode{rfc2045::convert::standardize};
-	int     convtoutf8=0;
 	bool	dovalidate{false};
 	void	(*do_extract)(const rfc2045::entity &message,
 			      std::streambuf &source,
@@ -832,7 +807,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 				rwmode=rfc2045::convert::eightbit_always;
 			break;
 		case 'm':
-			domimedigest=1;
+			domimedigest=true;
 			break;
 		case 'd':
 			dodsn=1;
@@ -858,7 +833,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			{
 				decode_header=optarg;
 			}
-			dodecodehdr=1;
+			dodecodehdr=true;
 			break;
 		case 'H':
 			if (!optarg && argn < argc)
@@ -867,7 +842,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			{
 				decode_header=optarg;
 			}
-			dodecodeaddrhdr=1;
+			dodecodeaddrhdr=true;
 			break;
 		case 'o':
 			if (!optarg && argn < argc)
@@ -876,7 +851,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			{
 				decode_header=optarg;
 			}
-			doencodemime=1;
+			doencodemime=true;
 			break;
 		case 'O':
 			if (!optarg && argn < argc)
@@ -885,10 +860,10 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			{
 				decode_header=optarg;
 			}
-			doencodemimehdr=1;
+			doencodemimehdr=true;
 			break;
 		case 'u':
-			convtoutf8=1;
+			convtoutf8=true;
 			break;
 		default:
 			usage();
@@ -906,46 +881,46 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	}
 	else if (dodecodehdr)
 	{
-		if (rfc822_display_hdrvalue("Subject",
-					    decode_header,
-					    mimecharset,
-					    display_decoded_header,
-					    NULL,
-					    NULL) < 0)
-		{
-			perror("rfc822_display_hdrvalue");
-			return (1);
-		}
+		rfc822::display_header("Subject",
+				       decode_header,
+				       mimecharset,
+				       std::ostreambuf_iterator<char>{
+					       std::cout.rdbuf()
+				       });
 
-		printf("\n");
+		std::cout << "\n";
 		return (0);
 	}
 	else if (dodecodeaddrhdr)
 	{
-		if (rfc822_display_hdrvalue("To",
-					    decode_header,
-					    mimecharset,
-					    display_decoded_header,
-					    NULL,
-					    NULL) < 0)
-		{
-			perror("rfc822_display_hdrvalue");
-			return (1);
-		}
+		rfc822::display_header("To",
+				       decode_header,
+				       mimecharset,
+				       std::ostreambuf_iterator<char>{
+					       std::cout.rdbuf()
+				       },
+				       []
+				       {
+					       std::cout << "\n";
+				       }
+		);
 
-		printf("\n");
+		std::cout << "\n";
 		return (0);
 	}
 
 	if (doencodemime)
 	{
-		char *s=rfc2047_encode_str(decode_header, mimecharset,
-					   rfc2047_qp_allow_any);
+		std::string_view hdr{decode_header};
 
-		if (s)
+		const auto &[str, error]=rfc2047::encode(
+			hdr.begin(),
+			hdr.end(),
+			mimecharset, rfc2047_qp_allow_any);
+
+		if (!error)
 		{
-			printf("%s\n", s);
-			free(s);
+			std::cout << str << "\n";
 		}
 		return (0);
 	}

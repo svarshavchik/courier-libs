@@ -594,3 +594,13 @@ std::tuple<std::string, bool> rfc2045::headers_base::convert_name_check_empty()
 		current_header().size() == empty_line_size
 	};
 }
+
+rfc2045::entity::errors_t rfc2045::entity_info::all_errors() const
+{
+	auto code=errors.code;
+
+	for (auto &se:subentities)
+		code |= se.all_errors();
+
+	return code;
+}

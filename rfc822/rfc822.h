@@ -20,8 +20,8 @@ extern "C" {
 }
 #endif
 
-#define RFC822_SPECIALS "()<>[]:;@\\,.\""
-
+#define RFC822_SPECIALS			"()<>[]:;@\\,.\""
+#define RFC822_SPECIAL_INNAMES		"()<>[]@\\,.\""
 /*
 ** The text string we want to parse is first tokenized into an array of
 ** struct rfc822token records.  'ptr' points into the original text

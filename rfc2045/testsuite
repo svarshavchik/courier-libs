@@ -327,5 +327,40 @@ EOF
 LANG=en_US.iso-8859-1 ./reformime -d <testsuite.dat
 LANG=en_US.iso-8859-1 ./reformime -D <testsuite.dat
 
+cat >testsuite1.dat <<EOF
+Mime-Version: 1.0
+From: Hóla <user@Hóla.example.com>
+Subject: UTF-8 message
 
-rm testsuite.dat
+test
+EOF
+
+cat >testsuite2.dat <<EOF
+Mime-Version: 1.0
+From:  <user@example.com>
+Subject: RFC2822 message
+
+test
+EOF
+
+VALGRIND=""
+if test "`which valgrind 2>/dev/null`" != ""
+then
+    VALGRIND="valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 "
+fi
+
+echo "=== DIGEST 1 ==="
+$VALGRIND ./reformime -m testsuite1.dat testsuite2.dat >testsuite.out.dat
+
+sed 's/boundary=.*//;/^--/d' <testsuite.out.dat
+
+echo "=== DIGEST 2 ==="
+cat >testsuite.in.dat <<EOF
+testsuite1.dat
+testsuite2.dat
+EOF
+$VALGRIND ./reformime -m <testsuite.in.dat >testsuite.out.dat
+
+sed 's/boundary=.*//;/^--/d' <testsuite.out.dat
+
+rm testsuite*.dat

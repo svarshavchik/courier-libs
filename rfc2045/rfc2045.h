@@ -1540,6 +1540,8 @@ class rfc2045::entity_info {
 		return std::string_view{content_type.value.data(), i}
 			== "multipart";
 	}
+
+	errors_t all_errors() const;
 };
 
 /*

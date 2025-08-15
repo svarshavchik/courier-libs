@@ -68,44 +68,6 @@ template<typename out_iter_type> auto tokens::unicode_name(
 				      std::remove_reference_t<
 					      out_iter_type>>>
 {
-	struct proxy {
-		out_iter_type &iter;
-
-		proxy(out_iter_type &iter) : iter{iter} {}
-
-		auto &operator=(const proxy &)
-		{
-			return *this;
-		}
-
-		// Iterator semantics.
-		// using iterator_category=std::output_iterator_tag;
-		// using value_type=void;
-		// using pointer=void;
-		// using reference=void;
-		// using difference_type=void;
-
-		auto &operator=(char32_t c)
-		{
-			*iter++ = c;
-			return *this;
-		}
-
-		auto &operator++(int)
-		{
-			return *this;
-		}
-
-		auto &operator++()
-		{
-			return *this;
-		}
-
-		auto &operator*()
-		{
-			return *this;
-		}
-	};
 	std::string s;
 
 	s.reserve(this->print(this->begin(), this->end(), length_counter{}));
@@ -114,6 +76,7 @@ template<typename out_iter_type> auto tokens::unicode_name(
 		    std::back_inserter(s));
 
 	std::string fragment;
+	std::u32string us;
 
 	rfc2047::decode(
 		s.begin(),
@@ -134,12 +97,12 @@ template<typename out_iter_type> auto tokens::unicode_name(
 				fragment.end(),
 				charset,
 				errflag,
-				proxy{iter});
+				std::back_inserter(us));
 
 			if (errflag)
 				for (char c: std::string_view{
 						" (encoding error)"})
-					*iter++ = static_cast<char32_t>(c);
+					us.push_back(c);
 		},
 		[&](auto &&b, auto &&e, auto error_message)
 		{
@@ -152,6 +115,94 @@ template<typename out_iter_type> auto tokens::unicode_name(
 			}
 			*iter++=')';
 		});
+
+	// Characters that require quoting, in the context of the name
+	// portion, are RFC822_SPECIALS except for : and ;.
+
+	static constexpr std::string_view special{RFC822_SPECIAL_INNAMES};
+
+	// Determine if we have a quoted string.
+
+	bool quote_inuse=false;
+
+	if (us.size() > 1 && us[0] == '"' && us.back() == '"')
+	{
+		quote_inuse=true;
+	}
+	else
+	{
+		// If not, and there are any special characters or
+		// consecutive whitespace: we'll make it a quoted string.
+
+		bool prev_spc=true;
+
+		for (auto uc:us)
+		{
+			if (uc == ' ' || uc == '\t')
+			{
+				if (prev_spc)
+				{
+					quote_inuse=true;
+					break;
+				}
+
+				prev_spc=true;
+				continue;
+			}
+
+			prev_spc=false;
+			if ((uc >= 0 && uc < ' ') ||
+			    special.find(uc) < special.size())
+			{
+				quote_inuse=true;
+				break;
+			}
+		}
+
+		if (quote_inuse)
+		{
+			us.insert(us.begin(), '"');
+			us.push_back('"');
+		}
+	}
+
+	// If we have a quoted string, when we output it we'll make sure that
+	// any special characters are \-ed.
+
+	auto b=us.begin(), e=us.end();
+
+	if (quote_inuse)
+	{
+		*iter++ = '"';
+		++b;
+		--e;
+	}
+
+	while (b != e)
+	{
+		if (quote_inuse)
+		{
+			switch (*b) {
+			case '\\':
+				if (b+1 == e)
+				{
+					*iter++ = '\\';
+				}
+
+				*iter++=*b++;
+				break;
+			case '"':
+				*iter++='\\';
+				break;
+			}
+		}
+		*iter++=*b++;
+	}
+
+	if (quote_inuse)
+	{
+		*iter++ = '"';
+	}
 
 	if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
 		return iter;
@@ -259,11 +310,16 @@ template<typename out_iter_type> auto tokens::display_name(
 // atoms in the name portion, and punycode in domain names.
 //
 // Non-address headers get decoded using RFC 2047.
+//
+// An optional fourth parameter is a closure that gets invoked after
+// formatting the comma separators between addresses, in a header that
+// contains addresses.
 
-template<typename out_iter>
+template<typename out_iter, typename mark_sep_t=void (*)()>
 auto display_header_unicode(std::string_view headername,
 			    std::string_view headercontents,
-			    out_iter &&iter)
+			    out_iter &&iter,
+			    mark_sep_t &&mark_sep=[]{})
 {
 	if (header_is_addr(headername))
 	{
@@ -274,11 +330,25 @@ auto display_header_unicode(std::string_view headername,
 
 		for (auto &address:a)
 		{
-			while (*sep)
-				*iter++=*sep++;
+			if (address.address.empty() &&
+			    address.name.size() == 1 &&
+			    address.name.begin()->type == ';')
+				sep=U"";
+
+			if (*sep)
+			{
+				while (*sep)
+					*iter++=*sep++;
+
+				if (!address.address.empty())
+					mark_sep();
+			}
 
 			address.unicode(iter);
-			sep=U", ";
+
+			sep=address.address.empty()
+				? U" ":
+				U", ";
 		}
 	}
 	else
@@ -307,30 +377,44 @@ auto display_header_unicode(std::string_view headername,
 // Call display_unicode(), then convert Unicode to the given character set.
 //
 // The fourth parameter is an output iterator over char.
+//
+// An optional fifth parameter is a closure that gets invoked after
+// formatting the comma separators between addresses, in a header that
+// contains addresses.
 
-template<typename out_iter>
+template<typename out_iter, typename mark_sep_t=void (*)()>
 auto display_header(std::string_view headername,
 		    std::string_view headercontents,
 		    const std::string &chset,
-		    out_iter &&iter)
+		    out_iter &&iter,
+		    mark_sep_t &&mark_sep=[]{})
 {
 	std::u32string us;
 
 	auto uiter=std::back_inserter(us);
 
-	display_header_unicode(headername, headercontents, uiter);
+	display_header_unicode(
+		headername,
+		headercontents,
+		uiter,
+		[&]
+		{
+			bool errflag;
+			unicode::iconvert::fromu::convert(
+				us.begin(), us.end(), chset,
+				iter, errflag);
+			us.clear();
+			mark_sep();
+		}
+	);
 
-	bool errflag;
-
-	unicode::iconvert::fromu::convert(us.begin(), us.end(), chset,
-					  iter, errflag);
-
-	if (errflag)
+	if (!us.empty())
 	{
-		for (char c: std::string_view{"[unicode conversion error]"})
-			*iter++ = c;
+		bool errflag;
+		unicode::iconvert::fromu::convert(
+			us.begin(), us.end(), chset,
+			iter, errflag);
 	}
-
 	if constexpr(!std::is_same_v<out_iter, out_iter &>)
 		return iter;
 }
