@@ -21,6 +21,16 @@
 # You may modify the message in whatever fashion before passing it on to the
 # MTA.
 #
-# exec /usr/sbin/sendmail -oi -t -f "$1"
+# The SENDMAIL_ARGUMENTS can be set in /etc/courier/sqwebmaild.
 
-exec @mailer@ $DSN -f "$1"
+# Check to see if the SENDMAIL_ARGUMENTS variable is set in
+# /etc/courier/sqwebmaild.
+if [ -n "$SENDMAIL_ARGUMENTS" ] ; then
+    # The exec command is prepended with eval so that SENDMAIL_ARGUMENTS are
+    # correctly expanded.
+    eval exec @mailer@ $SENDMAIL_ARGUMENTS
+else
+    # Run the default command that works with Courier if nothing is set in
+    # /etc/courier/sqwebmaild.
+    exec @mailer@ $DSN -f "$1"
+fi
