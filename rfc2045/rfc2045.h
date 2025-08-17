@@ -1512,10 +1512,11 @@ class rfc2045::entity_info {
 	std::string_view content_type_charset() const;
 	std::string_view content_type_boundary() const;
 
-	// We don't need to look at Content-Disposition: and
-	// Content-Descirption:, so we'll just grab them and parse them
+	// We don't need to look at these headers here,
+	// so we'll just grab them and parse them
 	// later.
-	std::string content_disposition, content_description;
+	std::string content_disposition, content_description,
+		content_location, content_md5, content_language;
 
 	// Parsed identifier
 	std::string content_id;
@@ -2511,6 +2512,18 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		if (name == "content-disposition")
 		{
 			content_disposition=header;
+		}
+		if (name == "content-md5")
+		{
+			content_md5=header;
+		}
+		if (name == "content-location")
+		{
+			content_location=header;
+		}
+		if (name == "content-language")
+		{
+			content_language=header;
 		}
 		if (name == "content-description")
 		{
