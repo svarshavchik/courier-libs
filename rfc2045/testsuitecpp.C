@@ -798,8 +798,8 @@ void testmimeparse()
 					86   , // startpos
 					136  , // startbody
 					215  , // endbody
-					11   , // nlines
-					9    , // nbodylines
+					12   , // nlines
+					10   , // nbodylines
 					1    , // mime1
 					0, "multipart/alternative", "iso-8859-1",
 					"ab", cte::eightbit,
@@ -811,8 +811,8 @@ void testmimeparse()
 							141  , // startpos
 							166  , // startbody
 							170  , // endbody
-							2    , // nlines
-							0    , // nbodylines
+							3    , // nlines
+							1    , // nbodylines
 							1    , // mime1
 							0, "text/html", "iso-8859-1",
 							"", cte::sevenbit,
@@ -931,8 +931,8 @@ void testmimeparse()
 					114  , // startpos
 					115  , // startbody
 					289  , // endbody
-					15   , // nlines
-					14   , // nbodylines
+					16   , // nlines
+					15   , // nbodylines
 					1    , // mime1
 					0, "message/rfc822", "iso-8859-1",
 					"", cte::sevenbit,
@@ -944,8 +944,8 @@ void testmimeparse()
 							115  , // startpos
 							197  , // startbody
 							289  , // endbody
-							14   , // nlines
-							10   , // nbodylines
+							15   , // nlines
+							11   , // nbodylines
 							1    , // mime1
 							0, "multipart/alternative", "iso-8859-1",
 							"yyy", cte::eightbit,
@@ -970,8 +970,8 @@ void testmimeparse()
 									250  , // startpos
 									276  , // startbody
 									281  , // endbody
-									2    , // nlines
-									0    , // nbodylines
+									3    , // nlines
+									1    , // nbodylines
 									1    , // mime1
 									0, "text/plain", "iso-8859-1",
 									"", cte::sevenbit,

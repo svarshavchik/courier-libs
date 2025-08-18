@@ -1424,6 +1424,7 @@ class rfc2045::entity_info {
 		endbody=0;	/* Ending position */
 	size_t	nlines=0;	/* Number of lines in message */
 	size_t	nbodylines=0;	/* Number of lines only in the body */
+	bool no_terminating_nl{false}; /* Ditto */
 
 	typedef unsigned errors_t;
 
@@ -1854,6 +1855,9 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 
 	size_t longquotedlinesize=500;
 
+	// Whether the previously consumed line was nonempty
+	bool prev_line_was_empty{true};
+
 	// Default value for the maximum size of an unfolded header, otherwise
 	// RFC2045_ERRLONGUNFOLDEDHEADER errors flag gets set.
 	size_t longunfoldedheadersize=entity_parse_meta::longunfoldedheadersize;
@@ -2076,6 +2080,7 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 
 		size_t c{consume_line(entity, encoding, has8bit)};
 
+		prev_line_was_empty=c <= eol_size();
 		if (was_in_header)
 			consumed_header_line(c);
 		else
@@ -2349,7 +2354,7 @@ public:
 		if (!std::holds_alternative<eof_no>(eof()))
 		{
 			// We are getting a real EOF indication, or
-			// a MIME boundary delimitered. Officially enter
+			// a MIME boundary delimiter. Officially enter
 			// the body part of the MIME entity, and call it quits.
 			entered_body();
 			return std::tuple("","");
@@ -2679,10 +2684,26 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				if (adjusted_endbody < last_se.endbody)
 				{
 					last_se.endbody=adjusted_endbody;
-					if (last_se.nbodylines)
-						--last_se.nbodylines;
-					if (last_se.nlines)
-						--last_se.nlines;
+
+					// If the most recent line was empty,
+					// its newline is logically a part of
+					// the multipart boundary delimiter,
+					// and we subtract one. However if
+					// it was a non-empty line it becomes
+					// a line without a trailing newline,
+					// but it still counts as a line.
+
+					if (iter.prev_line_was_empty)
+					{
+						if (last_se.nbodylines)
+							--last_se.nbodylines;
+						if (last_se.nlines)
+							--last_se.nlines;
+					}
+					else
+					{
+						last_se.no_terminating_nl=true;
+					}
 				}
 				se= &last_se.subentities;
 			}

@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <unistd.h>
 
@@ -570,6 +571,270 @@ void test5()
 #endif
 }
 
+void test6()
+{
+	std::stringstream ss;
+
+	std::string s="Mime-Version: 1.0\n"
+		"Content-Type: multipart/digest; boundary=aaa\n"
+		"\n"
+		"--aaa\n"
+		"\n"
+		"Subject: first message\n"
+		"\n"
+		"one\n"
+		"two\n"
+		"\n"
+		"--aaa\n"
+		"\n"
+		"Subject: second message\n"
+		"\n"
+		"one\n"
+		"two\n"
+		"--aaa---\n";
+
+	ss << s;
+
+	auto b=std::istreambuf_iterator<char>{ss};
+	auto e=std::istreambuf_iterator<char>{};
+
+	rfc2045::entity::line_iter<false>::iter<
+		std::istreambuf_iterator<char>,
+		std::istreambuf_iterator<char>
+		> iter{b, e};
+
+	rfc2045::entity entity;
+
+	entity.parse(iter);
+
+	for (auto &mime:entity.subentities)
+	{
+		if (mime.subentities.size() != 1)
+		{
+			std::cout << "test6: unexpected structure\n";
+			exit(1);
+		}
+	}
+
+	std::vector<std::array<size_t, 6>> actual;
+
+	actual.push_back(std::array<size_t, 6>{
+			{entity.startpos, entity.startbody,
+			 entity.endbody,
+			 entity.nlines,
+			 entity.nbodylines,
+			 entity.no_terminating_nl}});
+
+	for (auto &mime:entity.subentities)
+	{
+		actual.push_back(std::array<size_t, 6>{
+				{mime.startpos, mime.startbody,
+				 mime.endbody,
+				 mime.nlines,
+				 mime.nbodylines,
+				 mime.no_terminating_nl}});
+		actual.push_back(std::array<size_t, 6>{
+				{mime.subentities[0].startpos,
+				 mime.subentities[0].startbody,
+				 mime.subentities[0].endbody,
+				 mime.subentities[0].nlines,
+				 mime.subentities[0].nbodylines,
+				 mime.subentities[0].no_terminating_nl}});
+	}
+#if 1
+	std::vector<std::array<size_t, 6>> expected{
+		/*
+		 1 Mime-Version: 1.0
+		 2 Content-Type: multipart/digest; boundary=aaa
+		 3
+		 4 --aaa
+		 5
+		 6 Subject: first message
+		 7
+		 8 one
+		 9 two
+		10
+		11 --aaa
+		12
+		13 Subject: second message
+		14
+		15 one
+		16 two
+		17 --aaa---
+		*/
+
+		/* Header:
+
+		[Mime-Version: 1.0
+		Co...gest; boundary=aaa
+
+		]
+
+		Body:
+
+		[--aaa
+
+		Subject: firs...e
+
+		one
+		two
+		--aaa---
+		]
+
+		*/
+		{{0, 64, 153, 17, 14, 0}},
+		/* Header:
+
+		[
+		]
+
+		Body:
+
+		[Subject: first message
+
+		one
+		two
+		]
+
+		*/
+		{{70, 71, 103, 5, 4, 0}},
+		/* Header:
+
+		[Subject: first message
+
+		]
+
+		Body:
+
+		[one
+		two
+		]
+
+		*/
+		{{71, 95, 103, 4, 2, 0}},
+		/* Header:
+
+		[
+		]
+
+		Body:
+
+		[Subject: second message
+
+		one
+		two]
+
+		*/
+		{{110, 111, 143, 5, 4, 1}},
+		/* Header:
+
+		[Subject: second message
+
+		]
+
+		Body:
+
+		[one
+		two]
+
+		*/
+		{{111, 136, 143, 4, 2, 1}}
+	};
+
+	if (expected != actual)
+	{
+		std::cout << "test6 failed:\n";
+		for (auto &a:actual)
+		{
+			std::cout << "\n";
+			const auto &[startpos, startbody, endbody, nlines,
+				     nbodylines, no_term_nl]=a;
+
+			std::cout << "startpos:   " << startpos << "\n"
+				  << "startbody:  " << startbody << "\n"
+				  << "endbody:    " << endbody << "\n"
+				  << "nlines:     " << nlines << "\n"
+				  << "nbodylines: " << nbodylines << "\n"
+				  << "no term nl: " << no_term_nl << "\n";
+		}
+		exit(1);
+	}
+#else
+
+	std::cout << "\t\t/*\n";
+
+	{
+		std::istringstream i{s};
+		std::string line;
+		size_t n=0;
+
+		while (std::getline(i, line))
+			std::cout << "\t\t" << std::setw(2) << ++n
+				  << std::setw(0) << " "
+				  << line << "\n";
+	}
+	std::cout << "\t\t*/\n\n";
+
+	const char *commanl="";
+
+	for (auto &a:actual)
+	{
+		std::cout << commanl;
+
+		const auto &[startpos, startbody, endbody, nlines, nbodylines,
+			     no_term_nl]
+			= a;
+
+		std::cout << "\t\t/* Header:\n\n";
+
+		std::string chunk=s.substr(startpos, startbody-startpos);
+
+		if (chunk.size() > 50)
+			chunk=chunk.substr(0, 20) + "..." +
+				chunk.substr(chunk.size()-20);
+
+		{
+			std::istringstream i{"[" + chunk + "]"};
+
+			std::string line;
+
+			while (std::getline(i, line))
+				std::cout << "\t\t" << line << "\n";
+		}
+		std::cout << "\n\t\tBody:\n\n";
+
+		chunk=s.substr(startbody, endbody-startbody);
+
+		if (chunk.size() > 50)
+			chunk=chunk.substr(0, 20) + "..." +
+				chunk.substr(chunk.size()-20);
+
+		{
+			std::istringstream i{"[" + chunk + "]"};
+
+			std::string line;
+
+			while (std::getline(i, line))
+				std::cout << "\t\t" << line << "\n";
+		}
+
+		std::cout << "\n\t\t*/\n";
+
+		std::cout << "\t\t{{";
+		commanl="";
+
+		for (auto v:a)
+		{
+			std::cout << commanl << v;
+			commanl = ", ";
+		}
+		std::cout << "}}";
+		commanl=",\n";
+	}
+	std::cout << "\n";
+#endif
+}
+
 int main()
 {
 	alarm(60);
@@ -604,5 +869,7 @@ int main()
 	test5<false>();
 	test5<true>();
 #endif
+
+	test6();
 	return 0;
 }
