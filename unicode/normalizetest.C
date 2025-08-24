@@ -224,10 +224,11 @@ void testcompose1()
 		string[0]=canonical_compositions[i][1];
 		string[1]=canonical_compositions[i][0];
 
-		if (unicode_compose(string, 2, 0, &new_size)
-		    || new_size != 2
-		    || string[0] != canonical_compositions[i][1]
-		    || string[1] != canonical_compositions[i][0])
+		if (string[0] != string[1] &&
+		    (unicode_compose(string, 2, 0, &new_size)
+		     || new_size != 2
+		     || string[0] != canonical_compositions[i][1]
+		     || string[1] != canonical_compositions[i][0]))
 		{
 			std::cerr << "testcompose1: should not compose "
 				  << std::hex << std::setw(4)

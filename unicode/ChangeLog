@@ -1,5 +1,9 @@
 2.4.0
 
+2025-08-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Updated to the Unicode 16 standard.
+
 2025-08-10  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* unicode.c: when a conversion error is encountered try to include

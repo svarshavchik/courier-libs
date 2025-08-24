@@ -23,7 +23,16 @@ struct state_t {
 	char32_t ch;
 	uint8_t lb;
 	uint8_t ew;
-	uint8_t emoji_extended_pictographic_and_cn;
+
+#define EASTASIA(uclass)	(					\
+	(uclass).ew == UNICODE_EASTASIA_F ||				\
+	(uclass).ew == UNICODE_EASTASIA_W ||				\
+	(uclass).ew == UNICODE_EASTASIA_H				\
+									)
+
+
+	uint8_t emoji_extended_pictographic;
+	unicode_general_category_t category;
 };
 
 typedef struct state_t state_t;
@@ -39,6 +48,11 @@ typedef struct def_common_state {
 #define LB15_NONE	0
 #define LB15_SEENQUPI	1
 
+	char lb25_state;
+#define LB25_NONE			0
+#define LB25_SEEN_NU			1
+#define LB25_SEEN_NU_SYISMAYBE_CLCP	2
+
 	char lb28_state;
 #define LB28_NONE		0
 #define LB28_SEENRULE3VI	1
@@ -53,13 +67,10 @@ struct unicode_lb_info {
 
 	size_t savedcmcnt;
 
-	state_t savedclass;
+	state_t savedclass, savedclass2;
 
 	def_common_state_t def_common_state,
 		savedstate;
-
-	/* Flag -- recursively invoked after discarding LB25 */
-	char nolb25;
 
 	/* Flag -- seen a pair of RIs */
 	char nolb30a;
@@ -74,23 +85,17 @@ struct unicode_lb_info {
 static int next_def(unicode_lb_info_t, state_t);
 static int end_def(unicode_lb_info_t);
 
-static int next_lb25_seenophy(unicode_lb_info_t, state_t);
-static int end_lb25_seenophy(unicode_lb_info_t);
-
-static int next_lb25_seennu(unicode_lb_info_t, state_t);
-
-static int next_lb25_seennuclcp(unicode_lb_info_t, state_t);
-
 static void state_t_init(state_t *s,
 			 char32_t ch,
 			 uint8_t lb, uint8_t ew,
-			 uint8_t emoji_extended_pictographic_and_cn)
+			 uint8_t emoji_extended_pictographic,
+			 unicode_general_category_t category)
 {
 	s->ch=ch;
 	s->lb=lb;
 	s->ew=ew;
-	s->emoji_extended_pictographic_and_cn=
-		emoji_extended_pictographic_and_cn;
+	s->emoji_extended_pictographic=emoji_extended_pictographic;
+	s->category=category;
 }
 
 static void unicode_lb_reset(unicode_lb_info_t i)
@@ -98,7 +103,8 @@ static void unicode_lb_reset(unicode_lb_info_t i)
 	state_t_init(&i->def_common_state.prevclass, 0,
 		     UNICODE_LB_SOT,
 		     UNICODE_EASTASIA_N,
-		     0);
+		     0,
+		     UNICODE_GENERAL_CATEGORY_Cn);
 
 	i->def_common_state.prevclass_min1=
 		i->def_common_state.prevclass_nsp=i->def_common_state.prevclass;
@@ -200,9 +206,8 @@ int unicode_lb_next(unicode_lb_info_t i,
 	state_t_init(&c, ch,
 		     unicode_lb_lookup(ch),
 		     unicode_eastasia(ch),
-		     unicode_emoji_extended_pictographic(ch) &&
-		     unicode_general_category_lookup(ch) ==
-		     UNICODE_GENERAL_CATEGORY_Cn);
+		     unicode_emoji_extended_pictographic(ch),
+		     unicode_general_category_lookup(ch));
 
 
 	if ((i->opts & UNICODE_LB_OPT_DASHWJ) &&
@@ -223,7 +228,6 @@ static int next_def_common(unicode_lb_info_t i,
 
 static void next_def_reset_common(unicode_lb_info_t i)
 {
-	i->nolb25=0;
 	i->nolb30a=0;
 }
 
@@ -249,9 +253,16 @@ static int next_def_seen_lb30a(unicode_lb_info_t i,
 static int next_def_15b(unicode_lb_info_t i,
 			state_t uclass);
 static int no_next_def_15b(unicode_lb_info_t i);
+static int next_def_15c(unicode_lb_info_t i,
+			state_t uclass);
+static int no_next_def_15c(unicode_lb_info_t i);
 static int next_def_no15b(unicode_lb_info_t i,
 			  state_t uclass,
 			  def_common_state_t prev_state);
+
+static int next_def_lb19a(struct unicode_lb_info *, state_t);
+
+static int no_next_def_lb19a(struct unicode_lb_info *);
 
 static int next_def_lb28a_rule4(struct unicode_lb_info *, state_t);
 
@@ -259,6 +270,14 @@ static int no_next_def_lb28a_rule4(struct unicode_lb_info *);
 
 static int no_lb28a_rule4(struct unicode_lb_info *i, state_t uclass,
 			  def_common_state_t prevstate);
+
+static int next_def_lb25_popr_op(struct unicode_lb_info *, state_t);
+
+static int no_next_def_lb25_popr_op(struct unicode_lb_info *);
+
+static int next_def_lb25_popr_op_is(struct unicode_lb_info *, state_t);
+
+static int no_next_def_lb25_popr_op_is(struct unicode_lb_info *);
 
 static int next_def_common(unicode_lb_info_t i,
 			   state_t uclass)
@@ -272,20 +291,36 @@ static int next_def_common(unicode_lb_info_t i,
 	i->def_common_state.prevclass=uclass;
 
 	i->def_common_state.lb15_state=LB15_NONE;
+	i->def_common_state.lb25_state=LB25_NONE;
 	i->def_common_state.lb28_state=LB28_NONE;
 
-	unicode_general_category_t c=
-		unicode_general_category_lookup(uclass.ch);
+	unicode_general_category_t c=uclass.category;
 
+	if (uclass.lb == UNICODE_LB_NU)
+	{
+		i->def_common_state.lb25_state=LB25_SEEN_NU;
+	}
+	else if (prev_state.lb25_state == LB25_SEEN_NU)
+	{
+		switch (uclass.lb) {
+		case UNICODE_LB_SY:
+		case UNICODE_LB_IS:
+			i->def_common_state.lb25_state=LB25_SEEN_NU;
+			break;
+
+		case UNICODE_LB_CL:
+		case UNICODE_LB_CP:
+			i->def_common_state.lb25_state=
+				LB25_SEEN_NU_SYISMAYBE_CLCP;
+			break;
+		}
+	}
 	int lb15a_possible=
 		(uclass.lb == UNICODE_LB_QU &&
 		 c == UNICODE_GENERAL_CATEGORY_Pi);
 
 	if (uclass.lb != UNICODE_LB_SP)
 		i->def_common_state.prevclass_nsp=uclass;
-
-	if (uclass.lb == UNICODE_LB_NU)
-		i->next_handler=next_lb25_seennu; /* LB25 */
 
 	if (prev_state.prevclass.lb == UNICODE_LB_SOT)
 	{
@@ -392,36 +427,15 @@ static int next_def_common(unicode_lb_info_t i,
 	    prev_state.prevclass.lb != UNICODE_LB_HY)
 		return RESULT(UNICODE_LB_NONE, "LB12a");
 
-
-	if (uclass.lb == UNICODE_LB_SY &&
-	    i->opts & UNICODE_LB_OPT_SYBREAK)
-	{
-		if (prev_state.prevclass.lb == UNICODE_LB_SP)
-			return RESULT(UNICODE_LB_ALLOWED, "LB13 (tailored)");
-	}
-
-	if (prev_state.prevclass.lb != UNICODE_LB_NU) {
-		switch (uclass.lb) {
-		case UNICODE_LB_CL:
-		case UNICODE_LB_CP:
-		case UNICODE_LB_IS:
-		case UNICODE_LB_SY:
-			return RESULT(UNICODE_LB_NONE, "LB13");
-		default:
-			break;
-		}
-	}
-
-	if (uclass.lb == UNICODE_LB_EX)
+	switch (uclass.lb) {
+	case UNICODE_LB_CL:
+	case UNICODE_LB_CP:
+	case UNICODE_LB_EX:
+	case UNICODE_LB_SY:
 		return RESULT(UNICODE_LB_NONE, "LB13");
-
-	if ((i->opts & UNICODE_LB_OPT_SYBREAK) && prev_state.prevclass.lb == UNICODE_LB_SY)
-		switch (uclass.lb) {
-		case UNICODE_LB_EX:
-		case UNICODE_LB_AL:
-		case UNICODE_LB_ID:
-			return RESULT(UNICODE_LB_NONE, "LB13");
-		}
+	default:
+		break;
+	}
 
 	if (prev_state.prevclass_nsp.lb == UNICODE_LB_OP)
 	{
@@ -493,10 +507,71 @@ static int no_next_def_15b(unicode_lb_info_t i)
 	return RESULT(UNICODE_LB_NONE, "LB15b");
 }
 
+static int next_def_no15c(unicode_lb_info_t i,
+			  state_t uclass,
+			  def_common_state_t prev_state);
+
 static int next_def_no15b(unicode_lb_info_t i,
 			  state_t uclass,
 			  def_common_state_t prev_state)
 {
+	if (prev_state.prevclass.lb == UNICODE_LB_SP &&
+	    uclass.lb == UNICODE_LB_IS)
+	{
+		i->next_handler=next_def_15c;
+		i->end_handler=no_next_def_15c;
+		i->savedclass=uclass;
+		i->savedstate=prev_state;
+		return 0;
+	}
+
+	return next_def_no15c(i, uclass, prev_state);
+}
+
+static int next_def_15c(unicode_lb_info_t i,
+			state_t uclass)
+{
+	int rc;
+
+	i->next_handler=next_def;
+	i->end_handler=end_def;
+
+	if (uclass.lb == UNICODE_LB_NU)
+	{
+		rc=RESULT(UNICODE_LB_ALLOWED, "LB15c");
+
+		if (rc == 0)
+			rc=next_def(i, uclass);
+		return rc;
+	}
+
+	rc=next_def_no15c(i, i->savedclass, i->savedstate);
+
+	if (rc == 0)
+		rc=(*i->next_handler)(i, uclass);
+	return rc;
+}
+
+static int no_next_def_15c(unicode_lb_info_t i)
+{
+	return next_def_no15c(i, i->savedclass, i->savedstate);
+}
+
+static int next_def_nolb25(unicode_lb_info_t i,
+			   state_t uclass,
+			   def_common_state_t prev_state);
+
+static int next_def_no19a(unicode_lb_info_t i,
+			  state_t uclass,
+			  def_common_state_t prev_state);
+
+static int next_def_no15c(unicode_lb_info_t i,
+			  state_t uclass,
+			  def_common_state_t prev_state)
+{
+	if (uclass.lb == UNICODE_LB_IS)
+		return RESULT(UNICODE_LB_NONE, "LB15d");
+
 	if ((prev_state.prevclass_nsp.lb == UNICODE_LB_CL || prev_state.prevclass_nsp.lb == UNICODE_LB_CP)
 	    && uclass.lb == UNICODE_LB_NS)
 		return RESULT(UNICODE_LB_NONE, "LB16");
@@ -507,11 +582,97 @@ static int next_def_no15b(unicode_lb_info_t i,
 	if (prev_state.prevclass.lb == UNICODE_LB_SP)
 		return RESULT(UNICODE_LB_ALLOWED, "LB18");
 
-	if (uclass.lb == UNICODE_LB_QU || prev_state.prevclass.lb == UNICODE_LB_QU)
+	if (uclass.lb == UNICODE_LB_QU &&
+	    uclass.category != UNICODE_GENERAL_CATEGORY_Pi)
 		return RESULT(UNICODE_LB_NONE, "LB19");
 
+	if (prev_state.prevclass.lb == UNICODE_LB_QU &&
+	    prev_state.prevclass.category != UNICODE_GENERAL_CATEGORY_Pf)
+		return RESULT(UNICODE_LB_NONE, "LB19");
+
+	if (!EASTASIA(prev_state.prevclass) &&
+	    uclass.lb == UNICODE_LB_QU)
+		return RESULT(UNICODE_LB_NONE, "LB19a");
+
+	if (!EASTASIA(prev_state.prevclass) &&
+	    uclass.lb == UNICODE_LB_QU)
+		return RESULT(UNICODE_LB_NONE, "LB19a");
+
+	if (prev_state.prevclass.lb == UNICODE_LB_QU &&
+	    !EASTASIA(uclass))
+		return RESULT(UNICODE_LB_NONE, "LB19a");
+
+	if (prev_state.prevclass.lb == UNICODE_LB_QU &&
+	    (
+	     prev_state.prevclass_min1.lb == UNICODE_LB_SOT ||
+	     !EASTASIA(prev_state.prevclass_min1)))
+	{
+		return RESULT(UNICODE_LB_NONE, "LB19a");
+	}
+
+	if (uclass.lb == UNICODE_LB_QU)
+	{
+		i->next_handler=next_def_lb19a;
+		i->end_handler=no_next_def_lb19a;
+		i->savedclass=uclass;
+		i->savedstate=prev_state;
+		return 0;
+	}
+
+	return next_def_no19a(i, uclass, prev_state);
+}
+
+static int next_def_lb19a(struct unicode_lb_info *i, state_t uclass)
+{
+	int rc=0;
+
+	i->next_handler=next_def;
+	i->end_handler=end_def;
+
+	if (!EASTASIA(uclass))
+	{
+		rc=RESULT(UNICODE_LB_NONE, "LB19a");
+		if (rc == 0)
+			rc=next_def(i, uclass);
+		return rc;
+	}
+
+	rc=next_def_no19a(i, i->savedclass, i->savedstate);
+
+	if (rc == 0)
+		rc=(*i->next_handler)(i, uclass);
+
+	return rc;
+}
+
+static int no_next_def_lb19a(struct unicode_lb_info *i)
+{
+	return RESULT(UNICODE_LB_NONE, "lb19a");
+}
+
+static int next_def_no19a(unicode_lb_info_t i,
+			  state_t uclass,
+			  def_common_state_t prev_state)
+{
 	if (uclass.lb == UNICODE_LB_CB || prev_state.prevclass.lb == UNICODE_LB_CB)
 		return RESULT(UNICODE_LB_ALLOWED, "LB20");
+
+	if (uclass.lb == UNICODE_LB_AL &&
+	    (prev_state.prevclass.lb == UNICODE_LB_HY ||
+	     prev_state.prevclass.ch == 0x2010) &&
+
+	    (prev_state.prevclass_min1.lb == UNICODE_LB_SOT ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_BK ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_CR ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_LF ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_NL ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_SP ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_ZW ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_CB ||
+	     prev_state.prevclass_min1.lb == UNICODE_LB_GL))
+	{
+		return RESULT(UNICODE_LB_NONE, "LB20a");
+	}
 
 	switch (uclass.lb) {
 	case UNICODE_LB_BA:
@@ -526,7 +687,12 @@ static int next_def_no15b(unicode_lb_info_t i,
 		return RESULT(UNICODE_LB_NONE, "LB21");
 
 	if (prev_state.prevclass_min1.lb == UNICODE_LB_HL &&
-	    (prev_state.prevclass.lb == UNICODE_LB_HY || prev_state.prevclass.lb == UNICODE_LB_BA))
+	    (prev_state.prevclass.lb == UNICODE_LB_HY ||
+	     (
+	      prev_state.prevclass.lb == UNICODE_LB_BA &&
+	      !EASTASIA(prev_state.prevclass)
+	      )) &&
+	    uclass.lb != UNICODE_LB_HL)
 		return RESULT(UNICODE_LB_NONE, "LB21a");
 
 	if (prev_state.prevclass.lb == UNICODE_LB_SY && uclass.lb == UNICODE_LB_HL)
@@ -572,30 +738,131 @@ static int next_def_no15b(unicode_lb_info_t i,
 			return RESULT(UNICODE_LB_NONE, "LB24 (tailored)");
 		}
 
-	if (!i->nolb25 &&
-	    (prev_state.prevclass.lb == UNICODE_LB_PR || prev_state.prevclass.lb == UNICODE_LB_PO))
-	{
-		if (uclass.lb == UNICODE_LB_NU)
-			return RESULT(UNICODE_LB_NONE, "LB25");
-
-		if (uclass.lb == UNICODE_LB_OP || uclass.lb == UNICODE_LB_HY)
-		{
-			i->def_common_state=prev_state;
-			RULE("LB25 (start)");
-			i->savedclass=uclass;
-			i->savedcmcnt=0;
-			i->next_handler=next_lb25_seenophy;
-			i->end_handler=end_lb25_seenophy;
-			return 0;
-		}
-	}
-
-	if ((prev_state.prevclass.lb == UNICODE_LB_OP || prev_state.prevclass.lb == UNICODE_LB_HY) &&
-	    uclass.lb == UNICODE_LB_NU)
-		return RESULT(UNICODE_LB_NONE, "LB25");
-
 	/*****/
 
+	if (prev_state.lb25_state)
+		switch (uclass.lb) {
+		case UNICODE_LB_PO:
+		case UNICODE_LB_PR:
+			return RESULT(UNICODE_LB_NONE, "LB25");
+		}
+
+	switch (prev_state.prevclass.lb) {
+	case UNICODE_LB_PO:
+	case UNICODE_LB_PR:
+		if (uclass.lb == UNICODE_LB_OP)
+		{
+			i->next_handler=next_def_lb25_popr_op;
+			i->end_handler=no_next_def_lb25_popr_op;
+			i->savedclass=uclass;
+			i->savedstate=prev_state;
+			return 0;
+		}
+
+		/* FALLTHRU */
+
+	case UNICODE_LB_HY:
+	case UNICODE_LB_IS:
+		if (uclass.lb == UNICODE_LB_NU)
+			return RESULT(UNICODE_LB_NONE, "LB25");
+	}
+
+	if (prev_state.lb25_state == LB25_SEEN_NU &&
+	    uclass.lb == UNICODE_LB_NU)
+	{
+		return RESULT(UNICODE_LB_NONE, "LB25");
+	}
+
+	return next_def_nolb25(i, uclass, prev_state);
+}
+
+static int next_def_lb25_popr_op(struct unicode_lb_info *i, state_t uclass)
+{
+	int rc;
+
+	i->next_handler=next_def;
+	i->end_handler=end_def;
+
+	if (uclass.lb == UNICODE_LB_NU)
+	{
+		rc=RESULT(UNICODE_LB_NONE, "LB25");
+
+		if (rc == 0)
+			rc=next_def(i, uclass);
+
+		return rc;
+	}
+
+	if (uclass.lb == UNICODE_LB_IS)
+	{
+		i->savedclass2=uclass;
+		i->next_handler=next_def_lb25_popr_op_is;
+		i->end_handler=no_next_def_lb25_popr_op_is;
+		return 0;
+	}
+
+	rc=next_def_nolb25(i, i->savedclass, i->savedstate);
+
+	if (rc == 0)
+		rc=(*i->next_handler)(i, uclass);
+
+	return rc;
+}
+
+static int no_next_def_lb25_popr_op(struct unicode_lb_info *i)
+{
+	return next_def_nolb25(i, i->savedclass, i->savedstate);
+}
+
+static int next_def_lb25_popr_op_is(struct unicode_lb_info *i, state_t uclass)
+{
+	int rc;
+	state_t savedclass2=i->savedclass2;
+
+	i->next_handler=next_def;
+	i->end_handler=end_def;
+
+	if (uclass.lb == UNICODE_LB_NU)
+	{
+		rc=RESULT(UNICODE_LB_NONE, "LB25");
+
+		if (rc == 0)
+			rc=next_def(i, savedclass2);
+		if (rc == 0)
+			rc=(*i->next_handler)(i, uclass);
+
+		return rc;
+	}
+
+	rc=next_def_nolb25(i, i->savedclass, i->savedstate);
+
+	if (rc == 0)
+		rc=(*i->next_handler)(i, savedclass2);
+	if (rc == 0)
+		rc=(*i->next_handler)(i, uclass);
+
+	return rc;
+}
+
+static int no_next_def_lb25_popr_op_is(struct unicode_lb_info *i)
+{
+	state_t savedclass2=i->savedclass2;
+
+	i->next_handler=next_def;
+	i->end_handler=end_def;
+
+	int rc=next_def_nolb25(i, i->savedclass, i->savedstate);
+
+	if (rc == 0)
+		rc=(*i->next_handler)(i, savedclass2);
+
+	return rc;
+}
+
+static int next_def_nolb25(unicode_lb_info_t i,
+			   state_t uclass,
+			   def_common_state_t prev_state)
+{
 	if (prev_state.prevclass.lb == UNICODE_LB_JL)
 		switch (uclass.lb) {
 		case UNICODE_LB_JL:
@@ -728,17 +995,14 @@ static int no_lb28a_rule4(struct unicode_lb_info *i, state_t uclass,
 
 	if ((prev_state.prevclass.lb == UNICODE_LB_AL || prev_state.prevclass.lb == UNICODE_LB_HL
 	     || prev_state.prevclass.lb == UNICODE_LB_NU) &&
-	    (uclass.lb == UNICODE_LB_OP && uclass.ew != UNICODE_EASTASIA_F
-	     && uclass.ew != UNICODE_EASTASIA_W
-	     && uclass.ew != UNICODE_EASTASIA_H))
+	    (uclass.lb == UNICODE_LB_OP && !EASTASIA(uclass)
+	     ))
 		return RESULT(UNICODE_LB_NONE, "LB30");
 
 	if ((uclass.lb == UNICODE_LB_AL || uclass.lb == UNICODE_LB_HL
 	     || uclass.lb == UNICODE_LB_NU) &&
 	    (prev_state.prevclass.lb == UNICODE_LB_CP
-	     && prev_state.prevclass.ew != UNICODE_EASTASIA_F
-	     && prev_state.prevclass.ew != UNICODE_EASTASIA_W
-	     && prev_state.prevclass.ew != UNICODE_EASTASIA_H))
+	     && !EASTASIA(prev_state.prevclass)))
 		return RESULT(UNICODE_LB_NONE, "LB30");
 
 	if (uclass.lb == UNICODE_LB_RI && prev_state.prevclass.lb == UNICODE_LB_RI &&
@@ -751,152 +1015,14 @@ static int no_lb28a_rule4(struct unicode_lb_info *i, state_t uclass,
 	if (prev_state.prevclass.lb == UNICODE_LB_EB && uclass.lb == UNICODE_LB_EM)
 		return RESULT(UNICODE_LB_NONE, "LB30b");
 
-	if (prev_state.prevclass.emoji_extended_pictographic_and_cn &&
+	if (prev_state.prevclass.emoji_extended_pictographic &&
+	    prev_state.prevclass.category == UNICODE_GENERAL_CATEGORY_Cn &&
 	    uclass.lb == UNICODE_LB_EM)
 		return RESULT(UNICODE_LB_NONE, "LB30b");
 
 	return RESULT(UNICODE_LB_ALLOWED, "LB31");
 }
 
-/*
-** Seen (PR|PO)(OP|HY), without returning the linebreak property for the second
-** character, but NU did not follow. Backtrack.
-*/
-
-static int unwind_lb25_seenophy(unicode_lb_info_t i)
-{
-	int rc;
-
-	/*state_t class=i->savedclass;*/
-	int nolb25_flag=1;
-
-	i->next_handler=next_def;
-	i->end_handler=end_def;
-
-	do
-	{
-		next_def_reset_common(i);
-		i->nolb25=nolb25_flag;
-		rc=next_def_common(i, i->savedclass);
-
-		if (rc)
-			return rc;
-
-		/*class=UNICODE_LB_CM;*/
-		nolb25_flag=0;
-	} while (i->savedcmcnt--);
-	return 0;
-}
-
-/*
-** Seen (PR|PO)(OP|HY), without returning the linebreak property for the second
-** character. If there's now a NU, we found the modified LB25 regexp.
-*/
-
-static int next_lb25_seenophy(unicode_lb_info_t i,
-			      state_t uclass)
-{
-	int rc;
-
-	if (uclass.lb == UNICODE_LB_CM)
-	{
-		++i->savedcmcnt; /* Keep track of CMs, and try again */
-		return 0;
-	}
-
-	if (uclass.lb != UNICODE_LB_NU)
-	{
-		rc=unwind_lb25_seenophy(i);
-
-		if (rc)
-			return rc;
-
-		return next_def(i, uclass);
-	}
-
-	do
-	{
-		rc=RESULT(UNICODE_LB_NONE, "LB25 (OP|HY)"); /* (OP|HY) feedback */
-
-		if (rc)
-			return rc;
-	} while (i->savedcmcnt--);
-
-	i->next_handler=next_lb25_seennu;
-	i->end_handler=end_def;
-	i->def_common_state.prevclass=i->def_common_state.prevclass_nsp=uclass;
-	return RESULT(UNICODE_LB_NONE, "LB25");
-}
-
-/*
-** Seen (PR|PO)(OP|HY), and now The End. Unwind, and give up.
-*/
-
-static int end_lb25_seenophy(unicode_lb_info_t i)
-{
-	int rc=unwind_lb25_seenophy(i);
-
-	if (rc == 0)
-		rc=end_def(i);
-	return rc;
-}
-
-/*
-** Seen an NU, modified LB25 regexp.
-*/
-static int next_lb25_seennu(unicode_lb_info_t i, state_t uclass)
-{
-	if (uclass.lb == UNICODE_LB_NU || uclass.lb == UNICODE_LB_SY ||
-	    uclass.lb == UNICODE_LB_IS)
-	{
-		i->def_common_state.prevclass=i->def_common_state.prevclass_nsp=uclass;
-		return RESULT(UNICODE_LB_NONE, "LB25");
-	}
-
-	if (uclass.lb == UNICODE_LB_CM || uclass.lb == UNICODE_LB_ZWJ)
-		return RESULT(UNICODE_LB_NONE, "LB9 (LB25)");
-
-	if (uclass.lb == UNICODE_LB_CL || uclass.lb == UNICODE_LB_CP)
-	{
-		i->def_common_state.prevclass=i->def_common_state.prevclass_nsp=uclass;
-		i->next_handler=next_lb25_seennuclcp;
-		i->end_handler=end_def;
-		return RESULT(UNICODE_LB_NONE, "LB25");
-	}
-
-	i->next_handler=next_def;
-	i->end_handler=end_def;
-
-	if (uclass.lb == UNICODE_LB_PR || uclass.lb == UNICODE_LB_PO)
-	{
-		i->def_common_state.prevclass=i->def_common_state.prevclass_nsp=uclass;
-		return RESULT(UNICODE_LB_NONE, "LB25");
-	}
-
-	return next_def(i, uclass); /* Not a prefix, process normally */
-}
-
-/*
-** Seen CL|CP, in the modified LB25 regexp.
-*/
-static int next_lb25_seennuclcp(unicode_lb_info_t i, state_t uclass)
-{
-	if (uclass.lb == UNICODE_LB_CM || uclass.lb == UNICODE_LB_ZWJ)
-		return RESULT(UNICODE_LB_NONE, "LB9 (LB25)");
-
-	i->next_handler=next_def;
-	i->end_handler=end_def;
-
-	if (uclass.lb == UNICODE_LB_PR || uclass.lb == UNICODE_LB_PO)
-	{
-		i->def_common_state.prevclass=
-			i->def_common_state.prevclass_nsp=uclass;
-
-		return RESULT(UNICODE_LB_NONE, "LB25");
-	}
-
-	return next_def(i, uclass);
-}
 
 /******************/
 

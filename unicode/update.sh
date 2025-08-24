@@ -20,4 +20,6 @@ then
 		exit 0
 	fi
 fi
+mkdir -p wwwarchive
+test -f $filename && cp $filename wwwarchive
 mv $tmpfilename $filename

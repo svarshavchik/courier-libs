@@ -125,9 +125,21 @@ static void testsuite()
 		if (computed_status != status)
 		{
 			std::cerr << "Regression, line " << linenum
-				  << ": " << buf << std::endl;
+				  << ": " << buf << "=>";
+
+			for (auto s:computed_status)
+			{
+				switch (s) {
+				case UNICODE_LB_NONE:
+					std::cerr << " ×";
+					break;
+				default:
+					std::cerr << " ÷";
+					break;
+				}
+			}
+			std::cerr << "\n";
 			flag=1;
-			exit(1);
 		}
 	}
 
@@ -162,7 +174,7 @@ static void testlinebreakc()
 		{
 			if (str[i] != linebreakvec[i].second ||
 			    linebreakvec[i].first !=
-			    (i < sizeof(str)/sizeof(str[0])-1
+			    (i < sizeof(str)/sizeof(str[0])-1 && i != 1
 			     ? UNICODE_LB_NONE:UNICODE_LB_ALLOWED))
 				break;
 		}

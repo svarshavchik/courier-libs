@@ -161,4 +161,11 @@
 	unicode_script_toto,
 	unicode_script_vithkuqi,
 	unicode_script_kawi,
-	unicode_script_nag_mundari
+	unicode_script_nag_mundari,
+	unicode_script_garay,
+	unicode_script_gurung_khema,
+	unicode_script_kirat_rai,
+	unicode_script_ol_onal,
+	unicode_script_sunuwar,
+	unicode_script_todhri,
+	unicode_script_tulu_tigalari

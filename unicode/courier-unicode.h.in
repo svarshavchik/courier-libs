@@ -485,23 +485,7 @@ extern void unicode_lbc_set_opts(unicode_lbc_info_t i, int opts);
 **/
 #define UNICODE_LB_OPT_PRBREAK 0x0001
 
-
-/*
-** Tailored "/" breaking rules. This prevents breaking after the "/"
-** character. And provides an exception to the "x SY" rule in LB13.
-**
-** Adds the following rule to LB13:
-**
-**            SY x EX
-**
-**            SY x AL
-**
-**            SY x ID
-**
-**            SP ÷ SY, which takes precedence over "x SY".
-*/
-#define UNICODE_LB_OPT_SYBREAK 0x0002
-
+\
 /*
 ** Tailored / breaking rules.
 **

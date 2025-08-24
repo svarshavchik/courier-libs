@@ -15,6 +15,9 @@ my @full_composition_exclusion;
 my $nfc = mkcommon->new(prefix => 'nfc_qc');
 my $nfkc = mkcommon->new(prefix => 'nfkc_qc');
 
+my @nfc_qc;
+my @nfkc_qc;
+
 while (defined($_=<F>))
 {
     chomp;
@@ -24,7 +27,7 @@ while (defined($_=<F>))
 		(\.\.( [0-9A-F]+ ))?
 		\s*\;\s*
 		([^\s;]+)\s*
-		(;\s*([^\s;]+))?
+		(;\s*([^\s;#]+))?
 		/xx;
 
     my $f=$1;
@@ -44,13 +47,29 @@ while (defined($_=<F>))
 
     if ($t eq 'NFC_QC')
     {
-	$nfc->range($f, $l, "UNICODE_NFC_QC_$v");
+	push @nfc_qc, [$f, $l, "UNICODE_NFC_QC_$v"];
     }
 
     if ($t eq 'NFKC_QC')
     {
-	$nfkc->range($f, $l, "UNICODE_NFKC_QC_$v");
+	push @nfkc_qc, [$f, $l, "UNICODE_NFKC_QC_$v"];
     }
+}
+
+foreach my $rec (
+    sort {
+	$a->[0] <=> $b->[0];
+    } @nfc_qc)
+{
+    $nfc->range(@$rec);
+}
+
+foreach my $rec (
+    sort {
+	$a->[0] <=> $b->[0];
+    } @nfkc_qc)
+{
+    $nfkc->range(@$rec);
 }
 
 my $obj=mkcommon->new(prefix => 'exclusion', noclass => 1);

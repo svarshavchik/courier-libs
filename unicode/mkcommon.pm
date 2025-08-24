@@ -151,6 +151,11 @@ sub range {
     my $l=shift;
     my $t=shift // 'NONE';
 
+    if ($this->{'last_l'} > $f)
+    {
+	die "Bug in the caller: $f after " . $this->{'last_l'} . "\n";
+    }
+
     if ($this->{'last_l'} + 1 == $f && $this->{'last'} eq $t)
     {
 	$this->{'last_l'}=$l;
