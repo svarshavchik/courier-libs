@@ -1407,6 +1407,8 @@ public:
 
 	int fileno() const { return fd; }
 
+	bool error() const { return fd < 0; }
+
 	pos_type tell()
 	{
 		return pubseekoff(0, std::ios_base::cur);

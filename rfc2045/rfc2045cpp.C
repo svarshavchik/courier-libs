@@ -591,7 +591,7 @@ std::tuple<std::string, bool> rfc2045::headers_base::convert_name_check_empty()
 
 	return {
 		std::move(name_lc),
-		current_header().size() == empty_line_size
+		current_header().size() <= empty_line_size
 	};
 }
 

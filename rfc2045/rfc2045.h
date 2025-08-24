@@ -1229,6 +1229,11 @@ auto rfc2231_attr_encode(std::string_view name,
   Note: the headers template reads as big of a header as exists in the MIME
   entity. RFC2045_ERRLONGUNFOLDEDHEADER can be consulted, if desired.
 
+  rfc2045::entity::line_iter<false>::headers headers{input_stream};
+
+  Passing in only an input stream results in reading the headers from that
+  stream, until an empty line gets read, indicating end of headers.
+
   DECODING MIME ENTITIES
   ======================
 
@@ -1426,6 +1431,23 @@ class rfc2045::entity_info {
 	size_t	nbodylines=0;	/* Number of lines only in the body */
 	bool no_terminating_nl{false}; /* Ditto */
 
+	size_t rfc822_size() const
+	{
+		size_t s=endbody-startpos+nlines;
+
+		if (no_terminating_nl && s)
+			--s;
+		return s;
+	}
+
+	size_t text_size() const
+	{
+		size_t s=endbody-startbody+nbodylines;
+
+		if (no_terminating_nl && s)
+			--s;
+		return s;
+	}
 	typedef unsigned errors_t;
 
 	struct parsing_error {
@@ -2872,9 +2894,9 @@ protected:
 
 	std::string header_line;
 
+public:
 	virtual bool next()=0;
 
-public:
 	bool name_lc{true};
 	bool keep_eol{false};
 
@@ -2895,8 +2917,39 @@ public:
 	headers(const entity &e, src_type &src)
 		: headers_base{crlf ? 2:1}, src{src}
 	{
+		const auto err_value=static_cast<
+			typename src_type::pos_type>(
+				static_cast<
+				typename src_type::off_type>(-1));
+
 		left=e.startbody-e.startpos;
-		src.pubseekpos(e.startpos);
+		if (src.pubseekpos(e.startpos) == err_value)
+			left=0;
+	}
+
+	headers(src_type &src)
+		: headers_base{crlf ? 2:1}, src{src}
+	{
+		const auto err_value=static_cast<
+			typename src_type::pos_type>(
+				static_cast<
+				typename src_type::off_type>(-1));
+
+		auto curpos=src.pubseekoff(0, std::ios_base::cur);
+		auto endpos=src.pubseekoff(0, std::ios_base::end);
+
+		// Pretend the whole thing is a header. We'll stop at an
+		// empty line.
+
+		if (curpos == err_value || endpos == err_value ||
+		    src.pubseekpos(curpos) == err_value)
+		{
+			left=0;
+		}
+		else
+		{
+			left=endpos-curpos;
+		}
 	}
 
 	~headers()=default;
@@ -2915,8 +2968,16 @@ public:
 			return false;
 
 		char prev_ch=0;
-		while (left)
+		size_t line_size=0;
+		bool skip_leading_spaces=false;
+
+		while (1)
 		{
+			if (left == 0)
+			{
+				line_size=header_line.size();
+				break;
+			}
 			auto ch=src.sbumpc();
 			--left;
 			if (ch == std::streambuf::traits_type::eof())
@@ -2925,7 +2986,13 @@ public:
 				break;
 			}
 
-			header_line.push_back(ch);
+			if ((ch == ' ' || ch == '\t') && skip_leading_spaces)
+				;
+			else
+			{
+				header_line.push_back(ch);
+				skip_leading_spaces=false;
+			}
 
 			size_t s;
 
@@ -2945,14 +3012,21 @@ public:
 				s=header_line.size()-1;
 			}
 
+			line_size=header_line.size();
 			if (!keep_eol)
 				header_line.resize(s);
+			skip_leading_spaces=false;
 
 			if (left)
 			{
 				switch (src.sgetc()) {
 				case ' ':
 				case '\t':
+					if (!keep_eol)
+					{
+						header_line.push_back(' ');
+						skip_leading_spaces=true;
+					}
 					continue;
 				default:
 					break;
@@ -2960,6 +3034,12 @@ public:
 			}
 			break;
 		}
+
+		// Empty line results in an EOF, here, if a MIME entity
+		// was not passed in the constructor.
+
+		if (line_size <= empty_line_size)
+			left=0;
 
 		if (name_lc)
 		{
