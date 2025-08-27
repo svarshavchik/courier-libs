@@ -413,8 +413,7 @@ static void do_wrap_u_line(struct wrap_info *uw,
 	if ((lb=unicode_lb_init(do_save_u_process_lb, uw)) != NULL)
 	{
 		unicode_lb_set_opts(lb,
-				    UNICODE_LB_OPT_PRBREAK
-				    | UNICODE_LB_OPT_SYBREAK);
+				    UNICODE_LB_OPT_PRBREAK);
 		unicode_lb_next_cnt(lb, uc, ucsize);
 		unicode_lb_end(lb);
 		add_word(uw);

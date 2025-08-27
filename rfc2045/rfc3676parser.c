@@ -748,8 +748,7 @@ static void nonflowed_line_begin(rfc3676_parser_t handle)
 
 	if (handle->lb)
 		unicode_lbc_set_opts(handle->lb,
-				     UNICODE_LB_OPT_PRBREAK
-				     | UNICODE_LB_OPT_SYBREAK);
+				     UNICODE_LB_OPT_PRBREAK);
 
 	unicode_buf_clear(&handle->nonflowed_line);
 	unicode_buf_clear(&handle->nonflowed_next_word);
