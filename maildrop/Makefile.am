@@ -53,9 +53,9 @@ reformail_SOURCES=reformail.C
 reformail_LDADD = libmdcommon.la
 reformail_DEPENDENCIES = $(reformail_LDADD)
 
-noinst_PROGRAMS=maildrop reformail mailbot testtimer
+noinst_PROGRAMS=maildrop reformail mailbot mailbot-old testtimer
 
-mailbot_SOURCES=mailbot.c
+mailbot_SOURCES=mailbot.C
 mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
 	../numlib/libnumlib.la $(DBLIB)
@@ -64,19 +64,49 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode
 mailbot_LDFLAGS = -static
 
+mailbot_old_SOURCES=mailbot-old.c
+mailbot_old_DEPENDENCIES=$(mailbot_DEPENDENCIES)
+mailbot_old_LDADD=$(mailbot_LDADD)
+mailbot_old_LDFLAGS = -static
+
 testtimer_SOURCES=testtimer.C
 testtimer_LDADD=libmdcommon.la
 
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
-	maildrop.lsm testsuite.txt.idn testsuite2
+	testsuite.mailbot testsuite.mailbot.txt testsuite.txt.idn testsuite2
 
-check-am: testsuite
+check-am: testsuite testsuite.mailbot
+	$(MAKE) run-testsuite
+	$(MAKE) run-testsuite2
+	$(MAKE) run-testsuite-mailbot
+	$(MAKE) run-testsuite-mailbot-old
+
+run-testsuite: testsuite
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
 		@SHELL@ ./testsuite >testsuite.diff || exit 1; \
 		sed '/^Message envelope sender/d' <testsuite.diff | \
 		diff -U 3 $(srcdir)/testsuite.txt.idn - || exit 1; \
 		rm -f testsuite.diff
-	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; @SHELL@ $(srcdir)/testsuite2
+
+run-testsuite2:
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
+		@SHELL@ $(srcdir)/testsuite2
+
+run-testsuite-mailbot: testsuite.mailbot
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
+		rm -f ./mailbot.tst; \
+		ln -s mailbot mailbot.tst; \
+		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
+	diff -U 3 testsuite.mailbot.txt testsuite.diff
+	rm -f mailbot.tst testsuite.diff
+
+run-testsuite-mailbot-old: testsuite.mailbot
+	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
+		rm -f ./mailbot.tst; \
+		ln -s mailbot-old mailbot.tst; \
+		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
+	diff -U 3 testsuite.mailbot.txt testsuite.diff
+	rm -f mailbot.tst testsuite.diff
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
 	maildropgdbm.html maildropgdbm.7

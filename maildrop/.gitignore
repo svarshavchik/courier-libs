@@ -1,5 +1,6 @@
 /README.html
 /mailbot
+/mailbot-old
 /mailbot.1
 /mailbot.html
 /maildrop
@@ -21,6 +22,7 @@
 /reformail.1
 /reformail.html
 /testsuite
+/testsuite.mailbot
 /testtimer
 /uidgid
 /xconfig.h

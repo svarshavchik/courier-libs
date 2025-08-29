@@ -759,5 +759,5 @@ AC_SUBST(USE_DB)
 
 AM_CONDITIONAL(HAVE_SGML, test -d ${srcdir}/../docbook)
 
-AC_CONFIG_FILES([xconfig.h Makefile README.html testsuite])
+AC_CONFIG_FILES([xconfig.h Makefile README.html testsuite testsuite.mailbot])
 AC_OUTPUT
