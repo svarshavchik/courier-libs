@@ -41,6 +41,10 @@
 #define EX_TEMPFAIL	75
 #endif
 
+#include <vector>
+#include <string>
+#include <string_view>
+
 static const char *recips=0;
 static const char *dbfile=0;
 static const char *charset;
@@ -403,34 +407,47 @@ static void check_db()
 }
 #endif
 
-static void opensendmail(int argn, int argc, const char **argv)
+static void opensendmail(int argn, int argc, char **argv)
 {
-	const char **newargv;
-	int i;
+	std::vector<std::vector<char>> newargv;
 
 	if (argn >= argc)
 	{
 		static const char *sendmail_argv[]={"sendmail", "-f", ""};
 
-		argn=0;
-		argc=3;
-		argv=sendmail_argv;
-	}
+		newargv.reserve(4);
 
-	newargv=(const char **)malloc( sizeof(char *)*(argc-argn+1));
-	if (!newargv)
+		for (auto default_mailer:sendmail_argv)
+		{
+			std::string_view s{default_mailer};
+			newargv.emplace_back(s.begin(),
+					     s.end()+1); // Terminating \0
+		}
+	}
+	else
 	{
-		perror("malloc");
-		exit(EX_TEMPFAIL);
+		newargv.reserve(argc-argn+1);
+
+		for (int i=0; argn+i < argc; i++)
+		{
+			std::string_view s{argv[argn+i]};
+			newargv.emplace_back(s.begin(),
+					     s.end()+1); // Terminating \0
+		}
 	}
 
-	for (i=0; argn+i < argc; i++)
-		newargv[i]=argv[argn+i];
-	newargv[i]=0;
 	signal(SIGCHLD, SIG_DFL);
 
-	execvp(const_cast<char *>(newargv[0]), const_cast<char **>(newargv));
-	perror(newargv[0]);
+	std::vector<char *> pointers;
+
+	pointers.reserve(newargv.size()+1);
+
+	for (auto &buffer:newargv)
+		pointers.push_back(buffer.data());
+	pointers.push_back(0);
+
+	execvp(pointers[0], pointers.data());
+	perror(pointers[0]);
 	exit(EX_TEMPFAIL);
 }
 
@@ -1113,6 +1130,6 @@ int main(int argc, char **argv)
 	rfc2045src_deinit(src);
 
 	if (!nosend)
-		opensendmail(argn, argc, const_cast<const char **>(argv));
+		opensendmail(argn, argc, argv);
 	return (0);
 }
