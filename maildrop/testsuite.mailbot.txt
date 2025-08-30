@@ -629,3 +629,33 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 
 --
+Precedence: junk
+Auto-Submitted: auto-replied
+To: sender@example.com
+Subject: Re: Autoresponse successful
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+sender@example.com writes:
+
+> Autoresponse test 1
+
+Autoresponse test
+
+
+Precedence: junk
+Auto-Submitted: auto-replied
+To: nobody@example.com
+Subject: Re: Autoresponse successful
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+nobody@example.com writes:
+
+> Autoresponse test 3
+
+Autoresponse test
+
+

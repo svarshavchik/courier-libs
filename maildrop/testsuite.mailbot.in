@@ -253,5 +253,85 @@ LANG=en_US.utf-8 $VALGRIND ./mailbot.tst -T feedback -R abuse -n -N -m testmailb
     --feedback-incidents 2 \
     <testmailbot.1 | sed 's/=_.*//;s/Arrival-Date:.*/Arrival-Date:/;s/User-Agent:.*//'
 
-rm -f testmailbot.msg
+if test "@USE_GDBM@@USE_DB@" != "00" -a -x ../makedat/makedatprog
+then
+    cat >testmailbot.msg <<EOF
+From: nobody@example.com
+Subject: limited autoresponse
+
+EOF
+    echo "autoresponse" >testmailbot.msg2
+
+    rm -f testmailbot.dat*
+
+    $VALGRIND ./mailbot.tst -T reply -d testmailbot.dat -t testmailbot.msg2 \
+	      cat <testmailbot.msg >testmailbot.out
+
+    if grep -q -F 'autoresponse' testmailbot.out
+    then
+	:
+    else
+	echo "-d test failed (part 1)"
+    fi
+
+    $VALGRIND ./mailbot.tst -T reply -d testmailbot.dat -t testmailbot.msg2 \
+	      cat <testmailbot.msg >testmailbot.out
+
+    if grep -q -F 'autoresponse' testmailbot.out
+    then
+	echo "-d test failed (part 2)"
+    fi
+
+    $VALGRIND ./mailbot.tst -T reply -d testmailbot.dat -t testmailbot.msg2 \
+	      -D 0 cat <testmailbot.msg >testmailbot.out
+
+    if grep -q -F 'autoresponse' testmailbot.out
+    then
+	:
+    else
+	echo "-d test failed (part 3)"
+    fi
+
+    rm -f testmailbot.dat* testmailbot.out
+fi
+
+echo "Autoresponse test" >testmailbot.msg2
+
+cat >testmailbot.msg <<EOF
+From: sender@example.com
+To: mail@example.com
+Subject: Autoresponse successful
+
+Autoresponse test 1
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -r nobody@example.com,mail@example.com \
+	  -t testmailbot.msg2 \
+	  cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+From: nobody@example.com
+To: something-else@example.com
+Subject: Autoresponse failed
+
+Autoresponse test 2 failed
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -r nobody@example.com,mail@example.com \
+	  -t testmailbot.msg2 \
+	  cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+From: nobody@example.com
+Cc: list@example.com,
+  mail@example.com
+Subject: Autoresponse successful
+
+Autoresponse test 3
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -r nobody@example.com,mail@example.com \
+	  -t testmailbot.msg2 \
+	  cat <testmailbot.msg
+rm -f testmailbot.msg*
 rm -f testmailbot.1

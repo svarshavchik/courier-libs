@@ -385,7 +385,7 @@ static void check_db()
 		{
 			memcpy(&t, val, sizeof(t));
 
-			if (t >= now - interval * 60 * 60 * 24)
+			if (t > now - interval * 60 * 60 * 24)
 			{
 				free(val);
 				dbobj_close(&db);
