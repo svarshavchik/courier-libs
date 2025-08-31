@@ -45,9 +45,11 @@
 #include <string>
 #include <string_view>
 #include <iterator>
+#include <iostream>
+#include <set>
 
 static const char *recips=0;
-static const char *dbfile=0;
+static std::string_view dbfile;
 static const char *charset;
 static unsigned interval=1;
 static std::string sender;
@@ -64,16 +66,15 @@ void rfc2045_error(const char *str)
 
 static void usage()
 {
-	fprintf(stderr,
+	std::cerr <<
 		"Usage: mailbot [ options ] [ $MAILER arg arg... ]\n"
 		"\n"
 		"    -t filename        - text autoresponse\n"
-		"    -c charset         - text MIME character set (default %s)\n"
+		"    -c charset         - text MIME character set (default "
+		  << charset <<
+		")\n"
 		"    -m filename        - text autoresponse with a MIME header\n"
-		"    -r addr1,addr2...  - any 'addr' required in a To/Cc header\n",
-		charset);
-
-	fprintf(stderr,
+		"    -r addr1,addr2...  - any 'addr' required in a To/Cc header\n"
 		"    -e                 - Prefer replies to Errors-To: or Return-Path: instead\n"
 		"                         of From:\n"
 		"    -T type            - \"type\": reply, replyall, replydsn, replyfeedback,\n"
@@ -82,9 +83,7 @@ static void usage()
 		"    -F \"separator\"     - Set the forwarding separator\n"
 		"    -S \"salutation\"    - Set salutation for replies\n"
 		"    -d $pathname       - database to prevent duplicate autoresponses\n"
-		"    -D x               - at least 'x' days before dupes (default: 1)\n");
-
-	fprintf(stderr,
+		"    -D x               - at least 'x' days before dupes (default: 1)\n"
 		"    -s subject         - Subject: on autoresponses\n"
 		"    -A \"Header: stuff\" - Additional header on the autoresponse\n"
 		"    -M recipient       - format \"replydsn\" as a DSN from 'recipient' (required)\n"
@@ -97,9 +96,6 @@ static void usage()
 		"                         replyfeedback, instead of only the headers.\n"
 		"    -l                 - maildir to read a draft message with the reply\n"
 		"                         (required by -T replydraft).\n"
-);
-
-	fprintf(stderr,
 		"    --feedback-original-envelope-id {\"<envelopeid>\"}\n"
 		"    --feedback-original-mail-from {\"<mailfrom>\"}\n"
 		"    --feedback-reporting-mta {\"dns; hostname\"}\n"
@@ -110,8 +106,7 @@ static void usage()
 		"    --feedback-reported-domain {example.com}\n"
 		"                       - optional parameters for -T \"feedback\" and \n"
 		"                         -T \"replyfeedback\"\n"
-		"    $MAILER arg arg... - run $MAILER (sendmail) to mail the autoresponse\n"
-		);
+		"    $MAILER arg arg... - run $MAILER (sendmail) to mail the autoresponse\n";
 
 	exit(EX_TEMPFAIL);
 }
@@ -231,59 +226,56 @@ static void check_dsn()
 
 static void check_recips()
 {
-	char *buf;
-	struct rfc822t *t;
-	struct rfc822a *a;
-
-	if (!recips || !*recips)
+	if (!recips)
 		return;
 
-	buf=strdup(recips);
-	if (!buf)
+	std::unordered_set<std::string> recipient_addresses;
+
 	{
-		perror("strdup");
-		exit(EX_TEMPFAIL);
+		rfc822::tokens recip_tokens{recips};
+		rfc822::addresses recip_addresses{recip_tokens};
+
+		for (auto &a:recip_addresses)
+		{
+			std::string address;
+
+			a.address.print(std::back_inserter(address));
+
+			if (address.empty())
+				continue;
+
+			rfc2045::entity::tolowercase(address);
+			recipient_addresses.insert(std::move(address));
+		}
 	}
+
+	if (recipient_addresses.empty())
+		return;
 
 	for (const auto &[header, contents] : header_list)
 	{
-		int i;
-
 		if (header != "to" && header != "cc")
 			continue;
 
-		t=rfc822t_alloc_new(contents.c_str(), NULL, NULL);
-		if (!t || !(a=rfc822a_alloc(t)))
+		rfc822::tokens recip_tokens{contents};
+		rfc822::addresses recip_addresses{recip_tokens};
+
+		for (auto &a:recip_addresses)
 		{
-			perror("malloc");
-			exit(EX_TEMPFAIL);
+			std::string address;
+
+			a.address.print(std::back_inserter(address));
+
+			if (address.empty())
+				continue;
+
+			rfc2045::entity::tolowercase(address);
+
+			if (recipient_addresses.find(address) !=
+			    recipient_addresses.end())
+				return;
 		}
-
-		for (i=0; i<a->naddrs; i++)
-		{
-			char *p=rfc822_getaddr(a, i);
-			char *q;
-
-			strcpy(buf, recips);
-
-			for (q=buf; (q=strtok(q, ", ")) != 0; q=0)
-			{
-				if (p && strcasecmp(p, q) == 0)
-				{
-					free(p);
-					free(buf);
-					rfc822a_free(a);
-					rfc822t_free(t);
-					return;
-				}
-			}
-
-			free(p);
-		}
-		rfc822a_free(a);
-		rfc822t_free(t);
 	}
-	free(buf);
 	exit(0);
 }
 
@@ -294,43 +286,40 @@ static void check_recips()
 #ifdef DbObj
 static void check_db()
 {
-	char *dbname;
-	char *lockname;
-	int lockfd;
 	struct dbobj db;
 	time_t now;
 
 	size_t val_len;
 	char *val;
 
-	if (!dbfile || !*dbfile)
+	if (dbfile.empty())
 		return;
 
-	dbname=(char *)malloc(strlen(dbfile)+ sizeof( "." DBNAME));
-	lockname=(char *)malloc(strlen(dbfile)+ sizeof(".lock"));
+	std::string dbname;
+	std::string lockname;
 
-	if (!dbname || !lockname)
-	{
-		perror("malloc");
-		exit(EX_TEMPFAIL);
-	}
+	dbname.reserve(dbfile.size() + sizeof("." DBNAME));
+	lockname.reserve(dbfile.size() + sizeof(".lock"));
 
-	strcat(strcpy(dbname, dbfile), "." DBNAME);
-	strcat(strcpy(lockname, dbfile), ".lock");
+	dbname.insert(dbname.end(), dbfile.begin(), dbfile.end());
+	lockname=dbname;
 
-	lockfd=open(lockname, O_RDWR|O_CREAT, 0666);
+	dbname += "." DBNAME;
+	lockname += ".lock";
+
+	int lockfd=open(lockname.c_str(), O_RDWR|O_CREAT, 0666);
 
 	if (lockfd < 0 || ll_lock_ex(lockfd))
 	{
-		perror(lockname);
+		perror(lockname.c_str());
 		exit(EX_TEMPFAIL);
 	}
 
 	dbobj_init(&db);
 
-	if (dbobj_open(&db, dbname, "C") < 0)
+	if (dbobj_open(&db, dbname.c_str(), "C") < 0)
 	{
-		perror(dbname);
+		perror(dbname.c_str());
 		exit(EX_TEMPFAIL);
 	}
 
