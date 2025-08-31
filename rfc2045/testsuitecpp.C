@@ -2608,6 +2608,111 @@ void testautoconvert_check()
 #endif
 }
 
+void testheaderlimit()
+{
+	std::istringstream i;
+
+	i.str("12345: 89\n"
+	      "12345: 89012\n"
+	      "12345: 8\n"
+	      "         012\n\n");
+
+	{
+		i.rdbuf()->pubseekpos(0);
+		rfc2045::entity::line_iter<false>::headers h{*i.rdbuf()};
+
+		h.max=10;
+
+		std::string headers;
+
+		do
+		{
+			auto current_header=h.current_header();
+
+			headers += current_header;
+			headers += "\n";
+		} while (h.next());
+
+		if (headers !=
+		    "12345: 89\n"
+		    "12345: 890\n"
+		    "12345: 8 0\n"
+		    "\n")
+		{
+			std::cout << "testheaderlimit test 1 failed:\n"
+				  << headers;
+
+			exit(1);
+		}
+
+
+	}
+
+	i.str("12345: 89\r\n"
+	      "12345: 890\r\n"
+	      "12345: 8901\r\n"
+	      "12345: 89012\r\n"
+	      "12345: 8\r\n"
+	      "         012\r\n"
+	      "12345: 890\r\n"
+	      "          2\r\n"
+
+	      "12345: 8\r\r\n"
+	      "12345: 8\r0\r\n"
+	      "12345: 8\r01\r\n"
+	      "12345: 8\r012\r\n"
+	      "12345: 8\r\n"
+	      "         012\r\n"
+	      "12345: 8\r0\r\n"
+	      "          2\r\n"
+
+	);
+
+	{
+		i.rdbuf()->pubseekpos(0);
+		rfc2045::entity::line_iter<true>::headers h{*i.rdbuf()};
+
+		h.max=10;
+
+		std::string headers;
+
+		do
+		{
+			auto current_header=h.current_header();
+
+			for (char c:current_header)
+				switch (c) {
+				case '\r':
+					headers += "\\r";
+					break;
+				case '\n':
+					headers += "\\n";
+					break;
+				default:
+					headers.push_back(c);
+				}
+			headers += "\n";
+		} while (h.next());
+
+		if (headers !=
+		    "12345: 89\n"
+		    "12345: 890\n"
+		    "12345: 890\n"
+		    "12345: 890\n"
+		    "12345: 8 0\n"
+		    "12345: 890\n"
+		    "12345: 8\\r\n"
+		    "12345: 8\\r0\n"
+		    "12345: 8\\r0\n"
+		    "12345: 8\\r0\n"
+		    "12345: 8 0\n"
+		    "12345: 8\\r0\n")
+		{
+			std::cout << "testheaderlimit test 2 failed:\n"
+				  << headers;
+		}
+	}
+}
 int main()
 {
 	rfc2045_setdefaultcharset("iso-8859-1");
@@ -2618,5 +2723,6 @@ int main()
 	testmimelimits();
 	testtryboundary();
 	testautoconvert_check();
+	testheaderlimit();
 	return 0;
 }

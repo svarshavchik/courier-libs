@@ -86,8 +86,7 @@ autoreply text
 EOF
 
 echo "===================="
-LANG=en_US.utf-8 $VALGRIND ./mailbot.tst -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
-
+LANG=en_US.utf-8 $VALGRIND ./mailbot.tst -A 'X-Header1: Value' -A 'X-Header2: Value' -T forward -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1
 echo "===================="
 LANG=en_US.utf-8 $VALGRIND ./mailbot.tst -T forwardatt -F '+++ Forwarded Message +++' -m testmailbot.msg cat <testmailbot.1 | sed 's/=_.*//'
 

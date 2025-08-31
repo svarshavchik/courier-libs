@@ -1174,6 +1174,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
   headers.name_lc=true;
   headers.keep_eol=false;
+  headers.max=16384;
 
   std::string_view current_header{headers.current_header()};
 
@@ -1188,7 +1189,7 @@ auto rfc2231_attr_encode(std::string_view name,
   with the following methods that are compatible with std::streambuf's:
 
   - pubseekpos - seek to the given position of the underlying message, the
-  constructor retrieve sthe passed in MIME entity's headers' starting position
+  constructor retrieves the passed in MIME entity's headers' starting position
   and seeks to it.
 
   - sgetc - read a character without advancing the input position
@@ -1219,6 +1220,9 @@ auto rfc2231_attr_encode(std::string_view name,
   trims off all leading and trailing whitespace, but current_header() returns
   the entire header, as is, including the trailing whitespace.
 
+  - max (16384 by default): each read header is truncated to the given
+  maximum size.
+
   These fields must be set before the first call to current_header(),
   name_content(), and next().
 
@@ -1233,6 +1237,9 @@ auto rfc2231_attr_encode(std::string_view name,
 
   Passing in only an input stream results in reading the headers from that
   stream, until an empty line gets read, indicating end of headers.
+
+  The underlying stream object must implement pubseekoff() in addition
+  to pubseekpos().
 
   DECODING MIME ENTITIES
   ======================
@@ -2899,6 +2906,7 @@ public:
 
 	bool name_lc{true};
 	bool keep_eol{false};
+	size_t max{16384};
 
 	headers_base(size_t empty_line_size);
 	std::string_view current_header();
@@ -2935,14 +2943,16 @@ public:
 				static_cast<
 				typename src_type::off_type>(-1));
 
-		auto curpos=src.pubseekoff(0, std::ios_base::cur);
-		auto endpos=src.pubseekoff(0, std::ios_base::end);
+		auto curpos=src.pubseekoff(0, std::ios_base::cur,
+					   std::ios_base::in);
+		auto endpos=src.pubseekoff(0, std::ios_base::end,
+					   std::ios_base::in);
 
 		// Pretend the whole thing is a header. We'll stop at an
 		// empty line.
 
 		if (curpos == err_value || endpos == err_value ||
-		    src.pubseekpos(curpos) == err_value)
+		    src.pubseekpos(curpos, std::ios_base::in) == err_value)
 		{
 			left=0;
 		}
@@ -2986,15 +2996,20 @@ public:
 				break;
 			}
 
+			if constexpr (crlf)
+			{
+				if (ch == '\r')
+					line_size=header_line.size();
+			}
+
 			if ((ch == ' ' || ch == '\t') && skip_leading_spaces)
 				;
 			else
 			{
-				header_line.push_back(ch);
+				if (header_line.size() < max)
+					header_line.push_back(ch);
 				skip_leading_spaces=false;
 			}
-
-			size_t s;
 
 			if constexpr (crlf)
 			{
@@ -3003,18 +3018,18 @@ public:
 					prev_ch=ch;
 					continue;
 				}
-				s=header_line.size()-2;
 			}
 			else
 			{
 				if (ch != '\n')
+				{
+					line_size=header_line.size();
 					continue;
-				s=header_line.size()-1;
+				}
 			}
 
-			line_size=header_line.size();
 			if (!keep_eol)
-				header_line.resize(s);
+				header_line.resize(line_size);
 			skip_leading_spaces=false;
 
 			if (left)
@@ -3024,7 +3039,10 @@ public:
 				case '\t':
 					if (!keep_eol)
 					{
-						header_line.push_back(' ');
+						if (header_line.size() < max)
+							header_line.push_back(
+								' '
+							);
 						skip_leading_spaces=true;
 					}
 					continue;

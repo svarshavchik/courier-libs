@@ -51,15 +51,9 @@ static const char *charset;
 static unsigned interval=1;
 static char *sender;
 
-struct header {
-	struct header *next;
-	char *buf;
-} ;
+std::vector<std::tuple<std::string, std::string>> header_list;
 
-static struct header *header_list;
-
-static struct header *extra_headers=0;
-
+std::vector<std::string> extra_headers;
 
 void rfc2045_error(const char *str)
 {
@@ -121,76 +115,44 @@ static void usage()
 	exit(EX_TEMPFAIL);
 }
 
-static void read_headers(FILE *tmpfp)
+static void read_headers(int fd)
 {
-	char buf[BUFSIZ];
-	struct header **lasthdr= &header_list, *prevhdr=0;
+	fd=dup(fd);
 
-	while (fgets(buf, sizeof(buf), tmpfp))
+	if (fd < 0)
 	{
-		size_t l=strlen(buf);
-
-		if (l > 0 && buf[l-1] == '\n')
-			--l;
-		if (l > 0 && buf[l-1] == '\r')
-			--l;
-		buf[l]=0;
-
-		if (l == 0)
-		{
-			/* Eat rest of message from stdin */
-
-			while (getc(stdin) != EOF)
-				;
-			break;
-		}
-
-		if (isspace((int)(unsigned char)buf[0]) && prevhdr)
-		{
-			if ( (prevhdr->buf=
-			      (char *)realloc( prevhdr->buf,
-				      strlen (prevhdr->buf)+2+strlen(buf)))
-			     == NULL)
-			{
-				perror("malloc");
-				exit(EX_TEMPFAIL);
-			}
-			strcat(strcat( prevhdr->buf, "\n"), buf);
-		}
-		else
-		{
-			if ((*lasthdr=(struct header *)
-			     malloc(sizeof(struct header))) == NULL ||
-			    ((*lasthdr)->buf=strdup(buf)) == NULL)
-			{
-				perror("malloc");
-				exit(EX_TEMPFAIL);
-			}
-
-			prevhdr= *lasthdr;
-			lasthdr= &(*lasthdr)->next;
-		}
+		perror("dup");
+		exit(1);
 	}
 
-	*lasthdr=NULL;
+	rfc822::fdstreambuf tmpfp{fd};
+
+	rfc2045::entity::line_iter<false>::headers h{tmpfp};
+
+	do
+	{
+		const auto &[name, content] = h.name_content();
+
+		if (header_list.size() < 1000)
+			header_list.emplace_back(
+				std::string{
+					name.begin(), name.end()
+				},
+				std::string{
+					content.begin(), content.end()
+				}
+			);
+	} while(h.next());
 }
 
-const char *hdr(const char *hdrname)
+const char *hdr(std::string hdrname)
 {
-	struct header *h;
-	size_t l=strlen(hdrname);
+	rfc2045::entity::tolowercase(hdrname);
 
-	for (h=header_list; h; h=h->next)
+	for (const auto &[header, value] : header_list)
 	{
-		if (strncasecmp(h->buf, hdrname, l) == 0 &&
-		    h->buf[l] == ':')
-		{
-			const char *p=h->buf+l+1;
-
-			while (*p && isspace((int)(unsigned char)*p))
-				++p;
-			return (p);
-		}
+		if (header == hdrname)
+			return value.c_str();
 	}
 
 	return ("");
@@ -270,7 +232,6 @@ static void check_recips()
 	char *buf;
 	struct rfc822t *t;
 	struct rfc822a *a;
-	struct header *h;
 
 	if (!recips || !*recips)
 		return;
@@ -282,15 +243,14 @@ static void check_recips()
 		exit(EX_TEMPFAIL);
 	}
 
-	for (h=header_list; h; h=h->next)
+	for (const auto &[header, contents] : header_list)
 	{
 		int i;
 
-		if (strncasecmp(h->buf, "to:", 3) &&
-		    strncasecmp(h->buf, "cc:", 3))
+		if (header != "to" && header != "cc")
 			continue;
 
-		t=rfc822t_alloc_new(h->buf+3, NULL, NULL);
+		t=rfc822t_alloc_new(contents.c_str(), NULL, NULL);
 		if (!t || !(a=rfc822a_alloc(t)))
 		{
 			perror("malloc");
@@ -849,19 +809,7 @@ int main(int argc, char **argv)
 
 			if (optarg)
 			{
-				struct header **h;
-
-				for (h= &extra_headers; *h;
-				     h= &(*h)->next)
-					;
-
-				if ((*h=(header *)malloc(sizeof(struct header))) == 0 ||
-				    ((*h)->buf=strdup(optarg)) == 0)
-				{
-					perror("malloc");
-					exit(EX_TEMPFAIL);
-				}
-				(*h)->next=0;
+				extra_headers.push_back(optarg);
 			}
 			continue;
 		case 's':
@@ -934,7 +882,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	read_headers(tmpfp);
+	read_headers(fileno(tmpfp));
 
 	if (sender == NULL || *sender == 0)
 		check_sender();
@@ -1102,11 +1050,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	for (auto &h:extra_headers)
 	{
-		struct header *h;
-
-		for (h=extra_headers; h; h=h->next)
-			fprintf(replyinfo.outf, "%s\n", h->buf);
+		fprintf(replyinfo.outf, "%s\n", h.c_str());
 	}
 	fprintf(replyinfo.outf,
 		"Precedence: junk\n"

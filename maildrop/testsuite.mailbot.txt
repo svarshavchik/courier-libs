@@ -150,6 +150,8 @@ message
 
 --
 ====================
+X-Header1: Value
+X-Header2: Value
 Precedence: junk
 Auto-Submitted: auto-replied
 Subject: 

@@ -1386,9 +1386,9 @@ struct addresses : std::vector<address> {
 bool header_is_addr(std::string_view header_name);
 
 // Subclass std::streambuf and implement it on top of a file descriptor. The
-// file descriptor is not owned by fdstreambuf.
+// file descriptor is owned by fdstreambuf and is closed in the destructor.
 //
-// Maybe someday this nonsense will really be a part of C++
+// Maybe someday this nonsense will really be a part of std...
 
 class fdstreambuf : public std::streambuf {
 
@@ -1397,7 +1397,7 @@ class fdstreambuf : public std::streambuf {
 	char *defaultbuf{nullptr};
 
 public:
-	fdstreambuf(int fd=-1) : fd{fd} {}
+	fdstreambuf(int fd=-1) noexcept : fd{fd} {}
 
 	fdstreambuf(fdstreambuf &&o) noexcept
 	{
