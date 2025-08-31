@@ -1516,6 +1516,9 @@ static int mkreply(struct rfc2045_mkreplyinfo *ri)
 		writes(ri, "--\n");
 		free(boundary);
 	}
+
+	if (whowrote)
+		free(whowrote);
 	return (errflag);
 }
 

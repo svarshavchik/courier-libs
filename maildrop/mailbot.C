@@ -44,12 +44,13 @@
 #include <vector>
 #include <string>
 #include <string_view>
+#include <iterator>
 
 static const char *recips=0;
 static const char *dbfile=0;
 static const char *charset;
 static unsigned interval=1;
-static char *sender;
+static std::string sender;
 
 std::vector<std::tuple<std::string, std::string>> header_list;
 
@@ -134,28 +135,33 @@ static void read_headers(int fd)
 		const auto &[name, content] = h.name_content();
 
 		if (header_list.size() < 1000)
-			header_list.emplace_back(
-				std::string{
-					name.begin(), name.end()
-				},
-				std::string{
-					content.begin(), content.end()
-				}
-			);
+		{
+			auto &ret=
+				header_list.emplace_back(
+					std::string{
+						name.begin(), name.end()
+					},
+					std::string{
+						content.begin(), content.end()
+					}
+				);
+
+			rfc2045::entity::tolowercase(std::get<1>(ret));
+		}
 	} while(h.next());
 }
 
-const char *hdr(std::string hdrname)
+std::string_view hdr(std::string hdrname)
 {
 	rfc2045::entity::tolowercase(hdrname);
 
 	for (const auto &[header, value] : header_list)
 	{
 		if (header == hdrname)
-			return value.c_str();
+			return value;
 	}
 
-	return ("");
+	return "";
 }
 
 /*
@@ -164,32 +170,30 @@ const char *hdr(std::string hdrname)
 
 static void check_sender()
 {
-	const char *h=hdr("reply-to");
-	struct rfc822t *t;
-	struct rfc822a *a;
+	auto h=hdr("reply-to");
 
-	if (!h || !*h)
+	if (h.size() == 0)
 		h=hdr("from");
 
-	if (!h || !*h)
+	if (h.size() == 0)
 		exit(0);
 
-	t=rfc822t_alloc_new(h, NULL, NULL);
-
-	if (!t || !(a=rfc822a_alloc(t)))
 	{
-		perror("malloc");
-		exit(EX_TEMPFAIL);
+		rfc822::tokens t{h};
+		rfc822::addresses a{t};
+
+		for (auto &address:a)
+		{
+			if (address.address.empty())
+				continue;
+			address.address.print(std::back_inserter(sender));
+
+			rfc2045::entity::tolowercase(sender);
+
+			return;
+		}
 	}
-
-	if (a->naddrs <= 0)
-		exit (0);
-	sender=rfc822_getaddr(a, 0);
-	rfc822a_free(a);
-	rfc822t_free(t);
-
-	if (!sender || !*sender)
-		exit(0);
+	exit(0);
 }
 
 /*
@@ -198,28 +202,26 @@ static void check_sender()
 
 static void check_dsn()
 {
-	static const char ct[]="multipart/report;";
+	static const char ct[]="multipart/report";
 
-	const char *p=hdr("content-type");
+	auto p=hdr("content-type");
 
-	if (strncasecmp(p, ct, sizeof(ct)-1) == 0)
+	if (p.substr(0, sizeof(ct)-1) == ct)
 		exit(0);
 
-	p=hdr("precedence");
+	p=hdr("precedence").substr(0, 4);
 
-	if (strncasecmp(p, "junk", 4) == 0 ||
-	    strncasecmp(p, "bulk", 4) == 0 ||
-	    strncasecmp(p, "list", 4) == 0)
+	if (p == "junk" || p == "bulk" || p == "list")
 		exit(0);	/* Just in case */
 
 	p=hdr("auto-submitted");
 
-	if (*p && strcmp(p, "no"))
+	if (!p.empty() && p != "no")
 		exit(0);
 
 	p=hdr("list-id");
 
-	if (*p)
+	if (!p.empty())
 		exit(0);
 }
 
@@ -297,7 +299,6 @@ static void check_db()
 	int lockfd;
 	struct dbobj db;
 	time_t now;
-	char *sender_key, *p;
 
 	size_t val_len;
 	char *val;
@@ -305,14 +306,10 @@ static void check_db()
 	if (!dbfile || !*dbfile)
 		return;
 
-	sender_key=strdup(sender);
 	dbname=(char *)malloc(strlen(dbfile)+ sizeof( "." DBNAME));
 	lockname=(char *)malloc(strlen(dbfile)+ sizeof(".lock"));
 
-	for (p=sender_key; *p; p++)
-		*p=tolower((int)(unsigned char)*p);
-
-	if (!dbname || !lockname || !sender)
+	if (!dbname || !lockname)
 	{
 		perror("malloc");
 		exit(EX_TEMPFAIL);
@@ -339,7 +336,7 @@ static void check_db()
 
 	time(&now);
 
-	val=dbobj_fetch(&db, sender_key, strlen(sender_key), &val_len, "");
+	val=dbobj_fetch(&db, sender.data(), sender.size(), &val_len, "");
 
 	if (val)
 	{
@@ -360,7 +357,7 @@ static void check_db()
 		free(val);
 	}
 
-	dbobj_store(&db, sender_key, strlen(sender_key),
+	dbobj_store(&db, sender.data(), sender.size(),
 		    (const char *)&now, sizeof(now), "R");
 	dbobj_close(&db);
 	close(lockfd);
@@ -665,7 +662,6 @@ int main(int argc, char **argv)
 	setlocale(LC_ALL, "");
 	charset=unicode_default_chset();
 
-	sender=NULL;
 	for (argn=1; argn < argc; argn++)
 	{
 		char optc;
@@ -822,19 +818,14 @@ int main(int argc, char **argv)
 		case 'f':
 			if (optarg && *optarg)
 			{
-				sender=strdup(optarg);
+				sender=optarg;
 			}
 			else
 			{
-				sender=getenv("SENDER");
-				if (!sender)
+				auto s=getenv("SENDER");
+				if (!s)
 					continue;
-				sender=strdup(sender);
-			}
-			if (sender == NULL)
-			{
-				perror("malloc");
-				exit(1);
+				sender=s;
 			}
 			continue;
 		case 'l':
@@ -884,7 +875,7 @@ int main(int argc, char **argv)
 
 	read_headers(fileno(tmpfp));
 
-	if (sender == NULL || *sender == 0)
+	if (sender.empty())
 		check_sender();
 
 	check_dsn();

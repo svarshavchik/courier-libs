@@ -20,10 +20,13 @@ unset LC_IDENTIFICATION
 unset LC_ALL
 unset VERBOSE
 
+exec 3>&2
 if test "$VALGRIND" != ""
 then
-    VALGRIND="$VALGRIND --tool=memcheck --leak-check=full --error-exitcode=1"
+    VALGRIND="$VALGRIND --tool=memcheck --leak-check=full --error-exitcode=1 --log-fd=3"
 fi
+
+set -e
 
 cat >testmailbot.1 <<EOF
 From: =?iso-8859-1?Q?H=F3la!?= <test@example.com>
@@ -332,5 +335,39 @@ EOF
 $VALGRIND ./mailbot.tst -T reply -r nobody@example.com,mail@example.com \
 	  -t testmailbot.msg2 \
 	  cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+From: nobody@example.com
+Mime-Version: 1.0
+Content-Type: MULTIPART/REPORT; ignore-this-is-fake
+Subject: mailbot should ignore multipart/report
+
+But it did not
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -t testmailbot.msg2 cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+From: nobody@example.com
+Mime-Version: 1.0
+Precedence: junk
+Subject: mailbot should ignore Precedence: junk
+
+But it did not
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -t testmailbot.msg2 cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+From: nobody@example.com
+Mime-Version: 1.0
+Auto-Submitted: yes
+Subject: mailbot should ignore auto-submitted
+
+But it did not
+EOF
+
+$VALGRIND ./mailbot.tst -T reply -t testmailbot.msg2 cat <testmailbot.msg
+
 rm -f testmailbot.msg*
 rm -f testmailbot.1
