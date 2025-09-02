@@ -1248,6 +1248,8 @@ auto rfc2231_attr_encode(std::string_view name,
 			  "utf-8"
   };
 
+  rfc822::mime_unicode_decoder{out, input_stream};
+
   decoder.decode_header=true;
   decoder.decode_body=true;
   decoder.add_eol=false;
@@ -1256,24 +1258,30 @@ auto rfc2231_attr_encode(std::string_view name,
 
   decoder.decode<false>(entity);
 
-  This template is temporarily defined in the rfc822 namespace for technical
+  These templates are temporarily defined in the rfc822 namespace for technical
   reasons.
 
-  The decoder class is actually a template, whose template parameters should
+  The decoder classes are actually templates, whose template parameters should
   get deduced from the constructor's parameters. The second parameter is
   a std::streambuf object or another object that implements pubseekpos,
   sgetc, sbumpc, and sgetn function like std::streambuf does. This object
   must be the same object that was used to parse a MIME entity to be decoded.
-  The first parameter is an object that's callable with a const char * and
-  a size_t parameter, which gets repeatedly invoked to produce the decoded
-  content. The callable object may be passed in by reference, which saves
+
+  mime_decoder's first constructor parameter is a callable object,
+  with a const char * and a size_t parameters, which gets repeatedly invoked
+  to produce the decoded content. mime_unicode_decoder's first constructor
+  parameter is a callable object with a const char32_t * and a size_t
+  parameter.
+
+  The callable object may be passed in by reference, which saves
   a reference to the callable object (which then must remain in scope and
   not get destroyed while the decoder object is in use), or by value, which
   saves a copy of the value in the decoder object.
 
-  Finally the third parameter is a character set. A plain text MIME entity's
-  decoded contents get transcoded to the specified character set. This is
-  an optional parameter, no transcoding takes place when it's not specified.
+  Finally the third parameter, to mime_decoder, is a character set.
+  A plain text MIME entity's decoded contents get transcoded to the specified
+  character set. This is an optional parameter, no transcoding takes place
+  when it's not specified.
 
   The first parameter can be passed by reference or by value. If passed by
   value it's copied and stored in the decoder object.
@@ -1641,6 +1649,10 @@ namespace rfc822 {
 
 	template<typename out_iter,
 		 typename src_type> class mime_decoder;
+
+	template<typename out_iter> class mime_unicode_decoder_helper;
+	template<typename out_iter, typename src_type>
+	class mime_unicode_decoder;
 }
 
 class rfc2045::entity : public entity_info {
@@ -3124,6 +3136,24 @@ class rfc822::mime_decoder {
 	~mime_decoder()=default;
 };
 
+template<typename out_iter> class rfc822::mime_unicode_decoder_helper {
+
+	out_iter out;
+
+public:
+	template<typename T>
+	mime_unicode_decoder_helper(T && out)
+		: out{std::forward<T>(out)}
+	{
+	}
+
+	void operator()(const char *ptr, size_t cnt) const
+	{
+		cnt /= sizeof(char32_t);
+		out(reinterpret_cast<const char32_t *>(ptr), cnt);
+	}
+};
+
 namespace rfc822 {
 	template<typename out_iter,
 		 typename src_type>
@@ -3134,6 +3164,36 @@ namespace rfc822 {
 		 typename src_type>
 	mime_decoder(out_iter &&, src_type &, std::string="")
 		-> mime_decoder<out_iter, src_type>;
+}
+
+template<typename out_iter,
+	 typename src_type> class rfc822::mime_unicode_decoder
+	: public mime_unicode_decoder_helper<out_iter>,
+	  public mime_decoder<mime_unicode_decoder_helper<out_iter> &,
+				      src_type> {
+
+public:
+	template<typename T>
+	mime_unicode_decoder(T && out, src_type &src)
+		: mime_unicode_decoder_helper<out_iter>{
+				std::forward<T>(out)
+			},
+		mime_decoder<mime_unicode_decoder_helper<out_iter> &,
+			     src_type>{*this, src, unicode_u_ucs4_native}
+	{
+	}
+};
+
+namespace rfc822 {
+	template<typename out_iter,
+		 typename src_type>
+	mime_unicode_decoder(out_iter &, src_type &, std::string="")
+		-> mime_unicode_decoder<out_iter &, src_type>;
+
+	template<typename out_iter,
+		 typename src_type>
+	mime_unicode_decoder(out_iter &&, src_type &, std::string="")
+		-> mime_unicode_decoder<out_iter, src_type>;
 }
 
 template<typename out_iter,

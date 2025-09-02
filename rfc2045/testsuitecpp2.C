@@ -835,6 +835,68 @@ void test6()
 #endif
 }
 
+void test7()
+{
+	std::stringstream ss;
+	ss << "Mime-Version: 1.0\n"
+		"Content-Type: text/plain; charset=iso-8859-1\n"
+		"Content-Transfer-Encoding: quoted-printable\n"
+		"\n"
+		"H=E9llo\n";
+
+	auto b=std::istreambuf_iterator<char>{ss};
+	auto e=std::istreambuf_iterator<char>{};
+
+	rfc2045::entity::line_iter<false>::iter<
+		std::istreambuf_iterator<char>,
+		std::istreambuf_iterator<char>
+		> iter{b, e};
+
+	rfc2045::entity entity;
+
+	entity.parse(iter);
+
+	std::u32string us;
+
+	{
+		rfc822::mime_unicode_decoder decoder{
+			[&]
+			(const char32_t *ptr, size_t cnt)
+			{
+				us.insert(us.end(), ptr, ptr+cnt);
+			},
+
+			*ss.rdbuf()
+		};
+
+		decoder.decode_header=false;
+		decoder.decode(entity);
+	}
+
+	{
+		auto closure=
+			[&]
+			(const char32_t *ptr, size_t cnt)
+			{
+				us.insert(us.end(), ptr, ptr+cnt);
+			};
+
+		rfc822::mime_unicode_decoder decoder{
+			closure,
+			*ss.rdbuf()
+		};
+
+		decoder.decode_header=false;
+		decoder.decode(entity);
+	}
+
+	if (us != U"Héllo\nHéllo\n")
+	{
+		std::cout << "test7 failed\n";
+		exit(1);
+	}
+}
+
 int main()
 {
 	alarm(60);
@@ -871,5 +933,6 @@ int main()
 #endif
 
 	test6();
+	test7();
 	return 0;
 }
