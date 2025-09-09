@@ -880,6 +880,20 @@ int main(int argc, char **argv)
 		case 'n':
 			nosend=1;
 			continue;
+		case 'X':	/* Undocumented option, used in tests */
+			if (!optarg && argn+1 < argc)
+				optarg=argv[++argn];
+
+			{
+				unsigned secs=atoi(optarg);
+
+				if (secs == 0)
+					usage();
+
+				alarm(secs);
+			}
+			continue;
+
 		default:
 			usage();
 		}

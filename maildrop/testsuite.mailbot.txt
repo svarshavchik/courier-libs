@@ -661,3 +661,82 @@ nobody@example.com writes:
 Autoresponse test
 
 
+Precedence: junk
+Auto-Submitted: auto-replied
+To: nobody@example.com
+Subject: Re: original message is multipart/signed
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+nobody@example.com writes:
+
+> Original message
+
+Autoresponse test
+
+
+Precedence: junk
+Auto-Submitted: auto-replied
+To: nobody@example.com
+References: <2@example.com>
+            <3@example.com>
+            <4@example.com>
+            <5@example.com>
+            <6@example.com>
+            <7@example.com>
+            <8@example.com>
+            <9@example.com>
+            <10@example.com>
+            <11@example.com>
+            <12@example.com>
+            <13@example.com>
+            <14@example.com>
+            <15@example.com>
+            <16@example.com>
+            <17@example.com>
+            <18@example.com>
+            <19@example.com>
+            <20@example.com>
+            <21@example.com>
+In-Reply-To: <21@example.com>
+Subject: Re: original message is a pgp message decoded by sqwebmail
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+nobody@example.com writes:
+
+> Original message
+
+Autoresponse test
+
+
+Precedence: junk
+Auto-Submitted: auto-replied
+To: nobody@example.com
+Subject: Re: original message that will get a vacation autoresponse
+Content-Type: multipart/mixed; 
+
+This is a MIME-formatted message.  If you see this text it means that your
+E-mail software does not support MIME-formatted messages.
+
+--
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+message 2 h=F3la!
+
+--
+Content-Type: text/rfc822-headers; charset="utf-8"
+Content-Disposition: attachment
+Content-Transfer-Encoding: 8bit
+
+From: nobody@example.com
+Mime-Version: 1.0
+X-Comment: original message
+Subject: original message that will get a vacation autoresponse
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+--

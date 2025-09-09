@@ -85,6 +85,8 @@ struct rfc2045 {
 	class entity_parser_base;
 	template<bool crlf> class entity_parser;
 	class headers_base;
+	struct reply;
+	enum class replymode_t;
 
 	// Possible Content-Transfer-Encoding values
 	enum class cte { error=0, sevenbit='7', eightbit='8', qp='Q',
@@ -1758,6 +1760,20 @@ private:
 	void update_parent_ptr();
 public:
 
+	template<typename visitor_t>
+	bool visit_all(visitor_t &&visitor) const
+	{
+		if (!visitor(*this))
+			return false;
+
+		for (auto &se:subentities)
+		{
+			if (!se.visit_all(std::forward<visitor_t>(visitor)))
+				return false;
+		}
+		return true;
+	}
+
 	template<typename line_iter_type>
 	void parse(line_iter_type &iter);
 
@@ -2838,9 +2854,9 @@ class rfc2045::entity_parser_base {
 protected:
 	entity entity_getting_parsed;
 	std::thread parsing_thread;
-private:
 
 	std::mutex m;
+private:
 	std::condition_variable c;
 
 	bool thread_finished{false};
@@ -2880,12 +2896,15 @@ public:
 		content_to_parse.clear();
 
 		std::copy(b, e, std::back_inserter(content_to_parse));
+		if (content_to_parse.empty())
+			return;
+
 		has_content_to_parse=true;
 		RFC2045_ENTITY_PARSER_TEST("parser: chunk");
 		c.notify_all();
 	}
 
-	bool get_next_chunk(std::string &chunk);
+	bool get_next_chunk(std::unique_lock<std::mutex> &, std::string &chunk);
 
 	entity &&parsed_entity();
 };
@@ -3119,9 +3138,9 @@ class rfc822::mime_decoder {
  public:
 	template<typename T>
 	mime_decoder(T &&out, src_type &src,
-		     std::string charset="")
+		     std::string_view charset="")
 		: src{src}, out{std::forward<T>(out)},
-		  charset{std::move(charset)}
+		  charset{charset.begin(), charset.end()}
 	{
 	}
 
@@ -3157,12 +3176,12 @@ public:
 namespace rfc822 {
 	template<typename out_iter,
 		 typename src_type>
-	mime_decoder(out_iter &, src_type &, std::string="")
+	mime_decoder(out_iter &, src_type &, std::string_view="")
 		-> mime_decoder<out_iter &, src_type>;
 
 	template<typename out_iter,
 		 typename src_type>
-	mime_decoder(out_iter &&, src_type &, std::string="")
+	mime_decoder(out_iter &&, src_type &, std::string_view="")
 		-> mime_decoder<out_iter, src_type>;
 }
 

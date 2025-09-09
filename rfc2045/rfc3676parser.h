@@ -99,12 +99,18 @@ rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info);
 **
 ** Returns non-0 value returned by any callback method, or 0 if all
 ** invoked callback methods returned 0.
+**
+** Either rfc3676parser() or rfc3676parser_unicode() must be used exclusively
+** to parse the rfc3676-encoded message.
 */
 
 int rfc3676parser(rfc3676_parser_t handle,
 		  const char *txt,
 		  size_t txt_cnt);
 
+int rfc3676parser_unicode(rfc3676_parser_t handle,
+			  const char32_t *txt,
+			  size_t txt_cnt);
 /*
 ** End parsing.
 **
@@ -175,10 +181,10 @@ namespace mail {
 		}
 
 		/* Feed raw contents to be parsed */
-		void operator<<(const std::string &text)
+		void operator<<(const std::string_view &text)
 		{
 			if (handle)
-				rfc3676parser(handle, text.c_str(),
+				rfc3676parser(handle, text.begin(),
 					      text.size());
 		}
 

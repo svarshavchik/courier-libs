@@ -19,6 +19,7 @@ EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn \
 noinst_DATA=$(BUILT_SOURCES)
 
 librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
+		     rfc2045reply.h rfc2045replycpp.C \
 		     rfc2045_encode.h \
 		     rfc2045cpp3.C \
 		     rfc2045defcharset.c \

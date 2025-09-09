@@ -513,17 +513,17 @@ rfc2045::entity &&rfc2045::entity_parser_base::parsed_entity()
 // Called by execution thread to get the next chunk to parse, it is copied into
 // the chunk parameter. Returns false if there are no more chunks.
 
-bool rfc2045::entity_parser_base::get_next_chunk(std::string &chunk)
+bool rfc2045::entity_parser_base::get_next_chunk(
+	std::unique_lock<std::mutex> &lock,
+	std::string &chunk)
 {
-	std::unique_lock lock{m};
-
 	c.wait(lock,
 	       [this]
 	       {
 		       return end_of_parse || has_content_to_parse;
 	       });
 
-	if (end_of_parse)
+	if (end_of_parse && !has_content_to_parse)
 	{
 		if (!thread_finished)
 		{

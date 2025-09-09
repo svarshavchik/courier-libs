@@ -35,6 +35,8 @@ struct parser_beg_iter {
 
 	rfc2045::entity_parser_base &entity_parser;
 
+	std::unique_lock<std::mutex> &lock;
+
 	mutable std::string buffer;
 
 	mutable std::string::iterator b{buffer.begin()}, e{b};
@@ -47,7 +49,7 @@ struct parser_beg_iter {
 	{
 		while (b == e)
 		{
-			if (!entity_parser.get_next_chunk(buffer))
+			if (!entity_parser.get_next_chunk(lock, buffer))
 				return 0;
 
 			b=buffer.begin();
@@ -70,6 +72,8 @@ struct parser_beg_iter {
 		store=operator*();
 		if (b != e)
 			++b;
+
+		operator*(); // Must read the next chunk, if needed it.
 		return &store;
 	}
 
@@ -104,7 +108,9 @@ template<bool crlf> rfc2045::entity_parser<crlf>::entity_parser()
 	parsing_thread=std::thread{
 		[this]
 		{
-			parser_beg_iter b{*this};
+			std::unique_lock lock{m};
+
+			parser_beg_iter b{*this, lock};
 			parser_end_iter e;
 
 			typename entity::template line_iter<crlf>::

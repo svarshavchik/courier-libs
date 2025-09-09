@@ -61,7 +61,7 @@ mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB)
 mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
-	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode
+	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode -lpthread
 mailbot_LDFLAGS = -static
 
 mailbot_old_SOURCES=mailbot-old.c
@@ -94,6 +94,8 @@ run-testsuite2:
 
 run-testsuite-mailbot: testsuite.mailbot
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
+		VALGRIND_EXTRA_OPTS="--leak-check=full"; \
+		export VALGRIND_EXTRA_OPTS; \
 		rm -f ./mailbot.tst; \
 		ln -s mailbot mailbot.tst; \
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff

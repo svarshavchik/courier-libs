@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2015 Double Precision, Inc.
+** Copyright 2001-2025 Double Precision, Inc.
 ** See COPYING for distribution information.
 */
 
@@ -27,10 +27,11 @@
 #include "rfc822/rfc822.h"
 #include "rfc2045/rfc2045.h"
 #include "rfc2045/rfc2045charset.h"
+#include "rfc2045/rfc2045reply.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <dirent.h>
+#include <filesystem>
 #include "mywait.h"
 #include <signal.h>
 #if HAVE_SYSEXITS_H
@@ -47,6 +48,7 @@
 #include <iterator>
 #include <iostream>
 #include <set>
+#include <charconv>
 
 static const char *recips=0;
 static std::string_view dbfile;
@@ -54,15 +56,11 @@ static const char *charset;
 static unsigned interval=1;
 static std::string sender;
 
+static const char temporary_file_msg[]="Cannot write to temporary file";
+
 std::vector<std::tuple<std::string, std::string>> header_list;
 
 std::vector<std::string> extra_headers;
-
-void rfc2045_error(const char *str)
-{
-	fprintf(stderr, "%s\n", str);
-	exit(1);
-}
 
 static void usage()
 {
@@ -111,18 +109,8 @@ static void usage()
 	exit(EX_TEMPFAIL);
 }
 
-static void read_headers(int fd)
+static void read_headers(rfc822::fdstreambuf &tmpfp)
 {
-	fd=dup(fd);
-
-	if (fd < 0)
-	{
-		perror("dup");
-		exit(1);
-	}
-
-	rfc822::fdstreambuf tmpfp{fd};
-
 	rfc2045::entity::line_iter<false>::headers h{tmpfp};
 
 	do
@@ -397,27 +385,33 @@ static void opensendmail(int argn, int argc, char **argv)
 	exit(EX_TEMPFAIL);
 }
 
-static struct rfc2045 *savemessage(FILE *tmpfp)
+static void savemessage(rfc822::fdstreambuf &original_message,
+			rfc822::fdstreambuf &tmpfp, rfc2045::entity &message)
 {
-	struct rfc2045 *rfcp=rfc2045_alloc();
 	char buf[BUFSIZ];
 	int n;
 
-	if (!rfcp)
-	{
-		perror("rfc2045_alloc");
-		exit(1);
-	}
+	rfc2045::entity_parser<false> parser;
 
-	while ((n=fread(buf, 1, sizeof(buf), stdin)) > 0)
+	while ((n=original_message.sgetn(buf, sizeof(buf))) > 0)
 	{
-		if (fwrite(buf, n, 1, tmpfp) != 1)
+		char *ptr=buf;
+
+		parser.parse(buf, buf+n);
+
+		while (n > 0)
 		{
-			perror("fwrite(tempfile)");
-			exit(1);
-		}
+			int i=tmpfp.sputn(ptr, n);
 
-		rfc2045_parse(rfcp, buf, n);
+			if (i <= 0)
+			{
+				perror("fwrite(tempfile)");
+				exit(1);
+			}
+
+			ptr += i;
+			n -= i;
+		}
 	}
 
 	if (n < 0)
@@ -425,214 +419,186 @@ static struct rfc2045 *savemessage(FILE *tmpfp)
 		perror("tempfile");
 		exit(1);
 	}
-	return rfcp;
+	message=parser.parsed_entity();
 }
 
-
-struct mimeautoreply_s {
-	struct rfc2045_mkreplyinfo info;
-	FILE *outf;
-
-	FILE *contentf;
-};
-
-static void mimeautoreply_write_func(const char *str, size_t cnt, void *ptr)
+static void write_to_reply_outf(rfc822::fdstreambuf &reply_outf,
+				std::string_view content)
 {
-	if (cnt &&
-	    fwrite(str, cnt, 1, ((struct mimeautoreply_s *)ptr)->outf) != 1)
+	auto p=content.data();
+	auto s=content.size();
+
+	while (s > 0)
 	{
-		perror("tmpfile");
-		exit(1);
-	}
-}
+		int n=reply_outf.sputn(p, s);
 
-static void mimeautoreply_writesig_func(void *ptr)
-{
-}
-
-static int mimeautoreply_myaddr_func(const char *addr, void *ptr)
-{
-	return 0;
-}
-
-static void copy_headers(void *ptr)
-{
-	struct mimeautoreply_s *p=(struct mimeautoreply_s *)ptr;
-	char buf[BUFSIZ];
-
-	static const char ct[]="Content-Transfer-Encoding:";
-
-	while (fgets(buf, sizeof(buf), p->contentf) != NULL)
-	{
-		if (buf[0] == '\n')
-			break;
-
-		if (strncasecmp(buf, ct, sizeof(ct)-1) == 0)
-			continue;
-
-		mimeautoreply_write_func(buf, strlen(buf), ptr);
-
-		while (strchr(buf, '\n') == NULL)
+		if (n <= 0)
 		{
-			if (fgets(buf, sizeof(buf), p->contentf) == NULL)
-				break;
-
-			mimeautoreply_write_func(buf, strlen(buf), ptr);
-		}
-	}
-}
-
-static void copy_body(void *ptr)
-{
-	struct mimeautoreply_s *p=(struct mimeautoreply_s *)ptr;
-	char buf[BUFSIZ];
-
-	while (fgets(buf, sizeof(buf), p->contentf) != NULL)
-	{
-		mimeautoreply_write_func(buf, strlen(buf), ptr);
-	}
-}
-
-static void copy_draft(void *ptr)
-{
-	struct mimeautoreply_s *p=(struct mimeautoreply_s *)ptr;
-	char buf[BUFSIZ];
-	int copying_this_header=0;
-	int continuing=0;
-
-	while (1)
-	{
-		if (!fgets(buf, sizeof(buf), p->contentf))
-			return;
-
-		if (!continuing)
-		{
-			if (*buf == '\n')
-				break;
-
-			if (!isspace(*buf))
-			{
-				/* Copy MIME headers only */
-				copying_this_header=
-					strncasecmp(buf, "content-", 8) == 0;
-			}
-		}
-
-		continuing=strchr(buf, '\n') == NULL;
-
-		if (copying_this_header)
-			mimeautoreply_write_func(buf, strlen(buf), ptr);
-	}
-
-	do
-	{
-		mimeautoreply_write_func(buf, strlen(buf), ptr);
-	} while (fgets(buf, sizeof(buf), p->contentf));
-}
-
-FILE *find_draft(const char *maildirfolder)
-{
-	char *draftfile=0;
-	struct stat draft_stat;
-
-	FILE *fp=NULL;
-	static const char * const newcur[2]={"new", "cur"};
-	int i;
-
-	draft_stat.st_mtime=0;
-
-	for (i=0; i<2; ++i)
-	{
-		char *dirbuf=(char *)malloc(strlen(maildirfolder)+10);
-		DIR *dirp;
-		struct dirent *de;
-
-		if (!dirbuf)
-		{
-			perror("malloc");
+			perror(temporary_file_msg);
 			exit(1);
 		}
 
-		strcat(strcat(strcpy(dirbuf, maildirfolder), "/"),
-		       newcur[i]);
+		p += n;
+		s -= n;
+	}
+}
 
-		dirp=opendir(dirbuf);
-		if (!dirp)
-		{
-			free(dirbuf);
+// The contentbuf contains a set of headers, followed by the actual
+// content. Copy the headers, stop reading contentbuf after reading
+// the empty line that follows the headers.
+//
+// Do not copy the Content-Transfer-Encoding: header, we'll provide
+// our own.
+
+static void copy_headers(rfc822::fdstreambuf &contentbuf,
+			 rfc822::fdstreambuf &reply_outf)
+{
+	rfc2045::entity::line_iter<false>::headers h{
+		contentbuf
+	};
+
+	h.name_lc=false;
+	h.keep_eol=true;
+
+	do
+	{
+		const auto &[name, empty] =
+			h.convert_name_check_empty();
+
+		if (name == "content-transfer-encoding")
 			continue;
-		}
 
-		while ((de=readdir(dirp)) != NULL)
+		if (empty)
+			continue;
+
+		write_to_reply_outf(reply_outf, h.current_header());
+	} while (h.next());
+};
+
+// Copy the message content to the output, verbatim
+static void copy_body(rfc822::fdstreambuf &contentbuf,
+		      rfc822::fdstreambuf &reply_outf)
+{
+	char buffer[BUFSIZ];
+
+	std::streamsize s;
+
+	while ((s=contentbuf.sgetn(buffer, sizeof(buffer))) > 0)
+		write_to_reply_outf(reply_outf, std::string_view(buffer, s));
+}
+
+// Retrieve the headers and body from a message in a maildir,
+// the replydraft option. All headers except for Content- headers
+// are ignored. The Content- headers and the body gets copied
+// into the autoreply.
+
+static void copy_draft(rfc822::fdstreambuf &contentbuf,
+		       rfc822::fdstreambuf &reply_outf)
+{
+	rfc2045::entity::line_iter<false>::headers h{
+		contentbuf
+	};
+
+	h.name_lc=false;
+	h.keep_eol=true;
+
+	do
+	{
+		const auto &[name, empty] =
+			h.convert_name_check_empty();
+
+		if (!name.empty() &&
+		    std::string_view{name}.substr(0, 8) !=
+		    "content-")
+			continue;
+
+		write_to_reply_outf(reply_outf, h.current_header());
+	} while (h.next());
+
+	write_to_reply_outf(reply_outf, "\n");
+	copy_body(contentbuf, reply_outf);
+}
+
+rfc822::fdstreambuf find_draft(std::string_view maildirfolder)
+{
+	std::string draftfile;
+
+	struct stat draft_stat;
+
+	rfc822::fdstreambuf fp;
+	static const char * const newcur[2]={"new", "cur"};
+
+	draft_stat.st_mtime=0;
+
+	for (auto subdir:newcur)
+	{
+		std::string dirbuf;
+
+		dirbuf.reserve(maildirfolder.size()+10);
+
+		dirbuf=maildirfolder;
+
+		dirbuf += "/";
+
+		dirbuf += subdir;
+
+		std::error_code ec;
+
+		std::filesystem::directory_iterator dirp{dirbuf, ec};
+
+		if (ec)
+			continue;
+
+		for (auto &de:dirp)
 		{
-			const char *filename=de->d_name;
-			char *filenamebuf;
-			FILE *new_file;
+			std::string filename{de.path().filename()};
+
+			if (MAILDIR_DELETED(filename.c_str()))
+				continue;
+
+			std::string filenamebuf{de.path()};
+
+			rfc822::fdstreambuf new_file{
+				open(filenamebuf.c_str(), O_RDONLY)
+			};
+
+			if (new_file.error())
+				continue;
+
 			struct stat new_stat;
 
-			if (*filename == '.')
-				continue;
-			if (MAILDIR_DELETED(filename))
-				continue;
-
-			filenamebuf=(char *)malloc(strlen(dirbuf)+strlen(filename)+2);
-			if (!filenamebuf)
+			if (fstat(new_file.fileno(), &new_stat) < 0)
 			{
-				perror("malloc");
-				exit(1);
+				continue;
 			}
-			strcat(strcat(strcpy(filenamebuf, dirbuf), "/"),
-			       filename);
-			new_file=fopen(filenamebuf, "r");
-			free(filenamebuf);
-			if (!new_file)
-				continue;
 
-			if (fstat(fileno(new_file), &new_stat) < 0)
-				continue;
-
-			if (draftfile)
+			if (!draftfile.empty())
 			{
 				if (new_stat.st_mtime < draft_stat.st_mtime)
 					continue;
 
 				if (new_stat.st_mtime == draft_stat.st_mtime
-				    && strcmp(filename, draftfile) > 0)
+				    && filenamebuf > draftfile)
 					continue;
-
-				free(draftfile);
-				fclose(fp);
 			}
 
-			if ((draftfile=strdup(filename)) == NULL)
-			{
-				perror("strdup");
-				exit(1);
-			}
-			fp=new_file;
+			draftfile=filenamebuf;
+			fp=std::move(new_file);
 			draft_stat=new_stat;
 		}
-		free(dirbuf);
-		closedir(dirp);
 	}
 	return fp;
 }
 
-struct fb {
-	struct fb *next;
-	const char *n;
-	const char *v;
-};
-
 int main(int argc, char **argv)
 {
 	int argn;
-	FILE *tmpfp;
-	struct rfc2045 *rfcp;
-	struct mimeautoreply_s replyinfo;
+	rfc822::fdstreambuf tmpfp;
+	rfc822::fdstreambuf reply_outf;
+	rfc822::fdstreambuf reply_contentf;
 	const char *subj=0;
 	const char *txtfile=0, *mimefile=0;
-	FILE *draftfile=0;
+	rfc822::fdstreambuf draftfile;
 	const char *mimedsn=0;
 	int nosend=0;
 	const char *replymode="reply";
@@ -642,11 +608,10 @@ int main(int argc, char **argv)
 	const char *forwardsep="--- Forwarded message ---";
 	const char *replysalut="%F writes:";
 	const char *maildirfolder=0;
-	struct rfc2045src *src;
 
 	const char *feedback_type=0;
-	struct fb *fb_list=0, **fb_tail=&fb_list;
-	size_t fb_cnt=0;
+
+	std::vector<std::tuple<const char *, const char *>> fb_list;
 
 	setlocale(LC_ALL, "");
 	charset=unicode_default_chset();
@@ -667,24 +632,12 @@ int main(int argc, char **argv)
 
 		if (strncmp(argv[argn], "--feedback-", 11) == 0)
 		{
-			struct fb *f;
-
 			if (++argn >= argc)
 				break;
 
-			if ((f=(fb *)malloc(sizeof(struct fb))) == NULL)
-			{
-				perror("malloc");
-				exit(1);
-			}
+			fb_list.emplace_back(argv[argn-1]+11,
+					     argv[argn]);
 
-			f->n=argv[argn-1]+11;
-			f->v=argv[argn];
-
-			f->next=NULL;
-			*fb_tail=f;
-			fb_tail=&f->next;
-			++fb_cnt;
 			continue;
 		}
 
@@ -825,6 +778,26 @@ int main(int argc, char **argv)
 		case 'n':
 			nosend=1;
 			continue;
+		case 'X':	/* Undocumented option, used in tests */
+			if (!optarg && argn+1 < argc)
+				optarg=argv[++argn];
+
+			{
+				std::string_view timeout{optarg};
+
+				unsigned secs;
+
+				if (std::from_chars(timeout.data(),
+						    timeout.data()+
+						    timeout.size(),
+						    secs).ec != std::errc{})
+				{
+					usage();
+				}
+
+				alarm(secs);
+			}
+			continue;
 		default:
 			usage();
 		}
@@ -835,7 +808,7 @@ int main(int argc, char **argv)
 		if (!maildirfolder)
 			usage();
 		draftfile=find_draft(maildirfolder);
-		if (!draftfile)
+		if (draftfile.error())
 			exit(0);
 	}
 	else
@@ -846,23 +819,47 @@ int main(int argc, char **argv)
 		if (txtfile && mimefile)
 			usage();
 	}
-	tmpfp=tmpfile();
 
-	if (!tmpfp)
 	{
-		perror("tmpfile");
-		exit(1);
+		FILE *f=tmpfile();
+
+		if (!f)
+		{
+			perror(temporary_file_msg);
+			exit(1);
+		}
+		tmpfp=rfc822::fdstreambuf{dup(fileno(f))};
+
+		fclose(f);
+
+		if (tmpfp.error())
+		{
+			perror(temporary_file_msg);
+			exit(1);
+		}
 	}
 
-	rfcp=savemessage(tmpfp);
+	rfc2045::entity message;
 
-	if (fseek(tmpfp, 0L, SEEK_SET) < 0)
+	{
+		rfc822::fdstreambuf original_message{dup(0)};
+
+		if (original_message.error())
+		{
+			perror("standard input");
+			exit(1);
+		}
+
+		savemessage(original_message, tmpfp, message);
+	}
+
+	if (tmpfp.pubseekpos(0) != 0)
 	{
 		perror("fseek(tempfile)");
 		exit(1);
 	}
 
-	read_headers(fileno(tmpfp));
+	read_headers(tmpfp);
 
 	if (sender.empty())
 		check_sender();
@@ -873,187 +870,253 @@ int main(int argc, char **argv)
 	check_db();
 #endif
 
-	src=rfc2045src_init_fd(fileno(tmpfp));
+	rfc2045::reply rfc2045reply;
+	std::string_view replymode_s{replymode};
 
-	memset(&replyinfo, 0, sizeof(replyinfo));
+	if (replymode_s == "reply")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::reply;
+	} else if (replymode_s == "replyall")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replyall;
+	} else if (replymode_s == "replydsn")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replydsn;
+	} else if (replymode_s == "replydraft")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replydraft;
+	} else if (replymode_s == "forward")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::forward;
+	} else if (replymode_s == "forwardatt")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::forwardatt;
+	} else if (replymode_s == "feedback")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::feedback;
+	} else if (replymode_s == "replyfeedback")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replyfeedback;
+	} else if (replymode_s == "replyall")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replyall;
+	} else if (replymode_s == "replylist")
+	{
+		rfc2045reply.replymode=rfc2045::replymode_t::replylist;
+	} else
+	{
+		usage();
+	}
 
-	replyinfo.info.src=src;
-	replyinfo.info.rfc2045partp=rfcp;
-	replyinfo.info.voidarg=&replyinfo;
+	rfc2045reply.replytoenvelope=replytoenvelope;
 
-	replyinfo.info.write_func=mimeautoreply_write_func;
+	rfc2045reply.donotquote=donotquote;
 
-	replyinfo.info.writesig_func=mimeautoreply_writesig_func;
+	rfc2045reply.replysalut=replysalut;
 
-	replyinfo.info.myaddr_func=mimeautoreply_myaddr_func;
-
-	replyinfo.info.replymode=replymode;
-	replyinfo.info.replytoenvelope=replytoenvelope;
-	replyinfo.info.donotquote=donotquote;
-
-	replyinfo.info.replysalut=replysalut;
-	replyinfo.info.forwarddescr="Forwarded message";
-	replyinfo.info.mailinglists="";
-	replyinfo.info.charset=charset;
-	replyinfo.info.subject=subj;
-	replyinfo.info.forwardsep=forwardsep;
-	replyinfo.info.fullmsg=fullmsg;
+	rfc2045reply.forwarddescr="Forwarded message";
+	rfc2045reply.charset=charset;
+	rfc2045reply.subject=subj ? subj:"";
+	rfc2045reply.forwardsep=forwardsep;
+	rfc2045reply.fullmsg=fullmsg;
 
 	if (mimedsn && *mimedsn)
 	{
-		replyinfo.info.dsnfrom=mimedsn;
-		replyinfo.info.replymode="replydsn";
+		rfc2045reply.dsnfrom=mimedsn;
+		rfc2045reply.replymode=rfc2045::replymode_t::replydsn;
 	}
 	else if (feedback_type && *feedback_type)
 	{
-		replyinfo.info.feedbacktype=feedback_type;
+		rfc2045reply.feedbacktype=feedback_type;
 
-		if (strcmp(replyinfo.info.replymode, "feedback") &&
-		    strcmp(replyinfo.info.replymode, "replyfeedback"))
-		{
-			fprintf(stderr, "\"-T feedback\" or \"-T replyfeedback\" required\n");
+		switch (rfc2045reply.replymode) {
+		case rfc2045::replymode_t::feedback:
+		case rfc2045::replymode_t::replyfeedback:
+			break;
+		default:
+			std::cerr << "\"-T feedback\" or \"-T replyfeedback\""
+				" required\n";
 			exit(1);
 		}
 
-		if (fb_cnt > 0)
+		if (fb_list.size() > 0)
 		{
-			size_t i;
-			struct fb *p;
-			const char **strp;
-
-			replyinfo.info.feedbackheaders=
-				strp=(const char **)malloc(sizeof(char *) * ( 2 * fb_cnt+1 ));
-
-			for (i=0, p=fb_list; p; p=p->next)
+			for (auto [n, v] : fb_list)
 			{
-				strp[i++]=p->n;
-				strp[i++]=p->v;
+				rfc2045reply.feedbackheaders.emplace_back(
+					n, v
+				);
 			}
-			strp[i]=NULL;
 		}
 	}
 
 	if (mimefile)
 	{
-		if ((replyinfo.contentf=fopen(mimefile, "r")) == NULL)
+		int fd=open(mimefile, O_RDONLY);
+
+		if (fd < 0)
 		{
 			perror(mimefile);
 			exit(1);
 		}
 
+		reply_contentf=rfc822::fdstreambuf(fd);
+
+		if (reply_contentf.error())
 		{
-			struct rfc2045 *rfcp=rfc2045_alloc();
-			static const char mv[]="Mime-Version: 1.0\n";
-			char buf[BUFSIZ];
-			int l;
-			const char *content_type;
-			const char *content_transfer_encoding;
-			const char *charset;
-
-			rfc2045_parse(rfcp, mv, sizeof(mv)-1);
-
-			while ((l=fread(buf, 1, sizeof(buf), replyinfo.contentf)
-				) > 0)
-			{
-				rfc2045_parse(rfcp, buf, l);
-			}
-
-			if (l < 0 ||
-			    fseek(replyinfo.contentf, 0L, SEEK_SET) < 0)
-			{
-				perror(mimefile);
-				exit(1);
-			}
-
-			rfc2045_mimeinfo(rfcp, &content_type,
-					 &content_transfer_encoding,
-					 &charset);
-
-			if (strcasecmp(content_type, "text/plain"))
-			{
-				fprintf(stderr,
-					"%s must specify text/plain MIME type\n",
-					mimefile);
-				exit(1);
-			}
-			{
-				char *p=NULL;
-
-				if (charset)
-					p=unicode_convert_tobuf("",
-								  charset,
-								  unicode_u_ucs4_native,
-								  NULL);
-
-				if (!p)
-				{
-					fprintf(stderr, "Unknown charset in %s\n",
-						mimefile);
-					exit(1);
-				}
-				free(p);
-				replyinfo.info.charset=strdup(charset);
-			}
-			rfc2045_free(rfcp);
+			perror(mimefile);
+			exit(1);
 		}
-		replyinfo.info.content_set_charset=copy_headers;
-		replyinfo.info.content_specify=copy_body;
+
+		// Extract the Content-Type header from the MIME file.
+
+		rfc2045::entity::line_iter<false>::headers h{reply_contentf};
+
+		rfc2045::entity::rfc2231_header content_type{"text/plain"};
+
+		do
+		{
+			const auto &[name, header] = h.name_content();
+
+			if (name != "content-type")
+				continue;
+
+			content_type=rfc2045::entity::rfc2231_header{header};
+		} while (h.next());
+
+		if (reply_contentf.pubseekpos(0) != 0)
+		{
+			perror(mimefile);
+			exit(1);
+		}
+
+		if (content_type.value != "text/plain")
+		{
+			std::cerr << mimefile
+				  << "%s must specify text/plain MIME type\n";
+
+			exit(1);
+		}
+
+		content_type.lowercase_value("charset");
+
+		auto charset=content_type.parameters.find("charset");
+
+		if (charset != content_type.parameters.end())
+		{
+			bool errflag;
+
+			unicode::iconvert::convert(
+				"",
+				charset->second.value,
+				unicode_u_ucs4_native,
+				errflag
+			);
+			if (errflag)
+			{
+				std::cerr << "Unknown charset in "
+				     << mimefile
+				     << "\n";
+				exit(1);
+			}
+			rfc2045reply.charset=charset->second.value;
+		}
+		rfc2045reply.content_set_charset=[&] {
+			copy_headers(reply_contentf, reply_outf);
+		};
+
+		rfc2045reply.content_specify=[&] {
+			copy_body(reply_contentf, reply_outf);
+		};
 	}
 	else if (txtfile)
 	{
-		if ((replyinfo.contentf=fopen(txtfile, "r")) == NULL)
+		int fd=open(txtfile, O_RDONLY);
+		if (fd < 0)
 		{
 			perror(mimefile);
 			exit(1);
 		}
-		replyinfo.info.content_specify=copy_body;
+		reply_contentf=rfc822::fdstreambuf{fd};
+
+		rfc2045reply.content_specify=[&] {
+			copy_body(reply_contentf, reply_outf);
+		};
 	}
-	else if (draftfile)
+	else if (!draftfile.error())
 	{
-		replyinfo.contentf=draftfile;
-		replyinfo.info.content_specify=copy_draft;
+		reply_contentf=std::move(draftfile);
+
+		rfc2045reply.content_specify=[&] {
+			copy_draft(reply_contentf, reply_outf);
+		};
 	}
 
-	if (replyinfo.contentf)
-		fcntl(fileno(replyinfo.contentf), F_SETFD, FD_CLOEXEC);
+	if (!reply_contentf.error())
+		fcntl(reply_contentf.fileno(), F_SETFD, FD_CLOEXEC);
 
 	if (nosend)
-		replyinfo.outf=stdout;
+	{
+		reply_outf=rfc822::fdstreambuf(dup(1));
+
+		if (reply_outf.error())
+		{
+			perror("stdout");
+			exit(1);
+		}
+	}
 	else
 	{
-		replyinfo.outf=tmpfile();
+		FILE *f=tmpfile();
 
-		if (replyinfo.outf == NULL)
+		if (!f)
 		{
-			perror("tmpfile");
+			perror(temporary_file_msg);
+			exit(1);
+		}
+		reply_outf=rfc822::fdstreambuf{dup(fileno(f))};
+
+		if (reply_outf.error())
+		{
+			perror(temporary_file_msg);
 			exit(1);
 		}
 	}
 
 	for (auto &h:extra_headers)
 	{
-		fprintf(replyinfo.outf, "%s\n", h.c_str());
+		write_to_reply_outf(reply_outf, h);
+		write_to_reply_outf(reply_outf, "\n");
 	}
-	fprintf(replyinfo.outf,
-		"Precedence: junk\n"
-		"Auto-Submitted: auto-replied\n");
 
-	if (rfc2045_makereply(&replyinfo.info) < 0 ||
-	    fflush(replyinfo.outf) < 0 || ferror(replyinfo.outf) ||
+	write_to_reply_outf(
+		reply_outf,
+		"Precedence: junk\n"
+		"Auto-Submitted: auto-replied\n"
+	);
+
+	fcntl(tmpfp.fileno(), F_SETFD, FD_CLOEXEC);
+
+	rfc2045reply(
+		[&]
+		(std::string_view p)
+		{
+			write_to_reply_outf(reply_outf, p);
+		}, message, tmpfp
+	);
+
+
+	if (reply_outf.pubseekpos(0) != 0 ||
 	    (!nosend &&
 	     (
-	      fseek(replyinfo.outf, 0L, SEEK_SET) < 0 ||
-	      (close(0), dup(fileno(replyinfo.outf))) < 0)
-	     ))
+		     close(0), dup(reply_outf.fileno()) < 0
+	     )))
 	{
-		perror("tempfile");
+		perror(temporary_file_msg);
 		exit(1);
 	}
-	fclose(replyinfo.outf);
+	reply_outf=rfc822::fdstreambuf{};
 	fcntl(0, F_SETFD, 0);
-
-	rfc2045_free(rfcp);
-	rfc2045src_deinit(src);
 
 	if (!nosend)
 		opensendmail(argn, argc, argv);

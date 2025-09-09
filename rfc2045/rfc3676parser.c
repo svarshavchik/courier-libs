@@ -249,15 +249,24 @@ static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 
 		/* Keep feeding it to the current handler */
 
-		while (handle->errflag == 0 && cnt)
-		{
-			size_t n=(*handle->line_handler)(handle, p, cnt);
+		rfc3676parser_unicode(handle, p, cnt);
+	}
 
-			if (handle->errflag == 0)
-			{
-				cnt -= n;
-				p += n;
-			}
+	return handle->errflag;
+}
+
+int rfc3676parser_unicode(rfc3676_parser_t handle,
+			  const char32_t *p,
+			  size_t cnt)
+{
+	while (handle->errflag == 0 && cnt)
+	{
+		size_t n=(*handle->line_handler)(handle, p, cnt);
+
+		if (handle->errflag == 0)
+		{
+			cnt -= n;
+			p += n;
 		}
 	}
 

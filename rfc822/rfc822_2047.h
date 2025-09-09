@@ -303,6 +303,8 @@ template<typename out_iter_type> auto tokens::display_name(
 		return iter;
 }
 
+inline void display_header_no_sep() {}
+
 // Here's the name of a header, and here's its encoded contents. Convert
 // the header to Unicode.
 //
@@ -319,7 +321,7 @@ template<typename out_iter, typename mark_sep_t=void (*)()>
 auto display_header_unicode(std::string_view headername,
 			    std::string_view headercontents,
 			    out_iter &&iter,
-			    mark_sep_t &&mark_sep=[]{})
+			    mark_sep_t &&mark_sep=display_header_no_sep)
 {
 	if (header_is_addr(headername))
 	{
@@ -381,13 +383,15 @@ auto display_header_unicode(std::string_view headername,
 // An optional fifth parameter is a closure that gets invoked after
 // formatting the comma separators between addresses, in a header that
 // contains addresses.
+//
+// This is the equivalent of rfc822_display_hdrvalue_* functions.
 
 template<typename out_iter, typename mark_sep_t=void (*)()>
 auto display_header(std::string_view headername,
 		    std::string_view headercontents,
 		    const std::string &chset,
 		    out_iter &&iter,
-		    mark_sep_t &&mark_sep=[]{})
+		    mark_sep_t &&mark_sep=display_header_no_sep)
 {
 	std::u32string us;
 
