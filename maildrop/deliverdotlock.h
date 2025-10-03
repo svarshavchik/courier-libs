@@ -17,7 +17,7 @@
 
 class DeliverDotLock : public DotLock {
 
-	void	cleanup();
+	void	cleanup() override;
 
 	int	truncate_fd;
 	off_t	truncate_size;

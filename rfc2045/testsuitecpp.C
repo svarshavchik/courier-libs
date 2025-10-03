@@ -555,7 +555,6 @@ void testmimeparse()
 
 		parsed_mime_info parsed;
 	} tests1[]={
-
 		// Test 1
 		{
 			"",
@@ -1391,6 +1390,47 @@ void testmimeparse()
 					1    , // mime1
 					RFC2045_ERRWRONGBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
 					"aa12", cte::eightbit,
+					0, // has8bitheader
+					0, // has8bitbody
+					0  // has8bitcontentchar
+				}
+			}
+		},
+
+		// Test 23
+		{
+			"Mime-Version: 1.0\n"
+			"Content-Type: multipart/mixed; boundary=\"jack-1759500593-0000\"\n"
+			"\n"
+			"\n"
+			"--jack-1759500593-0000\n"
+			"Content-Type: text/plain\n"
+			"\n"
+			"\n"
+			"\n"
+			"--jack-1759500593-0000--\n"
+			"\n",
+			0    , // startpos
+			82   , // startbody
+			160  , // endbody
+			11   , // nlines
+			8    , // nbodylines
+			1    , // mime1
+			0, "multipart/mixed", "iso-8859-1",
+			"jack-1759500593-0000", cte::eightbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0, // has8bitcontentchar
+			{
+				{
+					106  , // startpos
+					132  , // startbody
+					133  , // endbody
+					3    , // nlines
+					1    , // nbodylines
+					1    , // mime1
+					0, "text/plain", "iso-8859-1",
+					"", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
 					0  // has8bitcontentchar

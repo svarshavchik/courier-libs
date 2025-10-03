@@ -16,7 +16,7 @@
 
 class AlarmSleep: public Alarm {
 
-	void	handler();
+	void	handler() override;
 	int	flag;
 public:
 	AlarmSleep(unsigned);

@@ -2772,9 +2772,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 			// We know that the line starts with --, at least.
 
-			b=std::find(b+2, e, '-');
-
-			if (e-b >= 2 && *b == '-' && b[1] == '-')
+			if (e-b >= 4 && e[-2] == '-' && e[-1] == '-')
 			{
 				// Terminating boundary delimiter. We'll
 				// consume it, below, then swallow things up

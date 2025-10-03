@@ -31,8 +31,8 @@
 class TempFile : public ExitTrap {
 
 protected:
-	void	cleanup();
-	void	forked();
+	void	cleanup() override;
+	void	forked() override;
 
 #if	SHARED_TEMPDIR
 	FILE	*fp;		/* tmpfile() output */

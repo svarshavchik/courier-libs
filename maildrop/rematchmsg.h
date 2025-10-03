@@ -45,9 +45,9 @@ public:
 	ReMatchMsg(Message *m, int flag, int flag2);
 	virtual ~ReMatchMsg();
 
-	int NextChar();
-	int CurrentChar();
-	off_t GetCurrentPos();
-	void SetCurrentPos(off_t);
+	int NextChar() override;
+	int CurrentChar() override;
+	off_t GetCurrentPos() override;
+	void SetCurrentPos(off_t) override;
 } ;
 #endif

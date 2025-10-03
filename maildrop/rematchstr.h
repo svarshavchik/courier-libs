@@ -22,9 +22,9 @@ public:
 	ReMatchStr(const char *p) : str(p), pos(p)	{}
 	~ReMatchStr();
 
-	int	NextChar();
-	int	CurrentChar();
-	off_t GetCurrentPos();
-	void	SetCurrentPos(off_t);
+	int	NextChar() override;
+	int	CurrentChar() override;
+	off_t GetCurrentPos() override;
+	void	SetCurrentPos(off_t) override;
 } ;
 #endif

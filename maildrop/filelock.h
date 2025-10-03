@@ -14,8 +14,8 @@
 
 class	FileLock : public ExitTrap {
 
-	void	cleanup();
-	void	forked();
+	void	cleanup() override;
+	void	forked() override;
 
 	int	fd;
 public:

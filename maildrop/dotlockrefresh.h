@@ -19,7 +19,7 @@ class DotLock;
 
 class DotLockRefresh : public Alarm {
 
-	void	handler();
+	void	handler() override;
 	DotLock	*dotlock;
 public:
 	DotLockRefresh(DotLock *);

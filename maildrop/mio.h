@@ -77,7 +77,7 @@ class MioStdio : public Mio {
 public:
 	MioStdio(int);
 	~MioStdio();
-	int write(const void *, int);
+	int write(const void *, int) override;
 	void write(const char *p) { write(p, strlen(p)); }
 } ;
 
