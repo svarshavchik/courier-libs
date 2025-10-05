@@ -385,3 +385,21 @@ std::streamsize rfc822::fdstreambuf::xsputn(const char *s,
 	}
 	return c;
 }
+
+rfc822::fdstreambuf::int_type rfc822::fdstreambuf::pbackfail(int_type c)
+{
+	auto e=eback();
+	auto g=gptr();
+
+	if (g && e && g > e)
+	{
+		setg(e, --g, egptr());
+		if (c != traits_type::eof())
+		{
+			*g=c;
+			return c;
+		}
+	}
+
+	return traits_type::eof();
+}

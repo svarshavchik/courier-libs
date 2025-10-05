@@ -880,7 +880,15 @@ int main()
 
 		std::ostream o{&fds};
 
-		o << 'X';
+		o << "XX";
+
+		if (fds.pubseekpos(0) != 0) FAIL();
+
+		if (fds.sbumpc() != 'X') FAIL();
+
+		if (fds.sputbackc('Y') == -1) FAIL();
+		if (fds.sbumpc() != 'Y') FAIL();
+		if (fds.sbumpc() != 'X') FAIL();
 	}
 
 	fseek(fp, 0L, SEEK_SET);

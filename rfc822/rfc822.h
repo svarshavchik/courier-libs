@@ -1433,6 +1433,8 @@ protected:
 	int_type overflow(int_type ch) override;
 
 	std::streamsize xsputn(const char *s, std::streamsize count ) override;
+
+	int_type pbackfail(int_type c) override;
 };
 
 #if 0

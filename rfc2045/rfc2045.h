@@ -2611,7 +2611,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	if (hasraw8bitchars)
 	{
 		iter.report_error_here(RFC2045_ERR8BITHEADER);
-		hasraw8bitchars=0; // So it reflects body content.
+		hasraw8bitchars=false; // So it reflects body content.
 	}
 	bool is_multipart=false;
 
