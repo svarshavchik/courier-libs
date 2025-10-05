@@ -1405,6 +1405,8 @@ public:
 	}
 	~fdstreambuf();
 
+	static fdstreambuf tmpfile();
+
 	int fileno() const { return fd; }
 
 	bool error() const { return fd < 0; }
