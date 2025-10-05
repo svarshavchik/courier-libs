@@ -6,6 +6,7 @@
 #include	"rfc822.h"
 #include	<unistd.h>
 #include	<cstring>
+#include	<cstdio>
 
 #ifndef BUFSIZ
 #define BUFSIZ 8192
@@ -18,6 +19,16 @@ rfc822::fdstreambuf::~fdstreambuf()
 		delete[] defaultbuf;
 	if (fd >= 0)
 		close(fd);
+}
+
+rfc822::fdstreambuf rfc822::fdstreambuf::tmpfile()
+{
+	FILE *fp=::tmpfile();
+
+	rfc822::fdstreambuf tmpfilebuf{dup(::fileno(fp))};
+
+	fclose(fp);
+	return tmpfilebuf;
 }
 
 rfc822::fdstreambuf &rfc822::fdstreambuf::operator=(fdstreambuf &&o) noexcept
