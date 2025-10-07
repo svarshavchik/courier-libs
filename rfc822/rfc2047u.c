@@ -577,6 +577,7 @@ static int rfc2047_print_unicode_addrstr(const char *addrheader,
 struct rfc822_display_hdrvalue_s {
 
 	void (*display_func)(const char *, size_t, void *);
+	void (*err_func)(const char *, size_t, void *);
 	void *ptr;
 };
 
@@ -597,6 +598,15 @@ static void rfc822_display_hdrvalue_print_separator(const char *cp, void *ptr)
 	(*s->display_func)("", 0, s->ptr); /* Signal wrap point */
 }
 
+static void rfc822_display_err_func(const char *str, size_t pos,
+				   void *ptr)
+{
+	struct rfc822_display_hdrvalue_s *s=
+		(struct rfc822_display_hdrvalue_s *)ptr;
+
+	(*s->err_func)(str, pos, s->ptr);
+}
+
 int rfc822_display_hdrvalue(const char *hdrname,
 			    const char *hdrvalue,
 			    const char *charset,
@@ -608,6 +618,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 	struct rfc822_display_hdrvalue_s s;
 
 	s.display_func=display_func;
+	s.err_func=err_func;
 	s.ptr=ptr;
 
 	if (rfc822hdr_is_addr(hdrname))
@@ -616,7 +627,7 @@ int rfc822_display_hdrvalue(const char *hdrname,
 						     charset,
 						     rfc822_display_hdrvalue_print_func,
 						     rfc822_display_hdrvalue_print_separator,
-						     err_func,
+						     rfc822_display_err_func,
 						     &s);
 	}
 

@@ -2120,7 +2120,17 @@ static void redirect(const char *url)
 {
 	if (valid_redirect())
 	{
-		printf("Refresh: 0; URL=%s\n", url);
+		char *p=strdup(url), *q;
+
+		if (!p)
+			enomem();
+		for (q=p; *q; ++q)
+		{
+			if (*q == '\r' || *q == '\n')
+				*q=' ';
+		}
+		printf("Refresh: 0; URL=%s\n", p);
+		free(p);
 		output_form("redirect.html");
 		return;
 	}
