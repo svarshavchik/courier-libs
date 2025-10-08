@@ -99,7 +99,7 @@ run-testsuite-mailbot: testsuite.mailbot
 		rm -f ./mailbot.tst; \
 		ln -s mailbot mailbot.tst; \
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
-	diff -U 3 testsuite.mailbot.txt testsuite.diff
+	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
 	rm -f mailbot.tst testsuite.diff
 
 run-testsuite-mailbot-old: testsuite.mailbot
@@ -107,7 +107,7 @@ run-testsuite-mailbot-old: testsuite.mailbot
 		rm -f ./mailbot.tst; \
 		ln -s mailbot-old mailbot.tst; \
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
-	diff -U 3 testsuite.mailbot.txt testsuite.diff
+	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
 	rm -f mailbot.tst testsuite.diff
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
