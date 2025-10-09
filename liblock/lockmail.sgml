@@ -74,7 +74,7 @@ The actual timeout is rounded up to the next five second interval
       </varlistentry>
     </variablelist>
   </refsect1>
-  <refsect1 id="lockmail_description">
+  <refsect1 id="lockmail_description2">
     <title>DESCRIPTION</title>
     <para>
 This section briefly describes the locking mechanism used by

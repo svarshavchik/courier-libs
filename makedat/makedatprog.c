@@ -71,9 +71,14 @@ size_t	bufsize, buflen;
 		buf[buflen]=0;
 		if (c == EOF)	return (-1);
 
-		if (strcmp(buf, ".") == 0)	return (0);
+		if (strcmp(buf, ".") == 0)
+			break;
 		if (addgdbm(buf, o))	return (-1);
 	}
+
+	if (buf)
+		free(buf);
+	return 0;
 }
 
 int main(int argc, char **argv)
