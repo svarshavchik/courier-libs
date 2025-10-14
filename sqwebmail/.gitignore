@@ -7,6 +7,7 @@
 /htmllibdir.h
 /ldapaddressbook.dist
 /ldapsearch
+/selinux
 /sendit.sh
 /showmsg2html
 /sqwebmail
