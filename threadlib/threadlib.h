@@ -9,6 +9,13 @@
 
 #include	"config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct cthreadinfo;
 struct cthreadlock;
 
@@ -18,4 +25,10 @@ struct cthreadlock;
 #include	"nopthread.h"
 #endif
 
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 #endif

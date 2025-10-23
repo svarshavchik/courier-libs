@@ -21,7 +21,7 @@ void rfc822_tokenize(const char *p,
 		     void *voidp_err_func)
 {
 	const char *addr=p;
-	size_t	i=0;
+	size_t	i=0, j;
 	int	inbracket=0;
 
 	char	tokp_token;
@@ -217,6 +217,8 @@ void rfc822_tokenize(const char *p,
 			tokp_ptr=p;
 			tokp_len=0;
 
+			j=i;
+
 			while (plen &&
 			       !isspace((int)(unsigned char)*p) &&
 			       strchr(SPECIALS, *p) == 0)
@@ -225,7 +227,7 @@ void rfc822_tokenize(const char *p,
 				++p; --plen;
 				++i;
 			}
-			if (i == 0)	/* Idiot check */
+			if (i == j)	/* Idiot check */
 			{
 				(*err_func)(addr, i, voidp_err_func);
 

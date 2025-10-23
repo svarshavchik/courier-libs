@@ -188,8 +188,6 @@ template<typename out_iter_type> auto tokens::unicode_name(
 				{
 					*iter++ = '\\';
 				}
-
-				*iter++=*b++;
 				break;
 			case '"':
 				*iter++='\\';
