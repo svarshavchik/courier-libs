@@ -255,7 +255,7 @@ See COPYING for distribution information.
 	<blockquote>
 	  <informalexample>
 	    <programlisting><![CDATA[
-	    $ DEBGCC=10 ./courier-debuild -us -uc
+	    $ DEBGCC=12 ./courier-debuild -us -uc
 	    ]]></programlisting>
 	  </informalexample>
 	</blockquote>
@@ -269,6 +269,20 @@ See COPYING for distribution information.
 	  When using <command>pbuilder</command> to build Courier packages
 	  for a different distribution it is often desirable to leave the
 	  version of gcc unspecified:
+	</para>
+
+	<blockquote>
+	  <informalexample>
+	    <programlisting><![CDATA[
+	    $ DEBCLANG=20 ./courier-debuild -us -uc
+	    ]]></programlisting>
+	  </informalexample>
+	</blockquote>
+
+	<para>
+	  Setting the <envar>DEBCLANG</envar> environment variable
+	  results in using the <command>clang</command> compiler instead
+	  of gcc.
 	</para>
 
 	<blockquote>
