@@ -19,7 +19,7 @@ void testrfc2045line_iter_testset(int &testnum, test_types &tests)
 		auto b=s.begin();
 		auto e=s.end();
 
-		typename rfc2045::entity::line_iter<crlf>::iter<
+		typename rfc2045::entity::line_iter<crlf>::template iter<
 			std::string_view::iterator,
 			std::string_view::iterator
 			>

@@ -3224,7 +3224,7 @@ void rfc822::mime_decoder<out_iter, src_type>::decode(
 
 	if (decode_header)
 	{
-		typename rfc2045::entity::line_iter<crlf>::headers<
+		typename rfc2045::entity::line_iter<crlf>::template headers<
 			src_type> parser{e, src	};
 
 		parser.name_lc=header_name_lc;
