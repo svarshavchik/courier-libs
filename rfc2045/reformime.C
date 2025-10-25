@@ -970,6 +970,20 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			perror("seek");
 			exit(1);
 		}
+
+		if (message.errors.fatal())
+		{
+			auto errors=message.errors.describe();
+
+			std::cout << "Input message:\n";
+
+			for (auto &message:errors)
+				std::cout << "    "
+					  << message
+					  << "\n";
+
+			exit(1);
+		}
 	}
 
 	if (doinfo || do_extract || dodecode)
