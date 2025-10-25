@@ -3,8 +3,7 @@ Priority: optional
 Maintainer: Sam Varshavchik <mrsam@courier-mta.com>
 Build-Depends: debhelper-compat (= 12),
 	       autoconf-archive,
-	       gcc%DEBGCC%,
-	       g++%DEBGCC%
+	       %BUILD_DEPENDS%
 Standards-Version: 4.4.1
 Section: contrib/libs
 Homepage: https://www.courier-mta.org/unicode/

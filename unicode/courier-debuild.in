@@ -2,9 +2,13 @@
 #
 # Wrapper script for running debuild to build this package.
 #
-# export DEBGCC=10
+# export DEBGCC=12
 #
 # Set DEBGCC to use a non-default version of gcc
+#
+# export DEBCLANG=20
+#
+# Set DEBCLANG to use clang instead of gcc
 
 set -e
 shopt -s extglob
@@ -19,7 +23,7 @@ tar xf *
 cd @PACKAGE@-@VERSION@
 cp -pr packaging/debian .
 
-if test "$DEBGCC" = ""
+if test "$DEBGCC" = "" -a "$DEBCLANG" = ""
 then
     DEBGCC=`readlink /usr/bin/gcc | sed 's/gcc-//'`
 
@@ -35,16 +39,35 @@ fi
 
 if test "$DEBGCC" = "default"
 then
-    DEBGCC=""
+    CCOMPILER="gcc"
+    CXXCOMPILER="g++"
 else
-    DEBGCC="-$DEBGCC"
+    if test "$DEBCLANG" = ""
+    then
+	CCOMPILER="gcc-$DEBGCC"
+	CXXCOMPILER="g++-$DEBGCC"
+    else
+	CCOMPILER="clang-$DEBCLANG"
+	CXXCOMPILER="clang++-$DEBCLANG"
+    fi
 fi
+
+case $CCOMPILER in
+    clang*)
+	BUILD_DEPENDS="$CCOMPILER"
+	;;
+    *)
+	BUILD_DEPENDS="$CCOMPILER, $CXXCOMPILER"
+	;;
+esac
 
 for f in debian/rules debian/control
 do
 	sed "
 s/%SOVERSION%/@SOVERSION@/g
-s/%DEBGCC%/$DEBGCC/g
+s/%CCOMPILER%/$CCOMPILER/g
+s/%CXXCOMPILER%/$CXXCOMPILER/g
+s/%BUILD_DEPENDS%/$BUILD_DEPENDS/g
 " <$f >$f.tmp
 
 mv $f.tmp $f
