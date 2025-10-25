@@ -540,6 +540,32 @@ void testrfc2231headers()
 #endif
 }
 
+void testrfc2045foldedline_iter2()
+{
+	std::string test_str="Header: begin@!end\n";
+
+	std::replace(test_str.begin(), test_str.end(), '@', '\0');
+	std::replace(test_str.begin(), test_str.end(), '!', '\r');
+
+	rfc2045::entity entity;
+
+	auto b=test_str.begin();
+	auto e=test_str.end();
+	rfc2045::entity::line_iter<false>::iter iter{b, e};
+	rfc2045::entity_parse_meta::scope scope{iter, &entity};
+
+	std::string s;
+
+	const auto &[name, contents] =
+		iter.next_folded_header_line(entity, s);
+
+	if (contents != "beginend")
+	{
+		std::cout << "testrfc2045foldedline_iter2 test failed: "
+			  << contents << "\n";
+		exit(1);
+	}
+}
 #if 0
 #define UPDATE_TESTSUITECPP 1
 #endif
@@ -2758,6 +2784,7 @@ int main()
 	rfc2045_setdefaultcharset("iso-8859-1");
 	testrfc2045line_iter();
 	testrfc2045foldedline_iter();
+	testrfc2045foldedline_iter2();
 	testrfc2231headers();
 	testmimeparse();
 	testmimelimits();

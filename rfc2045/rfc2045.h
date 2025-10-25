@@ -2493,6 +2493,15 @@ public:
 			line.insert(line.end(), bp, bp+l);
 		}
 
+		// Proactively disarm any practical jokes
+		line.erase(
+			std::remove_if(line.begin(), line.end(),
+				       [](char &c)
+				       {
+					       return c == 0 || c == '\r';
+				       }), line.end());
+
+
 		auto lb=line.begin(), le=line.end(),
 			p=std::find(lb, le, ':');
 
@@ -2504,8 +2513,7 @@ public:
 			{
 				return c != ':' &&
 					c != ' ' &&
-					c != '\t' &&
-					c != '\r';
+					c != '\t';
 			});
 
 		while (le > q)
@@ -2513,7 +2521,6 @@ public:
 			switch(le[-1]) {
 			case ' ':
 			case '\t':
-			case '\r':
 				--le;
 				continue;
 			}
