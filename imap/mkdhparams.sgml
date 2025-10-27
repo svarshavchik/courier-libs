@@ -58,7 +58,7 @@
 
     <variablelist>
       <varlistentry>
-	<term>BITS</term>
+	<term>DH_BITS</term>
 	<listitem>
 	  <simpara>
 	    Customize the DH parameter bit size. The default value depends on
