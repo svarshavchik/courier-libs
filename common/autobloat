@@ -16,6 +16,7 @@ doit() {
 
 echo `pwd`:
 
+	ACLOCAL_FLAGS=""
 	if test -f po/Makevars
 	then
 		rm -rf backup
@@ -42,7 +43,10 @@ echo `pwd`:
 		libtoolize --force --copy `if grep -q LIBLTDL configure.ac ; then echo --ltdl; fi`
 	    fi
 	fi
-	aclocal || exit 1
+	sed -n '/^ACLOCAL_AMFLAGS[ =]/p' <Makefile.am | sed 's/.*=//' >flags
+	ACLOCAL_FLAGS="`cat flags`"
+	rm -f flags
+	aclocal $ACLOCAL_FLAGS || exit 1
 	if grep -q [AM\|AC]_CONFIG_HEADER configure.ac
 	then
 		autoheader || exit 1
