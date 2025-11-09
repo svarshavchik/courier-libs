@@ -2,7 +2,7 @@
 # Copyright 2000-2021 Double Precision, Inc.  See COPYING for
 # distribution information.
 
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
+ACLOCAL_AMFLAGS = -I m4
 
 AM_CXXFLAGS = @COURIER_UNICODE_CXXFLAGS@
 
