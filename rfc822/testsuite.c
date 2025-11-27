@@ -167,6 +167,17 @@ int main()
 	}
 
 	{
+		char *p=rfc2047_encode_str("\"John Q Public\"", "utf-8",
+					   rfc2047_qp_allow_word);
+
+		if (p)
+		{
+			printf("%s\n", p);
+			free(p);
+		}
+	}
+
+	{
 		char *p=rfc822_display_hdrvalue_tobuf(
 			"To",
 			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?="

@@ -727,6 +727,9 @@ int main()
 	std::cout << rfc2047::encode(FIVEMAX "\xcc\x80", "utf-8",
 				     rfc2047_qp_allow_any).first << "\n";
 
+	std::cout << rfc2047::encode("\"John Q Public\"", "utf-8",
+				     rfc2047_qp_allow_word).first << "\n";
+
 	rfc2047decode_test();
 	printaddress_test();
 	unquote_name_test();

@@ -256,7 +256,9 @@ static void saves2(const char *c, void *p)
 
 static int encodebase64(const char *ptr, size_t len, const char *charset,
 			int (*qp_allow)(char),
-			int (*func)(const char *, size_t, void *), void *arg)
+			int (*func)(const char *, size_t, void *),
+			int *inappropriate,
+			void *arg)
 {
 	unsigned char ibuf[3];
 	char obuf[4];
@@ -312,7 +314,9 @@ static int encodebase64(const char *ptr, size_t len, const char *charset,
 static int encodeqp(const char *ptr, size_t len,
 		    const char *charset,
 		    int (*qp_allow)(char),
-		    int (*func)(const char *, size_t, void *), void *arg)
+		    int (*func)(const char *, size_t, void *),
+		    int *inappropriate,
+		    void *arg)
 {
 	size_t i;
 	int rc;
@@ -348,6 +352,14 @@ static int encodeqp(const char *ptr, size_t len,
 			rc=(*func)("_", 1, arg);
 		else
 		{
+			if (i == 0)
+			{
+				/* The preceding char was ? so we can't follow
+				** it with a = */
+				*inappropriate=1;
+				return 0;
+			}
+
 			buf[0]='=';
 			buf[1]=xdigit[ ( ptr[i] >> 4) & 0x0F ];
 			buf[2]=xdigit[ ptr[i] & 0x0F ];
@@ -457,8 +469,10 @@ static int do_encode_words_method(const char32_t *uc,
 						 int (*qp_allow)(char),
 						 int (*func)(const char *,
 							     size_t, void *),
+						 int *inappropriate,
 						 void *arg),
 				  int (*func)(const char *, size_t, void *),
+				  int *inappropriate,
 				  void *arg)
 {
 	char    *p;
@@ -509,7 +523,7 @@ static int do_encode_words_method(const char32_t *uc,
 			--psize;
 
 		rc=(*encoder)(p, psize, charset, qp_allow,
-			      func, arg);
+			      func, inappropriate, arg);
 		free(p);
 		if (rc)
 			return rc;
@@ -543,7 +557,8 @@ static int do_encode_words(const char32_t *uc,
 	size_t  psize;
 	int rc;
 	size_t b64len, qlen;
-
+	int inappropriate_q;
+	int inappropriate_b64;
 	/*
 	** Convert from unicode
 	*/
@@ -570,20 +585,29 @@ static int do_encode_words(const char32_t *uc,
 	*/
 	qlen=0;
 	b64len=0;
+	inappropriate_q=0;
+	inappropriate_b64=0;
 
 	rc=do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				  &encodeqp, cnt_conv, &qlen);
+				  &encodeqp, cnt_conv,
+				  &inappropriate_q,
+				  &qlen);
 	if (rc)
 		return rc;
 
 	rc=do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				  &encodebase64, cnt_conv, &b64len);
+				  &encodebase64, cnt_conv,
+				  &inappropriate_b64, &b64len);
 	if (rc)
 		return rc;
 
 	return do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				      qlen < b64len ? encodeqp:encodebase64,
-				      func, arg);
+				      (qlen < b64len
+				       && inappropriate_q == 0)
+				      ? encodeqp:encodebase64,
+				      func,
+				      &inappropriate_q, // Doesn't matter
+				      arg);
 }
 
 /*
