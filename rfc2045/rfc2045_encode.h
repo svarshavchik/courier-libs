@@ -5,7 +5,7 @@ template<bool crlf>
 template<typename out_iter, typename src_type>
 void rfc2045::entity::line_iter<crlf>
 ::autoconvert_entity(const entity &e, out_iter &closure, src_type &src,
-		     std::string_view appname)
+		     autoconvert_meta &metadata)
 {
 	char buffer[BUFSIZ];
 
@@ -17,7 +17,9 @@ void rfc2045::entity::line_iter<crlf>
 
 	auto rewrite_transfer_encoding=e.rewrite_transfer_encoding;
 
-	switch (e.rewrite_transfer_encoding) {
+	if (!e.subentities.empty())
+		preserve_transfer_encoding=true;
+	else switch (e.rewrite_transfer_encoding) {
 	case cte::error:
 		preserve_transfer_encoding=true;
 		rewrite_transfer_encoding=e.content_transfer_encoding;
@@ -86,6 +88,13 @@ void rfc2045::entity::line_iter<crlf>
 		auto [name_lc, this_line_is_empty] =
 			existing_headers.convert_name_check_empty();
 
+		if (!e.subentities.empty())
+		{
+			// We're here to pass through a multipart entity, as is
+
+			name_lc="";
+		}
+
 		if (name_lc == "content-type")
 		{
 			if (!mime1)
@@ -120,22 +129,31 @@ void rfc2045::entity::line_iter<crlf>
 		if (!this_line_is_empty)
 		{
 			auto current_header=existing_headers.current_header();
+			current_header=metadata.rwheader(
+				e,
+				name_lc,
+				current_header
+			);
 			closure(current_header.data(), current_header.size());
 		}
 	} while (existing_headers.next());
 
-	if (!mime1)
+	if (e.subentities.empty())
+		// Otherwise we've preserved a multipart entity as is
 	{
-		closure(mime1_0.data(), mime1_0.size());
-		closure(eol.data(), eol.size());
+		if (!mime1)
+		{
+			closure(mime1_0.data(), mime1_0.size());
+			closure(eol.data(), eol.size());
+		}
+		if (!content_type_header.empty())
+			closure(content_type_header.data(),
+				content_type_header.size());
+		if (!content_transfer_encoding_header.empty())
+			closure(content_transfer_encoding_header.data(),
+				content_transfer_encoding_header.size()
+			);
 	}
-	if (!content_type_header.empty())
-		closure(content_type_header.data(),
-			content_type_header.size());
-	if (!content_transfer_encoding_header.empty())
-		closure(content_transfer_encoding_header.data(),
-			content_transfer_encoding_header.size()
-		);
 
 	if (preserve_transfer_encoding)
 	{
@@ -176,10 +194,10 @@ void rfc2045::entity::line_iter<crlf>
 
 	cte_name=rfc2045::to_cte(e.rewrite_transfer_encoding);
 	closure(cte_name.data(), cte_name.size());
-	if (appname.size())
+	if (metadata.appid.size())
 	{
 		closure(" by ", 4);
-		closure(appname.data(), appname.size());
+		closure(metadata.appid.data(), metadata.appid.size());
 	}
 
 	closure(eol.data(), eol.size());

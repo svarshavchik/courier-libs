@@ -244,6 +244,10 @@ void rewrite(rfc2045::entity &message, rfc822::fdstreambuf &src,
 		return;
 	}
 
+	rfc2045::entity::autoconvert_meta metadata;
+
+	metadata.appid="reformime (" RFC2045PKG " " RFC2045VER ")";
+
 	rfc2045::entity::line_iter<false>::autoconvert(
 		message,
 		[&]
@@ -256,7 +260,7 @@ void rewrite(rfc2045::entity &message, rfc822::fdstreambuf &src,
 			}
 		},
 		src,
-		"reformime (" RFC2045PKG " " RFC2045VER ")"
+		metadata
 	);
 }
 

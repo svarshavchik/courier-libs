@@ -1335,6 +1335,10 @@ auto rfc2231_attr_encode(std::string_view name,
   the MIME object does not need rewriting, and true if autoconvert() will
   make changes.
 
+  rfc2045::entity::autoconvert_meta metadata;
+
+  metadata.appid="courier";
+
   rfc2045::entity::line_iter<false>::autoconvert(
       entity,
       []
@@ -1343,7 +1347,7 @@ auto rfc2231_attr_encode(std::string_view name,
          // ...
       },
       input_stream,
-      appid);
+      metadata);
 
   autoconvert() proceeds and rewrites the MIME entity, accordingly. The
   second parameter is a callable object that gets called repeatedly with
@@ -1355,9 +1359,16 @@ auto rfc2231_attr_encode(std::string_view name,
   that implements the same functions as std::streambuf. This streambuf
   represents the contents of the parsed mime entity.
 
-  The last parameter is optional. It's the name of the application that's
-  calling autoconvert(), this is recorded in the X-Mime-Autoconverted headers,
-  if any are added.
+  The last parameter is optional. It is an object with the following fields:
+
+  - appid: this is the name of the application that's calling autoconvert(),
+    this is recorded in the X-Mime-Autoconverted headers, if any are added.
+
+  - rwheader(): the default implementation does nothing, and returns its
+    header parameter value. A subclass can override and implement a function
+    that gets called for every logical header. The function may return a
+    different header, and this effectively replaces the original header in
+    the message.
 
   ENUMERATING MIME STRUCTURE
   ==========================
@@ -1551,6 +1562,8 @@ class rfc2045::entity_info {
 
 	std::string_view content_type_charset() const;
 	std::string_view content_type_boundary() const;
+	std::string content_type_start() const;
+	const entity *content_type_multipart_signed() const;
 
 	// We don't need to look at these headers here,
 	// so we'll just grab them and parse them
@@ -1696,6 +1709,31 @@ class rfc2045::entity : public entity_info {
 
 	static constexpr std::string_view boundary_msg[]=RFC2045MIMEARRAY;
 
+	// Last parameter to autoconvert()
+
+	struct autoconvert_meta {
+		autoconvert_meta();
+		~autoconvert_meta();
+
+		std::string appid;
+
+		// The default implementation returns the full_header value
+		//
+		// The returned string_view's contents must exist at least
+		// until either the next call to rwheader(), or until
+		// autoconvert() returns.
+
+		virtual std::string_view rwheader(
+			// Mime entity whose header is getting passed in
+			const entity &e,
+
+			// Header's name in lowercase
+			std::string_view lcname,
+
+			// "Header: value<NEWLINE>"
+			std::string_view full_header);
+	};
+
 	// Factory for iterators and parsers that use LF(false) or CRLF(true)
 	// newline sequence.
 
@@ -1720,11 +1758,11 @@ class rfc2045::entity : public entity_info {
 			 typename src_type>
 		static auto autoconvert(const entity &e, out_iter &&closure,
 					src_type &src,
-					std::string_view appname="")
+					autoconvert_meta &metadata={})
 		{
 			unsigned counter=0;
 
-			autoconvert(e, closure, src, counter, appname);
+			autoconvert(e, closure, src, counter, metadata);
 
 			if constexpr (std::is_same_v<out_iter, out_iter &>)
 			{
@@ -1736,14 +1774,15 @@ class rfc2045::entity : public entity_info {
 			 typename src_type>
 		static void autoconvert(const entity &e, out_iter &closure,
 					src_type &src, unsigned &counter,
-					std::string_view);
+					autoconvert_meta &metadata);
 
 		template<typename out_iter,
 			 typename src_type>
-		static void autoconvert_entity(const entity &e,
-					       out_iter &closure,
-					       src_type &src,
-					       std::string_view appname);
+		static void autoconvert_entity(
+			const entity &e,
+			out_iter &closure,
+			src_type &src,
+			autoconvert_meta &metadata);
 	};
 
 	entity() noexcept;
@@ -3484,13 +3523,21 @@ std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)
 
 template<bool crlf>
 template<typename out_iter, typename src_type>
-void rfc2045::entity::line_iter<crlf>
-::autoconvert(const entity &e, out_iter &closure,
-	      src_type &src, unsigned &counter, std::string_view appname)
+void rfc2045::entity::line_iter<crlf>::autoconvert(
+	const entity &e, out_iter &closure,
+	src_type &src, unsigned &counter, autoconvert_meta &metadata)
 {
-	if (e.subentities.empty())
+	if (e.subentities.empty()
+
+	    // If some subentity needs to be rewritten then autoconvert_check
+	    // set rewrite_transfer_encoding from its default cte:error value
+	    // to cte::8bit, otherwise go into autoconvert_entity in order to
+	    // preserve the entire multipart entity, including the boundary
+	    // delimiter, and avoid needless work.
+
+	    || (e.multipart() && e.rewrite_transfer_encoding == cte::error))
 	{
-		autoconvert_entity(e, closure, src, appname);
+		autoconvert_entity(e, closure, src, metadata);
 		return;
 	}
 
@@ -3514,6 +3561,13 @@ void rfc2045::entity::line_iter<crlf>
 			{
 				auto current_header=
 					existing_headers.current_header();
+
+				current_header=metadata.rwheader(
+					e,
+					name_lc,
+					current_header
+				);
+
 				closure(current_header.data(),
 					current_header.size());
 			}
@@ -3524,7 +3578,7 @@ void rfc2045::entity::line_iter<crlf>
 		if (!e.subentities.empty()) // Sanity check
 		{
 			autoconvert(e.subentities[0], closure, src, counter,
-				    appname);
+				    metadata);
 		}
 		return;
 	}
@@ -3622,7 +3676,7 @@ void rfc2045::entity::line_iter<crlf>
 		separator += new_boundary;
 		separator += eol;
 		closure(separator.data(), separator.size());
-		autoconvert(subentity, closure, src, counter, appname);
+		autoconvert(subentity, closure, src, counter, metadata);
 		separator.clear();
 	}
 

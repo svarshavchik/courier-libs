@@ -8,6 +8,15 @@
 #endif
 #include	"rfc2045.h"
 
+rfc2045::entity::autoconvert_meta::autoconvert_meta()=default;
+rfc2045::entity::autoconvert_meta::~autoconvert_meta()=default;
+std::string_view rfc2045::entity::autoconvert_meta::rwheader(
+	const entity &e,
+	std::string_view lcname,
+	std::string_view full_header)
+{
+	return full_header;
+}
 
 bool rfc2045::entity::autoconvert_check(convert rwmode)
 {
@@ -32,7 +41,15 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 			hasraw8bitchars=true;
 	}
 
-	if (subentities.empty() && mime1)
+	if (!subentities.empty())
+	{
+		// If something inside needed to be rewritten, set
+		// rewrite_transfer_encoding to 8bit.
+
+		if (flag)
+			rewrite_transfer_encoding=cte::eightbit;
+	}
+	else if (mime1)
 	{
 		if (!has_content_type_header)
 		{
@@ -102,6 +119,5 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 			flag=true;
 		}
 	}
-
 	return (flag);
 }

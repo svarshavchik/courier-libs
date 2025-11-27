@@ -1397,7 +1397,7 @@ class fdstreambuf : public std::streambuf {
 	char *defaultbuf{nullptr};
 
 public:
-	fdstreambuf(int fd=-1) noexcept : fd{fd} {}
+	explicit fdstreambuf(int fd=-1) noexcept : fd{fd} {}
 
 	fdstreambuf(fdstreambuf &&o) noexcept
 	{

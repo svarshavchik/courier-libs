@@ -604,3 +604,43 @@ rfc2045::entity::errors_t rfc2045::entity_info::all_errors() const
 
 	return code;
 }
+
+std::string rfc2045::entity_info::content_type_start() const
+{
+	auto p=content_type.parameters.find("start");
+
+	if (p != content_type.parameters.end())
+	{
+		rfc822::tokens t{p->second.value};
+		rfc822::addresses a{t};
+
+		for (auto &address:a)
+		{
+			if (address.address.empty())
+				continue;
+
+			std::string s;
+
+			s.reserve(address.address.print(
+					  rfc822::length_counter{}
+				  ));
+			address.address.print(
+				std::back_inserter(s)
+			);
+			return s;
+		}
+	}
+	return {};
+}
+
+const rfc2045::entity *rfc2045::entity_info::content_type_multipart_signed()
+	const
+{
+	if (content_type.value == "multipart/signed" &&
+	    subentities.size() == 2 &&
+	    subentities[1].content_type.value == "application/pgp-signature")
+	{
+		return &subentities[0];
+	}
+	return nullptr;
+}
