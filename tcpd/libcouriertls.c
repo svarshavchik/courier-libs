@@ -1250,7 +1250,11 @@ void tls_destroy(SSL_CTX *ctx)
 {
 	struct tls_info *info=SSL_CTX_get_app_data(ctx);
 
+#if HAVE_SSL_CTX_FLUSH_SESSIONS_EX
 	SSL_CTX_flush_sessions_ex(ctx, 0);
+#else
+	SSL_CTX_flush_sessions(ctx, 0);
+#endif
 
 	SSL_CTX_free(ctx);
 
@@ -1311,7 +1315,12 @@ static int cache_add(SSL *ssl, SSL_SESSION *sess)
 	struct tls_info *info=SSL_get_app_data(ssl);
 	unsigned char buffer[BUFSIZ];
 	unsigned char *ucp;
-	time_t timeout= SSL_SESSION_get_time_ex(sess)
+	time_t timeout=
+#if HAVE_SSL_SESSION_GET_TIME_EX
+		SSL_SESSION_get_time_ex(sess)
+#else
+		(time_t)SSL_SESSION_get_time(sess)
+#endif
 		+ SSL_SESSION_get_timeout(sess);
 	unsigned int session_id_len;
 	void *session_id;

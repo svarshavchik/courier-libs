@@ -1758,7 +1758,7 @@ class rfc2045::entity : public entity_info {
 			 typename src_type>
 		static auto autoconvert(const entity &e, out_iter &&closure,
 					src_type &src,
-					autoconvert_meta &metadata={})
+					autoconvert_meta &metadata)
 		{
 			unsigned counter=0;
 
