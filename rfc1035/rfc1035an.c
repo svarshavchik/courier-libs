@@ -41,7 +41,7 @@ char	pbuf[4];
 void rfc1035_ntoa(const RFC1035_ADDR *in, char *buf)
 {
 #if	RFC1035_IPV6
-	inet_ntop(AF_INET6, in, buf, RFC1035_MAXNAMESIZE+1);
+	inet_ntop(AF_INET6, in, buf, RFC1035_NTOABUFSIZE);
 #else
 	rfc1035_ntoa_ipv4(in, buf);
 #endif
