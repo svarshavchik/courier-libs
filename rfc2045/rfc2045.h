@@ -2671,7 +2671,12 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				  RFC2045_ERRFATAL);
 		return;
 	}
-	else if (mime1)
+	else if (!mime1)
+	{
+		content_type=rfc2231_header{"text/plain"};
+		content_transfer_encoding=cte::sevenbit;
+	}
+	else
 	{
 		if (rfc2045_message_content_type(content_type.value.c_str()) &&
 		    (content_transfer_encoding == cte::sevenbit ||

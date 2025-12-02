@@ -1462,6 +1462,25 @@ void testmimeparse()
 					0  // has8bitcontentchar
 				}
 			}
+		},
+
+		// Test 24
+		{
+			"Content-Type: multipart\n"
+			"Subject: Ignoring content-type without mime-version\n"
+			"\n"
+			"Hello world!\n",
+			0    , // startpos
+			77   , // startbody
+			90   , // endbody
+			4    , // nlines
+			1    , // nbodylines
+			0    , // mime1
+			0, "text/plain", "iso-8859-1",
+			"", cte::sevenbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0  // has8bitcontentchar
 		}
 	};
 
