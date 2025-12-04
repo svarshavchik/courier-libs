@@ -85,6 +85,8 @@ struct parsed_mime_info {
 			errcodes += "|RFC2045_ERRWRONGBOUNDARY";
 		if (entity.errors.code & RFC2045_ERRLONGQUOTEDPRINTABLE)
 			errcodes += "|RFC2045_ERRLONGQUOTEDPRINTABLE";
+		if (entity.errors.code & RFC2045_ERRDUPLICATECONTENT)
+			errcodes += "|RFC2045_ERRDUPLICATECONTENT";
 		if (entity.errors.code & RFC2045_ERRFATAL)
 			errcodes += "|RFC2045_ERRFATAL";
 

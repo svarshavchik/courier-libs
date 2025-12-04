@@ -47,6 +47,10 @@ std::vector<std::string> rfc2045::entity::parsing_error::describe() const
 		errors.push_back(
 			"Invalid base64 encoding"
 		);
+	if (code & RFC2045_ERRDUPLICATECONTENT)
+		errors.push_back(
+			"Duplicate MIME Content-* header"
+		);
 	return errors;
 }
 

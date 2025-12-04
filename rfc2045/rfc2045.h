@@ -1438,6 +1438,7 @@ auto rfc2231_attr_encode(std::string_view name,
 #define RFC2045_ERRUNKNOWNTE		0x0100
 #define RFC2045_ERRINVALIDBASE64	0x0200
 #define RFC2045_ERRLONGQUOTEDPRINTABLE  0x0400
+#define RFC2045_ERRDUPLICATECONTENT	0x0800
 #define RFC2045_ERRFATAL		0x8000
 
 class rfc2045::entity_info {
@@ -2581,6 +2582,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 	std::string line;
 
+	bool duplicate_content=false;
 	while (iter.in_header())
 	{
 		auto [name, header]=iter.next_folded_header_line(*this, line);
@@ -2599,6 +2601,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		{
 			content_type=rfc2231_header{header};
 
+			if (has_content_type_header)
+				duplicate_content=true;
+
 			has_content_type_header=true;
 
 			content_type.lowercase_value("charset");
@@ -2606,6 +2611,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		}
 		if (name == "content-transfer-encoding")
 		{
+			if (has_content_transfer_encoding)
+				duplicate_content=true;
+
 			content_transfer_encoding=to_cte(
 				header.size() ? *header.data():0);
 
@@ -2678,6 +2686,11 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	}
 	else
 	{
+		if (duplicate_content)
+		{
+			iter.report_error(RFC2045_ERRDUPLICATECONTENT |
+					  RFC2045_ERRFATAL);
+		}
 		if (rfc2045_message_content_type(content_type.value.c_str()) &&
 		    (content_transfer_encoding == cte::sevenbit ||
 		     content_transfer_encoding == cte::eightbit))

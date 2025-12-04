@@ -8,7 +8,11 @@
 #endif
 #include	"rfc2045.h"
 
-rfc2045::entity::autoconvert_meta::autoconvert_meta()=default;
+rfc2045::entity::autoconvert_meta::autoconvert_meta()
+	: appid{"librfc2045"}
+{
+}
+
 rfc2045::entity::autoconvert_meta::~autoconvert_meta()=default;
 std::string_view rfc2045::entity::autoconvert_meta::rwheader(
 	const entity &e,

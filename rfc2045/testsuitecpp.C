@@ -1481,6 +1481,80 @@ void testmimeparse()
 			0, // has8bitheader
 			0, // has8bitbody
 			0  // has8bitcontentchar
+		},
+
+		// Test 25
+		{
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain\n"
+			"Content-Type: text/plain\n"
+			"\n",
+			0    , // startpos
+			69   , // startbody
+			69   , // endbody
+			4    , // nlines
+			0    , // nbodylines
+			1    , // mime1
+			RFC2045_ERRDUPLICATECONTENT|RFC2045_ERRFATAL, "text/plain", "iso-8859-1",
+			"", cte::sevenbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0  // has8bitcontentchar
+		},
+
+		// Test 26
+		{
+			"Mime-Version: 1.0\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n",
+			0    , // startpos
+			83   , // startbody
+			83   , // endbody
+			4    , // nlines
+			0    , // nbodylines
+			1    , // mime1
+			RFC2045_ERRDUPLICATECONTENT|RFC2045_ERRFATAL, "text/plain", "iso-8859-1",
+			"", cte::eightbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0  // has8bitcontentchar
+		},
+
+		// Test 27
+		{
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"\n",
+			0    , // startpos
+			81   , // startbody
+			81   , // endbody
+			3    , // nlines
+			0    , // nbodylines
+			0    , // mime1
+			0, "text/plain", "iso-8859-1",
+			"", cte::sevenbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0  // has8bitcontentchar
+		},
+
+		// Test 28
+		{
+			"Content-Transfer-Encoding: 8bit\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n",
+			0    , // startpos
+			65   , // startbody
+			65   , // endbody
+			3    , // nlines
+			0    , // nbodylines
+			0    , // mime1
+			0, "text/plain", "iso-8859-1",
+			"", cte::sevenbit,
+			0, // has8bitheader
+			0, // has8bitbody
+			0  // has8bitcontentchar
 		}
 	};
 
@@ -2693,6 +2767,78 @@ void testautoconvert_check()
 #endif
 }
 
+void testautoconvert_multipart_signed()
+{
+	std::istringstream message{
+		"Mime-Version: 1.0\n"
+		"Content-Type: multipart/signed;\n"
+		"    boundary=aaa\n"
+		"\n"
+		"\n"
+		"--aaa\n"
+		"Content-Type: text/plain; charset=utf-8\n"
+		"\n"
+		"Message content.\n"
+		"\n"
+		"--aaa\n"
+		"Content-Type: text/plain; charset=utf-8\n"
+		"\n"
+		"Message signature.\n"
+		"\n"
+		"--aaa--\n"
+	};
+
+	rfc2045::entity e;
+
+	{
+		auto buf=message.rdbuf();
+
+		std::istreambuf_iterator<char> message_b{buf};
+		std::istreambuf_iterator<char> message_e{};
+		rfc2045::entity::line_iter<false>::iter parser{message_b,
+							       message_e};
+		e.parse(parser);
+	}
+	(void)e.autoconvert_check(rfc2045::convert::standardize);
+
+	rfc2045::entity::autoconvert_meta meta;
+
+	std::string result;
+
+	rfc2045::entity::line_iter<false>::autoconvert(
+		e,
+		[&]
+		(const char *ptr, size_t s)
+		{
+			result += std::string_view{ptr, s};
+		},
+		*message.rdbuf(),
+		meta);
+
+	if (result !=
+	    "Mime-Version: 1.0\n"
+	    "Content-Type: multipart/signed;\n"
+	    "    boundary=aaa\n"
+	    "Content-Transfer-Encoding: 8bit\n"
+	    "\n"
+	    "\n"
+	    "--aaa\n"
+	    "Content-Type: text/plain; charset=utf-8\n"
+	    "\n"
+	    "Message content.\n"
+	    "\n"
+	    "--aaa\n"
+	    "Content-Type: text/plain; charset=utf-8\n"
+	    "\n"
+	    "Message signature.\n"
+	    "\n"
+	    "--aaa--\n")
+	{
+		std::cout << "testautoconvert_multipart_signed failed.\n";
+		exit(1);
+	}
+}
+
 void testheaderlimit()
 {
 	std::istringstream i;
@@ -2809,6 +2955,7 @@ int main()
 	testmimelimits();
 	testtryboundary();
 	testautoconvert_check();
+	testautoconvert_multipart_signed();
 	testheaderlimit();
 	return 0;
 }

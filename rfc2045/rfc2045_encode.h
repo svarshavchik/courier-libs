@@ -103,9 +103,18 @@ void rfc2045::entity::line_iter<crlf>
 				closure(eol.data(), eol.size());
 				mime1=true;
 			}
-			if (!content_type_header.empty())
+			if (e.rewrite_transfer_encoding == cte::error)
+			{
+				auto current_header=
+					existing_headers.current_header();
+				closure(current_header.data(),
+					current_header.size());
+			}
+			else if (!content_type_header.empty())
+			{
 				closure(content_type_header.data(),
 					content_type_header.size());
+			}
 			content_type_header.clear();
 			continue;
 		}
@@ -118,10 +127,19 @@ void rfc2045::entity::line_iter<crlf>
 				closure(eol.data(), eol.size());
 				mime1=true;
 			}
-			if (!content_transfer_encoding_header.empty())
+			if (e.rewrite_transfer_encoding == cte::error)
+			{
+				auto current_header=
+					existing_headers.current_header();
+				closure(current_header.data(),
+					current_header.size());
+			}
+			else if (!content_transfer_encoding_header.empty())
+			{
 				closure(content_transfer_encoding_header.data(),
 					content_transfer_encoding_header.size()
 				);
+			}
 			content_transfer_encoding_header.clear();
 			continue;
 		}
