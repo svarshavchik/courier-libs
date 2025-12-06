@@ -54,7 +54,7 @@ runs the command specified by its first argument, which is
 then runs the modules specified by its remaining options, which
 are <application>Courier</application>
 server authentication modules described in the
-<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>
+<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>3</manvolnum></citerefentry></ulink>
 manual page.</para>
 
     <para>
@@ -387,7 +387,7 @@ all terminal windows have the same <literal>EXISTS</literal> message.
     <title>SEE ALSO</title>
 
     <para>
-<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>7</manvolnum></citerefentry></ulink>,
+<ulink url="authlib.html"><citerefentry><refentrytitle>authlib</refentrytitle><manvolnum>3</manvolnum></citerefentry></ulink>,
 
 <ulink url="userdb.html"><citerefentry><refentrytitle>userdb</refentrytitle><manvolnum>8</manvolnum></citerefentry></ulink></para>
 

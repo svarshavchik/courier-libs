@@ -328,7 +328,7 @@ int do_fetch(unsigned long n, int byuid, void *p)
 		       " E-mail reader did not enable Unicode support."
 		       " Please use an E-mail reader that supports"
 		       " IMAP with UTF-8 (see"
-		       " https://tools.ietf.org/html/rfc6855.html)\r\n");
+		       " https://datatracker.ietf.org/doc/html/rfc6855)\r\n");
 	}
 
 	if (current_maildir_info.msgs[n-1].changedflags)

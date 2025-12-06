@@ -670,7 +670,7 @@ char	buf[NUMBUFSIZE];
 	"This E-mail message was determined to be Unicode-formatted\n"	\
 	"but your E-mail reader does not support Unicode E-mail.\n\n"	\
 	"Please use an E-mail reader that supports POP3 with UTF-8\n"	\
-	"(see https://tools.ietf.org/html/rfc6856.html).\n\n"		\
+	"(see https://datatracker.ietf.org/doc/html/rfc6856).\n\n"		\
 	"This can also happen when the sender's E-mail program does not\n" \
 	"correctly format the sent message.\n\n"			\
 	"The original message is included as a separate attachment\n"	\

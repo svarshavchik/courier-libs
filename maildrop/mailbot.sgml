@@ -98,7 +98,7 @@ the autoresponse itself as a MIME delivery status notification.</para>
 	  <para>
 Address the autoresponse to <replaceable>address</replaceable>, which must
 be an
-<ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
+<ulink url="https://datatracker.ietf.org/doc/html/rfc2822">RFC 2822</ulink>
 address.
 By default <command>mailbot</command> takes the autoresponse
 address from the
@@ -218,9 +218,9 @@ set and formats the autoreply according to the character set read from the
 	<listitem>
 	  <para>
 	    Format the autoresponse as a delivery status notification
-	    (<ulink url="http://tools.ietf.org/html/rfc1894">RFC 1894</ulink>).
+	    (<ulink url="https://datatracker.ietf.org/doc/html/rfc1894">RFC 1894</ulink>).
 	    <replaceable>address</replaceable> is an
-	    <ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
+	    <ulink url="https://datatracker.ietf.org/doc/html/rfc2822">RFC 2822</ulink>
 	    E-mail address that generates the DSN.
 	    Note that the <option>-A</option> option should still be used in
 	    addition to <option>-M</option> in order to set the
@@ -300,7 +300,7 @@ set and formats the autoreply according to the character set read from the
 	    <listitem>
 	      <para>
 		<quote>feedback</quote> - generate an Email Feedback Report
-		message (see <ulink url="http://tools.ietf.org/html/rfc5965">RFC
+		message (see <ulink url="https://datatracker.ietf.org/doc/html/rfc5965">RFC
 		  5965</ulink>). The <quote>-R</quote> option is required when
 		this is specified.
 	      </para>
@@ -477,7 +477,7 @@ set and formats the autoreply according to the character set read from the
 	<listitem>
 	  <para>
 <replaceable>addrlist</replaceable> is a comma-separated list of
-<ulink url="http://tools.ietf.org/html/rfc2822">RFC 2822</ulink>
+<ulink url="https://datatracker.ietf.org/doc/html/rfc2822">RFC 2822</ulink>
 E-mail addresses.
 <command>mailbot</command> sends an autoresponse only if
 the original message has at least one of the specified addresses in any

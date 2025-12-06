@@ -12,13 +12,13 @@
 
   <refnamediv>
     <refname>courierpop3d</refname>
-    <refpurpose>The <application moreinfo="none">Courier</application>
+    <refpurpose>The <application>Courier</application>
       POP3 server</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
-      <command moreinfo="none">@sbindir@/couriertcpd</command>
+      <command>@sbindir@/couriertcpd</command>
       <arg choice="req" rep="norepeat">-nodnslookup</arg>
       <arg choice="req" rep="norepeat">-stderr=syslog</arg>
       <arg choice="req" rep="norepeat">110</arg>
@@ -37,27 +37,27 @@ This is a simple POP3 server for Maildirs.</para>
 
     <note>
       <para>
-The <command moreinfo="none">couriertcpd</command>, <command moreinfo="none">courierpop3login</command>,
-and <command moreinfo="none">courierpop3d</command> modules may be installed elsewhere than
+The <command>couriertcpd</command>, <command>courierpop3login</command>,
+and <command>courierpop3d</command> modules may be installed elsewhere than
 indicated here.</para>
     </note>
 
     <para>
-<command moreinfo="none">courierpop3login</command> is usually started by
-<command moreinfo="none">couriertcpd</command>. It
+<command>courierpop3login</command> is usually started by
+<command>couriertcpd</command>. It
 already expects that a POP3 client is connected to standard input and output,
 presumably via a network socket.
-<command moreinfo="none">courierpop3login</command> reads the POP3
+<command>courierpop3login</command> reads the POP3
 userid and password, then runs the
-authentication <literal moreinfo="none">modules</literal>. The remaining
-arguments are passed along as arguments to <literal moreinfo="none">modules</literal>.</para>
+authentication <literal>modules</literal>. The remaining
+arguments are passed along as arguments to <literal>modules</literal>.</para>
 
     <para>
-<literal moreinfo="none">modules</literal>
+<literal>modules</literal>
 is one or more authentication modules (see the
 <ulink url="authlib.html"><citerefentry>
 	  <refentrytitle>authlib</refentrytitle>
-	  <manvolnum>7</manvolnum>
+	  <manvolnum>3</manvolnum>
 	</citerefentry>
 </ulink>
 manual page).</para>
@@ -66,20 +66,20 @@ manual page).</para>
 Each authentication modules runs the program specified by its first
 argument, allowing the authentication modules to be chained. The last program
 in the chain is
-<command moreinfo="none">courierpop3d</command>
+<command>courierpop3d</command>
 , which provides the actual POP3 service. In
 accordance with the authentication protocol, as described in
 <ulink url="authlib.html"><citerefentry>
 	  <refentrytitle>authlib</refentrytitle>
-	  <manvolnum>7</manvolnum>
+	  <manvolnum>3</manvolnum>
 	</citerefentry>
 </ulink>
-<command moreinfo="none">courierpop3d</command> reads
+<command>courierpop3d</command> reads
 file descriptor 3 to see if the userid/password has been succesfully
-validated. If not, <command moreinfo="none">courierpop3d</command> terminates.</para>
+validated. If not, <command>courierpop3d</command> terminates.</para>
 
     <para>
-Otherwise, <command moreinfo="none">courierpop3d</command> expects to be already running
+Otherwise, <command>courierpop3d</command> expects to be already running
 under the
 appropriate user and group id, with its current directory set to the account's
 home directory.</para>
@@ -92,23 +92,23 @@ pathname to the account's Maildir. The environment variable
 <envar>MAILDIR</envar> may be set by the
 authentication module.
 If <envar>MAILDIR</envar> is not set,
-<command moreinfo="none">courierpop3d</command> uses its first argument.
+<command>courierpop3d</command> uses its first argument.
 Usually, the default maildir is
-<filename moreinfo="none">$HOME/Maildir</filename>, therefore the first argument to
-<command moreinfo="none">courierpop3d</command> is
-"<literal moreinfo="none">./Maildir</literal>".</para>
+<filename>$HOME/Maildir</filename>, therefore the first argument to
+<command>courierpop3d</command> is
+"<literal>./Maildir</literal>".</para>
   </refsect1>
 
   <refsect1 id="courierpop3d_see_also">
     <title>SEE ALSO</title>
 
     <para>
-<ulink url="authlib.html"><citerefentry>
+<ulink url="authlib/authlib.html"><citerefentry>
 	  <refentrytitle>authlib</refentrytitle>
-	  <manvolnum>7</manvolnum>
+	  <manvolnum>3</manvolnum>
 	</citerefentry>
 </ulink>,
-<ulink url="userdb.html"><citerefentry>
+<ulink url="authlib/userdb.html"><citerefentry>
 	  <refentrytitle>userdb</refentrytitle>
 	  <manvolnum>8</manvolnum>
 	</citerefentry>

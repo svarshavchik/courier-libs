@@ -4030,7 +4030,7 @@ static int append(const char *tag, const char *mailbox, const char *path)
 	if (utf8_error) {
 		writes("* OK [ALERT] Your IMAP client does not appear to "
 		       "correctly implement Unicode messages, "
-		       "see https://tools.ietf.org/html/rfc6855.html\r\n");
+		       "see https://datatracker.ietf.org/doc/html/rfc6855\r\n");
 	}
 	writes(tag);
 	writes(" OK [APPENDUID ");
