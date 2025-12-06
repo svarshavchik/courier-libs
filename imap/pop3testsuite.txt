@@ -84,7 +84,7 @@ This E-mail message was determined to be Unicode-formatted
 but your E-mail reader does not support Unicode E-mail.
 
 Please use an E-mail reader that supports POP3 with UTF-8
-(see https://tools.ietf.org/html/rfc6856.html).
+(see https://datatracker.ietf.org/doc/html/rfc6856).
 
 This can also happen when the sender's E-mail program does not
 correctly format the sent message.
