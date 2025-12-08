@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 /*
-** Copyright 2004 Double Precision, Inc.
+** Copyright 2004 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

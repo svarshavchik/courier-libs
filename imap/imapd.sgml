@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 1998 - 2021 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 1998 - 2021 S. Varshavchik.  See COPYING for -->
 <!-- distribution information. -->
 <refentry id="imapd">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -7,7 +7,7 @@
   <refmeta>
     <refentrytitle>imapd</refentrytitle>
     <manvolnum>8</manvolnum>
-    <refmiscinfo>Double Precision, Inc.</refmiscinfo>
+    <refmiscinfo>S. Varshavchik.</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -254,7 +254,7 @@ Open two or three terminal windows.
 In each window, connect to the IMAP server, and enter IDLE mode:
 </para>
 	  <programlisting format="linespecific">
-S:* OK Courier-IMAP ready. Copyright 1998-2021 Double Precision, Inc.
+S:* OK Courier-IMAP ready. Copyright 1998-2021 S. Varshavchik.
   See COPYING for distribution information.
 C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
 S:a OK LOGIN Ok.
@@ -294,7 +294,7 @@ Open another terminal window, connect to the server, and modify the flags
 of one of the messages:</para>
 
 	  <programlisting format="linespecific">
-S:* OK Courier-IMAP ready. Copyright 1998-2021 Double Precision, Inc.
+S:* OK Courier-IMAP ready. Copyright 1998-2021 S. Varshavchik.
   See COPYING for distribution information.
 C:a login <replaceable>userid</replaceable> <replaceable>password</replaceable>
 S:a OK LOGIN Ok.

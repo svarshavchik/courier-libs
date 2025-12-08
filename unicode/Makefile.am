@@ -1,5 +1,5 @@
 #
-# Copyright 2000-2021 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2021 S. Varshavchik.  See COPYING for
 # distribution information.
 
 ACLOCAL_AMFLAGS = -I m4

@@ -2,7 +2,7 @@
 #define	rfc822_h
 
 /*
-** Copyright 1998 - 2025 Double Precision, Inc.
+** Copyright 1998 - 2025 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

@@ -1,6 +1,6 @@
 #include "config.h"
 /*
-** Copyright 2003 Double Precision, Inc.  See COPYING for
+** Copyright 2003 S. Varshavchik.  See COPYING for
 ** distribution information.
 **
 ** Original author: Jesse D. Guardiani, wingnet.net

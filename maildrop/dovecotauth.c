@@ -4,7 +4,7 @@
 **
 ** Partially based on authdaemonlib.c from Courier Authlib, which had the following statement:
 **
-** Copyright 2000-2006 Double Precision, Inc.  See COPYING for
+** Copyright 2000-2006 S. Varshavchik.  See COPYING for
 ** distribution information.
 **
 ** Code that was taken from authdaemonlib.c is as follows:

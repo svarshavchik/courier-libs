@@ -1,11 +1,11 @@
-# Copyright 2000-2004 Double Precision, Inc.
+# Copyright 2000-2004 S. Varshavchik.
 # See COPYING for distribution information.
 #
 #
 # Generate unicode upper/lower/titlecase translations.
 
 print '/*
-** Copyright 2000-2004 Double Precision, Inc.
+** Copyright 2000-2004 S. Varshavchik.
 ** See COPYING for distribution information.
 **
 */

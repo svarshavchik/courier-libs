@@ -1,5 +1,5 @@
 dnl
-dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+dnl Copyright 1998 - 1999 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
 AC_INIT([sqwebmail],[0.23],[courier-sqwebmail@lists.sourceforge.net])

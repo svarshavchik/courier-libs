@@ -1,7 +1,7 @@
 #ifndef maildirwatch_h
 #define maildirwatch_h
 /*
-** Copyright 2002-2021 Double Precision, Inc.
+** Copyright 2002-2021 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

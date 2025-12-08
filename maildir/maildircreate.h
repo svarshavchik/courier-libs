@@ -2,7 +2,7 @@
 #define	maildircreate_h
 
 /*
-** Copyright 1998 - 2003 Double Precision, Inc.
+** Copyright 1998 - 2003 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

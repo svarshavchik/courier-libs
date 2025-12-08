@@ -3,7 +3,7 @@
 #define liblockmail_h
 
 /*
-** Copyright 2002 Double Precision, Inc.  See COPYING for
+** Copyright 2002 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

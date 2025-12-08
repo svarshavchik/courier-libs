@@ -7,7 +7,7 @@ extern "C" {
 
 
 /*
-** Copyright 2003-2004 Double Precision, Inc.
+** Copyright 2003-2004 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

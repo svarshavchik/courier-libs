@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 #
-# Copyright 2001-2003 Double Precision, Inc.  See COPYING for
+# Copyright 2001-2003 S. Varshavchik.  See COPYING for
 # distribution information.
 
 AC_INIT([pcp],[0.10],[courier-users@lists.sourceforge.net])

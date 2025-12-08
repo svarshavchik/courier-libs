@@ -2,7 +2,7 @@
 #define	tlsclient_h
 
 /*
-** Copyright 2000-2018 Double Precision, Inc.
+** Copyright 2000-2018 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

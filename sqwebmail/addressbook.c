@@ -1,6 +1,6 @@
 #include "config.h"
 /*
-** Copyright 2000-2011 Double Precision, Inc.  See COPYING for
+** Copyright 2000-2011 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

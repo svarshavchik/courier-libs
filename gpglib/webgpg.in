@@ -1,7 +1,7 @@
 #! @SHELL@
 #
 #
-# Copyright 2001-2020 Double Precision, Inc.  See COPYING for
+# Copyright 2001-2020 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 # This scripts initializes Maildir/gpg, enabling GPG code for the given

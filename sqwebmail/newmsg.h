@@ -10,7 +10,7 @@
 #endif
 #include	<courier-unicode.h>
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2011 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

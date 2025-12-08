@@ -2,7 +2,7 @@
 #define	maildir_autoresponse_h
 
 /*
-** Copyright 2001-2003 Double Precision, Inc.
+** Copyright 2001-2003 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

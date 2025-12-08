@@ -6,7 +6,7 @@
 #include	<courier-unicode.h>
 
 /*
-** Copyright 2011 Double Precision, Inc.  See COPYING for
+** Copyright 2011 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

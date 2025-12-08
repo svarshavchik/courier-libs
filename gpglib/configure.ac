@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl
-dnl Copyright 2001-2010 Double Precision, Inc.  See COPYING for
+dnl Copyright 2001-2010 S. Varshavchik.  See COPYING for
 dnl distribution information.
 dnl
 

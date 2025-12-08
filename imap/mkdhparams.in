@@ -1,6 +1,6 @@
 #! @SHELL@
 #
-# Copyright 2013-2014 Double Precision, Inc.  See COPYING for
+# Copyright 2013-2014 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 # Run this script monthly to generate DH parameters.

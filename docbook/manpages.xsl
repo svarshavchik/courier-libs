@@ -32,7 +32,7 @@
    <link rel="icon" href="icon.gif" type="image/gif" />
     <xsl:comment>
 
-Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for distribution
+Copyright 1998 - 2009 S. Varshavchik.  See COPYING for distribution
 information.
 
 </xsl:comment>

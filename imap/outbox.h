@@ -2,7 +2,7 @@
 #define	outbox_h
 
 /*
-** Copyright 2002 Double Precision, Inc.
+** Copyright 2002 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

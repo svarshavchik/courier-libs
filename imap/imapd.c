@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2018 Double Precision, Inc.
+** Copyright 1998 - 2018 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -1543,7 +1543,7 @@ static int doId()
 	}
 #endif
 
-	writes("\" \"vendor\" \"Double Precision, Inc.\")\r\n");
+	writes("\" \"vendor\" \"S. Varshavchik.\")\r\n");
 
 	return 0;
 }

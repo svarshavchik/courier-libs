@@ -1,6 +1,6 @@
 #! @PERL@
 #
-# Copyright 2000-2022 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2022 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 # Ok, the output of LIST is given in filesystem order, so fix that by

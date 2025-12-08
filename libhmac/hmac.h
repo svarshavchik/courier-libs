@@ -4,7 +4,7 @@
 #include	<string.h>
 
 /*
-** Copyright 1998 - 2005 Double Precision, Inc.
+** Copyright 1998 - 2005 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

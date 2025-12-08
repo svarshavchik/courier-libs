@@ -5,7 +5,7 @@
 #include	<string.h>
 #include	<courier-unicode.h>
 /*
-** Copyright 1998 - 2009 Double Precision, Inc.  See COPYING for
+** Copyright 1998 - 2009 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

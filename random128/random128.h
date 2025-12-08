@@ -2,7 +2,7 @@
 #define	random128_h
 
 /*
-** Copyright 1998 - 2002 Double Precision, Inc.
+** Copyright 1998 - 2002 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

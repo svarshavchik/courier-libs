@@ -1,5 +1,5 @@
 dnl
-dnl Copyright 2001-2008 Double Precision, Inc.  See COPYING for
+dnl Copyright 2001-2008 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
 AC_INIT([rootcerts],[0.50],[courier-users@lists.sourceforge.net])

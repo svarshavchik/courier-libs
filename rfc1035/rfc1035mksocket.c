@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 Double Precision, Inc.
+** Copyright 1998 - 2011 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 #include	"config.h"

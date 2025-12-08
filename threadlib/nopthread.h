@@ -2,7 +2,7 @@
 #define	nopthread_h
 
 /*
-** Copyright 2000 Double Precision, Inc.  See COPYING for
+** Copyright 2000 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 

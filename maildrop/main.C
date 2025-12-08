@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2023 Double Precision, Inc.
+** Copyright 1998 - 2023 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -182,7 +182,7 @@ char    hostname[256];
 
 static void copyright()
 {
-static const char msg[]="maildrop " VERSION " Copyright 1998-2023 Double Precision, Inc."
+static const char msg[]="maildrop " VERSION " Copyright 1998-2023 S. Varshavchik."
 
 #if CRLF_TERM
 	"\r\n"

@@ -2,7 +2,7 @@
 #define	spipe_h
 
 /*
-** Copyright 2000-2001 Double Precision, Inc.
+** Copyright 2000-2001 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 

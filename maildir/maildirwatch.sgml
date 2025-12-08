@@ -1,5 +1,5 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-<!-- Copyright 2021 Double Precision, Inc.  See COPYING for -->
+<!-- Copyright 2021 S. Varshavchik.  See COPYING for -->
 <!-- distribution information. -->
 <refentry id="maildirwatch">
   <info><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Mail Server</productname></info>
@@ -7,7 +7,7 @@
   <refmeta>
     <refentrytitle>maildirwatch</refentrytitle>
     <manvolnum>1</manvolnum>
-    <refmiscinfo class="manual">Double Precision, Inc.</refmiscinfo>
+    <refmiscinfo class="manual">S. Varshavchik.</refmiscinfo>
   </refmeta>
 
   <refnamediv>

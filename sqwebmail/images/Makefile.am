@@ -1,6 +1,6 @@
 #Makefile.am,v 1.5 2000/12/02 22:08:37 mrsam Exp
 #
-# Copyright 2000-2001 Double Precision, Inc.  See COPYING for
+# Copyright 2000-2001 S. Varshavchik.  See COPYING for
 # distribution information.
 
 CLEANFILES=filelist
