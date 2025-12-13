@@ -33,7 +33,7 @@ The <command>couriertls</command> program is used by applications to encrypt a
 network connection using SSL/TLS, without having the application deal with the
 gory details of SSL/TLS. <command>couriertls</command> is used by the
 <application>Courier</application> mail server
-IMAP and ESMTP servers.</para>
+IMAP, POP3 and ESMTP servers.</para>
 
     <para>
 <command>couriertls</command> is not usually run directly from the commandline.
@@ -187,9 +187,58 @@ order to configure the SSL/TLS protocol:</para>
 	<term>TLS_PROTOCOL=<replaceable>proto</replaceable></term>
 	<listitem>
 	  <para>
-Set the protocol version.  The possible versions are:
-<literal>SSL2</literal>, <literal>SSL3</literal>,
-<literal>TLS1</literal>.</para>
+	    Set the protocol version.  This is used when
+	    <command>couriertls</command> is compiled with OpenSSL. This is
+	    ignored when <command>couriertls</command> is compiled with
+	    GnuTLS. The possible options are:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>TLS1</literal> or <literal>TLSv1</literal></term>
+
+	      <listitem>
+		<para>
+		  The default setting selects TLS protocol version 1 or higher.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><literal>TLSv1.1</literal> or <literal>TLSv1.1+</literal></term>
+
+	      <listitem>
+		<para>
+		  The default setting selects TLS protocol version 1.1 or
+		  higher, the connection fails if the TLS peer does not
+		  implement at least version 1.1.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><literal>TLSv1.2</literal> or <literal>TLSv1.2+</literal></term>
+
+	      <listitem>
+		<para>
+		  The default setting selects TLS protocol version 1.2 or
+		  higher, the connection fails if the TLS peer does not
+		  implement at least version 1.2
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><literal>TLSv1.1++</literal> or <literal>TLSv1.2++</literal></term>
+
+	      <listitem>
+		<para>
+		  The additional <quote>+</quote> disables protocol
+		  renegotiation, and selects server cipher preference
+		  (<literal>TLSv1.2++</literal> only, uses
+		  <envar>TLS_CIPHER_LIST</envar>).
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
 	</listitem>
       </varlistentry>
 
@@ -197,7 +246,7 @@ Set the protocol version.  The possible versions are:
 	<term>TLS_CIPHER_LIST=<replaceable>cipherlist</replaceable></term>
 	<listitem>
 	  <para>
-Optionally set the list of protocol ciphers to be used.
+Sets the list of protocol ciphers to be used.
 See OpenSSL's documentation for more information.</para>
 	</listitem>
       </varlistentry>
@@ -283,6 +332,32 @@ does not return the optional X.509 certificate.  In client mode:
 <literal>PEER</literal> - verify the server's
 X.509 certificate according to the <option>-domain</option> option,
 (see above).</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>TLS_CACHEFILE=<replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>
+	    <replaceable>filename</replaceable> is the name of the file where
+	    TLS sessions are saved. The <replaceable>filename</replaceable>
+	    gets created if it does not exist. <envar>TLS_CACHEFILE</envar>s
+	    are optional, and result in slight performance improvements with
+	    session-aware TLS clients.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>TLS_CACHESIZE=<replaceable>n</replaceable></term>
+	<listitem>
+	  <para>
+	    <replaceable>n</replaceable> is the size of the
+	    <envar>TLS_CACHEFILE</envar> in bytes. Larger cache files allow
+	    more SSL/TLS sessions to be saved, and
+	    SSL/TLS sessions are saved. The <replaceable>filename</replaceable>
+	    gets created if it does not exist. The minimum
+	    <envar>TLS_CACHESIZE</envar> is 16384.
+	  </para>
 	</listitem>
       </varlistentry>
     </variablelist>
