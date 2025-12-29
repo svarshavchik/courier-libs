@@ -17,11 +17,12 @@
 
   <refsynopsisdiv>
     <cmdsynopsis sepchar=" ">
-      <command moreinfo="none">makedat</command>
+      <command>makedat</command>
       <arg choice="req" rep="norepeat">-src=<replaceable>textfile</replaceable></arg>
       <arg choice="req" rep="norepeat">-tmp=<replaceable>tmpfile</replaceable></arg>
       <arg choice="req" rep="norepeat">-file=<replaceable>gdbmfile</replaceable></arg>
       <arg choice="opt" rep="norepeat">-cidr</arg>
+      <arg choice="opt" rep="norepeat">-hup=<replaceable>hupfile</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -29,34 +30,34 @@
     <title>DESCRIPTION</title>
 
     <para>
-The gdbm family of functions in <command moreinfo="none">maildrop</command> provides access
+The gdbm family of functions in <command>maildrop</command> provides access
 to GDBM/DB databases - simple database files. The gdbm family of functions
 provide a way of quickly storing and looking up key/data pairs.</para>
 
     <para>
 You can use any program to create GDBM/DB database files.
-<command moreinfo="none">makedat</command> is a quick utility to create GDBM or DB files from
+<command>makedat</command> is a quick utility to create GDBM or DB files from
 plain text files.</para>
 
     <para>
-The system administrator selects whether <command moreinfo="none">maildrop</command> uses
+The system administrator selects whether <command>maildrop</command> uses
 GDBM or DB
-database files and whether <command moreinfo="none">makedat</command> creates GDBM or DB
+database files and whether <command>makedat</command> creates GDBM or DB
 database files as well.</para>
 
     <para>
-The <command moreinfo="none">makedat</command> command may not be available to you. GDBM/DB
-support in <command moreinfo="none">maildrop</command> is optional, and the system
+The <command>makedat</command> command may not be available to you. GDBM/DB
+support in <command>maildrop</command> is optional, and the system
 administrator may choose not to
-install GDBM/DB support and the <command moreinfo="none">makedat</command> command.</para>
+install GDBM/DB support and the <command>makedat</command> command.</para>
 
     <para>
 To see whether GDBM or DB support is being used, run the command
-"<command moreinfo="none">maildrop -v</command>".</para>
+"<command>maildrop -v</command>".</para>
 
     <para>
 The <replaceable>textfile</replaceable> argument to
-<command moreinfo="none">makedat</command> is a plain text file containing
+<command>makedat</command> is a plain text file containing
 key/value pairs. Each line in the text file contains a key value, followed by
 a tab and a data value. The data value may be omitted, which
 defaults to "1". For example, the following three lines:</para>
@@ -90,23 +91,81 @@ file exists, its existing contents are replaced.</para>
     <para>
 <replaceable>tmpfile</replaceable> is a name of a temporary file in the same
 directory as <replaceable>gdbmfile</replaceable>.
-<replaceable>tmpfile</replaceable> is used by <command moreinfo="none">makedat</command> to
+<replaceable>tmpfile</replaceable> is used by <command>makedat</command> to
 create the GDBM
 file, then <replaceable>tmpfile</replaceable> is renamed to
 <replaceable>gdbmfile</replaceable>.</para>
 
     <para>
 This approach foregoes any need for locking in order to be able to
-dynamically update GDBM/DB files used by <command moreinfo="none">maildrop</command>'s gdbm functions.
-However, <command moreinfo="none">makedat</command> does not use any locks on <replaceable>tmpfile</replaceable>, so multiple
-instances of <command moreinfo="none">makedat</command> using the same <replaceable>tmpfile</replaceable> are prohibited.</para>
+dynamically update GDBM/DB files used by <command>maildrop</command>'s gdbm functions.
+However, <command>makedat</command> does not use any locks on <replaceable>tmpfile</replaceable>, so multiple
+instances of <command>makedat</command> using the same <replaceable>tmpfile</replaceable> are prohibited.</para>
 
     <para>
 The <option>-cidr</option> flag specifies that the key is an IP netblock in
-CIDR notation. This flag requires the <application moreinfo="none">Net::CIDR</application>
+CIDR notation. This flag requires the <application>Net::CIDR</application>
 Perl module to be installed separately. Download Net::CIDR from
 <ulink url="http://www.cpan.org">http://www.cpan.org</ulink>.</para>
 
+    <para>
+      If the file named by the <option>-hup</option> parameter exists and
+      contains a numerical PID, <command>makedat</command> reads the PID
+      and sends a SIGHUP to that process.
+    </para>
+  </refsect1>
+
+  <refsect1 id="makedat_subdir">
+    <title>Reading subdirectories</title>
+
+    <para>
+      The <option>-src</option> parameter can specify a directory instead of
+      a text file. This has the effect of concatenating all files in that
+      directory (subject to the following checks) and then using the result
+      as the <replaceable>textfile</replaceable>. The following checks are made:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  Files whose names contain a tilde, <quote>~</quote> are skipped over.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Files whose names end with the following suffixes result in an error
+	  message: <quote>.rpmsave</quote>, <quote>.rpmnew</quote>, and
+	  <quote>.dpkg-<replaceable>suffix</replaceable></quote>. These files
+	  are backup files created by package manager when updating to a newer
+	  version of the package and contain the old or the new version of a
+	  configuration file whose settings may be new or obsolete.
+	</para>
+	<para>
+	  The contents of the file whose name does not have the suffix should
+	  be checked against the backup. The backup file should be deleted
+	  after making any needed manual changes to the configuration file.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Files whose names end with the <quote>.dist</quote> suffix is also
+	  treated as a configuration file backup or template, but with the
+	  following exception: the <quote>.dist</quote> file gets ignored
+	  and automatically skipped over, without any error message, if
+	  the suffix-less file exists and its modification time is more recent
+	  than the <quote>.dist</quote> file's modification time.
+	</para>
+
+	<para>
+	  Otherwise an error message gets reported. Resolving the error
+	  message is done by either copying the
+	  <quote>.dist</quote> file or editing and saving the file without
+	  the suffix (resulting in a newer timestamp).
+	</para>
+      </listitem>
+    </itemizedlist>
   </refsect1>
 
   <refsect1 id="makedat_bugs">
@@ -129,9 +188,9 @@ makedat blacklist /etc/mail/blacklist.tmp /etc/mail/blacklist.dat
     </informalexample>
 
     <para>
-Takes <filename moreinfo="none">blacklist</filename>, and creates
-<filename moreinfo="none">/etc/mail/blacklist.dat</filename>, using
-<filename moreinfo="none">/etc/mail/blacklist.tmp</filename> as a temporary file.</para>
+Takes <filename>blacklist</filename>, and creates
+<filename>/etc/mail/blacklist.dat</filename>, using
+<filename>/etc/mail/blacklist.tmp</filename> as a temporary file.</para>
 
   </refsect1>
   <refsect1 id="makedat_see_also">

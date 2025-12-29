@@ -1,7 +1,7 @@
 #! @SHELL@
 #
 #
-# Copyright 1998 - 2021 S. Varshavchik.  See COPYING for
+# Copyright 1998 - 2025 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 # Generic wrapper for makedat.
@@ -76,23 +76,62 @@ then
 	usage
 fi
 
+FILE_LIST="$(mktemp /tmp/makedat.filelist.XXXXXX)" || exit 1
+COMBINED_LIST="$(mktemp /tmp/makedat.combinedlist.XXXXXX)" || exit 1
+trap 'rm -f $FILE_LIST $COMBINED_LIST' EXIT
 
 get_access() {
 
 	if test -d "$srcfile"
 	then
-		if test "$srcfile" != "CVS"
-		then
-			find -L "$srcfile" -maxdepth 1 -type f -not -name "*~" -not -regex ".*\.dpkg-[a-z]*" -print |
-			while read F
-			do
-				@CAT@ "$F"
-				echo
-			done
-		fi
-	else
-		@CAT@ "$srcfile" || return
+	    find -L "$srcfile" -maxdepth 1 -type f -not -name "*~" -print >$FILE_LIST
+
+	    exec <$FILE_LIST
+	    while read F
+	    do
+		case "$F" in
+		    *.dpkg-[a-z]*)
+			OF="`echo \"$F\" | sed 's/.dpkg-[a-z]*$//'`"
+			echo "$F found, please investigate and remove it, and" >&2
+			echo "make any needed changes to $OF" >&2
+			exit 1
+			;;
+		    *.rpmsave)
+			OF="`echo \"$F\" | sed 's/.rpmsave$//'`"
+			echo "$F found, please investigate and remove it, and" >&2
+			echo "make any needed changes to $OF" >&2
+			exit 1
+			;;
+		    *.rpmnew)
+			OF="`echo \"$F\" | sed 's/.rpmnew$//'`"
+			echo "$F found, please investigate and remove it, and" >&2
+			OF="`echo \"$F\" | sed 's/.rpmnew$//'`" >&2
+			exit 1
+			;;
+		    *.dist)
+			OF="`echo \"$F\" | sed 's/.dist$//'`"
+			if test ! -f "$OF"
+			then
+			    echo "$F exists, please copy to $OF" >&2
+			    exit 1
+			else
+			    if "$OF" -ot "$F"
+			    then
+				echo "$F exists, please copy to $OF," >&2
+				echo "or edit it to have a newer timestamp" >&2
+				exit 1
+			    fi
+			fi
+			continue
+			;;
+		esac
+		@CAT@ "$F"
 		echo
+	    done
+	    exec </dev/null
+	else
+	    @CAT@ "$srcfile" || return
+	    echo
 	fi
 	echo "."
 }
@@ -127,7 +166,8 @@ docidr() {
 	fi
 }
 
-get_access | docidr | @makedatprogpath@ - "$tmpfile" "$dstfile" || exit 1
+get_access >$COMBINED_LIST || exit 1
+docidr <$COMBINED_LIST | @makedatprogpath@ - "$tmpfile" "$dstfile" || exit 1
 
 if test "$hupfile" != ""
 then
