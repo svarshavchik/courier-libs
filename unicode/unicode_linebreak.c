@@ -424,7 +424,8 @@ static int next_def_common(unicode_lb_info_t i,
 	if (uclass.lb == UNICODE_LB_GL &&
 	    prev_state.prevclass.lb != UNICODE_LB_SP &&
 	    prev_state.prevclass.lb != UNICODE_LB_BA &&
-	    prev_state.prevclass.lb != UNICODE_LB_HY)
+	    prev_state.prevclass.lb != UNICODE_LB_HY &&
+	    prev_state.prevclass.lb != UNICODE_LB_HH)
 		return RESULT(UNICODE_LB_NONE, "LB12a");
 
 	switch (uclass.lb) {
@@ -657,9 +658,10 @@ static int next_def_no19a(unicode_lb_info_t i,
 	if (uclass.lb == UNICODE_LB_CB || prev_state.prevclass.lb == UNICODE_LB_CB)
 		return RESULT(UNICODE_LB_ALLOWED, "LB20");
 
-	if (uclass.lb == UNICODE_LB_AL &&
+	if ((uclass.lb == UNICODE_LB_AL ||
+	     uclass.lb == UNICODE_LB_HL) &&
 	    (prev_state.prevclass.lb == UNICODE_LB_HY ||
-	     prev_state.prevclass.ch == 0x2010) &&
+	     prev_state.prevclass.lb == UNICODE_LB_HH) &&
 
 	    (prev_state.prevclass_min1.lb == UNICODE_LB_SOT ||
 	     prev_state.prevclass_min1.lb == UNICODE_LB_BK ||
@@ -676,6 +678,7 @@ static int next_def_no19a(unicode_lb_info_t i,
 
 	switch (uclass.lb) {
 	case UNICODE_LB_BA:
+	case UNICODE_LB_HH:
 	case UNICODE_LB_HY:
 	case UNICODE_LB_NS:
 		return RESULT(UNICODE_LB_NONE, "LB21");
@@ -688,10 +691,7 @@ static int next_def_no19a(unicode_lb_info_t i,
 
 	if (prev_state.prevclass_min1.lb == UNICODE_LB_HL &&
 	    (prev_state.prevclass.lb == UNICODE_LB_HY ||
-	     (
-	      prev_state.prevclass.lb == UNICODE_LB_BA &&
-	      !EASTASIA(prev_state.prevclass)
-	      )) &&
+	     prev_state.prevclass.lb == UNICODE_LB_HH) &&
 	    uclass.lb != UNICODE_LB_HL)
 		return RESULT(UNICODE_LB_NONE, "LB21a");
 
