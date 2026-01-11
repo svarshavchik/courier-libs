@@ -168,4 +168,8 @@
 	unicode_script_ol_onal,
 	unicode_script_sunuwar,
 	unicode_script_todhri,
-	unicode_script_tulu_tigalari
+	unicode_script_tulu_tigalari,
+	unicode_script_sidetic,
+	unicode_script_tai_yo,
+	unicode_script_tolong_siki,
+	unicode_script_beria_erfe

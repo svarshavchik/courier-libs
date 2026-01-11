@@ -23,3 +23,4 @@ fi
 mkdir -p wwwarchive
 test -f $filename && cp $filename wwwarchive
 mv $tmpfilename $filename
+touch $filename

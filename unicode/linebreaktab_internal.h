@@ -21,7 +21,8 @@
 #define UNICODE_LB_BA	0x11
 #define UNICODE_LB_BB	0x12
 #define UNICODE_LB_HY	0x13
-#define UNICODE_LB_CB	0x14
+#define UNICODE_LB_HH	0x14
+#define UNICODE_LB_CB	0x15
 #define UNICODE_LB_CL	0x20
 #define UNICODE_LB_CP	0x21
 #define UNICODE_LB_EX	0x22
