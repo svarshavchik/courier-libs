@@ -2,6 +2,7 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
  "https://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 
+<!ENTITY unicodever "17">
 <!ENTITY tr9ver  "51">
 <!ENTITY tr14ver "55">
 <!ENTITY tr15ver "57">
@@ -81,7 +82,7 @@ See COPYING for distribution information.
 
     <para>
       The current release of the Courier Unicode library is based on the
-      Unicode 17 standard.
+      Unicode &unicodever; standard.
     </para>
   </section>
 
