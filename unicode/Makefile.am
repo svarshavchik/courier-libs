@@ -543,7 +543,7 @@ docs.stamp:
 		$(srcdir)/docbook/docbook.xsl $(srcdir)/book.xml
 	for f in html.tmp/*; do tidy -i -q --tidy-mark no --doctype transitional --input-encoding utf8 --output-encoding utf8 -asxml <$$f >$$f.tmp; mv -f $$f.tmp $$f; done
 	test -d $$HOME/www || exit 0; \
-	  for f in html.tmp/*; do xsltproc --nonet /var/www/html/www.courier-mta.org/courier-mta.org/xsl/unicode.xsl $$f | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f.tmp; mv -f $$f.tmp $$f; done
+	  for f in html.tmp/*; do xsltproc --nonet $$HOME/www/hostrocket/courier-mta.org/xsl/unicode.xsl $$f | perl -ne 's~\$(id):.*\$$~\$(id):'"$$h"'\$$~; print' >$$f.tmp; mv -f $$f.tmp $$f; done
 	mkdir -p html
 	rm -f html/*
 	mv html.tmp/* html
