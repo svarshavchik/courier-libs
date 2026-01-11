@@ -4,7 +4,7 @@ dnl
 dnl Copyright 1998 - 2025 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
-AC_INIT([courier-imap],[5.3.1],[courier-users@lists.sourceforge.net])
+AC_INIT([courier-imap],[5.3.2],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
