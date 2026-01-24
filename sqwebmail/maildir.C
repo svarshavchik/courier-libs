@@ -243,12 +243,14 @@ static char	sizebuf[MAXLONGSIZE+10];
 
 char *alloc_filename(const char *dir1, const char *dir2, const char *filename)
 {
-char	*p;
+	char	*p;
 
 	if (!dir1)	dir1="";
 	if (!dir2)	dir2="";
 
-	p=malloc(strlen(dir1)+strlen(dir2)+strlen(filename)+3);
+	p=static_cast<char *>(
+		malloc(strlen(dir1)+strlen(dir2)+strlen(filename)+3)
+	);
 
 	if (!p)	enomem();
 
@@ -352,10 +354,10 @@ const char *date_wfmt;
 
 static char *maildir_addflagfilename(const char *filename, char flag)
 {
-char	*new_filename=malloc(strlen(filename)+5);
-		/* We can possibly add as many as four character */
-char	*p;
-char	*q;
+	char	*new_filename=static_cast<char *>(malloc(strlen(filename)+5));
+	/* We can possibly add as many as four character */
+	char	*p;
+	char	*q;
 
 	strcpy(new_filename, filename);
 	p=strrchr(new_filename, '/');
@@ -400,7 +402,8 @@ static char *foldercachename(const char *folder)
 		return NULL;
 	}
 
-	f=malloc(sizeof(MAILDIRCURCACHE "/" DBNAME ".")+strlen(folder));
+	f=static_cast<char *>(malloc(sizeof(MAILDIRCURCACHE "/" DBNAME ".")
+				     +strlen(folder)));
 	if (!f)
 		enomem();
 
@@ -451,7 +454,7 @@ unsigned long ul;
 
 	if ((p=dbobj_fetch(&folderdat, "HEADER", 6, &l, "")) == 0)
 		return (0);
-	q=malloc(l+1);
+	q=static_cast<char *>(malloc(l+1));
 	if (!q)	enomem();
 	memcpy(q, p, l);
 	q[l]=0;
@@ -535,7 +538,8 @@ static	MSGINFO msginfo_buf;
 
 	if (!buf || len > bufsize)
 	{
-		buf= buf ? realloc(buf, len+1):malloc(len+1);
+		buf= static_cast<char *>(buf ? realloc(buf, len+1):
+					 malloc(len+1));
 		if (!buf)	enomem();
 		bufsize=len;
 	}
@@ -544,8 +548,9 @@ static	MSGINFO msginfo_buf;
 	free(p);
 
 	memset(&msginfo_buf, 0, sizeof(msginfo_buf));
+	static char empty_str[]="";
 	msginfo_buf.filename= msginfo_buf.date_s= msginfo_buf.from_s=
-	msginfo_buf.subject_s= msginfo_buf.size_s="";
+		msginfo_buf.subject_s= msginfo_buf.size_s=empty_str;
 
 	for (p=buf; (p=strtok(p, "\n")) != 0; p=0)
 	{
@@ -612,10 +617,13 @@ char	*rec;
 
 	sprintf(namebuf, "REC%lu", n);
 
-	rec=malloc(strlen(m->filename)+strlen(m->from_s)+
-		strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
-		sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
-			"SIZEN=\nTIME=\nINODE=\n")+100);
+	rec=static_cast<char *>(
+		malloc(strlen(m->filename)+strlen(m->from_s)+
+		       strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
+		       sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
+			      "SIZEN=\nTIME=\nINODE=\n")+100
+		)
+	);
 	if (!rec)	enomem();
 
 	sprintf(rec, "FILENAME=%s\nFROM=%s\nSUBJECT=%s\nSIZES=%s\n"
@@ -640,10 +648,10 @@ char	*rec;
 
 static void update_foldermsgs(const char *folder, const char *newname, size_t pos)
 {
-MSGINFO	*p;
-char *n;
+	MSGINFO	*p;
+	char *n;
 
-	n=strrchr(newname, '/')+1;
+	n=const_cast<char *>(strrchr(newname, '/')+1);
 	if (opencache(folder, "W") || (p=get_msginfo(pos)) == 0)
 	{
 		error("Internal error in update_foldermsgs");
@@ -740,7 +748,7 @@ int maildir_name2pos(const char *folder, const char *filename, size_t *pos)
 		return (0);
 	}
 
-	p=malloc(strlen(filename)+10);
+	p=static_cast<char *>(malloc(strlen(filename)+10));
 	if (!p)
 		enomem();
 	strcat(strcpy(p, "FILE"), filename);
@@ -921,7 +929,9 @@ static int do_msgmove(const char *from,
 
 		if (dest_shared)	/* Copy to the sharable folder */
 		{
-		char	*p=malloc(strlen(destdir)+sizeof("/shared"));
+			char	*p=static_cast<char *>(
+				malloc(strlen(destdir)+sizeof("/shared"))
+			);
 
 			if (!p)
 			{
@@ -1096,7 +1106,9 @@ int maildir_msgmovefile(const char *folder, const char *file, const char *dest,
 
 static char *foldercountfilename(const char *folder)
 {
-	char *f=malloc(sizeof(MAILDIRCURCACHE "/cnt.") + strlen(folder));
+	char *f=static_cast<char *>(
+		malloc(sizeof(MAILDIRCURCACHE "/cnt.") + strlen(folder))
+	);
 
 	if (!f)
 		enomem();
@@ -1333,10 +1345,12 @@ void maildir_autopurge()
 			{
 				if (!goodcache(strchr(dire->d_name, '.')+1))
 				{
-					folderdir=malloc(sizeof(MAILDIRCURCACHE
-								"/")
-							 + strlen(dire->
-								  d_name));
+					folderdir=static_cast<char *>(
+						malloc(sizeof(MAILDIRCURCACHE
+							      "/")
+						       + strlen(dire->
+								d_name))
+					);
 					if (!folderdir)
 						enomem();
 					strcat(strcpy(folderdir,
@@ -1351,8 +1365,10 @@ void maildir_autopurge()
 			continue;
 		}
 
-		folderdir=malloc(sizeof(MAILDIRCURCACHE "/")
-				 + strlen(dire->d_name));
+		folderdir=static_cast<char *>(
+			malloc(sizeof(MAILDIRCURCACHE "/")
+			       + strlen(dire->d_name))
+		);
 		if (!folderdir)
 			enomem();
 		strcat(strcpy(folderdir, MAILDIRCURCACHE "/"), dire->d_name);
@@ -1439,7 +1455,9 @@ void maildir_purgemimegpg()
 		if (strstr(dire->d_name, ":mimegpg:") == 0 &&
 		    strstr(dire->d_name, ":calendar:") == 0)	continue;
 
-		p=malloc(sizeof("tmp/")+strlen(dire->d_name));
+		p=static_cast<char *>(
+			malloc(sizeof("tmp/")+strlen(dire->d_name))
+		);
 
 		if (p)
 		{
@@ -1465,7 +1483,9 @@ void maildir_purgesearch()
 	{
 		if (strstr(dire->d_name, ":search:") == 0)	continue;
 
-		p=malloc(sizeof("tmp/")+strlen(dire->d_name));
+		p=static_cast<char *>(
+			malloc(sizeof("tmp/")+strlen(dire->d_name))
+		);
 
 		if (p)
 		{
@@ -1642,10 +1662,11 @@ MSGINFO **maildir_read(const char *dirname, unsigned nfiles,
 		       size_t *starting_pos,
 		       int *morebefore, int *moreafter)
 {
-MSGINFO	**msginfo;
-size_t	i;
+	MSGINFO	**msginfo;
+	size_t	i;
 
-	if ((msginfo=malloc(sizeof(MSGINFO *)*nfiles)) == 0)
+	if ((msginfo=static_cast<MSGINFO **>(
+		     malloc(sizeof(MSGINFO *)*nfiles))) == 0)
 		enomem();
 	for (i=0; i<nfiles; i++)
 		msginfo[i]=0;
@@ -1706,7 +1727,7 @@ static char *load_str(FILE *fp)
 	if (feof(fp))
 		l=0;
 
-	str=malloc(l+1);
+	str=static_cast<char *>(malloc(l+1));
 
 	if (!str)
 		enomem();
@@ -1755,7 +1776,7 @@ static void load_msginfo(MSGINFO **retinfo,
 			 MATCHEDSTR **retmatches,
 			 FILE *fp)
 {
-	MSGINFO *p=malloc(sizeof(MSGINFO));
+	MSGINFO *p=static_cast<MSGINFO *>(malloc(sizeof(MSGINFO)));
 	size_t context_cnt;
 	MATCHEDSTR *c;
 
@@ -1781,7 +1802,9 @@ static void load_msginfo(MSGINFO **retinfo,
 
 	if (context_cnt)
 	{
-		*retmatches=c=malloc(sizeof(MATCHEDSTR)*(context_cnt+1));
+		*retmatches=c=static_cast<MATCHEDSTR *>(
+			malloc(sizeof(MATCHEDSTR)*(context_cnt+1))
+		);
 
 		for (; context_cnt; --context_cnt)
 		{
@@ -1899,10 +1922,14 @@ void maildir_loadsearch(unsigned nfiles,
 	FILE *fp;
 	char ver;
 
-	if ((msginfo=malloc(sizeof(MSGINFO *)*nfiles)) == 0)
+	if ((msginfo=static_cast<MSGINFO **>(
+		     malloc(sizeof(MSGINFO *)*nfiles))
+	    )== 0)
 		enomem();
 
-	if ((matches=malloc(sizeof(MATCHEDSTR *)*nfiles)) == 0)
+	if ((matches=static_cast<MATCHEDSTR **>(
+		     malloc(sizeof(MATCHEDSTR *)*nfiles))
+	    ) == 0)
 	{
 		free(msginfo);
 		enomem();
@@ -1917,7 +1944,7 @@ void maildir_loadsearch(unsigned nfiles,
 	filename=cgi(SEARCHRESFILENAME);
 	CHECKFILENAME(filename);
 
-	buf=malloc(strlen(filename)+5);
+	buf=static_cast<char *>(malloc(strlen(filename)+5));
 
 	if (!buf)
 	{
@@ -2043,10 +2070,14 @@ static void execute_maildir_search(const char *dirname,
 	char *utf8str;
 	char *p, *q;
 
-	if ((*retval=msginfo=malloc(sizeof(MSGINFO *)*nfiles)) == 0)
+	if ((*retval=msginfo=static_cast<MSGINFO **>(
+		     malloc(sizeof(MSGINFO *)*nfiles))
+	    ) == 0)
 		enomem();
 
-	if ((*retcontext=matches=malloc(sizeof(MATCHEDSTR *)*nfiles)) == 0)
+	if ((*retcontext=matches=static_cast<MATCHEDSTR **>(
+		     malloc(sizeof(MATCHEDSTR *)*nfiles))
+	    ) == 0)
 	{
 		free(msginfo);
 		enomem();
@@ -2178,7 +2209,9 @@ static int searchresults_init(struct searchresults *sr,
 	sr->utf8buf_cnt=0;
 
 	sr->context_buf_len=maildir_search_len(se)+SEARCH_MATCH_CONTEXT_LEN*2+1;
-	sr->context_buf=malloc(sr->context_buf_len * sizeof(char32_t));
+	sr->context_buf=static_cast<char32_t *>(
+		malloc(sr->context_buf_len * sizeof(char32_t))
+	);
 
 	if (sr->context_buf == NULL)
 		return -1;
@@ -2212,29 +2245,34 @@ static void searchresults_destroy(struct searchresults *sr)
 static void search_found_save_context(struct searchresults *sr)
 {
 	struct searchresults_match_context *c=
-		malloc(sizeof(struct searchresults_match_context));
+		static_cast<searchresults_match_context *>(
+			malloc(sizeof(struct searchresults_match_context))
+		);
 	size_t n, i, j;;
 
 	if (c == NULL)
 		return;
 
-	if ((c->match_context_before=malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-					    * sizeof(char32_t))) == NULL)
+	if ((c->match_context_before=static_cast<char32_t *>(
+		     malloc((SEARCH_MATCH_CONTEXT_LEN+1)
+			    * sizeof(char32_t)))) == NULL)
 	{
 		free(c);
 		return;
 	}
 
-	if ((c->match_context=malloc((maildir_search_len(sr->se)+1)
-				     * sizeof(char32_t))) == NULL)
+	if ((c->match_context=static_cast<char32_t *>(
+		     malloc((maildir_search_len(sr->se)+1)
+			    * sizeof(char32_t)))) == NULL)
 	{
 		free(c->match_context_before);
 		free(c);
 		return;
 	}
 
-	if ((c->match_context_after=malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-					   * sizeof(char32_t))) == NULL)
+	if ((c->match_context_after=static_cast<char32_t *>(
+		     malloc((SEARCH_MATCH_CONTEXT_LEN+1)
+			    * sizeof(char32_t)))) == NULL)
 	{
 		free(c->match_context);
 		free(c->match_context_before);
@@ -2479,7 +2517,8 @@ static MATCHEDSTR *creatematches(struct searchresults *sr)
 	for (smc=sr->matched_context_head; smc; smc=smc->next)
 		++n;
 
-	if ((retval=malloc(sizeof(MATCHEDSTR)*(n+1))) == NULL)
+	if ((retval=static_cast<MATCHEDSTR *>(
+		     malloc(sizeof(MATCHEDSTR)*(n+1)))) == NULL)
 		return NULL;
 
 	retptr=retval;
@@ -2729,8 +2768,9 @@ static void addbuf(int c)
 {
 	if (buflen == bufsize)
 	{
-	char	*newbuf= buf ? realloc(buf, bufsize+512):malloc(bufsize+512);
-
+		char	*newbuf=static_cast<char *>(
+			buf ? realloc(buf, bufsize+512):malloc(bufsize+512)
+		);
 		if (!newbuf)	enomem();
 		buf=newbuf;
 		bufsize += 512;
@@ -2879,14 +2919,14 @@ int	fd;
 		folder */
 
 	p=strrchr(filename, '/');
-	if ((p && p - filename >=
+	if ((p && (size_t)(p - filename) >=
 		sizeof(SENT) + 5 && strncmp(p - (sizeof(SENT) + 5),
 			"/." SENT "/", sizeof(SENT)+2) == 0)
 		|| strncmp(filename, "." SENT "/", sizeof(SENT)+1) == 0
 		|| strncmp(filename, "./." SENT ".", sizeof(SENT)+3) == 0
 		|| strncmp(filename, "." SENT ".", sizeof(SENT)+1) == 0)
 		is_sent_header=1;
-	if ((p && p - filename >=
+	if ((p && (size_t)(p - filename) >=
 		sizeof(DRAFTS) + 5 && strncmp(p-(sizeof(DRAFTS) + 5),
 			"/." DRAFTS "/", sizeof(DRAFTS)+2) == 0)
 		|| strncmp(filename, "." DRAFTS "/", sizeof(DRAFTS)+1) == 0)
@@ -2998,7 +3038,9 @@ int	fd;
 			if (p)
 			{
 				if (fromheader)	free(fromheader);
-				if ((fromheader=malloc(strlen(p)+7)) == 0)
+				if ((fromheader=static_cast<char *>(
+					     malloc(strlen(p)+7))
+				    ) == 0)
 					enomem();
 				strcpy(fromheader, p);
 				if (dotflag)
@@ -3098,13 +3140,15 @@ static void maildir_save_start(const char *folder,
 
 static void maildir_saveinfo(MSGINFO *m)
 {
-char	*rec, *p;
-char	recnamebuf[MAXLONGSIZE+40];
+	char	*rec, *p;
+	char	recnamebuf[MAXLONGSIZE+40];
 
-	rec=malloc(strlen(m->filename)+strlen(m->from_s)+
-		strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
-		sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
-			"SIZEN=\nTIME=\nINODE=\n")+100);
+	rec=static_cast<char *>(
+		malloc(strlen(m->filename)+strlen(m->from_s)+
+		       strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
+		       sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
+			      "SIZEN=\nTIME=\nINODE=\n")+100)
+	);
 	if (!rec)	enomem();
 
 	sprintf(rec, "FILENAME=%s\nFROM=%s\nSUBJECT=%s\nSIZES=%s\n"
@@ -3127,7 +3171,7 @@ char	recnamebuf[MAXLONGSIZE+40];
 	free(rec);
 
 	/* Reverse lookup */
-	rec=malloc(strlen(m->filename)+10);
+	rec=static_cast<char *>(malloc(strlen(m->filename)+10));
 	if (!rec)
 		enomem();
 	strcat(strcpy(rec, "FILE"), m->filename);
@@ -3150,11 +3194,11 @@ char	*rec;
 
 	curname=alloc_filename(maildir, "", "cur");
 
-	rec=malloc(MAXLONGSIZE*4+sizeof(
-			"SAVETIME=\n"
-			"COUNT=\n"
-			"NEWCOUNT=\n"
-			"SORT=\n")+100);
+	rec=static_cast<char *>(malloc(MAXLONGSIZE*4+sizeof(
+					       "SAVETIME=\n"
+					       "COUNT=\n"
+					       "NEWCOUNT=\n"
+					       "SORT=\n")+100));
 
 	if (!rec)	enomem();
 	sprintf(rec,
@@ -3217,7 +3261,9 @@ unsigned long cnt=0;
 		free(filename);
 		if (!mi)	continue;
 
-		if (!(newmi=malloc(sizeof(struct MSGINFO_LIST)))) enomem();
+		if (!(newmi=static_cast<MSGINFO_LIST *>(
+			      malloc(sizeof(struct MSGINFO_LIST)))
+		    )) enomem();
 		newmi->next= milist;
 		milist=newmi;
 		newmi->minfo=mi;
@@ -3228,8 +3274,10 @@ unsigned long cnt=0;
 
 	if (milist)
 	{
-	MSGINFO **miarray=malloc(sizeof(MSGINFO *) * cnt);
-	unsigned long i;
+		MSGINFO **miarray=static_cast<MSGINFO **>(
+			malloc(sizeof(MSGINFO *) * cnt)
+		);
+		unsigned long i;
 
 		if (!miarray)	enomem();
 		i=0;
@@ -3327,8 +3375,9 @@ static void addfolder(const char *name, char ***buf, size_t *size, size_t *cnt)
 {
 	if (*cnt >= *size)
 	{
-	char	**newbuf= *buf ? realloc(*buf, (*size + 10) * sizeof(char *))
-			: malloc( (*size+10) * sizeof(char *));
+		char	**newbuf=static_cast<char **>(
+			*buf ? realloc(*buf, (*size + 10) * sizeof(char *))
+			: malloc( (*size+10) * sizeof(char *)));
 
 		if (!newbuf)	enomem();
 		*buf=newbuf;
@@ -3365,7 +3414,7 @@ static void list_callback(const char *n, void *vp)
 		++n;
 	}
 
-	o=malloc(strlen(i->inbox_pfix)+strlen(n)+1);
+	o=static_cast<char *>(malloc(strlen(i->inbox_pfix)+strlen(n)+1));
 	if (!o)
 		enomem();
 	strcat(strcpy(o, i->inbox_pfix), n);
@@ -3379,7 +3428,7 @@ static void list_shared_callback(const char *n, void *vp)
 {
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
-	char *p=malloc(sizeof(SHARED ".") + strlen(n));
+	char *p=static_cast<char *>(malloc(sizeof(SHARED ".") + strlen(n)));
 
 	if (!p)
 		enomem();
@@ -3393,7 +3442,7 @@ static void list_sharable_callback(const char *n, void *vp)
 {
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
-	char *p=malloc(sizeof(SHARED ".") + strlen(n));
+	char *p=static_cast<char *>(malloc(sizeof(SHARED ".") + strlen(n)));
 	size_t j;
 
 	if (!p)
@@ -3515,7 +3564,7 @@ int maildir_create(const char *foldername)
 
 int maildir_delete(const char *foldername, int deletecontent)
 {
-	char	*dir, *tmp, *new, *cur;
+	char	*dir, *tmp, *newp, *cur;
 	int	rc=0;
 
 	struct maildir_info minfo;
@@ -3536,13 +3585,13 @@ int maildir_delete(const char *foldername, int deletecontent)
 
 	tmp=alloc_filename(dir, "tmp", "");
 	cur=alloc_filename(dir, "cur", "");
-	new=alloc_filename(dir, "new", "");
+	newp=alloc_filename(dir, "new", "");
 
 	if (!deletecontent)
 	{
-		if (rmdir(new) || rmdir(cur))
+		if (rmdir(newp) || rmdir(cur))
 		{
-			mkdir(new, 0700);
+			mkdir(newp, 0700);
 			mkdir(cur, 0700);
 			rc= -1;
 		}
@@ -3557,7 +3606,7 @@ int maildir_delete(const char *foldername, int deletecontent)
 
 	maildir_info_destroy(&minfo);
 	free(tmp);
-	free(new);
+	free(newp);
 	free(cur);
 	free(dir);
 	return (rc);
@@ -3724,7 +3773,7 @@ size_t	i;
 		if (writebufleft == 0)	writeflush(n);
 
 		c=writebufleft;
-		if (c > cnt)	c=cnt;
+		if ((size_t)c > cnt)	c=cnt;
 		memcpy(writebufptr, p, c);
 		writebufptr += c;
 		p += c;
@@ -3796,7 +3845,7 @@ int	maildir_closemsg(int n,	/* File descriptor */
 
 	if (isok)
 	{
-		if (prevsize < stat_buf.st_size)
+		if ((off_t)prevsize < stat_buf.st_size)
 		{
 			struct maildirsize info;
 
@@ -3820,7 +3869,7 @@ int	maildir_closemsg(int n,	/* File descriptor */
 			maildir_quota_add_end(&info, stat_buf.st_size-prevsize,
 					      prevsize == 0 ? 1:0);
 		}
-		else if (prevsize != stat_buf.st_size)
+		else if ((off_t)prevsize != stat_buf.st_size)
 		{
 			maildir_quota_deleted(".", (int64_t)
 					      (stat_buf.st_size-prevsize),

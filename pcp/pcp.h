@@ -14,6 +14,13 @@
 #include <sys/time.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct PCP_new_eventid {
 	char *eventid;
 } ;
@@ -397,5 +404,12 @@ int pcp_acl_num(const char *);
 
 const char *pcpuid();
 const char *pcpgid();
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

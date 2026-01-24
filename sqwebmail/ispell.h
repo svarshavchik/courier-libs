@@ -1,8 +1,12 @@
 #ifndef	ispell_h
 #define	ispell_h
-/*
-*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 /*
 ** C interface to ispell.  Gimme a line of text, and I'll return a link
 ** list of mispelled words, plus their suggested derivations.
@@ -30,4 +34,11 @@ struct ispell_suggestion {
 
 struct ispell *ispell_run(const char *dictionary, const char *line);
 void ispell_free(struct ispell *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 #endif

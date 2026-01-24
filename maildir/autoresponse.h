@@ -10,10 +10,6 @@
 #include	"config.h"
 #include	<stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	/* Return a list of available autoresponses, NULL if error */
 
 extern char **maildir_autoresponse_list(const char *);
@@ -30,9 +26,5 @@ extern FILE *maildir_autoresponse_create(const char *, const char *);
 extern int maildir_autoresponse_create_finish(const char *, const char *, FILE *);
 
 extern FILE *maildir_autoresponse_open(const char *, const char *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

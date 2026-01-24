@@ -20,7 +20,21 @@
 #include	<sys/time.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 extern const char *read_sqconfig(const char *, const char *, time_t *);
 extern void write_sqconfig(const char *, const char *, const char *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

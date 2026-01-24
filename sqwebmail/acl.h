@@ -14,6 +14,12 @@
 #include	"maildir/maildiraclt.h"
 #include	"maildir/maildirinfo.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 int acl_read(maildir_aclt_list *l, const char *folder,
 	     char **owner);
 int acl_read2(maildir_aclt_list *l,
@@ -23,5 +29,11 @@ void acl_computeRights(maildir_aclt_list *l, char *rights,
 		       const char *owner);
 
 void acl_computeRightsOnFolder(const char *folder, char *rights);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

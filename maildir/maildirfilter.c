@@ -867,18 +867,6 @@ int	flags;
 	return (MF_LOADOK);
 }
 
-int maildir_filter_autoresp_info_init(struct maildir_filter_autoresp_info *i, const char *c)
-{
-	memset(i, 0, sizeof(*i));
-
-	if (maildir_autoresponse_validate(NULL, c))
-		return (-1);
-	i->name=strdup(c);
-	if (!(i->name))
-		return (-1);
-	return (0);
-}
-
 int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *i, const char *c)
 {
 	char *p;

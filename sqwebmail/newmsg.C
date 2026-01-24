@@ -44,25 +44,25 @@
 #include	"htmllibdir.h"
 #include	<courier-unicode.h>
 
-extern const char *sqwebmail_content_charset;
+extern "C" const char *sqwebmail_content_charset;
 extern int spell_start(const char *);
-extern const char *sqwebmail_mailboxid;
-extern const char *sqwebmail_folder;
-extern void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
-extern void call_print_safe_to_stdout(const char *, size_t);
-extern void print_attrencodedlen(const char *, size_t, int, FILE *);
-extern void output_attrencoded_nltobr(const char *);
-extern void output_attrencoded_oknl(const char *);
-extern void output_attrencoded(const char *);
-extern void output_scriptptrget();
-extern void output_form(const char *);
-extern void output_urlencoded(const char *);
+extern "C" const char *sqwebmail_mailboxid;
+extern "C" const char *sqwebmail_folder;
+extern "C" void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
+extern "C" void call_print_safe_to_stdout(const char *, size_t);
+extern "C" void print_attrencodedlen(const char *, size_t, int, FILE *);
+extern "C" void output_attrencoded_nltobr(const char *);
+extern "C" void output_attrencoded_oknl(const char *);
+extern "C" void output_attrencoded(const char *);
+extern "C" void output_scriptptrget();
+extern "C" void output_form(const char *);
+extern "C" void output_urlencoded(const char *);
 
 extern char *newmsg_newdraft(const char *, const char *, const char *,
 				const char *);
 extern char *newmsg_createdraft(const char *);
-extern char *newmsg_createsentmsg(const char *, int *);
-extern int ishttps();
+extern "C" char *newmsg_createsentmsg(const char *, int *);
+extern "C" int ishttps();
 
 static void newmsg_header(const char *label, const char *field,
 			  const char *encoded, const char *val)
@@ -386,8 +386,10 @@ char *newmsg_alladdrs(FILE *fp)
 
 			if (headers)
 			{
-				newh=realloc(headers, strlen(headers)
-					     +strlen(value)+2);
+				newh=static_cast<char *>(
+					realloc(headers, strlen(headers)
+						+strlen(value)+2)
+				);
 				if (!newh)
 					continue;
 				strcat(newh, ",");
@@ -395,7 +397,9 @@ char *newmsg_alladdrs(FILE *fp)
 			}
 			else
 			{
-				newh=malloc(strlen(value)+1);
+				newh=static_cast<char *>(
+					malloc(strlen(value)+1)
+				);
 				if (!newh)
 					continue;
 				*newh=0;
@@ -422,7 +426,7 @@ char *newmsg_alladdrs(FILE *fp)
 			free(p);
 		}
 	}
-	p=malloc(l);
+	p=static_cast<char *>(malloc(l));
 	if (p)
 		*p=0;
 
@@ -451,7 +455,7 @@ static int show_textarea_trampoline(const char *ptr, size_t cnt, void *arg)
 	return 0;
 }
 
-void newmsg_showfp(FILE *fp, int *attachcnt)
+extern "C" void newmsg_showfp(FILE *fp, int *attachcnt)
 {
 	struct	rfc2045 *p=rfc2045_fromfp(fp), *q;
 
@@ -503,7 +507,7 @@ void newmsg_showfp(FILE *fp, int *attachcnt)
 	rfc2045_free(p);
 }
 
-void newmsg_preview(const char *p)
+extern "C" void newmsg_preview(const char *p)
 {
 	size_t pos;
 
@@ -687,8 +691,10 @@ void newmsg_init(const char *folder, const char *pos)
 				rfchp= &curbcc;
 			if (rfchp)
 			{
-			char	*newh=malloc ( (*rfchp ? strlen(*rfchp)+2:1)
-					+strlen(value));
+				char	*newh=static_cast<char *>(
+					malloc ( (*rfchp ? strlen(*rfchp)+2:1)
+						 +strlen(value))
+				);
 
 				if (!newh)	enomem();
 				strcpy(newh, value);
@@ -1009,10 +1015,12 @@ int dsn;
 		close(pipefd1[0]);
 		close(pipefd1[1]);
 
+		static char dsnopt[]="DSN=-Nsuccess,delay,failure";
+		static char nodsnopt[]="DSN=";
 		if (dsn)
-			putenv("DSN=-Nsuccess,delay,failure");
+			putenv(dsnopt);
 		else
-			putenv("DSN=");
+			putenv(nodsnopt);
 
 		if (fd == 0)
 		{

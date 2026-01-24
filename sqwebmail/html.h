@@ -5,6 +5,13 @@
 
 #include	<courier-unicode.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 /*
 ** Copyright 2011 S. Varshavchik.  See COPYING for
 ** distribution information.
@@ -28,5 +35,11 @@ extern void htmlfilter_set_mailto_prefix(struct htmlfilter_info *,
 				      const char *);
 extern void htmlfilter_set_convertcid(struct htmlfilter_info *,
 				      char *(*)(const char *, void *), void *);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

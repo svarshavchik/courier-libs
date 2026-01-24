@@ -36,8 +36,10 @@ static void addbuf(int c, char **buf, size_t *bufsize, size_t *buflen)
 {
 	if (*buflen == *bufsize)
 	{
-		char	*newbuf= *buf ?
-			realloc(*buf, *bufsize+512):malloc(*bufsize+512);
+		char	*newbuf= static_cast<char *>(
+			*buf ?
+			realloc(*buf, *bufsize+512):malloc(*bufsize+512)
+		);
 
 		if (!newbuf)
 			return;
@@ -55,7 +57,7 @@ static char *get_next_header(FILE *fp, char **value,
 	int	eatspaces=0;
 
 	size_t bufsize=256;
-	char *buf=malloc(bufsize);
+	char *buf=static_cast<char *>(malloc(bufsize));
 	size_t buflen=0;
 
 	if (!buf)
@@ -108,7 +110,10 @@ static char *get_next_header(FILE *fp, char **value,
 
 struct msg2html_info *msg2html_alloc(const char *charset)
 {
-	struct msg2html_info *p=malloc(sizeof(struct msg2html_info));
+	msg2html_info *p=
+		static_cast<msg2html_info *>(
+			malloc(sizeof(struct msg2html_info))
+		);
 
 	if (!p)
 		return NULL;
@@ -131,7 +136,9 @@ void msg2html_add_smiley(struct msg2html_info *i,
 		strcat(i->smiley_index, buf);
 
 
-	if ((l=malloc(sizeof(struct msg2html_smiley_list))) != NULL)
+	if ((l=static_cast<msg2html_smiley_list *>(
+		     malloc(sizeof(struct msg2html_smiley_list)))
+	    ) != NULL)
 	{
 		if ((l->code=strdup(txt)) != NULL)
 		{
@@ -369,7 +376,9 @@ static void showmsgrfc2369_header(struct msg2html_info *info, const char *p)
 
 		if (q)
 		{
-			next=malloc(sizeof(struct showmsgrfc2369_buflist));
+			next=static_cast<showmsgrfc2369_buflist *>(
+				malloc(sizeof(struct showmsgrfc2369_buflist))
+			);
 
 			if (!next)
 			{
@@ -983,7 +992,7 @@ char	*r;
 	else	n=1;
 
 	sprintf(buf, "%u", n);
-	r=malloc( (q ? strlen(q)+1:0)+strlen(buf)+1);
+	r=static_cast<char *>(malloc( (q ? strlen(q)+1:0)+strlen(buf)+1));
 	if (!r)
 	{
 		if (q)
@@ -2813,8 +2822,9 @@ msg2html_textplain_start(const char *message_charset,
 					     size_t n, void *arg),
 			 void *arg)
 {
-	struct msg2html_textplain_info *tinfo=
-		malloc(sizeof(struct msg2html_textplain_info));
+	msg2html_textplain_info *tinfo=static_cast<msg2html_textplain_info *>(
+		malloc(sizeof(struct msg2html_textplain_info))
+	);
 
 	memset(tinfo, 0, sizeof(*tinfo));
 

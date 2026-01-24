@@ -23,9 +23,9 @@
 #include	<ctype.h>
 
 extern const char *sqwebmail_content_charset;
-extern void output_form(const char *);
+extern "C" void output_form(const char *);
 extern const char *sqwebmail_content_ispelldict;
-extern void output_attrencoded(const char *);
+extern "C" void output_attrencoded(const char *);
 
 static void spelladd(const char *);
 static int search_spell(const char *, unsigned, unsigned);
@@ -230,7 +230,9 @@ int	x;
 	static char *p=0;
 
 		if (p)	free(p);
-		p=malloc(strlen(cgi("globignore")) + 2 + strlen(ignoreword));
+		p=static_cast<char *>(
+			malloc(strlen(cgi("globignore")) + 2 + strlen(ignoreword))
+		);
 
 		if (!p)	enomem();
 
@@ -245,8 +247,10 @@ int	x;
 	static char *p=0;
 
 		if (p)	free(p);
-		p=malloc(strlen(cgi("globreplace"))+3
-			+strlen(replacefrom)+strlen(replaceto));
+		p=static_cast<char *>(
+			malloc(strlen(cgi("globreplace"))+3
+			       +strlen(replacefrom)+strlen(replaceto))
+		);
 
 		if (!p)	enomem();
 		strcpy(p, cgi("globreplace"));
@@ -338,7 +342,9 @@ char	*w;
 		if (newword ||
 			(newword=w=spellreplace(msp->misspelled_word)) != 0)
 		{
-		char	*p=malloc(strlen(newline ? newline:line)+strlen(newword)+1);
+			char	*p=static_cast<char *>(
+				malloc(strlen(newline ? newline:line)+strlen(newword)+1)
+			);
 
 			if (!p)	enomem();
 			memcpy(p, (newline ? newline:line), msp->word_pos);
@@ -366,7 +372,8 @@ char	*w;
 	else
 	{
 		if (ispellline)	free(ispellline);
-		if ((ispellline=malloc(strlen( newline ? newline:line)+1)) == 0)
+		if ((ispellline=static_cast<char *>(
+			     malloc(strlen( newline ? newline:line)+1))) == 0)
 			enomem();
 		strcpy(ispellline, newline ? newline:line);
 	}
@@ -481,7 +488,7 @@ const char *finishlab=getarg("FINISH");
 	if (msp->word_pos > 30)
 	{
 		p=msp->word_pos-30;
-		for (n=p; n<msp->word_pos; n++)
+		for (n=p; n<(size_t)(msp->word_pos); n++)
 			if (ispellline[n] == ' ')
 			{
 				while (n < p && ispellline[n] == ' ')
@@ -561,9 +568,11 @@ const char *finishlab=getarg("FINISH");
 
 static FILE *opendict(const char *mode)
 {
-FILE	*fp;
-char	*p=malloc(sqwebmail_content_ispelldict ?
-			strlen(sqwebmail_content_ispelldict)+20:20);
+	FILE	*fp;
+	char	*p=static_cast<char *>(
+		malloc(sqwebmail_content_ispelldict ?
+		       strlen(sqwebmail_content_ispelldict)+20:20)
+	);
 
 	if (!p)	enomem();
 	strcat(strcpy(p, sqwebmail_content_ispelldict ?
@@ -595,7 +604,7 @@ FILE	*fp=opendict("r");
 
 	c=cgi("globignore");
 
-	p=malloc(strlen(c)+1);
+	p=static_cast<char *>(malloc(strlen(c)+1));
 	if (!p)	enomem();
 	strcpy(p, c);
 
@@ -622,17 +631,17 @@ FILE	*fp=opendict("a");
 
 static char *spellreplace(const char *word)
 {
-char	*p, *q, *r;
-const char *c=cgi("globreplace");
+	char	*p, *q, *r;
+	const char *c=cgi("globreplace");
 
-	p=malloc(strlen(c)+1);
+	p=static_cast<char *>(malloc(strlen(c)+1));
 	if (!p)	enomem();
 	strcpy(p, c);
 	for (q=p; (q=strtok(q, ":")) != 0 && (r=strtok(0, ":")) != 0; q=0)
 	{
 		if (strcmp(q, word) == 0)
 		{
-			q=malloc(strlen(r)+1);
+			q=static_cast<char *>(malloc(strlen(r)+1));
 			if (!q)	enomem();
 			strcpy(q, r);
 			free(p);

@@ -47,29 +47,38 @@
 #include	"htmllibdir.h"
 #include	<courier-unicode.h>
 
-extern char *newmsg_alladdrs(FILE *);
-extern void newmsg_copy_content_headers(FILE *fp);
+extern "C" {
+#if 0
+}
+#endif
 
 extern char *alloc_filename(const char *, const char *, const char *);
-extern const char *showsize(unsigned long);
 extern void output_attrencoded(const char *);
 extern int newdraftfd;
-extern void newmsg_hiddenheader(const char *, const char *);
 extern void output_scriptptrget();
 extern void output_urlencoded(const char *);
-extern void sendmsg_done();
 
-extern char *multipart_boundary_create();
-extern int multipart_boundary_checkf(const char *, FILE *);
 extern int ishttps();
-
-extern void newmsg_create_multipart(int, const char *, const char *);
-extern void newmsg_copy_nonmime_headers(FILE *);
 
 extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_content_language;
 
 static void attachment_showname(const char *);
+
+#if 0
+{
+#endif
+}
+
+extern void newmsg_hiddenheader(const char *, const char *);
+extern char *newmsg_alladdrs(FILE *);
+extern const char *showsize(unsigned long);
+extern void newmsg_copy_content_headers(FILE *fp);
+extern void newmsg_create_multipart(int, const char *, const char *);
+extern void newmsg_copy_nonmime_headers(FILE *);
+extern char *multipart_boundary_create();
+extern int multipart_boundary_checkf(const char *, FILE *);
+extern void sendmsg_done();
 
 #define HASTEXTPLAIN(q) (rfc2045_searchcontenttype((q), "text/plain") != NULL)
 /* Also in newmsg_create.c */
@@ -88,7 +97,7 @@ static off_t max_attach()
 	return n;
 }
 
-
+extern "C"
 void attachments_head(const char *folder, const char *pos, const char *draft)
 {
 char *filename;
@@ -443,7 +452,7 @@ off_t	dummy;
 	return (0);
 }
 
-void attach_delete(const char *draft)
+extern "C" void attach_delete(const char *draft)
 {
 FILE	*fp;
 int	fd2;
@@ -652,9 +661,9 @@ static int save_filename(const char *param,
 	return 0;
 }
 
-int attach_upload(const char *draft,
-		  const char *attpubkey,
-		  const char *attprivkey)
+extern "C" int attach_upload(const char *draft,
+			     const char *attpubkey,
+			     const char *attprivkey)
 {
 	char	*attachfilename;
 	char	*draftfilename;
@@ -737,7 +746,7 @@ int attach_upload(const char *draft,
 		close(attachfd);
 		return (-2);
 	}
-		
+
 
 	/* Calculate new MIME content boundary */
 
@@ -886,7 +895,7 @@ int attach_upload(const char *draft,
 				   sqwebmail_content_language,
 				   &cnt_filename, &len);
 
-		filenamemime=malloc(len);
+		filenamemime=static_cast<char *>(malloc(len));
 
 		if (filenamemime)
 		{
@@ -898,16 +907,27 @@ int attach_upload(const char *draft,
 		}
 	}
 
-	argvec[0]="makemime";
-	argvec[1]="-c";
+	static char makemime_str[]="makemime";
+	static char copt_str[]="-c";
+	argvec[0]=makemime_str;
+	argvec[1]=copt_str;
 
 	if (attpubkey || attprivkey)
 	{
-		argvec[2]="application/pgp-keys";
-		argvec[3]="-N";
-		argvec[4]="pgpkeys.txt";
-		argvec[5]="-a";
-		argvec[6]="Content-Disposition: attachment; filename=\"pgpkeys.txt\"";
+		static char mimetype_str[]="application/pgp-keys";
+		argvec[2]=mimetype_str;
+
+		static char nopt_str[]="-N";
+		argvec[3]=nopt_str;
+
+		static char pgpkeys_txt[]="pgpkeys.txt";
+		argvec[4]=pgpkeys_txt;
+
+		static char aopt_str[]="-a";
+		argvec[5]=aopt_str;
+
+		static char disposition_str[]="Content-Disposition: attachment; filename=\"pgpkeys.txt\"";
+		argvec[6]=disposition_str;
 		n=7;
 		filenamebuf=0;
 	}
@@ -916,34 +936,43 @@ int attach_upload(const char *draft,
 		const char *pp;
 
 		argvec[2]=(char *)calc_mime_type(cgi_attachfilename);
-		argvec[3]="-N";
+
+		static char Nopt_str[]="-N";
+		argvec[3]=Nopt_str;
+
+		static char filename_dat[]="filename.dat";
 		argvec[4]=cgi_attachfilename ?
-			(char *)cgi_attachfilename:"filename.dat";
+			(char *)cgi_attachfilename:filename_dat;
 		n=5;
 
 		pp=*cgi("attach_inline") ?
 			"Content-Disposition: inline":
 			"Content-Disposition: attachment";
 
-		filenamebuf=malloc(strlen(pp)+strlen(filenamemime ?
-						     filenamemime:"") + 15);
+		filenamebuf=static_cast<char *>(
+			malloc(strlen(pp)+strlen(filenamemime ?
+						 filenamemime:"") + 15)
+		);
 
 		if (filenamebuf)
 		{
 			strcpy(filenamebuf, pp);
 			strcat(filenamebuf, filenamemime ? filenamemime:"");
 
-			argvec[n++]="-a";
+			static char aopt_str[]="-a";
+			argvec[n++]=aopt_str;
 			argvec[n++]=filenamebuf;
 		}
 	}
 
-	argvec[n++]="-C";
+	static char Copt[]="-C";
+	argvec[n++]=Copt;
 	argvec[n++]=(char *)sqwebmail_content_charset;
 
 	signal(SIGCHLD, SIG_DFL);
 
-	argvec[n++]="-";
+	static char noopt[]="-";
+	argvec[n++]=noopt;
 	argvec[n++]=0;
 
 	if (pipe(pipefd) < 0)

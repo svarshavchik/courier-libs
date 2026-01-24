@@ -57,7 +57,7 @@ char **maildir_autoresponse_list(const char *maildir)
 	if (!maildir)
 		maildir=".";
 
-	d=malloc(strlen(maildir)+sizeof("/autoresponses"));
+	d=static_cast<char *>(malloc(strlen(maildir)+sizeof("/autoresponses")));
 
 	if (!d)
 		return (NULL);
@@ -109,7 +109,7 @@ char **maildir_autoresponse_list(const char *maildir)
 		closedir(dirp);
 	}
 
-	a=malloc( (list_cnt+1)*sizeof(char *));
+	a=static_cast<char **>(malloc( (list_cnt+1)*sizeof(char *)));
 
 	if (!a)
 	{
@@ -165,8 +165,10 @@ static char *afilename(const char *maildir, const char *filename)
 		return (NULL);
 	}
 
-	p=malloc(strlen(maildir)+strlen(filename)+
-		 sizeof("/autoresponsesXXXXXXXXXXXXXXXXXXXXXXXX"));
+	p=static_cast<char *>(
+		malloc(strlen(maildir)+strlen(filename)+
+		       sizeof("/autoresponsesXXXXXXXXXXXXXXXXXXXXXXXX"))
+	);
 
 	if (!p)
 		return (NULL);
@@ -210,7 +212,7 @@ static void deletefiles(const char *dir, const char *filename, int deleteall)
 		else if (de->d_name[l] != '.')
 			continue;
 
-		q=malloc(strlen(dir)+strlen(de->d_name)+2);
+		q=static_cast<char *>(malloc(strlen(dir)+strlen(de->d_name)+2));
 
 		if (q)
 		{
@@ -292,7 +294,9 @@ static int get_quota(struct maildir_autoresponse_quota *q, const char *maildir)
 	if (!maildir)
 		maildir=".";
 
-	p=malloc(strlen(maildir)+sizeof("/autoresponsesquota"));
+	p=static_cast<char *>(
+		malloc(strlen(maildir)+sizeof("/autoresponsesquota"))
+	);
 	if (!p)
 		return (-1);
 	strcat(strcpy(p, maildir), "/autoresponsesquota");
@@ -323,7 +327,9 @@ static int calc_quota(struct maildir_autoresponse_quota *q, const char *maildir)
 	if (!maildir)
 		maildir=".";
 
-	p=malloc(strlen(maildir)+sizeof("/autoresponses"));
+	p=static_cast<char *>(
+		malloc(strlen(maildir)+sizeof("/autoresponses"))
+	);
 	if (!p)
 		return (-1);
 	strcat(strcpy(p, maildir), "/autoresponses");
@@ -336,8 +342,10 @@ static int calc_quota(struct maildir_autoresponse_quota *q, const char *maildir)
 		if (strchr(de->d_name, '.'))
 			continue;
 
-		p=malloc(strlen(maildir)+strlen(de->d_name)
-			 +sizeof("/autoresponses/"));
+		p=static_cast<char *>(
+			malloc(strlen(maildir)+strlen(de->d_name)
+			       +sizeof("/autoresponses/"))
+		);
 		if (!p)
 		{
 			closedir(dirp);

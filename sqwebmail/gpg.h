@@ -17,6 +17,13 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 extern void gpglistpub();
 extern void gpglistsec();
 
@@ -36,5 +43,11 @@ extern int gpgexportkey(const char *, int,
 int gpgdomsg(int, int, const char *, const char *);
 
 extern int gpgdecode(int, int);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -26,14 +26,15 @@
 
 #define	LOCALABOOK	"sqwebmail-ldapaddressbook"
 
-extern void output_scriptptrget();
-extern void output_attrencoded(const char *);
-extern void output_attrencoded_oknl(const char *p);
-extern void output_urlencoded(const char *);
-extern void output_attrencoded_fp(const char *, FILE *);
-extern void output_attrencoded_oknl_fp(const char *, FILE *);
-
-extern const char *sqwebmail_content_charset;
+extern "C" {
+	extern void output_scriptptrget();
+	extern void output_attrencoded(const char *);
+	extern void output_attrencoded_oknl(const char *p);
+	extern void output_urlencoded(const char *);
+	extern void output_attrencoded_fp(const char *, FILE *);
+	extern void output_attrencoded_oknl_fp(const char *, FILE *);
+	extern const char *sqwebmail_content_charset;
+};
 
 #include	<courier-unicode.h>
 
@@ -203,7 +204,7 @@ static int parsesearch(const char *cn, const char *mail,
 
 	if (cn_native)
 		cn=cn_native;
- 
+
 	fprintf(si->fpw, "<tr valign=\"top\"><td><input type=\"checkbox\" "
 				"name=\"%s\" value=\"&lt;",
 		strcat(strcpy(numbuf2, "ADDY"),
@@ -277,7 +278,7 @@ const struct ldapabook *ptr;
 				printf("%s", getarg("NOTFOUND"));
 
 			printf("<table border=\"0\" cellpadding=\"4\">\n");
-		
+
 			fflush(si.fpw);
 			rewind(si.fpw);
 			while ((c=getc(si.fpw)) != EOF)

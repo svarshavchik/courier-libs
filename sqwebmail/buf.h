@@ -22,6 +22,13 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct buf {
 	char *ptr;
 	size_t size, cnt;
@@ -38,5 +45,12 @@ void	buf_memcpy(struct buf *, const char *, size_t);
 void	buf_memcat(struct buf *, const char *, size_t);
 void	buf_trimleft(struct buf *, size_t);
 void	buf_append(struct buf *, char c);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

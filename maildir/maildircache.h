@@ -9,7 +9,7 @@
 
 The login cache is used to try to eliminate a call to getpw for each and
 every http request, which can be quite expensive on systems with large number
-of users and heave web traffic.  The following information is saved in the
+of users and heavy web traffic.  The following information is saved in the
 cache:
 
 userid
@@ -83,6 +83,12 @@ will be escaped.  See the code for more info.
 #include	<time.h>
 #include	<pwd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 
 extern int maildir_cache_init(time_t, const char *, const char *,
 			      const char * const *);
@@ -97,4 +103,10 @@ extern int maildir_cache_search(const char *, time_t,
 
 extern void maildir_cache_purge();
 
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 #endif

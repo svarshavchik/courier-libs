@@ -8,4 +8,7 @@
 ** Original author: Jesse D. Guardiani, wingnet.net
 */
 
+#ifdef __cplusplus
+extern "C"
+#endif
 void print_logindomainlist( FILE *);

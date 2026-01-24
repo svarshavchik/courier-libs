@@ -9,7 +9,12 @@
 ** distribution information.
 */
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 
 extern void pref_setprefs();
 extern void pref_isoldest1st();
@@ -47,4 +52,12 @@ extern char *pref_getfile(FILE *);
 
 extern char *pref_getdefaultgpgkey();
 extern void pref_setdefaultgpgkey(const char *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
 #endif

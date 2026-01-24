@@ -16,9 +16,22 @@
 ** skipped.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 void tokennew();
 void tokennewget();
 int tokencheck();
 void tokensave();
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

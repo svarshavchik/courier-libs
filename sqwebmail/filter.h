@@ -41,6 +41,13 @@
 
 #include	<courier-unicode.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct filter_info {
 	unicode_convert_handle_t handle;
 
@@ -63,5 +70,11 @@ void	filter(struct filter_info *,
 void	filter_passthru(struct filter_info *info,
 			const char32_t *ptr, size_t cnt);
 void	filter_end(struct filter_info *info);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

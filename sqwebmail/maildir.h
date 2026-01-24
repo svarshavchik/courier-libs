@@ -18,6 +18,13 @@
 
 struct unicode_info;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 MSGINFO *maildir_ngetinfo(const char *);
 void maildir_nfreeinfo(MSGINFO *);
 
@@ -104,6 +111,12 @@ extern void maildir_savefoldermsgs(const char *);
 
 extern char *folder_toutf8(const char *);
 extern char *folder_fromutf8(const char *);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 /*
 ** Cache kept in the Maildir directory of the sorted contents of the cur

@@ -45,6 +45,13 @@ typedef struct {
 #define	MSGINFO_SUBJECT(n)	((const char *)(n)->subject_s)
 #define	MSGINFO_SIZE(n)	((const char *)(n)->size_s)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 extern void folder_search(const char *, size_t);
 extern void folder_contents_title();
 extern void folder_contents(const char *, size_t);
@@ -60,6 +67,18 @@ extern void folder_list(), folder_list2(), folder_rename_list();
 extern void folder_showtransfer();
 extern void folder_download(const char *, size_t, const char *);
 extern void folder_showquota();
+extern void print_safe(const char *);
+extern void call_print_safe_to_stdout(const char *p, size_t cnt);
+extern void folder_cleanup();
+extern void maildir_cleanup();
+extern const char *redirect_hash(const char *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #define	MSGTYPE_NEW	'N'
 #define	MSGTYPE_DELETED	'D'

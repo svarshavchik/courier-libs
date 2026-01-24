@@ -9,6 +9,13 @@
 #ifndef	auth_h
 #define	auth_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 extern int prelogin(const char *);
 extern const char *do_login(const char *, const char *, const char *);
 
@@ -20,5 +27,11 @@ extern int changepw(const char *service,
 		    const char *uid,
 		    const char *opwd,
 		    const char *npwd);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

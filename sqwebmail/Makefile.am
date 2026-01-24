@@ -43,17 +43,17 @@ COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` -lcourier-unicode
 
 noinst_LTLIBRARIES=libwebmail.la
 
-libwebmail_la_SOURCES=filter.c filter.h msg2html.c msg2html.h html.c html.h \
+libwebmail_la_SOURCES=filter.c filter.h msg2html.C msg2html.h html.C html.h \
 			buf.c buf.h
 libwebmail_la_DEPENDENCIES=$(COMMONDEPENDENCIES)
 libwebmail_la_LIBADD=$(COMMONLDADD)
 libwebmail_la_LDFLAGS=-static
 
-showmsg2html_SOURCES=showmsg2html.c
+showmsg2html_SOURCES=showmsg2html.C
 showmsg2html_LDADD=libwebmail.la
 showmsg2html_LDFLAGS=-static
 
-ISPELLSOURCES=sqispell.c ispell.c ispell.h
+ISPELLSOURCES=sqispell.C ispell.c ispell.h
 
 BUILT_SOURCES=htmllibdir.h
 if HAVE_SGML
@@ -84,15 +84,15 @@ endif
 
 
 sqwebmaild_SOURCES=acl.c acl.h \
-		addressbook.c addressbook.h args.c attachments.c \
-		auth.c auth.h autoresponse.c autoresponse.h \
+		addressbook.c addressbook.h args.c attachments.C \
+		auth.c auth.h autoresponse.C autoresponse.h \
 		changepw.c \
-		folder.c folder.h gpg.c gpg.h \
-		ldaplist.c logindomainlist.c logindomainlist.h \
-		maildir.c maildir.h mailfilter.c \
-		mailfilter.h mailinglist.c mailinglist.h newmsg.c newmsg.h \
-		newmsg_create.c	newmsg_newdraft.c pcp.c pcp.h pref.c pref.h \
-		sqconfig.c sqconfig.h sqwebmail.c \
+		folder.C folder.h gpg.c gpg.h \
+		ldaplist.C logindomainlist.c logindomainlist.h \
+		maildir.C maildir.h mailfilter.c \
+		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
+		newmsg_create.C	newmsg_newdraft.C pcp.c pcp.h pref.c pref.h \
+		sqconfig.c sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
 

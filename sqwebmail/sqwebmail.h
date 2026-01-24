@@ -3,6 +3,12 @@
 #ifndef	sqwebmail_h
 #define	sqwebmail_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
 /*
 ** Copyright 1998 - 2006 S. Varshavchik.  See COPYING for
 ** distribution information.
@@ -104,4 +110,10 @@ extern char *get_imageurl();
 
 char *trim_spaces(const char *s);
 
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 #endif

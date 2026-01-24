@@ -13,7 +13,6 @@
 #include	"auth.h"
 #include	"maildir/maildirmisc.h"
 #include	"maildir/maildirfilter.h"
-#include	"maildir/autoresponse.h"
 #include	"numlib/numlib.h"
 #include	"cgi/cgi.h"
 #include	<string.h>

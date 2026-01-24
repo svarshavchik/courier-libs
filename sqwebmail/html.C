@@ -280,7 +280,7 @@ struct htmlfilter_info *htmlfilter_alloc(void (*output_func)
 {
 	struct htmlfilter_info *p;
 
-	p=calloc(1, sizeof(*p));
+	p=static_cast<htmlfilter_info *>(calloc(1, sizeof(*p)));
 	if (!p)
 		return p;
 
@@ -1018,11 +1018,13 @@ static size_t seen_closing_elem(struct htmlfilter_info *p,
 
 			p->handler_func=handle_chars;
 
-			tag=bsearch(&p->atom,
-				    tags,
-				    sizeof(tags)/sizeof(tags[0]),
-				    sizeof(tags[0]),
-				    search_tags);
+			tag=static_cast<const taginfo *>(
+				bsearch(&p->atom,
+					tags,
+					sizeof(tags)/sizeof(tags[0]),
+					sizeof(tags[0]),
+					search_tags)
+			);
 
 			/*
 			** Change unknown elements to a <span>
@@ -1083,11 +1085,13 @@ static size_t seen_opening_elem(struct htmlfilter_info *p,
 		** End of element name.
 		*/
 
-		p->tag=bsearch(&p->atom,
-			       tags,
-			       sizeof(tags)/sizeof(tags[0]),
-			       sizeof(tags[0]),
-			       search_tags);
+		p->tag=static_cast<const taginfo *>(
+			bsearch(&p->atom,
+				tags,
+				sizeof(tags)/sizeof(tags[0]),
+				sizeof(tags[0]),
+				search_tags)
+		);
 
 		/*
 		** Change unknown elements to a <span>
@@ -1401,7 +1405,7 @@ static void save_attr(struct htmlfilter_info *p)
 
 		for (i=0; i<4; ++i)
 			if (isualnum(unicode_buf_ptr(&p->value)[i])
-			    != "cite"[i])
+			    != static_cast<char32_t>("cite"[i]))
 				break;
 
 		if (i == 4)
@@ -1477,7 +1481,9 @@ static void save_attr(struct htmlfilter_info *p)
 	{
 		if (strcmp(p->tag->tagname, "base") == 0)
 		{
-			char *buf=malloc(unicode_buf_len(&p->value)+1);
+			char *buf=static_cast<char *>(
+				malloc(unicode_buf_len(&p->value)+1)
+			);
 
 			if (buf)
 			{

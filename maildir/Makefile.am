@@ -28,12 +28,12 @@ noinst_DATA=deliverquota.html maildirmake.html deliverquota.8 maildirmake.1 \
 libmaildir.deps: config.status
 	echo "$(PCRE_LDFLAGS)" >libmaildir.deps
 
-libmaildir_la_SOURCES=autoresponse.c autoresponse.h \
+libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildiraclt.c maildiraclt.h \
 	maildircache.c maildircache.h \
 	maildircreate.c maildircreate.h \
 	maildirfilename.c maildirgetnew.c \
-	maildirfilter.c maildirfilter2.c \
+	maildirfilter.c maildirfilter2.c maildirfiltercpp.C \
 	maildirfilter.h maildirfiltertypelist.h\
 	maildirflags.c maildirmkdir.c \
 	maildirgetquota.c maildirgetquota.h \

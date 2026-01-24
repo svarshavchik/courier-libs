@@ -72,6 +72,10 @@
 
 #include	"strftime.h"
 
+extern "C" {
+#if 0
+}
+#endif
 extern FILE *open_langform(const char *lang, const char *formname,
 			   int print_header);
 
@@ -82,7 +86,6 @@ extern char *get_imageurl();
 extern const char *sqwebmail_content_locale;
 extern void print_attrencodedlen(const char *, size_t, int, FILE *);
 
-extern const char *showsize(unsigned long);
 extern void maildir_cleanup();
 extern const char *nonloginscriptptr();
 extern int pref_flagpagesize;
@@ -103,6 +106,12 @@ extern void output_scriptptrpostinfo();
 extern void output_attrencoded(const char *);
 extern void output_urlencoded(const char *);
 extern char *scriptptrget();
+#if 0
+{
+#endif
+}
+
+extern const char *showsize(unsigned long);
 
 void print_safe_len(const char *p, size_t n, void (*func)(const char *, size_t))
 {
@@ -195,8 +204,9 @@ int in_utf8;
 		{
 			printf("%s", getarg("PUBLICFOLDERS"));
 			ff=strchr(ff, '.');
+			static char empty[]="";
 			if (!ff)
-				ff="";
+				ff=empty;
 		}
 		output_attrencoded(ff);
 		free(origff);
@@ -295,7 +305,7 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 		return "othererror";
 	    }
 
-	    cur = malloc(strlen(deldir)+5);
+	    cur = static_cast<char *>(malloc(strlen(deldir)+5));
 	    strcpy(cur, deldir);
 	    strcat(cur, "/cur");
 
@@ -611,13 +621,17 @@ static void show_msg(const char *dir,
 	type[1]='\0';
 	if (type[0] == '\0')	strcpy(type, "&nbsp;");
 
-	folder_index_entry_start="<span class=\"read-message\">";
-	folder_index_entry_end="</span>";
+	static char span_open_str[]="<span class=\"read-message\">";
+	static char span_close_str[]="</span>";
+	folder_index_entry_start=span_open_str;
+	folder_index_entry_end=span_close_str;
 
 	if (type[0] == MSGTYPE_NEW)
 	{
-		folder_index_entry_start="<strong class=\"unread-message\">";
-		folder_index_entry_end="</strong>";
+		static char open_str[]="<strong class=\"unread-message\">";
+		static char close_str[]="</strong>";
+		folder_index_entry_start=open_str;
+		folder_index_entry_end=close_str;
 	}
 
 	p=MSGINFO_FILENAME(msg);
@@ -760,9 +774,9 @@ static void do_folder_navigate(const char *dir, size_t pos, long highend,
 
 	if (morebefore)
 	{
-	size_t	beforepos;
+		size_t	beforepos;
 
-		if (pos < pref_flagpagesize)	beforepos=0;
+		if (pos < (size_t)pref_flagpagesize)	beforepos=0;
 		else	beforepos=pos-pref_flagpagesize;
 
 		printf("<a href=\"");
@@ -1066,7 +1080,7 @@ void folder_initnextprev(const char *dir, size_t pos)
 
 	if (search_contents)
 	{
-		if (msg_searchpos < pref_flagpagesize &&
+		if (msg_searchpos < (size_t)pref_flagpagesize &&
 		    search_contents[msg_searchpos])
 		{
 			recp=search_contents[msg_searchpos];
@@ -1081,7 +1095,7 @@ void folder_initnextprev(const char *dir, size_t pos)
 			}
 
 			if ((msg_hasnext=msg_searchpos + 1 <
-			     pref_flagpagesize &&
+			     (size_t)(pref_flagpagesize) &&
 			     search_contents[msg_searchpos+1]) != 0)
 			{
 				msg_nextpos=search_contents
@@ -1110,7 +1124,7 @@ void folder_initnextprev(const char *dir, size_t pos)
 		matches_free(search_matches, pref_flagpagesize);
 }
 
-char *get_msgfilename(const char *folder, size_t *pos)
+extern "C" char *get_msgfilename(const char *folder, size_t *pos)
 {
 	char *filename;
 
@@ -1120,7 +1134,7 @@ char *get_msgfilename(const char *folder, size_t *pos)
 
 		CHECKFILENAME(p);
 
-		filename=malloc(sizeof("tmp/")+strlen(p));
+		filename=static_cast<char *>(malloc(sizeof("tmp/")+strlen(p)));
 		if (!filename)
 			enomem();
 		strcat(strcpy(filename, "tmp/"), p);
@@ -1315,7 +1329,7 @@ void folder_nextprev()
     printf("</td></tr></table>\n");
 }
 
-void list_folder(const char *p)
+extern "C" void list_folder(const char *p)
 {
 	char *s=folder_fromutf8(p);
 	print_safe(s);
@@ -1698,7 +1712,7 @@ static void email_header(const char *h,
 	char *p;
 	const char *hdrvalue;
 
-	if ((hdrname=malloc(sizeof("DSPHDR_")+strlen(h))) == NULL)
+	if ((hdrname=static_cast<char *>(malloc(sizeof("DSPHDR_")+strlen(h)))) == NULL)
 		enomem();
 
 	strcpy (hdrname, "DSPHDR_");
@@ -1753,8 +1767,6 @@ static void buf_cat_esc_amp(struct buf *b, const char *url)
 		}
 	}
 }
-
-extern const char *redirect_hash(const char *timestamp);
 
 static char *get_textlink(const char *s, void *arg)
 {
@@ -1921,7 +1933,7 @@ char	*t;
 	if (!name || !*name)	name=content_type;
 	if (!name)	name="";
 
-	t=malloc(strlen(name)+strlen(fmt)+100);
+	t=static_cast<char *>(malloc(strlen(name)+strlen(fmt)+100));
 	if (!t)
 		return;
 
@@ -2086,10 +2098,12 @@ static char *get_url_to_mime_part(const char *mimeid, void *arg)
 	p=scriptptrget();
 	pos=cgi("pos");
 
-	q=malloc(strlen(p)+strlen(pos) +
-		 strlen(mimegpgfilename)+
-		 strlen(mimeid)+
-		 sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename="));
+	q=static_cast<char *>(
+		malloc(strlen(p)+strlen(pos) +
+		       strlen(mimegpgfilename)+
+		       strlen(mimeid)+
+		       sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename="))
+	);
 	if (!q)	enomem();
 	strcpy(q, p);
 	strcat(q, "&form=fetch&pos=");
@@ -2193,9 +2207,11 @@ void folder_showmsg(const char *dir, size_t pos)
 
 		hash=cgiurlencode(redirect_hash(nowbuffer));
 
-		washpfix=malloc(strlen(script_name)
-				+ strlen(hash ? hash:"") + strlen(nowbuffer)
-				+ 100);
+		washpfix=static_cast<char *>(
+			malloc(strlen(script_name)
+			       + strlen(hash ? hash:"") + strlen(nowbuffer)
+			       + 100)
+		);
 		if (!washpfix)	enomem();
 
 		strcat(strcat(strcat(strcat(strcat(strcpy(washpfix,
@@ -2209,7 +2225,9 @@ void folder_showmsg(const char *dir, size_t pos)
 		if (hash)
 			free(hash);
 
-		washpfixmailto=malloc(strlen(scriptnameget)+sizeof(formbuf));
+		washpfixmailto=static_cast<char *>(
+			malloc(strlen(scriptnameget)+sizeof(formbuf))
+		);
 		if (!washpfixmailto)	enomem();
 		strcat(strcpy(washpfixmailto, scriptnameget), formbuf);
 		free(scriptnameget);
@@ -2384,7 +2402,7 @@ static char *get_parent_folder(const char *p)
 	{
 		char	*s;
 
-		s=malloc(q-p+1);
+		s=static_cast<char *>(malloc(q-p+1));
 		if (!s)	enomem();
 		memcpy(s, p, q-p);
 		s[q-p]=0;
@@ -2642,8 +2660,10 @@ void folder_list()
 			struct maildir_info minfo;
 			char *q;
 
-			p=malloc(strlen(folderdir)+strlen(futf7)
-				 +strlen(dutf7)+3);
+			p=static_cast<char *>(
+				malloc(strlen(folderdir)+strlen(futf7)
+				       +strlen(dutf7)+3)
+			);
 
 			if (!p)	enomem();
 			strcpy(p, folderdir);
@@ -2752,7 +2772,9 @@ void folder_list()
 
 		rutf7=folder_toutf8(r);
 
-		s=malloc(strlen(qutf7)+strlen(rutf7)+1);
+		s=static_cast<char *>(
+			malloc(strlen(qutf7)+strlen(rutf7)+1)
+		);
 
 		if (!s)	enomem();
 
@@ -2912,13 +2934,17 @@ static void parse_hierarchy(const char *folderdir,
 					++p;
 				}
 
-				m_path=malloc(p-folderdir+1);
+				m_path=static_cast<char *>(
+					malloc(p-folderdir+1)
+				);
 				if (!m_path)
 					enomem();
 				memcpy(m_path, folderdir, p-folderdir);
 				m_path[p-folderdir]=0;
 
-				m_inbox=malloc(strlen(m_path)+1+strlen(p));
+				m_inbox=static_cast<char *>(
+					malloc(strlen(m_path)+1+strlen(p))
+				);
 				if (!m_inbox)
 					enomem();
 
@@ -3012,7 +3038,7 @@ static void do_sharedhierlist(const char *folderdir,
 			printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
 
 
-			s=malloc(r-folderdir+1);
+			s=static_cast<char *>(malloc(r-folderdir+1));
 			if (!s)
 				enomem();
 
@@ -3023,7 +3049,7 @@ static void do_sharedhierlist(const char *folderdir,
 			printf("\">");
 			free(s);
 
-			s=malloc(r-q+1);
+			s=static_cast<char *>(malloc(r-q+1));
 			if (!s)
 				enomem();
 			memcpy(s, q, r-q);
@@ -3041,7 +3067,7 @@ static void do_sharedhierlist(const char *folderdir,
 	while (*q && *q != '.')
 		++q;
 
-	url=malloc(q-folderdir+1);
+	url=static_cast<char *>(malloc(q-folderdir+1));
 	if (!url)
 		enomem();
 	memcpy(url, folderdir, q-folderdir);
@@ -3147,7 +3173,9 @@ static void do_folderlist(const char *inbox_pfix,
 				if (*c == '.')
 					break;
 
-			r=malloc(strlen(inbox_pfix)+strlen(c)+1);
+			r=static_cast<char *>(
+				malloc(strlen(inbox_pfix)+strlen(c)+1)
+			);
 			if (!r)
 				enomem();
 			strcat(strcpy(r, inbox_pfix), c);
@@ -3338,7 +3366,7 @@ static void do_folderlist(const char *inbox_pfix,
 				char	*t;
 				unsigned tot_nnew, tot_nother;
 
-				s=malloc(p-folders[i]+1);
+				s=static_cast<char *>(malloc(p-folders[i]+1));
 				if (!s)
 					enomem();
 				memcpy(s, folders[i], p-folders[i]);
@@ -3365,7 +3393,7 @@ static void do_folderlist(const char *inbox_pfix,
 				}
 				free(s);
 
-				t=malloc(p-shortname+1);
+				t=static_cast<char *>(malloc(p-shortname+1));
 				if (!t)	enomem();
 				memcpy(t, shortname, p-shortname);
 				t[p-shortname]=0;
@@ -3553,7 +3581,7 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 
 		p=strrchr(p, '.');
 		if (!p)	continue;
-		q=malloc(p-folders[i]+1);
+		q=static_cast<char *>(malloc(p-folders[i]+1));
 		if (!q)	enomem();
 		memcpy(q, folders[i], p-folders[i]);
 		q[p-folders[i]]=0;
@@ -3667,8 +3695,7 @@ void folder_showquota()
 	maildir_closequotafile(&quotainfo);
 }
 
-void
-folder_cleanup()
+void folder_cleanup()
 {
 	msg_purgelab=0;
 	msg_folderlab=0;
@@ -3751,7 +3778,9 @@ static char *truncate_at(const char *str,
 
 	if (chopped)
 	{
-		uc = realloc(uc, sizeof(char32_t) * (tp+4));
+		uc = static_cast<char32_t *>(
+			realloc(uc, sizeof(char32_t) * (tp+4))
+		);
 		if (uc == 0) enomem();
 		uc[tp]='.';
 		uc[tp+1]='.';

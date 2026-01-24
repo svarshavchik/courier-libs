@@ -30,7 +30,7 @@
 extern const char *sqwebmail_mailboxid;
 extern const char *sqwebmail_content_charset;
 
-extern char *get_msgfilename(const char *, size_t *);
+extern "C" char *get_msgfilename(const char *, size_t *);
 
 static int draftfd;
 
@@ -47,21 +47,27 @@ static void writefunc(const char *p, size_t l, void *dummy)
 char *newmsg_newdraft(const char *folder, const char *pos,
 			const char *forwardsep, const char *replysalut)
 {
-char	*filename=0;
-char	*replymode;
-size_t	pos_n;
-FILE	*fp;
+	char	*filename=0;
+	char	*replymode;
+	size_t	pos_n;
+	FILE	*fp;
 
-const	char *mimeidptr;
-char	*draftfilename;
-struct	rfc2045 *rfc2045p, *rfc2045partp;
-int	x;
+	const	char *mimeidptr;
+	char	*draftfilename;
+	struct	rfc2045 *rfc2045p, *rfc2045partp;
+	int	x;
 
-	if (*cgi(replymode="reply") ||
-		*cgi(replymode="replyall") ||
-		*cgi(replymode="replylist") ||
-		*cgi(replymode="forward") ||
-		*cgi(replymode="forwardatt"))
+	static char replystr[]="reply";
+	static char replyallstr[]="replyall";
+	static char replyliststr[]="replylist";
+	static char forwardstr[]="forward";
+	static char forwardattstr[]="forwardatt";
+
+	if (*cgi(replymode=replystr) ||
+		*cgi(replymode=replyallstr) ||
+		*cgi(replymode=replyliststr) ||
+		*cgi(replymode=forwardstr) ||
+		*cgi(replymode=forwardattstr))
 	{
 		pos_n=atol(pos);
 

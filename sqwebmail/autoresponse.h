@@ -12,9 +12,22 @@
 #include	"config.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 void autoresponse();
 void autoresponselist();
 void autoresponsedelete();
 void autoresponsepick();
 
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 #endif

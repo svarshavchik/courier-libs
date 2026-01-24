@@ -26,6 +26,9 @@
 #include	<signal.h>
 #include	<ctype.h>
 #include	<errno.h>
+#include	<string>
+#include	<string_view>
+
 #if HAVE_SYS_WAIT_H
 #include	<sys/wait.h>
 #endif
@@ -37,7 +40,7 @@
 #endif
 
 extern const char *sqwebmail_content_charset;
-extern void output_attrencoded(const char *);
+extern "C" void output_attrencoded(const char *);
 extern const char *calc_mime_type(const char *filename);
 
 extern void charset_warning(const char *);
@@ -186,6 +189,10 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 static int read_headers(FILE *fp)
 {
+	rfc2045::entity message;
+
+	message.mime1=true;
+
 	struct rfc2045 *rfc2045p=rfc2045_alloc();
 	static const char mv[]="Mime-Version: 1.0\n";
 	char buf[BUFSIZ];
@@ -408,20 +415,25 @@ static void end_upload(void *vp)
 		uai->fp=afp;
 		return;
 	}
-	argvec[0]="makemime";
-	argvec[1]="-c";
+
+	static char makemime_str[]="makemime";
+	static char copt_str[]="-c";
+	argvec[0]=makemime_str;
+	argvec[1]=copt_str;
 	argvec[2]=(char *)mimetype;
 
 	n=3;
 	if (strncasecmp(argvec[2], "text/", 5) == 0 ||
 	    strcasecmp(argvec[2], "auto") == 0)
 	{
-		argvec[3]="-C";
+		static char copt_str[]="-C";
+		argvec[3]=copt_str;
 		argvec[4]=(char *)sqwebmail_content_charset;
 		n=5;
 	}
 
-	argvec[n++]="-";
+	static char dash[]="-";
+	argvec[n++]=dash;
 	argvec[n]=0;
 
 	afp=maildir_autoresponse_create(NULL, uai->autorespname);

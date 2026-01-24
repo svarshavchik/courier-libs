@@ -9,6 +9,13 @@
 
 #include	<stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 extern void addressbook();
 extern void ab_listselect();
 extern void ab_listselect_fp(FILE *);
@@ -18,5 +25,11 @@ extern void ab_addrselect();
 extern int ab_get_nameaddr( int (*)(const char *, const char *, void *),
 			    void *);
 extern void ab_nameaddr_show(const char *, const char *);
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

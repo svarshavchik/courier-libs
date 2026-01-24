@@ -91,19 +91,29 @@ extern char *crypt(const char *, const char *);
 
 #include	"strftime.h"
 
-extern void spell_show();
-extern void spell_check_continue();
+extern "C" {
+#if 0
+}
+#endif
+
 extern void print_safe(const char *);
-extern void ldaplist();
-extern int ldapsearch();
-extern void doldapsearch();
 
 extern void sent_gpgerrtxt();
 extern void sent_gpgerrresume();
-extern const char *redirect_hash(const char *);
 
 const char *sqwebmail_mailboxid=0;
 const char *sqwebmail_folder=0;
+
+#if 0
+{
+#endif
+}
+
+extern void spell_show();
+extern void spell_check_continue();
+extern void ldaplist();
+extern int ldapsearch();
+extern void doldapsearch();
 
 #define ALL_RIGHTS \
 	ACL_ADMINISTER \
@@ -135,7 +145,7 @@ static int noimages=0;
 
 time_t	login_time;
 
-extern int nochangepass();
+extern "C" int nochangepass();
 
 /* Need to cache the following environment variables */
 static const char * const authvars[] = { "AUTHADDR", "AUTHFULLNAME",
@@ -148,7 +158,7 @@ static int gzip_save_fd;
 
 static const char *sqwebmail_formname;
 
-extern void attachments_head(const char *, const char *, const char *);
+extern "C" void attachments_head(const char *, const char *, const char *);
 extern void attachments_opts(const char *);
 extern void doattach(const char *, const char *);
 
@@ -163,7 +173,7 @@ static struct template_stack *template_stack=NULL;
 
 char *trim_spaces(const char *s);
 
-size_t get_timeoutsoft()
+extern "C" size_t get_timeoutsoft()
 {
 	time_t n=TIMEOUTSOFT;
 	const char *p;
@@ -176,7 +186,7 @@ size_t get_timeoutsoft()
 	return n;
 }
 
-size_t get_timeouthard()
+extern "C" size_t get_timeouthard()
 {
 	time_t n=TIMEOUTHARD;
 	const char *p;
@@ -207,11 +217,12 @@ void authexit(int n)
 ** generic failure type of a deal.
 */
 
-void rfc2045_error(const char *p)
+extern "C" void rfc2045_error(const char *p)
 {
 	error(p);
 }
 
+extern "C"
 void print_attrencodedlen(const char *p, size_t len, int oknl, FILE *fp)
 {
 	for (; len; p++, --len)
@@ -251,32 +262,32 @@ void print_attrencodedlen(const char *p, size_t len, int oknl, FILE *fp)
 	}
 }
 
-void output_attrencoded_fp(const char *p, FILE *fp)
+extern "C" void output_attrencoded_fp(const char *p, FILE *fp)
 {
 	print_attrencodedlen(p, strlen(p), 0, fp);
 }
 
-void output_attrencoded(const char *p)
+extern "C" void output_attrencoded(const char *p)
 {
 	output_attrencoded_fp(p, stdout);
 }
 
-void output_attrencoded_oknl_fp(const char *p, FILE *fp)
+extern "C" void output_attrencoded_oknl_fp(const char *p, FILE *fp)
 {
 	print_attrencodedlen(p, strlen(p), 1, fp);
 }
 
-void output_attrencoded_oknl(const char *p)
+extern "C" void output_attrencoded_oknl(const char *p)
 {
 	output_attrencoded_oknl_fp(p, stdout);
 }
 
-void output_attrencoded_nltobr(const char *p)
+extern "C" void output_attrencoded_nltobr(const char *p)
 {
 	print_attrencodedlen(p, strlen(p), 2, stdout);
 }
 
-void output_urlencoded(const char *p)
+extern "C" void output_urlencoded(const char *p)
 {
 char	*q=cgiurlencode(p);
 
@@ -297,7 +308,7 @@ const	char *p=cgihttpscriptptr();
 	printf("%s", p);
 }
 
-const char *nonloginscriptptr()
+extern "C" const char *nonloginscriptptr()
 {
 #if	USE_HTTPS
 	return (cgihttpsscriptptr());
@@ -309,7 +320,7 @@ const char *nonloginscriptptr()
 }
 
 
-void output_scriptptr()
+extern "C" void output_scriptptr()
 {
 const	char *p=nonloginscriptptr();
 
@@ -326,7 +337,7 @@ const	char *p=nonloginscriptptr();
 	}
 }
 
-void output_loginscriptptr_get()
+extern "C" void output_loginscriptptr_get()
 {
 	output_loginscriptptr();
 	if (sqwebmail_mailboxid)
@@ -341,7 +352,7 @@ void output_loginscriptptr_get()
 	}
 }
 
-char *scriptptrget()
+extern "C" char *scriptptrget()
 {
 char	*q=0;
 size_t	l=0;
@@ -353,7 +364,8 @@ char	buf[NUMBUFSIZE];
 
 	for (i=0; i<2; i++)
 	{
-		if (i && (q=malloc(l+1)) == 0)	enomem();
+		if (i && (q=static_cast<char *>(malloc(l+1))) == 0)
+			enomem();
 		if (i)	*q=0;
 		ADD( nonloginscriptptr() );
 		if (!sqwebmail_mailboxid)
@@ -381,7 +393,7 @@ char	buf[NUMBUFSIZE];
 	return (q);
 }
 
-void output_scriptptrget()
+extern "C" void output_scriptptrget()
 {
 char	*p=scriptptrget();
 
@@ -390,7 +402,7 @@ char	*p=scriptptrget();
 	return;
 }
 
-void output_scriptptrpostinfo()
+extern "C" void output_scriptptrpostinfo()
 {
 	if (sqwebmail_folder)
 	{
@@ -407,7 +419,7 @@ void output_scriptptrpostinfo()
 	}
 }
 
-void error(const char *errmsg)
+extern "C" void error(const char *errmsg)
 {
 	cginocache();
 	printf("Content-Type: text/html; charset=us-ascii\n\n"
@@ -417,7 +429,7 @@ void error(const char *errmsg)
 	fake_exit(1);
 }
 
-void error2(const char *file, int line)
+extern "C" void error2(const char *file, int line)
 {
 	cginocache();
 	printf("Content-Type: text/html; charset=us-ascii\n\n"
@@ -429,7 +441,7 @@ void error2(const char *file, int line)
 	fake_exit(1);
 }
 
-void error3(const char *file, int line, const char *msg1, const char *msg2, int err)
+extern "C" void error3(const char *file, int line, const char *msg1, const char *msg2, int err)
 {
 	cginocache();
 	if (err == -1) err = errno;
@@ -444,37 +456,41 @@ void error3(const char *file, int line, const char *msg1, const char *msg2, int 
 }
 
 
-char *get_templatedir()
+extern "C" char *get_templatedir()
 {
-char	*templatedir=getenv("SQWEBMAIL_TEMPLATEDIR");
+	char	*templatedir=getenv("SQWEBMAIL_TEMPLATEDIR");
 
-	if (!templatedir || !*templatedir)	templatedir=HTMLLIBDIR;
+	static char def_templatedir[]=HTMLLIBDIR;
+	if (!templatedir || !*templatedir)	templatedir=def_templatedir;
 
 	return templatedir;
 }
 
 
-char *get_imageurl()
+extern "C" char *get_imageurl()
 {
-char	*imageurl=getenv("SQWEBMAIL_IMAGEURL");
+	char	*imageurl=getenv("SQWEBMAIL_IMAGEURL");
 
-	if (!imageurl || !*imageurl)	imageurl=IMGPATH;
+	static char imgpath_str[]=IMGPATH;
+	if (!imageurl || !*imageurl)	imageurl=imgpath_str;
 
 	return imageurl;
 }
 
 
-FILE *open_langform(const char *lang, const char *formname,
+extern "C" FILE *open_langform(const char *lang, const char *formname,
 		    int print_header)
 {
-char	*formpath;
-FILE	*f;
-char	*templatedir=get_templatedir();
+	char	*formpath;
+	FILE	*f;
+	char	*templatedir=get_templatedir();
 
 	/* templatedir/lang/formname */
 
-	if (!(formpath=malloc(strlen(templatedir)+3+
-		strlen(lang)+strlen(formname))))
+	if (!(formpath=static_cast<char *>(
+		      malloc(strlen(templatedir)+3+
+			     strlen(lang)+strlen(formname)))
+	    ))
 		error("Out of memory.");
 
 	strcat(strcat(strcat(strcat(strcpy(formpath, templatedir), "/"),
@@ -491,7 +507,7 @@ char	*templatedir=get_templatedir();
 	return (f);
 }
 
-int ishttps()
+extern "C" int ishttps()
 {
 	const char *p=getenv("HTTPS");
 
@@ -633,10 +649,11 @@ static int timezonefile( int (*callback_func)(const char *, const char *,
 		while (*p && isspace((int)(unsigned char)*p))
 			++p;
 
+		static char empty_str[]="";
 		if (strcmp(p, "*") == 0)
-			p="";
+			p=empty_str;
 		if (strcmp(tz, "*") == 0)
-			tz="";
+			tz=empty_str;
 
 		rc= (*callback_func)(tz, p, callback_arg);
 
@@ -675,7 +692,7 @@ static int set_timezone(const char *p)
 	if (!p || !*p || strcmp(p, "*") == 0)
 		return (0);
 
-	buffer=malloc(strlen(p)+10);
+	buffer=static_cast<char *>(malloc(strlen(p)+10));
 	if (!buffer)
 		return (0);
 	strcat(strcpy(buffer, "TZ="), p);
@@ -793,7 +810,7 @@ static void fix_xml_header(FILE *f)
 	printf("%s", linebuf);
 }
 
-void output_form(const char *formname)
+extern "C" void output_form(const char *formname)
 {
 	FILE	*f;
 
@@ -1044,7 +1061,7 @@ static void do_output_form_loop(FILE *f)
 		c2=0;
 		while (c != EOF && (isalnum(c) || c == ':' || c == '_'))
 		{
-			if (c2 < sizeof(kw)-1)
+			if ((size_t)c2 < sizeof(kw)-1)
 				kw[c2++]=c;
 			c=getc(f);
 		}
@@ -1110,7 +1127,9 @@ static void do_output_form_loop(FILE *f)
 
 				if (q)
 				{
-				char	*r=malloc(q-p+1);
+					char	*r=static_cast<char *>(
+						malloc(q-p+1)
+					);
 
 					if (!r)	enomem();
 					memcpy(r, p, q-p);
@@ -1590,11 +1609,11 @@ static void do_output_form_loop(FILE *f)
 		else if (strncmp(kw, "select:", 7) == 0)
 		{
 		const char *name=strtok(kw+7, ":");
-		const char *class=strtok(0, ":");
+		const char *class_str=strtok(0, ":");
 		const char *size=strtok(0, ":");
 
 			printf("<select name=\"%s\"", name ? name:"");
-			if (class)	printf(" class=\"%s\"", class);
+			if (class_str)	printf(" class=\"%s\"", class_str);
 			if (size)	printf(" size=\"%s\"", size);
 			printf(">");
 		}
@@ -1665,8 +1684,8 @@ static FILE *openinclude(const char *p)
 
 static void http_redirect_top(const char *app)
 {
-const	char *p=nonloginscriptptr();
-char	*buf=malloc(strlen(p)+strlen(app)+2);
+	const	char *p=nonloginscriptptr();
+	char	*buf=static_cast<char *>(malloc(strlen(p)+strlen(app)+2));
 
 	if (!buf)	enomem();
 	strcat(strcpy(buf, p), app);
@@ -1692,17 +1711,19 @@ void http_redirect_argss(const char *fmt, const char *arg1, const char *arg2)
 void http_redirect_argsss(const char *fmt, const char *arg1, const char *arg2,
 	const char *arg3)
 {
-char *base=scriptptrget();
-char *arg1s=cgiurlencode(arg1);
-char *arg2s=cgiurlencode(arg2);
-char *arg3s=cgiurlencode(arg3);
-char *q;
+	char *base=scriptptrget();
+	char *arg1s=cgiurlencode(arg1);
+	char *arg2s=cgiurlencode(arg2);
+	char *arg3s=cgiurlencode(arg3);
+	char *q;
 
 	/* We generate a Location: redirected_url header.  The actual
 	** header is generated in cgiredirect, we just build it here */
 
-	q=malloc(strlen(base)+strlen(fmt)+strlen(arg1s)+strlen(arg2s)+
-			strlen(arg3s)+1);
+	q=static_cast<char *>(
+		malloc(strlen(base)+strlen(fmt)+strlen(arg1s)+strlen(arg2s)+
+		       strlen(arg3s)+1)
+	);
 	if (!q)	enomem();
 	strcpy(q, base);
 	sprintf(q+strlen(q), fmt, arg1s, arg2s, arg3s);
@@ -1767,7 +1788,10 @@ char	*p;
 
 		nl=nonloginscriptptr();
 
-		buf=malloc(strlen(nl) + sizeof("/printmsg/print?")+strlen(qs));
+		buf=static_cast<char *>(
+			malloc(strlen(nl) + sizeof("/printmsg/print?")+
+			       strlen(qs))
+		);
 		if (!buf)	enomem();
 		strcat(strcat(strcpy(buf, nl), "/printmsg/print?"), qs);
 		cginocache();
@@ -1949,18 +1973,13 @@ char	*p;
 		folder_search(sqwebmail_folder, atol(cgi("pos")));
 		return;
 	}
-	p=malloc(strlen(formname)+6);
+	p=static_cast<char *>(malloc(strlen(formname)+6));;
 	if (!p)	enomem();
 
 	strcat(strcpy(p, formname),".html");
 	output_form(p);
 	free(p);
 }
-
-
-extern void folder_cleanup();
-extern void maildir_cleanup();
-extern void mailfilter_cleanup();
 
 #ifdef	ISPELL
 extern void ispell_cleanup();
@@ -2016,7 +2035,9 @@ static void setlang()
 	char *p;
 
 	if (sqwebmail_content_locale && *sqwebmail_content_locale
-	    && (p=malloc(sizeof("LANG=")+strlen(sqwebmail_content_locale)))!=0)
+	    && (p=static_cast<char *>(
+			malloc(sizeof("LANG=")+strlen(sqwebmail_content_locale)))
+	    )!=0)
 	{
 		strcat(strcpy(p, "LANG="), sqwebmail_content_locale);
 		putenv(p);
@@ -2060,7 +2081,7 @@ char	*cl=http11_best_content_language(templatedir,
 #endif
 }
 
-void rename_sent_folder(int really)
+extern "C" void rename_sent_folder(int really)
 {
 	char buf[128];
 	char buf2[256];
@@ -2153,7 +2174,8 @@ static int valid_redirect()
 	timestamp_t=(time_t)timestamp_n;
 	time(&now);
 
-	if (now < timestamp_t || now > timestamp_t + get_timeouthard())
+	if (now < timestamp_t ||
+	    now > (time_t)(timestamp_t + get_timeouthard()))
 		return 0;
 
 	p=redirect_hash(timestamp);
@@ -2519,10 +2541,12 @@ time_t	timeouthard=get_timeouthard();
 		if (*(u=trim_spaces(cgi("username"))))
 			/* Request to log in */
 		{
-		const char *p=cgi("password");
-		const char *mailboxid;
-		const char *u2=cgi("logindomain");
-		char	*ubuf=malloc(strlen(u)+strlen(u2)+2);
+			const char *p=cgi("password");
+			const char *mailboxid;
+			const char *u2=cgi("logindomain");
+			char	*ubuf=static_cast<char *>(
+				malloc(strlen(u)+strlen(u2)+2)
+			);
 
 			if (ubuf == NULL) enomem();
 			strcpy(ubuf, u);
@@ -2546,13 +2570,15 @@ time_t	timeouthard=get_timeouthard();
 				if (*cgi("sameip") == 0)
 					saveip="none";
 
-				q=malloc(strlen(saveip)
-					 +strlen(sqwebmail_sessiontoken)
-					 +strlen(sqwebmail_content_language)
-					 +strlen(sqwebmail_content_ispelldict)
-					 +strlen(sqwebmail_content_charset)
-					 +strlen(tz)
-					 +strlen(sqwebmail_content_locale)+7);
+				q=static_cast<char *>(
+					malloc(strlen(saveip)
+					       +strlen(sqwebmail_sessiontoken)
+					       +strlen(sqwebmail_content_language)
+					       +strlen(sqwebmail_content_ispelldict)
+					       +strlen(sqwebmail_content_charset)
+					       +strlen(tz)
+					       +strlen(sqwebmail_content_locale)+7)
+				);
 				if (!q)	enomem();
 				sprintf(q, "%s %s %s %s %s %s %s", saveip,
 					sqwebmail_sessiontoken,

@@ -88,7 +88,7 @@ static void create_draftheader(const char *hdrname, const char *p,
 
 		if (nick)
 		{
-			s=malloc(strlen(p)+strlen(nick)+2);
+			s=static_cast<char *>(malloc(strlen(p)+strlen(nick)+2));
 
 			if (s)
 			{
@@ -112,11 +112,13 @@ static void create_draftheader(const char *hdrname, const char *p,
 static void header_wrap(const char *name, const char *hdr,
 			char *outbuf, size_t *outcnt)
 {
-char	*pfix;
-size_t	offset=strlen(name);
+	char	*pfix;
+	size_t	offset=strlen(name);
 
 	*outcnt=0;
-	pfix="";
+
+	static char empty[]="";
+	pfix=empty;
 
 	while (*hdr)
 	{
@@ -163,7 +165,8 @@ size_t	offset=strlen(name);
 			}
 		}
 		*outcnt += i;
-		pfix="\n  ";
+		static char fold[]="\n  ";
+		pfix=fold;
 		hdr += i;
 		while (ISLWS(*hdr))
 			++hdr;
@@ -195,7 +198,7 @@ size_t	l;
 	header_wrap(hdrname, s, NULL, &l);
 	if (l)
 	{
-		if (!(t=malloc(l))) enomem();
+		if (!(t=static_cast<char *>(malloc(l)))) enomem();
 		header_wrap(hdrname, s, t, &l);
 		if (*t)
 		{
@@ -496,7 +499,7 @@ static void convert_text2html(const char *p, size_t l, void *arg)
 
 static char *mkurl(const char *url, void *dummy)
 {
-	char *buf=malloc(strlen(url)*2+100);
+	char *buf=static_cast<char *>(malloc(strlen(url)*2+100));
 
 	if (!buf)
 		return NULL;
@@ -1016,7 +1019,7 @@ static int lookup_addressbook_do(const char *header, const char *value,
 		}
 		free(s);
 
-		r=malloc(sizeof(struct lookup_buffers));
+		r=static_cast<lookup_buffers *>(malloc(sizeof(lookup_buffers)));
 		if (r)	r->buf=r->buf2=0;
 
 		if (!r || !(r->buf=strdup(q)) || !(r->buf2=strdup(p)))
@@ -1094,7 +1097,7 @@ static void lookup_addressbook(const char *header, const char *value)
 	if (rc)	enomem();
 }
 
-char *newmsg_createsentmsg(const char *draftname, int *isgpgerr)
+extern "C" char *newmsg_createsentmsg(const char *draftname, int *isgpgerr)
 {
 char	*filename=maildir_find(INBOX "." DRAFTS, draftname);
 FILE	*fp;
@@ -1343,7 +1346,7 @@ char	*p;
 	time(&t);
 	sprintf(timebuf, "%lu", (unsigned long)t);
 	sprintf(cntbuf, "%lu", cnt++);
-	p=malloc(strlen(pidbuf)+strlen(timebuf) +strlen(cntbuf)+20);
+	p=static_cast<char *>(malloc(strlen(pidbuf)+strlen(timebuf) +strlen(cntbuf)+20));
 	sprintf(p, "=_%s_%s_%s_000", cntbuf, pidbuf, timebuf);
 	return (p);
 }

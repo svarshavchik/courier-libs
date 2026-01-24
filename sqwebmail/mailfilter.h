@@ -14,6 +14,13 @@
 
 #include	"maildir/maildirfilter.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 void mailfilter_init();
 void mailfilter_list();
 void mailfilter_listfolders();
@@ -21,5 +28,13 @@ void mailfilter_submit();
 
 int mailfilter_autoreplyused(const char *);
 int mailfilter_folderused(const char *);
+void mailfilter_cleanup();
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

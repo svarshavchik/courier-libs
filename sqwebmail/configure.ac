@@ -6,7 +6,7 @@ AC_INIT([sqwebmail],[6.3.1],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
-AC_CONFIG_SRCDIR(sqwebmail.c)
+AC_CONFIG_SRCDIR(sqwebmail.C)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
 
@@ -399,7 +399,7 @@ AC_ARG_ENABLE(bannerprog,
 		 ])
 
 
-CFLAGS="$CFLAGS -I.. -I$srcdir/.. -I../.. -I$srcdir/../.."
+CPPFLAGS="$CPPFLAGS -I.. -I$srcdir/.. -I../.. -I$srcdir/../.."
 
 AC_ARG_WITH(maxargsize,
 	[  --with-maxargsize=nbytes       Limit maximum size of CGI args])

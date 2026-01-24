@@ -6,6 +6,13 @@
 
 #include	"config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct PCP;
 
 extern void sqpcp_init();	/* CGI startup */
@@ -83,4 +90,12 @@ void sqpcp_eventdeletelink();
 void sqpcp_deleteeventinit();
 void sqpcp_dodelete();
 void sqpcp_eventacl();
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
 #endif
