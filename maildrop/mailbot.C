@@ -42,6 +42,22 @@
 #define EX_TEMPFAIL	75
 #endif
 
+#ifndef EX_USAGE
+#define EX_USAGE	64
+#endif
+
+#ifndef EX_DATAERR
+#define EX_DATAERR	65
+#endif
+
+#ifndef EX_NOINPUT
+#define EX_NOINPUT	66
+#endif
+
+#ifndef EX_IOERR
+#define EX_IOERR	74
+#endif
+
 #include <vector>
 #include <string>
 #include <string_view>
@@ -406,7 +422,7 @@ static void savemessage(rfc822::fdstreambuf &original_message,
 			if (i <= 0)
 			{
 				perror("fwrite(tempfile)");
-				exit(1);
+				exit(EX_IOERR);
 			}
 
 			ptr += i;
@@ -417,7 +433,7 @@ static void savemessage(rfc822::fdstreambuf &original_message,
 	if (n < 0)
 	{
 		perror("tempfile");
-		exit(1);
+		exit(EX_IOERR);
 	}
 	message=parser.parsed_entity();
 }
@@ -435,7 +451,7 @@ static void write_to_reply_outf(rfc822::fdstreambuf &reply_outf,
 		if (n <= 0)
 		{
 			perror(temporary_file_msg);
-			exit(1);
+			exit(EX_IOERR);
 		}
 
 		p += n;
@@ -663,7 +679,7 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "Unknown charset: %s\n",
 						charset);
-					exit(1);
+					exit(EX_DATAERR);
 				}
 				free(p);
 				charset=optarg;
@@ -826,7 +842,7 @@ int main(int argc, char **argv)
 		if (!f)
 		{
 			perror(temporary_file_msg);
-			exit(1);
+			exit(EX_IOERR);
 		}
 		tmpfp=rfc822::fdstreambuf{dup(fileno(f))};
 
@@ -835,7 +851,7 @@ int main(int argc, char **argv)
 		if (tmpfp.error())
 		{
 			perror(temporary_file_msg);
-			exit(1);
+			exit(EX_IOERR);
 		}
 	}
 
@@ -847,7 +863,7 @@ int main(int argc, char **argv)
 		if (original_message.error())
 		{
 			perror("standard input");
-			exit(1);
+			exit(EX_NOINPUT);
 		}
 
 		savemessage(original_message, tmpfp, message);
@@ -856,7 +872,7 @@ int main(int argc, char **argv)
 	if (tmpfp.pubseekpos(0) != 0)
 	{
 		perror("fseek(tempfile)");
-		exit(1);
+		exit(EX_IOERR);
 	}
 
 	read_headers(tmpfp);
@@ -936,7 +952,7 @@ int main(int argc, char **argv)
 		default:
 			std::cerr << "\"-T feedback\" or \"-T replyfeedback\""
 				" required\n";
-			exit(1);
+			exit(EX_USAGE);
 		}
 
 		if (fb_list.size() > 0)
@@ -957,7 +973,7 @@ int main(int argc, char **argv)
 		if (fd < 0)
 		{
 			perror(mimefile);
-			exit(1);
+			exit(EX_NOINPUT);
 		}
 
 		reply_contentf=rfc822::fdstreambuf(fd);
@@ -965,7 +981,7 @@ int main(int argc, char **argv)
 		if (reply_contentf.error())
 		{
 			perror(mimefile);
-			exit(1);
+			exit(EX_NOINPUT);
 		}
 
 		// Extract the Content-Type header from the MIME file.
@@ -987,7 +1003,7 @@ int main(int argc, char **argv)
 		if (reply_contentf.pubseekpos(0) != 0)
 		{
 			perror(mimefile);
-			exit(1);
+			exit(EX_IOERR);
 		}
 
 		if (content_type.value != "text/plain")
@@ -1014,7 +1030,7 @@ int main(int argc, char **argv)
 				std::cerr << "Unknown charset in "
 				     << mimefile
 				     << "\n";
-				exit(1);
+				exit(EX_DATAERR);
 			}
 			rfc2045reply.charset=charset->second.value;
 		}
@@ -1032,7 +1048,7 @@ int main(int argc, char **argv)
 		if (fd < 0)
 		{
 			perror(mimefile);
-			exit(1);
+			exit(EX_NOINPUT);
 		}
 		reply_contentf=rfc822::fdstreambuf{fd};
 
@@ -1059,7 +1075,7 @@ int main(int argc, char **argv)
 		if (reply_outf.error())
 		{
 			perror("stdout");
-			exit(1);
+			exit(EX_IOERR);
 		}
 	}
 	else
@@ -1069,14 +1085,14 @@ int main(int argc, char **argv)
 		if (!f)
 		{
 			perror(temporary_file_msg);
-			exit(1);
+			exit(EX_IOERR);
 		}
 		reply_outf=rfc822::fdstreambuf{dup(fileno(f))};
 
 		if (reply_outf.error())
 		{
 			perror(temporary_file_msg);
-			exit(1);
+			exit(EX_IOERR);
 		}
 	}
 
@@ -1110,7 +1126,7 @@ int main(int argc, char **argv)
 	     )))
 	{
 		perror(temporary_file_msg);
-		exit(1);
+		exit(EX_IOERR);
 	}
 	reply_outf=rfc822::fdstreambuf{};
 	fcntl(0, F_SETFD, 0);
