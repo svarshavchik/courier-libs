@@ -142,10 +142,12 @@ void maildir_filter_endmaildirfilter(const char *);		/* Remove the temp file */
 
 struct maildir_filter_autoresp_info {
 	char *name;
-	int dsnflag;
+	int mode;
 	unsigned days;
-	int noquote;
 } ;
+
+#define MAILDIR_FILTER_AUTORESP_MODE_DSN	1
+#define MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE	2
 
 int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *, const char *);
 int maildir_filter_autoresp_info_init(struct maildir_filter_autoresp_info *, const char *);

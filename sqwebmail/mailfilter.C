@@ -1,9 +1,7 @@
 #include "config.h"
-/*
-*/
 
 /*
-** Copyright 2000-2010 S. Varshavchik.  See COPYING for
+** Copyright 2000-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -11,16 +9,19 @@
 #include	"sqwebmail.h"
 #include	"maildir.h"
 #include	"auth.h"
+#include	"rfc2045/rfc2045.h"
+#include	"maildir/autoresponse.h"
 #include	"maildir/maildirmisc.h"
 #include	"maildir/maildirfilter.h"
 #include	"numlib/numlib.h"
 #include	"cgi/cgi.h"
+#include	<fstream>
 #include	<string.h>
 #include	<stdlib.h>
 #include	<stdio.h>
 
-extern void list_folder(const char *);
-extern void output_attrencoded(const char *);
+extern "C" void list_folder(const char *);
+extern "C" void output_attrencoded(const char *);
 extern const char *sqwebmail_content_charset;
 
 static const char *internal_err=0;
@@ -104,6 +105,7 @@ struct maildirfilterrule *r;
 			printf("<input name=\"currentfilternum\""
 			       " type=\"hidden\""
 			       " value=\"%s\" />", cgi("currentfilternum"));
+
 		if (p)
 			printf("%s", getarg(p));
 	}
@@ -266,7 +268,7 @@ struct maildirfilterrule *r;
 		if (actionbuf)	actionbuf=0;
 		p=r->tofolder;
 		if (!p)	p="";
-		actionbuf=malloc(strlen(p)+1);
+		actionbuf=static_cast<char *>(malloc(strlen(p)+1));
 		if (!actionbuf)	enomem();
 		strcpy(actionbuf, p);
 
@@ -306,7 +308,8 @@ struct maildirfilterrule *r;
 			cgi_put("action", "autoresponse");
 			cgi_put("autoresponse_choose", autoresp_name_buf);
 			cgi_put("autoresponse_dsn",
-				mfai.dsnflag ? "1":"");
+				mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_DSN
+				? "1":"");
 
 			cgi_put("autoresponse_dupe",
 				mfai.days > 0 ? "1":"");
@@ -323,7 +326,7 @@ struct maildirfilterrule *r;
 				enomem();
 			cgi_put("autoresponse_from", fromhdr);
 
-			if (mfai.noquote)
+			if (mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
 				cgi_put("autoresponse_noquote", "1");
 		}
 		else if (strcmp(actionbuf, "exit") == 0)
@@ -506,14 +509,14 @@ const char *autoreply_from="";
 	if (strcmp(p, "forwardto") == 0)
 	{
 		p=cgi("forwardaddy");
-		tofolder=malloc(strlen(p)+2);
+		tofolder=static_cast<char *>(malloc(strlen(p)+2));
 		if (!tofolder)	enomem();
 		strcat(strcpy(tofolder, "!"), p);
 	}
 	else if (strcmp(p, "bounce") == 0)
 	{
 		p=cgi("bouncemsg");
-		tofolder=malloc(strlen(p)+2);
+		tofolder=static_cast<char *>(malloc(strlen(p)+2));
 		if (!tofolder)	enomem();
 		strcat(strcpy(tofolder, "*"), p);
 	}
@@ -523,6 +526,30 @@ const char *autoreply_from="";
 		char *q;
 
 		p=cgi("autoresponse_choose");
+
+		bool is_text_plain;
+		{
+			std::ifstream i;
+
+			mail::autoresponse::open(i, "", p);
+
+			if (!i)
+			{
+				internal_err="AUTOREPLY";
+				cgi_put("internal_err", "1");
+				return;
+			}
+
+			rfc2045::entity message;
+
+			message.mime1=true;
+			std::istreambuf_iterator<char> b{i.rdbuf()}, e;
+			rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+			message.parse(parser);
+			is_text_plain=
+				message.content_type.value == "text/plain";
+		}
 
 		if (maildir_filter_autoresp_info_init(&mfaii, p))
 		{
@@ -534,7 +561,15 @@ const char *autoreply_from="";
 		p=cgi("autoresponse_dsn");
 
 		if (*p)
-			mfaii.dsnflag=1;
+		{
+			if (!is_text_plain)
+			{
+				internal_err="MIMEAUTOREPLY";
+				cgi_put("internalerr", "1");
+				return;
+			}
+			mfaii.mode=MAILDIR_FILTER_AUTORESP_MODE_DSN;
+		}
 
 		p=cgi("autoresponse_dupe");
 		if (*p)
@@ -546,7 +581,15 @@ const char *autoreply_from="";
 		p=cgi("autoresponse_noquote");
 
 		if (*p)
-			mfaii.noquote=1;
+		{
+			if (!is_text_plain)
+			{
+				internal_err="MIMEAUTOREPLY";
+				cgi_put("internalerr", "1");
+				return;
+			}
+			mfaii.mode=MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE;
+		}
 
 		q=maildir_filter_autoresp_info_asstr(&mfaii);
 		maildir_filter_autoresp_info_free(&mfaii);
@@ -554,7 +597,7 @@ const char *autoreply_from="";
 		if (!q)
 			enomem();
 
-		if (!(tofolder=malloc(strlen(q)+2)))
+		if (!(tofolder=static_cast<char *>(malloc(strlen(q)+2))))
 		{
 			free(q);
 			enomem();

@@ -1555,6 +1555,15 @@ class rfc2045::entity_info {
 		rfc2231_header(const std::string_view &);
 
 		void lowercase_value(const char *name);
+
+		bool format_flowed() const
+		{
+			auto iter=parameters.find("format");
+
+			return iter != parameters.end() &&
+				iter->second.value == "flowed";
+		}
+
 	};
 
 	// We look into Content-Type: so often we might as well store its
@@ -2608,6 +2617,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 			content_type.lowercase_value("charset");
 			content_type.lowercase_value("boundary");
+			content_type.lowercase_value("format");
 		}
 		if (name == "content-transfer-encoding")
 		{

@@ -28,6 +28,8 @@
 #include	<errno.h>
 #include	<string>
 #include	<string_view>
+#include	<algorithm>
+#include	<sstream>
 
 #if HAVE_SYS_WAIT_H
 #include	<sys/wait.h>
@@ -47,14 +49,12 @@ extern void charset_warning(const char *);
 
 static void save_autoresponse(const char *p, size_t l, void *vp)
 {
-	FILE *fp=*(FILE **)vp;
+	std::ostream *o=reinterpret_cast<std::ostream *>(vp);
 
-	if (fp)
-		if (fwrite(p, l, 1, fp) != 1)
-			; /* ignore */
+	(*o) << std::string_view{p, l};
 }
 
-static int read_headers(FILE *);
+static bool read_headers(std::istream &i);
 
 static int show_autoresponse_trampoline(const char *ptr, size_t cnt, void *arg)
 {
@@ -73,21 +73,23 @@ const char	*autoresp_text2=getarg("TEXT2");
 	{
 		const char *name=cgi("newname");
 		char *p;
-		FILE *fp;
 
 		p=folder_toutf8(name);
 
-		if (!p || maildir_autoresponse_validate(NULL, p))
+		if (!p || !mail::autoresponse::validate("", p))
 		{
 			free(p);
 			printf("%s", getarg("BADNAME"));
 			return;
 		}
 
-		if ((fp=maildir_autoresponse_open(NULL, p)) != NULL)
+		std::ifstream i;
+
+		mail::autoresponse::open(i, "", p);
+
+		if (i)
 		{
 			free(p);
-			fclose(fp);
 			printf("%s", getarg("EEXIST"));
 			return;
 		}
@@ -109,7 +111,6 @@ const char	*autoresp_text2=getarg("TEXT2");
 	if ( *cgi("do.autorespedit"))
 	{
 		const char *autorespname=cgi("autoresponse_choose");
-		FILE *fp;
 		char *s=folder_fromutf8(autorespname);
 		const char *pp;
 
@@ -121,8 +122,11 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 		pp=cgi("replytext");
 
-		if ((fp=maildir_autoresponse_open(NULL, autorespname)) == NULL
-		    && !*pp)
+		std::ifstream fp;
+
+		mail::autoresponse::open(fp, "", autorespname);
+
+		if (!fp && !*pp)
 		{
 			free(s);
 			return;
@@ -130,9 +134,8 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 		printf("%s%s%s\n", autoresp_title1, s, autoresp_title2);
 
-		if (fp && read_headers(fp))
+		if (fp && !read_headers(fp))
 		{
-			fclose(fp);
 			free(s);
 			return;
 		}
@@ -160,19 +163,17 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 			if (h)
 			{
-				size_t i;
-				char buf[BUFSIZ];
+				std::string s;
 
-				while ((i=fread(buf, 1, sizeof(buf), fp)) > 0)
+				while (std::getline(fp, s))
 				{
-					unicode_convert(h, buf, i);
+					s += "\n";
+					unicode_convert(h, s.c_str(), s.size());
 				}
 				unicode_convert_deinit(h, NULL);
 			}
 		}
 
-		if (fp)
-			fclose(fp);
 		printf("%s\n", autoresp_text2);
 		printf("%s<input type=\"file\" size=\"20\" name=\"uploadfile\" /><br />",
 		       getarg("UPLOAD"));
@@ -187,45 +188,46 @@ const char	*autoresp_text2=getarg("TEXT2");
 ** can show it.
 */
 
-static int read_headers(FILE *fp)
+static bool read_headers(std::istream &i)
 {
 	rfc2045::entity message;
 
-	message.mime1=true;
+	std::stringstream ss;
 
-	struct rfc2045 *rfc2045p=rfc2045_alloc();
-	static const char mv[]="Mime-Version: 1.0\n";
-	char buf[BUFSIZ];
-	char *s;
-	const char *content_type, *content_transfer_encoding, *charset;
+	ss << "Mime-Version: 1.0\n";
 
-	rfc2045_parse(rfc2045p, mv, sizeof(mv)-1);
+	std::string line;
 
-	while ((s=fgets(buf, sizeof(buf), fp)) != NULL)
+	while (std::getline(i, line))
 	{
-		rfc2045_parse(rfc2045p, s, strlen(s));
-		if (strcmp(s, "\n") == 0 || strcmp(s, "\r\n") == 0)
+		line += "\n";
+
+		ss << line;
+		if (line == "\n" || line == "\r\n")
 			break;
 	}
-	rfc2045_parse_partial(rfc2045p);
 
-	rfc2045_mimeinfo(rfc2045p, &content_type,
-			 &content_transfer_encoding,
-			 &charset);
+	ss.seekg(0);
 
-	if (strcmp(content_type, "text/plain") ||
-	    !rfc2045_isflowed(rfc2045p))
 	{
-		printf(getarg("ATT"), content_type);
-		rfc2045_free(rfc2045p);
-		return (-1);
+		std::istreambuf_iterator<char> b{ss.rdbuf()}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
 	}
 
-	rfc2045_free(rfc2045p);
-	return (0);
+	if (message.content_type.value != "text/plain" ||
+	    !message.content_type.format_flowed())
+	{
+		printf(getarg("ATT"), message.content_type.value.c_str());
+		return false;
+	}
+
+	return true;
 }
 
-static FILE *upload_attachment(const char *);
+static bool upload_attachment(std::ostream &);
 
 void autoresponsedelete()
 {
@@ -233,42 +235,33 @@ void autoresponsedelete()
 	{
 		const char *autorespname=cgi("autoresponse");
 		const char *autoresptxt=cgi("text");
-		FILE *fp;
 		size_t l;
 
-		if ((fp=upload_attachment(autorespname)) == NULL)
-		{
-			struct wrap_info uw;
+		if (!mail::autoresponse::create(
+			    "", autorespname,
+			    [&]
+			    (std::ostream &o)
+			    {
+				    if (upload_attachment(o))
+					    return;
 
-			if ((fp=maildir_autoresponse_create(NULL,
-							    autorespname))
-			    == NULL)
-			{
-				printf(getarg("SAVEFAILED"), strerror(errno));
-				return;
-			}
+				    wrap_info uw;
 
-			l=strlen(autoresptxt);
-			while (l && (autoresptxt[l-1] == '\r' ||
-				     autoresptxt[l-1] == '\n'))
-				--l;
+				    l=strlen(autoresptxt);
+				    while (l && (autoresptxt[l-1] == '\r' ||
+						 autoresptxt[l-1] == '\n'))
+					    --l;
 
-			fprintf(fp, "Content-Type: text/plain");
-			fprintf(fp, "; format=flowed; delsp=yes"
-				"; charset=\"utf-8\"\n");
-			fprintf(fp, "Content-Transfer-Encoding: 8bit\n\n");
+				    o << "Content-Type: text/plain"
+					    "; format=flowed; delsp=yes"
+					    "; charset=\"utf-8\"\n"
+					    "Content-Transfer-Encoding: "
+					    "8bit\n\n";
 
-			wrap_text_init(&uw, "utf-8", save_autoresponse, &fp);
-			wrap_text(&uw, autoresptxt, l);
-		}
-
-		if (fflush(fp) || ferror(fp))
-		{
-			fclose(fp);
-			printf(getarg("SAVEFAILED"), strerror(errno));
-			return;
-		}
-		if (maildir_autoresponse_create_finish(NULL, autorespname, fp))
+				    wrap_text_init(&uw, "utf-8",
+						   save_autoresponse, &o);
+				    wrap_text(&uw, autoresptxt, l);
+			    }))
 		{
 			if (errno == ENOSPC)
 			{
@@ -295,44 +288,46 @@ void autoresponsedelete()
 				free(s);
 		}
 		else
-			maildir_autoresponse_delete(NULL, autorespname);
+			mail::autoresponse::remove("", autorespname);
 		return;
 	}
 }
 
 struct upload_attach_info {
-	FILE *fp;
-	const char *filename;
-	const char *name;
-	const char *autorespname;
+	std::ostream &attachment;
+	rfc822::fdstreambuf tmpfile=rfc822::fdstreambuf::tmpfile();
+	bool first=true;
+
+	std::string filename;
 } ;
 
 static int start_upload(const char *, const char *, void *);
 static int upload(const char *, size_t, void *);
 static void end_upload(void *);
 
-static FILE *upload_attachment(const char *autorespname)
+static bool upload_attachment(std::ostream &o)
 {
-	struct upload_attach_info uai;
-
-	uai.fp=NULL;
-	uai.autorespname=autorespname;
+	upload_attach_info uai{o};
 
 	if (cgi_getfiles( &start_upload, &upload, &end_upload, 1, &uai ))
-	{
-		if (uai.fp)
-			fclose(uai.fp);
+		return false;
 
-		return (NULL);
-	}
+	if (uai.first)
+		return false; // No attachment?
 
-	return (uai.fp);
+	if (uai.tmpfile.error() || !o)
+		return false;
+
+	return true;
 }
 
 static int start_upload(const char *name, const char *filename, void *vp)
 {
 	struct upload_attach_info *uai=(struct upload_attach_info *)vp;
 	const char *p;
+
+	if (!uai->first)
+		return (0);
 
 	p=strrchr(filename, '/');
 	if (p)	filename=p+1;
@@ -354,9 +349,6 @@ static int start_upload(const char *name, const char *filename, void *vp)
 		uai->filename=p;
 	}
 
-	uai->fp=tmpfile();
-	if (!uai->fp)
-		enomem();
 	return (0);
 }
 
@@ -364,15 +356,11 @@ static int upload(const char *c, size_t n, void *vp)
 {
 	struct upload_attach_info *uai=(struct upload_attach_info *)vp;
 
-	if (fwrite(c, n, 1, uai->fp) != 1)
-	{
-		fclose(uai->fp);
-		enomem();
-	}
+	if (uai->first)
+		uai->tmpfile.sputn(c, n);
+
 	return (0);
 }
-
-static int upload_messagerfc822(FILE *, FILE *);
 
 static void end_upload(void *vp)
 {
@@ -382,37 +370,75 @@ static void end_upload(void *vp)
 	int n;
 	pid_t pid1, pid2;
 	int waitstat;
-	FILE *afp;
 
-	if (fflush(uai->fp) || ferror(uai->fp)
-	    || fseek(uai->fp, 0L, SEEK_SET) < 0)
-	{
-		fclose(uai->fp);
-		enomem();
-	}
+	if (!uai->first)
+		return;
+	uai->first=false;
 
-	mimetype=calc_mime_type(uai->filename);
+	uai->tmpfile.pubseekpos(0);
+
+	if (uai->tmpfile.error())
+		return;
+
+	mimetype=calc_mime_type(uai->filename.c_str());
+
+	/*
+	** If we get something that's MIMEed as message/rfc822, read it, strip
+	** its headers except for the MIME content- headers, then save what's
+	** left as our autoreply.  This allows for a convenient way to upload
+	** multipart/alternative content.
+	*/
 
 	if (rfc2045_message_content_type(mimetype))
 	{
 		/* Magic */
 
-		afp=maildir_autoresponse_create(NULL, uai->autorespname);
-		if (!afp)
+		std::istream itmpfile{&uai->tmpfile};
+
+		std::string s;
+
+		bool is_content_header=false;
+
+		while (std::getline(itmpfile, s))
 		{
-			fclose(uai->fp);
-			enomem();
+			s += "\n";
+			if (s == "\n")
+			{
+				uai->attachment << s;
+				break;
+			}
+
+			switch (*s.c_str()) {
+			case ' ':
+			case '\t':
+				break;
+			default:
+
+				std::string headercpy{
+					s.begin(),
+						std::find(s.begin(), s.end(),
+							  ':')};
+
+				rfc2045::entity::tolowercase(
+					headercpy.begin(),
+					headercpy.end()
+				);
+
+				is_content_header=
+					std::string_view{headercpy}.substr(0, 8)
+					== "content-";
+			}
+
+			if (is_content_header)
+				uai->attachment << s;
 		}
 
-		if (upload_messagerfc822(uai->fp, afp) ||
-		    fflush(afp) || ferror(afp))
+		while (std::getline(itmpfile, s))
 		{
-			fclose(uai->fp);
-			fclose(afp);
-			enomem();
+			s += "\n";
+
+			uai->attachment << s;
 		}
-		fclose(uai->fp);
-		uai->fp=afp;
 		return;
 	}
 
@@ -436,29 +462,26 @@ static void end_upload(void *vp)
 	argvec[n++]=dash;
 	argvec[n]=0;
 
-	afp=maildir_autoresponse_create(NULL, uai->autorespname);
-	if (!afp)
-	{
-		fclose(uai->fp);
-		enomem();
-	}
-
 	signal(SIGCHLD, SIG_DFL);
+
+	auto tmpfile2=rfc822::fdstreambuf::tmpfile();
+
 	pid1=fork();
 
 	if (pid1 < 0)
 	{
-		fclose(afp);
-		fclose(uai->fp);
 		enomem();
 	}
 
+
 	if (pid1 == 0)
 	{
-		dup2(fileno(uai->fp), 0);
-		dup2(fileno(afp), 1);
-		fclose(uai->fp);
-		fclose(afp);
+		dup2(uai->tmpfile.fileno(), 0);
+		dup2(tmpfile2.fileno(), 1);
+
+		uai->tmpfile = {};
+		tmpfile2 = {};
+
 		execv(MAKEMIME, argvec);
 		fprintf(stderr,
 		       "CRIT: exec %s: %s\n", MAKEMIME, strerror(errno));
@@ -483,148 +506,55 @@ static void end_upload(void *vp)
 		}
 	}
 
-	if (waitstat)
+	tmpfile2.pubseekpos(0);
+	if (waitstat || tmpfile2.error())
 	{
-		fclose(afp);
-		fclose(uai->fp);
 		enomem();
 	}
 
-	fclose(uai->fp);
-	uai->fp=afp;
-}
-
-/*
-** If we get something that's MIMEed as message/rfc822, read it, strip its
-** headers except for the MIME content- headers, then save what's left as
-** our autoreply.  This allows for a convenient way to upload
-** multipart/alternative content.
-*/
-
-static int upload_messagerfc822(FILE *i, FILE *o)
-{
-	char buf[BUFSIZ];
-	int skip_hdr;
-	int c;
-	const char *pp;
-
-	skip_hdr=0;
-
-	for (;;)
-	{
-		if (fgets(buf, sizeof(buf), i) == NULL)
-		{
-			fprintf(o, "\n");
-			return (0);
-		}
-
-		if (strcmp(buf, "\n") == 0 || strcmp(buf, "\r\n") == 0)
-		{
-			fprintf(o, "\n");
-			break;
-		}
-
-		if (!isspace((int)(unsigned char)*buf))
-			skip_hdr=strncasecmp(buf, "content-", 8) != 0;
-
-		if (skip_hdr)
-			continue;
-
-		for (pp=buf; *pp; pp++)
-			if (*pp != '\r')
-				if (putc((int)(unsigned char)*pp, o)
-				    == EOF)
-					return (-1);
-	}
-
-	while ((c=getc(i)) != EOF)
-		if (c != '\r')
-			if (putc(c, o) == EOF)
-				return (-1);
-	return (0);
-}
-
-
-
-static int comp_autorespname(const void *a, const void *b)
-{
-	const char *ca=*(const char **)a;
-	const char *cb=*(const char **)b;
-
-	char *sa=folder_fromutf8(ca);
-	char *sb=folder_fromutf8(cb);
-
-	int i=sa && sb ? strcoll(sa, sb):0;
-
-	free(sa);
-	free(sb);
-	return (i);
+	uai->attachment << &tmpfile2;
 }
 
 void autoresponselist()
 {
-	char **list=maildir_autoresponse_list(NULL); /* I'm sorry... */
-	size_t i;
+	auto list=mail::autoresponse::list("");
 
-	if (!list)
-	{
-		printf(getarg("ERROR"), strerror(errno));
-		return;
-	}
+	std::sort(list.begin(), list.end());
 
-	for (i=0; list[i]; i++)
-		;
-
-	qsort(list, i, sizeof(list[0]), &comp_autorespname);
-
-	for (i=0; list[i]; i++)
+	for (auto &f:list)
 	{
 		char *s;
 
 		printf("<option value=\"");
-		output_attrencoded(list[i]);
+		output_attrencoded(f.c_str());
 		printf("\">");
 
-		s=folder_fromutf8(list[i]);
+		s=folder_fromutf8(f.c_str());
 		output_attrencoded(s);
 		printf("</option>");
-		free(s);
 	}
-
-	maildir_autoresponse_list_free(list);
 }
 
 void autoresponsepick()
 {
-	char **list=maildir_autoresponse_list(NULL);
-	size_t i;
+	auto list=mail::autoresponse::list("");
+
 	const char *choice=cgi("autoresponse_choose");
 
-	if (!list)
-	{
-		printf(getarg("ERROR"), strerror(errno));
-		return;
-	}
+	std::sort(list.begin(), list.end());
 
-	for (i=0; list[i]; i++)
-		;
-
-	qsort(list, i, sizeof(list[0]), &comp_autorespname);
-
-	for (i=0; list[i]; i++)
+	for (auto &f:list)
 	{
 		char *s;
 
 		printf("<option%s value=\"",
-		       strcmp(choice, list[i]) ? "":" selected='selected'");
-		output_attrencoded(list[i]);
+		       strcmp(choice, f.c_str()) ? "":" selected='selected'");
+		output_attrencoded(f.c_str());
 		printf("\">");
 
-		s=folder_fromutf8(list[i]);
+		s=folder_fromutf8(f.c_str());
 		output_attrencoded(s);
 		printf("</option>");
 		free(s);
 	}
-
-	maildir_autoresponse_list_free(list);
 }

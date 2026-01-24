@@ -52,7 +52,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirwatch.c maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
-	maildirkwtest2 \
+	maildirkwtest2 testautoresponse \
 	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch
 
 deliverquota_SOURCES=deliverquota.c
@@ -114,6 +114,10 @@ testmaildirsearch_SOURCES=testmaildirsearch.c
 testmaildirsearch_LDADD=libmaildir.la -lcourier-unicode
 testmaildirsearch_DEPENDENCIES=libmaildir.la
 
+testautoresponse_SOURCES=testautoresponse.C
+testautoresponse_LDADD=libmaildir.la -lcourier-unicode
+testautoresponse_DEPENDENCIES=libmaildir.la
+
 EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	testsuitevalgrind \
 	README.imapkeywords.html \
@@ -149,7 +153,7 @@ clean-local:
 
 check-am:
 	unset VALGRIND; @SHELL@ $(srcdir)/testsuite 2>&1 | diff -U 3 $(srcdir)/testsuite.txt -
-	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | cmp - $(srcdir)/testsuite2.txt
+	test "@PCRE_LDFLAGS@" != "" || exit 0 ; @SHELL@ $(srcdir)/testsuite2 2>&1 | diff -U 3 $(srcdir)/testsuite2.txt -
 	LC_ALL=C; export LC_ALL; ./maildirkwtest | cmp -s - $(srcdir)/maildirkwtest.txt
 	LC_ALL=C; export LC_ALL; ./maildiraclttest
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
@@ -164,6 +168,8 @@ check-am:
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; export VALGRIND="@SHELL@ $(srcdir)/testsuitevalgrind"; rm -f confmdtesterror; @SHELL@ $(srcdir)/testsuite 2>&1 | tee testsuite.out; test ! -f confmdtesterror
 	rm -rf testsuite.out
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testautoresponse
 
 if HAVE_SGML
 

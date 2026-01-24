@@ -8,23 +8,43 @@
 
 
 #include	"config.h"
-#include	<stdio.h>
 
-	/* Return a list of available autoresponses, NULL if error */
+#include	<vector>
+#include	<string>
+#include	<string_view>
+#include	<fstream>
+#include	<functional>
 
-extern char **maildir_autoresponse_list(const char *);
-extern void maildir_autoresponse_list_free(char **);
+namespace mail {
+	namespace autoresponse {
+#if 0
+	}
+}
+#endif
 
-	/* Validate the autoresponse name */
+/* Return a list of available autoresponses, NULL if error */
 
-extern int maildir_autoresponse_validate(const char *, const char *);
+std::vector<std::string> list(std::string_view maildirpath);
 
-	/* Delete/Create/Open autoresponse text */
+/* Validate the autoresponse name */
 
-extern void maildir_autoresponse_delete(const char *, const char *);
-extern FILE *maildir_autoresponse_create(const char *, const char *);
-extern int maildir_autoresponse_create_finish(const char *, const char *, FILE *);
+bool validate(std::string_view maildirpath, std::string_view name);
 
-extern FILE *maildir_autoresponse_open(const char *, const char *);
+/* Delete/Create/Open autoresponse text */
+
+void remove(std::string_view maildirpath, std::string_view name);
+
+bool create(std::string_view maildirpath, std::string_view name,
+	    std::function<void (std::ostream &)> creator);
+
+void open(std::ifstream &i,
+	  std::string_view maildirpath, std::string_view name);
+
+#if 0
+{
+	{
+#endif
+	}
+}
 
 #endif

@@ -992,10 +992,7 @@ int main(int argc, char **argv)
 
 		if (content_type.value != "text/plain")
 		{
-			std::cerr << mimefile
-				  << "%s must specify text/plain MIME type\n";
-
-			exit(1);
+			rfc2045reply.donotquote=1;
 		}
 
 		content_type.lowercase_value("charset");

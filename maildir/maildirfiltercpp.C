@@ -14,7 +14,7 @@ int maildir_filter_autoresp_info_init(struct maildir_filter_autoresp_info *i, co
 {
 	memset(i, 0, sizeof(*i));
 
-	if (maildir_autoresponse_validate(NULL, c))
+	if (!mail::autoresponse::validate("", c))
 		return (-1);
 	i->name=strdup(c);
 	if (!(i->name))

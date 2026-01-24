@@ -9,7 +9,6 @@
 #include	"maildirgetquota.h"
 #include	"mailbot.h"
 
-#include	"autoresponse.h"
 #include	"numlib/numlib.h"
 #include	<courier-unicode.h>
 #include	<stdlib.h>
@@ -663,18 +662,27 @@ struct maildirfilterrule *p;
 				fprintf(f, "   `%s -A \"X-Sender: $FROM\""
 					" -A \"From: $AUTOREPLYFROM\"",
 					MAILBOT);
-				if (ai.dsnflag)
+				if (ai.mode ==
+				    MAILDIR_FILTER_AUTORESP_MODE_DSN)
 					fprintf(f, " -M \"$FROM\"");
 				fprintf(f, " -m \"%s/autoresponses/%s\"",
 					maildirpath, ai.name);
-				if (ai.noquote)
+				if (ai.mode ==
+				    MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
 					fprintf(f, " -N");
 				if (ai.days > 0)
 					fprintf(f,
 						" -d \"%s/autoresponses/"
 						"%s.dat\" -D %u",
 					maildirpath, ai.name, ai.days);
-				fprintf(f, " $SENDMAIL -t -f \"\"`\n");
+				fprintf(f,
+					" $SENDMAIL -t -f \"\"`\n"
+					"    if ($RETURNCODE != 0)\n"
+					"    {\n"
+					"      EXITCODE=$RETURNCODE\n"
+					"      exit\n"
+					"    }\n"
+					);
 				maildir_filter_autoresp_info_free(&ai);
 			}
 		}
@@ -886,12 +894,12 @@ int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *i
 
 	while ((p=strtok(NULL, " \t\r\n")) != NULL)
 	{
-		if (strncmp(p, "dsn=", 4) == 0)
-			i->dsnflag=atoi(p+4) ? 1:0;
+		if (strncmp(p, "dsn=", 4) == 0 && atoi(p+4))
+			i->mode=MAILDIR_FILTER_AUTORESP_MODE_DSN;
 		else if (strncmp(p, "days=", 5) == 0)
 			i->days=atoi(p+5);
 		else if (strcmp(p, "noquote") == 0)
-			i->noquote=1;
+			i->mode=MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE;
 	}
 	return (0);
 }
@@ -909,14 +917,20 @@ char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *i)
 {
 	char days_buf[NUMBUFSIZE+10];
 
-	const char *dsn_arg="";
+	const char *mode_arg="";
 	const char *days_arg="";
-	const char *noquote_arg="";
 
 	char *p;
 
-	if (i->dsnflag)
-		dsn_arg=" dsn=1";
+	switch (i->mode) {
+	case MAILDIR_FILTER_AUTORESP_MODE_DSN:
+		mode_arg=" dsn=1";
+		break;
+	case MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE:
+		mode_arg=" noquote";
+		break;
+	}
+
 	if (i->days > 0)
 	{
 		strcpy(days_buf, " days=");
@@ -924,15 +938,10 @@ char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *i)
 		days_arg=days_buf;
 	}
 
-	if (i->noquote)
-		noquote_arg=" noquote";
-
-	p=malloc(strlen(i->name)+1+strlen(dsn_arg)+strlen(days_arg)+
-		 strlen(noquote_arg));
+	p=malloc(strlen(i->name)+1+strlen(mode_arg)+strlen(days_arg));
 	if (!p)
 		return (NULL);
 
-	strcat(strcat(strcat(strcpy(p, i->name), dsn_arg), days_arg),
-	       noquote_arg);
+	strcat(strcat(strcpy(p, i->name), mode_arg), days_arg);
 	return (p);
 }

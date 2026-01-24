@@ -16,6 +16,7 @@
 [#$BADRULENAME=<span style="color: #ee0000">ERROR: Invalid or missing rule name, please reenter</span><br />#]
 [#$EXISTS=<span style="color: #ee0000">ERROR: Rule name already exists, please reenter</span><br />#]
 [#$BADHEADER=<span style="color: #ee0000">ERROR: Invalid or missing header name, please reenter</span><br />#]
+[#$MIMEAUTOREPLY=<span style="color: #ee0000">ERROR: Selected autoreply is a rich text message, DSN and no-quote options require plain text autoreplies.</span><br />
 [#$AUTOREPLY=<span style="color: #ee0000">ERROR: Invalid or missing autoreply name, please reenter</span><br />#]
 [#$BADVALUE=<span style="color: #ee0000">ERROR: Invalid or missing header pattern or recipient address, please reenter</span><br />#]
 [#$ERRTOFOLDER=<span style="color: #ee0000">ERROR: Invalid or missing folder, forwarding address, or error message, please reenter</span><br />#]
@@ -101,7 +102,7 @@
                   <table border="0" width="100%">
                     <tbody>
                       <tr>
-                        <td align="center">[#LOADMAILFILTER#] 
+                        <td align="center">[#LOADMAILFILTER#]
                           <select name="currentfilter"
                             size="8">[#MAILFILTERLIST#]
                           </select>
@@ -109,12 +110,12 @@
                       </tr>
                       <tr>
                         <td align="center">
-                          <input type="submit" value="Up" name="do.moveup" /> 
+                          <input type="submit" value="Up" name="do.moveup" />
                           <input type="submit" value="Down"
-                          name="do.movedown" /> 
-                          <input type="submit" value="Edit" name="do.edit" /> 
+                          name="do.movedown" />
+                          <input type="submit" value="Edit" name="do.edit" />
                           <input type="submit" value="Delete"
-                          name="do.delete" /> 
+                          name="do.delete" />
                           <input type="submit" value="Add" name="do.add"
                         /></td>
                       </tr>

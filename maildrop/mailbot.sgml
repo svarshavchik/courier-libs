@@ -339,6 +339,12 @@ set and formats the autoreply according to the character set read from the
 	      message which was formatted as <acronym>HTML</acronym>, or any
 	      other non-plaintext format.
 	    </para>
+
+	    <para>
+	      Additionally, using the <option>-m</option> option to specify
+	      MIME contents other than plain text automatically implies
+	      <option>-N</option>.
+	    </para>
 	  </note>
 
 	  <note>

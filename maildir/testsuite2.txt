@@ -224,6 +224,11 @@ if (($SIZE > 0))
 {
     AUTOREPLYFROM="$FROM"
    `mailbot -A "X-Sender: $FROM" -A "From: $AUTOREPLYFROM" -M "$FROM" -m "Maildir/autoresponses/dummy" -d "Maildir/autoresponses/dummy.dat" -D 7 $SENDMAIL -t -f ""`
+    if ($RETURNCODE != 0)
+    {
+      EXITCODE=$RETURNCODE
+      exit
+    }
 }
 
 ##Op:islargerthan
@@ -238,6 +243,11 @@ if (($SIZE > 0))
 {
     AUTOREPLYFROM="$FROM"
    `mailbot -A "X-Sender: $FROM" -A "From: $AUTOREPLYFROM" -m "Maildir/autoresponses/dummy2" $SENDMAIL -t -f ""`
+    if ($RETURNCODE != 0)
+    {
+      EXITCODE=$RETURNCODE
+      exit
+    }
 }
 
 ##Op:contains

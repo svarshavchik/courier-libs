@@ -1,3 +1,11 @@
+2026-01-23  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Convert modules that parse MIME messages to C++, and update them
+	to use the new C++ MIME parsing library. Clean up autoreplies. When
+	editing mail filters peek at the autoreply content, and block
+	non-functional DSN and non-quoting autoreplies when the autoreply
+	content was uploaded as a non text-plain message.
+
 6.3.1
 
 2025-10-23  Sam Varshavchik  <mrsam@courier-mta.com>

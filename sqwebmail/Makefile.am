@@ -31,11 +31,11 @@ noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../rfc2045/libencode.la \
+	../gpglib/libgpg.la \
 	../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 	../liblock/liblock.la \
 	../http11/libhttp11.la ../cgi/libcgi.la \
 	../ldapaddressbook/libaddressbook.la \
-	../gpglib/libgpg.la \
 	../random128/librandom128.la ../md5/libmd5.la \
 	../numlib/libnumlib.la \
 	@dblibrary@
@@ -45,12 +45,11 @@ noinst_LTLIBRARIES=libwebmail.la
 
 libwebmail_la_SOURCES=filter.c filter.h msg2html.C msg2html.h html.C html.h \
 			buf.c buf.h
-libwebmail_la_DEPENDENCIES=$(COMMONDEPENDENCIES)
-libwebmail_la_LIBADD=$(COMMONLDADD)
 libwebmail_la_LDFLAGS=-static
 
 showmsg2html_SOURCES=showmsg2html.C
-showmsg2html_LDADD=libwebmail.la
+showmsg2html_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
+showmsg2html_LDADD=libwebmail.la $(COMMONLDADD)
 showmsg2html_LDFLAGS=-static
 
 ISPELLSOURCES=sqispell.C ispell.c ispell.h
@@ -74,7 +73,8 @@ EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.c
-testhtml_LDADD=libwebmail.la
+testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
+testhtml_LDADD=libwebmail.la $(COMMONLDADD)
 
 #CFLAGS += -Dmalloc=my_malloc -Drealloc=my_realloc -Dfree=my_free -Dstrdup=my_strdup -Dcalloc=my_calloc
 
@@ -89,15 +89,18 @@ sqwebmaild_SOURCES=acl.c acl.h \
 		changepw.c \
 		folder.C folder.h gpg.c gpg.h \
 		ldaplist.C logindomainlist.c logindomainlist.h \
-		maildir.C maildir.h mailfilter.c \
+		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
 		newmsg_create.C	newmsg_newdraft.C pcp.c pcp.h pref.c pref.h \
 		sqconfig.c sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
 
-sqwebmaild_LDADD=libwebmail.la @NETLIBS@ @LDAUTH@ -lcourierauth `cat ../maildir/libmaildir.deps`
-sqwebmaild_DEPENDENCIES=libwebmail.la ../maildir/libmaildir.deps
+sqwebmaild_LDADD=libwebmail.la \
+	$(COMMONLDADD) \
+	@NETLIBS@ @LDAUTH@ -lcourierauth `cat ../maildir/libmaildir.deps`
+sqwebmaild_DEPENDENCIES=libwebmail.la ../maildir/libmaildir.deps \
+	$(COMMONDEPENDENCIES)
 nodist_EXTRA_sqwebmaild_SOURCES=forcecpp.cc
 
 sqwebmail_SOURCES=sqwebmaild.c
