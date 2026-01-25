@@ -1375,17 +1375,18 @@ auto rfc2231_attr_encode(std::string_view name,
 
   entity.enumerate(
 	  []
-	  (const std::vector<int> &id, const rfc2045::entity &e)
+	  (const std::string &id, const rfc2045::entity &e)
 	  {
 	  }
   );
 
   This enumerates the MIME structure of this MIME entity and all of its
   subentities (if any). The passed-in callable object gets repeatedly invoked
-  with two parameters: a vector of integers that gives the identifier of the
-  MIME entity (with respect to the entity whose enumerate() method is called)
-  that's give in the second parameter.
+  with two parameters: that gives the identifier of the MIME entity (with
+  respect to the entity whose enumerate() method is called) that's given in
+  the second parameter.
 
+  The current implementation uses a comma-separated list of integers, a vector.
   A vector with a single value 1 identifies the MIME entity being enumerated.
   If it's a multipart subentity then each one of them is identified by the
   second value in the vector, starting with 1 for the first subentity, 2 for
@@ -1689,10 +1690,12 @@ class rfc2045::entity : public entity_info {
 		src_type &&src,
 		out_chunk &&out
 	) const;
-	template<typename src_type, typename out_chunk> bool decode_body_to(
-		src_type &&src,
-		out_chunk &&out
-	) const;
+	template<typename src_type, typename out_chunk,
+		 typename pos_type> bool decode_body_to(
+			 src_type &&src,
+			 out_chunk &&out,
+			 pos_type pos
+		 ) const;
 	template<typename iter>
 	static void tolowercase(iter b, iter e)
 	{
@@ -1874,26 +1877,53 @@ public:
 	template<typename closure_type>
 	void enumerate(closure_type &&closure) const
 	{
-		std::vector<int> id;
+		std::string id;
 
-		id.reserve(5);
-		id.push_back(1);
+		id.reserve(7);
+
+		id="1";
+
 		enumerate(id, std::forward<closure_type>(closure));
 	}
 
+private:
 	template<typename closure_type>
-	void enumerate(std::vector<int> &id, closure_type &&closure) const
+	void enumerate(std::string &id, closure_type &&closure) const
 	{
-		closure(const_cast<const std::vector<int> &>(id), *this);
+		char buffer[15];
 
-		id.push_back(1);
+		closure(std::string_view{id}, *this);
 
+		size_t s=id.size()+1;
+
+		id += ".1";
+
+		size_t n=1;
 		for (auto &sube:subentities)
 		{
-			sube.enumerate(id, std::forward<closure_type>(closure));
-			++id.back();
+			sube.enumerate(id,
+				       std::forward<closure_type>(closure));
+			id.resize(s);
+			++n;
+			auto ret=std::to_chars(std::begin(buffer),
+					       std::end(buffer), n);
+
+			id.insert(id.end(), buffer, ret.ptr);
 		}
-		id.pop_back();
+		id.resize(s-1);
+	}
+
+	template<typename T>
+	static T *find(T *root, std::string_view id);
+
+public:
+	entity *find(std::string_view id)
+	{
+		return find(this, id);
+	}
+	const entity *find(std::string_view id) const
+	{
+		return find(this, id);
 	}
 
 	struct dsn {
@@ -3403,7 +3433,7 @@ template<typename src_type,
 				std::forward<out_chunk>(out)
 			};
 
-			if (!decode_body_to(src, decoder))
+			if (!decode_body_to(src, decoder, startbody))
 				errflag=true;
 		}
 		break;
@@ -3413,12 +3443,13 @@ template<typename src_type,
 				std::forward<out_chunk>(out), false
 			};
 
-			if (!decode_body_to(src, decoder))
+			if (!decode_body_to(src, decoder, startbody))
 				errflag=true;
 		}
 		break;
 	default:
-		if (!decode_body_to(src, std::forward<out_chunk>(out)))
+		if (!decode_body_to(src, std::forward<out_chunk>(out),
+				    startbody))
 			errflag=true;
 		break;
 	}
@@ -3427,16 +3458,18 @@ template<typename src_type,
 }
 
 template<typename src_type,
-	 typename out_chunk> bool rfc2045::entity::decode_body_to(
+	 typename out_chunk,
+	 typename pos_type> bool rfc2045::entity::decode_body_to(
 		 src_type &&src,
-		 out_chunk &&out
+		 out_chunk &&out,
+		 pos_type frompos
 	 ) const
 {
 	char buf[BUFSIZ];
 
-	src.pubseekpos(startbody);
+	src.pubseekpos(frompos);
 
-	auto s=endbody-startbody;
+	auto s=endbody-frompos;
 
 	while (s)
 	{
@@ -3449,10 +3482,10 @@ template<typename src_type,
 
 		auto done=src.sgetn(buf, n);
 
-		if (done != static_cast<decltype(done)>(n))
+		if (done <= 0)
 			return false;
-		out(buf, n);
-		s -= n;
+		out(buf, done);
+		s -= done;
 	}
 
 	return true;

@@ -136,7 +136,8 @@ void msg2html_free(struct msg2html_info *);
 
 void msg2html(FILE *fp, struct rfc2045 *rfc, struct msg2html_info *info);
 
-void msg2html_download(FILE *fp, const char *mimeid, int dodownload,
+void msg2html_download(rfc822::fdstreambuf &fd,
+		       const char *mimeid, int dodownload,
 		       const char *system_charset);
 
 void msg2html_showmimeid(struct rfc2045id *idptr, const char *p);

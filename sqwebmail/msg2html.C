@@ -3043,7 +3043,7 @@ static void (*get_handler(struct rfc2045 *mime,
 	return (func);
 }
 
-static int download_func(const char *, size_t, void *);
+static void download_func(const char *, size_t);
 
 static void disposition_attachment(FILE *fp, const char *p, int attachment)
 {
@@ -3061,128 +3061,106 @@ static void disposition_attachment(FILE *fp, const char *p, int attachment)
 }
 
 
-void msg2html_download(FILE *fp, const char *mimeid, int dodownload,
+void msg2html_download(rfc822::fdstreambuf &fd,
+		       const char *mimeid, int dodownload,
 		       const char *system_charset)
 {
-	struct	rfc2045 *rfc, *part;
-	char	buf[BUFSIZ];
-	int	n,cnt;
-	const char	*content_type, *dummy, *charset;
-	off_t	start_pos, end_pos, start_body;
-	char	*content_name;
-	off_t	ldummy;
+	rfc2045::entity message;
 
-	rfc=rfc2045_alloc();
+	{
+		std::istreambuf_iterator<char> b{&fd}, e;
 
-	while ((n=fread(buf, 1, sizeof(buf), fp)) > 0)
-		rfc2045_parse(rfc, buf, n);
-	rfc2045_parse_partial(rfc);
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
 
-	part=*mimeid ? rfc2045_find(rfc, mimeid):rfc;
+		message.parse(parser);
+	}
+
+	auto part=&message;
+
+	if (*mimeid)
+		part=message.find(mimeid);
+
 	if (!part)
 	{
-		rfc2045_free(rfc);
+		printf("Content-Type: text/plain\n\n"
+		       "Invalid download link \"%s\".\n", mimeid);
 		return;
 	}
 
-	rfc2045_mimeinfo(part, &content_type, &dummy, &charset);
+	part->content_type_charset();
 
-	if (rfc2231_udecodeType(part, "name", system_charset,
-				&content_name) < 0)
-		content_name=NULL;
+	std::string content_type=part->content_type.value;
 
+	std::string content_name;
+
+	auto content_name_attr=part->content_type.parameters.find("name");
+
+	if (content_name_attr != part->content_type.parameters.end())
+	{
+		content_name=content_name_attr->second.value_in_charset();
+	}
 	if (dodownload)
 	{
-		char *disposition_filename;
-		const char *p;
+		std::string disposition_filename;
 
-		if (rfc2231_udecodeDisposition(part, "filename",
-					       (strncmp(content_type, "text/",
-							5) == 0 ?
-						charset:system_charset),
-					       &disposition_filename) < 0)
+		rfc2045::entity::rfc2231_header content_disposition{
+			part->content_disposition
+		};
+
+		auto disp_fn_attr=
+			content_disposition.parameters.find("filename");
+
+		if (disp_fn_attr !=
+		    content_disposition.parameters.end())
 		{
-			if (content_name)
-				free(content_name);
-			disposition_filename=NULL;
+			if (std::string_view{content_type}.substr(0, 5)
+			    == "text/plain")
+			{
+				disposition_filename=
+					disp_fn_attr->second.value_in_charset(
+						part->content_type_charset()
+					);
+			}
+			else
+			{
+				disposition_filename=
+					disp_fn_attr->second.value_in_charset();
+			}
 		}
 
+		std::string p=disposition_filename;
 
-		p=disposition_filename;
-
-		if (!p || !*p) p=content_name;
-		if (!p || !*p) p="message.dat";
-		disposition_attachment(stdout, p, 1);
+		if (p.empty()) p=content_name;
+		if (p.empty()) p=*mimeid ? "attachment.dat":"message.dat";
+		disposition_attachment(stdout, p.c_str(), 1);
 		content_type="application/octet-stream";
-		if (disposition_filename)
-			free(disposition_filename);
 	} else {
-		if (content_name && *content_name)
-			disposition_attachment(stdout, content_name, 0);
+		if (!content_name.empty())
+			disposition_attachment(stdout, content_name.c_str(), 0);
 	}
 
 	printf(
-		content_name && *content_name ?
+		!content_name.empty() ?
 		"Content-Type: %s; charset=%s; name=\"%s\"\n\n":
 		"Content-Type: %s; charset=%s\n\n",
-		content_type,
-		charset,
-		content_name ? content_name:"");
-	if (content_name)
-		free(content_name);
-
-	rfc2045_mimepos(part, &start_pos, &end_pos, &start_body,
-		&ldummy, &ldummy);
+		content_type.c_str(),
+		part->content_type.value.c_str(),
+		content_name.c_str()
+	);
 
 	if (*mimeid == 0)	/* Download entire message */
 	{
-		if (fseek(fp, start_pos, SEEK_SET) < 0)
-		{
-			rfc2045_free(rfc);
-			return;
-		}
-
-		while (start_pos < end_pos)
-		{
-			cnt=sizeof(buf);
-			if (cnt > end_pos-start_pos)
-				cnt=end_pos-start_pos;
-			cnt=fread(buf, 1, cnt, fp);
-			if (cnt <= 0)	break;
-			start_pos += cnt;
-			download_func(buf, cnt, NULL);
-		}
+		part->decode_body_to(fd, download_func,	0);
 	}
 	else
 	{
-		if (fseek(fp, start_body, SEEK_SET) < 0)
-		{
-			rfc2045_free(rfc);
-			return;
-		}
-
-		rfc2045_cdecode_start(part, &download_func, 0);
-
-		while (start_body < end_pos)
-		{
-			cnt=sizeof(buf);
-			if (cnt > end_pos-start_body)
-				cnt=end_pos-start_body;
-			cnt=fread(buf, 1, cnt, fp);
-			if (cnt <= 0)	break;
-			start_body += cnt;
-			rfc2045_cdecode(part, buf, cnt);
-		}
-		rfc2045_cdecode_end(part);
+		part->decode_body(fd, download_func);
 	}
-	rfc2045_free(rfc);
 }
 
-static int download_func(const char *p, size_t cnt, void *voidptr)
+static void download_func(const char *p, size_t cnt)
 {
-	if (fwrite(p, 1, cnt, stdout) != cnt)
-		return (-1);
-	return (0);
+	(void)fwrite(p, 1, cnt, stdout);
 }
 
 void msg2html_showmimeid(struct rfc2045id *idptr, const char *p)

@@ -3614,19 +3614,14 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 void folder_download(const char *folder, size_t pos, const char *mimeid)
 {
 	char	*filename;
-	FILE *fp=NULL;
-	int	fd;
 
 	filename=get_msgfilename(folder, &pos);
 
-	fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	if (fd >= 0)
-	{
-		if ((fp=fdopen(fd, "r")) == 0)
-			close(fd);
-	}
+	rfc822::fdstreambuf fd{
+		maildir_semisafeopen(filename, O_RDONLY, 0)
+	};
 
-	if (!fp)
+	if (fd.error())
 	{
 		free(filename);
 		error("Message not found.");
@@ -3635,10 +3630,8 @@ void folder_download(const char *folder, size_t pos, const char *mimeid)
 	free(filename);
 
 	cginocache();
-	msg2html_download(fp, mimeid, *cgi("download") == '1',
+	msg2html_download(fd, mimeid, *cgi("download") == '1',
 			  sqwebmail_content_charset);
-
-	fclose(fp);
 }
 
 void folder_showtransfer()

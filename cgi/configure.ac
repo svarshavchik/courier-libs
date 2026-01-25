@@ -24,8 +24,7 @@ LT_INIT
 dnl Checks for libraries.
 
 dnl Checks for header files.
-AC_CHECK_HEADERS(fcntl.h sys/time.h sys/wait.h sys/select.h sys/uio.h unistd.h)
-AC_CHECK_HEADERS_ONCE([sys/time.h])
+AC_CHECK_HEADERS_ONCE([fcntl.h sys/time.h sys/wait.h sys/select.h sys/uio.h unistd.h sysexits.h])
 # Obsolete code to be removed.
 if test $ac_cv_header_sys_time_h = yes; then
   AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>

@@ -29,6 +29,12 @@
 #include        <sys/socket.h>
 #include	<sys/uio.h>
 #include        <sys/un.h>
+#if HAVE_SYSEXITS_H
+#include	<sysexits.h>
+#endif
+#ifndef EX_OSFILE
+#define EX_OSFILE	72
+#endif
 
 static int read_environ(int);
 
@@ -46,6 +52,10 @@ void cgi_daemon(int nprocs, const char *lockfile,
 {
 	int fd=start_daemon(lockfile);
 
+	if (fd < 0)
+	{
+		exit(EX_OSFILE);
+	}
 	if (postinit)
 		(*postinit)(dummy);
 

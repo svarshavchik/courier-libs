@@ -30,11 +30,12 @@ noinst_DATA=$(DOCS) TIMEZONELIST
 noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
+	../cgi/libcgi.la \
 	../rfc2045/libencode.la \
 	../gpglib/libgpg.la \
 	../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 	../liblock/liblock.la \
-	../http11/libhttp11.la ../cgi/libcgi.la \
+	../http11/libhttp11.la \
 	../ldapaddressbook/libaddressbook.la \
 	../random128/librandom128.la ../md5/libmd5.la \
 	../numlib/libnumlib.la \

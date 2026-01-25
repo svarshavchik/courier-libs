@@ -648,3 +648,40 @@ const rfc2045::entity *rfc2045::entity_info::content_type_multipart_signed()
 	}
 	return nullptr;
 }
+
+template<typename T>
+T *rfc2045::entity::find(T *root, std::string_view id)
+{
+	if (!root || id.empty()) return nullptr;
+
+	unsigned n=0;
+
+	const char *e=id.data()+id.size();
+	auto res=std::from_chars(id.data(), e, n);
+
+	if (static_cast<bool>(res.ec) || n != 1) return nullptr;
+
+	while (1)
+	{
+		if (res.ptr == e)
+			return root;
+		if (*res.ptr != '.')
+			return nullptr;
+		++res.ptr;
+		res=std::from_chars(res.ptr, e, n);
+
+		if (static_cast<bool>(res.ec)
+		    || n <= 0 || n > root->subentities.size())
+			return nullptr;
+
+		root=&root->subentities[n-1];
+	}
+}
+
+template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
+	rfc2045::entity *, std::string_view
+);
+
+template const rfc2045::entity *rfc2045::entity::find<const rfc2045::entity>(
+	const rfc2045::entity *, std::string_view
+);

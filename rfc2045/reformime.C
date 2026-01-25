@@ -139,23 +139,10 @@ static void notfound(const char *p)
 	exit(1);
 }
 
-std::string idstr(const std::vector<int> &id)
-{
-	std::ostringstream o;
-
-	const char *idsep="";
-	for (int s:id)
-	{
-		o << idsep << s;
-		idsep=".";
-	}
-	return o.str();
-}
-
 void print_info(const rfc2045::entity &entity,
-		const std::vector<int> &id)
+		const std::string_view &id)
 {
-	std::cout << "section: " << idstr(id)
+	std::cout << "section: " << id
 		  << "\ncontent-type: " << entity.content_type.value
 		  << "\n";
 
@@ -523,53 +510,45 @@ static void for_mime_section(
 	const rfc2045::entity &message,
 	std::string_view mimesection,
 	std::function<void (const rfc2045::entity &,
-			    const std::vector<int> &)> cb)
+			    std::string_view)> cb)
 {
 	if (!mimesection.size())
 	{
 		message.enumerate(
 			[&]
-			(auto &id, auto &e)
+			(auto id, auto &e)
 			{
 				cb(e, id);
 			}
 		);
 	}
-	else
+
+	while (mimesection.size())
 	{
-		while (mimesection.size())
+		auto s=mimesection.data(),p=s;
+		size_t n=mimesection.size();
+
+		for (; n; ++p, --n)
 		{
-			auto s=mimesection.data(),p=s;
-			size_t n=mimesection.size();
-
-			for (; n; ++p, --n)
-			{
-				if (*p == ',')
-					break;
-			}
-
-			std::string_view this_id{
-				s, static_cast<size_t>(p-s)
-			};
-
-			message.enumerate(
-				[&]
-				(auto &id, auto &e)
-				{
-					if (idstr(id) != this_id)
-						return;
-
-					cb(e, id);
-				}
-			);
-
-			if (n)
-			{
-				++p;
-				--n;
-			}
-			mimesection=std::string_view{p, n};
+			if (*p == ',')
+				break;
 		}
+
+		std::string_view this_id{
+			s, static_cast<size_t>(p-s)
+		};
+
+		auto ptr=message.find(this_id);
+
+		if (ptr)
+			cb(*ptr, this_id);
+
+		if (n)
+		{
+			++p;
+			--n;
+		}
+		mimesection=std::string_view{p, n};
 	}
 }
 
@@ -997,7 +976,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			message, mimesection,
 			[&]
 			(const rfc2045::entity &e,
-			 const std::vector<int> &id)
+			 std::string_view id)
 			{
 				if (doinfo)
 				{
@@ -1037,7 +1016,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 					std::cerr
 						<< e.content_type.value
 						<< " ("
-						<< idstr(id)
+						<< id
 						<< ") cannot be extracted.\n";
 					rc=1;
 				}
@@ -1069,20 +1048,20 @@ static int main2(const char *mimecharset, int argc, char **argv)
 			"",
 			[&]
 			(const rfc2045::entity &e,
-			 const std::vector<int> &id)
+			 const std::string_view &id)
 			{
 				auto errors=e.errors.describe();
 
 				if (e.errors.fatal())
 				{
 					std::cout << "Fatal error ("
-						  << idstr(id) <<"):\n";
+						  << id <<"):\n";
 					rc=1;
 				}
 				else if (!errors.empty())
 				{
 					std::cout << "Warnings ("
-						  << idstr(id) << "):\n";
+						  << id << "):\n";
 				}
 
 				for (auto &msg:errors)
@@ -1111,16 +1090,9 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	{
 		message.enumerate(
 			[]
-			(const auto &id, const auto &)
+			(auto id, const auto &)
 			{
-				const char *sep="";
-
-				for (auto v:id)
-				{
-					std::cout << sep << v;
-					sep=".";
-				}
-				std::cout << "\n";
+				std::cout << id << "\n";
 			}
 		);
 	}
