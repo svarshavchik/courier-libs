@@ -2944,6 +2944,33 @@ void testheaderlimit()
 		}
 	}
 }
+
+static void testbinaryencoding()
+{
+	std::string_view testmessage=
+		"Mime-Version: 1.0\n"
+		"Content-Type: multipart/mixed; boundary=aaa\n"
+		"Content-Transfer-Encoding: binary\n"
+		"\n"
+		"--aaa\n"
+		"\n"
+		"\n"
+		"--aaa--\n";
+
+	auto b=testmessage.begin();
+	auto e=testmessage.end();
+	rfc2045::entity message;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+	message.parse(parser);
+
+	if (message.all_errors())
+	{
+		std::cerr << "testbinaryencoding failed.\n";
+		exit(1);
+	}
+}
+
 int main()
 {
 	rfc2045_setdefaultcharset("iso-8859-1");
@@ -2957,5 +2984,6 @@ int main()
 	testautoconvert_check();
 	testautoconvert_multipart_signed();
 	testheaderlimit();
+	testbinaryencoding();
 	return 0;
 }

@@ -92,11 +92,11 @@ struct rfc2045 {
 	enum class cte { error=0, sevenbit='7', eightbit='8', qp='Q',
 			 base64='B'};
 
-	// Look at the first character of Content-Transfer-Encoding
+	// Look at the two characters of Content-Transfer-Encoding
 
-	static cte to_cte(char ch)
+	static cte to_cte(char ch1, char ch2)
 	{
-		switch (ch) {
+		switch (ch1) {
 		case '7':
 			return cte::sevenbit;
 		case '8':
@@ -106,6 +106,12 @@ struct rfc2045 {
 			return cte::qp;
 		case 'b':
 		case 'B':
+			switch (ch2) {
+			case 'i':
+			case 'I':
+				// Treat "binary" as 8bit
+				return cte::eightbit;
+			}
 			return cte::base64;
 		}
 
@@ -2655,7 +2661,8 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				duplicate_content=true;
 
 			content_transfer_encoding=to_cte(
-				header.size() ? *header.data():0);
+				header.size() ? *header.data():0,
+				header.size() > 1 ? header.data()[1]:0);
 
 			has_content_transfer_encoding=true;
 			if (content_transfer_encoding==cte::error)
