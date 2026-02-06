@@ -16,6 +16,8 @@ AC_CONFIG_HEADERS(cgi_config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -149,7 +151,7 @@ if test "$GCC" = yes ; then
         CFLAGS="$CFLAGS -Wall"
 fi
 
-CFLAGS="$CFLAGS -I.. -I$srcdir/.."
+CPPFLAGS="$CPPFLAGS -I.. -I$srcdir/.."
 AC_SYS_LARGEFILE
 
 AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE, [ Calculate max size of long ])

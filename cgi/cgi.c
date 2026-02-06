@@ -217,56 +217,6 @@ struct cgi_arglist *argp;
 	}
 }
 
-static char *cgiurlencode_common(const char *buf, const char *punct)
-{
-char	*newbuf=0;
-size_t	cnt=0;
-int	pass;
-const char *p;
-static const char hex[]="0123456789ABCDEF";
-
-	for (pass=0; pass<2; pass++)
-	{
-		if (pass && (newbuf=malloc(cnt+1)) == 0)	enomem();
-		cnt=0;
-		for (p=buf; *p; p++)
-		{
-			if (strchr(punct, *p) || *p < 32 || *p >= 127)
-			{
-				if (pass)
-				{
-					newbuf[cnt]='%';
-					newbuf[cnt+1]=hex[
-						((int)(unsigned char)*p) / 16];
-					newbuf[cnt+2]=hex[ *p & 15 ];
-				}
-				cnt += 3;
-				continue;
-			}
-			if (pass)
-				newbuf[cnt]= *p == ' ' ? '+':*p;
-			++cnt;
-		}
-	}
-	newbuf[cnt]=0;
-	return (newbuf);
-}
-
-char *cgiurlencode(const char *buf)
-{
-	return (cgiurlencode_common(buf, "\"?;<>&=/:%@+#"));
-}
-
-char *cgiurlencode_noamp(const char *buf)
-{
-	return (cgiurlencode_common(buf, "\"?<>=/:%@+#"));
-}
-
-char *cgiurlencode_noeq(const char *buf)
-{
-	return (cgiurlencode_common(buf, "\"?;<>&/:%@+#"));
-}
-
 void cgi_cleanup()
 {
 #if	CGIFORMDATA

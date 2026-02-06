@@ -9,6 +9,47 @@
 #include <courier-unicode.h>
 
 #ifdef __cplusplus
+#include <string_view>
+
+#include <typeinfo>
+#include <iostream>
+namespace cgi_encode {
+
+	extern const char default_encode[],
+		noamp[], noeq[];
+
+	struct sink {
+		virtual void operator()(char)=0;
+	};
+
+	void algorithm(sink &, std::string_view, const char *);
+
+	size_t estimate(std::string_view s, const char *str=default_encode);
+
+	template<typename iter> struct sink_cplusplus : sink {
+		iter &i;
+		sink_cplusplus(iter &i) : i{i} {}
+		virtual void operator()(char c) override
+		{
+			*i++=c;
+		}
+	};
+
+	template<typename out_iter>
+	auto encode(out_iter &&closure,
+		    std::string_view s,
+		    const char *punct=default_encode)
+	{
+		sink_cplusplus<out_iter> iter{closure};
+
+		algorithm(iter, s, punct);
+
+		if constexpr (!std::is_same_v<out_iter, out_iter &>)
+		{
+			return closure;
+		}
+	}
+};
 
 extern "C" {
 
