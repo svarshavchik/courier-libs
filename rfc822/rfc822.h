@@ -529,12 +529,14 @@ struct tokens : std::vector<token> {
 					      std::remove_reference_t<
 						      out_iter_type>>>;
 
-	// Convert this name to Unicode, using RFC2047 decoding.
+	// Convert this name to Unicode, using RFC2047 decoding. Setting
+	// unquote to true uses unquote().
 	//
 	// The address is written to an output iterator over char32_t.
 
 	template<typename out_iter_type> auto unicode_name(
-		out_iter_type &&iter
+		out_iter_type &&iter,
+		bool unquote=false
 	) const -> std::conditional_t<std::is_same_v<out_iter_type,
 						     out_iter_type &>,
 				      void, std::remove_cv_t<
@@ -572,10 +574,12 @@ struct tokens : std::vector<token> {
 	//
 	// Passing the output value by rvalue (reference) returns the final
 	// value of the output iterator.
-
+	//
+	// The unquote parameter gets forwarded to unicode_name().
 	template<typename out_iter_type> auto display_name(
 		const std::string &chset,
-		out_iter_type &&iter
+		out_iter_type &&iter,
+		bool unquote=false
 	) const -> std::conditional_t<std::is_same_v<out_iter_type,
 						     out_iter_type &>,
 				      void, std::remove_cv_t<
@@ -802,6 +806,8 @@ struct address {
 		);
 	}
 
+	// Call display_address() on the address portion.
+
 	template<typename out_iter_type> auto display_address(
 		const std::string &chset,
 		out_iter_type &&iter
@@ -813,14 +819,19 @@ struct address {
 		);
 	}
 
+	// Calls display_name() on the name portion. The unquote parameter
+	// gets forwarded to display_name().
+
 	template<typename out_iter_type> auto display_name(
 		const std::string &chset,
-		out_iter_type &&iter
+		out_iter_type &&iter,
+		bool unquote=false
 	) const
 	{
 		return name.display_name(
 			chset,
-			std::forward<out_iter_type>(iter)
+			std::forward<out_iter_type>(iter),
+			unquote
 		);
 	}
 };
@@ -1383,7 +1394,8 @@ struct addresses : std::vector<address> {
 // Return true if header_name is To, Cc, Bcc, or other headers that contain
 // a list of addresses.
 
-bool header_is_addr(std::string_view header_name);
+bool header_is_addr(std::string_view header_name,
+		    bool include_in_reply_to=true);
 
 // Subclass std::streambuf and implement it on top of a file descriptor. The
 // file descriptor is owned by fdstreambuf and is closed in the destructor.

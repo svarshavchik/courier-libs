@@ -30,7 +30,11 @@ namespace {
 	}
 }
 
-bool rfc822::header_is_addr(std::string_view header_name)
+bool rfc822::header_is_addr(std::string_view header_name,
+			    bool include_in_reply_to)
 {
+	if (!include_in_reply_to && headercmp(header_name, "in-reply-to"))
+		return false;
+
 	return RFC822HDR_IS_ADDR(headercmp, header_name);
 }

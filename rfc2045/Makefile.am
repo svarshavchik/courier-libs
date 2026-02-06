@@ -25,7 +25,7 @@ librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc2045defcharset.c \
 		     rfc2045defs.c rfc2045src.h \
 		     rfc2045acchk.c rfc2045acchkcpp.C rfc2045acprep.c \
-		     rfc2045appendurl.c rfc2045cdecode.c rfc2045decode.c \
+		     rfc2045appendurl.C rfc2045cdecode.c rfc2045decode.c \
 		     rfc2045enomem.c \
 		     rfc2045new_boundary.C \
 		     rfc2045_fromfd.c \

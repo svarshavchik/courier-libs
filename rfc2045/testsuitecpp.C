@@ -2971,6 +2971,207 @@ static void testbinaryencoding()
 	}
 }
 
+static void testappendurl()
+{
+	static const struct {
+		const char *base;
+		const char *location;
+		const char *result;
+	} tests[]={
+		{
+			"http://home.test/dir",
+			"http://test.test/file",
+			"http://test.test/file",
+		},
+		{
+			"http://home.test/dir",
+			"file",
+			"http://home.test/dir/file",
+		},
+		{
+			"http://home.test/dir",
+			"/sub/file",
+			"http://home.test/sub/file",
+		},
+		{
+			"http://home.test/dir",
+			"//test.test/sub/file",
+			"http://test.test/sub/file",
+		},
+	};
+
+	for (const auto &t:tests)
+	{
+		char *p=rfc2045_append_url(t.base, t.location);
+
+		if (!p || std::string_view{t.result} != p)
+		{
+			std::cerr << "rfc2045_append_url failed:\n"
+				  << "expected: " << t.result << "\n"
+				  << "  result: " << (p ? p:"NULL") << "\n";
+			exit(1);
+		}
+		free(p);
+	}
+}
+
+void testdecodingerror()
+{
+	std::stringstream testmessage{
+		std::string{
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"\n"
+			"--\n"
+			"A\xd0\xbf"
+			"B\n"
+		}
+	};
+
+	rfc2045::entity message;
+	{
+		std::istreambuf_iterator<char> b{testmessage.rdbuf()}, e;
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
+
+	std::ostringstream o;
+
+	rfc822::mime_decoder decoder{
+		[&]
+		(const char *ptr, size_t n)
+		{
+			o << std::string_view{ptr, n};
+		},
+		*testmessage.rdbuf(),
+		"iso-8859-1"
+	};
+
+	decoder.decode_header=false;
+	decoder.add_eol=true;
+	decoder.decode<false>(message);
+
+	if (!decoder.decoding_error)
+	{
+		std::cerr
+			<< "testdecodingerror failed: decoding_error not set\n";
+		exit(1);
+	}
+	decoder.report_decoding_error=false;
+
+	decoder.decode<false>(message);
+
+	if (!decoder.decoding_error)
+	{
+		std::cerr
+			<< "testdecodingerror failed: decoding_error not set\n";
+		exit(1);
+	}
+
+	decoder.report_decoding_error=true;
+	decoder.decode<true>(message);
+
+	if (!decoder.decoding_error)
+	{
+		std::cerr
+			<< "testdecodingerror failed: decoding_error not set\n";
+		exit(1);
+	}
+	decoder.report_decoding_error=false;
+
+	decoder.decode<true>(message);
+
+	if (!decoder.decoding_error)
+	{
+		std::cerr
+			<< "testdecodingerror failed: decoding_error not set\n";
+		exit(1);
+	}
+
+	auto str=o.str();
+
+	size_t cnt=0;
+
+	for (auto &c:str)
+	{
+		if (c == '<')
+			cnt=2;
+		else if (cnt)
+		{
+			--cnt;
+			c='#';
+		}
+	}
+
+	if (str !=
+	    "--\n"
+	    "A<##><##>B\n"
+	    "\n"
+	    "[MIME decoding error]\n"
+	    "--\n"
+	    "A<##><##>B\n"
+	    "\n"
+	    "--\n"
+	    "A<##><##>B\n"
+	    "\r\n"
+	    "[MIME decoding error]\r\n"
+	    "--\n"
+	    "A<##><##>B\n"
+	    "\r\n")
+	{
+		std::cerr << "testdecodingerror failed:\n";
+
+		for (auto c:str)
+		{
+			if (c == '\r')
+				std::cout << "\\r";
+			else if (c == '\n')
+				std::cout << "\\n\n";
+			else
+				std::cout << c;
+		}
+	}
+}
+
+static void testheadercustom()
+{
+	std::stringstream ss{
+		"123: 456\n"
+		"  13\n"
+		"7: 8\n"
+		"\n"
+		"1: 2\n"};
+
+	ss.rdbuf()->pubseekpos(0);
+	rfc2045::entity::line_iter<false>::headers h{*ss.rdbuf(),
+						    ss.str().size()};
+
+	std::string res;
+
+	do
+	{
+		const auto &[header, value]=h.name_content();
+
+		res += header;
+		res += "|";
+		res += value;
+		res += "\n";
+	} while (h.next());
+
+	if (res !=
+	    "123|456 13\n"
+	    "7|8\n"
+	    "|\n"
+	    "1|2\n"
+	)
+	{
+		std::cerr << "testheadercustom failed:\n"
+			  << res << "\n";
+		exit(1);
+	}
+}
+
 int main()
 {
 	rfc2045_setdefaultcharset("iso-8859-1");
@@ -2985,5 +3186,8 @@ int main()
 	testautoconvert_multipart_signed();
 	testheaderlimit();
 	testbinaryencoding();
+	testappendurl();
+	testdecodingerror();
+	testheadercustom();
 	return 0;
 }

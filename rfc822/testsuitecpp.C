@@ -478,7 +478,8 @@ static void unquote_name_test()
 			"\"John Q. Public\" <john@example.com>,"
 			"\"John \\\"Q.\\\" Public\" <john@example.com>,"
 			"john@example.com (John Doe),"
-			"john@example.com"
+			"john@example.com,"
+			"=?iso-8859-1?q?=41B?= <john@example.com>"
 		}};
 	rfc822::addresses a{t};
 
@@ -510,10 +511,33 @@ static void unquote_name_test()
 	    "John Q. Public\n"
 	    "John \"Q.\" Public\n"
 	    "John Doe\n"
-	    "john@example.com\n")
+	    "john@example.com\n"
+	    "=?iso-8859-1?q?=41B?=\n"
+	)
 	{
 		std::cout << "Unexpected result of unquote_name:"
 			  << names;
+	}
+
+	names.clear();
+
+	for (auto &a:a)
+	{
+		a.display_name("utf-8", std::back_inserter(names), true);
+		names.push_back('\n');
+	}
+
+	if (names !=
+	    "John Doe\n"
+	    "John Q. Public\n"
+	    "John \"Q.\" Public\n"
+	    "John Doe\n"
+	    "\n"
+	    "AB\n")
+	{
+		std::cout
+			<< "Unexpected result of display_name (with unquote):\n"
+			<< names;
 	}
 }
 

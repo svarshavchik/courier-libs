@@ -552,12 +552,7 @@ rfc2045::headers_base::headers_base(size_t empty_line_size)
 
 std::string_view rfc2045::headers_base::current_header()
 {
-	// If a line was read in next(), header_line is always
-	// non-empty except if left=0. So if it is empty, then
-	// this is either the first header, or at the end, and
-	// it does no harm to next() again.
-
-	if (header_line.empty())
+	if (!line_read)
 		next();
 
 	return header_line;
@@ -676,6 +671,24 @@ T *rfc2045::entity::find(T *root, std::string_view id)
 
 		root=&root->subentities[n-1];
 	}
+}
+
+std::string rfc2045::entity_info::content_id_value() const
+{
+	std::string cid;
+
+	rfc822::tokens tokens{content_id};
+	rfc822::addresses addresses{tokens};
+
+	if (!addresses.empty())
+	{
+		auto &a=addresses.front();
+
+		cid.reserve(a.unquote_name(rfc822::length_counter{}));
+		a.unquote_name(std::back_inserter(cid));
+	}
+
+	return cid;
 }
 
 template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(

@@ -61,7 +61,8 @@ template<typename out_iter_type> auto tokens::unicode_address(
 }
 
 template<typename out_iter_type> auto tokens::unicode_name(
-	out_iter_type &&iter
+	out_iter_type &&iter,
+	bool unquote
 ) const -> std::conditional_t<std::is_same_v<out_iter_type,
 					     out_iter_type &>,
 			      void, std::remove_cv_t<
@@ -70,11 +71,20 @@ template<typename out_iter_type> auto tokens::unicode_name(
 {
 	std::string s;
 
-	s.reserve(this->print(this->begin(), this->end(), length_counter{}));
-
-	this->print(this->begin(), this->end(),
-		    std::back_inserter(s));
-
+	if (unquote)
+	{
+		s.reserve(this->unquote(this->begin(), this->end(),
+					length_counter{}));
+		this->unquote(this->begin(), this->end(),
+			    std::back_inserter(s));
+	}
+	else
+	{
+		s.reserve(this->print(this->begin(), this->end(),
+				      length_counter{}));
+		this->print(this->begin(), this->end(),
+			    std::back_inserter(s));
+	}
 	std::string fragment;
 	std::u32string us;
 
@@ -125,7 +135,9 @@ template<typename out_iter_type> auto tokens::unicode_name(
 
 	bool quote_inuse=false;
 
-	if (us.size() > 1 && us[0] == '"' && us.back() == '"')
+	if (unquote)
+		;
+	else if (us.size() > 1 && us[0] == '"' && us.back() == '"')
 	{
 		quote_inuse=true;
 	}
@@ -270,7 +282,8 @@ template<typename out_iter_type> auto tokens::display_address(
 
 template<typename out_iter_type> auto tokens::display_name(
 	const std::string &chset,
-	out_iter_type &&iter
+	out_iter_type &&iter,
+	bool unquote
 ) const -> std::conditional_t<std::is_same_v<out_iter_type,
 					     out_iter_type &>,
 			      void, std::remove_cv_t<
@@ -280,7 +293,7 @@ template<typename out_iter_type> auto tokens::display_name(
 	u2iterator u{iter};
 	if (u.begin(chset))
 	{
-		unicode_name(u);
+		unicode_name(u, unquote);
 
 		bool errflag{false};
 
