@@ -19,6 +19,8 @@ dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_CC
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 LT_INIT
 AC_PROG_LN_S
 AC_ARG_WITH(gpg2,[ --with-gpg2       Use gpg2 instead of gpg ], [gpg2_option="$withval"], [gpg2_option=])
@@ -95,9 +97,11 @@ dnl Checks for libraries.
 
 dnl Checks for header files.
 
-AC_CHECK_HEADERS(unistd.h sys/wait.h sys/time.h unistd.h fcntl.h)
+AC_CHECK_HEADERS(unistd.h sys/wait.h unistd.h fcntl.h)
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS_ONCE([sys/time.h])
+
+CPPFLAGS="$CPPFLAGS -I.. -I$srcdir/.."
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
