@@ -112,6 +112,7 @@ extern char *scriptptrget();
 }
 
 extern const char *showsize(unsigned long);
+extern void output_attrencoded(std::string_view);
 
 void print_safe_len(const char *p, size_t n, void (*func)(const char *, size_t))
 {
@@ -1598,20 +1599,21 @@ static int is_preview_mode()
 
 static void dokeyimport(FILE *, struct rfc2045 *, int);
 
-static void charset_warning(const char *mime_charset, void *arg)
+static void charset_warning(std::string_view mime_charset, void *arg)
 {
-	char charset_buf[32];
-	char *p;
+	std::string charset{mime_charset.begin(), mime_charset.end()};
+	std::string content_charset{sqwebmail_content_charset};
 
-	charset_buf[0]=0;
-	strncat(charset_buf, mime_charset, sizeof(charset_buf)-1);
+	for (auto &c:charset)
+		if (c < ' ' || c > 0x7f ||
+		    c == '<' || c == '>' || c == '&')
+			c=' ';
+	for (auto &c:content_charset)
+		if (c < ' ' || c > 0x7f ||
+		    c == '<' || c == '>' || c == '&')
+			c=' ';
 
-	for (p=charset_buf; *p; p++)
-		if (*p < ' ' || *p > 0x7f ||
-		    *p == '<' || *p == '>' || *p == '&')
-			*p=' ';
-
-	printf(getarg("CHSET"), charset_buf, sqwebmail_content_charset);
+	printf(getarg("CHSET"), charset.c_str(), content_charset.c_str());
 }
 
 static void html_warning()
@@ -1705,27 +1707,23 @@ static void email_address_end()
 	printf("</a></span>");
 }
 
-static void email_header(const char *h,
-			 void (*cb_func)(const char *))
+static void email_header(std::string_view h,
+			 void (*cb_func)(std::string_view))
 {
-	char *hdrname;
-	char *p;
 	const char *hdrvalue;
 
-	if ((hdrname=static_cast<char *>(malloc(sizeof("DSPHDR_")+strlen(h)))) == NULL)
-		enomem();
+	std::string hdrname;
+	hdrname.reserve(h.size()+sizeof("DSPHDR"));
 
-	strcpy (hdrname, "DSPHDR_");
-	strcat (hdrname, h);
+	hdrname = "DSPHDR_";
+	hdrname += h;
 
-	for (p=hdrname; *p; p++)
-		*p=toupper((int)(unsigned char)*p);
+	for (auto &c:hdrname)
+		c=toupper((int)(unsigned char)c);
 
-	hdrvalue = getarg (hdrname);
+	hdrvalue = getarg(hdrname.c_str());
 
 	(*cb_func)(hdrvalue && *hdrvalue ? hdrvalue:h);
-
-	free(hdrname);
 }
 
 static const char *email_header_date_fmt(const char *def)
@@ -1737,93 +1735,84 @@ static const char *email_header_date_fmt(const char *def)
 	return def;
 }
 
-static void buf_cat_esc_amp(struct buf *b, const char *url)
+static void buf_cat_esc_amp(std::string &b, std::string_view url)
 {
-	for (; *url; ++url)
+	for (auto c:url)
 	{
-		char	c[2];
-
-		if (*url == '&')
+		if (c == '&')
 		{
-			buf_cat(b, "&amp;");
+			b += "&amp;";
 		}
-		else if (*url == '<')
+		else if (c == '<')
 		{
-			buf_cat(b, "&lt;");
+			b += "&lt;";
 		}
-		else if (*url == '>')
+		else if (c == '>')
 		{
-			buf_cat(b, "&gt;");
+			b += "&gt;";
 		}
-		else if (*url == '"')
+		else if (c == '"')
 		{
-			buf_cat(b, "&quot;");
+			b += "&quot;";
 		}
 		else
 		{
-			c[0]=*url;
-			c[1]=0;
-			buf_cat(b, c);
+			b += c;
 		}
 	}
 }
 
-static char *get_textlink(const char *s, void *arg)
+static std::string get_textlink(std::string_view s,
+				std::string_view disp_url)
 {
-char	*t;
-struct buf b;
+	std::string b;
 
-	buf_init(&b);
-
-	if (strncmp(s, "mailto:", 7) == 0)
+	if (s.substr(0, 7) == "mailto:")
 	{
-	int	i;
-
-		buf_cat(&b, "<a href=\"");
+		b += "<a href=\"";
 
 		{
 			char *p=scriptptrget();
 
-			buf_cat(&b, p);
+			b += p;
 			free(p);
 		}
 
-		buf_cat(&b, "&amp;form=newmsg&amp;to=");
+		b += "&amp;form=newmsg&amp;to=";
 
-		for (i=7; s[i]; i++)
+		for (auto c:s.substr(7))
 		{
-		char	c[2];
-
-			c[1]=0;
-			if ((c[0]=s[i]) == '?')
-				c[0]='&';
- 			else if (c[0] == '&')
+			if (c == '?')
+				b += '&';
+			else if (c == '&')
 			{
-				buf_cat(&b, "&amp;");
+				b += "&amp;";
 			}
-			else if (c[0] == '<')
+			else if (c == '<')
 			{
-				buf_cat(&b, "&lt;");
+				b += "&lt;";
 			}
-			else if (c[0] == '>')
+			else if (c == '>')
 			{
-				buf_cat(&b, "&gt;");
+				b += "&gt;";
 			}
-			else if (c[0] == '"')
+			else if (c == '"')
 			{
-				buf_cat(&b, "&quot;");
+				b += "&quot;";
 			}
 			else
 			{
-				buf_cat(&b, c);
+				b += c;
 			}
 		}
-		buf_cat(&b, "\">"
-			"<span class=\"message-text-plain-mailto-link\">");
-		buf_cat_esc_amp(&b, s);
-		buf_cat(&b, "</span></a>");
+
+		b += "\">"
+			"<span class=\"message-text-plain-mailto-link\">";
+		buf_cat_esc_amp(b, disp_url);
+		b += "</span></a>";
 	}
-	else if (strncmp(s, "http:", 5) == 0 || strncmp(s, "https:", 6) == 0)
+	else if (s.substr(0, 5) == "http:" ||
+		 s.substr(0, 6) == "https:")
 	{
 		char buffer[NUMBUFSIZE];
 		time_t now;
@@ -1835,36 +1824,36 @@ struct buf b;
 
 		hash=cgiurlencode(redirect_hash(buffer));
 
-		t=cgiurlencode(s);
-		buf_cat(&b, "<a href=\"");
+		std::string t;
+
+		t.reserve(cgi_encode::estimate(s));
+		cgi_encode::encode(std::back_inserter(t), s);
+		b += "<a href=\"";
 
 		n=getenv("SCRIPT_NAME");
 		if (!n || !*n) n="/";
 
-		buf_cat(&b, n);
-		buf_cat(&b, "?redirect=");
-		buf_cat(&b, t);
-		buf_cat(&b, "&amp;timestamp=");
-		buf_cat(&b, buffer);
-		buf_cat(&b, "&amp;md5=");
+		b += n;
+		b += "?redirect=";
+		b += t;
+		b += "&amp;timestamp=";
+		b += buffer;
+		b += "&amp;md5=";
 		if (hash)
 		{
-			buf_cat(&b, hash);
+			b += hash;
 			free(hash);
 		}
-		buf_cat(&b, "\" target=\"_blank\">"
-			"<span class=\"message-text-plain-http-link\">");
-		buf_cat_esc_amp(&b, s);
-		buf_cat(&b, "</span></a>");
-		free(t);
+		b += "\" target=\"_blank\">"
+			"<span class=\"message-text-plain-http-link\">";
+		buf_cat_esc_amp(b, disp_url);
+		b += "</span></a>";
 	}
-	t=strdup(b.ptr ? b.ptr:"");
-	if (!t)	enomem();
-	buf_free(&b);
-	return (t);
+
+	return b;
 }
 
-static void message_rfc822_action(struct rfc2045id *idptr)
+static void message_rfc822_action(std::string_view idptr)
 {
 	if (is_preview_mode())
 		return;
@@ -1898,7 +1887,7 @@ static void message_rfc822_action(struct rfc2045id *idptr)
 	printf("</td></tr>\n");
 }
 
-static void output_mimeurl(struct rfc2045id *id, const char *form)
+static void output_mimeurl(std::string_view id, const char *form)
 {
 	output_scriptptrget();
 	printf("&amp;form=%s&amp;pos=%ld", form, (long)msg_pos);
@@ -1907,7 +1896,8 @@ static void output_mimeurl(struct rfc2045id *id, const char *form)
 	output_mimegpgfilename();
 }
 
-static void inline_image_action(struct rfc2045id *id, const char *content_type,
+static void inline_image_action(std::string_view id,
+				std::string_view content_type,
 				void *arg)
 {
 	if (!is_preview_mode())
@@ -1925,26 +1915,23 @@ static void inline_image_action(struct rfc2045id *id, const char *content_type,
 }
 
 
-static void showattname(const char *fmt, const char *name,
-	const char *content_type)
+static void showattname(std::string fmt, std::string_view name,
+			std::string_view content_type)
 {
-char	*t;
+	if (!name.size())	name=content_type;
 
-	if (!name || !*name)	name=content_type;
-	if (!name)	name="";
+	auto p=fmt.find("%s");
 
-	t=static_cast<char *>(malloc(strlen(name)+strlen(fmt)+100));
-	if (!t)
-		return;
-
-	sprintf(t, fmt, name);
-	output_attrencoded(t);
-	free(t);
+	if (p != fmt.npos)
+	{
+		fmt.replace(p, 2, name);
+	}
+	output_attrencoded(fmt);
 }
 
-static void unknown_attachment_action(struct rfc2045id *id,
-				      const char *content_type,
-				      const char *content_name,
+static void unknown_attachment_action(std::string_view id,
+				      std::string_view content_type,
+				      std::string_view content_name,
 				      off_t size,
 				      void *arg)
 {
@@ -1994,7 +1981,7 @@ static int is_gpg_enabled()
 	return *cgi(MIMEGPGFILENAME) && !is_preview_mode();
 }
 
-static void application_pgp_keys_action(struct rfc2045id *id)
+static void application_pgp_keys_action(std::string_view id)
 {
 	printf("<table border=\"0\" cellpadding=\"8\" cellspacing=\"1\" class=\"box-small-outer\"><tr><td>");
 	printf("<table border=\"0\" cellpadding=\"4\" cellspacing=\"4\" class=\"message-application-pgpkeys\"><tr><td>");
@@ -2120,11 +2107,6 @@ static char *get_url_to_mime_part(const char *mimeid, void *arg)
 void folder_showmsg(const char *dir, size_t pos)
 {
 	char	*filename;
-	FILE	*fp;
-	struct	rfc2045 *rfc;
-	char	buf[BUFSIZ];
-	int	n;
-	int	fd;
 
 	struct msg2html_info *info;
 
@@ -2156,26 +2138,25 @@ void folder_showmsg(const char *dir, size_t pos)
 
 	filename=get_msgfilename(dir, &pos);
 
-	fp=0;
-	fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	if (fd >= 0)
-	{
-		if ((fp=fdopen(fd, "r")) == 0)
-			close(fd);
-	}
+	rfc822::fdstreambuf fp{maildir_semisafeopen(filename, O_RDONLY, 0)};
 
-	if (!fp)
+	if (fp.error())
 	{
 		free(filename);
 		return;
 	}
 
 	msg_pos=pos;
-	rfc=rfc2045_alloc();
 
-	while ((n=fread(buf, 1, sizeof(buf), fp)) > 0)
-		rfc2045_parse(rfc, buf, n);
-	rfc2045_parse_partial(rfc);
+	rfc2045::entity message;
+
+	{
+		std::istreambuf_iterator<char> b{&fp}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
 
 	info=script_name ? msg2html_alloc(sqwebmail_content_charset):NULL;
 
@@ -2252,15 +2233,13 @@ void folder_showmsg(const char *dir, size_t pos)
 		info->is_gpg_enabled=is_gpg_enabled();
 		info->is_preview_mode=is_preview_mode();
 
-		msg2html(fp, rfc, info);
+		msg2html(fp, message, info);
 		msg2html_free(info);
 
 		free(washpfix);
 		free(washpfixmailto);
 	}
 
-	rfc2045_free(rfc);
-	fclose(fp);
 	if (*cgi(MIMEGPGFILENAME) == 0)
 		maildir_markread(dir, pos);
 	free(filename);

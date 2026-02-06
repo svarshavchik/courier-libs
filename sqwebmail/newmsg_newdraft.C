@@ -106,7 +106,7 @@ char *newmsg_newdraft(const char *folder, const char *pos,
 		rfc2045partp=rfc2045_find(rfc2045p, mimeidptr);
 		if (rfc2045partp)
 		{
-		const char      *content_type, *dummy;
+			const char      *content_type, *dummy;
 
 			rfc2045_mimeinfo(rfc2045partp, &content_type,
 				&dummy, &dummy);

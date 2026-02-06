@@ -13,6 +13,8 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<errno.h>
+#include	<fcntl.h>
+#include	<unistd.h>
 
 void rfc2045_error(const char *p)
 {
@@ -33,26 +35,31 @@ void fake_exit(int rc)
 
 int main(int argc, char **argv)
 {
-	FILE *fp;
-	struct rfc2045 *rfc;
 	struct msg2html_info *info;
 
 	if (argc < 2)
 		return 0;
 
-	if ((fp=fopen(argv[1], "r")) == NULL)
+	rfc822::fdstreambuf fd{open(argv[1], O_RDONLY)};
+
+	if (fd.error())
 	{
 		perror(argv[1]);
 		exit(1);
 	}
 
-	rfc=rfc2045_fromfp(fp);
+	rfc2045::entity message;
+	{
+		std::istreambuf_iterator<char> b{&fd}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
 
 	info=msg2html_alloc("utf-8");
 	info->showhtml=1;
-	msg2html(fp, rfc, info);
-	fclose(fp);
+	msg2html(fd, message, info);
 	msg2html_free(info);
-	rfc2045_free(rfc);
 	return (0);
 }

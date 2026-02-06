@@ -74,6 +74,7 @@ EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.c
+nodist_EXTRA_testhtml_SOURCES=forcecpp2.cc
 testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 testhtml_LDADD=libwebmail.la $(COMMONLDADD)
 

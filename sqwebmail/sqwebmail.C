@@ -272,6 +272,11 @@ extern "C" void output_attrencoded(const char *p)
 	output_attrencoded_fp(p, stdout);
 }
 
+void output_attrencoded(std::string_view p)
+{
+	print_attrencodedlen(p.data(), p.size(), 0, stdout);
+}
+
 extern "C" void output_attrencoded_oknl_fp(const char *p, FILE *fp)
 {
 	print_attrencodedlen(p, strlen(p), 1, fp);
@@ -2268,7 +2273,8 @@ time_t	timeouthard=get_timeouthard();
 		FILE *f;
 
 		f=fopen("/tmp/pid", "w");
-		fprintf(f, "%d\n", (int)getpid());
+		fprintf(f, "gdb /proc/%d/exe %d\n", (int)getpid(),
+			(int)getpid());
 		fclose(f);
 		sleep(10);
 	}

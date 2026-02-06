@@ -497,16 +497,19 @@ static void convert_text2html(const char *p, size_t l, void *arg)
 	msg2html_textplain(info, p, l);
 }
 
-static char *mkurl(const char *url, void *dummy)
+static std::string mkurl(std::string_view url,
+			 std::string_view dispurl)
 {
-	char *buf=static_cast<char *>(malloc(strlen(url)*2+100));
+	std::string buf;
 
-	if (!buf)
-		return NULL;
-
+	buf.reserve(url.size()+dispurl.size()+30);
 	/* msg2html guarantees that the characters in url are "safe" */
 
-	sprintf(buf, "<a href=\"%s\">%s</a>", url, url);
+	buf="<a href=\"";
+	buf += url;
+	buf += "\">";
+	buf += dispurl;
+	buf += "</a>";
 	return buf;
 }
 
@@ -778,10 +781,9 @@ char *sig, *footer;
 
 		info=msg2html_textplain_start(sqwebmail_content_charset,
 					      sqwebmail_content_charset,
-					      1,
-					      1,
-					      0,
-					      mkurl, NULL,
+					      true,
+					      true,
+					      mkurl,
 					      NULL,
 					      NULL,
 					      1,
@@ -807,10 +809,9 @@ char *sig, *footer;
 
 			info=msg2html_textplain_start(sqwebmail_content_charset,
 						      sqwebmail_content_charset,
-						      1,
-						      1,
-						      0,
-						      mkurl, NULL,
+						      true,
+						      true,
+						      mkurl,
 						      NULL,
 						      NULL,
 						      1,
@@ -835,10 +836,9 @@ char *sig, *footer;
 
 			info=msg2html_textplain_start(sqwebmail_content_charset,
 						      sqwebmail_content_charset,
-						      1,
-						      1,
-						      0,
-						      mkurl, NULL,
+						      true,
+						      true,
+						      mkurl,
 						      NULL,
 						      NULL,
 						      1,
