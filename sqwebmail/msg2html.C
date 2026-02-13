@@ -11,6 +11,7 @@
 #include "gpglib/gpglib.h"
 #include <charconv>
 #include "cgi/cgi.h"
+#include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc3676parser.h"
 #include "md5/md5.h"
@@ -2864,7 +2865,17 @@ static void showkey(std::streambuf &fd,
 		    struct msg2html_info *info)
 {
 	if (info->application_pgp_keys_action)
-		(*info->application_pgp_keys_action)(id);
+	{
+		std::string s;
+
+		rfc822::display_header(
+			"content-description",
+			message.content_description,
+			info->output_character_set,
+			std::back_inserter(s)
+		);
+		(*info->application_pgp_keys_action)(id, s);
+	}
 }
 
 static void (*get_known_handler(const rfc2045::entity &mime,

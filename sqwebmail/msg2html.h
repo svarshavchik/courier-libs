@@ -76,7 +76,10 @@ struct msg2html_info {
 				    void *arg)=nullptr;
 	/* Inline image attachment */
 
-	void (*application_pgp_keys_action)(std::string_view id)=nullptr;
+	void (*application_pgp_keys_action)(
+		std::string_view idptr,
+		std::string_view content_description
+	)=nullptr;
 	/* Attached PGP keys */
 
 	void (*unknown_attachment_action)(std::string_view idptr,

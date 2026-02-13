@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2013 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -1597,7 +1597,7 @@ static int is_preview_mode()
 	return (*cgi("showdraft"));
 }
 
-static void dokeyimport(FILE *, struct rfc2045 *, int);
+static void dokeyimport(rfc822::fdstreambuf &, const rfc2045::entity *, bool);
 
 static void charset_warning(std::string_view mime_charset, void *arg)
 {
@@ -1981,9 +1981,16 @@ static int is_gpg_enabled()
 	return *cgi(MIMEGPGFILENAME) && !is_preview_mode();
 }
 
-static void application_pgp_keys_action(std::string_view id)
+static void application_pgp_keys_action(std::string_view id,
+					std::string_view content_description)
 {
-	printf("<table border=\"0\" cellpadding=\"8\" cellspacing=\"1\" class=\"box-small-outer\"><tr><td>");
+	if (!content_description.empty())
+	{
+		printf("<h3>");
+		output_attrencoded(content_description);
+		printf("</h3>");
+	}
+	printf("<table border=\"1\" cellpadding=\"8\" cellspacing=\"1\" class=\"box-small-outer\"><tr><td>");
 	printf("<table border=\"0\" cellpadding=\"4\" cellspacing=\"4\" class=\"message-application-pgpkeys\"><tr><td>");
 
 	if (strcmp(cgi("form"), "print") == 0 || is_preview_mode())
@@ -2248,47 +2255,44 @@ void folder_showmsg(const char *dir, size_t pos)
 void folder_keyimport(const char *dir, size_t pos)
 {
 	char	*filename;
-	FILE	*fp;
-	struct	rfc2045 *rfc;
-	int	fd;
 
 	filename=get_msgfilename(dir, &pos);
 
-	fp=0;
-	fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	if (fd >= 0)
-	{
-		if ((fp=fdopen(fd, "r")) == 0)
-			close(fd);
-	}
+	rfc822::fdstreambuf fp{
+		maildir_semisafeopen(filename, O_RDONLY, 0)
+	};
+	free(filename);
 
-	if (!fp)
+	if (fp.error())
 	{
-		free(filename);
 		return;
 	}
 
-	rfc=rfc2045_fromfp(fp);
+	rfc2045::entity message;
 
+	{
+		std::istreambuf_iterator<char> b{&fp}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
 
 	if (libmail_gpg_has_gpg(GPGDIR) == 0)
 	{
-		struct rfc2045 *part;
+		const rfc2045::entity *part;
 
 		if (*cgi("pubkeyimport")
-		    && (part=rfc2045_find(rfc, cgi("keymimeid"))) != 0)
+		    && (part=message.find(cgi("keymimeid"))) != nullptr)
 		{
-			dokeyimport(fp, part, 0);
+			dokeyimport(fp, part, false);
 		}
 		else if (*cgi("privkeyimport")
-		    && (part=rfc2045_find(rfc, cgi("keymimeid"))) != 0)
+		    && (part=message.find(cgi("keymimeid"))) != nullptr)
 		{
-			dokeyimport(fp, part, 1);
+			dokeyimport(fp, part, true);
 		}
 	}
-	rfc2045_free(rfc);
-	fclose(fp);
-	free(filename);
 
 	printf("<p><a href=\"");
 	output_scriptptrget();
@@ -2297,14 +2301,11 @@ void folder_keyimport(const char *dir, size_t pos)
 }
 
 static int importkey_func(const char *p, size_t cnt, void *voidptr);
-static int importkeyin_func(const char *p, size_t cnt, void *voidptr);
+static int importkeyin_func(const char *p, size_t cnt);
 
-static void dokeyimport(FILE *fp, struct rfc2045 *rfcp, int issecret)
+static void dokeyimport(rfc822::fdstreambuf &fp, const rfc2045::entity *rfcp,
+			bool issecret)
 {
-	off_t	start_pos, end_pos, start_body, ldummy;
-	char buf[BUFSIZ];
-	int cnt;
-
 	static const char start_str[]=
 		"<table width=\"100%%\" border=\"0\" class=\"box-outer\"><tr><td>"
 		"<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"4\""
@@ -2313,48 +2314,18 @@ static void dokeyimport(FILE *fp, struct rfc2045 *rfcp, int issecret)
 	static const char end_str[]=
 		"</pre></td></tr></table></td></tr></table><br />\n";
 
-	if (libmail_gpg_import_start(GPGDIR, issecret))
+	if (libmail_gpg_import_start(GPGDIR, issecret ? 1:0))
 		return;
 
 	printf(start_str, getarg("IMPORTHDR"));
 
-	rfc2045_mimepos(rfcp, &start_pos, &end_pos, &start_body,
-		&ldummy, &ldummy);
-	if (fseek(fp, start_body, SEEK_SET) < 0)
-	{
-		error("Seek error.");
-		libmail_gpg_import_finish(&importkey_func, NULL);
-		printf("%s", end_str);
-		return;
-	}
-
-	rfc2045_cdecode_start(rfcp, &importkeyin_func, 0);
-
-	while (start_body < end_pos)
-	{
-		cnt=sizeof(buf);
-		if (cnt > end_pos-start_body)
-			cnt=end_pos-start_body;
-		cnt=fread(buf, 1, cnt, fp);
-		if (cnt <= 0)	break;
-		start_body += cnt;
-		if (rfc2045_cdecode(rfcp, buf, cnt))
-		{
-			rfc2045_cdecode_end(rfcp);
-			printf("%s", end_str);
-			return;
-		}
-	}
-
-	if (rfc2045_cdecode_end(rfcp) == 0)
-	{
-		libmail_gpg_import_finish(&importkey_func, NULL);
-	}
+	rfcp->decode_body(fp, importkeyin_func);
+	libmail_gpg_import_finish(&importkey_func, NULL);
 
 	printf("%s", end_str);
 }
 
-static int importkeyin_func(const char *p, size_t cnt, void *voidptr)
+static int importkeyin_func(const char *p, size_t cnt)
 {
 	return (libmail_gpg_import_do(p, cnt, &importkey_func, NULL));
 }
