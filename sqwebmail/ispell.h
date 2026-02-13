@@ -1,44 +1,33 @@
 #ifndef	ispell_h
 #define	ispell_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
+#include <string>
+#include <string_view>
+#include <list>
+#include <tuple>
+
 /*
-** C interface to ispell.  Gimme a line of text, and I'll return a link
+** C++ interface to ispell.  Gimme a line of text, and I'll return
 ** list of mispelled words, plus their suggested derivations.
 */
 
-struct ispell_misspelled;
-struct ispell_suggestion;
-
 struct ispell {
-	char *ispell_buf;
-	struct ispell_misspelled *first_misspelled;
-} ;
+private:
+	std::string buffer; // Internal buffer of ispell's response
+public:
+	struct misspelling {
+		std::string_view misspelled_word;
+		size_t word_pos{0}; // In the message
+		std::list<std::string_view> suggestions;
+	};
 
-struct ispell_misspelled {
-	struct ispell_misspelled *next;
-	const char *misspelled_word;
-	int word_pos;
-	struct ispell_suggestion *first_suggestion;
-} ;
+	std::list<misspelling> misspelled_words;
 
-struct ispell_suggestion {
-	struct ispell_suggestion *next;
-	const char *suggested_word;
-} ;
+	ispell(const char *dict, std::string_view line);
+	~ispell();
 
-struct ispell *ispell_run(const char *dictionary, const char *line);
-void ispell_free(struct ispell *);
+	ispell(const ispell &)=delete;
+	ispell &operator=(const ispell &)=delete;
+};
 
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 #endif

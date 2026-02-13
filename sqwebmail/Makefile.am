@@ -27,7 +27,10 @@ noinst_DATA=$(DOCS) TIMEZONELIST
 #  bin_PROGRAMS in install-exec-local, otherwise make distcheck will fail.
 #
 
-noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml testlogindomainlist
+noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
+	testispell \
+	testhtml \
+	testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../cgi/libcgi.la \
@@ -53,7 +56,7 @@ showmsg2html_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 showmsg2html_LDADD=libwebmail.la $(COMMONLDADD)
 showmsg2html_LDFLAGS=-static
 
-ISPELLSOURCES=sqispell.C ispell.c ispell.h
+ISPELLSOURCES=sqispell.C ispell.C ispell.h
 
 BUILT_SOURCES=htmllibdir.h
 if HAVE_SGML
@@ -70,13 +73,19 @@ endif
 EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	 sqwebmail-common.pamconf sqwebmail-system-auth2.pamconf\
            strdup.c strcasecmp.c strncasecmp.c sv-make_timezonelist.pl\
-           $(ISPELLSOURCES) \
+           $(ISPELLSOURCES) testispell.C \
 	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.c
 nodist_EXTRA_testhtml_SOURCES=forcecpp2.cc
 testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 testhtml_LDADD=libwebmail.la $(COMMONLDADD)
+
+if ISPELL
+testispell_SOURCES=testispell.C
+testispell_DEPENDENCIES=$(COMMONDEPENDENCIES)
+testispell_LDADD=$(COMMONLDADD)
+endif
 
 #CFLAGS += -Dmalloc=my_malloc -Drealloc=my_realloc -Dfree=my_free -Dstrdup=my_strdup -Dcalloc=my_calloc
 
@@ -224,6 +233,9 @@ testlogindomainlist_SOURCES=testlogindomainlist.c logindomainlist.c
 
 check-am:
 	./testhtml <$(srcdir)/testhtml.tst | diff -U 3 $(srcdir)/testhtml.txt -
+	test -x ./testispell || exit 0; \
+	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testispell
 	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -
 
 check-version:
