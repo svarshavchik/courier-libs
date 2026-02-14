@@ -552,7 +552,6 @@ void newmsg_init(const char *folder, const char *pos)
 	const char	*text1=getarg("TEXT1");
 	const char	*text2=getarg("TEXT2");
 	char	*draftmessage;
-	char	*draftmessagefilename;
 	const	char *p;
 	FILE	*fp;
 	int	attachcnt=0;
@@ -592,8 +591,8 @@ void newmsg_init(const char *folder, const char *pos)
 		}
 	}
 
-	draftmessagefilename= draftmessage ?
-				 maildir_find(INBOX "." DRAFTS, draftmessage):0;
+	auto draftmessagefilename= draftmessage ?
+		maildir_find(INBOX "." DRAFTS, draftmessage):"";
 
 	if (*(p=cgi("previewmsg")))
 	{
@@ -604,14 +603,15 @@ void newmsg_init(const char *folder, const char *pos)
 		printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"1\" class=\"box-small-outer\"><tr><td>\n");
 		printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"4\" class=\"preview\"><tr><td>\n");
 
-		if (draftmessagefilename)
+		if (!draftmessagefilename.empty())
 		{
-			const char *p=strrchr(draftmessagefilename, '/');
+			const char *p=
+				strrchr(draftmessagefilename.c_str(), '/');
 
 			if (p)
 				++p;
 			else
-				p=draftmessagefilename;
+				p=draftmessagefilename.c_str();
 
 			newmsg_preview(p);
 		}
@@ -652,9 +652,10 @@ void newmsg_init(const char *folder, const char *pos)
 	curbcc=0;
 	fp=0;
 
-	if (draftmessagefilename)
+	if (!draftmessagefilename.empty())
 	{
-	int	x=maildir_safeopen(draftmessagefilename, O_RDONLY, 0);
+		int	x=maildir_safeopen(draftmessagefilename.c_str(),
+					   O_RDONLY, 0);
 
 		if (x >= 0)
 			if ((fp=fdopen(x, "r")) == 0)
@@ -857,8 +858,6 @@ void newmsg_init(const char *folder, const char *pos)
 
 	if (fp)
 		fclose(fp);
-	if (draftmessagefilename)
-		free(draftmessagefilename);
 
 	printf("<tr><td colspan=\"2\">&nbsp;</td><td>");
 	printf("<input type=\"submit\" name=\"previewmsg\" value=\"%s\" />",
@@ -997,10 +996,10 @@ int dsn;
 	{
 	static const char noexec[]="ERROR: Unable to execute sendit.sh.\n";
 	static const char nofile[]="ERROR: Temp file not available - probably exceeded quota.\n";
-	char	*tmpfile=maildir_find(INBOX "." SENT, filename);
+	auto tmpfile=maildir_find(INBOX "." SENT, filename);
 	int	fd;
 
-		if (!tmpfile)
+		if (tmpfile.empty())
 		{
 			if (fwrite((char*)nofile, 1, sizeof(nofile)-1, stderr))
 				; /* ignore */
@@ -1009,7 +1008,7 @@ int dsn;
 
 		close(0);
 
-		fd=maildir_safeopen(tmpfile, O_RDONLY, 0);
+		fd=maildir_safeopen(tmpfile.c_str(), O_RDONLY, 0);
 		dup2(pipefd1[1], 1);
 		dup2(pipefd1[1], 2);
 		close(pipefd1[0]);
@@ -1051,13 +1050,13 @@ int dsn;
 		if (*draftmessage)
 		{
 		char	*base=maildir_basename(draftmessage);
-		char	*draftfile=maildir_find(INBOX "." DRAFTS, base);
+		auto draftfile=maildir_find(INBOX "." DRAFTS, base);
 
 			free(base);
 
 			/* Remove draft file */
 
-			if (draftfile)
+			if (!draftfile.empty())
 			{
 			char	*replytofolder=0, *replytomsg=0;
 			char	*header, *value;
@@ -1065,8 +1064,10 @@ int dsn;
 			int	x;
 
 				fp=0;
-				x=maildir_safeopen(draftfile, O_RDONLY, 0);
-				if ( maildir_parsequota(draftfile, &filesize))
+				x=maildir_safeopen(draftfile.c_str(),
+						   O_RDONLY, 0);
+				if ( maildir_parsequota(draftfile.c_str(),
+							&filesize))
 				{
 					if (x < 0 || fstat(x, &stat_buf))
 						stat_buf.st_size=0;
@@ -1111,8 +1112,7 @@ int dsn;
 				maildir_quota_deleted(".",
 						      -(long)filesize, -1);
 
-				unlink(draftfile);
-				free(draftfile);
+				unlink(draftfile.c_str());
 			}
 		}
 
@@ -1121,14 +1121,13 @@ int dsn;
 		if (*cgi("fcc") == 0)
 		{
 			unsigned long filesize=0;
-			char	*tmpfile=maildir_find(INBOX "." SENT, filename);
+			auto tmpfile=maildir_find(INBOX "." SENT, filename);
 
-			if (tmpfile)
+			if (!tmpfile.empty())
 			{
-				maildir_parsequota(tmpfile, &filesize);
-				unlink(tmpfile);
+				maildir_parsequota(tmpfile.c_str(), &filesize);
+				unlink(tmpfile.c_str());
 				maildir_quota_deleted(".", -(long)filesize,-1);
-				free(tmpfile);
 			}
 		}
 

@@ -19,6 +19,8 @@
 struct unicode_info;
 
 #ifdef __cplusplus
+#include <string>
+
 extern "C" {
 #endif
 #if 0
@@ -51,7 +53,11 @@ extern void maildir_loadsearch(unsigned nfiles,
 extern void maildir_count(const char *, unsigned *, unsigned *);
 
 extern char *maildir_basename(const char *);
+#ifdef __cplusplus
+
+#else
 extern char *maildir_find(const char *, const char *);
+#endif
 extern char *maildir_posfind(const char *, size_t *);
 extern int maildir_name2pos(const char *, const char *, size_t *);
 
@@ -116,6 +122,10 @@ extern char *folder_fromutf8(const char *);
 #endif
 #ifdef __cplusplus
 }
+
+extern std::string maildir_find_cpp(const char *, const char *);
+#define maildir_find maildir_find_cpp
+extern int maildir_recreatemsg(const char *, const char *, std::string &);
 #endif
 
 /*

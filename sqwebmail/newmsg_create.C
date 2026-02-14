@@ -60,13 +60,13 @@ char *newmsg_createdraft(const char *curdraft)
 	if (curdraft && *curdraft)
 	{
 	char	*base=maildir_basename(curdraft);
-	char	*filename=maildir_find(INBOX "." DRAFTS, base);
+	auto filename=maildir_find(INBOX "." DRAFTS, base);
 
-		if (filename)
+	if (!filename.empty())
 		{
-		char	*p=newmsg_createdraft_do(filename, cgi("message"), 0);
+			char	*p=newmsg_createdraft_do(
+				filename.c_str(), cgi("message"), 0);
 
-			free(filename);
 			free(base);
 			return (p);
 		}
@@ -1099,7 +1099,7 @@ static void lookup_addressbook(const char *header, const char *value)
 
 extern "C" char *newmsg_createsentmsg(const char *draftname, int *isgpgerr)
 {
-char	*filename=maildir_find(INBOX "." DRAFTS, draftname);
+auto filename=maildir_find(INBOX "." DRAFTS, draftname);
 FILE	*fp;
 char	*sentname;
 char	*header, *value;
@@ -1108,18 +1108,17 @@ int	x;
 
 	*isgpgerr=0;
 
-	if (!filename)	return (0);
+	if (filename.empty())	return (0);
 
 	fp=0;
 
-	x=maildir_safeopen(filename, O_RDONLY, 0);
+	x=maildir_safeopen(filename.c_str(), O_RDONLY, 0);
 	if (x >= 0)
 		if ((fp=fdopen(x, "r")) == 0)
 			close(x);
 
 	if (fp == 0)
 	{
-		free(filename);
 		enomem();
 	}
 
@@ -1135,7 +1134,6 @@ int	x;
 	if (newdraftfd < 0)
 	{
 		rfc2045_free(rfcp);
-		free(filename);
 		fclose(fp);
 		enomem();
 	}

@@ -100,7 +100,6 @@ static off_t max_attach()
 extern "C"
 void attachments_head(const char *folder, const char *pos, const char *draft)
 {
-char *filename;
 int	cnt=0;
 bool	foundtextplain=false;
 const char	*noattach_lab=getarg("NOATTACH");
@@ -108,11 +107,12 @@ const char	*quotaerr=getarg("QUOTAERR");
 const char	*limiterr=getarg("LIMITERR");
 
 	CHECKFILENAME(draft);
-	filename=maildir_find(INBOX "." DRAFTS, draft);
-	if (!filename)	return;
+	auto filename=maildir_find(INBOX "." DRAFTS, draft);
+	if (filename.empty())	return;
 
-	rfc822::fdstreambuf fd2{maildir_safeopen(filename, O_RDONLY, 0)};
-	free(filename);
+	rfc822::fdstreambuf fd2{
+		maildir_safeopen(filename.c_str(), O_RDONLY, 0)
+	};
 
 	if (fd2.error())
 	{
@@ -228,16 +228,14 @@ const char	*limiterr=getarg("LIMITERR");
 
 void attachments_opts(const char *draft)
 {
-	char *filename;
 	FILE *fp;
 
 	CHECKFILENAME(draft);
 
-	filename=maildir_find(INBOX "." DRAFTS, draft);
-	if (!filename)
+	auto filename=maildir_find(INBOX "." DRAFTS, draft);
+	if (filename.empty())
 		return;
-	fp=fopen(filename, "r");
-	free(filename);
+	fp=fopen(filename.c_str(), "r");
 	if (!fp)
 		return;
 
@@ -290,11 +288,11 @@ static void attachment_open(const char *draft,
 	int	*fd2,
 	struct rfc2045 **rfcp)
 {
-char	*oldname=maildir_find(INBOX "." DRAFTS, draft);
+	auto oldname=maildir_find(INBOX "." DRAFTS, draft);
 
-	if (!oldname)	enomem();
+	if (oldname.empty())	enomem();
 
-	*fd2=maildir_safeopen(oldname, O_RDONLY, 0);
+	*fd2=maildir_safeopen(oldname.c_str(), O_RDONLY, 0);
 
 	*fp=0;
 	if (*fd2 >= 0)
@@ -651,7 +649,6 @@ extern "C" int attach_upload(const char *draft,
 			     const char *attprivkey)
 {
 	char	*attachfilename;
-	char	*draftfilename;
 	FILE	*draftfp;
 	char	*boundary;
 	FILE	*tempfp;
@@ -674,10 +671,10 @@ extern "C" int attach_upload(const char *draft,
 
 	/* Open the file containing the draft message */
 
-	draftfilename=maildir_find(INBOX "." DRAFTS, draft);
-	if (!draftfilename)	return (0);
+	auto draftfilename=maildir_find(INBOX "." DRAFTS, draft);
+	if (draftfilename.empty())	return (0);
 
-	fd2=maildir_safeopen(draftfilename, O_RDONLY, 0);
+	fd2=maildir_safeopen(draftfilename.c_str(), O_RDONLY, 0);
 
 	draftfp=0;
 	if (fd2 >= 0)
@@ -690,7 +687,6 @@ extern "C" int attach_upload(const char *draft,
 	if (draftfp == 0)
 		enomem();
 
-	free(draftfilename);
 	if (fstat(fileno(draftfp), &stat_buf))
 	{
 		fclose(draftfp);
@@ -770,7 +766,7 @@ extern "C" int attach_upload(const char *draft,
 
 	/* Create a new version of the draft message */
 
-	newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, draft, &draftfilename);
+	newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, draft, draftfilename);
 	if (newdraftfd < 0)
 	{
 		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
@@ -781,8 +777,10 @@ extern "C" int attach_upload(const char *draft,
 
 	if (fseek(draftfp, 0L, SEEK_SET) < 0)
 	{
-		maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, 0, 0);
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
+		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+				 draftfilename.c_str(), 0, 0);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename, 0, 0);
 		fclose(draftfp);
 		close(attachfd);
 		enomem();
@@ -822,10 +820,12 @@ extern "C" int attach_upload(const char *draft,
 
 		if (rc)
 		{
-			maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename,
-				0, 0);
-			maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename,
-				0, 0);
+			maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+					 draftfilename.c_str(),
+					 0, 0);
+			maildir_closemsg(attachfd, INBOX "." DRAFTS,
+					 attachfilename,
+					 0, 0);
 			fclose(draftfp);
 			close(newdraftfd);
 			close(attachfd);
@@ -850,7 +850,7 @@ extern "C" int attach_upload(const char *draft,
 			if (messagecopy(draftfp, start_pos, end_pos))
 			{
 				maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
-					draftfilename, 0, 0);
+						 draftfilename.c_str(), 0, 0);
 				maildir_closemsg(attachfd, INBOX "." DRAFTS,
 					attachfilename, 0, 0);
 				fclose(draftfp);
@@ -966,8 +966,10 @@ extern "C" int attach_upload(const char *draft,
 			free(filenamemime);
 		if (filenamebuf)
 			free(filenamebuf);
-		maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, 0, 0);
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
+		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+				 draftfilename.c_str(), 0, 0);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename, 0, 0);
 		fclose(draftfp);
 		close(newdraftfd);
 		close(attachfd);
@@ -982,8 +984,10 @@ extern "C" int attach_upload(const char *draft,
 			free(filenamemime);
 		if (filenamebuf)
 			free(filenamebuf);
-		maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, 0, 0);
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
+		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+				 draftfilename.c_str(), 0, 0);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename, 0, 0);
 		fclose(draftfp);
 		close(newdraftfd);
 		close(attachfd);
@@ -1040,8 +1044,10 @@ extern "C" int attach_upload(const char *draft,
 
 	if (waitstat > 0 || n < 0)
 	{
-		maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, 0, 0);
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
+		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+				 draftfilename.c_str(), 0, 0);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename, 0, 0);
 		fclose(draftfp);
 		close(newdraftfd);
 		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
@@ -1055,11 +1061,11 @@ extern "C" int attach_upload(const char *draft,
 
 	/* Finish new draft message, let it replace the current one */
 
-	if (maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, 1,
-		stat_buf.st_size))
+	if (maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+			     draftfilename.c_str(), 1,
+			     stat_buf.st_size))
 	{
 		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
-		free(draftfilename);
 		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
 		free(attachfilename);
 		rfc2045_free(rfcp);
@@ -1067,7 +1073,6 @@ extern "C" int attach_upload(const char *draft,
 		close(attachfd);
 		return (-1);
 	}
-	free(draftfilename);
 
 	fclose(draftfp);
 

@@ -269,6 +269,8 @@ char *alloc_filename(const char *dir1, const char *dir2, const char *filename)
 	return (p);
 }
 
+#undef maildir_find
+
 /*
 ** char *maildir_find(const char *maildir, const char *filename)
 **	- find a message in a maildir
@@ -277,6 +279,7 @@ char *alloc_filename(const char *dir1, const char *dir2, const char *filename)
 ** in filename have changed, we search for the given message.
 */
 
+extern "C"
 char *maildir_find(const char *folder, const char *filename)
 {
 char	*p;
@@ -298,6 +301,16 @@ int	fd;
 	return (0);
 }
 
+std::string maildir_find_cpp(const char *folder, const char *filename)
+{
+	auto p=maildir_find(folder, filename);
+
+	if (!p) return {};
+
+	std::string f{p};
+	free(p);
+	return f;
+}
 /*
 ** char *maildir_basename(const char *filename)
 **
@@ -3716,6 +3729,20 @@ int	n;
 	return (n);
 }
 
+int maildir_recreatemsg(const char *folder, const char *name,
+			std::string &baseptr)
+{
+	char *ptr;
+
+	auto n=maildir_recreatemsg(folder, name, &ptr);
+
+	if (n >= 0)
+	{
+		baseptr=ptr;
+		free(ptr);
+	}
+	return n;
+}
 
 /* Flush write buffer */
 

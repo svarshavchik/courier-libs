@@ -1926,16 +1926,15 @@ char	*p;
 			/* DRAFTS may contain event files */
 		{
 			const char *n=cgi("draft");
-			char *filename;
 			FILE *fp;
 
 			CHECKFILENAME(n);
 
-			filename=maildir_find(INBOX "." DRAFTS, n);
+			auto filename=maildir_find(INBOX "." DRAFTS, n);
 
-			if (filename)
+			if (!filename.empty())
 			{
-				if ((fp=fopen(filename, "r")) != NULL)
+				if ((fp=fopen(filename.c_str(), "r")) != NULL)
 				{
 					struct rfc822hdr h;
 
@@ -1956,7 +1955,6 @@ char	*p;
 					rfc822hdr_free(&h);
 					fclose(fp);
 				}
-				free(filename);
 			}
 		}
 	}

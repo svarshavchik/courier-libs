@@ -36,14 +36,13 @@ static bool search_spell(const char *, unsigned, unsigned);
 
 int spell_start(const char *c)
 {
-char	*filename=maildir_find(INBOX "." DRAFTS, c);
+	auto filename=maildir_find(INBOX "." DRAFTS, c);
 
-	if (!c)	return (-1);
+	if (filename.empty())	return (-1);
 
-	if (search_spell(filename, 0, 0) == 0)
+	if (search_spell(filename.c_str(), 0, 0) == 0)
 		return (-1);
 
-	free(filename);
 	return (0);
 }
 
@@ -675,17 +674,16 @@ void spell_check_continue()
 const char *filename=cgi("draftmessage");
 unsigned parnum=atol(cgi("row"));
 unsigned pos=atol(cgi("col"));
-char	*draftfilename;
 
 	CHECKFILENAME(filename);
-	draftfilename=maildir_find(INBOX "." DRAFTS, filename);
-	if (!draftfilename)
+	auto draftfilename=maildir_find(INBOX "." DRAFTS, filename);
+	if (draftfilename.empty())
 	{
 		output_form("folder.html");
 		return;
 	}
 
-	if (search_spell(draftfilename, parnum, pos) &&
+	if (search_spell(draftfilename.c_str(), parnum, pos) &&
 		*cgi("continue"))
 		output_form("spellchk.html");
 	else
@@ -694,7 +692,6 @@ char	*draftfilename;
 		cgi_put("previewmsg","SPELLCHK");
 		output_form("newmsg.html");
 	}
-	free(draftfilename);
 }
 
 void ispell_cleanup()
