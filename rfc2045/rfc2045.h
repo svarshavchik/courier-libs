@@ -1984,6 +1984,9 @@ public:
 		return find(this, id);
 	}
 
+	entity *find_content_type(std::string_view content_type);
+	const entity *find_content_type(std::string_view content_type) const;
+
 	struct dsn {
 		std::string_view action;
 		std::string_view original_recipient;

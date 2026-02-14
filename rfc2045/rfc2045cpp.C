@@ -691,6 +691,49 @@ std::string rfc2045::entity_info::content_id_value() const
 	return cid;
 }
 
+rfc2045::entity *rfc2045::entity::find_content_type(
+	std::string_view content_type
+)
+{
+	if (content_type == this->content_type.value)
+		return this;
+
+	if (std::string_view{this->content_type.value}.substr(0, 10) ==
+	    "multipart/")
+	{
+		for (auto &subentity:subentities)
+		{
+			auto p=subentity.find_content_type(content_type);
+
+			if (p)
+				return p;
+		}
+	}
+	return  nullptr;
+}
+
+const rfc2045::entity *rfc2045::entity::find_content_type(
+	std::string_view content_type
+) const
+{
+	if (content_type == this->content_type.value)
+		return this;
+
+	if (std::string_view{this->content_type.value}.substr(0, 10) ==
+	    "multipart/")
+	{
+		for (auto &subentity:subentities)
+		{
+			auto p=subentity.find_content_type(content_type);
+
+			if (p)
+				return p;
+		}
+	}
+	return  nullptr;
+}
+
+
 template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
 	rfc2045::entity *, std::string_view
 );

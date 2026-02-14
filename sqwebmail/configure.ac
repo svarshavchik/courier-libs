@@ -348,9 +348,9 @@ AC_DEFINE_UNQUOTED(MAXPURGE,$MAXPURGE,
 
 AC_ARG_WITH(maxmsgsize,
 [  --with-maxmsgsize=nbytes       Limit max size of a created message, in bytes
-                                 (default: 2 megabytes)],
+                                 (default: 20 megabytes)],
 	MAXMSGSIZE=$withval,
-	MAXMSGSIZE=2097152)
+	MAXMSGSIZE=20971520)
 
 AC_SUBST(MAXMSGSIZE)
 

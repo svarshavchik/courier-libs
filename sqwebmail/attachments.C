@@ -53,10 +53,8 @@ extern "C" {
 #endif
 
 extern char *alloc_filename(const char *, const char *, const char *);
-extern void output_attrencoded(const char *);
 extern int newdraftfd;
 extern void output_scriptptrget();
-extern void output_urlencoded(const char *);
 
 extern int ishttps();
 
@@ -70,6 +68,8 @@ static void attachment_showname(const char *);
 #endif
 }
 
+extern void output_attrencoded(std::string_view);
+extern void output_urlencoded(std::string_view);
 extern void newmsg_hiddenheader(const char *, const char *);
 extern char *newmsg_alladdrs(FILE *);
 extern const char *showsize(unsigned long);
@@ -101,40 +101,32 @@ extern "C"
 void attachments_head(const char *folder, const char *pos, const char *draft)
 {
 char *filename;
-FILE	*fp;
-struct	rfc2045 *rfcp;
 int	cnt=0;
-struct	rfc2045 *q;
-int	foundtextplain=0;
+bool	foundtextplain=false;
 const char	*noattach_lab=getarg("NOATTACH");
 const char	*quotaerr=getarg("QUOTAERR");
 const char	*limiterr=getarg("LIMITERR");
-off_t	dummy;
-int	fd2;
 
 	CHECKFILENAME(draft);
 	filename=maildir_find(INBOX "." DRAFTS, draft);
 	if (!filename)	return;
 
-	fd2=maildir_safeopen(filename, O_RDONLY, 0);
+	rfc822::fdstreambuf fd2{maildir_safeopen(filename, O_RDONLY, 0)};
+	free(filename);
 
-	fp=0;
-	if (fd2 >= 0)
+	if (fd2.error())
 	{
-		fp=fdopen(fd2, "r");
-		if (fp == NULL)
-			close(fd2);
-	}
-
-	if (fp == NULL)
-	{
-		free(filename);
 		return;
 	}
 
-	rfcp=rfc2045_fromfp(fp);
-	fclose(fp);
-	free(filename);
+	rfc2045::entity message;
+
+	{
+		std::istreambuf_iterator<char> b{&fd2}, e;
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
 
 	if (strcmp(cgi("error"), "quota") == 0)
 	{
@@ -155,84 +147,77 @@ int	fd2;
 	tokennew();
 	printf("<table width=\"100%%\" border=\"0\">");
 
-	if (rfcp)
+	for (auto &q:message.subentities)
 	{
-		const char *content_type;
-		const char *content_transfer_encoding;
-		const char *charset;
-
-		rfc2045_mimeinfo(rfcp, &content_type,
-			&content_transfer_encoding, &charset);
-
-		if (content_type &&
-		    strcmp(content_type, "multipart/alternative") == 0)
-			rfcp=NULL;
-
-		/* No attachments here */
-	}
-
-	for (q=rfcp ? rfcp->firstpart:0; q; q=q->next)
-	{
-	const char *content_type;
-	const char *content_transfer_encoding;
-	const char *charset;
-	const char *name;
-	const char *cn;
-	char *content_name;
-
-	off_t start_pos, end_pos, start_body;
-
-		if (q->isdummy)	continue;
-
-		rfc2045_mimeinfo(q, &content_type,
-			&content_transfer_encoding, &charset);
-		if (!foundtextplain && HASTEXTPLAIN(q))
+		if (message.content_type.value == "multipart/alternative")
 		{
-			foundtextplain=1;
+			/* No attachments here */
+			break;
+		}
+
+		if (!foundtextplain && q.find_content_type("text/plain"))
+		{
+			foundtextplain=true;
 			continue;
 		}
-		rfc2045_mimepos(q, &start_pos, &end_pos, &start_body,
-			&dummy, &dummy);
 
 		++cnt;
 		printf("<tr><td align=\"left\"><input type=\"checkbox\" name=\"del%d\" id=\"del%d\" />&nbsp;",
-			cnt, cnt);
+		       cnt, cnt);
 
-		if (rfc2231_udecodeType(q, "name", sqwebmail_content_charset,
-					&content_name) < 0 ||
-		    rfc2231_udecodeDisposition(q, "filename",
-					       sqwebmail_content_charset,
-					       &content_name) < 0)
-			content_name=NULL;
+		std::string content_name;
 
-		if (!content_name &&
-		    ((cn=rfc2045_getattr(q->content_type_attr, "name")) ||
-		     (cn=rfc2045_getattr(q->content_disposition_attr,
-					 "filename"))))
+		auto name_iter=q.content_type.parameters.find("name");
+
+		if (name_iter != q.content_type.parameters.end())
 		{
-			content_name =
-				rfc822_display_hdrvalue_tobuf("subject",
-							      cn,
-							      sqwebmail_content_charset,
-							      NULL,
-							      NULL);
+			content_name=name_iter->second.value_in_charset(
+				sqwebmail_content_charset
+			);
 		}
-
-		if ((!content_name || !*content_name) &&
-		    strcmp(content_type, "application/pgp-keys") == 0)
-			name=getarg("KEYDESCR");
 		else
 		{
-			name=content_name;
+			rfc2045::entity::rfc2231_header content_disposition{
+				q.content_disposition
+			};
+
+			auto filename_iter=content_disposition.parameters.find(
+				"filename"
+			);
+
+			if (filename_iter !=
+			    content_disposition.parameters.end())
+			{
+				content_name=
+					filename_iter->second.value_in_charset(
+						sqwebmail_content_charset
+					);
+			}
 		}
 
-		attachment_showname(name);
-		if (content_name)
-			free(content_name);
+		{
+			std::string s;
+
+			rfc822::display_header(
+				"subject",
+				content_name,
+				sqwebmail_content_charset,
+				std::back_inserter(s)
+			);
+			content_name=std::move(s);
+		}
+
+		if (content_name.empty() &&
+		    q.content_type.value == "application/pgp-keys")
+		{
+			content_name=getarg("KEYDESCR");
+		}
+
+		attachment_showname(content_name.c_str());
 		printf("</td><td align=\"left\">&nbsp;&nbsp;<label for=\"del%d\">", cnt);
-		output_attrencoded( content_type );
+		output_attrencoded( q.content_type.value );
 		printf("</label></td><td align=\"right\">%s<br /></td></tr>",
-			showsize(end_pos - start_body));
+			showsize(q.endbody - q.startbody));
 	}
 
 	if (cnt == 0)
@@ -1008,6 +993,7 @@ extern "C" int attach_upload(const char *draft,
 
 	if (pid1 == 0)
 	{
+		setenv("CHARSET", sqwebmail_content_charset, 1);
 		dup2(attachfd, 0);
 		dup2(pipefd[1], 1);
 		close(attachfd);
