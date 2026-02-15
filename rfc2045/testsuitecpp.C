@@ -3172,6 +3172,78 @@ static void testheadercustom()
 	}
 }
 
+static void testboundary_detector()
+{
+	static const struct {
+		const char *boundary;
+		const char *chunk;
+		bool exists;
+	} tests[]={
+
+		// Test 1
+		{
+			"AAA",
+			"Lorem\n"
+			"Upsum\n"
+			"AAA\n",
+			false
+		},
+		// Test 2
+		{
+			"AAA",
+			"Lorem\n"
+			"Upsum\n"
+			"--AAA\n",
+			true
+		},
+		// Test 3
+		{
+			"AAA",
+			"Lorem Ipsum\n"
+			"--AAAAA\n"
+			"Lorem Ipsum\n",
+			true
+		},
+		// Test 4
+		{
+			"1234567890",
+			"Lorem\n"
+			"Upsum\n"
+			"--AAA\n",
+			false
+		},
+	};
+
+	size_t n=0;
+	for (const auto &test:tests)
+	{
+		++n;
+		std::string boundary=test.boundary;
+		std::string_view chunk=test.chunk;
+
+		rfc2045::entity::boundary_detector detector{boundary};
+
+		while (!chunk.empty())
+		{
+			size_t n=chunk.size();
+
+			if (n > 10)
+				n=10;
+
+			detector(chunk.data(), n);
+			chunk=chunk.substr(n);
+		}
+
+		bool exists=detector;
+
+		if (exists != test.exists)
+		{
+			std::cerr << "Boundary detector test "
+				  << n << " failed.\n";
+			exit(1);
+		}
+	}
+}
 int main()
 {
 	rfc2045_setdefaultcharset("iso-8859-1");
@@ -3189,5 +3261,6 @@ int main()
 	testappendurl();
 	testdecodingerror();
 	testheadercustom();
+	testboundary_detector();
 	return 0;
 }

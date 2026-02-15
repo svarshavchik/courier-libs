@@ -20,6 +20,7 @@ struct unicode_info;
 
 #ifdef __cplusplus
 #include <string>
+#include "rfc822/rfc822.h"
 
 extern "C" {
 #endif
@@ -53,12 +54,6 @@ extern void maildir_loadsearch(unsigned nfiles,
 extern void maildir_count(const char *, unsigned *, unsigned *);
 
 extern char *maildir_basename(const char *);
-#ifdef __cplusplus
-
-#else
-extern char *maildir_find(const char *, const char *);
-#endif
-extern char *maildir_posfind(const char *, size_t *);
 extern int maildir_name2pos(const char *, const char *, size_t *);
 
 extern char maildirfile_type(const char *);
@@ -123,9 +118,15 @@ extern char *folder_fromutf8(const char *);
 #ifdef __cplusplus
 }
 
-extern std::string maildir_find_cpp(const char *, const char *);
-#define maildir_find maildir_find_cpp
+extern std::string maildir_find(const char *, const char *);
+extern std::string maildir_posfind(const char *, size_t *);
 extern int maildir_recreatemsg(const char *, const char *, std::string &);
+extern int maildir_createmsg(const char *, const char *, std::string &);
+extern int maildir_closemsg(rfc822::fdstreambuf &,
+			    const char *, const char *, int,
+			    unsigned long);
+extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
+				 const char *, const char *);
 #endif
 
 /*

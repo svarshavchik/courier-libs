@@ -22,6 +22,7 @@
 #include <utility>
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 #include <map>
 #include <optional>
 #include <variant>
@@ -31,6 +32,7 @@
 #include <streambuf>
 #include <optional>
 #include <condition_variable>
+#include <tuple>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc2045charset.h"
@@ -1805,6 +1807,31 @@ class rfc2045::entity : public entity_info {
 			std::string_view full_header);
 	};
 
+	// Utility class for detecting the presence of a proposed boundary
+	//
+	// The constructor takes a reference to a proposed boundary string.
+	// The overloaded () operator receives the raw contents, a chunk at
+	// a time.
+	//
+	// operator bool() indicates whether the MIME boundary delimiter
+	// string was found, there was a line in the raw contents that starts
+	// with -- followed by the boundary string.
+
+	struct boundary_detector {
+		std::string &boundary;
+	private:
+		bool found=false;
+		bool checked=false;
+		std::string line;
+
+	public:
+		// NOTE: boundary gets tolowercase()d.
+		boundary_detector(std::string &boundary);
+		~boundary_detector();
+		void operator()(const char *, size_t);
+		operator bool() const { return found; }
+	};
+
 	// Factory for iterators and parsers that use LF(false) or CRLF(true)
 	// newline sequence.
 
@@ -1855,6 +1882,10 @@ class rfc2045::entity : public entity_info {
 			src_type &src,
 			autoconvert_meta &metadata);
 	};
+
+	// Allow default constructor to be invoked if this entity is a part
+	// of a tuple
+	entity(std::tuple<>) noexcept : entity() {}
 
 	entity() noexcept;
 
@@ -3659,54 +3690,19 @@ bool rfc2045::entity::line_iter<crlf>::try_boundary(
 		return false;
 	}
 
-	bool found=false;
-	std::string line;
+	boundary_detector detector{boundary};
 
-	tolowercase(boundary);
-
-	std::function<void (const char *, size_t)> closure=
+	rfc822::mime_decoder do_decoder{
 		[&]
 		(const char *ptr, size_t n)
 		{
-			if (found)
-				return;
-
-			for (size_t j=0; j<n; j++)
-			{
-				char c=ptr[j];
-
-				if (c >= 'A' && c <= 'Z')
-					c += 'a'-'A';
-
-				if (line.size() <= boundary.size()+2)
-					line.push_back(c);
-
-				if (ptr[j] == '\n')
-				{
-					line.clear();
-					continue;
-				}
-
-				if (line.size() < boundary.size()+2)
-					continue;
-
-				if (line[0] == '-' && line[1] == '-' &&
-				    std::equal(boundary.begin(),
-					       boundary.end(),
-					       line.begin()+2))
-				{
-					found=true;
-				}
-			}
-
-		};
-
-	rfc822::mime_decoder do_decoder{closure, src};
+			detector(ptr, n);
+		}, src};
 
 	do_decoder.decode_header=true;
 	do_decoder.decode(e);
 
-	return found;
+	return detector;
 }
 template<typename src_type>
 std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)

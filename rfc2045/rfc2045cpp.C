@@ -564,11 +564,12 @@ rfc2045::headers_base::name_content()
 	auto sv=current_header();
 
 	auto b=sv.begin(), e=sv.end();
-	auto p=std::find(b, e, ':');
+	auto p=std::find_if(b, e, [](char c) { return c == ':' || c == '\r' ||
+				c == '\n';});
 
 	auto q=p;
 
-	if (q < e) ++q;
+	if (q < e && *q == ':') ++q;
 
 	while (q < e)
 	{
@@ -741,3 +742,48 @@ template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
 template const rfc2045::entity *rfc2045::entity::find<const rfc2045::entity>(
 	const rfc2045::entity *, std::string_view
 );
+
+rfc2045::entity::boundary_detector::boundary_detector(std::string &boundary)
+	: boundary{boundary}
+{
+	tolowercase(boundary);
+}
+
+void rfc2045::entity::boundary_detector::operator()(
+	const char *ptr, size_t n
+)
+{
+	if (found)
+		return;
+
+	for (size_t j=0; j<n; j++)
+	{
+		if (line.size() <= boundary.size()+2)
+			line.push_back(ptr[j]);
+
+		if (ptr[j] == '\n')
+		{
+			checked=false;
+			line.clear();
+			continue;
+		}
+
+		if (line.size() < boundary.size()+2)
+			continue;
+
+		if (checked)
+			continue;
+		checked=true;
+		if (line[0] == '-' && line[1] == '-' &&
+		    (tolowercase(line),
+		     std::equal(boundary.begin(),
+				boundary.end(),
+				line.begin()+2)))
+		{
+			found=true;
+		}
+	}
+
+}
+
+rfc2045::entity::boundary_detector::~boundary_detector()=default;

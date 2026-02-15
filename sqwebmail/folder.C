@@ -901,16 +901,17 @@ static void folder_msg_link(const char *dir, int row, size_t pos, char t)
 	}
 	else
 	{
-	size_t	mpos=pos;
-	char	*filename=maildir_posfind(dir, &mpos);
-	char	*basename=filename ? maildir_basename(filename):NULL;
+		size_t	mpos=pos;
+		auto filename=maildir_posfind(dir, &mpos);
+		char	*basename=!filename.empty() ? maildir_basename(
+			filename.c_str()
+		):NULL;
 
 		output_scriptptrget();
 		printf("&amp;form=open-draft&amp;draft=");
 		output_urlencoded(basename);
 		printf("\">");
 		if (basename)	free(basename);
-		if (filename)	free(filename);
 	}
 }
 
@@ -955,7 +956,7 @@ void folder_initnextprev(const char *dir, size_t pos)
 	MSGINFO	**info;
 	const	char *p;
 	const	char *msg_numlab, *msg_numnewlab;
-	static char *filename=0;
+	static std::string filename;
 	int fd;
 
 	MSGINFO *recp;
@@ -965,17 +966,14 @@ void folder_initnextprev(const char *dir, size_t pos)
 
 	cgi_put(MIMEGPGFILENAME, "");
 
-	if (filename)
-		free(filename);
-	filename=0;
+	filename.clear();
 
-
-	if (*cgi("mimegpg") && (filename=maildir_posfind(dir, &pos)) != 0)
+	if (*cgi("mimegpg") && !(filename=maildir_posfind(dir, &pos)).empty())
 	{
 		char *tptr;
 		int nfd;
 
-		fd=maildir_semisafeopen(filename, O_RDONLY, 0);
+		fd=maildir_semisafeopen(filename.c_str(), O_RDONLY, 0);
 
 		if (fd >= 0)
 		{
@@ -990,7 +988,6 @@ void folder_initnextprev(const char *dir, size_t pos)
 
 			if ((nfd=maildir_tmpcreate_fd(&createInfo)) < 0)
 			{
-				free(filename);
 				error("Can't create new file.");
 			}
 
@@ -1015,12 +1012,11 @@ void folder_initnextprev(const char *dir, size_t pos)
 			else
 			{
 				close(fd);
-				free(filename);
 				filename=tptr;
 				fd=nfd;
 
 				cgi_put(MIMEGPGFILENAME,
-					strrchr(filename, '/')+1);
+					strrchr(filename.c_str(), '/')+1);
 			}
 			close(fd);
 		}
@@ -1141,7 +1137,7 @@ extern "C" char *get_msgfilename(const char *folder, size_t *pos)
 		strcat(strcpy(filename, "tmp/"), p);
 	}
 	else
-		filename=maildir_posfind(folder, pos);
+		filename=strdup(maildir_posfind(folder, pos).c_str());
 
 	if (!filename)	error("Message not found.");
 

@@ -61,7 +61,7 @@ extern "C" void output_urlencoded(const char *);
 extern char *newmsg_newdraft(const char *, const char *, const char *,
 				const char *);
 extern char *newmsg_createdraft(const char *);
-extern "C" char *newmsg_createsentmsg(const char *, int *);
+extern std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr);
 extern "C" int ishttps();
 
 static void newmsg_header(const char *label, const char *field,
@@ -918,16 +918,15 @@ void sendmsg_done()
 
 static int dosendmsg(const char *origdraft)
 {
-pid_t	pid;
-const	char *returnaddr;
-int	pipefd1[2];
-char	*filename;
-const char *line;
-char	*draftmessage;
-int	isgpgerr;
-unsigned long filesize;
-struct stat stat_buf;
-int dsn;
+	pid_t	pid;
+	const	char *returnaddr;
+	int	pipefd1[2];
+	const char *line;
+	char	*draftmessage;
+	int	isgpgerr;
+	unsigned long filesize;
+	struct stat stat_buf;
+	int dsn;
 
 	if (tokencheck()) /* Duplicate submission - message was already sent */
 	{
@@ -947,9 +946,9 @@ int dsn;
 	if (!draftmessage)
 		enomem();
 
-	filename=newmsg_createsentmsg(draftmessage, &isgpgerr);
+	auto filename=newmsg_createsentmsg(draftmessage, &isgpgerr);
 
-	if (!filename)
+	if (filename.empty())
 	{
 		char *draftbase=maildir_basename(draftmessage);
 
@@ -972,8 +971,7 @@ int dsn;
 	if (pipe(pipefd1) != 0)
 	{
 		cgi_put("foldermsg", "ERROR: pipe() failed.");
-		maildir_msgpurgefile(INBOX "." SENT, filename);
-		free(filename);
+		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 		free(draftmessage);
 		return (0);
 	}
@@ -986,8 +984,7 @@ int dsn;
 		cgi_put("foldermsg", "ERROR: fork() failed.");
 		close(pipefd1[0]);
 		close(pipefd1[1]);
-		maildir_msgpurgefile(INBOX "." SENT, filename);
-		free(filename);
+		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 		free(draftmessage);
 		return (0);
 	}
@@ -996,7 +993,7 @@ int dsn;
 	{
 	static const char noexec[]="ERROR: Unable to execute sendit.sh.\n";
 	static const char nofile[]="ERROR: Temp file not available - probably exceeded quota.\n";
-	auto tmpfile=maildir_find(INBOX "." SENT, filename);
+	auto tmpfile=maildir_find(INBOX "." SENT, filename.c_str());
 	int	fd;
 
 		if (tmpfile.empty())
@@ -1121,7 +1118,8 @@ int dsn;
 		if (*cgi("fcc") == 0)
 		{
 			unsigned long filesize=0;
-			auto tmpfile=maildir_find(INBOX "." SENT, filename);
+			auto tmpfile=maildir_find(INBOX "." SENT,
+						  filename.c_str());
 
 			if (!tmpfile.empty())
 			{
@@ -1131,16 +1129,14 @@ int dsn;
 			}
 		}
 
-		free(filename);
 		free(draftmessage);
 		sendmsg_done();
 		return (1);
 	}
 
-	if (stat(filename, &stat_buf) == 0)
+	if (stat(filename.c_str(), &stat_buf) == 0)
 		maildir_quota_deleted(".", -(long)stat_buf.st_size, -1);
-	maildir_msgpurgefile(INBOX "." SENT, filename);
-	free(filename);
+	maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 
 	{
 	char *draftbase=maildir_basename(draftmessage);

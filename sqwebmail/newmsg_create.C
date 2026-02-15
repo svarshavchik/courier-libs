@@ -37,6 +37,7 @@
 #endif
 #include	<ctype.h>
 #include	<fcntl.h>
+#include	<sstream>
 
 #define HASTEXTPLAIN(q) (rfc2045_searchcontenttype((q), "text/plain") != NULL)
 /* Also in attachments.c */
@@ -51,7 +52,7 @@ extern const char *sqwebmail_mailboxid;
 
 const char mimemsg[]="This is a MIME-formatted message.  If you see this text it means that your\nmail software cannot handle MIME-formatted messages.\n\n";
 
-char *newmsg_createdraft_do(const char *, const char *, int);
+std::string newmsg_createdraft_do(const char *, const char *, int);
 
 /* Save message in a draft file */
 
@@ -62,17 +63,19 @@ char *newmsg_createdraft(const char *curdraft)
 	char	*base=maildir_basename(curdraft);
 	auto filename=maildir_find(INBOX "." DRAFTS, base);
 
-	if (!filename.empty())
+		if (!filename.empty())
 		{
-			char	*p=newmsg_createdraft_do(
+			auto p=newmsg_createdraft_do(
 				filename.c_str(), cgi("message"), 0);
 
 			free(base);
-			return (p);
+			return strdup(p.c_str());
 		}
 		free(base);
 	}
-	return (newmsg_createdraft_do(0, cgi("message"), 0));
+	auto p=newmsg_createdraft_do(0, cgi("message"), 0);
+
+	return strdup(p.c_str());
 }
 
 static void create_draftheader_do(const char *hdrname, const char *p,
@@ -236,58 +239,65 @@ void newmsg_create_multipart(int newdraftfd, const char *charset,
 }
 
 
-static char	*newmsg_multipart_boundary(FILE *, const char *);
-static void newmsg_copy_attachments(struct rfc2045 *, FILE *, const char *);
+static std::string newmsg_multipart_boundary(rfc822::fdstreambuf &,
+					     const char *);
+static void newmsg_copy_attachments(rfc2045::entity &,
+				    rfc822::fdstreambuf &,
+				    const std::string &);
 
-void newmsg_copy_nonmime_headers(FILE *fp)
+void newmsg_copy_nonmime_headers(const rfc2045::entity &message,
+				 rfc822::fdstreambuf &fd)
 {
-char	*header, *value;
-char	*q;
+	rfc2045::entity::line_iter<false>::headers headers{message, fd};
 
-	while ((header=maildir_readheader(fp, &value, 1)) != NULL)
+	headers.keep_eol=true;
+	headers.name_lc=false;
+
+	do
 	{
-		if (strcmp(header, "mime-version") == 0 ||
-			strncmp(header, "content-", 8) == 0)	continue;
+		const auto &[name, content] = headers.name_content();
 
-		/* Fluff - capitalize header names */
+		if (name.empty())
+			continue;
+		std::string name_lc{name.begin(), name.end()};
 
-		for (q=header; *q; q++)
-		{
-			for (*q=toupper(*q); *q; q++)
-				if (*q == '-')	break;
-			if (!*q)
-				break;
-		}
+		rfc2045::entity::tolowercase(name_lc);
 
-		maildir_writemsgstr(newdraftfd, header);
-		maildir_writemsgstr(newdraftfd, ": ");
-		maildir_writemsgstr(newdraftfd, value);
-		maildir_writemsgstr(newdraftfd, "\n");
-	}
+		if (name_lc == "mime-version" ||
+		    std::string_view{name_lc}.substr(0, 8) == "content-")
+			continue;
+
+		auto full_header=headers.current_header();
+
+		maildir_writemsg(newdraftfd, full_header.data(),
+				 full_header.size());
+	} while(headers.next());
 }
 
-void newmsg_copy_content_headers(FILE *fp)
+void newmsg_copy_content_headers(const rfc2045::entity &message,
+				 rfc822::fdstreambuf &fd)
 {
-char	*header, *value;
-char	*q;
+	rfc2045::entity::line_iter<false>::headers headers{message, fd};
 
-	while ((header=maildir_readheader(fp, &value, 1)) != NULL)
+	headers.keep_eol=true;
+	headers.name_lc=false;
+
+	do
 	{
-		if (strncmp(header, "content-", 8)) continue;
+		const auto &[name, content] = headers.name_content();
 
-		for (q=header; *q; q++)
-		{
-			for (*q=toupper(*q); *q; q++)
-				if (*q == '-')	break;
-			if (!*q)
-				break;
-		}
+		std::string name_lc{name.begin(), name.end()};
 
-		maildir_writemsgstr(newdraftfd, header);
-		maildir_writemsgstr(newdraftfd, ": ");
-		maildir_writemsgstr(newdraftfd, value);
-		maildir_writemsgstr(newdraftfd, "\n");
-	}
+		rfc2045::entity::tolowercase(name_lc);
+
+		if (std::string_view{name_lc}.substr(0, 8) != "content-")
+			continue;
+
+		auto full_header=headers.current_header();
+
+		maildir_writemsg(newdraftfd, full_header.data(),
+				 full_header.size());
+	} while(headers.next());
 }
 
 void wrap_text_init(struct wrap_info *uw,
@@ -513,23 +523,16 @@ static std::string mkurl(std::string_view url,
 	return buf;
 }
 
-char *newmsg_createdraft_do(const char *curdraft, const char *newmsg,
-	int keepheader)
+std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
+				  int keepheader)
 {
-char	*draftfilename;
-FILE	*fp=0;
-char	*multipart_boundary;
-const char *content_type;
-const char *content_transfer_encoding;
-const char *charset;
-unsigned long prev_size=0;
-off_t	transferencodingpos;
-off_t	transferencoding2pos;
-int is_newevent=strcmp(cgi("form"), "newevent") == 0;
-struct	rfc2045	*rfcp;
-int has_attachments=0;
-size_t newmsg_size;
-char *sig, *footer;
+	unsigned long prev_size=0;
+	off_t	transferencodingpos;
+	off_t	transferencoding2pos;
+	int is_newevent=strcmp(cgi("form"), "newevent") == 0;
+	bool has_attachments=false;
+	size_t newmsg_size;
+	char *sig, *footer;
 
 /*
 ** Trim extra newlines.
@@ -541,10 +544,11 @@ char *sig, *footer;
 
 /* We're on the 'new event' screen */
 
- 	if (curdraft)	/* Reuse a draft filename */
-		newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, curdraft, &draftfilename);
+	std::string draftfilename;
+	if (curdraft && *curdraft)	/* Reuse a draft filename */
+		newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, curdraft, draftfilename);
 	else
-		newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, &draftfilename);
+		newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, draftfilename);
 	if (newdraftfd < 0)	enomem();
 
 	pref_wikifmt=0;
@@ -552,61 +556,65 @@ char *sig, *footer;
 		pref_wikifmt=1;
 	pref_update();
 
-	fp=NULL;
-	if (curdraft)
+	rfc822::fdstreambuf fp{curdraft && *curdraft
+			       ? maildir_safeopen(curdraft, O_RDONLY, 0)
+			       : -1};
+
+	if (!fp.error())
 	{
-	int	x=maildir_safeopen(curdraft, O_RDONLY, 0);
+		struct	stat	stat_buf;
 
-		if (x >= 0)
-			if ((fp=fdopen(x, "r")) == 0)
-				close(x);
-	}
-
-	if (fp)
-	{
-	char	*header, *value;
-	struct	stat	stat_buf;
-
-		if (fstat(fileno(fp), &stat_buf))
+		if (fstat(fp.fileno(), &stat_buf))
 		{
-			fclose(fp);
 			enomem();
 		}
 		prev_size=stat_buf.st_size;
 
-		while ((header=maildir_readheader(fp, &value, 1)) != NULL)
+		rfc2045::entity::line_iter<false>::headers headers{fp};
+
+		do
 		{
+			const auto &[header, value]=headers.name_content();
+
+			if (header.empty())
+				continue;
+
 			if (keepheader == NEWMSG_SQISPELL)
 			{
-				if (strcasecmp(header, "mime-version") == 0 ||
-				    strncasecmp(header, "content-", 8) == 0)
+				if (header == "mime-version" ||
+				    header.substr(0, 8) == "content-", 8)
 					continue;
 			}
 			else if (keepheader == NEWMSG_PCP)
 			{
-				if (strcasecmp(header, "mime-version") == 0 ||
-				    strncasecmp(header, "content-", 8) == 0 ||
-				    strcasecmp(header, "date") == 0 ||
-				    strcasecmp(header, "from") == 0 ||
-				    strcasecmp(header, "subject") == 0)
+				if (header == "mime-version" ||
+				    header.substr(0, 8) == "content-" ||
+				    header == "date" ||
+				    header == "from" ||
+				    header == "subject")
 					continue;
 			}
 			else
 			{
-				if (strcmp(header, "in-reply-to") &&
-					strcmp(header, "references") &&
-					strncmp(header, "x-", 2))	continue;
+				if (header != "in-reply-to" &&
+				    header != "references" &&
+				    header.substr(0, 2) != "x-")
+					continue;
+
 				/* Do not discard these headers */
 			}
 
-			if (strcasecmp(header, "x-sqwebmail-wikifmt") == 0)
+			if (header == "x-sqwebmail-wikifmt")
 				continue;
 
-			maildir_writemsgstr(newdraftfd, header);
+			maildir_writemsg(newdraftfd, header.data(),
+					 header.size());
 			maildir_writemsgstr(newdraftfd, ": ");
-			maildir_writemsgstr(newdraftfd, value);
+			maildir_writemsg(newdraftfd, value.data(),
+					 value.size());
 			maildir_writemsgstr(newdraftfd, "\n");
-		}
+		} while (headers.next());
+		fp.pubseekpos(0);
 	}
 	else if (is_newevent)
 		maildir_writemsgstr(newdraftfd, "X-Event: 1\n");
@@ -666,32 +674,28 @@ char *sig, *footer;
 
 	/* If the message has attachments, calculate multipart boundary */
 
-	rfcp=NULL;
+	rfc2045::entity message;
 
-	if (fp)
+	if (!fp.error())
 	{
-		rfcp=rfc2045_fromfp(fp);
-		if (!rfcp)
-		{
-			close(newdraftfd);
-			fclose(fp);
-			enomem();
-		}
+		std::istreambuf_iterator<char> b{&fp}, e;
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
 	}
 
-	multipart_boundary=newmsg_multipart_boundary(fp, newmsg);
+	auto multipart_boundary=newmsg_multipart_boundary(fp, newmsg);
 
-	if (rfcp && rfcp->firstpart &&
-	    strcmp((rfc2045_mimeinfo(rfcp, &content_type,
-			      &content_transfer_encoding, &charset),
-		    content_type), "multipart/mixed") == 0)
+	if (!message.subentities.empty() &&
+	    message.content_type.value == "multipart/mixed")
 	{
-		has_attachments=1;
+		has_attachments=true;
 		newmsg_create_multipart(newdraftfd,
-			sqwebmail_content_charset, multipart_boundary);
+			sqwebmail_content_charset,
+					multipart_boundary.c_str());
 
 		maildir_writemsgstr(newdraftfd, "--");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd,"\n");
 	}
 	else
@@ -699,19 +703,22 @@ char *sig, *footer;
 		maildir_writemsgstr(newdraftfd, "Mime-Version: 1.0\n");
 	}
 
+	char last_boundary_char=multipart_boundary.back();
+
 	if (pref_wikifmt)
 	{
-		++multipart_boundary[strlen(multipart_boundary)-1];
+		if (++multipart_boundary.back() > '9') // Cheating
+			multipart_boundary.back()='A';
 
 		maildir_writemsgstr(newdraftfd,
 				    "Content-Type: multipart/alternative;"
 				    " boundary=\"");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\"\n"
 				    "\n"
 				    "\n"
 				    "--");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\n");
 	}
 
@@ -770,7 +777,7 @@ char *sig, *footer;
 
 		maildir_writemsgstr(newdraftfd, "\n"
 				    "--");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\n"
 				    "Content-Type: text/html; charset=\"");
 		maildir_writemsgstr(newdraftfd, sqwebmail_content_charset);
@@ -855,9 +862,9 @@ char *sig, *footer;
 
 		maildir_writemsgstr(newdraftfd, "\n"
 				    "--");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "--\n");
-		--multipart_boundary[strlen(multipart_boundary)-1];
+		multipart_boundary.back()=last_boundary_char;
 
 	}
 
@@ -867,17 +874,13 @@ char *sig, *footer;
 	if (footer)
 		free(footer);
 
-	if ( multipart_boundary && rfcp && has_attachments)
+	if (has_attachments)
 	{
-		newmsg_copy_attachments(rfcp, fp, multipart_boundary);
+		newmsg_copy_attachments(message, fp, multipart_boundary);
 		maildir_writemsgstr(newdraftfd, "\n--");
-		maildir_writemsgstr(newdraftfd, multipart_boundary);
+		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "--\n");
-		free(multipart_boundary);
 	}
-	if (fp)	fclose(fp);
-	if (rfcp)
-		rfc2045_free(rfcp);
 
 	if ( maildir_writemsg_flush(newdraftfd) == 0 && writebuf8bit)
 	{
@@ -891,43 +894,41 @@ char *sig, *footer;
 		}
 	}
 
-	if ( maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, -1, prev_size))
+	if ( maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+			      draftfilename.c_str(), -1, prev_size))
 		cgi_put("error", "quota");
 
 	return(draftfilename);
 }
 
-static void sentmsg_copy(FILE *f, struct rfc2045 *p)
+static void sentmsg_copy(rfc822::fdstreambuf &sb, const rfc2045::entity &e)
 {
-	off_t start_pos, end_pos, start_body;
 	char buf[BUFSIZ];
-	int n;
-	off_t   dummy;
 
-        rfc2045_mimepos(p, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-        if (fseek(f, start_pos, SEEK_SET) == -1)
+	auto startpos=e.startpos;
+	sb.pubseekpos(e.startpos);
+	if (sb.error())
+	{
+		close(newdraftfd);
+		enomem();
+	}
+
+        while (startpos < e.endbody)
         {
-                fclose(f);
-                close(newdraftfd);
-                enomem();
-        }
+		size_t     cnt=sizeof(buf);
 
-        while (start_pos < end_pos)
-        {
-        int     cnt=sizeof(buf);
+                if (cnt > e.endbody - startpos)
+                        cnt=e.endbody - startpos;
 
-                if (cnt > end_pos - start_pos)
-                        cnt=end_pos - start_pos;
+		auto n=sb.sgetn(buf, cnt);
 
-                if ((n=fread(buf, 1, cnt, f)) <= 0)
+		if (n <= 0)
                 {
-                        fclose(f);
-                        close(newdraftfd);
                         enomem();
                 }
 
                 maildir_writemsg(newdraftfd, buf, n);
-                start_pos += n;
+                startpos += n;
         }
 }
 
@@ -1097,7 +1098,7 @@ static void lookup_addressbook(const char *header, const char *value)
 	if (rc)	enomem();
 }
 
-extern "C" char *newmsg_createsentmsg(const char *draftname, int *isgpgerr)
+std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr)
 {
 auto filename=maildir_find(INBOX "." DRAFTS, draftname);
 FILE	*fp;
@@ -1108,7 +1109,7 @@ int	x;
 
 	*isgpgerr=0;
 
-	if (filename.empty())	return (0);
+	if (filename.empty())	return "";
 
 	fp=0;
 
@@ -1214,7 +1215,7 @@ int	x;
 	if ( maildir_writemsg_flush(newdraftfd))
 	{
 		free(sentname);
-		return (0);
+		return"";
 	}
 
 #if 0
@@ -1224,7 +1225,7 @@ int	x;
 			write(newdraftfd, "8", 1) != 1)
 		{
 			free(sentname);
-			return (0);
+			return "";
 		}
 	}
 #endif
@@ -1233,7 +1234,7 @@ int	x;
 	{
 		maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 0, 0);
 		free(sentname);
-		return (0);
+		return "";
 	}
 
 	if (libmail_gpg_has_gpg(GPGDIR) == 0)
@@ -1268,7 +1269,7 @@ int	x;
 			maildir_closemsg(newdraftfd, INBOX "." SENT,
 					 sentname, 0, 0);
 			free(sentname);
-			return (0);
+			return "";
 		}
 
 		if (!dosign)
@@ -1293,7 +1294,7 @@ int	x;
 						 sentname, 0, 0);
 				free(sentname);
 				free(encryptkeys);
-				return (0);
+				return "";
 			}
 
 			if (gpgdomsg(newdraftfd, newnewdraftfd,
@@ -1307,7 +1308,7 @@ int	x;
 				free(sentname);
 				free(encryptkeys);
 				*isgpgerr=1;
-				return (0);
+				return "";
 			}
 
 			maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 0, 0);
@@ -1322,9 +1323,12 @@ int	x;
 	if ( maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 1, 0))
 	{
 		free(sentname);
-		return (0);
+		return "";
 	}
-	return (sentname);
+
+	std::string s{sentname};
+	free(sentname);
+	return s;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1391,43 +1395,69 @@ const char *line;
 	return (0);
 }
 
+bool multipart_boundary_checkf(std::string boundary, std::streambuf &f)
+{
+	char buffer[BUFSIZ];
+	rfc2045::entity::boundary_detector detector{boundary};
+
+	for (size_t n; (n=f.sgetn(buffer, BUFSIZ)) > 0; )
+	{
+		detector(buffer, n);
+
+		if (detector)
+			return false;
+	}
+	return true;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /* Copy existing attachments into the new draft message */
 
 /* multipart_boundary - determine if current draft has attachments */
 
-static char	*newmsg_multipart_boundary(FILE *f, const char *msg)
+static std::string newmsg_multipart_boundary(rfc822::fdstreambuf &f,
+					     const char *msg)
 {
-	char	*p=0;
+	unsigned counter=0;
+	std::string boundary;
 
-	do
+	while (1)
 	{
-		if (p)	free(p);
-		p=multipart_boundary_create();
-	} while (multipart_boundary_checks(p, msg)
-		 || (f && multipart_boundary_checkf(p, f)));
-	return (p);
+		boundary=rfc2045::entity::new_boundary(counter);
+
+		if (!f.error())
+		{
+			f.pubseekpos(0);
+			if (!multipart_boundary_checkf(boundary, f))
+				continue;
+		}
+		std::stringstream sb{msg};
+		if (!multipart_boundary_checkf(boundary, *sb.rdbuf()))
+			continue;
+		break;
+	}
+	return (boundary);
 }
 
-static void	newmsg_copy_attachments(struct rfc2045 *rfcp,
-					FILE *f, const char *boundary)
+static void newmsg_copy_attachments(rfc2045::entity &message,
+				    rfc822::fdstreambuf &fd,
+				    const std::string &boundary)
 {
-struct	rfc2045 *p;
-int	foundtextplain=0;
+	bool foundtextplain=false;
 
-	for (p=rfcp->firstpart; p; p=p->next)
+	for (auto &subentity:message.subentities)
 	{
-		if (p->isdummy)	continue;
-		if (!foundtextplain && HASTEXTPLAIN(p))
+		if (!foundtextplain &&
+		    subentity.find_content_type("text/plain"))
 		{	/* Previous version of this message */
 
-			foundtextplain=1;
+			foundtextplain=true;
 			continue;
 		}
 		maildir_writemsgstr(newdraftfd, "\n--");
-		maildir_writemsgstr(newdraftfd, boundary);
+		maildir_writemsgstr(newdraftfd, boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\n");
-		sentmsg_copy(f, p);	/* Reuse some code */
+		sentmsg_copy(fd, subentity);
 	}
 }

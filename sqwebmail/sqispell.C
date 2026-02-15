@@ -213,10 +213,8 @@ static bool search_spell(const char *filename, unsigned parnum, unsigned pos)
 
 	if (made_replacements)
 	{
-		char	*p=newmsg_createdraft_do(filename, newtext.c_str(),
-					 NEWMSG_SQISPELL);
-
-		if (p)	free(p);
+		newmsg_createdraft_do(filename, newtext.c_str(),
+				      NEWMSG_SQISPELL);
 
 		if (*cgi("error"))
 		{

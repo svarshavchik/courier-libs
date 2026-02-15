@@ -42,6 +42,7 @@
 #if HAVE_FCNTL_H
 #include	<fcntl.h>
 #endif
+#include	<string_view>
 
 #ifndef WEXITSTATUS
 #define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
@@ -57,33 +58,33 @@
 
 #include	"strftime.h"
 
-extern FILE *open_langform(const char *lang, const char *formname,
-			   int print_header);
+extern "C" FILE *open_langform(const char *lang, const char *formname,
+			       int print_header);
 
-extern const char *myhostname();
-extern void output_attrencoded_oknl_fp(const char *, FILE *);
-extern void output_scriptptrget();
-extern void output_attrencoded(const char *);
-extern void print_safe(const char *);
+extern "C" const char *myhostname();
+extern "C" void output_attrencoded_oknl_fp(const char *, FILE *);
+extern "C" void output_scriptptrget();
+extern "C" void output_attrencoded(const char *);
+extern "C" void print_safe(const char *);
 extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_content_language;
-extern void output_form(const char *);
-extern void newmsg_preview(const char *);
-extern void output_urlencoded(const char *);
-extern void attachments_head(const char *, const char *, const char *);
-extern char *newmsg_createsentmsg(const char *, int *);
+extern "C" void output_form(const char *);
+extern "C" void newmsg_preview(const char *);
+extern "C" void output_urlencoded(const char *);
+extern "C" void attachments_head(const char *, const char *, const char *);
+extern std::string newmsg_createsentmsg(const char *, int *);
 extern const char *sqwebmail_mailboxid;
-extern char *scriptptrget();
-extern void attach_delete(const char *);
-extern int attach_upload(const char *,
-			 const char *,
-			 const char *);
+extern "C" char *scriptptrget();
+extern "C" void attach_delete(const char *);
+extern "C" int attach_upload(const char *,
+			     const char *,
+			     const char *);
 
-extern void newmsg_showfp(FILE *, int *);
+extern "C" void newmsg_showfp(FILE *, int *);
 
 static struct PCP *calendar=NULL;
 static void refreshcache(struct PCP *);
-extern size_t get_timeoutsoft();
+extern "C" size_t get_timeoutsoft();
 
 
 /*
@@ -327,8 +328,8 @@ static int need_refresh()
 					** any case.
 					*/
 
-					if (stat_buf.st_mtime >
-					    now - get_timeoutsoft()/2)
+					if (stat_buf.st_mtime > (time_t)(
+						    now - get_timeoutsoft()/2))
 					{
 						fclose(fp);	/* Not yet */
 						return (0);
@@ -367,7 +368,7 @@ static void refreshcache(struct PCP *pcp)
 		return;
 	}
 
-        p=malloc(sizeof("tmp/")+strlen(new_name));
+        p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
         if (!p)
         {
 		fclose(new_fp);
@@ -480,7 +481,7 @@ static int createcache(struct PCP *pcp,
 	if (!n)
 		return (0);	/* Nothing */
 
-	a=malloc(sizeof(struct cacherecord_list *)*n);
+	a=static_cast<struct cacherecord_list **>(malloc(sizeof(struct cacherecord_list *)*n));
 	if (!a)
 	{
 		fprintf(stderr, "NOTICE: malloc failed\n");
@@ -500,7 +501,7 @@ static int createcache(struct PCP *pcp,
 
 	qsort(a, n, sizeof(*a), cmp_reclist);
 
-	if ((*recs=malloc(sizeof(struct cacherecord)*n)) == NULL)
+	if ((*recs=static_cast<struct cacherecord *>(malloc(sizeof(struct cacherecord)*n))) == NULL)
 	{
 		fprintf(stderr, "NOTICE: malloc failed\n");
 
@@ -526,7 +527,7 @@ static int createcache(struct PCP *pcp,
 
 	/* Get the subject of all the events */
 
-	event_ids=malloc(sizeof(const char *)*(n+1));
+	event_ids=static_cast<const char **>(malloc(sizeof(const char *)*(n+1)));
 
 	if (!event_ids)
 	{
@@ -566,7 +567,7 @@ static int callback_createcache(struct PCP_list_all *a, void *vp)
 {
 	struct cacherecord_list **listp=(struct cacherecord_list **)vp, *p;
 
-	if ((p=malloc(sizeof(struct cacherecord_list))) == NULL)
+	if ((p=static_cast<struct cacherecord_list *>(malloc(sizeof(struct cacherecord_list)))) == NULL)
 		return (-1);
 
 	p->rec.start=a->event_from;
@@ -718,9 +719,11 @@ static void parsecache_rec(char *p, struct cacherecord *cr)
 	unsigned long a;
 
 	memset(cr, 0, sizeof(*cr));
-	cr->eventid="";
-	cr->flags="";
-	cr->subject="";
+
+	static char empty_str[]="";
+	cr->eventid=empty_str;
+	cr->flags=empty_str;
+	cr->subject=empty_str;
 
 	if (!p || sscanf(p, "%lu", &a) <= 0)
 		return;
@@ -843,7 +846,7 @@ static struct my_participant *my_participant_list=0;
 static void add_my_participant(const char *h)
 {
 	struct my_participant *m=
-		malloc(sizeof(struct my_participant));
+		static_cast<struct my_participant *>(malloc(sizeof(struct my_participant)));
 
 	if (!m)
 		enomem();
@@ -888,7 +891,7 @@ void sqpcp_eventstart()
 			if (sscanf(h.value, "%lu %lu", &n1, &n2) == 2)
 			{
 				struct PCP_event_time_list *t=
-					malloc(sizeof(**lastp));
+					static_cast<struct PCP_event_time_list *>(malloc(sizeof(**lastp)));
 
 				if (!t)
 				{
@@ -950,8 +953,8 @@ void sqpcp_eventstart()
 		struct PCP_event_time *list1;
 		struct PCP_event_time_list *p;
 
-		list1=malloc(sizeof(struct PCP_event_time_list)
-			     *event_time_list_cnt);
+		list1=static_cast<struct PCP_event_time *>(malloc(sizeof(struct PCP_event_time_list)
+			     *event_time_list_cnt));
 		if (!list1)
 		{
 			sqpcp_eventend();
@@ -1123,7 +1126,7 @@ void sqpcp_eventattach()
 
 /* ------- Display the cached event summary -------- */
 
-static void print_event_subject(char *, const char *, unsigned);
+static void print_event_subject(std::string_view, const char *, unsigned);
 static void print_event_link_url(const char *, const char *);
 
 void sqpcp_summary()
@@ -1162,7 +1165,7 @@ void sqpcp_summary()
 	if (tmptr)
 	{
 		char *p=scriptptrget();
-		char *q=malloc(strlen(p)+200);
+		char *q=static_cast<char *>(malloc(strlen(p)+200));
 
 		if (!q)
 		{
@@ -1208,7 +1211,7 @@ void sqpcp_summary()
 
 			while ((c=getc(fp)) != EOF && c != '\n')
 			{
-				if (i < sizeof(buffer)-1)
+				if ((size_t)i < sizeof(buffer)-1)
 					buffer[i++]=(char)c;
 			}
 			buffer[i]=0;
@@ -1336,16 +1339,34 @@ void sqpcp_summary()
 }
 
 
-static void print_event_subject(char *flags, const char *subject, unsigned w)
+static void print_event_subject(std::string_view flags, const char *subject,
+				unsigned w)
 {
 	unsigned i;
 	char *p;
 
 	/* Print event flags first: CANCELLED... */
 
-	for (p=flags; p && (p=strtok(p, " \t\r")) != 0; p=0)
+	for (auto b=flags.begin(), e=flags.end(); b != e; )
 	{
-		printf("%s", getarg(p));
+		if (*b == ' ' || *b == '\t' || *b == '\r')
+		{
+			++b;
+			continue;
+		}
+
+		auto p=b;
+
+		b=std::find_if(b, e,
+			       [](char c)
+			       {
+				       return c == ' ' || c == '\t' ||
+					       c == '\n';
+			       });
+
+		std::string s{p, b};
+
+		printf("%s", getarg(s.c_str()));
 	}
 
 	p=rfc822_display_hdrvalue_tobuf("subject",
@@ -1386,18 +1407,16 @@ static void addparticipant(int, const char *);
 static FILE *openoldfp(const char *p, unsigned long *prev_size)
 {
 	struct stat stat_buf;
-	char *filename;
 	int x;
 	FILE *oldfp;
 
 	CHECKFILENAME(p);
 
-	filename=maildir_find(INBOX "." DRAFTS, p);
-	if (!filename)
+	std::string filename=maildir_find(INBOX "." DRAFTS, p);
+	if (filename.empty())
 		return (NULL);
 
-	x=maildir_safeopen(filename, O_RDONLY, 0);
-	free(filename);
+	x=maildir_safeopen(filename.c_str(), O_RDONLY, 0);
 	if (x < 0)
 		return (NULL);
 
@@ -1455,7 +1474,7 @@ static int save_conflict(const char *event_id, time_t start, time_t end,
 			break;
 	}
 
-	if ((p=malloc(sizeof(struct conflict_list))) == NULL)
+	if ((p=static_cast<struct conflict_list *>(malloc(sizeof(struct conflict_list)))) == NULL)
 		return (-1);
 	memset(p, 0, sizeof(*p));
 	p->next= *ptr;
@@ -1485,7 +1504,7 @@ static void show_conflict_error(struct PCP *pcp)
 				    strcmp(p->address, "@") == 0))
 			++n;
 
-	if ((l=malloc(sizeof(const char *)*(n+1))) == NULL)
+	if ((l=static_cast<const char **>(malloc(sizeof(const char *)*(n+1)))) == NULL)
 		return;
 
 	for (n=0, p=conflict_list; p; p=p->next)
@@ -1834,7 +1853,7 @@ void sqpcp_newevent()
 
 			mktohdr(NULL, &tohdr_size);
 
-			tohdr=malloc(tohdr_size);
+			tohdr=static_cast<char *>(malloc(tohdr_size));
 			if (!tohdr)
 				enomem();
 
@@ -1917,7 +1936,7 @@ static char **mkargv(char *p, int *argc)
 	{
 		if (pass)
 		{
-			if ((argv=malloc(sizeof(char *)* (*argc+1))) == NULL)
+			if ((argv=static_cast<char **>(malloc(sizeof(char *)* (*argc+1)))) == NULL)
 				return (NULL);
 		}
 		*argc=0;
@@ -2058,7 +2077,7 @@ static void addparticipant(int fd, const char *n)
 	if (strchr(n, '\n') || strchr(n, '\r'))
 		return;
 
-	if ((nn=malloc(strlen(n)+strlen(domain)+2)) == NULL)
+	if ((nn=static_cast<char *>(malloc(strlen(n)+strlen(domain)+2))) == NULL)
 		enomem();
 
 	strcpy(nn, n);
@@ -2081,61 +2100,55 @@ static void addparticipant(int fd, const char *n)
 
 /* ------------- Save text ------------- */
 
-static char *savedraft()
+static std::string savedraft()
 {
 	const char *p=cgi("draftmessage");
-	char *msg, *filename;
+	std::string msg, filename;
 
 	if (p && *p)
 	{
 		CHECKFILENAME(p);
 	}
 
-	filename=p && *p ? maildir_find(INBOX "." DRAFTS, p):NULL;
+	filename=p && *p ? maildir_find(INBOX "." DRAFTS, p):"";
 
-	msg=newmsg_createdraft_do(filename, cgi("message"), NEWMSG_PCP);
-	if (filename)
-		free(filename);
+	msg=newmsg_createdraft_do(filename.c_str(), cgi("message"), NEWMSG_PCP);
 
-	if (!msg)
+	if (msg.empty())
 		enomem();
 	return (msg);
 }
 
-static void previewdraft(char *msg, void (*func)(const char *))
+static void previewdraft(const char *msg, void (*func)(const char *))
 {
-	char *msg2, *msg2p;
-
-	msg2=maildir_find(INBOX "." DRAFTS, msg);
-	free(msg);
-	if (!msg2)
+	auto msg2=maildir_find(INBOX "." DRAFTS, msg);
+	if (msg2.empty())
 		enomem();
-	if ((msg2p=strrchr(msg2, '/')) != 0)
-		++msg2p;
-	else
-		msg2p=msg2;
 
-	cgi_put("draftmessage", msg2p);
+	size_t p=msg2.rfind('/');
+
+	if (p == msg2.npos)
+		p=0;
+	else
+		++p;
+
+	auto msg2p=msg2.substr(p);
+
+	cgi_put("draftmessage", msg2p.c_str());
 	if (func)
-		(*func)(msg2p);
+		(*func)(msg2p.c_str());
 	output_form("newevent.html");
-	free(msg2);
 }
 
 void sqpcp_preview()
 {
-	char *msg;
-
-	msg=savedraft();
-	previewdraft(msg, NULL);
+	auto msg=savedraft();
+	previewdraft(msg.c_str(), NULL);
 }
 
 void sqpcp_postpone()
 {
-	char *msg;
-
-	msg=savedraft();
-	free(msg);
+	savedraft();
 	output_form("folders.html");
 }
 
@@ -2143,10 +2156,8 @@ static void deleteattach(const char *);
 
 void sqpcp_deleteattach()
 {
-	char *msg;
-
-	msg=savedraft();
-	previewdraft(msg, deleteattach);
+	auto msg=savedraft();
+	previewdraft(msg.c_str(), deleteattach);
 }
 
 static void deleteattach(const char *msg)
@@ -2158,10 +2169,8 @@ static void doupload(const char *);
 
 void sqpcp_uploadattach()
 {
-	char *msg;
-
-	msg=savedraft();
-	previewdraft(msg, doupload);
+	auto msg=savedraft();
+	previewdraft(msg.c_str(), doupload);
 }
 
 static void doupload(const char *msg)
@@ -2174,21 +2183,40 @@ static void doupload(const char *msg)
 		cgi_put("error", "quota");
 }
 
+static void doattpubkey(const char *);
 
 void sqpcp_attachpubkey()
 {
-	char *msg;
-
-	msg=savedraft();
-	previewdraft(msg, NULL);
+	auto msg=savedraft();
+	previewdraft(msg.c_str(), doattpubkey);
 }
+
+static void doattpubkey(const char *msg)
+{
+	int flag;
+
+	flag=attach_upload(msg, cgi("pubkey"), NULL);
+
+	if (flag)
+		cgi_put("error", "quota");
+}
+
+static void doattprivkey(const char *msg);
 
 void sqpcp_attachprivkey()
 {
-	char *msg;
+	auto msg=savedraft();
+	previewdraft(msg.c_str(), doattprivkey);
+}
 
-	msg=savedraft();
-	previewdraft(msg, NULL);
+static void doattprivkey(const char *msg)
+{
+	int flag;
+
+	flag=attach_upload(msg, NULL, cgi("privkey"));
+
+	if (flag)
+		cgi_put("error", "quota");
 }
 
 /* ---------------- Save event ------------------ */
@@ -2234,7 +2262,7 @@ static int init_saveinfo(struct saveinfo *si, FILE *fp)
 
 		if (strcasecmp(h.header, "X-Event-Participant") == 0 && h.value)
 		{
-			l=malloc(sizeof(struct participant_list));
+			l=static_cast<struct participant_list *>(malloc(sizeof(struct participant_list)));
 			if (!l || (l->address=strdup(h.value)) == NULL)
 			{
 				if (l)
@@ -2262,7 +2290,7 @@ static int init_saveinfo(struct saveinfo *si, FILE *fp)
 		else if (strcasecmp(h.header, "X-Event-Time") == 0 &&
 			 h.value && sscanf(h.value, "%lu %lu", &a, &b) == 2)
 		{
-			if ((p=malloc(sizeof(struct savetimelist))) == NULL)
+			if ((p=static_cast<struct savetimelist *>(malloc(sizeof(struct savetimelist)))) == NULL)
 			{
 				while ((l=si->participant_list) != NULL)
 				{
@@ -2304,9 +2332,9 @@ static int init_saveinfo(struct saveinfo *si, FILE *fp)
 	{
 		unsigned n=0;
 
-		if ((si->participants
-		     =calloc(sizeof(struct PCP_event_participant),
-			     si->n_participants)) == NULL)
+		if ((si->participants=static_cast<PCP_event_participant *>(
+			     calloc(sizeof(struct PCP_event_participant),
+				    si->n_participants))) == NULL)
 		{
 			while ((l=si->participant_list) != NULL)
 			{
@@ -2333,8 +2361,8 @@ static int init_saveinfo(struct saveinfo *si, FILE *fp)
 	if (tcnt)
 	{
 		si->n_times=tcnt;
-		if ((si->times=malloc(sizeof(struct PCP_event_time)
-				      *tcnt)) == NULL)
+		if ((si->times=static_cast<struct PCP_event_time *>(malloc(sizeof(struct PCP_event_time)
+				      *tcnt))) == NULL)
 		{
 			while ((l=si->participant_list) != NULL)
 			{
@@ -2410,29 +2438,27 @@ static int dosave(FILE *, struct saveinfo *);
 
 void sqpcp_save()
 {
-	char *msg, *sentmsg, *p;
+	std::string sentmsg;
 	FILE *fp;
 	struct saveinfo si;
 	int isgpgerr;
 
-	msg=savedraft();
+	auto msg=savedraft();
 	if (*cgi("error"))	/* Error, go back to the screen */
 	{
-		previewdraft(msg, NULL);
+		previewdraft(msg.c_str(), NULL);
 		return;
 	}
 
-	fp=openoldfp(msg, NULL);
+	fp=openoldfp(msg.c_str(), NULL);
 	if (!fp)
 	{
-		free(msg);
 		enomem();
 	}
 
 	if (init_saveinfo(&si, fp))
 	{
 		fclose(fp);
-		free(msg);
 		enomem();
 	}
 
@@ -2440,36 +2466,32 @@ void sqpcp_save()
 	{
 		fclose(fp);
 		cgi_put("error", "time");
-		previewdraft(msg, NULL);
+		previewdraft(msg.c_str(), NULL);
 		return;
 	}
 	fclose(fp);
 
-	sentmsg=newmsg_createsentmsg(msg, &isgpgerr);
+	sentmsg=newmsg_createsentmsg(msg.c_str(), &isgpgerr);
 
 	/* Immediately remove the formatted event text from the sent folder */
 
-	if (sentmsg)
+	if (!sentmsg.empty())
 	{
-		p=maildir_find(INBOX "." SENT, sentmsg);
-		free(sentmsg);
-		sentmsg=p;
+		sentmsg=maildir_find(INBOX "." SENT, sentmsg.c_str());
 	}
 
-	if (!sentmsg)
+	if (sentmsg.empty())
 	{
 		cgi_put("error", "quota");	/* TODO: gpgerr */
 		free_saveinfo(&si);
-		previewdraft(msg, NULL);
+		previewdraft(msg.c_str(), NULL);
 		return;
 	}
 
 
-	fp=fopen(sentmsg, "r");
+	fp=fopen(sentmsg.c_str(), "r");
 	if (!fp)
 	{
-		free(sentmsg);
-		free(msg);
 		free_saveinfo(&si);
 		enomem();
 		return;
@@ -2477,30 +2499,28 @@ void sqpcp_save()
 
 	fcntl(fileno(fp), F_SETFD, FD_CLOEXEC);
 
-	unlink(sentmsg);
-	dropquota(sentmsg, fileno(fp));
-	free(sentmsg);
+	unlink(sentmsg.c_str());
+	dropquota(sentmsg.c_str(), fileno(fp));
 
 	if (dosave(fp, &si))
 	{
 		fclose(fp);
 		free_saveinfo(&si);
-		previewdraft(msg, NULL);
+		previewdraft(msg.c_str(), NULL);
 		return;
 	}
 	fclose(fp);
 
-	p=maildir_find(INBOX "." DRAFTS, msg);
-	free(msg);
+	auto p=maildir_find(INBOX "." DRAFTS, msg.c_str());
 
-	fp=p ? fopen(p, "r"):NULL;
-	unlink(p);
+	fp=!p.empty() ? fopen(p.c_str(), "r"):NULL;
+	if (!p.empty())
+		unlink(p.c_str());
 	if (fp)
 	{
-		dropquota(p, fileno(fp));
+		dropquota(p.c_str(), fileno(fp));
 		fclose(fp);
 	}
-	free(p);
 	free_saveinfo(&si);
 	output_form("folders.html");
 }
@@ -2575,7 +2595,7 @@ static void proxy_update_list_save(const char *action,
 	while (*eptr && strcmp( (*eptr)->userid, userid) == 0)
 		eptr= &(*eptr)->next;
 
-	if ((e=malloc(sizeof(struct proxy_list_entry))) == NULL ||
+	if ((e=static_cast<struct proxy_list_entry *>(malloc(sizeof(struct proxy_list_entry)))) == NULL ||
 	    (e->userid=strdup(userid)) == NULL)
 	{
 		if (e)
@@ -2627,7 +2647,7 @@ static void dosendnotice(FILE *, FILE *, FILE *, struct proxy_list_entry *,
 			 unsigned);
 
 static void proxy_notify_email_msg(FILE *f, struct proxy_list_entry *l,
-				   const char *template,
+				   const char *templatestr,
 				   const struct PCP_event_time *t,
 				   unsigned tn)
 {
@@ -2667,10 +2687,10 @@ static void proxy_notify_email_msg(FILE *f, struct proxy_list_entry *l,
 	if (subjectlabel[0] == 0)
 		strcpy(subjectlabel, "[calendar]");
 
-	if ((tmpfp=open_langform(sqwebmail_content_language, template, 0))
+	if ((tmpfp=open_langform(sqwebmail_content_language, templatestr, 0))
 	    == NULL)
 	{
-		fprintf(stderr, "CRIT: %s: %s\n", template, strerror(errno));
+		fprintf(stderr, "CRIT: %s: %s\n", templatestr, strerror(errno));
 		return;
 	}
 
@@ -3237,7 +3257,7 @@ static int save_displayed_date(struct PCP_retr *r, time_t start, time_t end,
 		if ((*ptr)->start > start)
 			break;
 
-	if ((p=malloc(sizeof(struct display_retr_time_list))) == NULL)
+	if ((p=static_cast<struct display_retr_time_list *>(malloc(sizeof(struct display_retr_time_list)))) == NULL)
 		return (-1);
 
 	p->next= *ptr;
@@ -3259,7 +3279,7 @@ static int save_displayed_participants(struct PCP_retr *r, const char *address,
 		if (strcasecmp((*ptr)->participant, address) > 0)
 			break;
 
-	if ((p=malloc(sizeof(struct display_retr_participant_list))) == NULL)
+	if ((p=static_cast<struct display_retr_participant_list *>(malloc(sizeof(struct display_retr_participant_list)))) == NULL)
 		return (-1);
 
 	if ((p->participant=strdup(address)) == NULL)
@@ -4126,7 +4146,7 @@ static int listacl(const char *a, int f, void *vp)
 {
 	struct acl_list **p=(struct acl_list **)vp, *q;
 
-	if ((q=malloc(sizeof(struct acl_list))) == NULL)
+	if ((q=static_cast<struct acl_list *>(malloc(sizeof(struct acl_list)))) == NULL)
 		return (-1);
 	memset(q, 0, sizeof(*q));
 	if ((q->addr=strdup(a)) == NULL)
@@ -4250,7 +4270,7 @@ static void addacl(const char *p)
 	if (strchr(p, '@') == NULL)
 	{
 		const char *mhn=myhostname();
-		char *q=malloc(strlen(p)+strlen(mhn)+2);
+		char *q=static_cast<char *>(malloc(strlen(p)+strlen(mhn)+2));
 
 		if (!q)
 			enomem();

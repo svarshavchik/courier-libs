@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -73,11 +73,13 @@ extern void output_urlencoded(std::string_view);
 extern void newmsg_hiddenheader(const char *, const char *);
 extern char *newmsg_alladdrs(FILE *);
 extern const char *showsize(unsigned long);
-extern void newmsg_copy_content_headers(FILE *fp);
+extern void newmsg_copy_content_headers(const rfc2045::entity &message,
+					rfc822::fdstreambuf &fd);
 extern void newmsg_create_multipart(int, const char *, const char *);
-extern void newmsg_copy_nonmime_headers(FILE *);
+extern void newmsg_copy_nonmime_headers(const rfc2045::entity &message,
+					rfc822::fdstreambuf &fd);
 extern char *multipart_boundary_create();
-extern int multipart_boundary_checkf(const char *, FILE *);
+extern bool multipart_boundary_checkf(std::string, std::streambuf &);
 extern void sendmsg_done();
 
 #define HASTEXTPLAIN(q) (rfc2045_searchcontenttype((q), "text/plain") != NULL)
@@ -97,6 +99,38 @@ static off_t max_attach()
 	return n;
 }
 
+static std::tuple<std::string, rfc822::fdstreambuf, rfc2045::entity
+		  > open_draft_message(
+			  const char *draft
+		  )
+{
+	CHECKFILENAME(draft);
+	auto oldname=maildir_find(INBOX "." DRAFTS, draft);
+
+	int fd= -1;
+
+	if (!oldname.empty())
+		fd=maildir_safeopen(oldname.c_str(), O_RDONLY, 0);
+
+	std::tuple<std::string, rfc822::fdstreambuf, rfc2045::entity> ret{
+		std::move(oldname),
+		fd,
+		std::tuple<>{}
+	};
+
+	auto &[ignore, fp, entity] = ret;
+
+	if (fp.error())
+		return ret;
+
+	std::istreambuf_iterator<char> b{&fp}, e;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+	entity.parse(parser);
+
+	return ret;
+}
+
 extern "C"
 void attachments_head(const char *folder, const char *pos, const char *draft)
 {
@@ -106,27 +140,9 @@ const char	*noattach_lab=getarg("NOATTACH");
 const char	*quotaerr=getarg("QUOTAERR");
 const char	*limiterr=getarg("LIMITERR");
 
-	CHECKFILENAME(draft);
-	auto filename=maildir_find(INBOX "." DRAFTS, draft);
-	if (filename.empty())	return;
+	auto &&[name, fd2, message] = open_draft_message(draft);
 
-	rfc822::fdstreambuf fd2{
-		maildir_safeopen(filename.c_str(), O_RDONLY, 0)
-	};
-
-	if (fd2.error())
-	{
-		return;
-	}
-
-	rfc2045::entity message;
-
-	{
-		std::istreambuf_iterator<char> b{&fd2}, e;
-		rfc2045::entity::line_iter<false>::iter parser{b, e};
-
-		message.parse(parser);
-	}
+	if (fd2.error())	return;
 
 	if (strcmp(cgi("error"), "quota") == 0)
 	{
@@ -283,133 +299,105 @@ static void attachment_showname(const char *name)
 	output_attrencoded(name);
 }
 
-static void attachment_open(const char *draft,
-	FILE **fp,
-	int	*fd2,
-	struct rfc2045 **rfcp)
+static bool messagecopy(rfc822::fdstreambuf &fp, off_t start, off_t end)
 {
-	auto oldname=maildir_find(INBOX "." DRAFTS, draft);
+	char	buf[BUFSIZ];
 
-	if (oldname.empty())	enomem();
+	fp.pubseekpos(start);
 
-	*fd2=maildir_safeopen(oldname.c_str(), O_RDONLY, 0);
+	if (fp.error())
+		return false;
 
-	*fp=0;
-	if (*fd2 >= 0)
-	{
-		*fp=fdopen(*fd2, "r");
-		if (*fp == NULL)
-			close(*fd2);
-	}
-
-	if (*fp == NULL)	enomem();
-	*rfcp=rfc2045_fromfp( *fp );
-	if (!*rfcp)	enomem();
-}
-
-static int messagecopy(FILE *fp, off_t start, off_t end)
-{
-char	buf[512];
-int	n;
-
-	if (fseek(fp, start, SEEK_SET) == -1)	return (-1);
 	while (start < end)
 	{
-		n=sizeof(buf);
-		if (n > end - start)
+		size_t n=sizeof(buf);
+
+		if (n > static_cast<size_t>(end - start))
 			n=end - start;
-		n=fread(buf, 1, n, fp);
+
+		n=fp.sgetn(buf, n);
+
 		if (n <= 0)	enomem();
 		maildir_writemsg(newdraftfd, buf, n);
 		start += n;
 	}
-	return (0);
+	return true;
 }
 
 /* Return non-zero if user selected all attachments for deletion */
 
-static int deleting_all_attachments(struct rfc2045 *p)
+static bool deleting_all_attachments(const rfc2045::entity &p)
 {
-struct	rfc2045 *q;
-const char *content_type;
-const char *content_transfer_encoding;
-const char *charset;
-int	foundtextplain, cnt;
-char	buf[MAXLONGSIZE+4];
+	bool	foundtextplain=false;
+	int	cnt=0;
+	char	buf[MAXLONGSIZE+4];
 
-	foundtextplain=0;
-	cnt=0;
-	for (q=p->firstpart; q; q=q->next)
+	for (auto &q:p.subentities)
 	{
-		rfc2045_mimeinfo(q, &content_type,
-			&content_transfer_encoding, &charset);
-		if (q->isdummy)	continue;
-
-		if (!foundtextplain && HASTEXTPLAIN(q))
+		if (!foundtextplain && q.find_content_type("text/plain"))
 		{
-			foundtextplain=1;
+			foundtextplain=true;
 			continue;
 		}
 
 		sprintf(buf, "del%d", ++cnt);
-		if (*cgi(buf) == '\0')	return (0);
+		if (*cgi(buf) == '\0')	return false;
 	}
-	return (1);
+	return true;
 }
 
-static int del_final_attachment(FILE *fp, struct rfc2045 *rfcp)
+static bool del_final_attachment(rfc822::fdstreambuf &fp,
+				 const rfc2045::entity &msg)
 {
-struct	rfc2045 *q;
-const char *content_type;
-const char *content_transfer_encoding;
-const char *charset;
-off_t start_pos, end_pos, start_body;
-off_t dummy;
-
-	for (q=rfcp->firstpart; q; q=q->next)
+	for (auto &subentity:msg.subentities)
 	{
-		if (q->isdummy)	continue;
-		rfc2045_mimeinfo(q, &content_type,
-			&content_transfer_encoding, &charset);
-		if (HASTEXTPLAIN(q))
-			break;
+		if (subentity.find_content_type("text/plain"))
+		{
+			newmsg_copy_nonmime_headers(msg, fp);
+			maildir_writemsgstr(newdraftfd, "mime-version: 1.0\n");
+			return messagecopy(fp, subentity.startpos,
+					   subentity.endbody);
+		}
 	}
-	if (!q)	return (-1);
-
-	if (fseek(fp, 0L, SEEK_SET) == -1)	return (-1);
-	newmsg_copy_nonmime_headers(fp);
-	maildir_writemsgstr(newdraftfd, "mime-version: 1.0\n");
-
-	rfc2045_mimepos(q, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-	return (messagecopy(fp, start_pos, end_pos));
+	return false;
 }
 
-static int del_some_attachments(FILE *fp, struct rfc2045 *rfcp)
+#include <fstream>
+
+static bool del_some_attachments(rfc822::fdstreambuf &fp,
+				 const rfc2045::entity &msg)
 {
-struct	rfc2045 *q;
-const char *content_type;
-const char *content_transfer_encoding;
-const char *charset;
-int	foundtextplain;
-int	cnt;
-const char *boundary=rfc2045_boundary(rfcp);
-off_t	start_pos, end_pos, start_body;
-off_t	dummy;
+	std::string boundary;
 
-	rfc2045_mimepos(rfcp, &start_pos, &end_pos, &start_body, &dummy,
-		&dummy);
-	if (messagecopy(fp, 0, start_body))	return (-1);
+	auto boundary_iter=msg.content_type.parameters.find("boundary");
 
-	foundtextplain=0;
-	cnt=0;
-	for (q=rfcp->firstpart; q; q=q->next)
+	if (boundary_iter != msg.content_type.parameters.end())
+		boundary=boundary_iter->second.value; // Better be here
+
+	if (!messagecopy(fp, 0, msg.startbody)) return false;
+
 	{
-		rfc2045_mimeinfo(q, &content_type,
-			&content_transfer_encoding, &charset);
-		if (q->isdummy)
-			;
-		else if (!foundtextplain && HASTEXTPLAIN(q))
-			foundtextplain=1;
+		std::istream i{&fp};
+		std::string s;
+
+		// Copy the MIME preamble
+
+		while (std::getline(i, s))
+		{
+			if (std::string_view{s}.substr(0, 2) == "--")
+				break;
+			s += "\n";
+			maildir_writemsg(newdraftfd, s.data(), s.size());
+		}
+	}
+
+	const char *nl="";
+	bool foundtextplain=false;
+	int cnt=0;
+	for (auto &q:msg.subentities)
+	{
+		if (!foundtextplain && q.find_content_type("text/plain"))
+			foundtextplain=true;
 		else
 		{
 		char	buf[MAXLONGSIZE+4];
@@ -418,73 +406,67 @@ off_t	dummy;
 			if (*cgi(buf))	continue;	/* This one's gone */
 		}
 
-		if (!q->isdummy)
-		{
-			maildir_writemsgstr(newdraftfd, "\n--");
-			maildir_writemsgstr(newdraftfd, boundary);
-			maildir_writemsgstr(newdraftfd, "\n");
-		}
-		rfc2045_mimepos(q, &start_pos, &end_pos, &start_body, &dummy,
-			&dummy);
-		if (messagecopy(fp, start_pos, end_pos))
-			return (-1);
+		maildir_writemsgstr(newdraftfd, nl);
+		nl="\n"; // Initial one from the preamble was copied
+
+		maildir_writemsgstr(newdraftfd, "--");
+		maildir_writemsg(newdraftfd, boundary.data(), boundary.size());
+		maildir_writemsgstr(newdraftfd, "\n");
+
+		if (!messagecopy(fp, q.startpos, q.endbody))
+			return false;
 	}
-	maildir_writemsgstr(newdraftfd, "\n--");
-	maildir_writemsgstr(newdraftfd, boundary);
+	maildir_writemsgstr(newdraftfd, nl);
+	maildir_writemsgstr(newdraftfd, "--");
+	maildir_writemsg(newdraftfd, boundary.data(), boundary.size());
 	maildir_writemsgstr(newdraftfd, "--\n");
-	return (0);
+	return (true);
 }
 
 extern "C" void attach_delete(const char *draft)
 {
-FILE	*fp;
-int	fd2;
-struct	rfc2045 *rfcp;
-char	*draftfilename;
-int	isok=1;
-struct	stat	stat_buf;
+	auto &&[oldname, fp, message] = open_draft_message(draft);
 
-	attachment_open(draft, &fp, &fd2, &rfcp);
-	if (!rfcp->firstpart)
+	if (message.subentities.empty())
 	{
-		rfc2045_free(rfcp);
-		fclose(fp);
 		return;	/* No attachments to delete */
 	}
 
-	if (fstat(fileno(fp), &stat_buf))
+	struct stat stat_buf;
+
+	if (fstat(fp.fileno(), &stat_buf))
 	{
-		fclose(fp);
 		enomem();
 	}
 
-	newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, draft, &draftfilename);
+	std::string draftfilename;
+	bool isok=true;
+
+	newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, draft,
+					    draftfilename);
 	if (newdraftfd < 0)
 	{
-		fclose(fp);
 		enomem();
 	}
 
-	if (deleting_all_attachments(rfcp))
+	if (deleting_all_attachments(message))
 	{
 		/* Deleting all attachments */
 
-		if (del_final_attachment(fp, rfcp))	isok=0;
+		if (!del_final_attachment(fp, message))	isok=false;
 	}
 	else
 	{
-		if (del_some_attachments(fp, rfcp))	isok=0;
+		if (!del_some_attachments(fp, message))	isok=false;
 	}
-	fclose(fp);
-	rfc2045_free(rfcp);
 
-	if ( maildir_closemsg(newdraftfd, INBOX "." DRAFTS, draftfilename, isok,
+	if ( maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
+			      draftfilename.c_str(),
+			      isok ? 1:0,
 		stat_buf.st_size))
 	{
-		free(draftfilename);
 		enomem();
 	}
-	free(draftfilename);
 	maildir_remcache(INBOX "." DRAFTS);	/* Cache file invalid now */
 }
 
@@ -492,7 +474,7 @@ struct	stat	stat_buf;
 /* Upload an attachment */
 
 static int isbinary;
-static int attachfd;
+static rfc822::fdstreambuf attachfd;
 static const char *cgi_attachname, *cgi_attachfilename;
 
 static int upload_start(const char *name, const char *filename, void *dummy)
@@ -519,7 +501,7 @@ size_t	i;
 		if ( (ptr[i] < ' ' || ptr[i] >= 127) && ptr[i] != '\n' &&
 			ptr[i] != '\r')
 			isbinary=1;
-	maildir_writemsg(attachfd, ptr, cnt);
+	maildir_writemsg(attachfd.fileno(), ptr, cnt);
 	return (0);
 }
 
@@ -627,69 +609,31 @@ const char *r;
 }
 #endif
 
-static int cnt_filename(const char *param,
-			const char *value,
-			void *void_arg)
-{
-	*(int *)void_arg += strlen(param)+strlen(value)+5;
-	return 0;
-}
-
-static int save_filename(const char *param,
-			 const char *value,
-			 void *void_arg)
-{
-	strcat(strcat(strcat(strcat((char *)void_arg, ";\n  "), param),
-		      "="), value);
-	return 0;
-}
-
 extern "C" int attach_upload(const char *draft,
 			     const char *attpubkey,
 			     const char *attprivkey)
 {
-	char	*attachfilename;
-	FILE	*draftfp;
-	char	*boundary;
-	FILE	*tempfp;
-	struct	rfc2045 *rfcp, *q;
-	const char *content_type;
-	const char *content_transfer_encoding;
-	const char *charset;
-	off_t	start_pos, end_pos, start_body;
+	std::string attachfilename;
 	int	n;
 	char	buf[BUFSIZ];
 	int	pipefd[2];
 	struct	stat	stat_buf, attach_stat_buf;
-	off_t	dummy;
-	int	fd2;
-	char	*filenamemime;
+	std::string filenamemime;
 	char *argvec[20];
-	char	*filenamebuf;
+	std::string filenamebuf;
 	pid_t pid1, pid2;
 	int waitstat;
 
 	/* Open the file containing the draft message */
 
-	auto draftfilename=maildir_find(INBOX "." DRAFTS, draft);
-	if (draftfilename.empty())	return (0);
+	auto &&[draftfilename, draftfp, draftmessage] =
+		open_draft_message(draft);
 
-	fd2=maildir_safeopen(draftfilename.c_str(), O_RDONLY, 0);
-
-	draftfp=0;
-	if (fd2 >= 0)
-	{
-		draftfp=fdopen(fd2, "r");
-		if (draftfp == NULL)
-			close(fd2);
-	}
-
-	if (draftfp == 0)
+	if (draftfp.error())
 		enomem();
 
-	if (fstat(fileno(draftfp), &stat_buf))
+	if (fstat(draftfp.fileno(), &stat_buf))
 	{
-		fclose(draftfp);
 		enomem();
 	}
 
@@ -697,143 +641,109 @@ extern "C" int attach_upload(const char *draft,
 	** attachment
 	*/
 
-	attachfd=maildir_createmsg(INBOX "." DRAFTS, "temp", &attachfilename);
-	if (attachfd < 0)
+	attachfd = rfc822::fdstreambuf{
+		maildir_createmsg(INBOX "." DRAFTS, "temp",
+				  attachfilename)
+	};
+
+	if (attachfd.error())
 	{
-		fclose(draftfp);
 		enomem();
 	}
 
-	if ((
-	     attpubkey ? getkey(attpubkey, 0):
+	if ((attpubkey ? getkey(attpubkey, 0):
 	     attprivkey ? getkey(attprivkey, 1):
 	     cgi_getfiles( &upload_start, &upload_file, &upload_end, 1, NULL))
-		|| maildir_writemsg_flush(attachfd))
+	    || maildir_writemsg_flush(attachfd.fileno()))
 	{
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
-		free(attachfilename);
-		fclose(draftfp);
-		close(attachfd);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename.c_str(), 0, 0);
 		return (0);
 	}
 
-	if (fstat(attachfd, &attach_stat_buf) ||
+	if (fstat(attachfd.fileno(), &attach_stat_buf) ||
 	    attach_stat_buf.st_size + stat_buf.st_size > max_attach())
 	{
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
-		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
-		free(attachfilename);
-		fclose(draftfp);
-		close(attachfd);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename.c_str(), 0, 0);
+		maildir_deletenewmsg(-1, INBOX "." DRAFTS,
+				     attachfilename.c_str());
+		attachfd={};
 		return (-2);
 	}
 
 
 	/* Calculate new MIME content boundary */
 
-	boundary=0;
-	tempfp=0;
-
-	n=dup(attachfd);
-
-	if (n < 0)
-	{
-		fclose(draftfp);
-		enomem();
-	}
-	tempfp=fdopen(n, "r");
-	if (tempfp == 0)
-	{
-		fclose(draftfp);
-		enomem();
-	}
+	unsigned counter=0;
+	std::string boundary;
 
 	do
 	{
-		if (boundary)	free(boundary);
-		boundary=multipart_boundary_create();
-	} while ( multipart_boundary_checkf(boundary, draftfp) ||
-		  multipart_boundary_checkf(boundary, tempfp));
-
-	if (tempfp)	fclose(tempfp);
-
-	/* Parse existing draft for its MIME structure */
-
-	rfcp=rfc2045_fromfp(draftfp);
-
-	rfc2045_mimeinfo(rfcp, &content_type,
-		&content_transfer_encoding, &charset);
+		boundary=rfc2045::entity::new_boundary(counter);
+		draftfp.pubseekpos(0);
+		attachfd.pubseekpos(0);
+	} while ( !multipart_boundary_checkf(boundary, draftfp) ||
+		  !multipart_boundary_checkf(boundary, attachfd) );
 
 	/* Create a new version of the draft message */
 
 	newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, draft, draftfilename);
 	if (newdraftfd < 0)
 	{
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
-		fclose(draftfp);
-		close(attachfd);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename.c_str(), 0, 0);
 		enomem();
 	}
 
-	if (fseek(draftfp, 0L, SEEK_SET) < 0)
+	draftfp.pubseekpos(0);
+	if (draftfp.error())
 	{
 		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 				 draftfilename.c_str(), 0, 0);
 		maildir_closemsg(attachfd, INBOX "." DRAFTS,
-				 attachfilename, 0, 0);
-		fclose(draftfp);
-		close(attachfd);
+				 attachfilename.c_str(), 0, 0);
 		enomem();
 	}
 
-	newmsg_copy_nonmime_headers(draftfp);
+	newmsg_copy_nonmime_headers(draftmessage, draftfp);
 
 	/* Create a multipart message, 1st attachment is the existing
 	** contents.
 	*/
 
-	newmsg_create_multipart(newdraftfd, charset, boundary);
+	newmsg_create_multipart(newdraftfd,
+				draftmessage.content_type.value.c_str(),
+				boundary.c_str());
 	maildir_writemsgstr(newdraftfd, "--");
-	maildir_writemsgstr(newdraftfd, boundary);
+	maildir_writemsgstr(newdraftfd, boundary.c_str());
 	maildir_writemsgstr(newdraftfd, "\n");
 
-	if (rfcp == NULL || strcmp(content_type, "multipart/mixed"))
+	if (draftmessage.content_type.value != "multipart/mixed")
 	{
-		int rc;
-
 		/*
 		** The current draft does not have attachments.  Take its
 		** sole contents, and write it as a text/plain attachment.
 		*/
 
-		if (fseek(draftfp, 0L, SEEK_SET) < 0)
-			rc = -1;
-		else
-		{
-			newmsg_copy_content_headers(draftfp);
-			maildir_writemsgstr(newdraftfd, "\n");
-			rfc2045_mimepos(rfcp, &start_pos, &end_pos,
-					&start_body,
-					&dummy, &dummy);
-			rc=messagecopy(draftfp, start_body, end_pos);
-		}
-
-		if (rc)
+		newmsg_copy_content_headers(draftmessage, draftfp);
+		maildir_writemsgstr(newdraftfd, "\n");
+		if (!messagecopy(draftfp,
+				 draftmessage.startbody,
+				 draftmessage.endbody))
 		{
 			maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 					 draftfilename.c_str(),
 					 0, 0);
 			maildir_closemsg(attachfd, INBOX "." DRAFTS,
-					 attachfilename,
+					 attachfilename.c_str(),
 					 0, 0);
-			fclose(draftfp);
 			close(newdraftfd);
-			close(attachfd);
 			enomem();
 		}
 
 		maildir_writemsgstr(newdraftfd, "\n--");
-		maildir_writemsgstr(newdraftfd, boundary);
+		maildir_writemsgstr(newdraftfd, boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\n");
 	}
 	else
@@ -842,54 +752,46 @@ extern "C" int attach_upload(const char *draft,
 		** just copy them over to the new draft message.
 		*/
 
-		for (q=rfcp->firstpart; q; q=q->next)
+		for (auto &subentity:draftmessage.subentities)
 		{
-			if (q->isdummy)	continue;
-			rfc2045_mimepos(q, &start_pos, &end_pos, &start_body,
-					&dummy, &dummy);
-			if (messagecopy(draftfp, start_pos, end_pos))
+			if (!messagecopy(draftfp, subentity.startpos,
+					 subentity.endbody))
 			{
 				maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 						 draftfilename.c_str(), 0, 0);
 				maildir_closemsg(attachfd, INBOX "." DRAFTS,
-					attachfilename, 0, 0);
-				fclose(draftfp);
+						 attachfilename.c_str(), 0, 0);
 				close(newdraftfd);
-				close(attachfd);
 				enomem();
 			}
 			maildir_writemsgstr(newdraftfd, "\n--");
-			maildir_writemsgstr(newdraftfd, boundary);
+			maildir_writemsgstr(newdraftfd, boundary.c_str());
 			maildir_writemsgstr(newdraftfd, "\n");
 		}
 	}
 
 	{
 		const char *cp=strrchr(cgi_attachfilename, '/');
-		int len;
-		static const char fnStr[]="filename";
 
 		if (cp)
 			++cp;
 		else
 			cp=cgi_attachfilename;
 
-		len=1;
-		rfc2231_attrCreate(fnStr, cp,
-				   sqwebmail_content_charset,
-				   sqwebmail_content_language,
-				   &cnt_filename, &len);
-
-		filenamemime=static_cast<char *>(malloc(len));
-
-		if (filenamemime)
-		{
-			*filenamemime=0;
-			rfc2231_attrCreate(fnStr, cp,
-					   sqwebmail_content_charset,
-					   sqwebmail_content_language,
-					   save_filename, filenamemime);
-		}
+		rfc2231_attr_encode(
+			"filename",
+			cp,
+			sqwebmail_content_charset,
+			sqwebmail_content_language,
+			[&]
+			(const char *param, const char *value)
+			{
+				filenamemime += ";\n  ";
+				filenamemime += param;
+				filenamemime += "=";
+				filenamemime += value;
+			}
+		);
 	}
 
 	static char makemime_str[]="makemime";
@@ -914,11 +816,10 @@ extern "C" int attach_upload(const char *draft,
 		static char disposition_str[]="Content-Disposition: attachment; filename=\"pgpkeys.txt\"";
 		argvec[6]=disposition_str;
 		n=7;
-		filenamebuf=0;
 	}
 	else
 	{
-		const char *pp;
+		std::string_view pp;
 
 		argvec[2]=(char *)calc_mime_type(cgi_attachfilename);
 
@@ -934,20 +835,14 @@ extern "C" int attach_upload(const char *draft,
 			"Content-Disposition: inline":
 			"Content-Disposition: attachment";
 
-		filenamebuf=static_cast<char *>(
-			malloc(strlen(pp)+strlen(filenamemime ?
-						 filenamemime:"") + 15)
-		);
+		filenamebuf.reserve(pp.size()+filenamemime.size());
 
-		if (filenamebuf)
-		{
-			strcpy(filenamebuf, pp);
-			strcat(filenamebuf, filenamemime ? filenamemime:"");
+		filenamebuf =pp;
+		filenamebuf += filenamemime;
 
-			static char aopt_str[]="-a";
-			argvec[n++]=aopt_str;
-			argvec[n++]=filenamebuf;
-		}
+		static char aopt_str[]="-a";
+		argvec[n++]=aopt_str;
+		argvec[n++]=filenamebuf.data();
 	}
 
 	static char Copt[]="-C";
@@ -962,35 +857,24 @@ extern "C" int attach_upload(const char *draft,
 
 	if (pipe(pipefd) < 0)
 	{
-		if (filenamemime)
-			free(filenamemime);
-		if (filenamebuf)
-			free(filenamebuf);
 		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 				 draftfilename.c_str(), 0, 0);
 		maildir_closemsg(attachfd, INBOX "." DRAFTS,
-				 attachfilename, 0, 0);
-		fclose(draftfp);
+				 attachfilename.c_str(), 0, 0);
 		close(newdraftfd);
-		close(attachfd);
 		enomem();
 	}
 
-	if (lseek(attachfd, 0L, SEEK_SET) < 0 || (pid1=fork()) < 0)
+	attachfd.pubseekpos(0);
+	if (attachfd.error() || (pid1=fork()) < 0)
 	{
 		close(pipefd[0]);
 		close(pipefd[1]);
-		if (filenamemime)
-			free(filenamemime);
-		if (filenamebuf)
-			free(filenamebuf);
 		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 				 draftfilename.c_str(), 0, 0);
 		maildir_closemsg(attachfd, INBOX "." DRAFTS,
-				 attachfilename, 0, 0);
-		fclose(draftfp);
+				 attachfilename.c_str(), 0, 0);
 		close(newdraftfd);
-		close(attachfd);
 		enomem();
 		return (0);
 	}
@@ -998,9 +882,9 @@ extern "C" int attach_upload(const char *draft,
 	if (pid1 == 0)
 	{
 		setenv("CHARSET", sqwebmail_content_charset, 1);
-		dup2(attachfd, 0);
+		dup2(attachfd.fileno(), 0);
 		dup2(pipefd[1], 1);
-		close(attachfd);
+		attachfd={};
 		close(newdraftfd);
 		close(pipefd[0]);
 		close(pipefd[1]);
@@ -1010,13 +894,7 @@ extern "C" int attach_upload(const char *draft,
 		exit(1);
 	}
 
-	if (filenamemime)
-		free(filenamemime);
-	if (filenamebuf)
-		free(filenamebuf);
-
 	close (pipefd[1]);
-
 
 	while ((n=read(pipefd[0], buf, sizeof(buf))) > 0)
 	{
@@ -1047,16 +925,15 @@ extern "C" int attach_upload(const char *draft,
 		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
 				 draftfilename.c_str(), 0, 0);
 		maildir_closemsg(attachfd, INBOX "." DRAFTS,
-				 attachfilename, 0, 0);
-		fclose(draftfp);
+				 attachfilename.c_str(), 0, 0);
 		close(newdraftfd);
-		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
-		close(attachfd);
+		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS,
+				     attachfilename.c_str());
 		return (-3);
 	}
 
 	maildir_writemsgstr(newdraftfd, "\n--");
-	maildir_writemsgstr(newdraftfd, boundary);
+	maildir_writemsgstr(newdraftfd, boundary.c_str());
 	maildir_writemsgstr(newdraftfd, "--\n");
 
 	/* Finish new draft message, let it replace the current one */
@@ -1065,22 +942,17 @@ extern "C" int attach_upload(const char *draft,
 			     draftfilename.c_str(), 1,
 			     stat_buf.st_size))
 	{
-		maildir_closemsg(attachfd, INBOX "." DRAFTS, attachfilename, 0, 0);
-		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
-		free(attachfilename);
-		rfc2045_free(rfcp);
-		fclose(draftfp);
-		close(attachfd);
+		maildir_closemsg(attachfd, INBOX "." DRAFTS,
+				 attachfilename.c_str(), 0, 0);
+		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS,
+				     attachfilename.c_str());
 		return (-1);
 	}
 
-	fclose(draftfp);
-
 	/* Remove and delete temp attachment file */
 
-	maildir_deletenewmsg(attachfd, INBOX "." DRAFTS, attachfilename);
-	free(attachfilename);
-	rfc2045_free(rfcp);
+	maildir_deletenewmsg(attachfd, INBOX "." DRAFTS,
+			     attachfilename.c_str());
 	return (0);
 }
 
