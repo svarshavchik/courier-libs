@@ -20,8 +20,12 @@
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045/rfc2045.h"
 #include	"rfc2045/rfc2045charset.h"
-
+#include	"rfc2045/rfc2045reply.h"
 #include	<stdlib.h>
+#include	<unordered_set>
+#include	<string>
+#include	<sstream>
+
 #include	<fcntl.h>
 #if HAVE_UNISTD_H
 #include	<unistd.h>
@@ -32,102 +36,93 @@ extern const char *sqwebmail_content_charset;
 
 extern "C" char *get_msgfilename(const char *, size_t *);
 
-static int draftfd;
-
-static int ismyaddr(const char *p, void *dummy)
+std::string newmsg_newdraft(const char *folder, const char *pos,
+			    const char *forwardsep, const char *replysalut)
 {
-	return (strcmp(p, login_returnaddr()) == 0);
-}
-
-static void writefunc(const char *p, size_t l, void *dummy)
-{
-	maildir_writemsg(draftfd, p, l);
-}
-
-char *newmsg_newdraft(const char *folder, const char *pos,
-			const char *forwardsep, const char *replysalut)
-{
-	char	*filename=0;
-	char	*replymode;
 	size_t	pos_n;
-	FILE	*fp;
 
 	const	char *mimeidptr;
-	char	*draftfilename;
-	struct	rfc2045 *rfc2045p, *rfc2045partp;
-	int	x;
+	char *filename;
+	rfc2045::replymode_t replymode;
 
-	static char replystr[]="reply";
-	static char replyallstr[]="replyall";
-	static char replyliststr[]="replylist";
-	static char forwardstr[]="forward";
-	static char forwardattstr[]="forwardatt";
-
-	if (*cgi(replymode=replystr) ||
-		*cgi(replymode=replyallstr) ||
-		*cgi(replymode=replyliststr) ||
-		*cgi(replymode=forwardstr) ||
-		*cgi(replymode=forwardattstr))
+	if (*cgi("reply"))
 	{
-		pos_n=atol(pos);
-
-		filename=get_msgfilename(folder, &pos_n);
+		replymode=rfc2045::replymode_t::reply;
+	}
+	else if (*cgi("replyall"))
+	{
+		replymode=rfc2045::replymode_t::replyall;
+	}
+	else if (*cgi("replylist"))
+	{
+		replymode=rfc2045::replymode_t::replylist;
+	}
+	else if (*cgi("forward"))
+	{
+		replymode=rfc2045::replymode_t::forward;
+	}
+	else if (*cgi("forwardatt"))
+	{
+		replymode=rfc2045::replymode_t::forwardatt;
+	}
+	else
+	{
+		return "";
 	}
 
-	if (!filename)	return (0);
+	pos_n=atol(pos);
+	filename=get_msgfilename(folder, &pos_n);
 
-	fp=0;
-	x=maildir_semisafeopen(filename, O_RDONLY, 0);
+	if (!filename)	return ("");
 
-	if (x >= 0)
-		if ((fp=fdopen(x, "r")) == 0)
-			close(x);
+	rfc822::fdstreambuf fp{
+		maildir_semisafeopen(filename, O_RDONLY, 0)
+	};
 
-	if (fp == 0)
+	if (fp.error())
 	{
 		free(filename);
-		return (0);
+		return ("");
 	}
 
-	rfc2045p=rfc2045_fromfp(fp);
+	rfc2045::entity message;
 
-	if (!rfc2045p)
 	{
-		fclose(fp);
-		enomem();
+		std::istreambuf_iterator<char> b{&fp}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
 	}
 
 	mimeidptr=cgi("mimeid");
 
-	rfc2045partp=0;
+	const rfc2045::entity *rfc2045partp{nullptr};
 
 	if (*mimeidptr)
 	{
-		rfc2045partp=rfc2045_find(rfc2045p, mimeidptr);
-		if (rfc2045partp)
+		rfc2045partp=message.find(mimeidptr);
+
+		if (!rfc2045partp || !rfc2045_message_content_type(
+			    rfc2045partp->content_type.value.c_str()
+		    ) || rfc2045partp->subentities.empty())
 		{
-			const char      *content_type, *dummy;
-
-			rfc2045_mimeinfo(rfc2045partp, &content_type,
-				&dummy, &dummy);
-
-			if (!content_type ||
-			    !rfc2045_message_content_type(content_type))
-				rfc2045partp=0;
-			else
-				rfc2045partp=rfc2045partp->firstpart;
+			rfc2045partp=nullptr;
+		}
+		else
+		{
+			rfc2045partp= &rfc2045partp->subentities[0];
 		}
 	}
 
 	if (!rfc2045partp)
-		rfc2045partp=rfc2045p;
+		rfc2045partp=&message;
 
+	std::string draftfilename;
 
-	draftfd=maildir_createmsg(INBOX "." DRAFTS, 0, &draftfilename);
+	int draftfd=maildir_createmsg(INBOX "." DRAFTS, 0, draftfilename);
 	if (draftfd < 0)
 	{
-		fclose(fp);
-		rfc2045_free(rfc2045p);
 		enomem();
 	}
 
@@ -146,65 +141,79 @@ char *newmsg_newdraft(const char *folder, const char *pos,
 	}
 
 	{
+		std::unordered_set<std::string> mailinglists;
+		std::unordered_set<std::string_view> mailinglists_sv;
+
 		char *ml=getmailinglists();
-		struct rfc2045_mkreplyinfo ri;
-		struct rfc2045src *src;
-		int rc;
 
-		src=rfc2045src_init_fd(fileno(fp));
-		if (src == NULL)
-			enomem();
+		{
+			std::istringstream i{std::string{ml}};
+			free(ml);
 
-		memset(&ri, 0, sizeof(ri));
-		ri.src=src;
-		ri.rfc2045partp=rfc2045partp;
-		ri.replymode=replymode;
+			std::string s;
+
+			while (std::getline(i, s))
+				mailinglists.insert(s);
+			for (auto &s:mailinglists)
+				mailinglists_sv.insert(s);
+		}
+
+		rfc2045::reply ri{replymode};
+
 		ri.replysalut=replysalut;
 		ri.forwardsep=forwardsep;
-		ri.myaddr_func=ismyaddr;
-		ri.write_func=writefunc;
-		ri.mailinglists=ml;
+		ri.myaddr_func=[]
+			(auto addr)
+		{
+			return addr == login_returnaddr();
+		};
+		ri.is_mailinglist=[&]
+			(std::string_view ml)
+		{
+			return mailinglists_sv.find(ml) !=
+				mailinglists_sv.end();
+		};
 		ri.charset=sqwebmail_content_charset;
 
-		if (strcmp(replymode, "forward") == 0
-		    || strcmp(replymode, "forwardatt") == 0)
-		{
-			rc=rfc2045_makereply(&ri);
+		switch (replymode) {
+		case rfc2045::replymode_t::forward:
+		case rfc2045::replymode_t::forwardatt:
+			break;
+		default:
+			{
+				char *basename=maildir_basename(filename);
+
+				maildir_writemsgstr(draftfd,
+						    "X-Reply-To-Folder: ");
+				maildir_writemsgstr(draftfd, folder);
+				maildir_writemsgstr(draftfd,
+						    "\nX-Reply-To-Msg: ");
+
+				maildir_writemsgstr(draftfd, basename);
+				free(basename);
+				maildir_writemsgstr(draftfd, "\n");
+			}
 		}
-		else
-		{
-		char *basename=maildir_basename(filename);
 
-			maildir_writemsgstr(draftfd, "X-Reply-To-Folder: ");
-			maildir_writemsgstr(draftfd, folder);
-			maildir_writemsgstr(draftfd, "\nX-Reply-To-Msg: ");
-
-			maildir_writemsgstr(draftfd, basename);
-			free(basename);
-			maildir_writemsgstr(draftfd, "\n");
-
-			rc=rfc2045_makereply(&ri);
-		}
-		free(ml);
-		rfc2045src_deinit(src);
-
-		if (rc)
-		{
-			fclose(fp);
-			close(draftfd);
-			rfc2045_free(rfc2045p);
-			enomem();
-		}
+		ri(
+			[&]
+			(std::string_view chunk)
+			{
+				maildir_writemsg(draftfd,
+						 chunk.data(),
+						 chunk.size());
+			},
+			*rfc2045partp,
+			fp
+		);
 	}
 
-	fclose(fp);
-	if (maildir_closemsg(draftfd, INBOX "." DRAFTS, draftfilename, 1, 0))
+	if (maildir_closemsg(draftfd, INBOX "." DRAFTS,
+			     draftfilename.c_str(), 1, 0))
 	{
-		free(draftfilename);
-		draftfilename=0;
 		cgi_put("error", "quota");
 	}
 	free(filename);
-	rfc2045_free(rfc2045p);
+
 	return(draftfilename);
 }

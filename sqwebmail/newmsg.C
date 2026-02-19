@@ -58,8 +58,8 @@ extern "C" void output_scriptptrget();
 extern "C" void output_form(const char *);
 extern "C" void output_urlencoded(const char *);
 
-extern char *newmsg_newdraft(const char *, const char *, const char *,
-				const char *);
+extern std::string newmsg_newdraft(const char *, const char *, const char *,
+				   const char *);
 extern char *newmsg_createdraft(const char *);
 extern std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr);
 extern "C" int ishttps();
@@ -470,7 +470,7 @@ void newmsg_init(const char *folder, const char *pos)
 	const char	*select2=getarg("SELECT2");
 	const char	*text1=getarg("TEXT1");
 	const char	*text2=getarg("TEXT2");
-	char	*draftmessage;
+	std::string draftmessage;
 	const	char *p;
 	int	attachcnt=0;
 	std::string cursubj, curto, curcc, curbcc, curfrom, curreplyto;
@@ -486,8 +486,7 @@ void newmsg_init(const char *folder, const char *pos)
 
 	if (*p)
 	{
-		draftmessage=strdup(p);
-		if (!draftmessage)	enomem();
+		draftmessage=p;
 		p="";
 	}
 	else
@@ -495,7 +494,7 @@ void newmsg_init(const char *folder, const char *pos)
 		draftmessage=newmsg_newdraft(folder, pos,
 			forwardsep, replysalutation);
 
-		if (!draftmessage)
+		if (draftmessage.empty())
 		{
 			if (*ispreviewmsg())
 			{
@@ -504,13 +503,16 @@ void newmsg_init(const char *folder, const char *pos)
 				{
 					CHECKFILENAME(p);
 				}
-				draftmessage=newmsg_createdraft(p);
+				char *ptr=newmsg_createdraft(p);
+				draftmessage=ptr;
+				free(ptr);
 			}
 		}
 	}
 
-	auto draftmessagefilename= draftmessage ?
-		maildir_find(INBOX "." DRAFTS, draftmessage):"";
+
+	auto draftmessagefilename= !draftmessage.empty() ?
+		maildir_find(INBOX "." DRAFTS, draftmessage.c_str()):"";
 
 	if (*(p=cgi("previewmsg")))
 	{
@@ -694,14 +696,13 @@ void newmsg_init(const char *folder, const char *pos)
 	}
 	printf("%s\n", text2);
 
-	if (draftmessage && *draftmessage)
+	if (!draftmessage.empty())
 	{
 		printf("<input type=\"hidden\" name=\"draftmessage\" value=\"");
-		output_attrencoded(draftmessage);
+		output_attrencoded(draftmessage.c_str());
 
 		printf("\" />");
 	}
-	if (draftmessage)	free(draftmessage);
 	printf("</td></tr>\n");
 
 	printf("<tr><th valign=\"top\" align=\"right\">"
