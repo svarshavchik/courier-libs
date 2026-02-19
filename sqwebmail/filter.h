@@ -37,44 +37,43 @@
 #include	<unistd.h>
 #endif
 
-#include	<stdlib.h>
+#include	<vector>
 
 #include	<courier-unicode.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
+class filter_info {
 
-struct filter_info {
+	static int converted_text(const char *, size_t, void *);
+
 	unicode_convert_handle_t handle;
 
-	int conversion_error;
+	unicode_lb_info_t lb_handle{nullptr};
+	std::vector<char32_t> pending_text;
+	size_t pending_lb_cnt{0};
 
-	char32_t prevchar;
-
-	size_t u_w;
+	static int lb_callback(int, void *);
+	char32_t prevchar{'\n'};
 
 	void (*handler_func)(const char *, size_t, void *);
 	void *func_arg;
 
 	size_t linesize;
-};
 
-void	filter_start(struct filter_info *, const char *,
-		     void (*)(const char *, size_t, void *), void *);
-void	filter(struct filter_info *,
-	       const char32_t *, size_t);
-void	filter_passthru(struct filter_info *info,
-			const char32_t *ptr, size_t cnt);
-void	filter_end(struct filter_info *info);
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
+	void flush_word();
+	void do_flush_word(size_t);
+	void do_flush_word_chunk(size_t, size_t);
+public:
+	bool conversion_error=false;
+
+	filter_info(const char *,
+		    void (*)(const char *, size_t, void *), void *);
+
+	~filter_info();
+
+	void operator()(const char32_t *, size_t);
+	void	passthru(const char32_t *ptr, size_t cnt);
+	void flush();
+
+};
 
 #endif

@@ -39,7 +39,6 @@
 #include	<fcntl.h>
 #include	<sstream>
 
-#define HASTEXTPLAIN(q) (rfc2045_searchcontenttype((q), "text/plain") != NULL)
 /* Also in attachments.c */
 
 extern const char *rfc822_mkdt(time_t);
@@ -532,7 +531,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	int is_newevent=strcmp(cgi("form"), "newevent") == 0;
 	bool has_attachments=false;
 	size_t newmsg_size;
-	char *sig, *footer;
+	char *sig=nullptr, *footer=nullptr;
 
 /*
 ** Trim extra newlines.
@@ -735,9 +734,10 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	/*	maildir_writemsgstr(newdraftfd, "\n"); */
 
 	sig=pref_getsig();
-	footer=pref_getfile(http11_open_langfile(get_templatedir(),
-						 sqwebmail_content_language,
-						 "footer"));
+	footer=pref_getfile(http11_open_langfile(
+				    get_templatedir(),
+				    sqwebmail_content_language,
+				    "footer"));
 
 	while (newmsg_size &&
 	       (newmsg[newmsg_size-1] == '\r' ||

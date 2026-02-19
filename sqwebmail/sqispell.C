@@ -104,6 +104,9 @@ static bool search_spell(const char *filename, unsigned parnum, unsigned pos)
 			continue;
 		}
 
+		if (current_line == "-- ") // Stop at sig line.
+			break;
+
 		if (parnum)
 		{
 			--parnum;
@@ -368,53 +371,6 @@ static std::string spell_check(const std::string &line, unsigned pnum,
 	return (newline);
 }
 
-static void showfunc(const char *p, size_t n, void *dummy)
-{
-	while (n)
-	{
-		if (*p == ' ')
-			printf("&nbsp;");
-		else if (*p != '\n')
-			putchar(*p);
-		p++;
-		--n;
-	}
-}
-
-static void show_part(std::string_view part)
-{
-	char32_t *uc;
-	size_t ucsize;
-	int conv_err;
-
-	if (unicode_convert_tou_tobuf(part.data(), part.size(),
-					sqwebmail_content_charset,
-					&uc,
-					&ucsize,
-					&conv_err) == 0)
-	{
-		if (conv_err)
-		{
-			free(uc);
-			uc=NULL;
-		}
-	}
-
-
-	if (uc)
-	{
-
-		struct filter_info info;
-
-		filter_start(&info, sqwebmail_content_charset,
-			     &showfunc, NULL);
-		filter(&info, uc, ucsize);
-		filter_end(&info);
-
-		free(uc);
-	}
-}
-
 void spell_show()
 {
 const char *draftmessage=cgi("draftmessage");
@@ -495,10 +451,15 @@ const char *finishlab=getarg("FINISH");
 	else
 		p=0;
 
-
-	show_part(std::string_view{ispellline}.substr(p, msp->word_pos-p));
+	output_attrencoded(
+		std::string_view{ispellline}.substr(p, msp->word_pos-p)
+	);
 	printf("<strong>");
-	show_part(std::string_view{ispellline}.substr(msp->word_pos, msp->misspelled_word.size()));
+	output_attrencoded(
+		std::string_view{ispellline}.substr(msp->word_pos,
+						    msp->misspelled_word.size()
+		)
+	);
 	printf("</strong>");
 
 	p=msp->word_pos+msp->misspelled_word.size();
@@ -539,7 +500,7 @@ const char *finishlab=getarg("FINISH");
 		}
 	}
 
-	show_part(std::string_view{ispellline}.substr(p, n));
+	output_attrencoded(std::string_view{ispellline}.substr(p, n));
 
 	if (n != l-p)
 		printf("&nbsp;...");

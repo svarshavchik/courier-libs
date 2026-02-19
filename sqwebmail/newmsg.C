@@ -83,42 +83,24 @@ const char	*p=getarg("HDRMAXLEN");
 		field, hdrmaxlen);
 	if (encoded)
 	{
-		char	*s;
+		std::string s;
 
-		s=rfc822_display_hdrvalue_tobuf("subject",
-						encoded,
-						sqwebmail_content_charset,
-						NULL,
-						NULL);
+		rfc822::display_header(
+			"subject",
+			encoded,
+			sqwebmail_content_charset,
+			std::back_inserter(s)
+		);
 
-		if (!s)
-			s=strdup(encoded);
-
-		if (!s)	enomem();
-		output_attrencoded(s);
-		free(s);
+		output_attrencoded(s.c_str());
 	}
 	else if (val)
 		output_attrencoded(val);
 	printf("\" /></td></tr>\n");
 }
 
-static void printc(char c, void *dummy)
-{
-	char b[2];
-
-	b[0]=c;
-	b[1]=0;
-	output_attrencoded(b);
-}
-
-static void printsep(const char *c, void *dummy)
-{
-	output_attrencoded(c);
-}
-
 static void newmsg_header_rfc822(const char *label, const char *field,
-				 const char *encoded, const char *val,
+				 const std::string &encoded, const char *val,
 				 int is_readonly)
 {
 int		hdrmaxlen=512;
@@ -135,21 +117,15 @@ const char	*p=getarg("HDRMAXLEN");
 	printf("<td><input type=\"text\" name=\"%s\" size=\"50\" maxlength=\"%d\""
 	       " class=\"new-message-header-text\" value=\"",
 		field, hdrmaxlen);
-	if (encoded)
+	if (!encoded.empty())
 	{
-		struct rfc822t *t=rfc822t_alloc_new(encoded, NULL, NULL);
-		struct rfc822a *a=t ? rfc822a_alloc(t):NULL;
+		rfc822::tokens t{encoded};
+		rfc822::addresses a{t};
 
-		if (a)
-		{
-			rfc2047_print_unicodeaddr(a, sqwebmail_content_charset,
-						  printc,
-						  printsep, NULL);
-			rfc822a_free(a);
-		}
+		auto addresses=a.wrap_display(-1, sqwebmail_content_charset);
 
-		if (t)
-			rfc822t_free(t);
+		for (auto &a:addresses)
+			output_attrencoded(a.c_str());
 	}
 	else if (val)
 		output_attrencoded(val);
@@ -358,153 +334,96 @@ static size_t show_textarea_ignore_sig(struct show_textarea_info *info,
 ** Return all from/to/cc/bcc addresses in the message.
 */
 
-char *newmsg_alladdrs(FILE *fp)
+std::string newmsg_alladdrs(rfc822::fdstreambuf &fp)
 {
-	char	*headers=NULL;
-	struct rfc822t *t;
-	struct rfc822a *a;
-	char *p, *q;
-	int l, i;
+	std::string headers;
 
-	if (fp)
+	if (!fp.error())
 	{
-		char *header, *value;
+		fp.pubseekpos(0);
 
-		rewind(fp);
+		rfc2045::entity::line_iter<false>::headers read_headers{fp};
 
 		/* First, combine all the headers into one header. */
 
-		while ((header=maildir_readheader(fp, &value, 1)) != 0)
+		do
 		{
-			char *newh;
+			const auto &[header, value]=read_headers.name_content();
 
-			if (strcmp(header, "from") &&
-			    strcmp(header, "to") &&
-			    strcmp(header, "cc") &&
-			    strcmp(header, "bcc"))
+			if (header != "from" &&
+			    header != "to" &&
+			    header != "cc" &&
+			    header != "bcc")
 				continue;
 
-			if (headers)
-			{
-				newh=static_cast<char *>(
-					realloc(headers, strlen(headers)
-						+strlen(value)+2)
-				);
-				if (!newh)
-					continue;
-				strcat(newh, ",");
-				headers=newh;
-			}
-			else
-			{
-				newh=static_cast<char *>(
-					malloc(strlen(value)+1)
-				);
-				if (!newh)
-					continue;
-				*newh=0;
-				headers=newh;
-			}
-			strcat(headers, value);
-		}
+			if (headers.size())
+				headers += ",";
 
+			headers += value;
+		} while (read_headers.next());
 	}
 
 	/* Now, parse the header, and extract the addresses */
 
-	t=rfc822t_alloc_new(headers ? headers:"", NULL, NULL);
-	a= t ? rfc822a_alloc(t):NULL;
+	rfc822::tokens t{headers};
+	rfc822::addresses a{t};
 
-	l=1;
-	for (i=0; i < (a ? a->naddrs:0); i++)
-	{
-		p=rfc822_getaddr(a, i);
-		if (p)
-		{
-			++l;
-			l +=strlen(p);
-			free(p);
-		}
-	}
-	p=static_cast<char *>(malloc(l));
-	if (p)
-		*p=0;
+	std::string s;
 
-	for (i=0; i < (a ? a->naddrs:0); i++)
+	for (auto &address:a)
 	{
-		q=rfc822_getaddr(a, i);
-		if (q)
-		{
-			if (p)
-			{
-				strcat(strcat(p, q), "\n");
-			}
-			free(q);
-		}
+		if (address.address.empty())
+			continue;
+
+		address.address.display_address(
+			sqwebmail_content_charset,
+			std::back_inserter(s)
+		);
+		s += "\n";
 	}
 
-	rfc822a_free(a);
-	rfc822t_free(t);
-	free(headers);
-	return (p);
+	return (s);
 }
 
-static int show_textarea_trampoline(const char *ptr, size_t cnt, void *arg)
+void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt)
 {
-	show_textarea( (struct show_textarea_info *)arg, ptr, cnt);
-	return 0;
-}
+	rfc2045::entity message;
+	std::istreambuf_iterator<char> b{&fp}, e;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
 
-extern "C" void newmsg_showfp(FILE *fp, int *attachcnt)
-{
-	struct	rfc2045 *p=rfc2045_fromfp(fp), *q;
-
-	if (!p)	enomem();
+	message.parse(parser);
 
 	/* Here's a nice opportunity to count all attachments */
 
-	*attachcnt=0;
+	*attachcnt=message.subentities.size();
 
-	for (q=p->firstpart; q; q=q->next)
-		if (!q->isdummy)	++*attachcnt;
 	if (*attachcnt)	--*attachcnt;
 	/* Not counting the 1st MIME part */
 
-	{
-		const char *content_type;
-		const char *content_transfer_encoding;
-		const char *charset;
+	if (message.content_type.value == "multipart/alternative")
+		*attachcnt=0;
 
-		rfc2045_mimeinfo(p, &content_type,
-				 &content_transfer_encoding, &charset);
-
-		if (content_type &&
-		    strcmp(content_type, "multipart/alternative") == 0)
-			*attachcnt=0;
-	}
-
-	q=rfc2045_searchcontenttype(p, "text/plain");
+	auto q=message.find_content_type("text/plain");
 
 	if (q)
 	{
-		struct rfc2045src *src=rfc2045src_init_fd(fileno(fp));
+		struct show_textarea_info info;
 
-		if (src)
-		{
-			struct show_textarea_info info;
+		show_textarea_init(&info, 1);
 
-			show_textarea_init(&info, 1);
+		rfc822::mime_decoder decoder{
+			[&]
+			(const char *ptr, size_t n)
+			{
+				show_textarea(&info, ptr, n);
+			},
+			fp, sqwebmail_content_charset
+		};
 
-			rfc2045_decodetextmimesection(src, q,
-						      sqwebmail_content_charset,
-						      NULL,
-						      &show_textarea_trampoline,
-						      &info);
-			rfc2045src_deinit(src);
-			show_textarea(&info, "\n", 1);
-		}
+		decoder.decode_header=false;
+		decoder.decode(*q);
+		show_textarea(&info, "\n", 1);
 	}
-	rfc2045_free(p);
 }
 
 extern "C" void newmsg_preview(const char *p)
@@ -553,9 +472,8 @@ void newmsg_init(const char *folder, const char *pos)
 	const char	*text2=getarg("TEXT2");
 	char	*draftmessage;
 	const	char *p;
-	FILE	*fp;
 	int	attachcnt=0;
-	char	*cursubj, *curto, *curcc, *curbcc, *curfrom, *curreplyto;
+	std::string cursubj, curto, curcc, curbcc, curfrom, curreplyto;
 	int wbnochangingfrom;
 
 	/* Picking up an existing draft? */
@@ -644,67 +562,49 @@ void newmsg_init(const char *folder, const char *pos)
 
 	/* Read message from the draft file */
 
-	cursubj=0;
-	curto=0;
-	curfrom=0;
-	curreplyto=0;
-	curcc=0;
-	curbcc=0;
-	fp=0;
+	rfc822::fdstreambuf fp{
+		!draftmessagefilename.empty()
+		? maildir_safeopen(draftmessagefilename.c_str(),
+				   O_RDONLY, 0)
+		: -1
+	};
 
-	if (!draftmessagefilename.empty())
+	if (!fp.error())
 	{
-		int	x=maildir_safeopen(draftmessagefilename.c_str(),
-					   O_RDONLY, 0);
+		rfc2045::entity::line_iter<false>::headers headers{fp};
 
-		if (x >= 0)
-			if ((fp=fdopen(x, "r")) == 0)
-				close(x);
-	}
-
-	if (fp != 0)
-	{
-	char *header, *value;
-
-		while ((header=maildir_readheader(fp, &value, 0)) != 0)
+		do
 		{
-		char	**rfchp=0;
+			const auto &[header, value]=headers.name_content();
 
-			if (strcmp(header, "subject") == 0)
+			std::string *rfchp=0;
+
+			if (header == "subject")
 			{
-				if (!cursubj && !(cursubj=strdup(value)))
-					enomem();
+				if (cursubj.empty())
+					cursubj=value;
 				continue;
 			}
 
-			while (*value && isspace(*value))
-				++value;
-
-			if (strcmp(header, "from") == 0)
+			if (header == "from")
 				rfchp= &curfrom;
-			if (strcmp(header, "reply-to") == 0)
+			if (header == "reply-to")
 				rfchp= &curreplyto;
-			if (strcmp(header, "to") == 0)
+			if (header == "to")
 				rfchp= &curto;
-			if (strcmp(header, "cc") == 0)
+			if (header == "cc")
 				rfchp= &curcc;
-			if (strcmp(header, "bcc") == 0)
+			if (header == "bcc")
 				rfchp= &curbcc;
+
 			if (rfchp)
 			{
-				char	*newh=static_cast<char *>(
-					malloc ( (*rfchp ? strlen(*rfchp)+2:1)
-						 +strlen(value))
-				);
-
-				if (!newh)	enomem();
-				strcpy(newh, value);
-				if (*rfchp)
-					strcat(strcat(newh, ","), *rfchp);
-				if (*rfchp)	free( *rfchp );
-				*rfchp=newh;
+				if (rfchp->size())
+					(*rfchp) += ", ";
+				(*rfchp) += value;
 			}
-		}
+		} while (headers.next());
+		fp.pubseekpos(0);
 	}
 
 	printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"1\" class=\"box-small-outer\"><tr><td>\n");
@@ -755,14 +655,7 @@ void newmsg_init(const char *folder, const char *pos)
 	newmsg_header_rfc822(replytolab, "headerreply-to",
 			     curreplyto, cgi("replyto"), 0);
 	newmsg_header(subjectlab, "headersubject",
-		      cursubj, cgi("subject"));
-
-	if (curto)	free(curto);
-	if (curfrom)	free(curfrom);
-	if (curreplyto)	free(curreplyto);
-	if (curcc)	free(curcc);
-	if (curbcc)	free(curbcc);
-	if (cursubj)	free(cursubj);
+		      cursubj.c_str(), cgi("subject"));
 
 	printf("<tr><td colspan=\"3\"><hr width=\"100%%\" /></td></tr>");
 	printf("<tr>"
@@ -791,7 +684,7 @@ void newmsg_init(const char *folder, const char *pos)
 
 	printf("<td>%s\n", text1);
 
-	if (fp)
+	if (!fp.error())
 	{
 		newmsg_showfp(fp, &attachcnt);
 	}
@@ -830,34 +723,26 @@ void newmsg_init(const char *folder, const char *pos)
 
 	if (libmail_gpg_has_gpg(GPGDIR) == 0)
 	{
-		char *all_addr;
-
 		printf("<tr><td colspan=\"2\" align=\"right\"><input type=\"checkbox\" "
 		       "name=\"sign\" id=\"sign\" /></td><td><label for=\"sign\">%s</label><select name=\"signkey\">",
 		       getarg("SIGNLAB"));
 		gpgselectkey();
 		printf("</select></td></tr>\n");
 
-		all_addr=newmsg_alladdrs(fp);
+		auto all_addr=newmsg_alladdrs(fp);
 
 		printf("<tr valign=\"middle\"><td colspan=\"2\" align=\"right\">"
 		       "<input type=\"checkbox\" name=\"encrypt\" id=\"encrypt\" /></td>"
 		       "<td><table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr valign=\"middle\"><td><label for=\"encrypt\">%s</label></td><td><select size=\"4\" multiple=\"multiple\" name=\"encryptkey\">",
 		       getarg("ENCRYPTLAB"));
-		gpgencryptkeys(all_addr);
+		gpgencryptkeys(all_addr.c_str());
 		printf("</select></td></tr>\n");
 		printf("</table></td></tr>\n");
 
 		if (ishttps())
 			printf("<tr><td colspan=\"2\" align=\"left\">&nbsp;</td><td>%s<input type=\"password\" name=\"passphrase\" /></td></tr>\n",
 			       getarg("PASSPHRASE"));
-
-		if (all_addr)
-			free(all_addr);
 	}
-
-	if (fp)
-		fclose(fp);
 
 	printf("<tr><td colspan=\"2\">&nbsp;</td><td>");
 	printf("<input type=\"submit\" name=\"previewmsg\" value=\"%s\" />",

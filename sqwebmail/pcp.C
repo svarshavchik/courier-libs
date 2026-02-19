@@ -80,7 +80,7 @@ extern "C" int attach_upload(const char *,
 			     const char *,
 			     const char *);
 
-extern "C" void newmsg_showfp(FILE *, int *);
+extern void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt);
 
 static struct PCP *calendar=NULL;
 static void refreshcache(struct PCP *);
@@ -1100,14 +1100,14 @@ void sqpcp_eventtext()
 
 	if (p && *p)
 	{
-		FILE *fp=openoldfp(p, NULL);
-		int dummy;
+		rfc822::fdstreambuf fp=openoldfp(p, nullptr);
 
-		if (fp)
+		if (!fp.error())
 		{
+			int dummy;
+
 			newmsg_showfp(fp, &dummy);
 		}
-		fclose(fp);
 	}
 	printf("</textarea>\n");
 }

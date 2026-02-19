@@ -419,8 +419,6 @@ static int showmsgrfc822_header(const char *output_chset,
 				const std::string_view p,
 				const char *chset)
 {
-	struct filter_info info;
-
 	char32_t *uc;
 	size_t ucsize;
 
@@ -434,14 +432,14 @@ static int showmsgrfc822_header(const char *output_chset,
 		uc=NULL;
 	}
 
-	filter_start(&info, output_chset, showmsgrfc822_headerp, NULL);
+	filter_info info{output_chset, showmsgrfc822_headerp, NULL};
 
 	if (uc)
 	{
-		filter(&info, uc, ucsize);
+		info(uc, ucsize);
 		free(uc);
 	}
-	filter_end(&info);
+	info.flush();
 
 	if (info.conversion_error)
 		conv_err=1;
@@ -1319,7 +1317,7 @@ struct msg2html_textplain_info {
 	/*
 	** Output filter for unescaped text. Replaces HTML codes.
 	*/
-	struct filter_info info={};
+	filter_info info;
 
 	/*
 	** A URL being accumulated.
@@ -1339,6 +1337,13 @@ struct msg2html_textplain_info {
 	std::function<std::string (std::string_view url,
 				   std::string_view disp_url)
 		> get_textlink;
+	msg2html_textplain_info(const char *output_character_set,
+				void (*output_func)(const char *p,
+						    size_t n, void *arg),
+				void *arg
+	) : info{output_character_set, output_func, arg}
+	{
+	}
 };
 
 /*
@@ -1352,7 +1357,7 @@ static void text_emit_passthru(struct msg2html_textplain_info *info,
 	{
 		char32_t ch=(unsigned char)*str++;
 
-		filter_passthru(&info->info, &ch, 1);
+		info->info.passthru(&ch, 1);
 	}
 }
 
@@ -1366,7 +1371,7 @@ static void text_close_paragraph(struct msg2html_textplain_info *info)
 
 		info->paragraph_open=0;
 		text_emit_passthru(info, info->paragraph_close);
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 }
 
@@ -1393,7 +1398,7 @@ static void text_close_li(struct msg2html_textplain_info *info)
 
 		info->li_open=0;
 		text_emit_passthru(info, "</li>");
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 }
 
@@ -1810,7 +1815,7 @@ static int text_line_flowed_notify(void *arg)
 	char32_t nl='\n';
 	struct msg2html_textplain_info *info=
 		(struct msg2html_textplain_info *)arg;
-	filter(&info->info, &nl, 1);
+	info->info(&nl, 1);
 	return 0;
 }
 
@@ -1856,7 +1861,7 @@ static int text_line_end(void *arg)
 				** marks the end of the paragraph.
 				*/
 				text_close_paragraph(info);
-				filter(&info->info, &uc, 1);
+				info->info(&uc, 1);
 			}
 			else if (!info->quote_level_has_changed)
 			{
@@ -1868,7 +1873,7 @@ static int text_line_end(void *arg)
 				** vertical white space.
 				*/
 				text_emit_passthru(info, "<br/>");
-				filter(&info->info, &uc, 1);
+				info->info(&uc, 1);
 			}
 		}
 		else
@@ -1881,7 +1886,7 @@ static int text_line_end(void *arg)
 				text_emit_passthru(info, "</tt>");
 			}
 
-			filter(&info->info, &uc, 1);
+			info->info(&uc, 1);
 		}
 		return 0;
 	}
@@ -1890,7 +1895,7 @@ static int text_line_end(void *arg)
 	{
 		char32_t uc='\n';
 
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 	return 0;
 }
@@ -1908,7 +1913,7 @@ static void process_text(const char32_t *txt,
 	{
 		char32_t uc='\n';
 
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 
 		/* Starting a logical line */
 
@@ -2667,7 +2672,7 @@ static void text_process_plain(struct msg2html_textplain_info *info,
 
 	if (!info->ttline)
 	{
-		filter(&info->info, uc, cnt);
+		info->info(uc, cnt);
 		return;
 	}
 
@@ -2693,7 +2698,7 @@ static void text_process_plain(struct msg2html_textplain_info *info,
 				break;
 		}
 
-		filter(&info->info, uc, i);
+		info->info(uc, i);
 		uc += i;
 		cnt -= i;
 	}
@@ -2717,7 +2722,11 @@ msg2html_textplain_start(const char *message_charset,
 					     size_t n, void *arg),
 			 void *arg)
 {
-	msg2html_textplain_info *tinfo=new msg2html_textplain_info;
+	msg2html_textplain_info *tinfo=new msg2html_textplain_info{
+		output_character_set,
+		output_func,
+		arg
+	};
 
 	tinfo->flowed=isflowed;
 	tinfo->get_textlink=get_textlink;
@@ -2726,9 +2735,6 @@ msg2html_textplain_start(const char *message_charset,
 	tinfo->wikifmt=wikifmt;
 
 	tinfo->text_url_handler=text_contents_notalpha;
-	filter_start(&tinfo->info,
-		     output_character_set,
-		     output_func, arg);
 
 	tinfo->conv_err=0;
 	{
@@ -2792,7 +2798,7 @@ int msg2html_textplain_end(struct msg2html_textplain_info *tinfo)
 				   "</pre><br />\n");
 	}
 
-	filter_end(&tinfo->info);
+	tinfo->info.flush();
 
 	if (tinfo->info.conversion_error)
 		tinfo->conv_err=1;

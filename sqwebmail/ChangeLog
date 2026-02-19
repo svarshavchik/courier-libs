@@ -1,3 +1,8 @@
+2026-02-18  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix problem with duplicate signatures after spell checking
+	a draft message.
+
 2026-01-23  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Convert modules that parse MIME messages to C++, and update them

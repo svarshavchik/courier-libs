@@ -1294,7 +1294,7 @@ struct addresses : std::vector<address> {
 	}
 
 	// wrap_unicode() uses unicode_wrapped() to write the wrapped
-	// addresses into a vecgtor of std::u32strings.
+	// addresses into a vector of std::u32strings.
 	//
 	// Two passes are done. The first pass counts the number of wrapped
 	// strings, by passing a pseudo-iterator, a length_counter, that
@@ -1369,8 +1369,8 @@ struct addresses : std::vector<address> {
 			return iter;
 	}
 
-	// wrap_unicode() uses unicode_wrapped() to write the wrapped
-	// addresses into a vecgtor of std::u32strings.
+	// wrap_display() uses unicode_wrapped() to write the wrapped
+	// addresses into a vecgtor of std::strings.
 	//
 	// Two passes are done. The first pass counts the number of wrapped
 	// strings, by passing a pseudo-iterator, a length_counter, that
@@ -1380,6 +1380,18 @@ struct addresses : std::vector<address> {
 					      const std::string &chset) const
 	{
 		std::vector<std::string> w;
+		size_t l=0;
+
+		// Size up the length.
+
+		wrap_display(begin(), end(), max_l, chset,
+			     [&]
+			     (std::string s)
+			     {
+				     ++l;
+			     });
+
+		w.reserve(l);
 
 		wrap_display(begin(), end(), max_l, chset,
 			     [&](std::string s)

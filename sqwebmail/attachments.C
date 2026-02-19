@@ -71,7 +71,7 @@ static void attachment_showname(const char *);
 extern void output_attrencoded(std::string_view);
 extern void output_urlencoded(std::string_view);
 extern void newmsg_hiddenheader(const char *, const char *);
-extern char *newmsg_alladdrs(FILE *);
+extern std::string newmsg_alladdrs(rfc822::fdstreambuf &sb);
 extern const char *showsize(unsigned long);
 extern void newmsg_copy_content_headers(const rfc2045::entity &message,
 					rfc822::fdstreambuf &fd);
@@ -244,15 +244,16 @@ const char	*limiterr=getarg("LIMITERR");
 
 void attachments_opts(const char *draft)
 {
-	FILE *fp;
-
 	CHECKFILENAME(draft);
 
 	auto filename=maildir_find(INBOX "." DRAFTS, draft);
 	if (filename.empty())
 		return;
-	fp=fopen(filename.c_str(), "r");
-	if (!fp)
+
+	rfc822::fdstreambuf fp{
+		maildir_safeopen(filename.c_str(), O_RDONLY, 0)
+	};
+	if (fp.error())
 		return;
 
 	printf("<label><input type=\"checkbox\" name=\"fcc\"%s />%s</label><br />",
@@ -264,7 +265,6 @@ void attachments_opts(const char *draft)
 
 	if (libmail_gpg_has_gpg(GPGDIR) == 0)
 	{
-		char *all_addr;
 
 		printf("<label><input type=\"checkbox\" "
 		       "name=\"sign\" />%s</label><select name=\"signkey\">",
@@ -272,14 +272,14 @@ void attachments_opts(const char *draft)
 		gpgselectkey();
 		printf("</select><br />\n");
 
-		all_addr=newmsg_alladdrs(fp);
+		auto all_addr=newmsg_alladdrs(fp);
 
 		printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\">"
 		       "<tr valign=\"middle\"><td><input type=\"checkbox\""
 		       " name=\"encrypt\" id=\"encrypt\" /></td><td><label for=\"encrypt\">%s</label></td>"
 		       "<td><select size=\"4\" multiple=\"multiple\" name=\"encryptkey\">",
 		       getarg("ENCRYPTLAB"));
-		gpgencryptkeys(all_addr);
+		gpgencryptkeys(all_addr.c_str());
 		printf("</select></td></tr>\n");
 
 		if (ishttps())
@@ -287,10 +287,7 @@ void attachments_opts(const char *draft)
 			       getarg("PASSPHRASE"));
 
 		printf("</table><br />\n");
-		if (all_addr)
-			free(all_addr);
 	}
-	fclose(fp);
 }
 
 static void attachment_showname(const char *name)

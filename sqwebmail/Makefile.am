@@ -47,7 +47,7 @@ COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` -lcourier-unicode
 
 noinst_LTLIBRARIES=libwebmail.la
 
-libwebmail_la_SOURCES=filter.c filter.h msg2html.C msg2html.h html.C html.h \
+libwebmail_la_SOURCES=filter.C filter.h msg2html.C msg2html.h html.C html.h \
 			buf.c buf.h
 libwebmail_la_LDFLAGS=-static
 
