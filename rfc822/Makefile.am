@@ -20,7 +20,8 @@ AM_CFLAGS = $(LIBIDN_CFLAGS)
 BUILT_SOURCES=rfc822.3 rfc822.html
 noinst_DATA=$(BUILT_SOURCES)
 
-noinst_PROGRAMS=testsuite testsuitecpp reftest
+noinst_PROGRAMS=testsuite testsuitecpp testsuite2 reftest
+nodist_EXTRA_testsuite_SOURCES=cpplink.C
 testsuite_SOURCES=testsuite.c
 testsuite_DEPENDENCIES=librfc822.la
 testsuite_LDADD=librfc822.la -lcourier-unicode
@@ -30,6 +31,10 @@ testsuitecpp_SOURCES=testsuitecpp.C
 testsuitecpp_DEPENDENCIES=librfc822.la
 testsuitecpp_LDADD=librfc822.la -lcourier-unicode
 testsuitecpp_LDFLAGS=-static
+
+testsuite2_SOURCES=testsuite2.C
+testsuite2_DEPENDENCIES=librfc822.la
+testsuite2_LDADD=librfc822.la -lcourier-unicode
 
 reftest_SOURCES=reftest.c imaprefs.h
 reftest_DEPENDENCIES=librfc822.la
@@ -49,9 +54,11 @@ endif
 check-am:
 	./testsuite | diff -U 5 $(srcdir)/testsuite.txt -
 	./testsuitecpp | diff -U 5 $(srcdir)/testsuite.txt -
+	./testsuite2
 	./reftest | diff -U 3  $(srcdir)/reftest.txt -
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -vx; \
 		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite >/dev/null || exit 1; \
-		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp >/dev/null
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp >/dev/null || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite2
 clean-local:
 	rm -rf $(DEPDIR)

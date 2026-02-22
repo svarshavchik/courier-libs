@@ -9,10 +9,11 @@
 #include <courier-unicode.h>
 
 #ifdef __cplusplus
-#include <string_view>
-
+#include <string>
+#include <vector>
 #include <typeinfo>
 #include <iostream>
+
 namespace cgi_encode {
 
 	extern const char default_encode[],
@@ -51,6 +52,8 @@ namespace cgi_encode {
 	}
 };
 
+std::vector<std::string> cgi_multiple(const char *);
+
 extern "C" {
 
 #endif
@@ -67,7 +70,6 @@ extern void fake_exit(int);
 void cgi_setup();
 void cgi_cleanup();
 const char *cgi(const char *);
-char *cgi_multiple(const char *, const char *);
 
 char	*cgi_cookie(const char *);
 void	cgi_setcookie(const char *, const char *);

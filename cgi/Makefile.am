@@ -9,7 +9,7 @@ libcgi_la_SOURCES=cgi.h cgi.c cgiextrapath.c cgiselect.c cgicheckbox.c\
 	cgiinput.c cgihttpscriptptr.c cgihttpsscriptptr.c cgirelscriptptr.c \
 	cginocache.c cgiredirect.c cgitextarea.c cgiversion.c cgihasversion.c \
 	cgicookie.c cgiuseragent.c cgidaemon.c cgidaemond.c \
-	cgiurlencode.C
+	cgiurlencode.C cgimultiple.C
 
 noinst_PROGRAMS=testsuite
 

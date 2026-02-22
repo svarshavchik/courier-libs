@@ -30,6 +30,7 @@ noinst_DATA=$(DOCS) TIMEZONELIST
 noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
 	testispell \
 	testhtml \
+	testaddressbook \
 	testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
@@ -87,6 +88,13 @@ testispell_DEPENDENCIES=$(COMMONDEPENDENCIES)
 testispell_LDADD=$(COMMONLDADD)
 endif
 
+testaddressbook_SOURCES=\
+	newmsg_createaddrheader.C \
+	testaddressbook.C
+
+testaddressbook_DEPENDENCIES=$(COMMONDEPENDENCIES)
+testaddressbook_LDADD=$(COMMONLDADD)
+
 #CFLAGS += -Dmalloc=my_malloc -Drealloc=my_realloc -Dfree=my_free -Dstrdup=my_strdup -Dcalloc=my_calloc
 
 if ISPELL
@@ -95,14 +103,15 @@ endif
 
 
 sqwebmaild_SOURCES=acl.c acl.h \
-		addressbook.c addressbook.h args.c attachments.C \
+		addressbook.C addressbook.h args.c attachments.C \
 		auth.c auth.h autoresponse.C autoresponse.h \
 		changepw.c \
 		folder.C folder.h gpg.c gpg.h \
 		ldaplist.C logindomainlist.c logindomainlist.h \
 		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
-		newmsg_create.C	newmsg_newdraft.C pcp.c pcp.h pref.c pref.h \
+		newmsg_createaddrheader.C \
+		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.c pref.h \
 		sqconfig.c sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)

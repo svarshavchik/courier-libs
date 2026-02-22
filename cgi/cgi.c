@@ -240,38 +240,6 @@ struct cgi_arglist *argp;
 	return ("");
 }
 
-char *cgi_multiple(const char *arg, const char *sep)
-{
-struct cgi_arglist *argp;
-size_t	l=1;
-char	*buf;
-
-	for (argp=cgi_arglist; argp; argp=argp->next)
-		if (strcmp(argp->argname, arg) == 0)
-			l += strlen(argp->argvalue)+strlen(sep);
-
-	buf=malloc(l);
-	if (!buf)	return(0);
-	*buf=0;
-
-	/*
-	** Because the cgi list is build from the tail end up, we go backwards
-	** now, so that we return options in the same order they were selected.
-	*/
-
-	argp=cgi_arglist;
-	while (argp && argp->next)
-		argp=argp->next;
-
-	for (; argp; argp=argp->prev)
-		if (strcmp(argp->argname, arg) == 0)
-		{
-			if (*buf)	strcat(buf, sep);
-			strcat(buf, argp->argvalue);
-		}
-	return (buf);
-}
-
 static char *nybble(char *p, int *n)
 {
 	if ( *p >= '0' && *p <= '9')

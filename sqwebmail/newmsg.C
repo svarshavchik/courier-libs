@@ -49,7 +49,7 @@ extern int spell_start(const char *);
 extern "C" const char *sqwebmail_mailboxid;
 extern "C" const char *sqwebmail_folder;
 extern "C" void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
-extern "C" void call_print_safe_to_stdout(const char *, size_t);
+extern void call_print_safe_to_stdout(const char *, size_t);
 extern "C" void print_attrencodedlen(const char *, size_t, int, FILE *);
 extern "C" void output_attrencoded_nltobr(const char *);
 extern "C" void output_attrencoded_oknl(const char *);
@@ -103,7 +103,7 @@ static void newmsg_header_rfc822(const char *label, const char *field,
 				 const std::string &encoded, const char *val,
 				 int is_readonly)
 {
-int		hdrmaxlen=512;
+int		hdrmaxlen=2048;
 const char	*p=getarg("HDRMAXLEN");
 
 	if (p && (atoi(p) > hdrmaxlen))
@@ -114,7 +114,7 @@ const char	*p=getarg("HDRMAXLEN");
 	       "<td width=\"6\">&nbsp;</td>",
 	       field, label);
 
-	printf("<td><input type=\"text\" name=\"%s\" size=\"50\" maxlength=\"%d\""
+	printf("<td><input type=\"text\" name=\"%s\" size=\"80\" maxlength=\"%d\""
 	       " class=\"new-message-header-text\" value=\"",
 		field, hdrmaxlen);
 	if (!encoded.empty())

@@ -78,11 +78,12 @@ imapd_SOURCES=fetch.c fetchinfo.c fetchinfo.h imapd.c imapd.h \
 	storeinfo.c storeinfo.h
 
 imapd_DEPENDENCIES=libimapd.la @dblibrary@
-
+nodist_EXTRA_imapd_SOURCES=forcecpp1.C
 imapd_LDADD=libimapd.la	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth
 
 imapd_testmockpurge_SOURCES=$(imapd_SOURCES) mockmaildirpurge.c
 imapd_testmockpurge_DEPENDENCIES=$(imapd_DEPENDENCIES)
+nodist_EXTRA_imapd_testmockpurge_SOURCES=forcecpp2.C
 imapd_testmockpurge_LDADD=$(imapd_LDADD)
 
 pop3login_SOURCES=pop3login.c pop3dcapa.c proxy.c proxy.h

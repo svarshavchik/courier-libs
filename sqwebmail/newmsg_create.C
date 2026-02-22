@@ -1,11 +1,8 @@
 /*
-** Copyright 1998 - 2009 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
-
-/*
-*/
 #include	"config.h"
 #include	"cgi/cgi.h"
 #include	"sqconfig.h"
@@ -17,7 +14,6 @@
 #include	"filter.h"
 #include	"pref.h"
 #include	"gpg.h"
-#include	"addressbook.h"
 #include	"maildir/maildirmisc.h"
 #include	"rfc822/rfc822.h"
 #include	"rfc2045/rfc2045.h"
@@ -38,6 +34,7 @@
 #include	<ctype.h>
 #include	<fcntl.h>
 #include	<sstream>
+#include	<map>
 
 /* Also in attachments.c */
 
@@ -48,6 +45,8 @@ extern const char *sqwebmail_content_language;
 
 int newdraftfd;
 extern const char *sqwebmail_mailboxid;
+extern void create_addrheader(std::string_view header,
+			      std::string_view content_utf8);
 
 const char mimemsg[]="This is a MIME-formatted message.  If you see this text it means that your\nmail software cannot handle MIME-formatted messages.\n\n";
 
@@ -78,33 +77,38 @@ char *newmsg_createdraft(const char *curdraft)
 }
 
 static void create_draftheader_do(const char *hdrname, const char *p,
-	int isrfc822addr);
+	bool isrfc822addr);
 
 static void create_draftheader(const char *hdrname, const char *p,
-			       const char *q, int isrfc822addr)
+			       const char *q, bool isrfc822addr)
 {
 	if (q && *q)	/* Add from address book */
 	{
-	char	*nick=cgi_multiple("nick", ",");
-	char	*s;
+		auto nick=cgi_multiple("nick");
 
-		if (nick)
+		size_t l=strlen(p);
+
+		for (auto &n:nick)
+			l += 1+n.size();
+
+		std::string s;
+
+		s.reserve(l);
+
+		s += p;
+
+		for (auto &n:nick)
 		{
-			s=static_cast<char *>(malloc(strlen(p)+strlen(nick)+2));
-
-			if (s)
-			{
-				strcpy(s, p);
-				if (*s && *nick)	strcat(s, ",");
-				strcat(s, nick);
-				create_draftheader_do(hdrname, s, isrfc822addr);
-				free(s);
-				free(nick);
-				return;
-			}
-			free(nick);
+			s += ',';
+			s += n;
 		}
 
+		create_draftheader_do(
+			hdrname,
+			s.c_str(),
+			isrfc822addr // Better be true...
+		);
+		return;
 	}
 	create_draftheader_do(hdrname, p, isrfc822addr);
 }
@@ -178,24 +182,29 @@ static void header_wrap(const char *name, const char *hdr,
 	++*outcnt;
 }
 
+#include <fstream>
+
 static void create_draftheader_do(const char *hdrname, const char *p,
-	int isrfc822addr)
+	bool isrfc822addr)
 {
 char	*s, *t;
 size_t	l;
 
 	if (!*p)	return;
 
-	if (!isrfc822addr)
+	if (isrfc822addr)
 	{
-		s=rfc2047_encode_str(p, sqwebmail_content_charset,
-				     rfc2047_qp_allow_any);
+		auto p_utf8=unicode::iconvert::convert(
+			p,
+			sqwebmail_content_charset,
+			unicode::utf_8
+		);
+		create_addrheader(hdrname, p_utf8);
+		return;
 	}
-	else
-	{
-		s=rfc2047_encode_header_tobuf("to", p,
-					      sqwebmail_content_charset);
-	}
+
+	s=rfc2047_encode_str(p, sqwebmail_content_charset,
+			     rfc2047_qp_allow_any);
 
 	header_wrap(hdrname, s, NULL, &l);
 	if (l)
@@ -628,7 +637,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		if (!p || !*p || auth_getoptionenvint("wbnochangingfrom"))
 			p=login_fromhdr();
 
-		create_draftheader("From: ", p, 0, 1);
+		create_draftheader("From: ", p, 0, true);
 
 		if (!pref_from || strcmp(p, pref_from))
 			pref_setfrom(p);
@@ -649,26 +658,26 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 #endif
 
 			create_draftheader("To: ", cgi("headerto"),
-					   cgi("addressbook_to"), 1);
+					   cgi("addressbook_to"), true);
 			create_draftheader("Cc: ", cgi("headercc"),
-					   cgi("addressbook_cc"), 1);
+					   cgi("addressbook_cc"), true);
 			create_draftheader("Bcc: ", cgi("headerbcc"),
-					   cgi("addressbook_bcc"), 1);
-			create_draftheader("Reply-To: ", cgi("headerreply-to"), 0, 1);
+					   cgi("addressbook_bcc"), true);
+			create_draftheader("Reply-To: ", cgi("headerreply-to"), 0, true);
 		}
 	}
 
 	if (pref_wikifmt)
-		create_draftheader("x-sqwebmail-wikifmt: ", "1", 0, 0);
+		create_draftheader("x-sqwebmail-wikifmt: ", "1", 0, false);
 
 	if (!keepheader || keepheader == NEWMSG_PCP)
 	{
 	time_t	t;
 
-		create_draftheader("Subject: ", cgi("headersubject"), 0, 0);
+		create_draftheader("Subject: ", cgi("headersubject"), 0, false);
 
 		time(&t);
-		create_draftheader("Date: ", rfc822_mkdate(t), 0, 0);
+		create_draftheader("Date: ", rfc822_mkdate(t), 0, false);
 	}
 
 	/* If the message has attachments, calculate multipart boundary */
@@ -932,241 +941,58 @@ static void sentmsg_copy(rfc822::fdstreambuf &sb, const rfc2045::entity &e)
         }
 }
 
-
 /* Create message in the sent folder */
-
-static void header_uc(char *h)
-{
-	while (*h)
-	{
-		*h=toupper( (int)(unsigned char) *h);
-		while (*h)
-		{
-			if (*h++ == '-')	break;
-		}
-	}
-}
-
-struct lookup_buffers {
-	struct lookup_buffers *next;
-	char *buf;
-	char *buf2;
-	} ;
-
-static int lookup_addressbook_do(const char *header, const char *value,
-	struct lookup_buffers **lookup_buffer_list)
-{
-	struct	rfc822t *t;
-	struct	rfc822a *a;
-	int	i;
-	char	*newbuf;
-	struct lookup_buffers *ptr;
-	int	expanded=0;
-
-	t=rfc822t_alloc_new(value, NULL, NULL);
-	if (!t)	enomem();
-	a=rfc822a_alloc(t);
-	if (!a)
-	{
-		rfc822t_free(t);
-		enomem();
-	}
-
-	for (i=0; i<a->naddrs; i++)
-	{
-		char	*p;
-		char	*s;
-		const	char *q;
-		struct lookup_buffers *r;
-
-		if (a->addrs[i].tokens == 0)
-			continue;
-		if (a->addrs[i].name)
-			continue;	/* Can't be a nickname */
-
-		p=rfc822_getaddr(a, i);
-		if (!p)
-		{
-			rfc822a_free(a);
-			rfc822t_free(t);
-			free(p);
-			return (-1);
-		}
-
-		for (ptr= *lookup_buffer_list; ptr; ptr=ptr->next)
-			if (strcmp(ptr->buf2, p) == 0)
-				break;
-
-		if (ptr)	/* Address book loop */
-		{
-		int	j;
-
-			for (j=i+1; j<a->naddrs; j++)
-				a->addrs[j-1]=a->addrs[j];
-			--a->naddrs;
-			--i;
-			free(p);
-			continue;
-		}
-
-		s=rfc822_display_addr_str_tobuf(p, "utf-8");
-
-		if (s == NULL || (q=ab_find(s)) == 0)
-		{
-			if (s)
-				free(s);
-			free(p);
-			continue;
-		}
-		free(s);
-
-		r=static_cast<lookup_buffers *>(malloc(sizeof(lookup_buffers)));
-		if (r)	r->buf=r->buf2=0;
-
-		if (!r || !(r->buf=strdup(q)) || !(r->buf2=strdup(p)))
-		{
-			free(p);
-			if (r && r->buf)	free(r->buf);
-			if (r)	free(r);
-			rfc822a_free(a);
-			rfc822t_free(t);
-			return (-1);
-		}
-		free(p);
-		r->next= *lookup_buffer_list;
-		*lookup_buffer_list=r;
-		a->addrs[i].tokens->next=0;
-		a->addrs[i].tokens->token=0;
-		a->addrs[i].tokens->ptr=r->buf;
-		a->addrs[i].tokens->len=strlen(r->buf);
-		expanded=1;
-	}
-
-	newbuf=rfc822_getaddrs_wrap(a, 70);
-	rfc822a_free(a);
-	rfc822t_free(t);
-	if (!newbuf)	return (-1);
-
-	if (expanded)	/* Look through the address book again */
-	{
-	int	rc=lookup_addressbook_do(header, newbuf, lookup_buffer_list);
-
-		free(newbuf);
-		return (rc);
-	}
-
-	create_draftheader_do(header, newbuf, 1);
-	free(newbuf);
-	return (0);
-}
-
-static void lookup_addressbook(const char *header, const char *value)
-{
-	struct lookup_buffers *lookup_buffer_list=0;
-	int	rc;
-	char *header_cpy;
-	char *value_cpy;
-	/*
-	** header & value may be pointing to buffer allocated by
-	** maildir_readheader.
-	** lookup_addressbook_do may call it again.
-	*/
-
-	header_cpy=strdup(header);
-	if (!header_cpy)
-		enomem();
-
-	value_cpy=strdup(value);
-	if (!value_cpy)
-	{
-		free(header_cpy);
-		enomem();
-	}
-
-	rc=lookup_addressbook_do(header_cpy, value_cpy, &lookup_buffer_list);
-	free(header_cpy);
-
-	while (lookup_buffer_list)
-	{
-	struct lookup_buffers *p=lookup_buffer_list;
-
-		lookup_buffer_list=p->next;
-		free(p->buf);
-		free(p->buf2);
-		free(p);
-	}
-	if (rc)	enomem();
-}
 
 std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr)
 {
-auto filename=maildir_find(INBOX "." DRAFTS, draftname);
-FILE	*fp;
-char	*sentname;
-char	*header, *value;
-struct	rfc2045 *rfcp;
-int	x;
+	auto filename=maildir_find(INBOX "." DRAFTS, draftname);
 
 	*isgpgerr=0;
 
 	if (filename.empty())	return "";
 
-	fp=0;
+	rfc822::fdstreambuf fp{
+		maildir_safeopen(filename.c_str(), O_RDONLY, 0)
+	};
 
-	x=maildir_safeopen(filename.c_str(), O_RDONLY, 0);
-	if (x >= 0)
-		if ((fp=fdopen(x, "r")) == 0)
-			close(x);
-
-	if (fp == 0)
+	if (fp.error())
 	{
 		enomem();
 	}
 
-	rfcp=rfc2045_fromfp(fp);
-	if (!rfcp || fseek(fp, 0L, SEEK_SET) < 0)
-	{
-		fclose(fp);
-		close(newdraftfd);
-		enomem();
-	}
+	rfc2045::entity message;
 
-	newdraftfd=maildir_createmsg(INBOX "." SENT, 0, &sentname);
+	std::istreambuf_iterator<char> b{&fp}, e;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+	message.parse(parser);
+
+	std::string sentname;
+
+	newdraftfd=maildir_createmsg(INBOX "." SENT, 0, sentname);
 	if (newdraftfd < 0)
 	{
-		rfc2045_free(rfcp);
-		fclose(fp);
 		enomem();
 	}
+
 	/* First, copy all headers except X- headers */
 
-	while ((header=maildir_readheader(fp, &value, 1)) != 0)
+	rfc2045::entity::line_iter<false>::headers headers{message, fp};
+
+	headers.keep_eol=true;
+
+	do
 	{
-		if (strncmp(header, "x-", 2) == 0)	continue;
-		header_uc(header);
-		if (rfc822hdr_namecmp(header, "To") == 0)
-		{
-			lookup_addressbook("To: ", value);
-			continue;
-		}
+		const auto &[header, value] = headers.name_content();
 
-		if (rfc822hdr_namecmp(header, "Cc") == 0)
-		{
-			lookup_addressbook("Cc: ", value);
-			continue;
-		}
+		if (header.substr(0, 2) == "x-")	continue;
 
-		if (rfc822hdr_namecmp(header, "Bcc") == 0)
-		{
-			lookup_addressbook("Bcc: ", value);
-			continue;
-		}
+		auto s=headers.current_header();
 
-		maildir_writemsgstr(newdraftfd, header);
-		maildir_writemsgstr(newdraftfd, ": ");
-		maildir_writemsgstr(newdraftfd, value);
-		maildir_writemsgstr(newdraftfd, "\n");
-	}
+		if (s == "\n")
+			continue;
+		maildir_writemsg(newdraftfd, s.data(), s.size());
+	} while (headers.next());
 	if (auth_getoptionenvint("wbusexsender"))
 	{
 		maildir_writemsgstr(newdraftfd, "X-Sender: ");
@@ -1177,63 +1003,36 @@ int	x;
 	maildir_writemsgstr(newdraftfd, "\n");
 
 	{
-		off_t start_pos, end_pos, start_body;
 		char buf[BUFSIZ];
-		int n;
-		off_t   dummy;
 
-		rfc2045_mimepos(rfcp, &start_pos, &end_pos, &start_body,
-				&dummy, &dummy);
+		auto startbody=message.startbody;
 
-		if (fseek(fp, start_body, SEEK_SET) == -1)
+		fp.pubseekpos(startbody);
+
+		while (startbody < message.endbody)
 		{
-			fclose(fp);
-			close(newdraftfd);
-			enomem();
-		}
+			size_t cnt=sizeof(buf);
 
-		while (start_body < end_pos)
-		{
-			int     cnt=sizeof(buf);
+			if (cnt > message.endbody-message.startbody)
+				cnt=message.endbody-message.startbody;
 
-			if (cnt > end_pos - start_pos)
-				cnt=end_pos - start_pos;
+			auto n=fp.sgetn(buf, cnt);
 
-			if ((n=fread(buf, 1, cnt, fp)) <= 0)
+			if (n <= 0)
 			{
-				fclose(fp);
 				close(newdraftfd);
 				enomem();
 			}
 
 			maildir_writemsg(newdraftfd, buf, n);
-			start_body += n;
+			startbody += n;
 		}
 	}
 
-
 	if ( maildir_writemsg_flush(newdraftfd))
 	{
-		free(sentname);
-		return"";
-	}
-
-#if 0
-	if (writebuf8bit)
-	{
-		if (lseek(newdraftfd, transferencodingpos, SEEK_SET) < 0 ||
-			write(newdraftfd, "8", 1) != 1)
-		{
-			free(sentname);
-			return "";
-		}
-	}
-#endif
-
-	if ( maildir_writemsg_flush(newdraftfd))
-	{
-		maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 0, 0);
-		free(sentname);
+		maildir_closemsg(newdraftfd, INBOX "." SENT,
+				 sentname.c_str(), 0, 0);
 		return "";
 	}
 
@@ -1242,15 +1041,34 @@ int	x;
 		char dosign= *cgi("sign");
 		char doencrypt= *cgi("encrypt");
 		const char *signkey= cgi("signkey");
-		char *encryptkeys=cgi_multiple("encryptkey", " ");
+		std::string encryptkeys_s;
 
-		if (!encryptkeys)
-			enomem();
-
-		if (gpgbadarg(encryptkeys) || !*encryptkeys)
 		{
-			free(encryptkeys);
-			encryptkeys=0;
+			auto encryptkeys_v=cgi_multiple("encryptkey");
+
+			if (!encryptkeys_v.empty())
+			{
+				size_t l=0;
+
+				for (auto &e:encryptkeys_v)
+					l += 1+e.size();
+
+				encryptkeys_s.reserve(l-1);
+
+				const char *sep="";
+
+				for (auto &e:encryptkeys_v)
+				{
+					encryptkeys_s += sep;
+					sep=" ";
+					encryptkeys_s += e;
+				}
+			}
+		}
+
+		if (gpgbadarg(encryptkeys_s.c_str()))
+		{
+			encryptkeys_s.clear();
 		}
 
 		if (gpgbadarg(signkey) || !*signkey)
@@ -1258,7 +1076,7 @@ int	x;
 			signkey=0;
 		}
 
-		if (!encryptkeys)
+		if (encryptkeys_s.empty())
 			doencrypt=0;
 
 		if (!signkey)
@@ -1267,15 +1085,14 @@ int	x;
 		if (lseek(newdraftfd, 0L, SEEK_SET) < 0)
 		{
 			maildir_closemsg(newdraftfd, INBOX "." SENT,
-					 sentname, 0, 0);
-			free(sentname);
+					 sentname.c_str(), 0, 0);
 			return "";
 		}
 
 		if (!dosign)
 			signkey=0;
 		if (!doencrypt)
-			encryptkeys=0;
+			encryptkeys_s.clear();
 
 		if (dosign || doencrypt)
 		{
@@ -1284,51 +1101,43 @@ int	x;
 			** it for newdraftfd/sentname.  Sneaky.
 			*/
 
-			char *newnewsentname;
+			std::string newnewsentname;
 			int newnewdraftfd=maildir_createmsg(INBOX "." SENT, 0,
-							    &newnewsentname);
+							    newnewsentname);
 
 			if (newnewdraftfd < 0)
 			{
 				maildir_closemsg(newdraftfd, INBOX "." SENT,
-						 sentname, 0, 0);
-				free(sentname);
-				free(encryptkeys);
+						 sentname.c_str(), 0, 0);
 				return "";
 			}
 
 			if (gpgdomsg(newdraftfd, newnewdraftfd,
-				     signkey, encryptkeys))
+				     signkey, encryptkeys_s.c_str()))
 			{
 				maildir_closemsg(newnewdraftfd, INBOX "." SENT,
-						 newnewsentname, 0, 0);
-				free(newnewsentname);
+						 newnewsentname.c_str(), 0, 0);
 				maildir_closemsg(newdraftfd, INBOX "." SENT,
-						 sentname, 0, 0);
-				free(sentname);
-				free(encryptkeys);
+						 sentname.c_str(), 0, 0);
 				*isgpgerr=1;
 				return "";
 			}
 
-			maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 0, 0);
-			free(sentname);
-			sentname=newnewsentname;
+			maildir_closemsg(newdraftfd, INBOX "." SENT,
+					 sentname.c_str(), 0, 0);
+			sentname=std::move(newnewsentname);
 			newdraftfd=newnewdraftfd;
 
 		}
-		free(encryptkeys);
 	}
 
-	if ( maildir_closemsg(newdraftfd, INBOX "." SENT, sentname, 1, 0))
+	if ( maildir_closemsg(newdraftfd, INBOX "." SENT,
+			      sentname.c_str(), 1, 0))
 	{
-		free(sentname);
 		return "";
 	}
 
-	std::string s{sentname};
-	free(sentname);
-	return s;
+	return sentname;
 }
 
 /* ---------------------------------------------------------------------- */

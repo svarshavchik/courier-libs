@@ -1,3 +1,18 @@
+2026-02-22  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Update draft screen to use the C++ mime parser, fixing several
+	long-standing issues
+
+	* Address book buttons insert the email addresses from the addressbook
+	directly, instead of their nicknames.
+
+	* Nicknames are no longer replaced with the actual addresses when
+	the draft message is setn, the actual addresses get inserted
+	immediately.
+
+	* Make the From, To, Cc, Bcc fields on the create message screen
+	slightly larger.
+
 2026-02-18  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fix problem with duplicate signatures after spell checking

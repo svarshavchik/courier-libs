@@ -25,9 +25,8 @@
 
 extern const char *sqwebmail_content_charset;
 
-extern void output_attrencoded(const char *);
-extern void output_attrencoded_fp(const char *, FILE *);
-extern void output_urlencoded(const char *);
+extern "C" void output_attrencoded(const char *);
+extern "C" void output_attrencoded_fp(const char *, FILE *);
 extern void print_safe(const char *);
 extern void call_print_safe_to_stdout(const char *p, size_t cnt);
 
@@ -44,7 +43,7 @@ static char *q_escape(const char *name)
 		if (*cp == '"' || *cp == '\\')
 			++namelen;
 
-	names=malloc(namelen);
+	names=static_cast<char *>(malloc(namelen));
 	if (!names)
 	{
 		enomem();
@@ -142,7 +141,7 @@ static void ab_add_int(const char *name, const char *address, const char *nick)
 	fp=fopen(ADDRESSBOOK, "r");
 
 	new_fd=maildir_createmsg(INBOX, "addressbook", &new_name);
-	p=malloc(sizeof("tmp/")+strlen(new_name));
+	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
 	if (!p)
 	{
 		close(new_fd);
@@ -274,7 +273,7 @@ struct	rfc822token namet, addresst;
 		enomem();
 		return;
 	}
-	p=malloc(sizeof("tmp/")+strlen(new_name));
+	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
 	if (!p)
 	{
 		unlink(new_name);
@@ -355,7 +354,7 @@ char	*header, *value;
 		enomem();
 		return;
 	}
-	p=malloc(sizeof("tmp/")+strlen(new_name));
+	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
 	if (!p)
 	{
 		unlink(new_name);
@@ -429,7 +428,7 @@ void ab_listselect_fp(FILE *w)
 	{
 		while ((header=maildir_readheader_nolc(fp, &value)) != NULL)
 		{
-			if ((b=malloc(sizeof(struct abooklist))) == 0 ||
+			if ((b=static_cast<abooklist *>(malloc(sizeof(struct abooklist)))) == 0 ||
 				(b->name=strdup(header)) == 0)
 			{
 				if (b)	free(b);
@@ -442,7 +441,7 @@ void ab_listselect_fp(FILE *w)
 		}
 		fclose(fp);
 
-		if ((aa=malloc(sizeof(struct abooklist *)*(acnt+1))) == 0)
+		if ((aa=static_cast<abooklist **>(malloc(sizeof(struct abooklist *)*(acnt+1)))) == 0)
 		{
 			abl_free(a);
 			enomem();
@@ -556,7 +555,7 @@ static int ab_addrselect_cb(const char *a, const char *n, void *vp)
 	while ( (*p) && strcasecmp((*p)->name, n) < 0)
 		p= &(*p)->next;
 
-	if ((q=malloc(sizeof(struct ab_addrselect_s))) == NULL)
+	if ((q=static_cast<ab_addrselect_s *>(malloc(sizeof(struct ab_addrselect_s)))) == NULL)
 		return (-1);
 
 	if ((q->name=strdup(n)) == NULL)

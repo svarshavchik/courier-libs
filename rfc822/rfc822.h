@@ -339,6 +339,9 @@ namespace rfc822 {
 }
 #endif
 
+std::string encode_domain(std::string_view,
+			  const char *charset=unicode::utf_8);
+
 struct length_counter {
 	using iterator_category=std::output_iterator_tag;
 	using value_type=void;
@@ -348,7 +351,8 @@ struct length_counter {
 
 	size_t l=0;
 
-	length_counter &operator=(char) { ++l; return *this; }
+	template<typename T>
+	length_counter &operator=(T &&) { ++l; return *this; }
 	length_counter &operator++(int) { return *this; }
 	auto &operator*()
 	{
@@ -380,26 +384,25 @@ struct tokens : std::vector<token> {
 
 	~tokens()=default;
 
-	// Print a token sequence, C++ version of rfc822tok_print.
-	// The token sequence gets printed to an output iterator.
+	// Helper class used by print() and rfc822::address::encode.
 	//
-	// If the output iterator is an lvalue reference it gets updated
-	// in place and the return type is void.
-	//
-	// Passing the output value by rvalue (reference) returns the final
-	// value of the output iterator.
+	// Takes a reference to an output iterator over chars. The ()
+	// operator is called with one token after another, and
+	// rfc822print_token() gets invoked for it, to write the token
+	// to the output iterator. A space is automatically provided between
+	// two consecutive atoms.
 
-	template<typename iter_typeb,
-		 typename iter_typee, typename out_iter_type>
-	static auto print(iter_typeb b, iter_typee e,
-			  out_iter_type &&iter)
-	{
-		bool prev_is_atom=false;
+	template<typename out_iter_type>
+	struct print_impl {
+		out_iter_type &iter;
+		bool prev_is_atom{false};
 
-		while (b != e)
+		print_impl(out_iter_type &iter) : iter{iter}
 		{
-			auto &t=*b++;
+		}
 
+		void operator()(const token &t)
+		{
 			bool isatom=rfc822_is_atom(t.type);
 
 			if (prev_is_atom && isatom)
@@ -425,6 +428,28 @@ struct tokens : std::vector<token> {
 					}
 				}, &iter);
 			prev_is_atom=isatom;
+		}
+	};
+
+	// Print a token sequence, C++ version of rfc822tok_print.
+	// The token sequence gets printed to an output iterator.
+	//
+	// If the output iterator is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the output value by rvalue (reference) returns the final
+	// value of the output iterator.
+
+	template<typename iter_typeb,
+		 typename iter_typee, typename out_iter_type>
+	static auto print(iter_typeb b, iter_typee e,
+			  out_iter_type &&iter)
+	{
+		print_impl impl{iter};
+
+		while (b != e)
+		{
+			impl(*b++);
 		}
 
 		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
@@ -592,6 +617,21 @@ struct tokens : std::vector<token> {
 struct address {
 	tokens name;
 	tokens address;
+
+	// Inspect the name and the address portion, of the address, and
+	// figure out how to format it. It can be:
+	//
+	// Human Name <address@example.com>
+	//
+	// "Human Name" <address@example.com>
+	//
+	// address@example.com (Human Name)
+	//
+	// The constructor takes a reference to the address. output()
+	// invokes emit_address(), emit_name(), and emit_char() in the
+	// appropriate order. They are implemented in the subclass and generate
+	// the output of a.name and a.address, and the individual filler
+	// characters.
 
 	struct do_print {
 		const struct address &a;
@@ -834,6 +874,16 @@ struct address {
 			unquote
 		);
 	}
+
+	template<typename out_iter> struct do_encode;
+
+	template<typename iter_type> auto encode(const std::string &chset,
+						 iter_type &&iter) const
+		-> std::conditional_t<std::is_same_v<iter_type,
+						     iter_type &>,
+				      void, std::remove_cv_t<
+					      std::remove_reference_t<
+						      iter_type>>>;
 };
 
 // Tokens converted to addresses.
@@ -853,6 +903,13 @@ struct addresses : std::vector<address> {
 
 	using std::vector<address>::vector;
 	~addresses()=default;
+
+	// output() loops until eof(). Each iteration of the loop calls ref()
+	// to inspect each address an ddtermine whether print_separator()
+	// gets called with any grammar that's needed to be produced between
+	// addresses, such as commas and/or spaces.
+	//
+	// Then, print() the address.
 
 	struct do_print {
 		void output();
@@ -879,22 +936,36 @@ struct addresses : std::vector<address> {
 		};
 	}
 
+	// Scaffolding for implementing do_print in terms of: iterators
+	// to the beginning and end of a sequence that defines the addresses,
+	// the output iterator type, and an opaque function object for
+	// printing the separator. print() is not implemented, must still
+	// be done in a subclass. The subclass must implement print() by
+	// doing something to "print" what b refers to, then increment it.
+
 	template<typename iter_b, typename iter_e, typename out_iter_type,
 		 typename print_separator_cb_t>
-	struct do_print_raw : do_print {
+	struct do_print_impl : do_print {
 
+		// The beginning/ending iterator that's passed to the
+		// constructor are copied, because they get modified.
 		iter_b b;
 		iter_e e;
-		out_iter_type &out_iter;
-		print_separator_cb_t &&print_separator_cb;
 
-		do_print_raw(iter_b &b,
+		// Output iterator is passed by reference, and is modified.
+		// It must exist until this object is destroyed.
+		out_iter_type &out_iter;
+
+		// The print-separator callback is also passed by reference.
+		// It must exist until this object is destroyed.
+		print_separator_cb_t &print_separator_cb;
+
+		do_print_impl(iter_b &b,
 			     iter_e &e,
 			     out_iter_type &out_iter,
-			     print_separator_cb_t &&print_separator_cb)
+			     print_separator_cb_t &print_separator_cb)
 			: b{b}, e{e}, out_iter{out_iter},
-			  print_separator_cb{std::forward<print_separator_cb_t>(
-					  print_separator_cb)}
+			  print_separator_cb{print_separator_cb}
 		{
 		}
 
@@ -912,47 +983,128 @@ struct addresses : std::vector<address> {
 		{
 			return *b;
 		}
+	};
+
+	// Implement print() by calling address::print().
+
+	template<typename iter_b, typename iter_e, typename out_iter_type,
+		 typename print_separator_cb_t>
+	struct do_print_raw : do_print_impl<iter_b, iter_e, out_iter_type,
+					    print_separator_cb_t> {
+
+		do_print_raw(iter_b &b,
+			     iter_e &e,
+			     out_iter_type &out_iter,
+			     print_separator_cb_t &print_separator_cb)
+			: do_print_impl<iter_b, iter_e, out_iter_type,
+					print_separator_cb_t>{
+			b, e, out_iter, print_separator_cb}
+		{
+		}
 
 		void print() override
 		{
-			b->print(out_iter);
-			++b;
+			this->b->print(this->out_iter);
+			++this->b;
 		}
 	};
 
-	// Print a sequence of addresses, comma separated, to an output iterator
+	// Implement print() by calling address::encode().
+	//
+	// The character set is passed in by reference, and must exist until
+	// this object is destroyed.
 
-	template<typename iterb_type, typename itere_type,
-		 typename out_iter_type, typename print_separator_t>
-	static auto print_impl(iterb_type &&b, itere_type &&e,
-			       out_iter_type &&out_iter,
-			       print_separator_t &&print_separator)
-	{
-		do_print_raw printer{b, e, out_iter,
-				     std::forward<print_separator_t>(
-					     print_separator
-				     )};
+	template<typename iter_b, typename iter_e, typename out_iter_type,
+		 typename print_separator_cb_t>
+	struct do_encode : do_print_impl<iter_b, iter_e, out_iter_type,
+					 print_separator_cb_t> {
 
-		printer.output();
+		const std::string &chset;
 
-		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
-			return out_iter;
-	}
+		do_encode(iter_b &b,
+			  iter_e &e,
+			  out_iter_type &out_iter,
+			  print_separator_cb_t &print_separator_cb,
+			  const std::string &chset)
+			: do_print_impl<iter_b, iter_e, out_iter_type,
+					print_separator_cb_t>{
+			b, e, out_iter, print_separator_cb},
+			chset{chset}
+		{
+		}
 
-	template<typename iterb_type, typename itere_type,
-		 typename out_iter_type>
-	static auto print_impl(iterb_type &&b, itere_type &&e,
-			       out_iter_type &&out_iter)
-	{
-		print_impl(std::forward<iterb_type>(b),
-			   std::forward<itere_type>(e),
-			   out_iter,
-			   make_default_print_separator<char>(out_iter));
+		void print() override
+		{
+			this->b->encode(chset, this->out_iter);
+			++this->b;
+		}
+	};
 
-		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
-			return out_iter;
-	}
+	struct format {
 
+		// Helper class used by print().
+		struct print {
+
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type,
+				 typename print_separator_t>
+			static void format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter,
+					   print_separator_t &&print_separator)
+			{
+				do_print_raw printer{b, e, out_iter,
+						     print_separator};
+
+				printer.output();
+			}
+
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type>
+			static void format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter)
+			{
+				format(std::forward<iterb_type>(b),
+				       std::forward<itere_type>(e),
+				       out_iter,
+				       make_default_print_separator<char>(
+					       out_iter
+				       ));
+			}
+		};
+
+		// Helper class used by encode()
+
+		struct encode {
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type,
+				 typename print_separator_t>
+			static void format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter,
+					   const std::string &chset,
+					   print_separator_t &&print_separator)
+			{
+				do_encode encoder{b, e, out_iter,
+						  print_separator, chset};
+
+				encoder.output();
+			}
+
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type>
+			static auto format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter,
+					   const std::string &chset)
+			{
+				format(std::forward<iterb_type>(b),
+				       std::forward<itere_type>(e),
+				       out_iter,
+				       chset,
+				       make_default_print_separator<char>(
+					       out_iter
+				       ));
+			}
+		};
+	};
 	// C++ version of rfc822_print, the addresses are defined as a pair
 	// of beginning and ending iterators.
 	//
@@ -968,10 +1120,10 @@ struct addresses : std::vector<address> {
 			  out_iter_type &&out_iter,
 			  Args && ...args)
 	{
-		print_impl(std::forward<iterb_type>(b),
-			   std::forward<itere_type>(e),
-			   out_iter,
-			   std::forward<Args>(args)...);
+		format::print::format(std::forward<iterb_type>(b),
+				      std::forward<itere_type>(e),
+				      out_iter,
+				      std::forward<Args>(args)...);
 
 		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
 			return out_iter;
@@ -992,6 +1144,37 @@ struct addresses : std::vector<address> {
 		return print(this->begin(), this->end(),
 			     std::forward<out_iter_type>(out_iter),
 			     std::forward<Args>(args)...);
+	}
+
+	// The opposite of display(). Take addresses that are formatted for
+	// display, and encode them. Use RFC 2047 for the name portion, and
+	// ACE for internationalized domains.
+
+	template<typename iterb_type, typename itere_type,
+		 typename out_iter_type, typename ...Args>
+	static auto encode(iterb_type &&b, itere_type &&e,
+			   out_iter_type &&out_iter,
+			   std::string chset,
+			   Args && ...args)
+	{
+		format::encode::format(std::forward<iterb_type>(b),
+				       std::forward<itere_type>(e),
+				       out_iter,
+				       chset,
+				       std::forward<Args>(args)...);
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return out_iter;
+	}
+
+	template<typename out_iter_type, typename ...Args>
+	auto encode(out_iter_type &&out_iter,
+		    std::string chset, Args && ...args)
+	{
+		return encode(this->begin(), this->end(),
+			      std::forward<out_iter_type>(out_iter),
+			      std::move(chset),
+			      std::forward<Args>(args)...);
 	}
 
 	/////////////////////////////////////////////////////////////////////
@@ -1080,7 +1263,7 @@ struct addresses : std::vector<address> {
 			auto b=accumulated_line.begin();
 			auto e=b+last_sep_spc;
 
-			iter(std::basic_string<char_type>{b, e});
+			*iter++ =std::basic_string<char_type>{b, e};
 
 			if (!excessive)
 			{
@@ -1107,7 +1290,7 @@ struct addresses : std::vector<address> {
 				flush_if_more();
 
 			// And just write it out.
-			iter(std::move(accumulated_line));
+			*iter++=std::move(accumulated_line);
 		}
 	};
 
@@ -1193,10 +1376,9 @@ struct addresses : std::vector<address> {
 	// wrapped addresses to an output sink. The sequence of addresses
 	// is defined by a beginning and an ending iterator sequence.
 	//
-	// The last parameter, iter, is a callable object that gets invoked,
-	// repeatedly with a std::string containing a line of addressed,
-	// that does not exceed the given width, unless a single address
-	// is bigger than the given width.
+	// The last parameter, iter, is an output iterator over std::strings,
+	// each one containing a line of addresses that does not exceed the
+	// given width, unless a single address is bigger than the given width.
 	//
 	// If the last parameter is an lvalue reference it gets updated
 	// in place and the return type is void.
@@ -1224,36 +1406,62 @@ struct addresses : std::vector<address> {
 			return iter;
 	}
 
-	// wrap() uses print_wrapped() to write the wrapped addresses into
-	// a vector of std::strings.
-	//
-	// Two passes are done. The first pass counts the number of wrapped
-	// strings, by passing a pseudo-iterator, a length_counter, that
-	// just counts things.
+	// print_wrapped() these addresses into an output sink that gets
+	// invoked with a std::string of each wrapped line.
 
-	std::vector<std::string> wrap(size_t max_l)
+	template<typename out_iter_type>
+	auto print_wrapped(size_t max_l, out_iter_type &&iter)
 	{
-		std::vector<std::string> w;
-		size_t l=0;
+		return print_wrapped(begin(), end(), max_l,
+				     std::forward<out_iter_type>(iter));
+	}
 
-		// Size up the length.
+	// Use encode() on addresses that were formatted for display() using
+	// the specified character set, and write out the wrapped addresses
+	// to an output sink. The sequence of addresses is defined by a
+	// beginning and an ending iterator sequence.
+	//
+	// The last parameter, iter, is an output iterator over std::strings,
+	// each one containing a line of addresses that does not exceed the
+	// given width, unless a single address is bigger than the given width.
+	//
+	// If the last parameter is an lvalue reference it gets updated
+	// in place and the return type is void.
+	//
+	// Passing the last parameter by rvalue (reference) returns the final
+	// value of the the passed in object.
 
-		print_wrapped(begin(), end(), max_l,
-			      [&]
-			      (const std::string &s)
-			      {
-				      ++l;
-			      });
+	template<typename iterb_type, typename itere_type,
+		 typename out_iter_type>
+	static auto encode_wrapped(iterb_type &&b, itere_type &&e,
+				   std::string chset,
+				   size_t max_l,
+				   out_iter_type &&iter)
+	{
+		wrap_out_iter_impl<char, out_iter_type> wrapper{iter, max_l};
+		wrap_out_iter char_wrapper{wrapper};
 
-		w.reserve(l);
+		encode(std::forward<iterb_type>(b),
+		       std::forward<itere_type>(e),
+		       char_wrapper,
+		       std::move(chset),
+		       wrap_out_iter_sep{wrapper});
 
-		print_wrapped(begin(), end(), max_l,
-			      [&]
-			      (std::string &&s)
-			      {
-				      w.push_back(std::move(s));
-			      });
-		return w;
+		wrapper.end();
+
+		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
+			return iter;
+	}
+
+	// encode() addresses into an output sink that gets
+	// invoked with a std::string of each wrapped line.
+
+	template<typename out_iter_type>
+	auto encode_wrapped(std::string chset, size_t max_l,
+			    out_iter_type &&out_iter)
+	{
+		return encode_wrapped(begin(), end(), chset, max_l,
+				      std::forward<out_iter_type>(out_iter));
 	}
 
 	// Decode IDN-encoded domain names and RFC 2047-encoded names, and
@@ -1303,27 +1511,60 @@ struct addresses : std::vector<address> {
 	std::vector<std::u32string> wrap_unicode(size_t max_l) const
 	{
 		std::vector<std::u32string> w;
-		size_t l=0;
 
 		// Size up the length.
 
-		unicode_wrapped(begin(), end(), max_l,
-				[&]
-				(const std::u32string &s)
-				{
-					++l;
-				});
-
-		w.reserve(l);
+		w.reserve(unicode_wrapped(begin(), end(), max_l,
+					  length_counter{}));
 
 		unicode_wrapped(begin(), end(), max_l,
-			      [&]
-			      (std::u32string &&s)
-			      {
-				      w.push_back(std::move(s));
-			      });
+				std::back_inserter(w));
 		return w;
 	}
+
+	// Iterator used by wrap_display() that converts each unicode
+	// line into the requested character set.
+
+	template<typename out_iter_type>
+	struct wrap_display_wrapper {
+		out_iter_type &iter;
+		const std::string &chset;
+
+		using iterator_category=std::output_iterator_tag;
+		using value_type=void;
+		using pointer=void;
+		using reference=void;
+		using difference_type=void;
+
+		wrap_display_wrapper(out_iter_type &iter,
+				     const std::string &chset)
+			: iter{iter}, chset{chset}
+		{
+		}
+
+		wrap_display_wrapper(const wrap_display_wrapper &w)=default;
+
+		wrap_display_wrapper &operator=(const wrap_display_wrapper &)
+		{
+		}
+
+		template<typename u32string_t>
+		wrap_display_wrapper &operator=(u32string_t &&s)
+		{
+			auto ret=unicode::iconvert::fromu::convert(
+				s, chset);
+
+			if (ret.second)
+				ret.first += " [decoding error]";
+
+			*iter++=ret.first;
+			return *this;
+		}
+
+		wrap_display_wrapper &operator++() { return *this; }
+		wrap_display_wrapper &operator++(int) {return *this; }
+		wrap_display_wrapper &operator*() { return *this; }
+	};
 
 	// Decode IDN-encoded domain names and RFC 2047-encoded names,
 	// wrap the result, converted to the given character set,
@@ -1349,21 +1590,13 @@ struct addresses : std::vector<address> {
 				 const std::string &chset,
 				 out_iter_type &&iter)
 	{
+		wrap_display_wrapper wrapper{iter, chset};
+
 		unicode_wrapped(
 			std::forward<iterb_type>(b),
 			std::forward<itere_type>(e),
-			max_l,
-			[&]
-			(std::u32string &&s)
-			{
-				auto ret=unicode::iconvert::fromu::convert(
-					s, chset);
-
-				if (ret.second)
-					ret.first +=
-						" [decoding error]";
-				iter(std::move(ret.first));
-			});
+			max_l, wrapper
+		);
 
 		if constexpr(!std::is_same_v<out_iter_type, out_iter_type &>)
 			return iter;
@@ -1380,24 +1613,14 @@ struct addresses : std::vector<address> {
 					      const std::string &chset) const
 	{
 		std::vector<std::string> w;
-		size_t l=0;
 
 		// Size up the length.
 
-		wrap_display(begin(), end(), max_l, chset,
-			     [&]
-			     (std::string s)
-			     {
-				     ++l;
-			     });
-
-		w.reserve(l);
+		w.reserve(wrap_display(begin(), end(), max_l, chset,
+				       length_counter{}));
 
 		wrap_display(begin(), end(), max_l, chset,
-			     [&](std::string s)
-			     {
-				     w.push_back(std::move(s));
-			     });
+			     std::back_inserter(w));
 
 		return w;
 	}

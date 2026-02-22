@@ -581,7 +581,9 @@ int main()
 		a7=doaddr(t7),
 		a8=doaddr(t8);
 
-	std::vector<std::string> lines=a4.wrap(70);
+	std::vector<std::string> lines;
+
+	a4.print_wrapped(70, std::back_inserter(lines));
 
 	const char *sep="[";
 
@@ -607,7 +609,8 @@ int main()
 			std::cout << l << "\n";
 	}
 
-	lines=a4.wrap(160);
+	lines.clear();
+	a4.print_wrapped(160, std::back_inserter(lines));
 	sep="[";
 
 	for (auto &l:lines)
@@ -631,7 +634,8 @@ int main()
 			std::cout << l << "\n";
 	}
 
-	lines=a4.wrap(16);
+	lines.clear();
+	a4.print_wrapped(16, std::back_inserter(lines));
 	sep="[";
 
 	for (auto &l:lines)
@@ -656,14 +660,10 @@ int main()
 	}
 
 	std::vector<std::string> check2;
-	auto check2_push=[&](std::string &&s)
-	{
-		check2.push_back(std::move(s));
-	};
 
 	rfc822::addresses::print_wrapped(
 		a4.begin(), a4.end(), 16,
-		check2_push);
+		std::back_inserter(check2));
 
 	if (check2 != lines)
 	{
@@ -673,10 +673,8 @@ int main()
 	check2.clear();
 	auto check2_pushb=rfc822::addresses::print_wrapped(
 		a4.begin(), a4.end(), 16,
-		[&](std::string &&s)
-		{
-			check2.push_back(std::move(s));
-		});
+		std::back_inserter(check2));
+
 	(void)check2_pushb;
 
 	if (check2 != lines)
@@ -685,14 +683,10 @@ int main()
 	}
 
 	std::vector<std::u32string> ucheck2;
-	auto ucheck2_push=[&](std::u32string &&s)
-	{
-		ucheck2.push_back(std::move(s));
-	};
 
 	rfc822::addresses::unicode_wrapped(
 		a4.begin(), a4.end(), 16,
-		ucheck2_push);
+		std::back_inserter(ucheck2));
 
 	if (ucheck2 != ulines)
 	{
@@ -702,10 +696,8 @@ int main()
 	ucheck2.clear();
 	auto ucheck2_pushb=rfc822::addresses::unicode_wrapped(
 		a4.begin(), a4.end(), 16,
-		[&](std::u32string &&s)
-		{
-			ucheck2.push_back(std::move(s));
-		});
+		std::back_inserter(ucheck2));
+
 	(void)ucheck2_pushb;
 
 	if (ucheck2 != ulines)
@@ -720,7 +712,7 @@ int main()
 
 	check2.clear();
 	rfc822::addresses::wrap_display(a4.begin(), a4.end(), 16, "utf-8",
-					check2_push);
+					std::back_inserter(check2));
 	if (check2 != lines)
 	{
 		std::cout << "Unexpected result from wrap_display() (2)\n";
@@ -731,10 +723,8 @@ int main()
 	auto check2_pushb2=
 		rfc822::addresses::wrap_display(
 			a4.begin(), a4.end(), 16, "utf-8",
-			[&](std::string &&s)
-			{
-				check2.push_back(std::move(s));
-			});
+			std::back_inserter(check2));
+
 	(void)check2_pushb2;
 	if (check2 != lines)
 	{
