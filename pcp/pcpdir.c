@@ -16,8 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <rfc822/rfc822hdr.h>
-#include "pcp.h"
+#include "pcpdir.h"
 
 #if HAVE_DIRENT_H
 #include <dirent.h>
@@ -34,20 +33,6 @@
 #endif
 #endif
 
-/* PCP driver for filesystem-based calendar */
-
-#define HOSTNAMELEN 256
-
-struct PCPdir {
-	struct PCP pcp;
-	char *username;
-	char *dirname;
-	char *indexname;
-	char *newindexname;
-	char hostname_buf[HOSTNAMELEN];
-	char unique_filename_buf[256];
-	unsigned uniq_cnt;
-} ;
 
 struct PCPdir_event_participant {
 	char *address;
@@ -2205,7 +2190,6 @@ static int deleteevent(struct PCPdir *pd, struct PCP_delete *del)
 	return (rc);
 }
 
-static int retrheaders(struct PCPdir *, struct PCP_retr *, const char *);
 static int retrrfc822(struct PCPdir *, struct PCP_retr *, const char *);
 
 static int retrevent(struct PCPdir *pd, struct PCP_retr *ri)
@@ -2365,32 +2349,6 @@ static int retrevent(struct PCPdir *pd, struct PCP_retr *ri)
 	else if (fp)
 		fclose(fp);
 	return (rc);
-}
-
-static int retrheaders(struct PCPdir *pd, struct PCP_retr *ri,
-		       const char *filename)
-{
-	FILE *fp=fopen(filename, "r");
-	struct rfc822hdr h;
-	int rc=0;
-
-	if (!fp)
-		return (errno == ENOENT ? 0:-1);
-
-	rfc822hdr_init(&h, 8192);
-
-	while (rfc822hdr_read(&h, fp, NULL, 0) == 0)
-	{
-		if ((rc= (*ri->callback_headers_func)(ri, h.header,
-						      h.value,
-						      ri->callback_arg)) != 0)
-			break;
-	}
-	if (rc == 0 && ferror(fp))
-		rc= -1;
-	rfc822hdr_free(&h);
-	fclose(fp);
-	return (0);
 }
 
 static int retrrfc822(struct PCPdir *pd, struct PCP_retr *ri,

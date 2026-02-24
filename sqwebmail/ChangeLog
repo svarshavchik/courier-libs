@@ -13,6 +13,8 @@
 	* Make the From, To, Cc, Bcc fields on the create message screen
 	slightly larger.
 
+	* Convert pcp daemon to use the C++ MIME parser.
+
 2026-02-18  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fix problem with duplicate signatures after spell checking

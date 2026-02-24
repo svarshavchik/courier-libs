@@ -1324,6 +1324,11 @@ struct addresses : std::vector<address> {
 			return *this;
 		}
 
+		auto &operator++()
+		{
+			return *this;
+		}
+
 		auto &operator++(int)
 		{
 			return *this;
