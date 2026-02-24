@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 		}
 		o << "\n";
 	}
-	if (o.str() != "quickk@6: world w world\n"
+	if (o.str() != "quickk@6: world w\n"
 	    "lazzy@3:\n")
 	{
 		std::cerr << "Unexpected result from the ispell parser:\n"
