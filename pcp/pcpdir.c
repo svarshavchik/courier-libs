@@ -637,7 +637,7 @@ static struct PCPdir_new_eventid *neweventid(struct PCPdir *pd,
 	strcat(strcat(strcpy(p->newfile, pd->dirname),
 		      "/"), pd->unique_filename_buf);
 
-	if (oldeventid_arg)
+	if (oldeventid_arg && *oldeventid_arg)
 	{
 		if ((p->oldeventid=strdup(oldeventid_arg)) == NULL)
 		{

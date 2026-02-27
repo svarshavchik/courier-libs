@@ -622,7 +622,7 @@ static void ab_show_utf8(const char *p)
 
 void ab_nameaddr_show(const char *name, const char *addr)
 {
-	if (name)
+	if (name && *name)
 	{
 		printf("\"");
 		ab_show_utf8(name);
@@ -630,7 +630,7 @@ void ab_nameaddr_show(const char *name, const char *addr)
 	}
 	printf("&lt;");
 
-	if (addr)
+	if (addr && *addr)
 		ab_show_utf8(addr);
 
 	printf("&gt;");

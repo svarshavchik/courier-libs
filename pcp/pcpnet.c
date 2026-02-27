@@ -1126,7 +1126,7 @@ static struct PCP_new_eventid *neweventid(struct PCPnet *pn,
 		return (NULL);
 	}
 
-	if (ev)
+	if (ev && *ev)
 	{
 		pn->haserrmsg=0;
 		q=malloc(sizeof("DELETE \n")+strlen(ev));
