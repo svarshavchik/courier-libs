@@ -26,31 +26,29 @@ int newdraftfd;
 extern void create_addrheader(std::string_view header,
 			      std::string_view value);
 
-const char *ab_find(const char *ptr)
+std::string ab_find(std::string_view ptr)
 {
-	std::string_view ptr_s{ptr};
-
-	if (ptr_s == "courier")
+	if (ptr == "courier")
 	{
 		return "\"courier-announce mailing list\" <courier-announce@lists.sourceforge.net>, "
 			"\"courier-users mailing list\" <courier-users@lists.sourceforge.net>";
 	}
-	if (ptr_s == "courier-imap")
+	if (ptr == "courier-imap")
 	{
 		return "\"courier-announce mailing list\" <courier-announce@lists.sourceforge.net>, "
 			"\"courier-imap mailing list\" <courier-imap@lists.sourceforge.net>";
 	}
 
-	if (ptr_s == "encodedname" || ptr_s == "испытание")
+	if (ptr == "encodedname" || ptr == "испытание")
 		return "испытание <test@испытание.com>";
 
-	if (ptr_s == "encodedname2")
+	if (ptr == "encodedname2")
 		return "\"Test A. Name\" <test2@example.com>";
 
-	if (ptr_s == "encodedname3")
+	if (ptr == "encodedname3")
 		return "\"Test испы.тание Name\" <test3@example.com>";
 
-	return 0;
+	return {};
 }
 
 // #define UPDATE_TESTS 1

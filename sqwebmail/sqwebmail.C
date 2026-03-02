@@ -267,6 +267,11 @@ extern "C" void output_attrencoded_fp(const char *p, FILE *fp)
 	print_attrencodedlen(p, strlen(p), 0, fp);
 }
 
+void output_attrencoded_fplen(const char *p, size_t len, FILE *fp)
+{
+	print_attrencodedlen(p, len, 0, fp);
+}
+
 extern "C" void output_attrencoded(const char *p)
 {
 	output_attrencoded_fp(p, stdout);

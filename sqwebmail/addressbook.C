@@ -1,6 +1,6 @@
 #include "config.h"
 /*
-** Copyright 2000-2011 S. Varshavchik.  See COPYING for
+** Copyright 2000-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -12,54 +12,43 @@
 #include	"maildir.h"
 #include	"cgi/cgi.h"
 #include	"rfc822/rfc822.h"
+#include	"rfc2045/rfc2045.h"
 #include	"maildir/maildirmisc.h"
 #include	"numlib/numlib.h"
 #include	<stdio.h>
 #include	<string.h>
 #include	<ctype.h>
-
+#include	<fcntl.h>
+#include	<set>
+#include	<map>
+#include	<algorithm>
+#include	<string>
+#include	<vector>
+#include	<iterator>
+#include	<string_view>
 #define	ADDRESSBOOK	"sqwebmail-addressbook"
-
-#define TOUTF8(what)	\
-	unicode_convert_toutf8((what), sqwebmail_content_charset, NULL)
 
 extern const char *sqwebmail_content_charset;
 
 extern "C" void output_attrencoded(const char *);
 extern "C" void output_attrencoded_fp(const char *, FILE *);
+void output_attrencoded_fplen(const char *, size_t, FILE *);
 extern void print_safe(const char *);
 extern void call_print_safe_to_stdout(const char *p, size_t cnt);
 
-static char *q_escape(const char *name)
+static std::string q_escape(std::string_view name)
 {
-	char *names;
-	const char *cp;
-	size_t namelen;
-	char *p;
+	std::string result;
 
-	namelen=1;
-
-	for (cp=name; *cp; ++cp, ++namelen)
-		if (*cp == '"' || *cp == '\\')
-			++namelen;
-
-	names=static_cast<char *>(malloc(namelen));
-	if (!names)
+	for (char c : name)
 	{
-		enomem();
+		if (iscntrl((int)(unsigned char)c))
+			continue;
+		if (c == '"' || c == '\\')
+			result += '\\';
+		result += c;
 	}
-
-	for (p=names, cp=name; *cp; ++cp)
-	{
-		if (iscntrl((int)(unsigned char)*cp))	continue;
-
-		if (*cp == '"' || *cp == '\\')
-			*p++='\\';
-		*p++= *cp;
-	}
-	*p=0;
-
-	return names;
+	return result;
 }
 
 /*
@@ -67,325 +56,322 @@ static char *q_escape(const char *name)
 ** bad characters from both.
 */
 
-static void fix_nameaddr(const char *name, const char *addr,
-	char **nameret, char **addrret)
+static void fix_nameaddr(
+	std::string &name, std::string &addr
+)
 {
-	char *names, *addresss;
-	char	*p, *q;
+	name=q_escape(name);
 
-	names=q_escape(name);
+	auto p=addr.begin();
+	auto q=p;
 
-	if ((addresss=strdup(addr)) == 0)
+	for (; p != addr.end(); ++p)
 	{
-		free(names);
-		enomem();
-	}
-
-	for (p=q=addresss; *p; p++)
-	{
-		if (isspace((int)(unsigned char)*p))	continue;
-		if (iscntrl((int)(unsigned char)*p))	continue;
-		if (*p == '<' || *p == '>' || *p == '(' || *p == ')' ||
-			*p == '\\')
+		if (iscntrl((int)(unsigned char)*p))
 			continue;
+		if (isspace((int)(unsigned char)*p))
+			continue;
+		if (*p == '<' || *p == '>' || *p == '(' || *p == ')' ||
+			*p == '\\' || *p == '"')
+		{
+			continue;
+		}
 		*q++=*p;
 	}
-	*q=0;
-
-	*nameret=names;
-	*addrret=addresss;
+	addr.resize(q-addr.begin());
 }
 
-static void ab_add_int(const char *name, const char *address, const char *nick)
+static void edit_nick(std::string &nick)
 {
-	char	*nicks, *names, *addresss, *p, *q;
-	FILE	*fp;
-	char	*header, *value;
-
-	int	new_fd;
-	char	*new_name;
-	FILE	*new_fp;
-	int	written;
-
-	/* Delete bad characters from nickname, name, address */
-
-	if ((nicks=strdup(nick)) == 0)	enomem();
-
-	for (p=q=nicks; *p; p++)
+	auto p=nick.begin(), q=p;
+	for (; p != nick.end(); ++p)
 	{
 		if (isspace((int)(unsigned char)*p))	continue;
 		if (iscntrl((int)(unsigned char)*p))	continue;
 		if (strchr(":;,<>@\\", *p))	continue;
 		*q++=*p;
 	}
-	*q=0;
-
-	if (*nicks == 0)
-	{
-		free(nicks);
-		return;
-	}
-
-	/* Remove quotes from name */
-
-	fix_nameaddr(name, address, &names, &addresss);
-
-	if (*addresss == 0)
-	{
-		free(addresss);
-		free(nicks);
-		free(names);
-		return;
-	}
-
-	fp=fopen(ADDRESSBOOK, "r");
-
-	new_fd=maildir_createmsg(INBOX, "addressbook", &new_name);
-	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
-	if (!p)
-	{
-		close(new_fd);
-		free(new_name);
-		enomem();
-	}
-	strcat(strcpy(p, "tmp/"), new_name);
-	free(new_name);
-	new_name=p;
-
-	if (new_fd < 0 || (new_fp=fdopen(new_fd, "w")) == 0)
-	{
-		if (new_fd >= 0)	close(new_fd);
-		free(addresss);
-		free(nicks);
-		free(names);
-		enomem();
-		return;
-	}
-
-	written=0;
-	while (fp && (header=maildir_readheader_nolc(fp, &value)) != 0)
-	{
-		if (strcmp(header, nicks) == 0)
-		{
-			fprintf(new_fp, "%s: %s,\n    ",
-				nicks, value);
-			written=1;
-			break;
-		}
-		fprintf(new_fp, "%s: %s\n", header, value);
-	}
-	if (!written)
-		fprintf(new_fp, "%s: ", nicks);
-	if (*names)
-		fprintf(new_fp, "\"%s\" <%s>\n",
-			names, addresss);
-	else
-		fprintf(new_fp, "<%s>\n", addresss);
-	free(names);
-	free(addresss);
-	free(nicks);
-
-	while (fp && (header=maildir_readheader_nolc(fp, &value)) != 0)
-		fprintf(new_fp, "%s: %s\n", header, value);
-
-	if (fp) fclose(fp);
-
-	if (fflush(new_fp) || ferror(new_fp))
-	{
-		fclose(new_fp);
-		close(new_fd);
-		unlink(new_name);
-		free(new_name);
-		error("Unable to write out new address book -- write error, or out of disk space.");
-		return;
-	}
-	fclose(new_fp);
-
-	rename(new_name, ADDRESSBOOK);
-	free(new_name);
+	nick.resize(q-nick.begin());
 }
 
 void ab_add(const char *name, const char *address, const char *nick)
 {
-	char *nick_utf8, *name_utf8, *addr_utf8;
-
 	if (*nick == 0 || *address == 0)
 		return;
 
-	nick_utf8=TOUTF8(nick);
-	name_utf8=TOUTF8(name ? name:"");
-	addr_utf8=TOUTF8(address);
+	auto nick_utf8=unicode::iconvert::convert(
+		nick,
+		sqwebmail_content_charset,
+		unicode::utf_8
+	);
+	auto name_utf8=unicode::iconvert::convert(
+		name,
+		sqwebmail_content_charset,
+		unicode::utf_8
+	);
+	auto address_utf8=unicode::iconvert::convert(
+		address,
+		sqwebmail_content_charset,
+		unicode::utf_8
+	);
 
-	if (nick_utf8 && name_utf8 && addr_utf8)
-		ab_add_int(name_utf8, addr_utf8, nick_utf8);
+	/* Delete bad characters from nickname, name, address */
 
-	if (nick_utf8)
-		free(nick_utf8);
-	if (name_utf8)
-		free(name_utf8);
-	if (addr_utf8)
-		free(addr_utf8);
+	edit_nick(nick_utf8);
+
+	if (nick_utf8.empty())
+		return;
+
+	/* Remove quotes from name */
+
+	fix_nameaddr(name_utf8, address_utf8);
+
+	if (address_utf8.empty())
+		return;
+
+	rfc822::fdstreambuf fp{
+		open(ADDRESSBOOK, O_RDONLY)
+	};
+
+	std::string new_name;
+
+	rfc822::fdstreambuf new_fpbuf{
+		maildir_createmsg(INBOX, "addressbook", new_name)
+	};
+
+	new_name="tmp/" + new_name;
+
+	if (new_fpbuf.error())
+	{
+		enomem();
+		return;
+	}
+
+	bool written=false;
+	rfc2045::entity::line_iter<false>::headers headers{fp};
+
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
+	{
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty())
+			break;
+
+		if (header == nick_utf8)
+		{
+			std::string_view value_cpy=value;
+
+			if (!value_cpy.empty() && value_cpy.back() == '\n')
+				value_cpy.remove_suffix(1);
+			new_fpbuf.sputn(nick_utf8.data(), nick_utf8.size());
+			new_fpbuf.sputn(": ", 2);
+			new_fpbuf.sputn(value_cpy.data(), value_cpy.size());
+			new_fpbuf.sputn(",\n    ", 5);
+			written=true;
+			headers.next();
+			break;
+		}
+		new_fpbuf.sputn(header.data(), header.size());
+		new_fpbuf.sputn(": ", 2);
+		new_fpbuf.sputn(value.data(), value.size());
+	} while (headers.next());
+	if (!written)
+	{
+		new_fpbuf.sputn(nick_utf8.data(), nick_utf8.size());
+		new_fpbuf.sputn(": ", 2);
+	}
+	if (!name_utf8.empty())
+	{
+		new_fpbuf.sputn("\"", 1);
+		new_fpbuf.sputn(name_utf8.data(), name_utf8.size());
+		new_fpbuf.sputn("\" ", 2);
+		new_fpbuf.sputn("<", 1);
+		new_fpbuf.sputn(address_utf8.data(), address_utf8.size());
+		new_fpbuf.sputn(">\n", 2);
+	}
+	else
+	{
+		new_fpbuf.sputn("<", 1);
+		new_fpbuf.sputn(address_utf8.data(), address_utf8.size());
+		new_fpbuf.sputn(">\n", 2);
+	}
+
+	do
+	{
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty())
+			break;
+
+		new_fpbuf.sputn(header.data(), header.size());
+		new_fpbuf.sputn(": ", 2);
+		new_fpbuf.sputn(value.data(), value.size());
+	} while (headers.next());
+
+	new_fpbuf.pubsync();
+	if (new_fpbuf.error())
+	{
+		unlink(new_name.c_str());
+		error("Unable to write out new address book -- write error, or out of disk space.");
+		return;
+	}
+	new_fpbuf={};
+	rename(new_name.c_str(), ADDRESSBOOK);
 }
 
 /* note: we're always passing utf-8 to dodel() */
 
-static void dodel(const char *nick, struct rfc822a *a, int n,
-	const char *replace_name, const char *replace_addr)
+static void dodel(
+	std::string_view nick,
+	rfc822::addresses &a,
+	size_t n,
+	std::string replace_name,
+	std::string replace_addr
+)
 {
-char	*p;
-FILE	*fp, *new_fp;
-char	*new_name;
-int	new_fd;
-char	*header, *value;
+	if (n >= a.size())
+		return;
 
-char	*namebuf=0, *addrbuf=0;
-struct	rfc822token namet, addresst;
-
-	if (replace_name && replace_addr && n < a->naddrs)
+	if (!replace_addr.empty())
 	{
-		fix_nameaddr(replace_name, replace_addr, &namebuf, &addrbuf);
-		namet.token='"';
-		namet.ptr=namebuf;
-		namet.len=strlen(namebuf);
-		namet.next=0;
-		a->addrs[n].name= &namet;
-
-		addresst.token=0;
-		addresst.ptr=addrbuf;
-		addresst.len=strlen(addrbuf);
-		addresst.next=0;
-		a->addrs[n].tokens= &addresst;
+		fix_nameaddr(replace_name, replace_addr);
+		a[n].name.clear();
+		if (!replace_name.empty())
+		{
+			rfc822::token t;
+			t.type='"';
+			t.str=replace_name;
+			a[n].name.push_back(t);
+		}
+		a[n].address.clear();
+		rfc822::token t;
+		t.str=replace_addr;
+		a[n].address.push_back(t);
 	}
 	else
 	{
-		while (++n < a->naddrs)
-			a->addrs[n-1]=a->addrs[n];
-		--a->naddrs;		/* It's that simple... */
+		a.erase(a.begin()+n);
 	}
 
-	fp=fopen(ADDRESSBOOK, "r");
+	rfc822::fdstreambuf fp{
+		open(ADDRESSBOOK, O_RDONLY)
+	};
 
-	new_fd=maildir_createmsg(INBOX, "addressbook", &new_name);
-	if (new_fd < 0 || (new_fp=fdopen(new_fd, "w")) == 0)
+	std::string new_name;
+
+	rfc822::fdstreambuf new_fpbuf{
+		maildir_createmsg(INBOX, "addressbook", new_name)
+	};
+	if (new_fpbuf.error())
 	{
-		if (new_fd >= 0)	close(new_fd);
-		fclose(fp);
 		enomem();
 		return;
 	}
-	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
-	if (!p)
-	{
-		unlink(new_name);
-		fclose(fp);
-		fclose(new_fp);
-		free(new_name);
-		enomem();
-		return;
-	}
-	strcat(strcpy(p, "tmp/"), new_name);
-	free(new_name);
-	new_name=p;
 
-	while (fp && (header=maildir_readheader_nolc(fp, &value)) != 0)
+	std::ostream new_fp{&new_fpbuf};
+
+	new_name="tmp/" + new_name;
+
+	rfc2045::entity::line_iter<false>::headers headers{fp};
+
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
 	{
-		if (strcmp(header, nick) == 0)
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty())
+			break;
+
+		if (header == nick)
 		{
-		char	*s, *t;
-
-			if (a->naddrs == 0)
+			if (a.empty())
 				continue;
-			s=rfc822_getaddrs_wrap(a, 70);
 
-			if (!s)
+			std::vector<std::string> s;
+
+			s.reserve(a.print_wrapped(
+				70, rfc822::length_counter{}
+			));
+
+			a.print_wrapped(70, std::back_inserter(s));
+
+			new_fp.write(header.data(), header.size());
+			new_fp.write(": ", 2);
+			const char *pfix="";
+			for (const auto &s : s)
 			{
-				fclose(new_fp);
-				close(new_fd);
-				fclose(fp);
-				unlink(new_name);
-				enomem();
+				new_fp.write(pfix, strlen(pfix));
+				new_fp.write(s.data(), s.size());
+				pfix="\n  ";
 			}
-			fprintf(new_fp, "%s: ", header);
-				for (t=s; *t; t++)
-				{
-					putc(*t, new_fp);
-					if (*t == '\n')
-						fprintf(new_fp, "    ");
-				}
-			fprintf(new_fp, "\n");
-			free(s);
+			new_fp.write("\n", 1);
 			continue;
 		}
-		fprintf(new_fp, "%s: %s\n", header, value);
-	}
-	if (fp) fclose(fp);
+		new_fp.write(header.data(), header.size());
+		new_fp.write(": ", 2);
+		new_fp.write(value.data(), value.size());
+	} while (headers.next());
 
-	if (namebuf)	free(namebuf);
-	if (addrbuf)	free(addrbuf);
-
-	if (fflush(new_fp) || ferror(new_fp))
+	new_fpbuf.pubsync();
+	if (new_fpbuf.error())
 	{
-		fclose(new_fp);
-		unlink(new_name);
-		free(new_name);
-		error("Unable to write out new address book -- write error, or out of disk space.");
+		enomem();
 		return;
 	}
-
-	fclose(new_fp);
-	rename(new_name, ADDRESSBOOK);
-	free(new_name);
+	new_fpbuf=rfc822::fdstreambuf{};
+	rename(new_name.c_str(), ADDRESSBOOK);
 }
 
-static void dodelall(const char *nick)
+static void dodelall(std::string_view nick)
 {
-FILE	*fp, *new_fp;
-int	new_fd;
-char	*new_name, *p;
-char	*header, *value;
+	rfc822::fdstreambuf fp{open(ADDRESSBOOK, O_RDONLY)};
 
-	fp=fopen(ADDRESSBOOK, "r");
+	std::string new_name;
 
-	new_fd=maildir_createmsg(INBOX, "addressbook", &new_name);
-	if (new_fd < 0 || (new_fp=fdopen(new_fd, "w")) == 0)
+	rfc822::fdstreambuf new_fpbuf{
+		maildir_createmsg(INBOX, "addressbook", new_name)
+	};
+	if (new_fpbuf.error())
 	{
-		if (new_fd >= 0)	close(new_fd);
-		fclose(fp);
 		enomem();
 		return;
 	}
-	p=static_cast<char *>(malloc(sizeof("tmp/")+strlen(new_name)));
-	if (!p)
-	{
-		unlink(new_name);
-		fclose(fp);
-		fclose(new_fp);
-		free(new_name);
-		enomem();
-	}
-	strcat(strcpy(p, "tmp/"), new_name);
-	free(new_name);
-	new_name=p;
+	new_name="tmp/" + new_name;
 
-	while (fp && (header=maildir_readheader_nolc(fp, &value)) != 0)
-	{
-		if (strcmp(header, nick) == 0)	continue;
-		fprintf(new_fp, "%s: %s\n", header, value);
-	}
-	if (fp) fclose(fp);
+	rfc2045::entity::line_iter<false>::headers headers{fp};
 
-	if (fflush(new_fp) || ferror(new_fp))
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
 	{
-		fclose(new_fp);
-		unlink(new_name);
-		free(new_name);
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty())
+			break;
+
+		if (header == nick)
+			continue;
+		new_fpbuf.sputn(header.data(), header.size());
+		new_fpbuf.sputn(": ", 2);
+		new_fpbuf.sputn(value.data(), value.size());
+	} while (headers.next());
+
+	new_fpbuf.pubsync();
+	if (new_fpbuf.error())
+	{
+		unlink(new_name.c_str());
 		error("Unable to write out new address book -- write error, or out of disk space.");
 		return;
 	}
 
-	fclose(new_fp);
-	rename(new_name, ADDRESSBOOK);
-	free(new_name);
+	new_fpbuf={};
+	rename(new_name.c_str(), ADDRESSBOOK);
 }
 
 void ab_listselect()
@@ -393,81 +379,50 @@ void ab_listselect()
 	ab_listselect_fp(stdout);
 }
 
-struct abooklist {
-	struct abooklist *next;
-	char *name;
-	} ;
-
-static void abl_free(struct abooklist *a)
-{
-struct abooklist *b;
-
-	while (a)
-	{
-		b=a->next;
-		free(a->name);
-		free(a);
-		a=b;
-	}
-}
-
-static int sortabook(const void *a, const void *b)
-{
-	return ( strcmp( (*(struct abooklist * const *)a)->name,
-			(*(struct abooklist * const *)b)->name));
-}
-
 void ab_listselect_fp(FILE *w)
 {
-	FILE	*fp;
-	char *header, *value;
-	struct	abooklist *a=0, *b, **aa;
-	size_t	acnt=0, i;
+	rfc822::fdstreambuf fp{
+		open(ADDRESSBOOK, O_RDONLY)
+	};
 
-	if ((fp=fopen(ADDRESSBOOK, "r")) != 0)
+	if (fp.error())
+		return;
+
+	std::vector<std::string> names;
+	rfc2045::entity::line_iter<false>::headers headers{fp};
+
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
 	{
-		while ((header=maildir_readheader_nolc(fp, &value)) != NULL)
-		{
-			if ((b=static_cast<abooklist *>(malloc(sizeof(struct abooklist)))) == 0 ||
-				(b->name=strdup(header)) == 0)
-			{
-				if (b)	free(b);
-				abl_free(a);
-				enomem();
-			}
-			b->next=a;
-			a=b;
-			acnt++;
-		}
-		fclose(fp);
+		const auto &[header, value]=headers.name_content();
 
-		if ((aa=static_cast<abooklist **>(malloc(sizeof(struct abooklist *)*(acnt+1)))) == 0)
-		{
-			abl_free(a);
-			enomem();
-		}
+		if (header.empty())
+			break;
 
-		for (acnt=0, b=a; b; b=b->next)
-			aa[acnt++]=b;
-		qsort(aa, acnt, sizeof(*aa), sortabook);
+		names.push_back({header.begin(), header.end()});
+	} while (headers.next());
 
-		for (i=0; i<acnt; i++)
-		{
-			char *p=unicode_convert_fromutf8(aa[i]->name,
-							   sqwebmail_content_charset,
-							   NULL);
+	std::sort(names.begin(), names.end());
 
-			fprintf(w, "<option value=\"");
-			output_attrencoded_fp(p ? p:aa[i]->name, w);
-			fprintf(w, "\">");
+	for (const auto &name : names)
+	{
+		bool errflag;
 
-			output_attrencoded_fp(p ? p:aa[i]->name, w);
-			if (p)
-				free(p);
-			fprintf(w, "</option>\n");
-		}
-		free(aa);
-		abl_free(a);
+		auto p=unicode::iconvert::convert(
+			name,
+			unicode::utf_8,
+			sqwebmail_content_charset,
+			errflag
+		);
+
+		fprintf(w, "<option value=\"");
+		output_attrencoded_fplen(name.data(), name.size(), w);
+		fprintf(w, "\">");
+
+		output_attrencoded_fplen(p.data(), p.size(), w);
+		fprintf(w, "</option>\n");
 	}
 }
 
@@ -480,149 +435,129 @@ int ab_get_nameaddr( int (*callback_func)(const char *, const char *,
 					  void *),
 		     void *callback_arg)
 {
-	FILE	*fp;
-	char *header, *value;
 	int rc=0;
 
-	if ((fp=fopen(ADDRESSBOOK, "r")) != 0)
-	{
-		while ((header=maildir_readheader_nolc(fp, &value)) != NULL)
-		{
-			struct rfc822t *t;
-			struct rfc822a *a;
+	rfc822::fdstreambuf fp{
+		open(ADDRESSBOOK, O_RDONLY)
+	};
 
-			if (!value)
+	if (fp.error())
+		return (0);
+
+	rfc2045::entity::line_iter<false>::headers headers{fp};
+
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
+	{
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty())
+			break;
+
+		if (value.empty())
+			continue;
+
+		rfc822::tokens t{value};
+		rfc822::addresses a{t};
+
+		for (const auto &addr : a)
+		{
+			if (addr.address.empty())
 				continue;
 
-			t=rfc822t_alloc_new(value, NULL, NULL);
-			a=t ? rfc822a_alloc(t):0;
+			std::string addr_s;
+			std::string name_s;
 
-			if (a)
-			{
-				int i;
+			addr_s.reserve(
+				addr.address.unquote(rfc822::length_counter{})
+			);
+			addr.address.unquote(std::back_inserter(addr_s));
 
-				for (i=0; i<a->naddrs; i++)
-				{
-					char *addr;
-					char *name;
+			name_s.reserve(
+				addr.name.unquote(rfc822::length_counter{})
+			);
+			addr.name.unquote(std::back_inserter(name_s));
 
-					if (a->addrs[i].tokens == NULL)
-						continue;
+			rc=(*callback_func)(
+				addr_s.c_str(),
+				name_s.c_str(),
+				callback_arg
+			);
 
-					addr=rfc822_display_addr_tobuf(a, i,
-								       NULL);
-					if (!addr)
-						continue;
-
-					name=a->addrs[i].name ?
-						rfc822_display_name_tobuf(a, i,
-									  NULL):
-						NULL;
-
-					rc=(*callback_func)(addr, name,
-							    callback_arg);
-					if (name)
-						free(name);
-					free(addr);
-					if (rc)
-						break;
-				}
-			}
-
-			if (a) rfc822a_free(a);
-			if (t) rfc822t_free(t);
 			if (rc)
 				break;
 		}
-		fclose(fp);
-	}
+
+		if (rc)
+			break;
+	} while (headers.next());
+
 	return (rc);
 }
 
-struct ab_addrselect_s {
-	struct ab_addrselect_s *next;
-	char *name;
-	char *addr;
-} ;
-
 static int ab_addrselect_cb(const char *a, const char *n, void *vp)
 {
-	struct ab_addrselect_s **p=(struct ab_addrselect_s **)vp, *q;
+	auto *p=reinterpret_cast<std::map<std::string, std::set<std::string>> *>(vp);
 
 	if (!n || !a)
 		return (0);
 
-	while ( (*p) && strcasecmp((*p)->name, n) < 0)
-		p= &(*p)->next;
+	(*p)[n].insert(a);
 
-	if ((q=static_cast<ab_addrselect_s *>(malloc(sizeof(struct ab_addrselect_s)))) == NULL)
-		return (-1);
-
-	if ((q->name=strdup(n)) == NULL)
-	{
-		free(q);
-		return(-1);
-	}
-
-	if ((q->addr=strdup(a)) == NULL)
-	{
-		free(q->name);
-		free(q);
-		return(-1);
-	}
-
-	q->next= *p;
-	*p=q;
 	return (0);
 }
 
-static void ab_show_utf8(const char *p)
+static void ab_show_utf8(const std::string &p)
 {
-	int err;
-	char *p_s=unicode_convert_fromutf8(p, sqwebmail_content_charset,
-					     &err);
+	bool errflag=false;
+	std::string p_s=
+		unicode::iconvert::convert(
+			p,
+			unicode::utf_8,
+			sqwebmail_content_charset,
+			errflag
+		);
 
-	if (!p_s)
-		return;
+	if (errflag)
+		p_s += " (conversion error)";
 
-	if (err)
-	{
-		free(p_s);
-		return;
-	}
+	auto ptr=p_s.data();
 
-	p=p_s;
-
-	while (*p)
+	while (ptr < p_s.data() + p_s.size())
 	{
 		size_t i;
 
-		for (i=0; p[i]; ++i)
+		for (i=0; ptr+i < p_s.data() + p_s.size(); ++i)
 		{
-			if (*p == '"' || *p == '\\')
+			if (ptr[i] == '"' || ptr[i] == '\\')
 				break;
 		}
 
 		if (i)
-			call_print_safe_to_stdout(p, i);
+			call_print_safe_to_stdout(ptr, i);
 
-		p += i;
+		ptr += i;
 
-		if (*p)
+		if (ptr < p_s.data() + p_s.size())
 		{
-			putchar('\\');
-			putchar(*p);
-			++p;
+			char buf[NUMBUFSIZE+10]="&#";
+
+			strcpy(std::to_chars(buf+2, buf+sizeof(buf)-8,
+						static_cast<unsigned char>(*ptr)
+					).ptr, ";");
+			printf("%s", buf);
+			++ptr;
 		}
 	}
-	free(p_s);
 	return;
 }
 
 
-void ab_nameaddr_show(const char *name, const char *addr)
+void ab_nameaddr_show(const std::string &name, const std::string &addr)
 {
-	if (name && *name)
+	if (!name.empty())
 	{
 		printf("\"");
 		ab_show_utf8(name);
@@ -630,7 +565,7 @@ void ab_nameaddr_show(const char *name, const char *addr)
 	}
 	printf("&lt;");
 
-	if (addr && *addr)
+	if (!addr.empty())
 		ab_show_utf8(addr);
 
 	printf("&gt;");
@@ -638,74 +573,72 @@ void ab_nameaddr_show(const char *name, const char *addr)
 
 void ab_addrselect()
 {
-	struct ab_addrselect_s *list=NULL, *p;
+	std::map<std::string, std::set<std::string>> m;
 
 	printf("<select name=\"addressbookname\"><option value=\"\"></option>\n");
 
-	if (ab_get_nameaddr(ab_addrselect_cb, &list) == 0)
+	if (ab_get_nameaddr(ab_addrselect_cb, &m) == 0)
 	{
-		for (p=list; p; p=p->next)
+		for (const auto &[name, addrs] : m)
 		{
-			printf("<option value=\"");
-			output_attrencoded(p->addr);
-			printf("\">");
-			ab_nameaddr_show(p->name, p->addr);
-			printf("</option>\n");
+			for (const auto &addr : addrs)
+			{
+				printf("<option value=\"");
+				output_attrencoded(addr.c_str());
+				printf("\">");
+				ab_nameaddr_show(name, addr);
+				printf("</option>\n");
+			}
 		}
 	}
 	printf("</select>\n");
-
-	while ((p=list) != NULL)
-	{
-		list=p->next;
-		free(p->name);
-		free(p->addr);
-		free(p);
-	}
 }
 
-const char *ab_find(const char *nick)
+std::string ab_find(std::string_view nick)
 {
-FILE	*fp;
-char *header, *value;
+	rfc822::fdstreambuf fp(open(ADDRESSBOOK, O_RDONLY));
 
-	if ((fp=fopen(ADDRESSBOOK, "r")) != 0)
+	if (fp.error())
+		return {};
+
+	rfc2045::entity::line_iter<false>::headers headers{fp};
+
+	headers.name_lc=true;
+	headers.keep_eol=true;
+
+	do
 	{
-		while ((header=maildir_readheader_nolc(fp, &value)) != NULL)
-		{
-			if (strcmp(header, nick) == 0)
-			{
-				fclose(fp);
-				return (value);
-			}
-		}
-		fclose(fp);
-	}
-	return (0);
-}
+		const auto &[header, value]=headers.name_content();
 
+		if (header.empty())
+			break;
+
+		if (header == nick)
+			return std::string{value.begin(), value.end()};
+	}
+	while (headers.next());
+
+	return {};
+}
 void addressbook()
 {
-FILE	*fp;
-char    *header, *value;
-const char	*nick_prompt=getarg("PROMPT");
-const char	*nick_submit=getarg("SUBMIT");
-const char	*nick_title1=getarg("TITLE1");
-const char	*nick_title2=getarg("TITLE2");
-const char	*nick_delete=getarg("DELETE");
-const char	*nick_name=getarg("NAME");
-const char	*nick_address=getarg("ADDRESS");
-const char	*nick_add=getarg("ADD");
-const char	*nick_edit=getarg("EDIT");
-const char	*nick_select1=getarg("SELECT1");
-const char	*nick_select2=getarg("SELECT2");
-const char *nick1;
-int	do_edit;
-char	*s, *q, *r;
+	const char	*nick_prompt=getarg("PROMPT");
+	const char	*nick_submit=getarg("SUBMIT");
+	const char	*nick_title1=getarg("TITLE1");
+	const char	*nick_title2=getarg("TITLE2");
+	const char	*nick_delete=getarg("DELETE");
+	const char	*nick_name=getarg("NAME");
+	const char	*nick_address=getarg("ADDRESS");
+	const char	*nick_add=getarg("ADD");
+	const char	*nick_edit=getarg("EDIT");
+	const char	*nick_select1=getarg("SELECT1");
+	const char	*nick_select2=getarg("SELECT2");
+	const char *nick1;
+	bool	do_edit=false;
 
-char	*edit_name=0;
-char	*edit_addr=0;
-int	replace_index=0;
+	std::string edit_name;
+	std::string edit_addr;
+	size_t	replace_index=0;
 
 #if 0
 	fp=fopen("/tmp/pid", "w");
@@ -715,17 +648,17 @@ int	replace_index=0;
 #endif
 
 	nick1=cgi("nick");
-	do_edit=0;
+
 	if (*cgi("nick.edit"))
-		do_edit=1;
+		do_edit=true;
 	else if (*cgi("nick.edit2"))
 	{
-		do_edit=1;
+		do_edit=true;
 		nick1=cgi("nick2");
 	}
 	else if (*cgi("editnick"))
 	{
-		do_edit=1;
+		do_edit=true;
 		nick1=cgi("editnick");
 	}
 
@@ -744,7 +677,7 @@ int	replace_index=0;
 
 		if (*nick1)
 		{
-			do_edit=1;
+			do_edit=true;
 			for (i=0; i<counter; i++)
 			{
 			const char *addy=cgi(strcat(strcpy(numbuf2, "ADDY"),
@@ -774,15 +707,17 @@ int	replace_index=0;
 
 	if (*cgi("nick.delete"))
 	{
-		char *p=TOUTF8(cgi("nick"));
+		std::string p=
+			unicode::iconvert::convert(
+				cgi("nick"),
+				sqwebmail_content_charset,
+				unicode::utf_8
+			);
 
-		do_edit=0;
+		do_edit=false;
 
-		if (p)
-		{
+		if (!p.empty())
 			dodelall(p);
-			free(p);
-		}
 	}
 	else if (*cgi("add"))
 	{
@@ -793,55 +728,36 @@ int	replace_index=0;
 
 		if (*replacenum)
 		{
-			if ((fp=fopen(ADDRESSBOOK, "r")) != 0)
-			{
-				char *editnick_utf8=TOUTF8(editnick);
+			auto editnick_utf8=
+				unicode::iconvert::convert(
+					editnick,
+					sqwebmail_content_charset,
+					unicode::utf_8
+				);
 
-				while ((header=maildir_readheader_nolc(fp,
-					&value)) != NULL)
-					if (editnick_utf8 &&
-					    strcmp(header, editnick_utf8) == 0)
-						break;
+			std::string value=ab_find(editnick_utf8);
+			rfc822::tokens t{value};
+			rfc822::addresses a{t};
 
-				if (header && editnick_utf8)
-				{
-				struct rfc822t *t;
-				struct rfc822a *a;
-
-					t=rfc822t_alloc_new(value, NULL, NULL);
-					a=t ? rfc822a_alloc(t):0;
-
-					if (a)
-					{
-						char *newname_utf8=
-							TOUTF8(newname);
-
-						char *newaddr_utf8=
-							TOUTF8(newaddr);
-
-						dodel(editnick_utf8, a,
-						      atoi(replacenum),
-						      newname_utf8 && newaddr_utf8 ?
-						      newname_utf8:NULL,
-						      newname_utf8 && newaddr_utf8 ?
-						      newaddr_utf8:NULL);
-						rfc822a_free(a);
-						if (newname_utf8)
-							free(newname_utf8);
-						if (newaddr_utf8)
-							free(newaddr_utf8);
-					}
-					if (t)	rfc822t_free(t);
-				}
-				if (editnick_utf8)
-					free(editnick_utf8);
-
-				fclose(fp);
-			}
+			dodel(
+				editnick_utf8,
+				a,
+				atoi(replacenum),
+				unicode::iconvert::convert(
+					newname,
+					sqwebmail_content_charset,
+					unicode::utf_8
+				),
+				unicode::iconvert::convert(
+					newaddr,
+					sqwebmail_content_charset,
+					unicode::utf_8
+				)
+			);
 		}
 		else
 			ab_add(newname, newaddr, editnick);
-		do_edit=1;
+		do_edit=true;
 		nick1=editnick;
 	}
 
@@ -853,198 +769,186 @@ int	replace_index=0;
 	printf("%s\n", nick_select2);
 	printf("%s", nick_submit);
 
-	s=strdup(nick1);
-	if (!s)	enomem();
-	for (q=r=s; *q; q++)
-	{
-		if (isspace((int)(unsigned char)*q) ||
-			strchr(",;:()\"%@<>'!", *q))
-			continue;
-		*r++=*q;
-	}
-	*r=0;
+	std::string s=nick1;
+	edit_nick(s);
 
-	if (do_edit && *s)
+	if (do_edit && !s.empty())
 	{
 		printf("<input type=\"hidden\" name=\"editnick\" value=\"");
-		output_attrencoded(s);
+		output_attrencoded_fplen(s.data(), s.size(), stdout);
 		printf("\" />\n");
 
 		printf("<table border=\"0\" class=\"nickedit-box\">\n");
 		printf("<tr><td colspan=\"3\">\n");
 
-		printf("%s%s%s", nick_title1, s, nick_title2);
-		printf("</td></tr>\n");
+		printf("%s", nick_title1);
+		output_attrencoded_fplen(s.data(), s.size(), stdout);
+		printf("%s\n", nick_title2);
 
-		if ((fp=fopen(ADDRESSBOOK, "r")) != 0)
+		auto s_utf8=
+			unicode::iconvert::convert(
+				s,
+				sqwebmail_content_charset,
+				unicode::utf_8
+			);
+		std::string value=ab_find(s_utf8);
+
+		if (!value.empty())
 		{
-			char *s_utf8=TOUTF8(s);
+			rfc822::tokens t{value};
+			rfc822::addresses a{t};
 
-			while ((header=maildir_readheader_nolc(fp, &value))
-				!= NULL)
-				if (s_utf8 && strcmp(header, s_utf8) == 0)
-					break;
-
-			if (s_utf8)
-				free(s_utf8);
-
-			if (header)
+			for (size_t i=0; i<a.size(); ++i)
 			{
-			struct rfc822t *t;
-			struct rfc822a *a;
-			char	*save_value=strdup(value);
+				char buf[NUMBUFSIZE+10]="del";
 
-				if (!save_value)
+				*std::to_chars(
+					buf+3,
+					buf+sizeof(buf)-1,
+					i
+				).ptr=0;
+				if (*cgi(buf))
 				{
-					fclose(fp);
-					free(s);
-					enomem();
+					dodel(s, a, i, "", "");
+					break;
 				}
-				strcpy(save_value, value);
-					/* Need copy 'cause dodel also
-					** calls maildir_readheader */
-
-
-				t=rfc822t_alloc_new(save_value, NULL, NULL);
-				a=t ? rfc822a_alloc(t):0;
-
-				if (a)
+				strcpy(buf, "startedit");
+				*std::to_chars(
+					buf+9,
+					buf+sizeof(buf)-1,
+					i
+				).ptr=0;
+				if (*cgi(buf))
 				{
-				int	i;
-
-					for (i=0; i<a->naddrs; i++)
-					{
-					char buf[100];
-
-						sprintf(buf, "del%d", i);
-						if (*cgi(buf))
-						{
-							dodel(s, a, i, 0, 0);
-							break;
-						}
-						sprintf(buf, "startedit%d", i);
-						if (*cgi(buf))
-						{
-							if (edit_name)
-								free(edit_name);
-							edit_name=
-								rfc822_display_name_tobuf(a, i, NULL);
-							if (edit_addr)
-								free(edit_addr);
-							edit_addr=
-								rfc822_display_addr_tobuf(a, i, NULL);
-							replace_index=i;
-							break;
-						}
-					}
-
-					for (i=0; i<a->naddrs; i++)
-					{
-						char *s;
-
-						if (a->addrs[i].tokens == 0)
-							continue;
-						printf("<tr><td align=\"right\""
-						       " class=\"nickname\">");
-
-						if (a->addrs[i].name)
-							/* getname defaults it
-							** here.
-							*/
-						{
-							char *n=rfc822_display_name_tobuf(a, i, NULL);
-
-							if (n)
-							{
-								printf("\"");
-								ab_show_utf8(n);
-								printf("\"");
-								free(n);
-							}
-
-						}
-
-						printf("</td><td align=\"left\""
-						       " class=\"nickaddr\">"
-						       "&lt;");
-						s=rfc822_display_addr_tobuf(a, i, NULL);
-
-						if (s)
-						{
-							ab_show_utf8(s);
-							free(s);
-						}
-						printf("&gt;</td><td><input type=\"submit\" name=\"startedit%d\" value=\"%s\" />&nbsp;<input type=\"submit\" name=\"del%d\" value=\"%s\" /></td></tr>\n",
-							i, nick_edit,
-							i, nick_delete);
-					}
-					rfc822a_free(a);
+					edit_name.clear();
+					edit_name.reserve(
+						a[i].name.unquote(
+							rfc822::length_counter{}
+						)
+					);
+					a[i].name.unquote(
+						std::back_inserter(edit_name)
+					);
+					edit_addr.clear();
+					edit_addr.reserve(
+						a[i].address.unquote(
+							rfc822::length_counter{}
+						)
+					);
+					a[i].address.unquote(
+						std::back_inserter(edit_addr)
+					);
+					replace_index=i;
+					break;
 				}
-				if (t)	rfc822t_free(t);
-				free(save_value);
 			}
-			fclose(fp);
+
+			for (size_t i=0; i<a.size(); ++i)
+			{
+				if (a[i].address.empty())
+					continue;
+				printf("<tr><td align=\"right\""
+					" class=\"nickname\">");
+
+				if (!a[i].name.empty())
+					/* getname defaults it
+					** here.
+					*/
+				{
+					std::string n;
+
+					n.reserve(
+						a[i].name.unquote(
+							rfc822::length_counter{}
+					));
+
+					a[i].name.unquote(
+						std::back_inserter(n)
+					);
+
+					if (!n.empty())
+					{
+						printf("\"");
+						ab_show_utf8(n);
+						printf("\"");
+					}
+
+				}
+
+				printf("</td><td align=\"left\""
+					" class=\"nickaddr\">"
+					"&lt;");
+				std::string s;
+
+				s.reserve(
+					a[i].address.unquote(
+						rfc822::length_counter{}
+					)
+				);
+				a[i].address.unquote(
+					std::back_inserter(s)
+				);
+
+				if (!s.empty())
+				{
+					ab_show_utf8(s);
+				}
+				printf("&gt;</td><td><input type=\"submit\" name=\"startedit%d\" value=\"%s\" />&nbsp;<input type=\"submit\" name=\"del%d\" value=\"%s\" /></td></tr>\n",
+					static_cast<int>(i), nick_edit,
+					static_cast<int>(i), nick_delete);
+			}
 		}
 		printf("<tr><td colspan=\"3\"><hr width=\"90%%\" /></td></tr>\n");
 		printf("<tr><td align=\"right\">%s</td><td colspan=\"2\"><input type=\"text\" name=\"newname\" class=\"nicknewname\"", nick_name);
 
-		if (edit_name)
+		if (!edit_name.empty())
 		{
-			int err;
-			char *edit_name_native=
-				unicode_convert_fromutf8(edit_name,
-							   sqwebmail_content_charset,
-							   &err);
+			bool errflag=false;
 
-			if (edit_name_native)
-			{
-				if (err == 0)
-				{
-					printf(" value=\"");
-					output_attrencoded(edit_name_native);
-					printf("\"");
-				}
-				free(edit_name_native);
-			}
+			auto edit_name_native=
+				unicode::iconvert::convert(
+					edit_name,
+					unicode::utf_8,
+					sqwebmail_content_charset,
+					errflag
+				);
+
+			if (errflag)
+				edit_name_native += " (conversion error)";
+			printf(" value=\"");
+			output_attrencoded(edit_name_native.c_str());
+			printf("\"");
 		}
 		printf(" /></td></tr>\n");
 
 		printf("<tr><td align=\"right\">%s</td><td><input type=\"text\" name=\"newaddress\" class=\"nicknewaddr\"", nick_address);
-		if (edit_addr)
+		if (!edit_addr.empty())
 		{
-			int err;
-			char *edit_addr_native=
-				unicode_convert_fromutf8(edit_addr,
-							   sqwebmail_content_charset,
-							   &err);
+			bool errflag=false;
 
-			if (edit_addr_native)
-			{
-				if (err == 0)
-				{
-					printf(" value=\"");
-					output_attrencoded(edit_addr_native);
-					printf("\"");
-				}
-				free(edit_addr_native);
-			}
+			auto edit_addr_native=
+				unicode::iconvert::convert(
+					edit_addr,
+					unicode::utf_8,
+					sqwebmail_content_charset,
+					errflag
+				);
+
+			if (errflag)
+				edit_addr_native += " (conversion error)";
+			printf(" value=\"");
+			output_attrencoded(edit_addr_native.c_str());
+			printf("\"");
 		}
-
 		printf(" /></td><td>");
 
-		if (edit_name || edit_addr)
+		if (!edit_name.empty() || !edit_addr.empty())
 			printf("<input type=\"hidden\" name=\"replacenick\" value=\"%d\" />",
-				replace_index);
+				static_cast<int>(replace_index));
 
 		printf("<input type=\"submit\" name=\"add\" value=\"%s\" /></td></tr>\n",
-			edit_name || edit_addr ? nick_edit:nick_add);
+			!edit_name.empty() || !edit_addr.empty() ? nick_edit:nick_add);
 
 		printf("</table>\n");
 	}
-	free(s);
-
-	if (edit_name)
-		free(edit_name);
-	if (edit_addr)
-		free(edit_addr);
 }

@@ -520,6 +520,13 @@ struct tokens : std::vector<token> {
 			return iter;
 	}
 
+	template<typename out_iter_type>
+	auto unquote(out_iter_type &&iter) const
+	{
+		return unquote(this->begin(), this->end(),
+			       std::forward<out_iter_type>(iter));
+	}
+
 	// Equivalent to rfc822tok_print, writes to an output iterator.
 	//
 	// If the output iterator is an lvalue reference it gets updated

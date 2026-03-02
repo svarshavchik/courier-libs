@@ -1,3 +1,7 @@
+2026-03-01  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Convert address book page's code to C++.
+
 2026-02-22  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Update draft screen to use the C++ mime parser, fixing several

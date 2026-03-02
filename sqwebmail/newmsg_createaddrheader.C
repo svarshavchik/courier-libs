@@ -91,12 +91,10 @@ void create_addrheader(
 			continue;	/* Can't be a nickname */
 		}
 
-		const char *q;
+		std::string q=ab_find(s);
 
-		if ((q=ab_find(s.c_str())) == 0)
-		{
+		if (q.empty())
 			continue;
-		}
 
 		// Stash away the replacement address string, because
 		// rfc822::tokens reference it.
