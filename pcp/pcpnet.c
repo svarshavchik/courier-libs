@@ -19,7 +19,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/un.h>
-#include <rfc822/rfc822hdr.h>
 #include "pcp.h"
 #include "calendardir.h"
 

@@ -19,7 +19,6 @@
 #include	"rfc2045/rfc2045.h"
 #include	"rfc822/rfc2047.h"
 #include	"rfc2045/encode.h"
-#include	"rfc822/rfc822hdr.h"
 #include	"msg2html.h"
 #include	"gpglib/gpglib.h"
 #include	"http11/http11.h"

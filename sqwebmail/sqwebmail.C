@@ -27,7 +27,6 @@
 #include	"maildir/maildiraclt.h"
 #include	"liblock/config.h"
 #include	"liblock/liblock.h"
-#include	"rfc822/rfc822hdr.h"
 #include	"courierauth.h"
 #include	<stdio.h>
 #include	<errno.h>
@@ -72,6 +71,7 @@
 #include	"md5/md5.h"
 
 #include	<courierauthdebug.h>
+#include	"rfc2045/rfc2045.h"
 #include	"maildir/maildircache.h"
 #include	"maildir/maildiraclt.h"
 #include	"maildir/maildirnewshared.h"
@@ -1931,7 +1931,6 @@ char	*p;
 			/* DRAFTS may contain event files */
 		{
 			const char *n=cgi("draft");
-			FILE *fp;
 
 			CHECKFILENAME(n);
 
@@ -1939,26 +1938,28 @@ char	*p;
 
 			if (!filename.empty())
 			{
-				if ((fp=fopen(filename.c_str(), "r")) != NULL)
+				rfc822::fdstreambuf sb{
+					open(filename.c_str(), O_RDONLY)
+				};
+
+				if (!sb.error())
 				{
-					struct rfc822hdr h;
+					rfc2045::entity::line_iter<false>
+						::headers headers{sb};
 
-					rfc822hdr_init(&h, 8192);
-
-					while (rfc822hdr_read(&h, fp, NULL, 0)
-					       == 0)
+					do
 					{
-						if (strcasecmp(h.header,
-							       "X-Event") == 0)
+						const auto &[header,v] =
+							headers.name_content();
+
+						if (header == "x-event")
 						{
 							formname="newevent";
 							cgi_put("draftmessage",
 								cgi("draft"));
 							break;
 						}
-					}
-					rfc822hdr_free(&h);
-					fclose(fp);
+					} while (headers.next());
 				}
 			}
 		}
