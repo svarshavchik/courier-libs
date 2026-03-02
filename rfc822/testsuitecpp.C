@@ -541,6 +541,25 @@ static void unquote_name_test()
 	}
 }
 
+static void testparsedt()
+{
+	auto ret=rfc822::parse_date("Mon Mar  2 2026 07:48:30 EST");
+
+	if (!ret || *ret != 1772455710)
+	{
+		std::cout << "testparsedt test 1 failed\n";
+		exit(1);
+	}
+
+	ret=rfc822::parse_date("Aug 3 2025 07:48:30 EDT");
+
+	if (!ret || *ret != 1754221710)
+	{
+		std::cout << "testparsedt test 2 failed\n";
+		exit(1);
+	}
+}
+
 int main()
 {
 	alarm(60);
@@ -919,5 +938,6 @@ int main()
 	if (fgetc(fp) != 'X') FAIL();
 	fclose(fp);
 
+	testparsedt();
 	return 0;
 }

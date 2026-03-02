@@ -2756,124 +2756,6 @@ unsigned i;
 	free(files);
 }
 
-static char *buf=0;
-size_t bufsize=0, buflen=0;
-
-static void addbuf(int c)
-{
-	if (buflen == bufsize)
-	{
-		char	*newbuf=static_cast<char *>(
-			buf ? realloc(buf, bufsize+512):malloc(bufsize+512)
-		);
-		if (!newbuf)	enomem();
-		buf=newbuf;
-		bufsize += 512;
-	}
-	buf[buflen++]=c;
-}
-
-char *maildir_readline(FILE *fp)
-{
-int	c;
-
-	buflen=0;
-	while ((c=getc(fp)) != '\n' && c >= 0)
-		if (buflen < 8192)
-			addbuf(c);
-	if (c < 0 && buflen == 0)	return (NULL);
-	addbuf(0);
-	return (buf);
-}
-
-char *maildir_readheader_nolc(FILE *fp, char **value)
-{
-	int c;
-
-	buflen=0;
-
-	while ((c=getc(fp)) != EOF)
-	{
-		if (c != '\n')
-		{
-			addbuf(c);
-			continue;
-		}
-		c=getc(fp);
-		if (c >= 0) ungetc(c, fp);
-		if (c < 0 || c == '\n' || !isspace(c)) break;
-		addbuf('\n');
-	}
-	addbuf(0);
-
-	if (c == EOF && buf[0] == 0) return (0);
-
-	for ( *value=buf; **value; (*value)++)
-	{
-		if (**value == ':')
-		{
-			**value='\0';
-			++*value;
-			break;
-		}
-	}
-	while (**value && isspace((int)(unsigned char)**value))	++*value;
-	return(buf);
-}
-
-char	*maildir_readheader_mimepart(FILE *fp, char **value, int preserve_nl,
-		off_t *mimepos, const off_t *endpos)
-{
-	int	c;
-	int	eatspaces=0;
-
-	buflen=0;
-
-	if (mimepos && *mimepos >= *endpos)	return (0);
-
-	while (mimepos == 0 || *mimepos < *endpos)
-	{
-		if ((c=getc(fp)) != '\n' && c >= 0)
-		{
-			if (c != ' ' && c != '\t' && c != '\r')
-				eatspaces=0;
-
-			if (!eatspaces)
-				addbuf(c);
-			if (mimepos)	++ *mimepos;
-			continue;
-		}
-		if ( c == '\n' && mimepos)	++ *mimepos;
-		if (buflen == 0)	return (0);
-		if (c < 0)	break;
-		c=getc(fp);
-		if (c >= 0)	ungetc(c, fp);
-		if (c < 0 || c == '\n' || !isspace(c))	break;
-		addbuf(preserve_nl ? '\n':' ');
-		if (!preserve_nl)
-			eatspaces=1;
-	}
-	addbuf(0);
-
-	for ( *value=buf; **value; (*value)++)
-	{
-		if (**value == ':')
-		{
-			**value='\0';
-			++*value;
-			break;
-		}
-		**value=tolower(**value);
-	}
-	while (**value && isspace((int)(unsigned char)**value))	++*value;
-	return(buf);
-}
-
-char	*maildir_readheader(FILE *fp, char **value, int preserve_nl)
-{
-	return (maildir_readheader_mimepart(fp, value, preserve_nl, 0, 0));
-}
-
 /*****************************************************************************
 
 The MSGINFO structure contains the summary of the headers found in all
@@ -2901,14 +2783,11 @@ void maildir_nfreeinfo(MSGINFO *mi)
 
 MSGINFO *maildir_ngetinfo(const char *filename)
 {
-FILE	*fp;
-MSGINFO	*mi;
-struct stat stat_buf;
-char	*hdr, *val;
-const char *p;
-int	is_sent_header=0;
-char	*fromheader=0;
-int	fd;
+	MSGINFO	*mi;
+	struct stat stat_buf;
+	const char *p;
+	int	is_sent_header=0;
+	std::string fromheader;
 
 	/* Hack - see if we're reading a message from the Sent or Drafts
 		folder */
@@ -2932,13 +2811,9 @@ int	fd;
 
 	memset(mi, '\0', sizeof(*mi));
 
-	fp=0;
-	fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	if (fd >= 0)
-		if ((fp=fdopen(fd, "r")) == 0)
-			close(fd);
+	rfc822::fdstreambuf fp{maildir_semisafeopen(filename, O_RDONLY, 0)};
 
-	if (fp == NULL)
+	if (fp.error())
 	{
 		free(mi);
 		return (NULL);
@@ -2953,7 +2828,7 @@ int	fd;
 	if (!(mi->filename=strdup(p)))
 		enomem();
 
-	if (fstat(fileno(fp), &stat_buf) == 0)
+	if (fstat(fp.fileno(), &stat_buf) == 0)
 	{
 		mi->mi_mtime=stat_buf.st_mtime;
 		mi->mi_ino=stat_buf.st_ino;
@@ -2965,95 +2840,76 @@ int	fd;
 	else
 	{
 		free(mi->filename);
-		fclose(fp);
 		free(mi);
 		return (0);
 	}
 
+	rfc2045::entity::line_iter<false>::headers headers{fp};
 
-	while ((hdr=maildir_readheader(fp, &val, 0)) != 0)
+	headers.name_lc=true;
+
+	do
 	{
-		if (strcmp(hdr, "subject") == 0)
+		const auto &[hdr, val]=headers.name_content();
+		if (hdr == "subject")
 		{
-			char *uibuf=rfc822_display_hdrvalue_tobuf("subject",
-								  val,
-								  "utf-8",
-								  NULL, NULL);
+			std::string s;
+
+			rfc822::display_header(
+				"subject",
+				val,
+				"utf-8",
+				std::back_inserter(s)
+			);
 
 			if (mi->subject_s)	free(mi->subject_s);
 
-			mi->subject_s=uibuf;
-			if (!mi->subject_s)	enomem();
+			if (!(mi->subject_s=strdup(s.c_str())))	enomem();
 		}
 
-		if (strcmp(hdr, "date") == 0 && mi->date_s == 0)
+		if (hdr == "date" && mi->date_s == 0)
 		{
-			time_t t;
+			std::optional<time_t> t=rfc822::parse_date(val);
 
-			if (rfc822_parsedate_chk(val, &t) == 0)
+			if (t)
 			{
-				mi->date_n=t;
+				mi->date_n=*t;
 				mi->date_s=strdup(displaydate(mi->date_n));
 				if (!mi->date_s)	enomem();
 			}
 		}
 
 		if ((is_sent_header ?
-			strcmp(hdr, "to") == 0 || strcmp(hdr, "cc") == 0:
-			strcmp(hdr, "from") == 0) && fromheader == 0)
+			hdr == "to" || hdr == "cc":
+			hdr == "from") && fromheader.empty())
 		{
-			struct rfc822t *from_addr;
-			struct rfc822a *from_addra;
-			char	*p;
-			int dotflag=0;
-			int cnt;
+			rfc822::tokens t{val};
+			rfc822::addresses a{t};
 
-			from_addr=rfc822t_alloc_new(val, NULL, NULL);
-			if (!from_addr)	enomem();
-			from_addra=rfc822a_alloc(from_addr);
-			if (!from_addra)	enomem();
-
-			p=NULL;
-
-			for (cnt=0; cnt<from_addra->naddrs; ++cnt)
+			for (auto &addr:a)
 			{
-				if (from_addra->addrs[cnt].tokens == NULL)
+				if (addr.address.empty())
 					continue;
 
-				if (p)
+				if (!fromheader.empty())
 				{
-					dotflag=1;
+					fromheader += "...";
 					break;
 				}
 
-				p=rfc822_display_name_tobuf(from_addra, cnt,
-							    "utf-8");
+				addr.display_name(
+					unicode::utf_8,
+					std::back_inserter(fromheader)
+				);
 			}
 
-			if (p)
-			{
-				if (fromheader)	free(fromheader);
-				if ((fromheader=static_cast<char *>(
-					     malloc(strlen(p)+7))
-				    ) == 0)
-					enomem();
-				strcpy(fromheader, p);
-				if (dotflag)
-					strcat(fromheader, "...");
-
-				free(p);
-			}
-
-			rfc822a_free(from_addra);
-			rfc822t_free(from_addr);
 		}
 
-		if (mi->date_s && fromheader && mi->subject_s)
+		if (mi->date_s && !fromheader.empty() && mi->subject_s)
 			break;
-	}
-	fclose(fp);
+	} while (headers.next());
 
-	mi->from_s=fromheader;
+	if (!(mi->from_s=strdup(fromheader.c_str())))	enomem();
 	if (!mi->date_s)
 		mi->date_s=strdup(displaydate(mi->date_n));
 	if (!mi->date_s)	enomem();

@@ -43,7 +43,7 @@
 
 extern const char *sqwebmail_content_charset;
 extern "C" void output_attrencoded(const char *);
-extern const char *calc_mime_type(const char *filename);
+extern std::string calc_mime_type(const char *filename);
 
 extern void charset_warning(const char *);
 
@@ -365,7 +365,6 @@ static int upload(const char *c, size_t n, void *vp)
 static void end_upload(void *vp)
 {
 	struct upload_attach_info *uai=(struct upload_attach_info *)vp;
-	const char *mimetype;
 	char *argvec[10];
 	int n;
 	pid_t pid1, pid2;
@@ -380,7 +379,7 @@ static void end_upload(void *vp)
 	if (uai->tmpfile.error())
 		return;
 
-	mimetype=calc_mime_type(uai->filename.c_str());
+	auto mimetype=calc_mime_type(uai->filename.c_str());
 
 	/*
 	** If we get something that's MIMEed as message/rfc822, read it, strip
@@ -389,7 +388,7 @@ static void end_upload(void *vp)
 	** multipart/alternative content.
 	*/
 
-	if (rfc2045_message_content_type(mimetype))
+	if (rfc2045_message_content_type(mimetype.c_str()))
 	{
 		/* Magic */
 
@@ -446,7 +445,7 @@ static void end_upload(void *vp)
 	static char copt_str[]="-c";
 	argvec[0]=makemime_str;
 	argvec[1]=copt_str;
-	argvec[2]=(char *)mimetype;
+	argvec[2]=mimetype.data();
 
 	n=3;
 	if (strncasecmp(argvec[2], "text/", 5) == 0 ||

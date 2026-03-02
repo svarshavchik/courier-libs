@@ -941,12 +941,9 @@ static int dosendmsg(const char *origdraft)
 
 			if (!draftfile.empty())
 			{
-			char	*replytofolder=0, *replytomsg=0;
-			char	*header, *value;
-			FILE	*fp;
-			int	x;
+				std::string replytofolder, replytomsg;
+				int	x;
 
-				fp=0;
 				x=maildir_safeopen(draftfile.c_str(),
 						   O_RDONLY, 0);
 				if ( maildir_parsequota(draftfile.c_str(),
@@ -957,43 +954,44 @@ static int dosendmsg(const char *origdraft)
 					filesize=stat_buf.st_size;
 				}
 
-				if (x >= 0)
-					if ((fp=fdopen(x, "r")) == 0)
-						close(x);
+				rfc822::fdstreambuf fp{x};
+
+				rfc2045::entity::line_iter<false>
+					::headers headers{fp};
+
+				headers.name_lc=true;
 
 				/* First, look for a message that we should
 				** mark as replied */
 
-				while (fp && (header=maildir_readheader(fp,
-						&value, 0)) != 0)
+				do
 				{
-					if (strcmp(header,"x-reply-to-folder")
-						== 0 && !replytofolder)
-					{
-						replytofolder=strdup(value);
-						if (!replytofolder)
-							enomem();
-					}
-					if (strcmp(header,"x-reply-to-msg")
-						== 0 && !replytomsg)
-					{
-						replytomsg=strdup(value);
-						if (!replytomsg)
-							enomem();
-					}
-					if (replytofolder && replytomsg)
+					const auto &[header, value]=headers.name_content();
+
+					if (header.empty())
 						break;
-				}
-				if (fp)	fclose(fp);
 
-				if (replytofolder && replytomsg)
-					maildir_markreplied(replytofolder,
-							replytomsg);
-				if (replytofolder)	free(replytofolder);
-				if (replytomsg)	free(replytomsg);
+					if (header == "x-reply-to-folder")
+					{
+						replytofolder=value;
+					}
+					if (header == "x-reply-to-msg")
+					{
+						replytomsg=value;
+					}
+					if (!replytofolder.empty() &&
+					    !replytomsg.empty())
+						break;
+				} while (headers.next());
 
-				maildir_quota_deleted(".",
-						      -(long)filesize, -1);
+				if (!replytofolder.empty() &&
+				    !replytomsg.empty())
+					maildir_markreplied(
+						replytofolder.c_str(),
+						replytomsg.c_str()
+					);
+
+				maildir_quota_deleted(".", -(long)filesize, -1);
 
 				unlink(draftfile.c_str());
 			}

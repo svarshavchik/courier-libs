@@ -332,12 +332,15 @@ void rfc822print_token(int token_token,
 #include <functional>
 #include <iterator>
 #include <type_traits>
+#include <optional>
 #include <streambuf>
 
 namespace rfc822 {
 #if 0
 }
 #endif
+
+std::optional<time_t> parse_date(std::string_view);
 
 std::string encode_domain(std::string_view,
 			  const char *charset=unicode::utf_8);

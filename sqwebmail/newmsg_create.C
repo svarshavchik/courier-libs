@@ -1168,41 +1168,8 @@ char	*p;
 ** life hard?
 */
 
-int multipart_boundary_checks(const char *boundary, const char *msg)
-{
-size_t	boundarylen=strlen(boundary);
-
-	while (*msg)
-	{
-		if (msg[0] == '-' && msg[1] == '-' && msg[2] != '-' &&
-			strncasecmp(msg+2, boundary, boundarylen) == 0)
-				return (-1);
-		++msg;
-	}
-	return (0);
-}
-
 /* Again, just look for it at the beginning of the line -- why make your
 ** life hard? */
-
-int multipart_boundary_checkf(const char *boundary, FILE *f)
-{
-size_t	boundarylen=strlen(boundary);
-const char *line;
-
-	if (fseek(f, 0L, SEEK_SET) == -1)
-	{
-		fclose(f);
-		close(newdraftfd);
-		enomem();
-	}
-
-	while ((line=maildir_readline(f)) != 0)
-		if (line[0] == '-' && line[1] == '-' &&
-			strncasecmp(line+2, boundary, boundarylen) == 0)
-				return (-1);
-	return (0);
-}
 
 bool multipart_boundary_checkf(std::string boundary, std::streambuf &f)
 {

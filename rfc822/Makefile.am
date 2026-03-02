@@ -9,7 +9,7 @@ librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdrcpp.C rfc822hdr.h \
 		  rfc822_2047.h rfc822cpp.C \
 		  rfc822_getaddr.c rfc822_getaddrs.c \
 		  rfc822_fdstreambuf.C \
-                  rfc822_mkdate.c rfc822_parsedt.c rfc2047u.c \
+                  rfc822_mkdate.c rfc822_parsedt.C rfc2047u.c \
                   rfc2047.c rfc2047.h imapsubj.c imaprefs.h imaprefs.c
 librfc822_la_LIBADD = $(LIBIDN_LIBS)
 
@@ -37,6 +37,7 @@ testsuite2_DEPENDENCIES=librfc822.la
 testsuite2_LDADD=librfc822.la -lcourier-unicode
 
 reftest_SOURCES=reftest.c imaprefs.h
+nodist_EXTRA_reftest_SOURCES=forcecpp.C
 reftest_DEPENDENCIES=librfc822.la
 reftest_LDADD=librfc822.la -lcourier-unicode
 reftest_LDFLAGS=-static

@@ -513,40 +513,56 @@ static void writebase64encode(const char *p, size_t n)
 }
 #endif
 
-static const char *search_mime_type(const char *mimetype, const char *filename)
+static std::string search_mime_type(const char *mimetype, const char *filename)
 {
-FILE	*fp;
-char	*p, *q;
+	std::ifstream fp{mimetype};
 
-	if (!filename || !(filename=strrchr(filename, '.')))	return (0);
+	if (!filename || !(filename=strrchr(filename, '.')))	return {};
 	++filename;
 
-	if ((fp=fopen(mimetype, "r")) == NULL)	return(0);
-	while ((p=maildir_readline(fp)) != NULL)
+	std::string extension{filename};
+
+	rfc2045::entity::tolowercase(extension);
+	if (!fp)	return {};
+
+	std::string p;
+
+	while (std::getline(fp, p))
 	{
-		if ((q=strchr(p, '#')) != NULL)	*q='\0';
-		if ((p=strtok(p, " \t")) == NULL)	continue;
-		while ((q=strtok(NULL, " \t")) != NULL)
-			if (strcasecmp(q, filename) == 0)
-			{
-				fclose(fp);
-				return (p);
-			}
+		rfc2045::entity::tolowercase(p);
+		size_t q=p.find('#');
+		if (q != std::string::npos)	p.erase(q);
+
+		auto n=p.find_first_of(" \t");
+		if (n == std::string::npos)	continue;
+
+		auto mime_type=std::string_view{p}.substr(0, n);
+		auto s=std::string_view{p}.substr(n);
+
+		while (!s.empty() &&
+			!(s=s.substr(s.find_first_not_of(" \t"))).empty())
+		{
+			auto n=s.find_first_of(" \t");
+			if (n == std::string_view::npos)
+				n=s.size();
+
+			if (s.substr(0, n) == extension)
+				return std::string{
+					mime_type.begin(),
+					mime_type.end()
+				};
+
+			s=s.substr(n);
+		}
 	}
-	fclose(fp);
-	return (NULL);
+	return {};
 }
 
-const char *calc_mime_type(const char *filename)
+std::string calc_mime_type(const char *filename)
 {
-static const char mimetypes[]=MIMETYPES;
-const char	*p;
-char *q;
-const char *r;
-char *s;
+	static const char mimetypes[]=MIMETYPES;
 
-	p=mimetypes;
-	if (!p)	enomem();
+	const char *p=mimetypes;
 	while (*p)
 	{
 		if (*p == ':')
@@ -554,15 +570,25 @@ char *s;
 			++p;
 			continue;
 		}
-		q=strdup(p);
-		if (!q)	enomem();
-		if ((s=strchr(q, ':')) != NULL)	*s='\0';
-		if ((r=search_mime_type(q, filename)) != 0)
+		const char *q=strchr(p, ':');
+
+		std::string mimetype;
+
+		if (q)
 		{
-			free(q);
-			return (r);
+			mimetype=std::string{p, q};
+			p=q+1;
 		}
-		free(q);
+		else {
+			mimetype=p;
+			p="";
+		}
+		auto r=search_mime_type(mimetype.c_str(), filename);
+
+		if (!r.empty())
+		{
+			return r;
+		}
 		while (*p && *p != ':')
 			p++;
 	}
@@ -796,6 +822,7 @@ extern "C" int attach_upload(const char *draft,
 	argvec[0]=makemime_str;
 	argvec[1]=copt_str;
 
+	std::string mimetype;
 	if (attpubkey || attprivkey)
 	{
 		static char mimetype_str[]="application/pgp-keys";
@@ -818,7 +845,8 @@ extern "C" int attach_upload(const char *draft,
 	{
 		std::string_view pp;
 
-		argvec[2]=(char *)calc_mime_type(cgi_attachfilename);
+		mimetype=calc_mime_type(cgi_attachfilename);
+		argvec[2]=mimetype.data();
 
 		static char Nopt_str[]="-N";
 		argvec[3]=Nopt_str;
