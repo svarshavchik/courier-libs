@@ -102,7 +102,7 @@ SQISPELLSOURCES=$(ISPELLSOURCES)
 endif
 
 
-sqwebmaild_SOURCES=acl.c acl.h \
+sqwebmaild_SOURCES=acl.C acl.h \
 		addressbook.C addressbook.h args.c attachments.C \
 		auth.c auth.h autoresponse.C autoresponse.h \
 		changepw.c \
