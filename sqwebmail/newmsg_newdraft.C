@@ -34,7 +34,7 @@
 extern const char *sqwebmail_mailboxid;
 extern const char *sqwebmail_content_charset;
 
-extern "C" char *get_msgfilename(const char *, size_t *);
+extern std::string get_msgfilename(const char *, size_t *);
 
 std::string newmsg_newdraft(const char *folder, const char *pos,
 			    const char *forwardsep, const char *replysalut)
@@ -42,7 +42,6 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 	size_t	pos_n;
 
 	const	char *mimeidptr;
-	char *filename;
 	rfc2045::replymode_t replymode;
 
 	if (*cgi("reply"))
@@ -71,19 +70,16 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 	}
 
 	pos_n=atol(pos);
-	filename=get_msgfilename(folder, &pos_n);
+	auto filename=get_msgfilename(folder, &pos_n);
 
-	if (!filename)	return ("");
+	if (filename.empty())	return ("");
 
 	rfc822::fdstreambuf fp{
-		maildir_semisafeopen(filename, O_RDONLY, 0)
+		maildir_semisafeopen(filename.c_str(), O_RDONLY, 0)
 	};
 
 	if (fp.error())
-	{
-		free(filename);
 		return ("");
-	}
 
 	rfc2045::entity message;
 
@@ -122,9 +118,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 
 	int draftfd=maildir_createmsg(INBOX "." DRAFTS, 0, draftfilename);
 	if (draftfd < 0)
-	{
 		enomem();
-	}
 
 	maildir_writemsgstr(draftfd, "From: ");
 	{
@@ -181,7 +175,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 			break;
 		default:
 			{
-				char *basename=maildir_basename(filename);
+				char *basename=maildir_basename(filename.c_str());
 
 				maildir_writemsgstr(draftfd,
 						    "X-Reply-To-Folder: ");
@@ -213,7 +207,6 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 	{
 		cgi_put("error", "quota");
 	}
-	free(filename);
 
 	return(draftfilename);
 }

@@ -266,7 +266,6 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 {
 	int	rc=0;
 	char	buf[2];
-	char	*cur;
 
 	strcpy(buf, ACL_DELETEMSGS);
 	acl_computeRightsOnFolder(dir, buf);
@@ -306,16 +305,16 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 		return "othererror";
 	    }
 
-	    cur = static_cast<char *>(malloc(strlen(deldir)+5));
-	    strcpy(cur, deldir);
-	    strcat(cur, "/cur");
+	    std::string cur;
+	    cur.reserve(strlen(deldir) + 5);
+	    cur = deldir;
+	    cur += "/cur";
 
-	    rc=maildir_del_content(cur);
+	    rc = maildir_del_content(cur.c_str());
 	    maildir_quota_recalculate(".");
 
 	    maildir_info_destroy(&minfo);
 	    free(deldir);
-	    free(cur);
 
 	}
 	else if (*cgi("cmdmove"))
@@ -1121,27 +1120,23 @@ void folder_initnextprev(const char *dir, size_t pos)
 		matches_free(search_matches, pref_flagpagesize);
 }
 
-extern "C" char *get_msgfilename(const char *folder, size_t *pos)
+std::string get_msgfilename(const char *folder, size_t *pos)
 {
-	char *filename;
-
 	if (*cgi(MIMEGPGFILENAME))
 	{
 		const char *p=cgi(MIMEGPGFILENAME);
 
 		CHECKFILENAME(p);
 
-		filename=static_cast<char *>(malloc(sizeof("tmp/")+strlen(p)));
-		if (!filename)
-			enomem();
-		strcat(strcpy(filename, "tmp/"), p);
+		std::string_view p_str{p};
+
+		std::string filename;
+		filename.reserve(sizeof("tmp/")-1 + p_str.length());
+		filename = "tmp/";
+		filename += p_str;
+		return filename;
 	}
-	else
-		filename=strdup(maildir_posfind(folder, pos).c_str());
-
-	if (!filename)	error("Message not found.");
-
-	return (filename);
+	return maildir_posfind(folder, pos);
 }
 
 void output_mimegpgfilename()
@@ -2109,8 +2104,6 @@ static char *get_url_to_mime_part(const char *mimeid, void *arg)
 
 void folder_showmsg(const char *dir, size_t pos)
 {
-	char	*filename;
-
 	struct msg2html_info *info;
 
 	const char *script_name=nonloginscriptptr();
@@ -2139,15 +2132,12 @@ void folder_showmsg(const char *dir, size_t pos)
 		}
 	}
 
-	filename=get_msgfilename(dir, &pos);
+	std::string filename=get_msgfilename(dir, &pos);
 
-	rfc822::fdstreambuf fp{maildir_semisafeopen(filename, O_RDONLY, 0)};
+	rfc822::fdstreambuf fp{maildir_semisafeopen(filename.c_str(), O_RDONLY, 0)};
 
 	if (fp.error())
-	{
-		free(filename);
 		return;
-	}
 
 	msg_pos=pos;
 
@@ -2245,19 +2235,15 @@ void folder_showmsg(const char *dir, size_t pos)
 
 	if (*cgi(MIMEGPGFILENAME) == 0)
 		maildir_markread(dir, pos);
-	free(filename);
 }
 
 void folder_keyimport(const char *dir, size_t pos)
 {
-	char	*filename;
-
-	filename=get_msgfilename(dir, &pos);
+	auto filename=get_msgfilename(dir, &pos);
 
 	rfc822::fdstreambuf fp{
-		maildir_semisafeopen(filename, O_RDONLY, 0)
+		maildir_semisafeopen(filename.c_str(), O_RDONLY, 0)
 	};
-	free(filename);
 
 	if (fp.error())
 	{
@@ -3559,21 +3545,17 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 
 void folder_download(const char *folder, size_t pos, const char *mimeid)
 {
-	char	*filename;
-
-	filename=get_msgfilename(folder, &pos);
+	auto filename=get_msgfilename(folder, &pos);
 
 	rfc822::fdstreambuf fd{
-		maildir_semisafeopen(filename, O_RDONLY, 0)
+		maildir_semisafeopen(filename.c_str(), O_RDONLY, 0)
 	};
 
 	if (fd.error())
 	{
-		free(filename);
 		error("Message not found.");
 		return;
 	}
-	free(filename);
 
 	cginocache();
 	msg2html_download(fd, mimeid, *cgi("download") == '1',
