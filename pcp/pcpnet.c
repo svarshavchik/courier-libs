@@ -19,7 +19,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/un.h>
-#include <rfc822/rfc822hdr.h>
 #include "pcp.h"
 #include "calendardir.h"
 
@@ -1126,7 +1125,7 @@ static struct PCP_new_eventid *neweventid(struct PCPnet *pn,
 		return (NULL);
 	}
 
-	if (ev)
+	if (ev && *ev)
 	{
 		pn->haserrmsg=0;
 		q=malloc(sizeof("DELETE \n")+strlen(ev));

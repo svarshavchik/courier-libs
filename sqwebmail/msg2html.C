@@ -1,10 +1,7 @@
 #include "config.h"
 /*
-** Copyright 2007-2011 S. Varshavchik.  See COPYING for
+** Copyright 2007-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
-*/
-
-/*
 */
 
 #include "msg2html.h"
@@ -12,112 +9,40 @@
 #include <courier-unicode.h>
 #include "numlib/numlib.h"
 #include "gpglib/gpglib.h"
+#include <charconv>
 #include "cgi/cgi.h"
+#include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc3676parser.h"
 #include "md5/md5.h"
-
 #include "filter.h"
 #include "html.h"
-
+#include <unordered_map>
+#include <vector>
 #include <ctype.h>
 
-static void (*get_known_handler(struct rfc2045 *mime,
+static void (*get_known_handler(const rfc2045::entity &mime,
 				struct msg2html_info *info))
-	(FILE *, struct rfc2045 *, struct rfc2045id *, struct msg2html_info *);
+	(std::streambuf &fd,
+	 const rfc2045::entity &message,
+	 std::string &, struct msg2html_info *);
 
-static void (*get_handler(struct rfc2045 *mime,
+static void (*get_handler(const rfc2045::entity &mime,
 			  struct msg2html_info *info))
-	(FILE *, struct rfc2045 *,
-	 struct rfc2045id *,
-	 struct msg2html_info *);
+(std::streambuf &, const rfc2045::entity &,
+ std::string &,
+ struct msg2html_info *);
 
-static void addbuf(int c, char **buf, size_t *bufsize, size_t *buflen)
-{
-	if (*buflen == *bufsize)
-	{
-		char	*newbuf= static_cast<char *>(
-			*buf ?
-			realloc(*buf, *bufsize+512):malloc(*bufsize+512)
-		);
-
-		if (!newbuf)
-			return;
-		*buf=newbuf;
-		*bufsize += 512;
-	}
-	(*buf)[(*buflen)++]=c;
-}
-
-static char *get_next_header(FILE *fp, char **value,
-			     int preserve_nl,
-			     off_t *mimepos, const off_t *endpos)
-{
-	int	c;
-	int	eatspaces=0;
-
-	size_t bufsize=256;
-	char *buf=static_cast<char *>(malloc(bufsize));
-	size_t buflen=0;
-
-	if (!buf)
-		return NULL;
-
-	if (mimepos && *mimepos >= *endpos)	return (NULL);
-
-	while (mimepos == 0 || *mimepos < *endpos)
-	{
-		if ((c=getc(fp)) != '\n' && c >= 0)
-		{
-			if (c != ' ' && c != '\t' && c != '\r')
-				eatspaces=0;
-
-			if (!eatspaces)
-				addbuf(c, &buf, &bufsize, &buflen);
-			if (mimepos)	++ *mimepos;
-			continue;
-		}
-		if ( c == '\n' && mimepos)	++ *mimepos;
-		if (buflen == 0)
-		{
-			free(buf);
-			return (0);
-		}
-		if (c < 0)	break;
-		c=getc(fp);
-		if (c >= 0)	ungetc(c, fp);
-		if (c < 0 || c == '\n' || !isspace(c))	break;
-		addbuf(preserve_nl ? '\n':' ', &buf, &bufsize, &buflen);
-		if (!preserve_nl)
-			eatspaces=1;
-	}
-	addbuf(0, &buf, &bufsize, &buflen);
-	buf[buflen-1]=0;  /* Make sure, in outofmem situations */
-
-	for ( *value=buf; **value; (*value)++)
-	{
-		if (**value == ':')
-		{
-			**value='\0';
-			++*value;
-			break;
-		}
-		**value=tolower(**value);
-	}
-	while (**value && isspace((int)(unsigned char)**value))	++*value;
-	return(buf);
-}
+static const char validurlchars[]=
+	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	":/.~%+?&#=@;-_,";
 
 struct msg2html_info *msg2html_alloc(const char *charset)
 {
-	msg2html_info *p=
-		static_cast<msg2html_info *>(
-			malloc(sizeof(struct msg2html_info))
-		);
+	msg2html_info *p= new msg2html_info;
 
 	if (!p)
 		return NULL;
-	memset(p, 0, sizeof(*p));
 
 	p->output_character_set=charset;
 	return p;
@@ -165,10 +90,75 @@ void msg2html_free(struct msg2html_info *p)
 		free(sl->url);
 		free(sl);
 	}
-	free(p);
+	delete p;
 }
 
-static void html_escape(const char *p, size_t n)
+namespace {
+	struct html_escape_cb {
+
+		virtual void operator()(std::string_view) const=0;
+	};
+
+	struct html_escape_stdout : html_escape_cb {
+
+		void operator()(std::string_view sv) const override
+		{
+			fwrite(sv.data(), sv.size(), 1, stdout);
+		}
+	};
+
+	struct html_escape_stdstring : html_escape_cb {
+
+		mutable std::string s;
+		void operator()(std::string_view sv) const override
+		{
+			s.append(sv.data(), sv.size());
+		}
+	};
+
+	struct urlescapeiter {
+		std::string s;
+
+		urlescapeiter &operator*()
+		{
+			return *this;
+		}
+
+		urlescapeiter &operator++()
+		{
+			return *this;
+		}
+
+		urlescapeiter &operator++(int)
+		{
+			return *this;
+		}
+
+		urlescapeiter &operator=(char c)
+		{
+			if (strchr(validurlchars, c))
+			{
+				s.push_back(c);
+				return *this;
+			}
+
+			static const char hex[]="0123456789ABCDEF";
+
+			s.push_back('%');
+			s.push_back(hex[(c >> 4) & 15]);
+			s.push_back(hex[c & 15]);
+			return *this;
+		}
+
+		operator std::string() const
+		{
+			return s;
+		}
+	};
+};
+
+static void do_html_escape(const char *p, size_t n,
+			   const html_escape_cb &cb)
 {
 	char	buf[10];
 	const	char *q=p;
@@ -189,12 +179,30 @@ static void html_escape(const char *p, size_t n)
 			continue;
 		}
 
-		fwrite(q, p-q, 1, stdout);
-		printf("%s", buf);
+		if (p-q)
+			cb({q, (size_t)(p-q)});
+
+		cb(buf);
 		p++;
 		q=p;
 	}
-	fwrite(q, p-q, 1, stdout);
+
+	if (p-q)
+		cb({q, (size_t)(p-q)});
+}
+
+static void html_escape(const char *p, size_t n)
+{
+	do_html_escape(p, n, html_escape_stdout{});
+}
+
+static std::string html_escapestr(const char *p, size_t n)
+{
+	html_escape_stdstring ss;
+
+	do_html_escape(p, n, ss);
+
+	return std::move(ss.s);
 }
 
 /*
@@ -202,27 +210,39 @@ static void html_escape(const char *p, size_t n)
 ** and the first character after every "-"
 */
 
-static void header_uc(char *h)
+static void header_uc(std::string &h)
 {
-	while (*h)
+	bool uc=true;
+
+	for (auto &c:h)
 	{
-		*h=toupper( (int)(unsigned char) *h);
-		++h;
-		while (*h)
+		if (c == '-')
 		{
-			*h=tolower((int)(unsigned char) *h);
-			if (*h++ == '-')	break;
+			uc=true;
+			continue;
+		}
+
+		if (uc)
+		{
+			c=toupper( (int)(unsigned char) c);
+			uc=false;
+		}
+		else
+		{
+			c=tolower((int)(unsigned char) c);
 		}
 	}
 }
 
-static void show_email_header(const char *h)
+static void show_email_header(std::string_view h)
 {
-	html_escape(h, strlen(h));
+	html_escape(h.data(), h.size());
 }
 
-static void print_header_uc(struct msg2html_info *info, char *h)
+static void print_header_uc(struct msg2html_info *info, std::string_view h_orig)
 {
+	std::string h{h_orig.begin(), h_orig.end()};
+
 	header_uc(h);
 
 	printf("<tr valign=\"baseline\"><th align=\"right\" class=\"message-rfc822-header-name\">");
@@ -235,240 +255,159 @@ static void print_header_uc(struct msg2html_info *info, char *h)
 
 }
 
-struct showaddrinfo {
-	struct msg2html_info *info;
-	struct rfc822a *a;
-	int curindex;
-	int isfirstchar;
-} ;
+namespace {
 
-static void showaddressheader_printc(char c, void *p)
-{
-	struct showaddrinfo *sai= (struct showaddrinfo *)p;
 
-	if (sai->isfirstchar)
-	{
-		char *name=0;
-		char *addr=0;
+	struct print_addresses : rfc822::addresses::do_print {
 
-		if (sai->curindex < sai->a->naddrs &&
-		    sai->a->addrs[sai->curindex].tokens)
+		msg2html_info *info;
+		rfc822::addresses::iterator b, e;
+
+		print_addresses(
+			msg2html_info *info,
+			rfc822::addresses::iterator b,
+			rfc822::addresses::iterator e
+		) : info{info}, b{b}, e{e}
 		{
-			name=rfc822_display_name_tobuf(sai->a,
-						       sai->curindex,
-						       sai->info->
-						       output_character_set);
-			addr=rfc822_display_addr_tobuf(sai->a,
-						       sai->curindex,
-						       sai->info->
-						       output_character_set);
 		}
 
-		if (sai->info->email_address_start)
-			(*sai->info->email_address_start)(name, addr);
+		void print_separator(const char *ptr) override
+		{
+			printf("%s", ptr);
+		};
 
-		if (addr)
-			free(addr);
-		if (name)
-			free(name);
+		bool eof()
+		{
+			return b == e;
+		}
 
-		sai->isfirstchar=0;
-	}
+		const rfc822::address &ref() override
+		{
+			return *b;
+		}
 
-	html_escape(&c, 1);
-}
+		void print() override;
+	};
 
-static void showaddressheader_printsep(const char *sep, void *p)
-{
-	struct showaddrinfo *sai= (struct showaddrinfo *)p;
 
-	if (sai && !sai->isfirstchar)
-		printf("</span>");
-
-	if (sai->info->email_address_end)
-		(*sai->info->email_address_end)();
-
-	if (sai)
+	void print_addresses::print()
 	{
-		sai->curindex++;
-		sai->isfirstchar=1;
+		std::string s, name, address;
+
+		printf("<span class=\"message-rfc822-header-contents\">");
+		b->display(info->output_character_set,
+			   std::back_inserter(s));
+
+		if (info->email_address_start && !b->address.empty())
+		{
+			b->display_name(info->output_character_set,
+					std::back_inserter(name),
+					true);
+			b->display_address(info->output_character_set,
+					   std::back_inserter(address));
+			(*info->email_address_start)(name.c_str(),
+						     address.c_str());
+		}
+
+		html_escape(s.c_str(), s.size());
+
+		if (info->email_address_end && !b->address.empty())
+			(*info->email_address_end)();
+		printf("</span>");
+		++b;
 	}
-
-	printf("%s<span class=\"message-rfc822-header-contents\">", sep);
-}
-
-static void showaddressheader_printsep_plain(const char *sep, void *p)
-{
-	printf("%s", sep);
 }
 
 static void showmsgrfc822_addressheader(struct msg2html_info *info,
-					const char *p)
+					std::string_view h)
 {
-	struct	rfc822t *rfcp;
-	struct  rfc822a *rfca;
+	rfc822::tokens tokens{h};
+	rfc822::addresses addresses{tokens};
 
-	struct showaddrinfo sai;
+	print_addresses do_print{info, addresses.begin(), addresses.end()};
 
-	rfcp=rfc822t_alloc_new(p, NULL, NULL);
-	if (!rfcp)
-		return;
-
-	rfca=rfc822a_alloc(rfcp);
-	if (!rfca)
-	{
-		rfc822t_free(rfcp);
-		return;
-	}
-
-	sai.info=info;
-	sai.a=rfca;
-	sai.curindex=0;
-	sai.isfirstchar=1;
-
-	rfc2047_print_unicodeaddr(rfca, info->output_character_set,
-				  showaddressheader_printc,
-				  showaddressheader_printsep, &sai);
-	if (!sai.isfirstchar)
-		showaddressheader_printsep("", &sai);
-	/* This closes the final </a> */
-
-
-	rfc822a_free(rfca);
-	rfc822t_free(rfcp);
+	do_print.output();
 }
 
-static void showrfc2369_printheader(const char *c, size_t l, void *p)
-{
-	p=p;
-	fwrite(c, l, 1, stdout);
-}
+namespace {
+	struct do_print_rfc2369_address : rfc822::address::do_print {
 
-struct showmsgrfc2369_buflist {
-	struct showmsgrfc2369_buflist *next;
-	char *p;
-};
+		msg2html_info *info;
 
-static void showmsgrfc2369_header(struct msg2html_info *info, const char *p)
-{
-	struct	rfc822t *rfcp;
-	struct  rfc822a *rfca;
-	int	i;
-	struct showmsgrfc2369_buflist *buflist=NULL;
-
-	rfcp=rfc822t_alloc_new(p, NULL, NULL);
-	if (!rfcp)
-		return;
-
-	rfca=rfc822a_alloc(rfcp);
-	if (!rfca)
-	{
-		rfc822t_free(rfcp);
-		return;
-	}
-
-	for (i=0; i<rfca->naddrs; i++)
-	{
-		char	*p=rfc822_getaddr(rfca, i);
-		char	*q=info->get_textlink ?
-			(*info->get_textlink)(p, info->arg):NULL;
-		struct showmsgrfc2369_buflist *next;
-
-		if (q)
+		do_print_rfc2369_address(const rfc822::address &a,
+					 msg2html_info *info)
+			: do_print{a}, info{info}
 		{
-			next=static_cast<showmsgrfc2369_buflist *>(
-				malloc(sizeof(struct showmsgrfc2369_buflist))
+		}
+
+		void emit_address()
+		{
+			std::string disp_address;
+
+			a.display_address(info->output_character_set,
+					  std::back_inserter(disp_address));
+
+			if (info->get_textlink)
+			{
+				std::string raw_address=
+					a.address.print(
+						urlescapeiter{}
+					);
+
+				disp_address=html_escapestr(
+					disp_address.data(),
+					disp_address.size()
+				);
+
+				printf("%s", info->get_textlink(
+					       raw_address, disp_address
+				       ).c_str());
+			}
+			else
+			{
+				html_escape(
+					disp_address.c_str(),
+					disp_address.size()
+				);
+			}
+		}
+
+		void emit_name() override
+		{
+			std::string name;
+
+			a.display_name(
+				info->output_character_set,
+				std::back_inserter(name)
 			);
-
-			if (!next)
-			{
-				free(q);
-				q=NULL;
-			}
-			else
-			{
-				next->next=buflist;
-				buflist=next;
-				next->p=q;
-			}
+			html_escape(name.c_str(), name.size());
 		}
 
-		if (q && rfca->addrs[i].tokens)
+		void emit_char(char c) override
 		{
-			rfca->addrs[i].tokens->token=0;
-			if (*q)
-				free(p);
-			else
-			{
-			struct	buf b;
-
-				buf_init(&b);
-				free(q);
-				for (q=p; *q; q++)
-				{
-				char	c[2];
-
-					switch (*q)	{
-					case '<':
-						buf_cat(&b, "&lt;");
-						break;
-					case '>':
-						buf_cat(&b, "&gt;");
-						break;
-					case '&':
-						buf_cat(&b, "&amp;");
-						break;
-					case ' ':
-						buf_cat(&b, "&nbsp;");
-						break;
-					default:
-						c[1]=0;
-						c[0]=*q;
-						buf_cat(&b, c);
-						break;
-					}
-				}
-				free(p);
-				q=strdup(b.ptr ? b.ptr:"");
-				buf_free(&b);
-				next->p=q;
-			}
-			rfca->addrs[i].tokens->ptr=q;
-			rfca->addrs[i].tokens->len=q ? strlen(q):0;
-			rfca->addrs[i].tokens->next=0;
+			html_escape(&c, 1);
 		}
-		else
-			free(p);
-	}
-
-	rfc822_print(rfca, showrfc2369_printheader,
-		     showaddressheader_printsep_plain, NULL);
-
-	while (buflist)
-	{
-		struct showmsgrfc2369_buflist *next=buflist;
-
-		buflist=next->next;
-
-		free(next->p);
-		free(next);
-	}
-
-	rfc822a_free(rfca);
-	rfc822t_free(rfcp);
+	};
 }
 
-static int isaddressheader(const char *header)
+static void showmsgrfc2369_header(struct msg2html_info *info,
+				  std::string_view h)
 {
-	return (strcmp(header, "to") == 0 ||
-		strcmp(header, "cc") == 0 ||
-		strcmp(header, "from") == 0 ||
-		strcmp(header, "sender") == 0 ||
-		strcmp(header, "resent-to") == 0 ||
-		strcmp(header, "resent-cc") == 0 ||
-		strcmp(header, "reply-to") == 0);
-}
+	rfc822::tokens tokens{h};
+	rfc822::addresses addresses{tokens};
 
+	const char *sep="";
+
+	for (auto &a:addresses)
+	{
+		printf("%s", sep);
+
+		do_print_rfc2369_address print{a, info};
+
+		print.output();
+		sep=", ";
+	}
+}
 
 static void showmsgrfc822_headerp(const char *p, size_t l, void *dummy)
 {
@@ -477,31 +416,30 @@ static void showmsgrfc822_headerp(const char *p, size_t l, void *dummy)
 }
 
 static int showmsgrfc822_header(const char *output_chset,
-				const char *p, const char *chset)
+				const std::string_view p,
+				const char *chset)
 {
-	struct filter_info info;
-
 	char32_t *uc;
 	size_t ucsize;
 
 	int conv_err;
 
-	if (unicode_convert_tou_tobuf(p, strlen(p), chset,
-					&uc, &ucsize,
-					&conv_err))
+	if (unicode_convert_tou_tobuf(p.data(), p.size(), chset,
+				      &uc, &ucsize,
+				      &conv_err))
 	{
 		conv_err=1;
 		uc=NULL;
 	}
 
-	filter_start(&info, output_chset, showmsgrfc822_headerp, NULL);
+	filter_info info{output_chset, showmsgrfc822_headerp, NULL};
 
 	if (uc)
 	{
-		filter(&info, uc, ucsize);
+		info(uc, ucsize);
 		free(uc);
 	}
-	filter_end(&info);
+	info.flush();
 
 	if (info.conversion_error)
 		conv_err=1;
@@ -509,99 +447,81 @@ static int showmsgrfc822_header(const char *output_chset,
 	return conv_err;
 }
 
-static void showmsgrfc822_body(FILE *fp, struct rfc2045 *rfc,
-			       struct rfc2045id *idptr, int flag,
+static void showmsgrfc822_body(std::streambuf &fd,
+			       const rfc2045::entity &message,
+			       std::string &idptr, bool flag,
 			       struct msg2html_info *info)
 {
-char	*header, *value;
-char	*save_subject=0;
-char	*save_date=0;
-off_t	start_pos, end_pos, start_body;
-struct	rfc2045id *p, newpart;
-off_t	dummy;
-off_t	pos;
+	std::string save_subject;
+	std::string save_date;
 
-	rfc2045_mimepos(rfc, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-	if (fseek(fp, start_pos, SEEK_SET) < 0)
-		return;
+	rfc2045::entity::line_iter<false>::headers headers{message, fd};
 
 	printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" class=\"message-rfc822-header\">\n");
 
-	pos=start_pos;
-	while ((header=get_next_header(fp, &value, 1,
-		&pos, &start_body)) != 0)
+	do
 	{
-		if (strcmp(header, "list-help") == 0 ||
-			strcmp(header, "list-subscribe") == 0 ||
-			strcmp(header, "list-unsubscribe") == 0 ||
-			strcmp(header, "list-owner") == 0 ||
-			strcmp(header, "list-archive") == 0 ||
-			strcmp(header, "list-post") == 0)
+		const auto &[header, content] = headers.name_content();
+
+		if (header.empty() && content.empty())
+			continue;
+		if (header =="list-help" ||
+			header =="list-subscribe" ||
+			header =="list-unsubscribe" ||
+			header =="list-owner" ||
+			header =="list-archive" ||
+			header =="list-post")
 		{
 			print_header_uc(info, header);
 			printf("<td><span class=\"message-rfc822-header-contents\">");
-			showmsgrfc2369_header(info, value);
+			showmsgrfc2369_header(info, content);
 			printf("</span></td></tr>\n");
-			free(header);
 			continue;
 		}
+
+		auto	isaddress=rfc822::header_is_addr(header, false);
 
 		if (info->fullheaders)
 		{
-			int	isaddress=isaddressheader(header);
-
 			print_header_uc(info, header);
 			printf("<td><span class=\"message-rfc822-header-contents\">");
-			if (isaddress)
-				showmsgrfc822_addressheader(info, value);
-			else
-				showmsgrfc822_header(info->output_character_set,
-						     value,
-						     "utf-8");
+			showmsgrfc822_header(info->output_character_set,
+					     content,
+					     "utf-8");
 			printf("</span></td></tr>\n");
-			free(header);
 			continue;
 		}
-		if (strcmp(header, "subject") == 0)
+		if (header == "subject")
 		{
-			if (save_subject)	free(save_subject);
+			save_subject.clear();
 
-			save_subject=
-				rfc822_display_hdrvalue_tobuf(header, value,
-							      info->output_character_set,
-							      NULL,
-							      NULL);
-
-			if (!save_subject)
-				save_subject=strdup(value);
-
-			free(header);
+			rfc822::display_header(
+				"subject", content,
+				info->output_character_set,
+				std::back_inserter(save_subject));
 			continue;
 		}
-		if (strcmp(header, "date") == 0)
+		if (header == "date")
 		{
-			if (save_date)	free(save_date);
-			save_date=strdup(value);
-			free(header);
+			save_date=content;
 			continue;
 		}
-		if (isaddressheader(header))
+		if (isaddress)
 		{
 			print_header_uc(info, header);
 			printf("<td><span class=\"message-rfc822-header-contents\">");
-			showmsgrfc822_addressheader(info, value);
+			showmsgrfc822_addressheader(info, content);
 			printf("</span></td></tr>\n");
 		}
-		free(header);
-	}
+	} while (headers.next());
 
-	if (save_date)
+	if (!save_date.empty())
 	{
 		time_t	t;
 		struct tm *tmp=0;
 		char	date_buf[256];
 
-		if (rfc822_parsedate_chk(save_date, &t) == 0)
+		if (rfc822_parsedate_chk(save_date.c_str(), &t) == 0)
 			tmp=localtime(&t);
 
 		if (tmp)
@@ -625,10 +545,9 @@ off_t	pos;
 					     unicode_default_chset());
 			printf("</span></td></tr>\n");
 		}
-		free(save_date);
 	}
 
-	if (save_subject)
+	if (!save_subject.empty())
 	{
 		char subj_header[20];
 
@@ -639,7 +558,6 @@ off_t	pos;
 		showmsgrfc822_header(info->output_character_set, save_subject,
 				     info->output_character_set);
 		printf("</span></td></tr>\n");
-		free(save_subject);
 	}
 
 	if (flag && info->message_rfc822_action)
@@ -648,107 +566,114 @@ off_t	pos;
 	printf("</table>\n<hr width=\"100%%\" />\n");
 
 	if (!flag && info->gpgdir && libmail_gpg_has_gpg(info->gpgdir) == 0
-	    && libmail_gpgmime_has_mimegpg(rfc)
+	    && message.has_mimegpg()
 	    && info->gpg_message_action)
 		(*info->gpg_message_action)();
 
-	if (!idptr)
-	{
-		idptr= &newpart;
-		p=0;
-	}
-	else
-	{
-		for (p=idptr; p->next; p=p->next)
-			;
-		p->next=&newpart;
-	}
-	newpart.idnum=1;
-	newpart.next=0;
-	(*get_handler(rfc, info))(fp, rfc, idptr, info);
-	if (p)
-		p->next=0;
+	auto s=idptr.size();
+	if (s)
+		idptr += ".";
+	idptr += "1";
+	(*get_handler(message, info))(fd, message, idptr, info);
+
+	idptr.resize(s);
 }
 
-void msg2html(FILE *fp, struct rfc2045 *rfc,
+void msg2html(std::streambuf &fd, const rfc2045::entity &message,
 	      struct msg2html_info *info)
 {
 	if (!info->mimegpgfilename)
 		info->mimegpgfilename="";
 
-	showmsgrfc822_body(fp, rfc, NULL, 0, info);
+	std::string id;
+	showmsgrfc822_body(fd, message, id, false, info);
 }
 
-static void showmsgrfc822(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showmsgrfc822(std::streambuf &fd,
+			  const rfc2045::entity &message, std::string &id,
 			  struct msg2html_info *info)
 {
-	if (rfc->firstpart)
-		showmsgrfc822_body(fp, rfc->firstpart, id, 1, info);
+	if (message.subentities.size())
+	{
+		showmsgrfc822_body(fd, message.subentities[0], id, true, info);
+	}
 }
 
-static void showunknown(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showunknown(std::streambuf &fd,
+			const rfc2045::entity &message,
+			std::string &id,
 			struct msg2html_info *info)
 {
-const char	*content_type, *cn;
-const char	*dummy;
-off_t start_pos, end_pos, start_body;
-off_t dummy2;
-char	*content_name;
-
-	id=id;
-	rfc2045_mimeinfo(rfc, &content_type, &dummy, &dummy);
+	rfc2045::entity::rfc2231_header content_disposition{
+		message.content_disposition
+	};
 
 	/* Punt for image/ MIMEs */
 
-	if (strncmp(content_type, "image/", 6) == 0 &&
-		(rfc->content_disposition == 0
-		 || strcmp(rfc->content_disposition, "attachment")))
+	if (std::string_view{
+			message.content_type.value
+		}.substr(0, 6) == "image/" &&
+		content_disposition.value != "attachment")
 	{
 		if (info->inline_image_action)
-			(*info->inline_image_action)(id, content_type,
+			(*info->inline_image_action)(id,
+						     message.content_type.value,
 						     info->arg);
 		return;
 	}
 
-	if (rfc2231_udecodeType(rfc, "name",
-				info->output_character_set, &content_name)
-	    < 0 &&
-	    rfc2231_udecodeDisposition(rfc, "filename",
-				       info->output_character_set,
-				       &content_name) < 0)
+	std::string content_name;
+
+	bool found_name=false;
+
+	auto iter=message.content_type.parameters.find("name");
+
+	if (iter != message.content_type.parameters.end())
 	{
-		if (content_name)
-			free(content_name);
-		content_name=NULL;
+		found_name=true;
 	}
 
-	if (!content_name &&
-	    ((cn=rfc2045_getattr(rfc->content_type_attr, "name")) ||
-	     (cn=rfc2045_getattr(rfc->content_disposition_attr,
-				 "filename"))) &&
-	    strstr(cn, "=?") && strstr(cn, "?="))
-	    /* RFC2047 header encoding (not compliant to RFC2047) */
+	auto iter2=content_disposition.parameters.find("filename");
+	if (iter2 != content_disposition.parameters.end())
 	{
-		content_name =
-			rfc822_display_hdrvalue_tobuf("subject",
-						      cn,
-						      info->
-						      output_character_set,
-						      NULL, NULL);
+		found_name=true;
+		iter=iter2;
 	}
 
-	rfc2045_mimepos(rfc, &start_pos, &end_pos, &start_body,
-			&dummy2, &dummy2);
+	if (found_name)
+	{
+		content_name=iter->second.value;
+
+		if (content_name.find("=?") != content_name.npos &&
+		    content_name.find("?=") != content_name.npos)
+		{
+			// RFC2047 header encoding (not compliant to RFC2047)
+
+			std::string decoded_content_name;
+
+			rfc822::display_header(
+				"subject", content_name,
+				info->output_character_set,
+				std::back_inserter(decoded_content_name)
+			);
+
+			content_name=std::move(decoded_content_name);
+		}
+		else
+		{
+			content_name=iter->second.value_in_charset(
+				info->output_character_set
+			);
+		}
+	}
 
 	if (info->unknown_attachment_action)
-		(*info->unknown_attachment_action)(id, content_type,
-						   content_name,
-						   end_pos-start_body,
-						   info->arg);
-
-
-	if (content_name)
-		free(content_name);
+		(*info->unknown_attachment_action)(
+			id,
+			message.content_type.value,
+			content_name,
+			message.endbody-message.startbody,
+			info->arg);
 }
 
 void showmultipartdecoded_start(int status, const char **styleptr)
@@ -766,60 +691,69 @@ void showmultipartdecoded_end()
 	printf("</td></tr></table></td></tr></table>\n");
 }
 
-static void showmultipart(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void append_idnum(std::string &id, size_t idnum)
+{
+	char buffer[20];
+
+	id += ".";
+
+	auto res=std::to_chars(buffer, buffer+sizeof(buffer), idnum);
+
+	id.insert(id.end(), buffer, res.ptr);
+}
+
+static void drop_idnum(std::string &id)
+{
+	size_t p=id.rfind('.');
+
+	if (p == id.npos)
+		id="1";
+	else
+		id.resize(p);
+}
+
+static void showmultipart(std::streambuf &fd,
+			  const rfc2045::entity &message,
+			  std::string &id,
 			  struct msg2html_info *info)
 {
-const char	*content_type, *dummy;
-struct	rfc2045 *q;
-struct	rfc2045id	nextpart, nextnextpart;
-struct	rfc2045id	*p;
-int gpg_status;
+	std::optional<int> gpg_status;
+	size_t id_len=id.size();
 
-	for (p=id; p->next; p=p->next)
-		;
-	p->next=&nextpart;
-	nextpart.idnum=0;
-	nextpart.next=0;
-
-	rfc2045_mimeinfo(rfc, &content_type, &dummy, &dummy);
-
-	if (info->is_gpg_enabled &&
-	    libmail_gpgmime_is_decoded(rfc, &gpg_status))
+	if (info->is_gpg_enabled && (gpg_status=message.is_decoded()))
 	{
 		const char *style;
-		showmultipartdecoded_start(gpg_status, &style);
-		for (q=rfc->firstpart; q; q=q->next, ++nextpart.idnum)
+		showmultipartdecoded_start(*gpg_status, &style);
+
+		for (size_t i=0; i<message.subentities.size(); ++i)
 		{
-			if (q->isdummy)	continue;
-
-
-			if (nextpart.idnum == 1)
+			if (i == 1)
 			{
 				printf("<blockquote class=\"%s\">",
 				       style);
 			}
 
-			(*get_handler(q, info))(fp, q, id, info);
-			if (nextpart.idnum == 1)
+			append_idnum(id, i+1);
+
+			(*get_handler(message.subentities[i], info))(
+				fd, message.subentities[i], id, info);
+			id.resize(id_len);
+			if (i == 1)
 			{
 				printf("</blockquote>");
 			}
-			else
-				if (q->next)
-					printf("<hr width=\"100%%\" />\n");
+			else if (i+1 < message.subentities.size())
+				printf("<hr width=\"100%%\" />\n");
 		}
 		showmultipartdecoded_end();
 	}
-	else if (strcmp(content_type, "multipart/alternative") == 0)
+	else if (message.content_type.value == "multipart/alternative")
 	{
-		struct	rfc2045 *q, *r=0, *s;
-	int	idnum=0;
-	int	dummy;
+		size_t idnum=0;
 
-		for (q=rfc->firstpart; q; q=q->next, ++idnum)
+		for (size_t i=0; i<message.subentities.size(); ++i)
 		{
-			int found=0;
-			if (q->isdummy)	continue;
+			bool found=false;
 
 			/*
 			** We pick this multipart/related section if:
@@ -832,98 +766,125 @@ int gpg_status;
 			**    display the decoded section.
 			*/
 
-			if (!r)
-				found=1;
-			else if ((s=libmail_gpgmime_is_multipart_signed(q))
-				 != 0)
+			if (idnum == 0)
+				found=true;
+			else if (const rfc2045::entity *s;
+				 (s=message.subentities[i].is_multipart_signed()
+				 ) != nullptr)
 			{
-				if (get_known_handler(s, info))
-					found=1;
+				if (get_known_handler(*s, info))
+					found=true;
 			}
-			else if ( *info->mimegpgfilename
-				  && libmail_gpgmime_is_decoded(q, &dummy))
+			else if ( *info->mimegpgfilename &&
+				  message.subentities[i].is_decoded())
 			{
-				if ((s=libmail_gpgmime_decoded_content(q)) != 0
-				    && get_known_handler(s, info))
-					found=1;
+				if (auto s=message.subentities[
+					    i
+				    ].decoded_content(); s &&
+				    get_known_handler(*s, info))
+					found=true;
 			}
-			else if (get_known_handler(q, info))
+			else if (get_known_handler(
+					 message.subentities[i], info
+				 ))
 			{
-				found=1;
+				found=true;
 			}
 
 			if (found)
 			{
-				r=q;
-				nextpart.idnum=idnum;
+				idnum=i+1;
 			}
 		}
 
-		if (r)
-			(*get_handler(r, info))(fp, r, id, info);
+		if (idnum)
+		{
+			append_idnum(id, idnum);
+
+			(*get_handler(message.subentities[idnum-1], info))(
+				fd,
+				message.subentities[idnum-1],
+				id,
+				info
+			);
+			id.resize(id_len);
+		}
 	}
-	else if (strcmp(content_type, "multipart/related") == 0)
+	else if (message.content_type.value == "multipart/related")
 	{
-	char *sid=rfc2045_related_start(rfc);
+		std::string sid;
+
+		// Use rfc822 addresses parser to chop off the <> from the
+		// start attribute. A bit overkill, but we don't have to
+		// figure out what to do if <> isn't there, if there are
+		// commas, etc... Let this approach handle the GIGO principle.
+
+		if (auto start=message.content_type.parameters.find("start");
+		    start != message.content_type.parameters.end())
+		{
+			rfc822::tokens tokens{start->second.value};
+			rfc822::addresses addresses{tokens};
+
+			if (!addresses.empty())
+			{
+				auto &a=addresses.front();
+
+				sid.reserve(a.unquote_name(
+						    rfc822::length_counter{}
+					    ));
+				a.unquote_name(std::back_inserter(sid));
+			}
+		}
 
 		/*
-		** We can't just walts in, search for the Content-ID:,
+		** We can't just walz in, search for the Content-ID:,
 		** and skeddaddle, that's because we need to keep track of
 		** our MIME section.  So we pretend that we're multipart/mixed,
 		** see below, and abort at the first opportunity.
 		*/
 
-		for (q=rfc->firstpart; q; q=q->next, ++nextpart.idnum)
+		for (size_t i=0; i<message.subentities.size(); i++)
 		{
-		const char *cid;
+			auto &r=message.subentities[i];
 
-			if (q->isdummy)	continue;
-
-			cid=rfc2045_content_id(q);
-
-			if (sid && *sid && strcmp(sid, cid))
+			if (!sid.empty() && r.content_id_value() != sid)
 			{
-				struct rfc2045 *qq;
-
-				qq=libmail_gpgmime_is_multipart_signed(q);
+				auto qq=r.is_multipart_signed();
 
 				if (!qq) continue;
 
 				/* Don't give up just yet */
 
-				cid=rfc2045_content_id(qq);
-
-				if (sid && *sid && strcmp(sid, cid))
+				if (qq->content_id_value() != sid)
 				{
-					/* Not yet, check for MIME/GPG stuff */
-
-
-
 					/* Ok, we can give up now */
 					continue;
 				}
-				nextnextpart.idnum=1;
-				nextnextpart.next=0;
-				nextpart.next= &nextnextpart;
 			}
-			(*get_handler(q, info))(fp, q, id, info);
+			append_idnum(id, i+1);
+
+			(*get_handler(r, info))(fd, r, id, info);
+			id.resize(id_len);
 
 			break;
 			/* In all cases, we stop after dumping something */
 		}
-		if (sid)	free(sid);
 	}
 	else
 	{
-		for (q=rfc->firstpart; q; q=q->next, ++nextpart.idnum)
+		size_t i=0;
+		for (auto &r:message.subentities)
 		{
-			if (q->isdummy)	continue;
-			(*get_handler(q, info))(fp, q, id, info);
-			if (q->next)
+			if (i)
 				printf("<hr width=\"100%%\" />\n");
+
+			++i;
+
+			append_idnum(id, i);
+			(*get_handler(r, info))(fd, r, id, info);
+			id.resize(id_len);
 		}
 	}
-	p->next=0;
 }
 
 static int text_to_stdout(const char *p, size_t n, void *dummy)
@@ -939,74 +900,38 @@ static int text_to_stdout(const char *p, size_t n, void *dummy)
 static void convert_unicode(const char32_t *uc,
 			    size_t n, void *dummy)
 {
-	unicode_convert_uc(*(unicode_convert_handle_t *)dummy, uc, n);
-}
+	auto handle=*(unicode_convert_handle_t *)dummy;
 
-static int htmlfilter_stub(const char *ptr, size_t cnt, void *voidptr)
-{
-	htmlfilter((struct htmlfilter_info *)voidptr,
-		   (const char32_t *)ptr, cnt/sizeof(char32_t));
-	return (0);
+	if (handle)
+		unicode_convert_uc(handle, uc, n);
 }
-
 
 /* Recursive search for a Content-ID: header that we want */
 
-static struct rfc2045 *find_cid(struct rfc2045 *p, const char *cidurl)
+static std::tuple<const rfc2045::entity *, std::string> find_cid(
+	const rfc2045::entity &message,
+	std::string &id,
+	const char *cidurl)
 {
-const char *cid=rfc2045_content_id(p);
+	if (message.content_id_value() == cidurl)
+		return {&message, id};
 
-	if (cid && strcmp(cid, cidurl) == 0)
-		return (p);
+	size_t id_len=id.size();
+	size_t n=0;
 
-	for (p=p->firstpart; p; p=p->next)
+	for (auto &subentity:message.subentities)
 	{
-	struct rfc2045 *q;
 
-		if (p->isdummy)	continue;
+		append_idnum(id, ++n);
 
-		q=find_cid(p, cidurl);
-		if (q)	return (q);
+		auto ret=find_cid(subentity, id, cidurl);
+
+		id.resize(id_len);
+
+		if (std::get<0>(ret))
+			return ret;
 	}
-	return (0);
-}
-
-/*
-** Given an rfc2045 ptr, return the mime reference that will resolve to
-** this MIME part.
-*/
-
-static char *rfc2mimeid(struct rfc2045 *p)
-{
-char	buf[MAXLONGSIZE+1];
-char	*q=0;
-unsigned n=p->pindex+1;	/* mime counts start at one */
-char	*r;
-
-	if (p->parent)
-	{
-		q=rfc2mimeid(p->parent);
-		if (p->parent->firstpart->isdummy)
-			--n;	/* ... except let's ignore the dummy part */
-	}
-	else	n=1;
-
-	sprintf(buf, "%u", n);
-	r=static_cast<char *>(malloc( (q ? strlen(q)+1:0)+strlen(buf)+1));
-	if (!r)
-	{
-		if (q)
-			free(q);
-		return NULL;
-	}
-	*r=0;
-	if (q)
-	{
-		strcat(strcat(r, q), ".");
-		free(q);
-	}
-	strcat(r, buf);
-	return (r);
+	return {nullptr, ""};
 }
 
 /*
@@ -1015,71 +940,86 @@ char	*r;
 */
 
 struct convert_cid_info {
-	struct rfc2045 *rfc;
+	const rfc2045::entity *message;
+	const std::string &id;
 	struct msg2html_info *info;
 };
 
-static void add_decoded_link(struct rfc2045 *, const char *, int);
+static void add_decoded_link(const rfc2045::entity *, std::string_view, int);
 
 static char *convertcid(const char *cidurl, void *voidp)
 {
 	struct convert_cid_info *cid_info=
 		(struct convert_cid_info *)voidp;
 
-	struct	rfc2045 *rfc=cid_info->rfc;
-	struct	rfc2045 *savep;
+	auto message=cid_info->message;
+	std::string id=cid_info->id;
+	size_t move_up=0;
+	std::string mimegpgfilename;
 
-	char	*mimeid;
-	char	*p;
-	char *mimegpgfilename=cgiurlencode(cid_info->info->mimegpgfilename);
-	int dummy;
+	mimegpgfilename.reserve(
+		cgi_encode::estimate(cid_info->info->mimegpgfilename));
 
-	if (!mimegpgfilename)
-		return NULL;
+	cgi_encode::encode(std::back_inserter(mimegpgfilename),
+			   cid_info->info->mimegpgfilename);
 
-	if (rfc->parent)	rfc=rfc->parent;
-	if (rfc->parent)
+	while (message->content_type.value != "multipart/related")
 	{
-		if (libmail_gpgmime_is_multipart_signed(rfc) ||
-		    (*mimegpgfilename
-		     && libmail_gpgmime_is_decoded(rfc, &dummy)))
-			rfc=rfc->parent;
+		if (!message->get_parent_entity())
+			return strdup("");
+
+		++move_up;
+		message=message->get_parent_entity();
 	}
 
-	savep=rfc;
-	rfc=find_cid(rfc, cidurl);
+	auto savep=message;
 
-	if (!rfc)
+	while (move_up)
+	{
+		drop_idnum(id);
+		--move_up;
+	}
+
+	auto [found, found_id]=find_cid(*message, id, cidurl);
+
+	if (!found)
 		/* Sometimes broken MS software needs to go one step higher */
 	{
-		while ((savep=savep->parent) != NULL)
+		if (savep->get_parent_entity())
 		{
-			rfc=find_cid(savep, cidurl);
-			if (rfc)
-				break;
+			savep=savep->get_parent_entity();
+
+			drop_idnum(id);
+
+			std::tie(found, found_id)=find_cid(*savep, id, cidurl);
 		}
 	}
 
-	if (!rfc)	/* Not found, punt */
+	if (!found)	/* Not found, punt */
 	{
-		free(mimegpgfilename);
 		return strdup("");
 	}
 
-	mimeid=rfc2mimeid(rfc);
+	char *p;
 
-	if (!mimeid)
-		p=NULL;
-	else if (!cid_info->info->get_url_to_mime_part)
+	if (!cid_info->info->get_url_to_mime_part)
 		p=strdup("");
 	else
-		p=(*cid_info->info->get_url_to_mime_part)(mimeid,
+		p=(*cid_info->info->get_url_to_mime_part)(found_id.c_str(),
 							  cid_info->info);
-	if (*mimegpgfilename && rfc->parent &&
-	    libmail_gpgmime_is_decoded(rfc->parent, &dummy))
-		add_decoded_link(rfc->parent, mimeid, dummy);
 
-	free(mimeid);
+	if (mimegpgfilename.size() && found->get_parent_entity())
+	{
+		auto is_decoded=found->get_parent_entity()->is_decoded();
+
+		if (is_decoded)
+		{
+			std::string id_parent=id;
+			drop_idnum(id_parent);
+			add_decoded_link(found->get_parent_entity(), id_parent,
+					 *is_decoded);
+		}
+	}
 
 	return p;
 }
@@ -1091,213 +1031,172 @@ static char *convertcid(const char *cidurl, void *voidp)
 ** Note -- we collapse multiple links to the same content.
 */
 
-static struct decoded_list {
-	struct decoded_list *next;
-	struct rfc2045 *ptr;
-	char *mimeid;
-	int status;
-} *decoded_first=0, *decoded_last=0;
+typedef std::unordered_map<
+	const rfc2045::entity *, // ptr
+	std::tuple<
+		std::string, // mimeid
+		int // status
+		>
+	> decoded_t;
 
-static void add_decoded_link(struct rfc2045 *ptr, const char *mimeid,
+decoded_t decoded;
+
+// And we want to keep track of the order of the encountered content
+
+std::vector<decoded_t::iterator> decoded_list;
+
+static void add_decoded_link(const rfc2045::entity *ptr,
+			     std::string_view mimeid,
 			     int status)
 {
-	struct decoded_list *p;
+	auto done=decoded.emplace(
+		std::piecewise_construct,
+		std::forward_as_tuple(ptr),
+		std::forward_as_tuple(
+			std::string{mimeid.begin(),
+				    mimeid.end()}, status)
+	);
 
-	for (p=decoded_first; p; p=p->next)
+	if (done.second)
 	{
-
-		if (strcmp(p->mimeid, mimeid) == 0)
-			return;	/* Dupe */
+		decoded_list.push_back(done.first);
 	}
-
-	p=(struct decoded_list *)malloc(sizeof(*p));
-
-	if (!p)
-		return;
-
-	p->mimeid=strdup(mimeid);
-
-	if (!p->mimeid)
-	{
-		free(p);
-		return;
-	}
-	p->next=0;
-
-	if (decoded_last)
-		decoded_last->next=p;
-	else
-		decoded_first=p;
-
-	decoded_last=p;
-
-	p->ptr=ptr;
-	p->status=status;
 }
 
-static void showtexthtml(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showtexthtml(std::streambuf &fd,
+			 const rfc2045::entity &message,
+			 std::string &id,
 			 struct msg2html_info *info)
 {
-	char	*content_base;
-	const char *mime_charset, *dummy_s;
+	const auto &content_base=message.content_base;
 
-	struct htmlfilter_info *hf_info;
-	unicode_convert_handle_t h;
+	const auto &mime_charset=message.content_type_charset();
 
-	id=id;
+	if (info->html_content_follows)
+		(*info->html_content_follows)();
 
+	printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\"><tr><td>\n");
 
-	content_base=rfc2045_content_base(rfc);
+	auto h=unicode_convert_init(unicode_u_ucs4_native,
+				    info->output_character_set,
+				    text_to_stdout, NULL);
 
-	if (!content_base)
-		return;
-
-	rfc2045_mimeinfo(rfc, &dummy_s, &dummy_s, &mime_charset);
-
-	h=unicode_convert_init(unicode_u_ucs4_native,
-				 info->output_character_set,
-				 text_to_stdout, NULL);
-
-	if (!h)
-		hf_info=NULL;
-	else
-		hf_info=htmlfilter_alloc(&convert_unicode, &h);
+	auto hf_info=htmlfilter_alloc(&convert_unicode, &h);
 
 	if (hf_info)
 	{
-		struct rfc2045src *src;
-		struct convert_cid_info cid_info;
-
-		cid_info.rfc=rfc;
-		cid_info.info=info;
-
-#if 0
-	{
-		FILE *fp=fopen("/tmp/pid", "w");
-
-		if (fp)
-		{
-			fprintf(fp, "%d", (int)getpid());
-			fclose(fp);
-			sleep(10);
-		}
-	}
-#endif
+		convert_cid_info cid_info{&message, id, info};
 
 		htmlfilter_set_http_prefix(hf_info, info->wash_http_prefix);
 		htmlfilter_set_convertcid(hf_info, &convertcid, &cid_info);
 
-		htmlfilter_set_contentbase(hf_info, content_base);
+		htmlfilter_set_contentbase(hf_info, content_base.c_str());
 
 		htmlfilter_set_mailto_prefix(hf_info, info->wash_mailto_prefix);
 
-		if (info->html_content_follows)
-			(*info->html_content_follows)();
+		rfc822::mime_unicode_decoder decoder(
+			[&]
+			(const char32_t *ptr, size_t n)
+			{
+				htmlfilter(hf_info, ptr, n);
+			},
+			fd
+		);
 
-		printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\"><tr><td>\n");
+		decoder.decode_header=false;
 
-		src=rfc2045src_init_fd(fileno(fp));
+		if (info->charset_warning)
+			decoder.report_decoding_error=false;
 
-		if (src)
-		{
-			int conv_err;
-
-			rfc2045_decodetextmimesection(src, rfc,
-						      unicode_u_ucs4_native,
-						      &conv_err,
-						      &htmlfilter_stub,
-						      hf_info);
-			rfc2045src_deinit(src);
-
-			if (conv_err && info->charset_warning)
-				(*info->charset_warning)(mime_charset,
-							 info->arg);
-		}
+		decoder.decode<false>(message);
 
 		htmlfilter_free(hf_info);
-		unicode_convert_deinit(h, NULL);
+
+		int errptr=0;
+
+		if (h)
+			unicode_convert_deinit(h, &errptr);
+		if ((decoder.decoding_error || errptr) && info->charset_warning)
+			(*info->charset_warning)(mime_charset,
+						 info->arg);
+
 		printf("</td></tr>");
 	}
 
-	free(content_base);
-
-	while (decoded_first)
+	for (auto &l:decoded_list)
 	{
-		struct decoded_list *p=decoded_first;
-		const char *style;
-
-		struct rfc2045 *q;
-
 		printf("<tr><td>");
 
-		showmultipartdecoded_start(p->status, &style);
+		const char *style;
+		auto &[mimeid, status] = l->second;
 
-		for (q=p->ptr->firstpart; q; q=q->next)
+		showmultipartdecoded_start(status, &style);
+
+		size_t mimeid_l=mimeid.size();
+		size_t partnum=0;
+
+		for (auto &q:l->first->subentities)
 		{
-			if (q->isdummy)
-				continue;
-
+			append_idnum(mimeid, ++partnum);
 			printf("<div class=\"%s\">", style);
-			(*get_handler(q, info))(fp, q, NULL, info);
+			(*get_handler(q, info))(fd, q, mimeid, info);
+			mimeid.resize(mimeid_l);
 			printf("</div>\n");
 			break;
 		}
 		showmultipartdecoded_end();
-		decoded_first=p->next;
-		free(p->mimeid);
-		free(p);
 		printf("</td></tr>\n");
 	}
+	decoded_list.clear();
+	decoded.clear();
 	printf("</table>\n");
 
 }
 
-static void showdsn(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showdsn(std::streambuf &fd,
+		    const rfc2045::entity &message,
+		    std::string &id,
 		    struct msg2html_info *info)
 {
-off_t	start_pos, end_pos, start_body;
-off_t	dummy;
 
-	id=id;
-	rfc2045_mimepos(rfc, &start_pos, &end_pos, &start_body, &dummy, &dummy);
-	if (fseek(fp, start_body, SEEK_SET) < 0)
+	if (fd.pubseekpos(message.startbody, std::ios_base::in) ==
+	    static_cast<std::streambuf::off_type>(-1))
 	{
 		printf("Seek error.");
 		return;
 	}
-	printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n");
-	while (start_body < end_pos)
-	{
-	int	c=getc(fp);
-	char	*header, *value;
 
-		if (c == EOF)	break;
-		if (c == '\n')
+	printf("<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n");
+
+	rfc2045::entity::line_iter<false>::headers headers{
+		fd,
+		message.endbody-message.startbody
+	};
+
+	bool need_sep=false;
+	do
+	{
+		const auto &[header, value]=headers.name_content();
+
+		if (header.empty() && value.empty())
 		{
-			printf("<tr><td colspan=\"2\"><hr /></td></tr>\n");
-			++start_body;
+			need_sep=true;
 			continue;
 		}
-		ungetc(c, fp);
 
-		if ((header=get_next_header(fp, &value, 1,
-			&start_body, &end_pos)) == 0)
-			break;
+		if (need_sep)
+			printf("<tr><td colspan=\"2\"><hr /></td></tr>\n");
 
+		need_sep=false;
 		print_header_uc(info, header);
 		printf("<td><span class=\"message-rfc822-header-contents\">");
 
 		/* showmsgrfc822_addressheader(value); */
-		html_escape(value, strlen(value));
+		html_escape(value.data(), value.size());
 		printf("</span></td></tr>\n");
-		free(header);
-	}
+	} while (headers.next());
 	printf("</table>\n");
 }
-
-static const char validurlchars[]=
-	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	":/.~%+?&#=@;-_,";
 
 const char *skip_text_url(const char *r, const char *end)
 {
@@ -1329,61 +1228,61 @@ struct msg2html_textplain_info {
 	** This layer also needs to know whether the raw format is flowed
 	** format.
 	*/
-	int flowed;
+	bool flowed{false};
 
-	int conv_err; /* A transcoding error has occurred */
+	int conv_err=0; /* A transcoding error has occurred */
 
 	/*
 	** Optionally replace smiley sequences with image URLs
 	*/
 
-	const char *smiley_index; /* First character in all smiley seqs */
-	struct msg2html_smiley_list *smileys; /* All smiley seqs */
+	const char *smiley_index=nullptr; /* First character in all smiley seqs */
+	struct msg2html_smiley_list *smileys=nullptr; /* All smiley seqs */
 
 	/*
 	** Flag - convert text/plain content to HTML using wiki-style
 	** formatting codes. Implies flowed format, as well.
 	*/
-	int wikifmt;
+	int wikifmt=0;
 
 	/*
 	** Whether a paragraph is now open. Only used with flowed format.
 	*/
 
-	int paragraph_open;
+	int paragraph_open=0;
 
 	/*
 	** Whether the <LI> tag is open, when doing wiki-style formatting.
 	*/
-	int li_open;
+	int li_open=0;
 
 	/*
 	** Quotation level of flowed format line.
 	*/
-	size_t cur_quote_level;
+	size_t cur_quote_level=0;
 
 	/*
 	** Whether this line's quotation level is different than the previous
 	** line's.
 	*/
-	size_t quote_level_has_changed;
+	size_t quote_level_has_changed=0;
 
 	/*
 	** Whether process_text() is getting invoked at the start of the
 	** line.
 	*/
-	int start_of_line;
+	int start_of_line=0;
 
 	/* wikifmt settings */
 
-	int ttline; /* Line begun with a space, <tt> is now open */
+	int ttline=0; /* Line begun with a space, <tt> is now open */
 
-	int text_decor_state;	/* Future text should have these decorations */
-	int text_decor_state_cur; /* Current decorations in place */
+	int text_decor_state=0;	/* Future text should have these decorations */
+	int text_decor_state_cur=0; /* Current decorations in place */
 
-	int text_decor_apostrophe_cnt; /* Apostrophe accumulator */
+	int text_decor_apostrophe_cnt=0; /* Apostrophe accumulator */
 
-	char32_t text_decor_uline_prev;
+	char32_t text_decor_uline_prev=0;
 	/* Previous character, used when scanning for underline enable */
 
 	/*
@@ -1394,18 +1293,18 @@ struct msg2html_textplain_info {
 	*/
 
 	char32_t lookahead_buf[64];
-	size_t lookahead_saved;
+	size_t lookahead_saved=0;
 
 	/*
 	** Current list level
 	*/
-	char current_list_level[16];
+	char current_list_level[16]={};
 
 	/*
 	** Close paragraph, </p> or </hX>
 	*/
 
-	char paragraph_close[8];
+	char paragraph_close[8]={};
 
 	/*
 	** Handler that searches for http/https/mailto URLs in plain text and
@@ -1413,18 +1312,17 @@ struct msg2html_textplain_info {
 	*/
 	size_t (*text_url_handler)(struct msg2html_textplain_info *,
 				   const char32_t *,
-				   size_t);
+				   size_t)=nullptr;
 
 	/*
 	** Output filter for unescaped text. Replaces HTML codes.
 	*/
-	struct filter_info info;
+	filter_info info;
 
 	/*
 	** A URL being accumulated.
 	*/
-	char urlbuf[8192];
-	size_t urlindex;
+	std::string urlbuf;
 
 	/*
 	** Caller-provided function to take a URL and return an HTML
@@ -1435,8 +1333,17 @@ struct msg2html_textplain_info {
 	**
 	** The caller returns a malloced buffer, or NULL.
 	*/
-	char *(*get_textlink)(const char *url, void *arg);
-	void *get_textlink_arg;
+
+	std::function<std::string (std::string_view url,
+				   std::string_view disp_url)
+		> get_textlink;
+	msg2html_textplain_info(const char *output_character_set,
+				void (*output_func)(const char *p,
+						    size_t n, void *arg),
+				void *arg
+	) : info{output_character_set, output_func, arg}
+	{
+	}
 };
 
 /*
@@ -1450,7 +1357,7 @@ static void text_emit_passthru(struct msg2html_textplain_info *info,
 	{
 		char32_t ch=(unsigned char)*str++;
 
-		filter_passthru(&info->info, &ch, 1);
+		info->info.passthru(&ch, 1);
 	}
 }
 
@@ -1464,7 +1371,7 @@ static void text_close_paragraph(struct msg2html_textplain_info *info)
 
 		info->paragraph_open=0;
 		text_emit_passthru(info, info->paragraph_close);
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 }
 
@@ -1491,7 +1398,7 @@ static void text_close_li(struct msg2html_textplain_info *info)
 
 		info->li_open=0;
 		text_emit_passthru(info, "</li>");
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 }
 
@@ -1908,7 +1815,7 @@ static int text_line_flowed_notify(void *arg)
 	char32_t nl='\n';
 	struct msg2html_textplain_info *info=
 		(struct msg2html_textplain_info *)arg;
-	filter(&info->info, &nl, 1);
+	info->info(&nl, 1);
 	return 0;
 }
 
@@ -1954,7 +1861,7 @@ static int text_line_end(void *arg)
 				** marks the end of the paragraph.
 				*/
 				text_close_paragraph(info);
-				filter(&info->info, &uc, 1);
+				info->info(&uc, 1);
 			}
 			else if (!info->quote_level_has_changed)
 			{
@@ -1966,7 +1873,7 @@ static int text_line_end(void *arg)
 				** vertical white space.
 				*/
 				text_emit_passthru(info, "<br/>");
-				filter(&info->info, &uc, 1);
+				info->info(&uc, 1);
 			}
 		}
 		else
@@ -1979,7 +1886,7 @@ static int text_line_end(void *arg)
 				text_emit_passthru(info, "</tt>");
 			}
 
-			filter(&info->info, &uc, 1);
+			info->info(&uc, 1);
 		}
 		return 0;
 	}
@@ -1988,7 +1895,7 @@ static int text_line_end(void *arg)
 	{
 		char32_t uc='\n';
 
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 	}
 	return 0;
 }
@@ -2006,7 +1913,7 @@ static void process_text(const char32_t *txt,
 	{
 		char32_t uc='\n';
 
-		filter(&info->info, &uc, 1);
+		info->info(&uc, 1);
 
 		/* Starting a logical line */
 
@@ -2244,7 +2151,7 @@ static size_t text_contents_notalpha(struct msg2html_textplain_info *info,
 			** Seen a first alphabetic character, so begin
 			** collecting a URL candidate.
 			*/
-			info->urlindex=0;
+			info->urlbuf.clear();
 			info->text_url_handler=text_contents_checkurl;
 			break;
 		}
@@ -2275,12 +2182,12 @@ static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
 	if (txt == NULL)
 	{
 		/* End of line, flush the buffer */
-		if (info->urlindex)
+		if (!info->urlbuf.empty())
 		{
-			emit_char_buffer(info, info->urlbuf,
-					 info->urlindex,
+			emit_char_buffer(info, info->urlbuf.c_str(),
+					 info->urlbuf.size(),
 					 text_process_decor);
-			info->urlindex=0;
+			info->urlbuf.clear();
 		}
 		return 0;
 	}
@@ -2291,33 +2198,30 @@ static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
 
 	for (i=0; i<txt_size; i++)
 	{
-		if (i+info->urlindex > 32)
+		if (info->urlbuf.size() > 32)
 		{
 			/*
 			** Too long, can't be a method name.
 			*/
 
-			emit_char_buffer(info, info->urlbuf,
-					 info->urlindex,
+			emit_char_buffer(info, info->urlbuf.c_str(),
+					 info->urlbuf.size(),
 					 text_process_decor);
 
 			info->text_url_handler=text_contents_nourl;
-			return text_contents_nourl(info, txt, txt_size);
+			return i+text_contents_nourl(info, txt+i, txt_size-i);
 		}
 
 		if (txt[i] == ':') /* Bingo? */
 		{
-			info->urlbuf[info->urlindex+i]=0;
 
-			if (strcmp(info->urlbuf, "http") == 0 ||
-			    strcmp(info->urlbuf, "https") == 0 ||
-			    strcmp(info->urlbuf, "mailto") == 0)
+			if (info->urlbuf == "http" ||
+			    info->urlbuf == "https" ||
+			    info->urlbuf == "mailto")
 			{
 				/* Bingo! */
-				info->urlbuf[info->urlindex+i]=':';
+				info->urlbuf.push_back(':');
 				++i;
-
-				info->urlindex += i;
 
 				info->text_url_handler=
 					text_contents_collecturl;
@@ -2329,18 +2233,18 @@ static size_t text_contents_checkurl(struct msg2html_textplain_info *info,
 		{
 			/* Hit another non-alphabetic character, reset */
 
-			emit_char_buffer(info, info->urlbuf,
-					 info->urlindex+i,
+			emit_char_buffer(info, info->urlbuf.c_str(),
+					 info->urlbuf.size(),
 					 text_process_decor);
 
 			info->text_url_handler=text_contents_notalpha;
-			return i;
+			return i+text_contents_notalpha(info, txt+i,
+							txt_size-i);
 		}
 
-		info->urlbuf[info->urlindex+i]=txt[i];
+		info->urlbuf.push_back(txt[i]);
 	}
 
-	info->urlindex += i;
 	return i;
 }
 
@@ -2376,19 +2280,17 @@ static size_t text_contents_nourl(struct msg2html_textplain_info *info,
 */
 static void doemiturl(struct msg2html_textplain_info *info)
 {
-	char *link=info->get_textlink ?
-		(*info->get_textlink)(info->urlbuf, info->get_textlink_arg):0;
-
-	if (link)
+	if (info->get_textlink)
 	{
-		text_emit_passthru(info, link);
-		free(link);
+		auto link=info->get_textlink(info->urlbuf, info->urlbuf);
+
+		text_emit_passthru(info, link.c_str());
 		return;
 	}
 
 	/* Caller doesn't want the URL to be marked up */
 
-	emit_char_buffer(info, info->urlbuf, strlen(info->urlbuf),
+	emit_char_buffer(info, info->urlbuf.c_str(), info->urlbuf.size(),
 			 text_process_decor);
 }
 
@@ -2404,8 +2306,7 @@ static void set_text_decor(struct msg2html_textplain_info *info, int new_decor);
 
 static void emiturl(struct msg2html_textplain_info *info)
 {
-	size_t url_size=info->urlindex;
-	char save_char;
+	size_t url_size=info->urlbuf.size();
 	size_t i;
 
 	text_process_decor_apostrophe(info);
@@ -2428,21 +2329,19 @@ static void emiturl(struct msg2html_textplain_info *info)
 
 	if (i == url_size)
 	{
-		emit_char_buffer(info, info->urlbuf,
-				 info->urlindex,
+		emit_char_buffer(info, info->urlbuf.c_str(),
+				 info->urlbuf.size(),
 				 text_process_decor);
 
 		return;
 	}
-	info->urlbuf[info->urlindex]=0;
 
-	save_char=info->urlbuf[url_size];
-	info->urlbuf[url_size]=0;
+	auto overflow=info->urlbuf.substr(url_size);
+	info->urlbuf.resize(url_size);
 	doemiturl(info);
-	info->urlbuf[url_size]=save_char;
 
-	emit_char_buffer(info, info->urlbuf+url_size,
-			 strlen(info->urlbuf+url_size),
+	emit_char_buffer(info, overflow.c_str(),
+			 overflow.size(),
 			 text_process_decor);
 }
 
@@ -2470,8 +2369,8 @@ static size_t text_contents_collecturl(struct msg2html_textplain_info *info,
 			break;
 		}
 
-		if (info->urlindex < sizeof(info->urlbuf)-1)
-			info->urlbuf[info->urlindex++]=txt[i];
+		if (info->urlbuf.size() < 8192)
+			info->urlbuf.push_back(txt[i]);
 	}
 
 	return i;
@@ -2773,7 +2672,7 @@ static void text_process_plain(struct msg2html_textplain_info *info,
 
 	if (!info->ttline)
 	{
-		filter(&info->info, uc, cnt);
+		info->info(uc, cnt);
 		return;
 	}
 
@@ -2799,7 +2698,7 @@ static void text_process_plain(struct msg2html_textplain_info *info,
 				break;
 		}
 
-		filter(&info->info, uc, i);
+		info->info(uc, i);
 		uc += i;
 		cnt -= i;
 	}
@@ -2808,11 +2707,12 @@ static void text_process_plain(struct msg2html_textplain_info *info,
 struct msg2html_textplain_info *
 msg2html_textplain_start(const char *message_charset,
 			 const char *output_character_set,
-			 int isflowed,
-			 int isdelsp,
-			 int isdraft,
-			 char *(*get_textlink)(const char *url, void *arg),
-			 void *get_textlink_arg,
+			 bool isflowed,
+			 bool isdelsp,
+			 const std::function<
+			 std::string (std::string_view url,
+				      std::string_view disp_url)
+			 > &get_textlink,
 
 			 const char *smiley_index,
 			 struct msg2html_smiley_list *smileys,
@@ -2822,23 +2722,19 @@ msg2html_textplain_start(const char *message_charset,
 					     size_t n, void *arg),
 			 void *arg)
 {
-	msg2html_textplain_info *tinfo=static_cast<msg2html_textplain_info *>(
-		malloc(sizeof(struct msg2html_textplain_info))
-	);
-
-	memset(tinfo, 0, sizeof(*tinfo));
+	msg2html_textplain_info *tinfo=new msg2html_textplain_info{
+		output_character_set,
+		output_func,
+		arg
+	};
 
 	tinfo->flowed=isflowed;
 	tinfo->get_textlink=get_textlink;
-	tinfo->get_textlink_arg=get_textlink_arg;
 	tinfo->smiley_index=smiley_index;
 	tinfo->smileys=smileys;
 	tinfo->wikifmt=wikifmt;
 
 	tinfo->text_url_handler=text_contents_notalpha;
-	filter_start(&tinfo->info,
-		     output_character_set,
-		     output_func, arg);
 
 	tinfo->conv_err=0;
 	{
@@ -2847,8 +2743,8 @@ msg2html_textplain_start(const char *message_charset,
 		memset(&pinfo, 0, sizeof(pinfo));
 
 		pinfo.charset=message_charset;
-		pinfo.isflowed=isflowed;
-		pinfo.isdelsp=isdelsp;
+		pinfo.isflowed=isflowed ? 1:0;
+		pinfo.isdelsp=isdelsp ? 1:0;
 		pinfo.line_begin=text_line_begin;
 		pinfo.line_contents=text_line_contents;
 		pinfo.line_flowed_notify=text_line_flowed_notify;
@@ -2880,15 +2776,6 @@ void msg2html_textplain(struct msg2html_textplain_info *info,
 		rfc3676parser(info->parser, ptr, cnt);
 }
 
-static int msg2html_textplain_trampoline(const char *ptr, size_t cnt, void *arg)
-{
-	struct msg2html_textplain_info *info=
-		(struct msg2html_textplain_info *)arg;
-
-	msg2html_textplain(info, ptr, cnt);
-	return 0;
-}
-
 int msg2html_textplain_end(struct msg2html_textplain_info *tinfo)
 {
 	int errptr;
@@ -2911,14 +2798,14 @@ int msg2html_textplain_end(struct msg2html_textplain_info *tinfo)
 				   "</pre><br />\n");
 	}
 
-	filter_end(&tinfo->info);
+	tinfo->info.flush();
 
 	if (tinfo->info.conversion_error)
 		tinfo->conv_err=1;
 
 	errptr=tinfo->conv_err;
 
-	free(tinfo);
+	delete tinfo;
 	return errptr;
 }
 
@@ -2928,113 +2815,119 @@ static void output_html_func(const char *p, size_t n, void *dummy)
                 ; /* ignore */
 }
 
-static void showtextplain(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showtextplain(std::streambuf &fd,
+			  const rfc2045::entity &message,
+			  std::string &id,
 			  struct msg2html_info *info)
 {
-	int rc;
-
-	const char *mime_charset, *dummy;
-
-	int isflowed;
-	int isdelsp;
-
-	struct msg2html_textplain_info *tinfo;
-	struct rfc2045src *src;
-
-	rfc2045_mimeinfo(rfc, &dummy, &dummy, &mime_charset);
-
-	isflowed=rfc2045_isflowed(rfc);
-	isdelsp=0;
-
+	auto isflowed=message.content_type.format_flowed();
+	bool isdelsp=false;
 	if (isflowed)
-		isdelsp=rfc2045_isdelsp(rfc);
+		isdelsp=message.content_type.delsp_yes();
 
 	if (info->noflowedtext)
-		isflowed=isdelsp=0;
+		isflowed=isdelsp=false;
 
-	tinfo=msg2html_textplain_start(mime_charset,
-				       info->output_character_set,
-				       isflowed, isdelsp,
-				       info->is_preview_mode,
-				       info->get_textlink,
-				       info->arg,
-				       info->smiley_index,
-				       info->smileys,
-				       0,
-				       output_html_func, NULL);
+	auto mime_charset_str=message.content_type_charset();
+	std::string mime_charset{mime_charset_str.begin(),
+		mime_charset_str.end()
+	};
 
-	if (tinfo)
-	{
-		src=rfc2045src_init_fd(fileno(fp));
+	auto tinfo=msg2html_textplain_start(mime_charset.c_str(),
+					    info->output_character_set,
+					    isflowed, isdelsp,
+					    info->get_textlink,
+					    info->smiley_index,
+					    info->smileys,
+					    0,
+					    output_html_func, NULL);
 
-		if (src)
+	if (!tinfo)
+		return;
+
+	rfc822::mime_decoder decoder{
+		[&]
+		(const char *ptr, size_t n)
 		{
-			rc=rfc2045_decodemimesection(src, rfc,
-						     &msg2html_textplain_trampoline,
-						     tinfo);
-			rfc2045src_deinit(src);
-		}
-	}
+			msg2html_textplain(tinfo, ptr, n);
+		},
+		fd
+	};
 
-	rc=msg2html_textplain_end(tinfo);
+	decoder.decode_header=false;
+	decoder.decode(message);
 
-	fseek(fp, 0L, SEEK_END);
-	fseek(fp, 0L, SEEK_SET);	/* Resync stdio with uio */
+	auto rc=msg2html_textplain_end(tinfo);
 
-	if (rc && info->charset_warning)
+	if ((rc || decoder.decoding_error) && info->charset_warning)
 		(*info->charset_warning)(mime_charset, info->arg);
-
 }
 
 
 
-static void showkey(FILE *fp, struct rfc2045 *rfc, struct rfc2045id *id,
+static void showkey(std::streambuf &fd,
+		    const rfc2045::entity &message,
+		    std::string &id,
 		    struct msg2html_info *info)
 {
 	if (info->application_pgp_keys_action)
-		(*info->application_pgp_keys_action)(id);
+	{
+		std::string s;
+
+		rfc822::display_header(
+			"content-description",
+			message.content_description,
+			info->output_character_set,
+			std::back_inserter(s)
+		);
+		(*info->application_pgp_keys_action)(id, s);
+	}
 }
 
-static void (*get_known_handler(struct rfc2045 *mime,
+static void (*get_known_handler(const rfc2045::entity &mime,
 				struct msg2html_info *info))
-	(FILE *, struct rfc2045 *, struct rfc2045id *,
-	 struct msg2html_info *)
+(std::streambuf &, const rfc2045::entity &, std::string &,
+ struct msg2html_info *)
 {
-const char	*content_type, *dummy;
-
-	rfc2045_mimeinfo(mime, &content_type, &dummy, &dummy);
-	if (strncmp(content_type, "multipart/", 10) == 0)
+	if ( std::string_view{mime.content_type.value}.substr(0, 10)
+	     == "multipart/")
 		return ( &showmultipart );
 
-	if (strcmp(content_type, "application/pgp-keys") == 0
+	if (mime.content_type.value == "application/pgp-keys"
 	    && info->gpgdir && libmail_gpg_has_gpg(info->gpgdir) == 0)
 		return ( &showkey );
 
-	if (mime->content_disposition
-	    && strcmp(mime->content_disposition, "attachment") == 0)
-		return (0);
+	rfc2045::entity::rfc2231_header content_disposition{
+		mime.content_disposition
+	};
 
-	if (strcmp(content_type, "text/plain") == 0 ||
-	    rfc2045_message_headers_content_type(content_type) ||
-	    strcmp(content_type, "text/x-gpg-output") == 0)
+	if (content_disposition.value == "attachment")
+		return nullptr;
+
+	if (mime.content_type.value == "text/plain" ||
+	    rfc2045_message_headers_content_type(
+		    mime.content_type.value.c_str()) ||
+	    mime.content_type.value == "text/x-gpg-output")
 		return ( &showtextplain );
-	if (rfc2045_delivery_status_content_type(content_type))
+	if (rfc2045_delivery_status_content_type(
+		    mime.content_type.value.c_str()))
 		return ( &showdsn);
-	if (info->showhtml && strcmp(content_type, "text/html") == 0)
+	if (info->showhtml && mime.content_type.value == "text/html")
 		return ( &showtexthtml );
-	if (rfc2045_message_content_type(content_type))
+	if (rfc2045_message_content_type(mime.content_type.value.c_str()))
 		return ( &showmsgrfc822);
 
-	return (0);
+	return nullptr;
 }
 
-static void (*get_handler(struct rfc2045 *mime,
+static void (*get_handler(const rfc2045::entity &mime,
 			  struct msg2html_info *info))
-	(FILE *, struct rfc2045 *,
-	 struct rfc2045id *,
-	 struct msg2html_info *)
+(std::streambuf &, const rfc2045::entity &,
+ std::string &,
+ struct msg2html_info *)
 {
-	void (*func)(FILE *, struct rfc2045 *, struct rfc2045id *,
+	void (*func)(std::streambuf &, const rfc2045::entity &,
+		     std::string &,
 		     struct msg2html_info *);
 
 	if ((func=get_known_handler(mime, info)) == 0)
@@ -3061,7 +2954,7 @@ static void disposition_attachment(FILE *fp, const char *p, int attachment)
 }
 
 
-void msg2html_download(rfc822::fdstreambuf &fd,
+void msg2html_download(std::streambuf &fd,
 		       const char *mimeid, int dodownload,
 		       const char *system_charset)
 {
@@ -3163,15 +3056,12 @@ static void download_func(const char *p, size_t cnt)
 	(void)fwrite(p, 1, cnt, stdout);
 }
 
-void msg2html_showmimeid(struct rfc2045id *idptr, const char *p)
+void msg2html_showmimeid(std::string_view idptr, const char *p)
 {
 	if (!p)
 		p="&amp;mimeid=";
 
-	while (idptr)
-	{
-		printf("%s%d", p, idptr->idnum);
-		idptr=idptr->next;
-		p=".";
-	}
+	printf("%s", p);
+
+	fwrite(idptr.data(), idptr.size(), 1, stdout);
 }

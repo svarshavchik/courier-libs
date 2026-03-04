@@ -26,7 +26,6 @@
 #include <pwd.h>
 #include <rfc822/rfc822.h>
 #include <rfc822/rfc2047.h>
-#include <rfc822/rfc822hdr.h>
 #include <rfc2045/rfc2045.h>
 #include <rfc2045/rfc2045charset.h>
 #include <courier-unicode.h>
@@ -36,10 +35,11 @@
 
 #include "pcp.h"
 #include "calendardir.h"
+#include "pcpretr.h"
 
 #define FLAG_LIST_EVENT_ID	1
 
-static const char *charset=RFC2045CHARSET;
+const char *charset=RFC2045CHARSET;
 
 void rfc2045_enomem()
 {
@@ -575,12 +575,8 @@ static int save_retr_headers(struct PCP_retr *, const char *,
 			     const char *, void *);
 static int save_retr_status(struct PCP_retr *, int, void *);
 
-static void dump_rfc822_hdr(const char *ptr, size_t cnt,
-			    void *dummy)
-{
-	fwrite(ptr, cnt, 1, stdout);
-}
-
+extern void dump_rfc822_hdr(const char *ptr, size_t cnt,
+			    void *dummy);
 
 static void list(int argn, int argc, char **argv, int flags)
 {
@@ -786,7 +782,7 @@ static void list(int argn, int argc, char **argv, int flags)
 						    dump_rfc822_hdr,
 						    NULL, NULL) < 0)
 			{
-				printf("%s", 
+				printf("%s",
 				       ary[i]->subject
 				       ? ary[i]->subject:"");
 			}
@@ -899,26 +895,7 @@ static int save_retr_headers(struct PCP_retr *ri, const char *h,
 
 static int doretr_begin(struct PCP_retr *r, void *vp);
 static int doretr_save(struct PCP_retr *, const char *, int, void *);
-static int do_show_retr(struct PCP_retr *, void *);
-
-struct xretrinfo {
-	FILE *tmpfile;
-	int status;
-	struct xretr_participant_list *participant_list;
-	struct xretr_time_list *time_list;
-
-} ;
-
-struct xretr_participant_list {
-	struct xretr_participant_list *next;
-	char *participant;
-} ;
-
-struct xretr_time_list {
-	struct xretr_time_list *next;
-	time_t from;
-	time_t to;
-} ;
+int do_show_retr(struct PCP_retr *, void *);
 
 static int doretr_status(struct PCP_retr *p, int status, void *vp)
 {
@@ -1043,296 +1020,6 @@ static int doretr_save(struct PCP_retr *r, const char *p, int n, void *vp)
 	if (fwrite(p, n, 1, xr->tmpfile) != 1)
 		return (-1);
 	return (0);
-}
-
-static int tcmp(const void *a, const void *b)
-{
-	struct xretr_time_list *ap=*(struct xretr_time_list **)a;
-	struct xretr_time_list *bp=*(struct xretr_time_list **)b;
-
-	return ( ap->from < bp->from ? -1:
-		 ap->from > bp->from ? 1:
-		 ap->to < bp->to ? -1:
-		 ap->to > bp->to ? 1:0);
-}
-
-static int list_msg_rfc822(struct rfc2045 *, FILE *);
-
-static int do_show_retr(struct PCP_retr *r, void *vp)
-{
-	struct xretrinfo *xr=(struct xretrinfo *)vp;
-	struct xretr_participant_list *p;
-	struct xretr_time_list *t, **tt;
-	unsigned cnt, i;
-	struct rfc2045 *rfcp;
-	int rc;
-
-	if (fseek(xr->tmpfile, 0L, SEEK_SET) < 0
-	    || lseek(fileno(xr->tmpfile), 0L, SEEK_SET) < 0)
-	{
-		fclose(xr->tmpfile);
-		return (-1);
-	}
-
-	if (xr->time_list == NULL)
-	{
-		fclose(xr->tmpfile);
-		return (0);
-	}
-
-	printf(gettext("Event: %s\n"), r->event_id);
-
-	for (cnt=0, t=xr->time_list; t; t=t->next)
-		++cnt;
-
-	tt=(struct xretr_time_list **)malloc(cnt * sizeof(*t));
-	if (!tt)
-	{
-		fclose(xr->tmpfile);
-		return (-1);
-	}
-
-	for (cnt=0, t=xr->time_list; t; t=t->next)
-		tt[cnt++]=t;
-
-	qsort(tt, cnt, sizeof(*tt), tcmp);
-
-	for (i=0; i<cnt; i++)
-	{
-		char fromto[500];
-
-		if (pcp_fmttimerange(fromto, sizeof(fromto),
-				     tt[i]->from, tt[i]->to) < 0)
-			strcpy(fromto, "******");
-		printf(gettext("       %s\n"), fromto);
-	}
-	free(tt);
-
-	if (xr->status & LIST_CANCELLED)
-		printf(gettext("    **** CANCELLED ****\n"));
-	if (xr->status & LIST_BOOKED)
-		printf(gettext("    **** EVENT NOT YET COMMITED ****\n"));
-
-	for (p=xr->participant_list; p; p=p->next)
-		printf(gettext("    Participant: %s\n"), p->participant);
-
-
-	rfcp=rfc2045_fromfp(xr->tmpfile);
-	if (!rfcp)
-	{
-		fclose(xr->tmpfile);
-		return (-1);
-	}
-
-	rc=list_msg_rfc822(rfcp, xr->tmpfile);
-	rfc2045_free(rfcp);
-	fclose(xr->tmpfile);
-	return (rc);
-}
-
-static int list_msg_mime(struct rfc2045 *, FILE *);
-
-static int list_msg_rfc822(struct rfc2045 *rfc, FILE *fp)
-{
-	off_t   start_pos, end_pos, start_body;
-	off_t	dummy, pos;
-	struct rfc822hdr h;
-
-        rfc2045_mimepos(rfc, &start_pos, &end_pos, &start_body,
-			&dummy, &dummy);
-        if (fseek(fp, start_pos, SEEK_SET) < 0)
-		return (-1);
-
-	pos=start_pos;
-	rfc822hdr_init(&h, 8192);
-
-	while (rfc822hdr_read(&h, fp, &pos, start_body) == 0)
-	{
-		printf("%s: ", h.header);
-
-		if (rfc822_display_hdrvalue(h.header, h.value, charset,
-					    dump_rfc822_hdr, NULL, NULL) < 0)
-		{
-			printf("%s", h.value);
-		}
-
-		printf("\n");
-	}
-	rfc822hdr_free(&h);
-	printf("\n");
-	return (list_msg_mime(rfc, fp));
-}
-
-static int list_msg_rfc822_part(struct rfc2045 *rfc, FILE *fp)
-{
-	struct rfc2045 *q;
-
-	for (q=rfc->firstpart; q; q=q->next)
-	{
-		if (q->isdummy) continue;
-		return (list_msg_rfc822(q, fp));
-	}
-	return (0);
-}
-
-
-static int list_msg_mime_multipart(struct rfc2045 *, FILE *);
-static int list_msg_mime_multipart_alternative(struct rfc2045 *, FILE *);
-static int list_msg_textplain(struct rfc2045 *, FILE *);
-
-static int (*mime_handler(struct rfc2045 *rfc))(struct rfc2045 *, FILE *)
-{
-	const char      *content_type, *dummy;
-
-        rfc2045_mimeinfo(rfc, &content_type, &dummy, &dummy);
-        if (strcmp(content_type, "multipart/alternative") == 0)
-		return ( &list_msg_mime_multipart_alternative);
-        if (strncmp(content_type, "multipart/", 10) == 0)
-		return ( &list_msg_mime_multipart);
-
-        if (strcmp(content_type, "message/rfc822") == 0)
-		return ( &list_msg_rfc822_part );
-
-        if (strcmp(content_type, "text/plain") == 0
-	    || strcmp(content_type, "text/rfc822-headers") == 0
-	    || strcmp(content_type, "message/delivery-status") == 0)
-		return ( &list_msg_textplain);
-	return (NULL);
-}
-
-
-static int list_msg_mime(struct rfc2045 *rfc, FILE *fp)
-{
-	int (*handler)(struct rfc2045 *, FILE *)=
-		mime_handler(rfc);
-	const char      *content_type, *dummy;
-
-
-	char *disposition_name;
-	char *disposition_filename;
-	char *content_name;
-
-	const char *disposition_filename_s;
-
-	off_t start_pos, end_pos, start_body;
-	off_t dummy2;
-	char buffer[NUMBUFSIZE+10];
-
-	if (handler)
-		return ( (*handler)(rfc, fp));
-
-        rfc2045_mimeinfo(rfc, &content_type, &dummy, &dummy);
-
-	if (rfc2231_udecodeDisposition(rfc, "name", NULL, &disposition_name)<0)
-		disposition_name=NULL;
-
-	if (rfc2231_udecodeDisposition(rfc, "filename", NULL,
-				       &disposition_filename) < 0)
-		disposition_filename=NULL;
-
-	if (rfc2231_udecodeType(rfc, "name", NULL, &content_name) < 0)
-		content_name=NULL;
-
-        rfc2045_mimepos(rfc, &start_pos, &end_pos, &start_body,
-                        &dummy2, &dummy2);
-
-	disposition_filename_s=disposition_filename;
-
-	if (!disposition_filename_s || !*disposition_filename_s)
-		disposition_filename_s=disposition_name;
-	if (!disposition_filename_s || !*disposition_filename_s)
-		disposition_filename_s=content_name;
-
-	printf(gettext("Attachment: %s (%s)\n"), content_type,
-	       libmail_str_sizekb(end_pos - start_body, buffer));
-	if (disposition_filename_s && *disposition_filename_s)
-		printf("    %s\n", disposition_filename_s);
-	printf("\n");
-
-	if (content_name)		free(content_name);
-	if (disposition_name)		free(disposition_name);
-	if (disposition_filename)	free(disposition_filename);
-
-	return (0);
-}
-
-static int list_msg_mime_multipart(struct rfc2045 *rfc, FILE *fp)
-{
-	struct rfc2045 *q;
-	int first=1;
-	int rc;
-
-	for (q=rfc->firstpart; q; q=q->next)
-	{
-		if (q->isdummy) continue;
-
-		if (!first)
-			printf("\n    ------------------------------\n\n");
-		first=0;
-
-		rc=list_msg_mime(q, fp);
-		if (rc)
-			return (rc);
-	}
-	return (0);
-}
-
-static int list_msg_mime_multipart_alternative(struct rfc2045 *rfc, FILE *fp)
-{
-	struct rfc2045 *q, *first=NULL, *last=NULL;
-
-	for (q=rfc->firstpart; q; q=q->next)
-	{
-		if (q->isdummy) continue;
-		if (!first)
-			first=q;
-		if ( mime_handler(q) != NULL)
-			last=q;
-	}
-
-	return (last ? list_msg_mime(last, fp):
-		first ? list_msg_mime(first, fp):0);
-}
-
-static int textplain_output(const char *ptr, size_t cnt, void *voidptr)
-{
-	while (cnt)
-	{
-		putchar(*ptr);
-		++ptr;
-		--cnt;
-	}
-	return (0);
-}
-
-static int list_msg_textplain(struct rfc2045 *rfc, FILE *fp)
-{
-	const char *mime_charset, *dummy;
-	int rc;
-	struct rfc2045src *src;
-
-        rfc2045_mimeinfo(rfc, &dummy, &dummy, &mime_charset);
-
-        if (strcasecmp(mime_charset, charset))
-        {
-		printf(gettext("    (The following text was converted from %s)\n\n"),
-		       mime_charset);
-	}
-
-	src=rfc2045src_init_fd(fileno(fp));
-
-	if (src == NULL)
-		return (-1);
-
-	rc=rfc2045_decodetextmimesection(src,
-					 rfc,
-					 charset,
-					 NULL,
-					 textplain_output, NULL);
-
-	printf("\n");
-	rfc2045src_deinit(src);
-	return (rc);
 }
 
 /*** CANCEL/UNCANCEL/DELETE ***/

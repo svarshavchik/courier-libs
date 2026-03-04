@@ -133,6 +133,8 @@ static void read_headers(rfc822::fdstreambuf &tmpfp)
 	{
 		const auto &[name, content] = h.name_content();
 
+		if (name.empty() && content.empty())
+			continue;
 		if (header_list.size() < 1000)
 		{
 			auto &ret=
@@ -523,8 +525,7 @@ static void copy_draft(rfc822::fdstreambuf &contentbuf,
 		const auto &[name, empty] =
 			h.convert_name_check_empty();
 
-		if (!name.empty() &&
-		    std::string_view{name}.substr(0, 8) !=
+		if (std::string_view{name}.substr(0, 8) !=
 		    "content-")
 			continue;
 

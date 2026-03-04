@@ -895,7 +895,7 @@ void rfc2045::reply::copyheaders(out_closure_t &&out_closure,
 	{
 		const auto &[header, value] = hi.name_content();
 
-		if (header == "\n" && value.empty())
+		if (header.empty() && value == "\n")
 			continue;
 
 		out_closure(header);

@@ -2,6 +2,10 @@
 #ifdef rfc2047_h
 #ifdef  __cplusplus
 
+#include <string>
+#include <type_traits>
+#include <algorithm>
+
 namespace rfc822 {
 #if 0
 }
@@ -61,7 +65,8 @@ template<typename out_iter_type> auto tokens::unicode_address(
 }
 
 template<typename out_iter_type> auto tokens::unicode_name(
-	out_iter_type &&iter
+	out_iter_type &&iter,
+	bool unquote
 ) const -> std::conditional_t<std::is_same_v<out_iter_type,
 					     out_iter_type &>,
 			      void, std::remove_cv_t<
@@ -70,11 +75,20 @@ template<typename out_iter_type> auto tokens::unicode_name(
 {
 	std::string s;
 
-	s.reserve(this->print(this->begin(), this->end(), length_counter{}));
-
-	this->print(this->begin(), this->end(),
-		    std::back_inserter(s));
-
+	if (unquote)
+	{
+		s.reserve(this->unquote(this->begin(), this->end(),
+					length_counter{}));
+		this->unquote(this->begin(), this->end(),
+			    std::back_inserter(s));
+	}
+	else
+	{
+		s.reserve(this->print(this->begin(), this->end(),
+				      length_counter{}));
+		this->print(this->begin(), this->end(),
+			    std::back_inserter(s));
+	}
 	std::string fragment;
 	std::u32string us;
 
@@ -117,7 +131,7 @@ template<typename out_iter_type> auto tokens::unicode_name(
 		});
 
 	// Characters that require quoting, in the context of the name
-	// portion, are RFC822_SPECIALS except for : and ;.
+	// portion, are RFC822_SPECIALS except for : and ; at the end of it.
 
 	static constexpr std::string_view special{RFC822_SPECIAL_INNAMES};
 
@@ -125,7 +139,9 @@ template<typename out_iter_type> auto tokens::unicode_name(
 
 	bool quote_inuse=false;
 
-	if (us.size() > 1 && us[0] == '"' && us.back() == '"')
+	if (unquote)
+		;
+	else if (us.size() > 1 && us[0] == '"' && us.back() == '"')
 	{
 		quote_inuse=true;
 	}
@@ -136,8 +152,16 @@ template<typename out_iter_type> auto tokens::unicode_name(
 
 		bool prev_spc=true;
 
+		bool last_was_colon_or_semicolon=false;
+
 		for (auto uc:us)
 		{
+			if (last_was_colon_or_semicolon)
+			{
+				quote_inuse=true;
+				break;
+			}
+
 			if (uc == ' ' || uc == '\t')
 			{
 				if (prev_spc)
@@ -156,6 +180,11 @@ template<typename out_iter_type> auto tokens::unicode_name(
 			{
 				quote_inuse=true;
 				break;
+			}
+
+			if (uc == ':' || uc == ';')
+			{
+				last_was_colon_or_semicolon=true;
 			}
 		}
 
@@ -270,7 +299,8 @@ template<typename out_iter_type> auto tokens::display_address(
 
 template<typename out_iter_type> auto tokens::display_name(
 	const std::string &chset,
-	out_iter_type &&iter
+	out_iter_type &&iter,
+	bool unquote
 ) const -> std::conditional_t<std::is_same_v<out_iter_type,
 					     out_iter_type &>,
 			      void, std::remove_cv_t<
@@ -280,7 +310,7 @@ template<typename out_iter_type> auto tokens::display_name(
 	u2iterator u{iter};
 	if (u.begin(chset))
 	{
-		unicode_name(u);
+		unicode_name(u, unquote);
 
 		bool errflag{false};
 
@@ -418,6 +448,108 @@ auto display_header(std::string_view headername,
 			iter, errflag);
 	}
 	if constexpr(!std::is_same_v<out_iter, out_iter &>)
+		return iter;
+}
+
+// Implement do_print in order to generate Ascii-compatible encoding of
+// the name and the address portion of an address in a specific character
+// set, using RFC 2047 and international domain names, as appropriate.
+template<typename out_iter>
+struct rfc822::address::do_encode : do_print {
+
+	out_iter &iter;
+	const std::string charset;
+
+	do_encode(const struct address &a, const std::string &charset,
+		  out_iter &iter)
+		: do_print{a}, iter{iter}, charset{charset}
+	{
+	}
+
+	void emit_address() override
+	{
+		std::string s;
+
+		s.reserve(a.address.print(length_counter{}));
+		a.address.print(std::back_inserter(s));
+
+		for (auto c:encode_domain(s, charset.c_str()))
+			*iter++=c;
+	}
+
+	void emit_name() override
+	{
+		tokens::print_impl impl{iter};
+
+		for (auto &t:a.name)
+		{
+			if ((t.type == 0 || t.type == '(' || t.type == '"') &&
+			    std::find_if(t.str.begin(),
+					 t.str.end(),
+					 []
+					 (char c)
+					 {
+						 return !!(c & 0x80);
+					 }) != t.str.end())
+			{
+				std::string s;
+
+				s.reserve(rfc822::tokens::unquote(
+						  &t, &t+1,
+						  rfc822::length_counter{}));
+				rfc822::tokens::unquote(
+					&t, &t+1,
+					std::back_inserter(s));
+
+				s=rfc2047::encode(s, charset,
+						  rfc2047_qp_allow_word).first;
+
+				if (t.type == '(')
+					*iter++='(';
+				auto tcopy=t;
+				tcopy.str=s;
+				if (tcopy.type == '"')
+					tcopy.type=0;
+				impl(tcopy);
+				if (t.type == '(')
+					*iter++=')';
+			}
+			else
+			{
+				impl(t);
+			}
+		}
+	}
+
+	void emit_char(char c) override
+	{
+		*iter++=c;
+	}
+};
+
+// Encode the address, as an international domain, and use RFC 2047
+// implemented in rfc2047.h for the name portion.
+//
+// The first parameter specifies the character set used by the
+// address. The second parameter is an iterator over chars.
+// If passed by value the new value of the iterator is returned. If
+// passed by reference the output iterator is modified in place, and
+// void gets returned from here.
+
+template<typename iter_type> auto rfc822::address::encode(
+	const std::string &chset,
+	iter_type &&iter
+) const -> std::conditional_t<std::is_same_v<iter_type,
+					     iter_type &>,
+			      void, std::remove_cv_t<
+					    std::remove_reference_t<
+						    iter_type>>>
+{
+	do_encode printer{*this, chset, iter};
+
+	printer.output();
+
+	if constexpr(!std::is_same_v<iter_type, iter_type &>)
 		return iter;
 }
 

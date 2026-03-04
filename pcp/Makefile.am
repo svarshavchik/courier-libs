@@ -19,15 +19,15 @@ EXTRA_DIST= README.html $(srcdir)/m4/*.m4
 
 BUILT_SOURCES=calendardir.h sysconfdir.h uids.h
 
-libpcp_la_SOURCES=pcp.h pcpacl.c pcpdir.c pcpgmtime.c pcplocale.c \
+libpcp_la_SOURCES=pcp.h pcpacl.c pcpdir.c pcpdir.h pcpgmtime.c pcplocale.c \
+	pcpretrheaders.C \
 	pcpaddcommon.c pcpparseymd.c pcpmksocket.c pcpnet.c uids.c
 libpcp_la_LIBADD=
 libpcp_la_LDFLAGS=-static
 
-pcp_SOURCES=pcp.c
+pcp_SOURCES=pcp.c pcpretr.C pcpretr.h
 pcp_DEPENDENCIES=libpcp.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 	../numlib/libnumlib.la
-
 pcp_LDADD=$(pcp_DEPENDENCIES) -lcourier-unicode @LIBINTL@ @EFENCE@ @NETLIBS@
 
 pcpd_SOURCES=pcpd.c pcpdauth.c pcpdauth.h pcpdauthme.c pcpdauthtoken.c \
@@ -40,6 +40,7 @@ COMMONLIBS=libpcp.la ../maildir/libmaildir.la \
 	../md5/libmd5.la ../sha1/libsha1.la\
 	../liblock/liblock.la
 
+nodist_EXTRA_pcpd_SOURCES=forcepp1.C
 pcpd_DEPENDENCIES=$(COMMONLIBS)
 pcpd_LDADD=$(COMMONLIBS) @LDAUTH@ -lcourier-unicode -lcourierauth @LIBINTL@ @EFENCE@ @NETLIBS@
 

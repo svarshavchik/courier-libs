@@ -15,12 +15,14 @@ AC_CONFIG_HEADERS(config.h)
 dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
 AC_PROG_AWK
 AC_PROG_INSTALL
 LT_INIT
 AC_PATH_PROGS(PERL, perl5 perl, perl)
 
-CFLAGS="-I.. -I${srcdir}/.. -I$srcdir/../.. -I../.. $CFLAGS"
+CPPFLAGS="-I.. -I${srcdir}/.. -I$srcdir/../.. -I../.. $CPPFLAGS"
 ALL_LINGUAS=""
 AM_GNU_GETTEXT([external])
 

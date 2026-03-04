@@ -6,6 +6,7 @@
 #include	"rfc822.h"
 #include	"rfc2047.h"
 #include	<idn2.h>
+#include	<vector>
 
 rfc822::tokens::tokens(std::string_view str,
 		       std::function<void (size_t)> err_func)
@@ -544,4 +545,103 @@ void rfc2047::base64decoder_base::report_error()
 
 	std::string_view msg{" [base64 decoding error] "};
 	emit(msg.data(), msg.size());
+}
+
+static std::string rfc822_encode_domain_int(
+	std::string_view pfix,
+	std::string_view domain
+)
+{
+	int err;
+	char *p;
+	size_t s=domain.size()+16;
+
+	std::string cpy;
+
+	cpy.reserve(s);
+
+	/*
+	** Invalid UTF-8 can make libidn go off the deep end. Add
+	** padding as a workaround.
+	*/
+
+	cpy.append(domain.begin(), domain.end());
+	cpy.append(16, 0);
+
+	err=idn2_to_ascii_8z(cpy.data(), &p, 0);
+
+	std::string_view pv{p};
+	if (err != IDNA_SUCCESS)
+	{
+		return "[error]";
+	}
+
+	std::string q;
+
+	q.reserve(pv.size()+pfix.size());
+
+	q.append(pfix.begin(), pfix.end());
+	q.append(pv.begin(), pv.end());
+	free(p);
+	return q;
+}
+
+namespace {
+	struct encode_domain_converter : unicode::iconvert {
+
+		std::string s;
+
+		int converted(const char *p, size_t n) override
+		{
+			s.append(p, p+n);
+			return 0;
+		}
+
+		using iconvert::operator();
+	};
+}
+
+std::string rfc822::encode_domain(std::string_view address,
+				  const char *charset)
+{
+	bool errflag{false};
+
+	encode_domain_converter converter;
+
+	if (converter.begin(charset, unicode::utf_8))
+	{
+		converter(address.data(), address.size());
+
+		converter.end(errflag);
+	}
+	else
+	{
+		errflag=true;
+	}
+
+	auto at=converter.s.find('@');
+
+	if (at == converter.s.npos)
+		at=0;
+	else
+		++at;
+
+	auto s=rfc822_encode_domain_int(
+		std::string_view{converter.s}.substr(0, at),
+		std::string_view{converter.s}.substr(at)
+	);
+
+	if (errflag)
+	{
+		s += "(error)";
+	}
+	return s;
+}
+
+extern "C" char *rfc822_encode_domain(const char *address,
+				      const char *charset)
+{
+	auto s=rfc822::encode_domain(address, charset);
+
+	return strdup(s.c_str());
 }

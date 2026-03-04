@@ -9,16 +9,12 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<stdlib.h>
-#include	<ctype.h>
 #include	<fcntl.h>
-#include	<errno.h>
 #include	<courierauth.h>
 #include	"config.h"
 #include	"sqwebmail.h"
 #include	"maildir.h"
 #include	"cgi/cgi.h"
-#include	"pref.h"
-#include	"sqconfig.h"
 #include	"auth.h"
 #include	"acl.h"
 #include	"maildir/maildirquota.h"
@@ -57,18 +53,17 @@
 #endif
 
 #include	<courier-unicode.h>
-
-#include	"strftime.h"
-
+#include <string>
+#include <fstream>
 
 /* ACL support stuff */
 
-extern const char *sqwebmail_folder;
-extern void output_urlencoded(const char *p);
-extern void output_attrencoded(const char *p);
-extern void output_scriptptrget();
-extern void output_scriptptr();
-extern void output_scriptptrpostinfo();
+extern "C" const char *sqwebmail_folder;
+extern "C" void output_urlencoded(const char *p);
+extern "C" void output_attrencoded(const char *p);
+extern "C" void output_scriptptrget();
+extern "C" void output_scriptptr();
+extern "C" void output_scriptptrpostinfo();
 
 extern dev_t sqwebmail_homedir_dev;
 extern ino_t sqwebmail_homedir_ino;
@@ -88,11 +83,11 @@ int maildir_info_suppress(const char *maildir)
 	return 0;
 }
 
-const char *maildir_shared_index_file()
+extern "C" const char *maildir_shared_index_file()
 {
-	static char *filenamep=NULL;
+	static std::string filenamep;
 
-	if (filenamep == NULL)
+	if (filenamep.empty())
 	{
 		const char *p=getenv("SQWEBMAIL_SHAREDINDEXFILE");
 
@@ -105,51 +100,57 @@ const char *maildir_shared_index_file()
 
 			if (!q) q="";
 
-			filenamep=malloc(strlen(p)+strlen(q)+1);
+			filenamep.reserve(strlen(p)+strlen(q));
 
-			if (!filenamep)
-				enomem();
-
-			strcat(strcpy(filenamep, p), q);
+			filenamep.append(p);
+			filenamep.append(q);
 		}
 	}
 
-	if (filenamep && verify_shared_index_file)
+	if (!filenamep.empty() && verify_shared_index_file)
 	{
 		struct stat stat_buf;
 
-		if (stat(filenamep, &stat_buf))
+		if (stat(filenamep.c_str(), &stat_buf))
 		{
 			fprintf(stderr, "ERR: ");
-			perror(filenamep);
+			perror(filenamep.c_str());
 		}
 	}
 
-	return filenamep;
+	return filenamep.c_str();
 }
 
-int acl_read(maildir_aclt_list *l, const char *folder,
-	     char **owner)
+static bool acl_read2(
+	maildir_aclt_list *l,
+	struct maildir_info *minfo,
+	std::string &owner
+);
+
+static bool acl_read(
+	maildir_aclt_list *l,
+	const char *folder,
+	std::string &owner
+)
 {
 	struct maildir_info minfo;
-	int rc;
 
 	if (maildir_info_imap_find(&minfo, folder,
 				   login_returnaddr())<0)
 	{
-		return -1;
+		return false;
 	}
 
-	rc=acl_read2(l, &minfo, owner);
+	bool rc=acl_read2(l, &minfo, owner);
 	maildir_info_destroy(&minfo);
 	return rc;
 }
 
-int acl_read2(maildir_aclt_list *l,
+static bool acl_read2(maildir_aclt_list *l,
 	      struct maildir_info *minfo,
-	      char **owner)
+	      std::string &owner)
 {
-	int rc;
+	bool rc;
 	char *p;
 
 	if (minfo->mailbox_type == MAILBOXTYPE_OLDSHARED)
@@ -161,47 +162,45 @@ int acl_read2(maildir_aclt_list *l,
 					  ACL_LOOKUP ACL_READ
 					  ACL_SEEN ACL_WRITE
 					  ACL_INSERT
-					  ACL_DELETEMSGS ACL_EXPUNGE, NULL) < 0
-		    || (*owner=strdup("vendor=courier.internal")) == NULL)
+					  ACL_DELETEMSGS ACL_EXPUNGE, NULL))
 		{
 			maildir_aclt_list_destroy(l);
-			return -1;
+			return false;
 		}
-		return 0;
+		owner="vendor=courier.internal";
+		return true;
 	}
 
 	if (minfo->homedir == NULL || minfo->maildir == NULL)
-		return -1;
+		return false;
 
 	p=maildir_name2dir(".", minfo->maildir);
 
 	if (!p)
-		return -1;
+		return false;
 
 	rc=maildir_acl_read(l, minfo->homedir,
-			    strncmp(p, "./", 2) == 0 ? p+2:p);
+			    strncmp(p, "./", 2) == 0 ? p+2:p) == 0;
 	free(p);
-	if (owner && rc == 0)
+	if (rc)
 	{
-		*owner=minfo->owner;
-		minfo->owner=NULL;
+		owner=minfo->owner;
 	}
+
 	return rc;
 }
 
 void acl_computeRightsOnFolder(const char *folder, char *rights)
 {
 	maildir_aclt_list l;
-	char *owner;
+	std::string owner;
 
-	if (acl_read(&l, folder, &owner) < 0)
+	if (!acl_read(&l, folder, owner))
 	{
 		*rights=0;
 		return;
 	}
-	acl_computeRights(&l, rights, owner);
-	if (owner)
-		free(owner);
+	acl_computeRights(&l, rights, owner.c_str());
 	maildir_aclt_list_destroy(&l);
 }
 
@@ -260,7 +259,7 @@ void listrights()
 {
 	maildir_aclt_list l;
 	char buf[40];
-	char *owner;
+	std::string owner;
 
 	if (*cgi("do.update") || *cgi("delentity"))
 	{
@@ -309,17 +308,15 @@ void listrights()
 		}
 	}
 
-	if (acl_read(&l, sqwebmail_folder, &owner) < 0)
+	if (!acl_read(&l, sqwebmail_folder, owner))
 	{
 		printf("%s", getarg("ACL_cantread"));
 		return;
 	}
 	buf[0]=0;
 	strncat(buf, getarg("ACL_all"), sizeof(buf)-2);
-	acl_computeRights(&l, buf, owner);
+	acl_computeRights(&l, buf, owner.c_str());
 	maildir_aclt_list_destroy(&l);
-	if (owner)
-		free(owner);
 
 	if (!maildir_acl_canlistrights(buf))
 	{
@@ -333,7 +330,7 @@ void listrights()
 static void doupdate()
 {
 	maildir_aclt_list l;
-	char *owner;
+	std::string owner;
 	char buf[2];
 	char *p;
 	struct maildir_info minfo;
@@ -342,18 +339,16 @@ static void doupdate()
 				   login_returnaddr()) < 0)
 		return;
 
-	if (acl_read2(&l, &minfo, &owner) < 0)
+	if (!acl_read2(&l, &minfo, owner))
 	{
 		maildir_info_destroy(&minfo);
 		return;
 	}
 
 	strcpy(buf, ACL_ADMINISTER);
-	acl_computeRights(&l, buf, owner);
+	acl_computeRights(&l, buf, owner.c_str());
 	if (!*buf)
 	{
-		if (owner)
-			free(owner);
 		maildir_aclt_list_destroy(&l);
 		maildir_info_destroy(&minfo);
 		return;
@@ -367,7 +362,7 @@ static void doupdate()
 
 	if (*cgi("do.update"))
 	{
-		char *entity=NULL;
+		std::string entity;
 		const char *p;
 		char new_acl[40];
 
@@ -382,9 +377,10 @@ static void doupdate()
 
 			if (*p)
 			{
-				entity=malloc(sizeof("user=")+strlen(p));
-				if (entity)
-					strcat(strcpy(entity, "user="), p);
+				entity.clear();
+				entity.reserve(sizeof("user=")-1+strlen(p));
+				entity.append("user=");
+				entity.append(p);
 			}
 		}
 		else if (strcmp(p, "group") == 0)
@@ -393,9 +389,10 @@ static void doupdate()
 
 			if (*p)
 			{
-				entity=malloc(sizeof("group=")+strlen(p));
-				if (entity)
-					strcat(strcpy(entity, "group="), p);
+				entity.clear();
+				entity.reserve(sizeof("group=")-1+strlen(p));
+				entity.append("group=");
+				entity.append(p);
 			}
 		}
 		else
@@ -403,29 +400,18 @@ static void doupdate()
 			entity=strdup(cgi("entity"));
 		}
 
-		if (*cgi("negate") == '-' && entity)
+		if (*cgi("negate") == '-' && !entity.empty())
 		{
-			char *p=malloc(strlen(entity)+2);
-
-			if (p)
-				strcat(strcpy(p, "-"), entity);
-			free(entity);
-			entity=p;
+			entity.insert(0, "-");
 		}
 
-		if (entity)
+		if (!entity.empty())
 		{
-			char *val=
-				unicode_convert_toutf8(entity,
-							 sqwebmail_content_charset,
-							 NULL);
-
-
-			if (val)
-			{
-				free(entity);
-				entity=val;
-			}
+			entity=unicode::iconvert::convert(
+				entity,
+				sqwebmail_content_charset,
+				unicode::utf_8
+			);
 		}
 		p=getarg("ACL_all");
 
@@ -446,12 +432,9 @@ static void doupdate()
 			++p;
 		}
 
-		if (!entity || !*entity ||
-		    maildir_aclt_list_add(&l, entity, new_acl, NULL) < 0)
+		if (entity.empty() ||
+		    maildir_aclt_list_add(&l, entity.c_str(), new_acl, NULL) < 0)
 			printf("%s", getarg("ACL_failed"));
-
-		if (entity)
-			free(entity);
 	}
 
 	p=maildir_name2dir(".", minfo.maildir);
@@ -462,13 +445,11 @@ static void doupdate()
 
 		if (maildir_acl_write(&l, minfo.homedir,
 				      strncmp(p, "./", 2) == 0 ? p+2:p,
-				      owner, &err_ident))
+				      owner.c_str(), &err_ident))
 			printf("%s", getarg("ACL_failed"));
 		free(p);
 	}
 
-	if (owner)
-		free(owner);
 	maildir_aclt_list_destroy(&l);
 	maildir_info_destroy(&minfo);
 }
@@ -517,7 +498,7 @@ void getacl()
 {
 	maildir_aclt_list l;
 	char buf[2];
-	char *owner;
+	std::string owner;
 	const char *a;
 	const char *editentity=cgi("editentity");
 	const char *editaccess=cgi("editaccess");
@@ -526,15 +507,13 @@ void getacl()
 	const char *entityval="";
 	int negate=0;
 
-	if (acl_read(&l, sqwebmail_folder, &owner) < 0)
+	if (!acl_read(&l, sqwebmail_folder, owner))
 	{
 		printf("%s", getarg("ACL_noaccess"));
 		return;
 	}
 	strcpy(buf, ACL_ADMINISTER);
-	acl_computeRights(&l, buf, owner);
-	if (owner)
-		free(owner);
+	acl_computeRights(&l, buf, owner.c_str());
 
 	if (buf[0] == 0)
 	{

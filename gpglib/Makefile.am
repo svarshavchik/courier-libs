@@ -1,5 +1,5 @@
 #
-# Copyright 2001-2014 S. Varshavchik.  See COPYING for
+# Copyright 2001-2026 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 
@@ -13,7 +13,7 @@ noinst_PROGRAMS=testgpg mimegpg
 
 libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.c gpglib.h\
 	import.c libgpg.c list.c mimegpgfork.c mimegpgfork.h mimegpgheader.c \
-	mimegpgheader.h mimegpgstack.c mimegpgstack.h options.c rfc2045.c \
+	mimegpgheader.h mimegpgstack.c mimegpgstack.h options.c rfc2045.C \
 	sign.c tempname.c tempname.h
 
 testgpg_SOURCES=testgpg.c

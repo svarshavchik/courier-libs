@@ -420,8 +420,8 @@ void test4()
 		},
 		{
 			nl,
-			nl,
-			"", 0
+			"",
+			nl, 0
 		},
 	};
 
@@ -432,7 +432,9 @@ void test4()
 
 		if (full != t.header || n != t.name || c != t.content)
 		{
-			std::cout << "test3: unexpected result (default_test)\n"
+			std::cout << "test4<"
+				  << (crlf ? "\\r\\n":"\\n")
+				  << ">: unexpected result (default_test)\n"
 				"Got: " << full << "\n    " << n
 				  << "\n    " << c << "\n"
 				"Exp: " << t.header << "\n    " << t.name
@@ -442,7 +444,9 @@ void test4()
 
 		if (h.next() != t.next)
 		{
-			std::cout << "test3: unexpected result (default_test)\n"
+			std::cout << "test4<"
+				  << (crlf ? "\\r\\n":"\\n")
+				  << ">: unexpected result (default_test)\n"
 				  << "Got next=" << !t.next
 				  << " for \"" << t.header << "\"\n";
 			exit(1);

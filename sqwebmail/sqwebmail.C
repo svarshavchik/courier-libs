@@ -27,7 +27,6 @@
 #include	"maildir/maildiraclt.h"
 #include	"liblock/config.h"
 #include	"liblock/liblock.h"
-#include	"rfc822/rfc822hdr.h"
 #include	"courierauth.h"
 #include	<stdio.h>
 #include	<errno.h>
@@ -72,6 +71,7 @@
 #include	"md5/md5.h"
 
 #include	<courierauthdebug.h>
+#include	"rfc2045/rfc2045.h"
 #include	"maildir/maildircache.h"
 #include	"maildir/maildiraclt.h"
 #include	"maildir/maildirnewshared.h"
@@ -267,9 +267,19 @@ extern "C" void output_attrencoded_fp(const char *p, FILE *fp)
 	print_attrencodedlen(p, strlen(p), 0, fp);
 }
 
+void output_attrencoded_fplen(const char *p, size_t len, FILE *fp)
+{
+	print_attrencodedlen(p, len, 0, fp);
+}
+
 extern "C" void output_attrencoded(const char *p)
 {
 	output_attrencoded_fp(p, stdout);
+}
+
+void output_attrencoded(std::string_view p)
+{
+	print_attrencodedlen(p.data(), p.size(), 0, stdout);
 }
 
 extern "C" void output_attrencoded_oknl_fp(const char *p, FILE *fp)
@@ -1921,37 +1931,36 @@ char	*p;
 			/* DRAFTS may contain event files */
 		{
 			const char *n=cgi("draft");
-			char *filename;
-			FILE *fp;
 
 			CHECKFILENAME(n);
 
-			filename=maildir_find(INBOX "." DRAFTS, n);
+			auto filename=maildir_find(INBOX "." DRAFTS, n);
 
-			if (filename)
+			if (!filename.empty())
 			{
-				if ((fp=fopen(filename, "r")) != NULL)
+				rfc822::fdstreambuf sb{
+					open(filename.c_str(), O_RDONLY)
+				};
+
+				if (!sb.error())
 				{
-					struct rfc822hdr h;
+					rfc2045::entity::line_iter<false>
+						::headers headers{sb};
 
-					rfc822hdr_init(&h, 8192);
-
-					while (rfc822hdr_read(&h, fp, NULL, 0)
-					       == 0)
+					do
 					{
-						if (strcasecmp(h.header,
-							       "X-Event") == 0)
+						const auto &[header,v] =
+							headers.name_content();
+
+						if (header == "x-event")
 						{
 							formname="newevent";
 							cgi_put("draftmessage",
 								cgi("draft"));
 							break;
 						}
-					}
-					rfc822hdr_free(&h);
-					fclose(fp);
+					} while (headers.next());
 				}
-				free(filename);
 			}
 		}
 	}
@@ -2268,7 +2277,8 @@ time_t	timeouthard=get_timeouthard();
 		FILE *f;
 
 		f=fopen("/tmp/pid", "w");
-		fprintf(f, "%d\n", (int)getpid());
+		fprintf(f, "gdb /proc/%d/exe %d\n", (int)getpid(),
+			(int)getpid());
 		fclose(f);
 		sleep(10);
 	}

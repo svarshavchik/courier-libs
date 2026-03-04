@@ -27,7 +27,11 @@ noinst_DATA=$(DOCS) TIMEZONELIST
 #  bin_PROGRAMS in install-exec-local, otherwise make distcheck will fail.
 #
 
-noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html testhtml testlogindomainlist
+noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
+	testispell \
+	testhtml \
+	testaddressbook \
+	testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../cgi/libcgi.la \
@@ -44,7 +48,7 @@ COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` -lcourier-unicode
 
 noinst_LTLIBRARIES=libwebmail.la
 
-libwebmail_la_SOURCES=filter.c filter.h msg2html.C msg2html.h html.C html.h \
+libwebmail_la_SOURCES=filter.C filter.h msg2html.C msg2html.h html.C html.h \
 			buf.c buf.h
 libwebmail_la_LDFLAGS=-static
 
@@ -53,7 +57,7 @@ showmsg2html_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 showmsg2html_LDADD=libwebmail.la $(COMMONLDADD)
 showmsg2html_LDFLAGS=-static
 
-ISPELLSOURCES=sqispell.C ispell.c ispell.h
+ISPELLSOURCES=sqispell.C ispell.C ispell.h
 
 BUILT_SOURCES=htmllibdir.h
 if HAVE_SGML
@@ -70,12 +74,26 @@ endif
 EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	 sqwebmail-common.pamconf sqwebmail-system-auth2.pamconf\
            strdup.c strcasecmp.c strncasecmp.c sv-make_timezonelist.pl\
-           $(ISPELLSOURCES) \
+           $(ISPELLSOURCES) testispell.C \
 	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.c
+nodist_EXTRA_testhtml_SOURCES=forcecpp2.cc
 testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 testhtml_LDADD=libwebmail.la $(COMMONLDADD)
+
+if ISPELL
+testispell_SOURCES=testispell.C
+testispell_DEPENDENCIES=$(COMMONDEPENDENCIES)
+testispell_LDADD=$(COMMONLDADD)
+endif
+
+testaddressbook_SOURCES=\
+	newmsg_createaddrheader.C \
+	testaddressbook.C
+
+testaddressbook_DEPENDENCIES=$(COMMONDEPENDENCIES)
+testaddressbook_LDADD=$(COMMONLDADD)
 
 #CFLAGS += -Dmalloc=my_malloc -Drealloc=my_realloc -Dfree=my_free -Dstrdup=my_strdup -Dcalloc=my_calloc
 
@@ -84,15 +102,16 @@ SQISPELLSOURCES=$(ISPELLSOURCES)
 endif
 
 
-sqwebmaild_SOURCES=acl.c acl.h \
-		addressbook.c addressbook.h args.c attachments.C \
+sqwebmaild_SOURCES=acl.C acl.h \
+		addressbook.C addressbook.h args.c attachments.C \
 		auth.c auth.h autoresponse.C autoresponse.h \
 		changepw.c \
 		folder.C folder.h gpg.c gpg.h \
 		ldaplist.C logindomainlist.c logindomainlist.h \
 		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
-		newmsg_create.C	newmsg_newdraft.C pcp.c pcp.h pref.c pref.h \
+		newmsg_createaddrheader.C \
+		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.c pref.h \
 		sqconfig.c sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
@@ -223,6 +242,9 @@ testlogindomainlist_SOURCES=testlogindomainlist.c logindomainlist.c
 
 check-am:
 	./testhtml <$(srcdir)/testhtml.tst | diff -U 3 $(srcdir)/testhtml.txt -
+	test -x ./testispell || exit 0; \
+	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testispell
 	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -
 
 check-version:

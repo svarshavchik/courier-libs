@@ -21,22 +21,26 @@
 #include	<string.h>
 #include	<fcntl.h>
 #include	<ctype.h>
+#include	<string>
+#include	<string_view>
+#include	<optional>
+#include	<fstream>
 
 extern const char *sqwebmail_content_charset;
 extern "C" void output_form(const char *);
 extern const char *sqwebmail_content_ispelldict;
-extern "C" void output_attrencoded(const char *);
+extern void output_attrencoded(std::string_view);
 
 static void spelladd(const char *);
-static int search_spell(const char *, unsigned, unsigned);
+static bool search_spell(const char *, unsigned, unsigned);
 
 int spell_start(const char *c)
 {
-char	*filename=maildir_find(INBOX "." DRAFTS, c);
+	auto filename=maildir_find(INBOX "." DRAFTS, c);
 
-	if (!c)	return (-1);
+	if (filename.empty())	return (-1);
 
-	if (search_spell(filename, 0, 0) == 0)
+	if (search_spell(filename.c_str(), 0, 0) == 0)
 		return (-1);
 
 	return (0);
@@ -46,125 +50,129 @@ char	*filename=maildir_find(INBOX "." DRAFTS, c);
 ** Search for misspelled words.
 */
 
-static struct rfc2045 *findtext(struct rfc2045 *);
+static const rfc2045::entity *findtext(const rfc2045::entity &);
 
-static char *spell_check(const char *, unsigned, unsigned,
-	const char *, const char *, const char *, int *);
+static std::string spell_check(const std::string &, unsigned, unsigned,
+			       std::string_view,
+			       std::string_view,
+			       std::string_view, bool &);
 
-static int search_spell(const char *filename, unsigned parnum, unsigned pos)
+static bool search_spell(const char *filename, unsigned parnum, unsigned pos)
 {
-struct	rfc2045	*rfcp, *textp;
-struct	buf newtext, current_line;
-off_t start_pos, end_pos, start_body;
-int	made_replacements, has_misspelling;
-char *new_line;
-unsigned paragraph;
-const char	*ignoreword="";
-const char	*replacefrom="";
-const char	*replaceto="";
-int	checked=0;
-off_t	dummy;
-FILE	*fp=0;
-int	x;
+	std::string newtext, current_line;
+	std::string new_line;
+	std::string_view ignoreword, replacefrom, replaceto;
+	bool	checked=false;
 
-	x=maildir_safeopen(filename, O_RDONLY, 0);
-	if (x >= 0)
-		if ((fp=fdopen(x, "r")) == 0)
-			close(x);
+	rfc822::fdstreambuf fp{maildir_safeopen(filename, O_RDONLY, 0)};
 
-	if (!fp)	return (0);
-	rfcp=rfc2045_fromfp(fp);
-	if (!rfcp)	enomem();
+	if (fp.error())
+		return false;
 
-	textp=findtext(rfcp);
+	rfc2045::entity message;
+
+	{
+		std::istreambuf_iterator<char> b{&fp}, e;
+
+		rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+		message.parse(parser);
+	}
+
+	auto textp=findtext(message);
 
 	if (!textp)
 	{
-		rfc2045_free(rfcp);
-		fclose(fp);
-		return (0);
+		return false;
 	}
 
-	buf_init(&newtext);
-	buf_init(&current_line);
+	fp.pubseekpos(textp->startbody);
 
-        rfc2045_mimepos(textp, &start_pos, &end_pos, &start_body,
-		&dummy, &dummy);
-        if (fseek(fp, start_body, SEEK_SET) == -1)
-                enomem();
-
-	made_replacements=0;
-	has_misspelling=0;
-	paragraph=0;
-        for ( ; start_body < end_pos; start_body++)
+	bool	made_replacements=false, has_misspelling=false;
+	unsigned paragraph=0;
+        for (auto start_body=textp->startbody ;
+	     start_body < textp->endbody; start_body++)
 	{
-	int	c=getc(fp);
+		auto c=fp.sbumpc();
 
-		if (c < 0)	enomem();
+		if (c == std::char_traits<char>::eof())
+			break;
+
 		if (c != '\n')
 		{
-			buf_append(&current_line, c);
+			current_line += c;
 			continue;
 		}
-		buf_append(&current_line, '\0');
+
+		if (current_line == "-- ") // Stop at sig line.
+			break;
+
 		if (parnum)
 		{
 			--parnum;
-			buf_cat(&newtext, current_line.ptr);
-			buf_cat(&newtext, "\n");
-			current_line.cnt=0;
+			newtext += current_line;
+			newtext += '\n';
+			current_line.clear();
 			++paragraph;
 			continue;
 		}
 
 		if (!checked)
 		{
-		int	l;
+			checked=true;
 
-			checked=1;
-			if ((l=strlen(cgi("word"))) > 0)
+			std::string_view word{cgi("word")};
+
+			auto l=word.size();
+			if (l > 0)
 			{
 
 /* Ok, what should we do? */
 
-			const char *newword=cgi("REPLACE");
+				std::string_view newword=cgi("REPLACE");
 
-				if (!*newword || strcmp(newword, "#other") == 0)
+				if (newword.empty() || newword == "#other")
 					newword=cgi("OTHER");
 				/*
 				** Perhaps they entered the word without
 				** checking this checkmark.
 				*/
-				else if (*newword == '#')
+				else if (newword.substr(0, 1) == "#")
 					newword="";
 
-				if (*newword && pos + l <= strlen(current_line.ptr))
+				if (newword.size() &&
+				    pos + l <= current_line.size())
 				{
-				struct buf tempbuf;
+					std::string tempbuf;
 
-					buf_init(&tempbuf);
-					buf_cpyn(&tempbuf, current_line.ptr,
-						pos);
-					buf_cat(&tempbuf, newword);
-					buf_cat(&tempbuf,
-						current_line.ptr+pos+l);
-					pos += strlen(newword);
+					tempbuf.reserve(current_line.size()-l
+							+ newword.size());
+
+					tempbuf=std::string_view{current_line}
+						.substr(0, pos);
+					tempbuf += newword;
+					tempbuf += std::string_view{
+						current_line
+							}.substr(pos+l);
+
+					pos += newword.size();
+
 					if (*cgi("REPLACEALL"))
 					{
 						replacefrom=cgi("word");
 						replaceto=newword;
 					}
-					buf_append(&tempbuf, '\0');
-					buf_cpy(&current_line, tempbuf.ptr);
-					buf_append(&current_line, '\0');
-					buf_free(&tempbuf);
-					made_replacements=1;
+					current_line=tempbuf;
+					made_replacements=true;
 				}
 				else
 				{
 					pos += l;
-					if (strcmp(cgi("REPLACE"),
-						"#ignoreall") == 0)
+					std::string_view replace{
+						cgi("REPLACE")
+					};
+
+					if (replace == "#ignoreall")
 						ignoreword=cgi("word");
 				}
 
@@ -176,116 +184,99 @@ int	x;
 			}
 		}
 
-
-		if (*current_line.ptr == '>')
+		if (std::string_view{current_line}.substr(0, 1) == ">")
 		{
-			buf_cat(&newtext, current_line.ptr);
-			buf_cat(&newtext, "\n");
+			newtext += current_line;
+			newtext += "\n";
 			pos=0;
-			current_line.cnt=0;
+			current_line.clear();
 			++paragraph;
 			continue;
 		}
 		if (!has_misspelling)
 		{
-			new_line=spell_check(current_line.ptr, paragraph, pos,
+			new_line=spell_check(current_line, paragraph, pos,
 				ignoreword, replacefrom, replaceto,
-				&has_misspelling);
-			if (new_line)
+				has_misspelling);
+			if (!new_line.empty())
 			{
-				buf_cat(&newtext, new_line);
-				free(new_line);
-				made_replacements=1;
+				newtext += new_line;
+				made_replacements=true;
 			}
-			else	buf_cat(&newtext, current_line.ptr);
+			else	newtext += current_line;
 		}
-		else	buf_cat(&newtext, current_line.ptr);
-		buf_cat(&newtext, "\n");
+		else	newtext += current_line;
+		newtext += "\n";
 		pos=0;
-		current_line.cnt=0;
+		current_line.clear();
 		++paragraph;
 	}
-	if (current_line.cnt)
-		buf_cat(&newtext, "\n");
-	rfc2045_free(rfcp);
-	fclose(fp);
+	if (!current_line.empty())
+		newtext += "\n";
+
 	if (made_replacements)
 	{
-	char	*p=newmsg_createdraft_do(filename, newtext.ptr,
-					 NEWMSG_SQISPELL);
-
-		if (p)	free(p);
+		newmsg_createdraft_do(filename, newtext.c_str(),
+				      NEWMSG_SQISPELL);
 
 		if (*cgi("error"))
 		{
-			has_misspelling=0;	/* Abort spell checking */
+			has_misspelling=false;	/* Abort spell checking */
 		}
 	}
 
-	buf_free(&newtext);
-	buf_free(&current_line);
-
-	if (*ignoreword)
+	if (ignoreword.size())
 	{
-	static char *p=0;
+		static std::string globignore;
 
-		if (p)	free(p);
-		p=static_cast<char *>(
-			malloc(strlen(cgi("globignore")) + 2 + strlen(ignoreword))
-		);
+		globignore.clear();
+		globignore.reserve(std::string_view{cgi("globignore")}.size()
+				   + 2 + ignoreword.size());
 
-		if (!p)	enomem();
+		globignore=cgi("globignore");
 
-		strcpy(p, cgi("globignore"));
-		if (*p)	strcat(p, ":");
-		strcat(p, ignoreword);
-		cgi_put("globignore", p);
+		if (globignore.size())
+			globignore += ":";
+		globignore += ignoreword;
+		cgi_put("globignore", globignore.c_str());
 	}
 
-	if (*replacefrom)
+	if (replacefrom.size())
 	{
-	static char *p=0;
+		static std::string globreplace;
 
-		if (p)	free(p);
-		p=static_cast<char *>(
-			malloc(strlen(cgi("globreplace"))+3
-			       +strlen(replacefrom)+strlen(replaceto))
-		);
+		globreplace.clear();
 
-		if (!p)	enomem();
-		strcpy(p, cgi("globreplace"));
-		if (*p)	strcat(p, ":");
-		strcat(strcat(strcat(p, replacefrom), ":"), replaceto);
-		cgi_put("globreplace", p);
-		free(p);
+		globreplace.reserve(
+			std::string_view{cgi("globreplace")}.size()+3
+			+ replacefrom.size() + replaceto.size());
+
+		globreplace=cgi("globreplace");
+		if (globreplace.size())
+			globreplace += ":";
+
+		globreplace += replacefrom;
+		globreplace += ":";
+		globreplace += replaceto;
+		cgi_put("globreplace", globreplace.c_str());
 	}
-	if (has_misspelling)	return (1);
-	return (0);
+
+	return has_misspelling;
 }
 
-static struct rfc2045 *findtext(struct rfc2045 *rfcp)
+static const rfc2045::entity *findtext(const rfc2045::entity &rfcp)
 {
-struct rfc2045 *textp;
-const char *content_type;
-const char *content_transfer_encoding;
-const char *charset;
+	if (std::string_view{rfcp.content_type.value}.substr(0, 5) == "text/")
+		return &rfcp;
 
-	rfc2045_mimeinfo(rfcp, &content_type,
-		&content_transfer_encoding, &charset);
-	if (strncmp(content_type, "text/", 5) == 0)
-		textp=rfcp;
-	else
+	for (auto &subentity:rfcp.subentities)
 	{
-		for (textp=rfcp->firstpart; textp; textp=textp->next)
-		{
-			if (textp->isdummy)	continue;
-			rfc2045_mimeinfo(textp, &content_type,
-				&content_transfer_encoding, &charset);
-			if (strncmp(content_type, "text/", 5) == 0)
-				break;
-		}
+		auto ptr=findtext(subentity);
+
+		if (ptr)
+			return ptr;
 	}
-	return (textp);
+	return nullptr;
 }
 
 /*
@@ -297,142 +288,93 @@ const char *charset;
 ** Set *hasmisspelled to 1 if there are some misspellings in this line.
 */
 
-static struct	ispell	*ispellptr;
-static char *ispellline=0;
+static std::string ispellline;
+static std::optional<ispell> ispellptr;
 static unsigned paragraph;
 
-static int spellignore(const char *);
-static char *spellreplace(const char *);
+static bool spellignore(std::string_view);
+static std::string spellreplace(std::string_view);
 
-static char *spell_check(const char *line, unsigned pnum, unsigned pos,
-	const char *ignoreword,
-	const char *replacefrom,
-	const char *replaceto,
-	int *hasmisspelled)
+static std::string spell_check(const std::string &line, unsigned pnum,
+			       unsigned pos,
+			       std::string_view ignoreword,
+			       std::string_view replacefrom,
+			       std::string_view replaceto,
+			       bool &hasmisspelled)
 {
-struct ispell_misspelled	*msp, *np;
-char	*newline=0;
-const char *newword;
-char	*w;
+	std::string newline=line;
+	std::string_view newword;
 
-	if (strlen(line) <= pos)	return (0);	/* Sanity check */
+	if (line.size() <= pos)	return {};	/* Sanity check */
 
-	ispellptr=ispell_run(sqwebmail_content_ispelldict, line+pos);
+	ispellptr.reset();
+	ispellptr.emplace(sqwebmail_content_ispelldict, line.substr(pos));
 	if (!ispellptr)	enomem();
-	for (msp=ispellptr->first_misspelled; msp; msp=msp->next)
-		if (msp->misspelled_word)
-			msp->word_pos += pos;
+	for (auto &word:ispellptr->misspelled_words)
+		word.word_pos += pos;
 
-	for (msp=ispellptr->first_misspelled; msp; msp=msp->next)
+	ssize_t adjust=0;
+	for (auto &msp:ispellptr->misspelled_words)
 	{
-		if ((*ignoreword &&
-			strcmp(msp->misspelled_word, ignoreword) == 0)
-			|| spellignore(msp->misspelled_word))
+		msp.word_pos += adjust;
+
+		if (msp.word_pos >= newline.size() ||
+		    (newline.size()-msp.word_pos) < msp.misspelled_word.size())
+			continue; // Sanity check
+
+		if ((!ignoreword.empty() &&
+		     msp.misspelled_word == ignoreword)
+		    || spellignore(msp.misspelled_word))
 		{
-			msp->misspelled_word=0;
+			msp.misspelled_word="";
 			continue;
 		}
 
-		newword=0;
-		if ( *replacefrom &&
-			strcmp(msp->misspelled_word, replacefrom) == 0)
+		newword="";
+		if ( !replacefrom.empty() &&
+		     msp.misspelled_word == replacefrom)
 			newword=replaceto;
 
-		w=0;
-		if (newword ||
-			(newword=w=spellreplace(msp->misspelled_word)) != 0)
-		{
-			char	*p=static_cast<char *>(
-				malloc(strlen(newline ? newline:line)+strlen(newword)+1)
-			);
+		std::string replword;
 
-			if (!p)	enomem();
-			memcpy(p, (newline ? newline:line), msp->word_pos);
-			strcpy(p+msp->word_pos, newword);
-			strcat(p, (newline ? newline:line)+msp->word_pos+
-				strlen(msp->misspelled_word));
-			if (newline)	free(newline);
-			newline=p;
-			for (np=msp; (np=np->next) != 0; )
-				np->word_pos += strlen(newword)-strlen(msp->misspelled_word);
-			msp->misspelled_word=0;
-			if (w)
-				free(w);
+		if (!newword.empty() ||
+		    !(newword=replword=spellreplace(
+			      msp.misspelled_word
+		      )).empty())
+		{
+			std::string p;
+
+			p.reserve(newline.size()+newword.size());
+
+			p=newline.substr(0, msp.word_pos);
+			p += newword;
+			p += newline.substr(msp.word_pos+
+					    msp.misspelled_word.size());
+
+			newline=std::move(p);
+			adjust += newword.size()-msp.misspelled_word.size();
+			msp.misspelled_word="";
 			continue;
 		}
-		*hasmisspelled=1;
+		hasmisspelled=true;
 		paragraph=pnum;
 		break;
 	}
 	if (!hasmisspelled)
 	{
-		ispell_free(ispellptr);
-		ispellptr=0;
+		ispellptr.reset();
 	}
 	else
 	{
-		if (ispellline)	free(ispellline);
-		if ((ispellline=static_cast<char *>(
-			     malloc(strlen( newline ? newline:line)+1))) == 0)
-			enomem();
-		strcpy(ispellline, newline ? newline:line);
+		ispellline=newline;
 	}
 	return (newline);
-}
-
-static void showfunc(const char *p, size_t n, void *dummy)
-{
-	while (n)
-	{
-		if (*p == ' ')
-			printf("&nbsp;");
-		else if (*p != '\n')
-			putchar(*p);
-		p++;
-		--n;
-	}
-}
-
-static void show_part(const char *ptr, size_t cnt)
-{
-	char32_t *uc;
-	size_t ucsize;
-	int conv_err;
-
-	if (unicode_convert_tou_tobuf(ptr, cnt,
-					sqwebmail_content_charset,
-					&uc,
-					&ucsize,
-					&conv_err) == 0)
-	{
-		if (conv_err)
-		{
-			free(uc);
-			uc=NULL;
-		}
-	}
-
-
-	if (uc)
-	{
-
-		struct filter_info info;
-
-		filter_start(&info, sqwebmail_content_charset,
-			     &showfunc, NULL);
-		filter(&info, uc, ucsize);
-		filter_end(&info);
-
-		free(uc);
-	}
 }
 
 void spell_show()
 {
 const char *draftmessage=cgi("draftmessage");
-struct ispell_misspelled *msp;
-struct ispell_suggestion *isps;
-size_t	p, l=strlen(ispellline), n;
+ size_t	p, l=ispellline.size(), n;
 const char *ignorelab=getarg("IGNORE");
 const char *ignorealllab=getarg("IGNOREALL");
 const char *replacelab=getarg("REPLACE");
@@ -450,9 +392,13 @@ const char *finishlab=getarg("FINISH");
 	if (!continuelab)	continuelab="";
 	if (!finishlab)		finishlab="";
 
-	for (msp=ispellptr->first_misspelled; msp; msp=msp->next)
-		if (msp->misspelled_word)	break;
-	if (!msp)	enomem();
+	auto msp=ispellptr->misspelled_words.begin();
+	while (msp != ispellptr->misspelled_words.end())
+	{
+		if (!msp->misspelled_word.empty())	break;
+		++msp;
+	}
+	if (msp==ispellptr->misspelled_words.end())	enomem();
 
 	CHECKFILENAME(draftmessage);
 
@@ -488,12 +434,16 @@ const char *finishlab=getarg("FINISH");
 	if (msp->word_pos > 30)
 	{
 		p=msp->word_pos-30;
+		while (p && ispellline[p-1] != ' ')
+			--p;
+
 		for (n=p; n<(size_t)(msp->word_pos); n++)
 			if (ispellline[n] == ' ')
 			{
 				while (n < p && ispellline[n] == ' ')
 					++n;
-				p=n;
+				if (n < msp->word_pos)
+					p=n;
 				break;
 			}
 		printf("...&nbsp;");
@@ -501,32 +451,56 @@ const char *finishlab=getarg("FINISH");
 	else
 		p=0;
 
-
-	show_part(ispellline+p, msp->word_pos-p);
+	output_attrencoded(
+		std::string_view{ispellline}.substr(p, msp->word_pos-p)
+	);
 	printf("<strong>");
-	show_part(ispellline+msp->word_pos, strlen(msp->misspelled_word));
+	output_attrencoded(
+		std::string_view{ispellline}.substr(msp->word_pos,
+						    msp->misspelled_word.size()
+		)
+	);
 	printf("</strong>");
 
-	p=msp->word_pos+strlen(msp->misspelled_word);
+	p=msp->word_pos+msp->misspelled_word.size();
 	if (l-p < 30)
 	{
-		n=l-p;
+		n=l-p; // show the rest of the line
 	}
-	else	n=30;
-
-	while (n)
+	else
 	{
-		if (ispellline[n+p] != ' ')
+		n=30;
+
+		// find where this word ends.
+
+		while (n+p < l)
 		{
-			--n;
-			continue;
+			if (ispellline[n+p] == ' ')
+				break;
+			++n;
 		}
-		while (n && ispellline[n+p-1] == ' ')
-			--n;
-		break;
+
+		// that's the opening bid, now try to get under the limit
+		// by finding where this word starts.
+		for (size_t i=n; i > 0; --i)
+		{
+			if (ispellline[i+p-1] == ' ')
+			{
+				while (i > 0)
+				{
+					if (ispellline[i+p-1] != ' ')
+					{
+						n=i;
+						break;
+					}
+					--i;
+				}
+				break;
+			}
+		}
 	}
 
-	show_part(ispellline+p, n);
+	output_attrencoded(std::string_view{ispellline}.substr(p, n));
 
 	if (n != l-p)
 		printf("&nbsp;...");
@@ -534,12 +508,16 @@ const char *finishlab=getarg("FINISH");
 	printf("<table border=\"1\" cellpadding=\"8\" class=\"spellcheck-main\"><tr><td>");
 
 	printf("<table border=\"0\">");
-	for (isps=msp->first_suggestion; isps; isps=isps->next)
+
+	for (auto &suggestion:msp->suggestions)
 	{
-		printf("<tr><td>%s</td><td><input type=\"radio\" name=\"REPLACE\" value=\"%s\" /></td><td>%s</td></tr>\n",
-			replacelab,
-			isps->suggested_word,
-			isps->suggested_word);
+		printf("<tr><td>%s</td><td><input type=\"radio\" name=\"REPLACE\" value=\"",
+		       replacelab);
+
+		fwrite(suggestion.data(), suggestion.size(), 1, stdout);
+		printf("\" /></td><td>");
+		fwrite(suggestion.data(), suggestion.size(), 1, stdout);
+		printf("</td></tr>\n");
 		replacelab=" ";
 	}
 	printf("<tr><td>%s</td><td><input type=\"radio\" name=\"REPLACE\" value=\"#other\" /></td><td><input type=\"text\" name=\"OTHER\" size=\"20\" /></td></tr>\n",
@@ -566,90 +544,88 @@ const char *finishlab=getarg("FINISH");
 	printf("</td></tr></table>\n");
 }
 
-static FILE *opendict(const char *mode)
+static std::string dictname()
 {
-	FILE	*fp;
-	char	*p=static_cast<char *>(
-		malloc(sqwebmail_content_ispelldict ?
-		       strlen(sqwebmail_content_ispelldict)+20:20)
-	);
+	std::string p;
 
-	if (!p)	enomem();
-	strcat(strcpy(p, sqwebmail_content_ispelldict ?
-			"sqwebmail-dict-":"sqwebmail-dict"),
-		sqwebmail_content_ispelldict ? sqwebmail_content_ispelldict:"");
-	fp=fopen(p, mode);
-	free(p);
-	return (fp);
+	if (sqwebmail_content_ispelldict)
+	{
+		p.reserve(strlen(sqwebmail_content_ispelldict)+20);
+
+		p="sqwebmail-dict-";
+		p+=sqwebmail_content_ispelldict;
+	}
+	else
+	{
+		p="sqwebmail-dict";
+	}
+
+	return p;
 }
 
-static int spellignore(const char *word)
+static bool spellignore(std::string_view word)
 {
-char	buf[100];
-const char *c;
-char	*p, *q;
-FILE	*fp=opendict("r");
+	std::ifstream i{dictname()};
 
-	if (!fp)	return (0);
-	while (fgets(buf, sizeof(buf), fp) != NULL)
+	for (std::string buf; std::getline(i, buf); )
 	{
-		if ((p=strchr(buf, '\n')) != 0)	*p=0;
-		if (strcmp(word, buf) == 0)
+		if (word == buf)
 		{
-			fclose(fp);
-			return (1);
+			return true;
 		}
 	}
-	fclose(fp);
+	i.close();
 
-	c=cgi("globignore");
+	std::string_view c=cgi("globignore");
 
-	p=static_cast<char *>(malloc(strlen(c)+1));
-	if (!p)	enomem();
-	strcpy(p, c);
+	while (!c.empty())
+	{
+		size_t i=c.find(':');
 
-	for (q=p; (q=strtok(q, ":")) != 0; q=0)
-		if (strcmp(q, word) == 0)
+		if (i > c.size())
+			i=c.size();
+
+		std::string_view q=c.substr(0, i);
+
+		if (i < c.size())
+			++i;
+		c=c.substr(i);
+
+		if (q == word)
 		{
-			free(p);
-			return (1);
+			return (true);
 		}
+	}
 
-	return (0);
+	return (false);
 }
 
 static void spelladd(const char *word)
 {
-FILE	*fp=opendict("a");
+	std::ofstream o{dictname(),
+			std::ios_base::out | std::ios_base::app};
 
-	if (fp)
-	{
-		fprintf(fp, "%s\n", word);
-		fclose(fp);
-	}
+	o << word << "\n";
 }
 
-static char *spellreplace(const char *word)
+static std::string spellreplace(std::string_view word)
 {
-	char	*p, *q, *r;
+	std::string p;
+	char *r;
 	const char *c=cgi("globreplace");
 
-	p=static_cast<char *>(malloc(strlen(c)+1));
-	if (!p)	enomem();
-	strcpy(p, c);
-	for (q=p; (q=strtok(q, ":")) != 0 && (r=strtok(0, ":")) != 0; q=0)
+	p.reserve(strlen(c));
+	p=c;
+
+	for (auto q=p.data();
+	     (q=strtok(q, ":")) != 0 && (r=strtok(0, ":")) != 0; q=0)
 	{
-		if (strcmp(q, word) == 0)
+		if (q == word)
 		{
-			q=static_cast<char *>(malloc(strlen(r)+1));
-			if (!q)	enomem();
-			strcpy(q, r);
-			free(p);
-			return (q);
+			return r;
 		}
 	}
-	free(p);
-	return (0);
+	return "";
 }
 
 void spell_check_continue()
@@ -657,17 +633,16 @@ void spell_check_continue()
 const char *filename=cgi("draftmessage");
 unsigned parnum=atol(cgi("row"));
 unsigned pos=atol(cgi("col"));
-char	*draftfilename;
 
 	CHECKFILENAME(filename);
-	draftfilename=maildir_find(INBOX "." DRAFTS, filename);
-	if (!draftfilename)
+	auto draftfilename=maildir_find(INBOX "." DRAFTS, filename);
+	if (draftfilename.empty())
 	{
 		output_form("folder.html");
 		return;
 	}
 
-	if (search_spell(draftfilename, parnum, pos) &&
+	if (search_spell(draftfilename.c_str(), parnum, pos) &&
 		*cgi("continue"))
 		output_form("spellchk.html");
 	else
@@ -676,11 +651,9 @@ char	*draftfilename;
 		cgi_put("previewmsg","SPELLCHK");
 		output_form("newmsg.html");
 	}
-	free(draftfilename);
 }
 
 void ispell_cleanup()
 {
-	if(ispellline) free(ispellline);
-	ispellline=NULL;
+	ispellline.clear();
 }

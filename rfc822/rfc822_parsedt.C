@@ -1,23 +1,36 @@
 /*
-** Copyright 1998 - 2011 S. Varshavchik.
+** Copyright 1998 - 2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
 /*
 */
 #include	"config.h"
+#include	"rfc822.h"
 #include	<stdio.h>
 #include	<string.h>
 #include	<time.h>
 
-#define my_isalpha(c) ( ( (c) >= 'a' && (c) <= 'z' ) ||	\
-			( (c) >= 'A' && (c) <= 'Z' ) )
+static inline bool my_isalpha(char c)
+{
+	return ( ( (c) >= 'a' && (c) <= 'z' ) ||	\
+			( (c) >= 'A' && (c) <= 'Z' ) );
+}
 
-#define my_isdigit(c) ( (c) >= '0' && (c) <= '9' )
+static inline bool my_isdigit(char c)
+{
+	return ( (c) >= '0' && (c) <= '9' );
+}
 
-#define my_isalnum(c) ( my_isalpha(c) || my_isdigit(c) )
+static inline bool my_isalnum(char c)
+{
+	return ( my_isalpha(c) || my_isdigit(c) );
+}
 
-#define my_isspace(c) ( (c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
+static inline bool my_isspace(char c)
+{
+	return ( (c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n');
+}
 
 /*
 ** time_t rfc822_parsedate(const char *p)
@@ -27,14 +40,14 @@
 ** returns - time_t, or 0 if the date cannot be parsed
 */
 
-static unsigned parsedig(const char **p)
+static unsigned parsedig(std::string_view &p)
 {
 	unsigned i=0;
 
-	while (my_isdigit(**p))
+	while (!p.empty() && my_isdigit(p.front()))
 	{
-		i=i*10 + **p - '0';
-		++*p;
+		i=i*10 + p.front() - '0';
+		p.remove_prefix(1);
 	}
 	return (i);
 }
@@ -48,12 +61,16 @@ static const char * const mnames[13]={
 	"May", "Jun", "Jul", "Aug",
 	"Sep", "Oct", "Nov", "Dec", NULL};
 
-#define	leap(y)	( \
-			((y) % 400) == 0 || \
-			(((y) % 4) == 0 && (y) % 100) )
+inline bool leap(unsigned y)
+{
+	return ( (y) % 400 == 0 || ((y) % 4 == 0 && (y) % 100) );
+}
 
 static unsigned mlength[]={31,28,31,30,31,30,31,31,30,31,30,31};
-#define	mdays(m,y)	( (m) != 2 ? mlength[(m)-1] : leap(y) ? 29:28)
+inline unsigned mdays(unsigned m, unsigned y)
+{
+	return ( m != 2 ? mlength[m-1] : leap(y) ? 29:28);
+}
 
 static const char * const zonenames[] = {
 	"UT","GMT",
@@ -79,43 +96,47 @@ static int zoneoffset[] = {
 	ZH(-1), ZH(-2), ZH(-3), ZH(-4), ZH(-5), ZH(-6), ZH(-7), ZH(-8), ZH(-9), ZH(-10), ZH(-11), ZH(-12),
 	ZH(1), ZH(2), ZH(3), ZH(4), ZH(5), ZH(6), ZH(7), ZH(8), ZH(9), ZH(10), ZH(11), ZH(12) };
 
-#define lc(x) ((x) >= 'A' && (x) <= 'Z' ? (x) + ('a'-'A'):(x))
+static inline char lc(char c)
+{
+	return ( (c) >= 'A' && (c) <= 'Z' ? (c) + ('a'-'A'):(c));
+}
 
-static unsigned parsekey(const char **mon, const char * const *ary)
+static unsigned parsekey(std::string_view &mon, const char * const *ary)
 {
 unsigned m, j;
 
 	for (m=0; ary[m]; m++)
 	{
 		for (j=0; ary[m][j]; j++)
-			if (lc(ary[m][j]) != lc((*mon)[j]))
+			if (j >= mon.size() || !ary[m][j]
+			    || lc(ary[m][j]) != lc(mon[j]))
 				break;
 		if (!ary[m][j])
 		{
-			*mon += j;
+			mon.remove_prefix(j);
 			return (m+1);
 		}
 	}
 	return (0);
 }
 
-static int parsetime(const char **t)
+static int parsetime(std::string_view &t)
 {
 	unsigned h,m,s=0;
 
-	if (!my_isdigit(**t))	return (-1);
+	if (t.empty() || !my_isdigit(t.front()))	return (-1);
 
 	h=parsedig(t);
 	if (h > 23)		return (-1);
-	if (**t != ':')		return (-1);
-	++*t;
-	if (!my_isdigit(**t))	return (-1);
+	if (t.empty() || t.front() != ':')		return (-1);
+	t.remove_prefix(1);
+	if (t.empty() || !my_isdigit(t.front()))	return (-1);
 	m=parsedig(t);
-	if (**t == ':')
+	if (!t.empty() && t.front() == ':')
 	{
-		++*t;
+		t.remove_prefix(1);
 
-		if (!my_isdigit(**t))	return (-1);
+		if (t.empty() || !my_isdigit(t.front()))	return (-1);
 		s=parsedig(t);
 	}
 	if (m > 59 || s > 59)	return (-1);
@@ -124,13 +145,20 @@ static int parsetime(const char **t)
 
 int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
 {
+	auto ret=rfc822::parse_date(rfcdt);
+	if (!ret)
+		return (-1);
+	*tret=*ret;
+	return (0);
+}
+
+std::optional<time_t> rfc822::parse_date(std::string_view rfcdt)
+{
 	unsigned day=0, mon=0, year;
 	int secs;
 	int offset;
-	time_t t;
+	time_t t=0;
 	unsigned y;
-
-	*tret=0;
 
 	/* Ignore day of the week.  Tolerate "Tue, 25 Feb 1997 ... "
 	** without the comma.  Tolerate "Feb 25 1997 ...".
@@ -138,57 +166,58 @@ int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
 
 	while (!day || !mon)
 	{
-		if (!*rfcdt)	return (-1);
-		if (my_isalpha(*rfcdt))
+		if (rfcdt.empty())	return (std::nullopt);
+		if (my_isalpha(rfcdt.front()))
 		{
-			if (mon)	return (-1);
-			mon=parsekey(&rfcdt, mnames);
+			if (mon)	return (std::nullopt);
+			mon=parsekey(rfcdt, mnames);
 			if (!mon)
-				while (*rfcdt && my_isalpha(*rfcdt))
-					++rfcdt;
+				while (!rfcdt.empty() && my_isalpha(rfcdt.front()))
+					rfcdt.remove_prefix(1);
 			continue;
 		}
 
-		if (my_isdigit(*rfcdt))
+		if (my_isdigit(rfcdt.front()))
 		{
-			if (day)	return (-1);
-			day=parsedig(&rfcdt);
-			if (!day)	return (-1);
+			if (day)	return (std::nullopt);
+			day=parsedig(rfcdt);
+			if (!day)	return (std::nullopt);
 			continue;
 		}
-		++rfcdt;
+		rfcdt.remove_prefix(1);
 	}
 
-	while (*rfcdt && my_isspace(*rfcdt))
-		++rfcdt;
-	if (!my_isdigit(*rfcdt))	return (-1);
-	year=parsedig(&rfcdt);
+	while (!rfcdt.empty() && my_isspace(rfcdt.front()))
+		rfcdt.remove_prefix(1);
+	if (rfcdt.empty() || !my_isdigit(rfcdt.front()))	return (std::nullopt);
+	year=parsedig(rfcdt);
 	if (year < 70)	year += 2000;
 	if (year < 100)	year += 1900;
 
-	while (*rfcdt && my_isspace(*rfcdt))
-		++rfcdt;
+	while (!rfcdt.empty() && my_isspace(rfcdt.front()))
+		rfcdt.remove_prefix(1);
 
 	if (day == 0 || mon == 0 || mon > 12 || day > mdays(mon,year))
-		return (-1);
+		return (std::nullopt);
 
-	secs=parsetime(&rfcdt);
-	if (secs < 0)	return (-1);
+	secs=parsetime(rfcdt);
+	if (secs < 0)	return (std::nullopt);
 
 	offset=0;
 
 	/* RFC822 sez no parenthesis, but I've seen (EST) */
 
-	while ( *rfcdt )
+	while (!rfcdt.empty())
 	{
-		if (my_isalnum(*rfcdt) || *rfcdt == '+' || *rfcdt == '-')
+		if (my_isalnum(rfcdt.front()) || rfcdt.front() == '+'
+		    || rfcdt.front() == '-')
 			break;
-		++rfcdt;
+		rfcdt.remove_prefix(1);
 	}
 
-	if (my_isalpha((int)(unsigned char)*rfcdt))
+	if (!rfcdt.empty() && my_isalpha((int)(unsigned char)rfcdt.front()))
 	{
-	int	n=parsekey(&rfcdt, zonenames);
+	int	n=parsekey(rfcdt, zonenames);
 
 		if (n > 0)	offset= zoneoffset[n-1];
 	}
@@ -197,23 +226,23 @@ int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
 	int	sign=1;
 	unsigned n;
 
-		switch (*rfcdt)	{
+		switch (rfcdt.empty() ? 0 : rfcdt.front())	{
 		case '-':
 			sign= -1;
 		case '+':
-			++rfcdt;
+			rfcdt.remove_prefix(1);
 		}
 
-		if (my_isdigit(*rfcdt))
+		if (!rfcdt.empty() && my_isdigit(rfcdt.front()))
 		{
-			n=parsedig(&rfcdt);
+			n=parsedig(rfcdt);
 			if (n > 2359 || (n % 100) > 59)	n=0;
 			offset = sign * ( (n % 100) * 60 + n / 100 * 60 * 60);
 		}
 	}
 
-	if (year < 1970)	return (-1);
-	if (year > 9999)	return (-1);
+	if (year < 1970)	return (std::nullopt);
+	if (year > 9999)	return (std::nullopt);
 
 	t=0;
 	for (y=1970; y<year; y++)
@@ -234,8 +263,7 @@ int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
 	for (y=1; y < mon; y++)
 		t += mdays(y, year) * 24 * 60 * 60;
 
-	*tret = ( t + (day-1) * 24 * 60 * 60 + secs - offset );
-	return 0;
+	return ( t + (day-1) * 24 * 60 * 60 + secs - offset );
 }
 
 const char *rfc822_mkdt(time_t t)

@@ -552,12 +552,7 @@ rfc2045::headers_base::headers_base(size_t empty_line_size)
 
 std::string_view rfc2045::headers_base::current_header()
 {
-	// If a line was read in next(), header_line is always
-	// non-empty except if left=0. So if it is empty, then
-	// this is either the first header, or at the end, and
-	// it does no harm to next() again.
-
-	if (header_line.empty())
+	if (!line_read)
 		next();
 
 	return header_line;
@@ -569,11 +564,12 @@ rfc2045::headers_base::name_content()
 	auto sv=current_header();
 
 	auto b=sv.begin(), e=sv.end();
-	auto p=std::find(b, e, ':');
+	auto p=std::find_if(b, e, [](char c) { return c == ':' || c == '\r' ||
+				c == '\n';});
 
 	auto q=p;
 
-	if (q < e) ++q;
+	if (q < e && *q == ':') ++q;
 
 	while (q < e)
 	{
@@ -678,6 +674,67 @@ T *rfc2045::entity::find(T *root, std::string_view id)
 	}
 }
 
+std::string rfc2045::entity_info::content_id_value() const
+{
+	std::string cid;
+
+	rfc822::tokens tokens{content_id};
+	rfc822::addresses addresses{tokens};
+
+	if (!addresses.empty())
+	{
+		auto &a=addresses.front();
+
+		cid.reserve(a.unquote_name(rfc822::length_counter{}));
+		a.unquote_name(std::back_inserter(cid));
+	}
+
+	return cid;
+}
+
+rfc2045::entity *rfc2045::entity::find_content_type(
+	std::string_view content_type
+)
+{
+	if (content_type == this->content_type.value)
+		return this;
+
+	if (std::string_view{this->content_type.value}.substr(0, 10) ==
+	    "multipart/")
+	{
+		for (auto &subentity:subentities)
+		{
+			auto p=subentity.find_content_type(content_type);
+
+			if (p)
+				return p;
+		}
+	}
+	return  nullptr;
+}
+
+const rfc2045::entity *rfc2045::entity::find_content_type(
+	std::string_view content_type
+) const
+{
+	if (content_type == this->content_type.value)
+		return this;
+
+	if (std::string_view{this->content_type.value}.substr(0, 10) ==
+	    "multipart/")
+	{
+		for (auto &subentity:subentities)
+		{
+			auto p=subentity.find_content_type(content_type);
+
+			if (p)
+				return p;
+		}
+	}
+	return  nullptr;
+}
+
+
 template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
 	rfc2045::entity *, std::string_view
 );
@@ -685,3 +742,48 @@ template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
 template const rfc2045::entity *rfc2045::entity::find<const rfc2045::entity>(
 	const rfc2045::entity *, std::string_view
 );
+
+rfc2045::entity::boundary_detector::boundary_detector(std::string &boundary)
+	: boundary{boundary}
+{
+	tolowercase(boundary);
+}
+
+void rfc2045::entity::boundary_detector::operator()(
+	const char *ptr, size_t n
+)
+{
+	if (found)
+		return;
+
+	for (size_t j=0; j<n; j++)
+	{
+		if (line.size() <= boundary.size()+2)
+			line.push_back(ptr[j]);
+
+		if (ptr[j] == '\n')
+		{
+			checked=false;
+			line.clear();
+			continue;
+		}
+
+		if (line.size() < boundary.size()+2)
+			continue;
+
+		if (checked)
+			continue;
+		checked=true;
+		if (line[0] == '-' && line[1] == '-' &&
+		    (tolowercase(line),
+		     std::equal(boundary.begin(),
+				boundary.end(),
+				line.begin()+2)))
+		{
+			found=true;
+		}
+	}
+
+}
+
+rfc2045::entity::boundary_detector::~boundary_detector()=default;

@@ -17,17 +17,13 @@
 
 #include	<stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
-
 extern void newmsg_init(const char *, const char *);
 extern void newmsg_do(const char *);
 
-extern char *newmsg_createdraft_do(const char *, const char *, int);
+extern std::string newmsg_createdraft_do(
+	const char *curdraft, const char *newmsg,
+	int keepheader
+);
 #define NEWMSG_SQISPELL	1
 #define NEWMSG_PCP	2
 
@@ -76,11 +72,5 @@ void show_textarea_init(struct show_textarea_info *info,
 
 void show_textarea(struct show_textarea_info *info,
 		   const char *ptr, size_t cnt);
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
 #endif

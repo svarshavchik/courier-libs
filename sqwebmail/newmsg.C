@@ -49,7 +49,7 @@ extern int spell_start(const char *);
 extern "C" const char *sqwebmail_mailboxid;
 extern "C" const char *sqwebmail_folder;
 extern "C" void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
-extern "C" void call_print_safe_to_stdout(const char *, size_t);
+extern void call_print_safe_to_stdout(const char *, size_t);
 extern "C" void print_attrencodedlen(const char *, size_t, int, FILE *);
 extern "C" void output_attrencoded_nltobr(const char *);
 extern "C" void output_attrencoded_oknl(const char *);
@@ -58,10 +58,10 @@ extern "C" void output_scriptptrget();
 extern "C" void output_form(const char *);
 extern "C" void output_urlencoded(const char *);
 
-extern char *newmsg_newdraft(const char *, const char *, const char *,
-				const char *);
+extern std::string newmsg_newdraft(const char *, const char *, const char *,
+				   const char *);
 extern char *newmsg_createdraft(const char *);
-extern "C" char *newmsg_createsentmsg(const char *, int *);
+extern std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr);
 extern "C" int ishttps();
 
 static void newmsg_header(const char *label, const char *field,
@@ -83,45 +83,27 @@ const char	*p=getarg("HDRMAXLEN");
 		field, hdrmaxlen);
 	if (encoded)
 	{
-		char	*s;
+		std::string s;
 
-		s=rfc822_display_hdrvalue_tobuf("subject",
-						encoded,
-						sqwebmail_content_charset,
-						NULL,
-						NULL);
+		rfc822::display_header(
+			"subject",
+			encoded,
+			sqwebmail_content_charset,
+			std::back_inserter(s)
+		);
 
-		if (!s)
-			s=strdup(encoded);
-
-		if (!s)	enomem();
-		output_attrencoded(s);
-		free(s);
+		output_attrencoded(s.c_str());
 	}
 	else if (val)
 		output_attrencoded(val);
 	printf("\" /></td></tr>\n");
 }
 
-static void printc(char c, void *dummy)
-{
-	char b[2];
-
-	b[0]=c;
-	b[1]=0;
-	output_attrencoded(b);
-}
-
-static void printsep(const char *c, void *dummy)
-{
-	output_attrencoded(c);
-}
-
 static void newmsg_header_rfc822(const char *label, const char *field,
-				 const char *encoded, const char *val,
+				 const std::string &encoded, const char *val,
 				 int is_readonly)
 {
-int		hdrmaxlen=512;
+int		hdrmaxlen=2048;
 const char	*p=getarg("HDRMAXLEN");
 
 	if (p && (atoi(p) > hdrmaxlen))
@@ -132,24 +114,18 @@ const char	*p=getarg("HDRMAXLEN");
 	       "<td width=\"6\">&nbsp;</td>",
 	       field, label);
 
-	printf("<td><input type=\"text\" name=\"%s\" size=\"50\" maxlength=\"%d\""
+	printf("<td><input type=\"text\" name=\"%s\" size=\"80\" maxlength=\"%d\""
 	       " class=\"new-message-header-text\" value=\"",
 		field, hdrmaxlen);
-	if (encoded)
+	if (!encoded.empty())
 	{
-		struct rfc822t *t=rfc822t_alloc_new(encoded, NULL, NULL);
-		struct rfc822a *a=t ? rfc822a_alloc(t):NULL;
+		rfc822::tokens t{encoded};
+		rfc822::addresses a{t};
 
-		if (a)
-		{
-			rfc2047_print_unicodeaddr(a, sqwebmail_content_charset,
-						  printc,
-						  printsep, NULL);
-			rfc822a_free(a);
-		}
+		auto addresses=a.wrap_display(-1, sqwebmail_content_charset);
 
-		if (t)
-			rfc822t_free(t);
+		for (auto &a:addresses)
+			output_attrencoded(a.c_str());
 	}
 	else if (val)
 		output_attrencoded(val);
@@ -358,153 +334,96 @@ static size_t show_textarea_ignore_sig(struct show_textarea_info *info,
 ** Return all from/to/cc/bcc addresses in the message.
 */
 
-char *newmsg_alladdrs(FILE *fp)
+std::string newmsg_alladdrs(rfc822::fdstreambuf &fp)
 {
-	char	*headers=NULL;
-	struct rfc822t *t;
-	struct rfc822a *a;
-	char *p, *q;
-	int l, i;
+	std::string headers;
 
-	if (fp)
+	if (!fp.error())
 	{
-		char *header, *value;
+		fp.pubseekpos(0);
 
-		rewind(fp);
+		rfc2045::entity::line_iter<false>::headers read_headers{fp};
 
 		/* First, combine all the headers into one header. */
 
-		while ((header=maildir_readheader(fp, &value, 1)) != 0)
+		do
 		{
-			char *newh;
+			const auto &[header, value]=read_headers.name_content();
 
-			if (strcmp(header, "from") &&
-			    strcmp(header, "to") &&
-			    strcmp(header, "cc") &&
-			    strcmp(header, "bcc"))
+			if (header != "from" &&
+			    header != "to" &&
+			    header != "cc" &&
+			    header != "bcc")
 				continue;
 
-			if (headers)
-			{
-				newh=static_cast<char *>(
-					realloc(headers, strlen(headers)
-						+strlen(value)+2)
-				);
-				if (!newh)
-					continue;
-				strcat(newh, ",");
-				headers=newh;
-			}
-			else
-			{
-				newh=static_cast<char *>(
-					malloc(strlen(value)+1)
-				);
-				if (!newh)
-					continue;
-				*newh=0;
-				headers=newh;
-			}
-			strcat(headers, value);
-		}
+			if (headers.size())
+				headers += ",";
 
+			headers += value;
+		} while (read_headers.next());
 	}
 
 	/* Now, parse the header, and extract the addresses */
 
-	t=rfc822t_alloc_new(headers ? headers:"", NULL, NULL);
-	a= t ? rfc822a_alloc(t):NULL;
+	rfc822::tokens t{headers};
+	rfc822::addresses a{t};
 
-	l=1;
-	for (i=0; i < (a ? a->naddrs:0); i++)
-	{
-		p=rfc822_getaddr(a, i);
-		if (p)
-		{
-			++l;
-			l +=strlen(p);
-			free(p);
-		}
-	}
-	p=static_cast<char *>(malloc(l));
-	if (p)
-		*p=0;
+	std::string s;
 
-	for (i=0; i < (a ? a->naddrs:0); i++)
+	for (auto &address:a)
 	{
-		q=rfc822_getaddr(a, i);
-		if (q)
-		{
-			if (p)
-			{
-				strcat(strcat(p, q), "\n");
-			}
-			free(q);
-		}
+		if (address.address.empty())
+			continue;
+
+		address.address.display_address(
+			sqwebmail_content_charset,
+			std::back_inserter(s)
+		);
+		s += "\n";
 	}
 
-	rfc822a_free(a);
-	rfc822t_free(t);
-	free(headers);
-	return (p);
+	return (s);
 }
 
-static int show_textarea_trampoline(const char *ptr, size_t cnt, void *arg)
+void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt)
 {
-	show_textarea( (struct show_textarea_info *)arg, ptr, cnt);
-	return 0;
-}
+	rfc2045::entity message;
+	std::istreambuf_iterator<char> b{&fp}, e;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
 
-extern "C" void newmsg_showfp(FILE *fp, int *attachcnt)
-{
-	struct	rfc2045 *p=rfc2045_fromfp(fp), *q;
-
-	if (!p)	enomem();
+	message.parse(parser);
 
 	/* Here's a nice opportunity to count all attachments */
 
-	*attachcnt=0;
+	*attachcnt=message.subentities.size();
 
-	for (q=p->firstpart; q; q=q->next)
-		if (!q->isdummy)	++*attachcnt;
 	if (*attachcnt)	--*attachcnt;
 	/* Not counting the 1st MIME part */
 
-	{
-		const char *content_type;
-		const char *content_transfer_encoding;
-		const char *charset;
+	if (message.content_type.value == "multipart/alternative")
+		*attachcnt=0;
 
-		rfc2045_mimeinfo(p, &content_type,
-				 &content_transfer_encoding, &charset);
-
-		if (content_type &&
-		    strcmp(content_type, "multipart/alternative") == 0)
-			*attachcnt=0;
-	}
-
-	q=rfc2045_searchcontenttype(p, "text/plain");
+	auto q=message.find_content_type("text/plain");
 
 	if (q)
 	{
-		struct rfc2045src *src=rfc2045src_init_fd(fileno(fp));
+		struct show_textarea_info info;
 
-		if (src)
-		{
-			struct show_textarea_info info;
+		show_textarea_init(&info, 1);
 
-			show_textarea_init(&info, 1);
+		rfc822::mime_decoder decoder{
+			[&]
+			(const char *ptr, size_t n)
+			{
+				show_textarea(&info, ptr, n);
+			},
+			fp, sqwebmail_content_charset
+		};
 
-			rfc2045_decodetextmimesection(src, q,
-						      sqwebmail_content_charset,
-						      NULL,
-						      &show_textarea_trampoline,
-						      &info);
-			rfc2045src_deinit(src);
-			show_textarea(&info, "\n", 1);
-		}
+		decoder.decode_header=false;
+		decoder.decode(*q);
+		show_textarea(&info, "\n", 1);
 	}
-	rfc2045_free(p);
 }
 
 extern "C" void newmsg_preview(const char *p)
@@ -551,12 +470,10 @@ void newmsg_init(const char *folder, const char *pos)
 	const char	*select2=getarg("SELECT2");
 	const char	*text1=getarg("TEXT1");
 	const char	*text2=getarg("TEXT2");
-	char	*draftmessage;
-	char	*draftmessagefilename;
+	std::string draftmessage;
 	const	char *p;
-	FILE	*fp;
 	int	attachcnt=0;
-	char	*cursubj, *curto, *curcc, *curbcc, *curfrom, *curreplyto;
+	std::string cursubj, curto, curcc, curbcc, curfrom, curreplyto;
 	int wbnochangingfrom;
 
 	/* Picking up an existing draft? */
@@ -569,8 +486,7 @@ void newmsg_init(const char *folder, const char *pos)
 
 	if (*p)
 	{
-		draftmessage=strdup(p);
-		if (!draftmessage)	enomem();
+		draftmessage=p;
 		p="";
 	}
 	else
@@ -578,7 +494,7 @@ void newmsg_init(const char *folder, const char *pos)
 		draftmessage=newmsg_newdraft(folder, pos,
 			forwardsep, replysalutation);
 
-		if (!draftmessage)
+		if (draftmessage.empty())
 		{
 			if (*ispreviewmsg())
 			{
@@ -587,13 +503,16 @@ void newmsg_init(const char *folder, const char *pos)
 				{
 					CHECKFILENAME(p);
 				}
-				draftmessage=newmsg_createdraft(p);
+				char *ptr=newmsg_createdraft(p);
+				draftmessage=ptr;
+				free(ptr);
 			}
 		}
 	}
 
-	draftmessagefilename= draftmessage ?
-				 maildir_find(INBOX "." DRAFTS, draftmessage):0;
+
+	auto draftmessagefilename= !draftmessage.empty() ?
+		maildir_find(INBOX "." DRAFTS, draftmessage.c_str()):"";
 
 	if (*(p=cgi("previewmsg")))
 	{
@@ -604,14 +523,15 @@ void newmsg_init(const char *folder, const char *pos)
 		printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"1\" class=\"box-small-outer\"><tr><td>\n");
 		printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"4\" class=\"preview\"><tr><td>\n");
 
-		if (draftmessagefilename)
+		if (!draftmessagefilename.empty())
 		{
-			const char *p=strrchr(draftmessagefilename, '/');
+			const char *p=
+				strrchr(draftmessagefilename.c_str(), '/');
 
 			if (p)
 				++p;
 			else
-				p=draftmessagefilename;
+				p=draftmessagefilename.c_str();
 
 			newmsg_preview(p);
 		}
@@ -644,66 +564,49 @@ void newmsg_init(const char *folder, const char *pos)
 
 	/* Read message from the draft file */
 
-	cursubj=0;
-	curto=0;
-	curfrom=0;
-	curreplyto=0;
-	curcc=0;
-	curbcc=0;
-	fp=0;
+	rfc822::fdstreambuf fp{
+		!draftmessagefilename.empty()
+		? maildir_safeopen(draftmessagefilename.c_str(),
+				   O_RDONLY, 0)
+		: -1
+	};
 
-	if (draftmessagefilename)
+	if (!fp.error())
 	{
-	int	x=maildir_safeopen(draftmessagefilename, O_RDONLY, 0);
+		rfc2045::entity::line_iter<false>::headers headers{fp};
 
-		if (x >= 0)
-			if ((fp=fdopen(x, "r")) == 0)
-				close(x);
-	}
-
-	if (fp != 0)
-	{
-	char *header, *value;
-
-		while ((header=maildir_readheader(fp, &value, 0)) != 0)
+		do
 		{
-		char	**rfchp=0;
+			const auto &[header, value]=headers.name_content();
 
-			if (strcmp(header, "subject") == 0)
+			std::string *rfchp=0;
+
+			if (header == "subject")
 			{
-				if (!cursubj && !(cursubj=strdup(value)))
-					enomem();
+				if (cursubj.empty())
+					cursubj=value;
 				continue;
 			}
 
-			while (*value && isspace(*value))
-				++value;
-
-			if (strcmp(header, "from") == 0)
+			if (header == "from")
 				rfchp= &curfrom;
-			if (strcmp(header, "reply-to") == 0)
+			if (header == "reply-to")
 				rfchp= &curreplyto;
-			if (strcmp(header, "to") == 0)
+			if (header == "to")
 				rfchp= &curto;
-			if (strcmp(header, "cc") == 0)
+			if (header == "cc")
 				rfchp= &curcc;
-			if (strcmp(header, "bcc") == 0)
+			if (header == "bcc")
 				rfchp= &curbcc;
+
 			if (rfchp)
 			{
-				char	*newh=static_cast<char *>(
-					malloc ( (*rfchp ? strlen(*rfchp)+2:1)
-						 +strlen(value))
-				);
-
-				if (!newh)	enomem();
-				strcpy(newh, value);
-				if (*rfchp)
-					strcat(strcat(newh, ","), *rfchp);
-				if (*rfchp)	free( *rfchp );
-				*rfchp=newh;
+				if (rfchp->size())
+					(*rfchp) += ", ";
+				(*rfchp) += value;
 			}
-		}
+		} while (headers.next());
+		fp.pubseekpos(0);
 	}
 
 	printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"1\" class=\"box-small-outer\"><tr><td>\n");
@@ -754,14 +657,7 @@ void newmsg_init(const char *folder, const char *pos)
 	newmsg_header_rfc822(replytolab, "headerreply-to",
 			     curreplyto, cgi("replyto"), 0);
 	newmsg_header(subjectlab, "headersubject",
-		      cursubj, cgi("subject"));
-
-	if (curto)	free(curto);
-	if (curfrom)	free(curfrom);
-	if (curreplyto)	free(curreplyto);
-	if (curcc)	free(curcc);
-	if (curbcc)	free(curbcc);
-	if (cursubj)	free(cursubj);
+		      cursubj.c_str(), cgi("subject"));
 
 	printf("<tr><td colspan=\"3\"><hr width=\"100%%\" /></td></tr>");
 	printf("<tr>"
@@ -790,7 +686,7 @@ void newmsg_init(const char *folder, const char *pos)
 
 	printf("<td>%s\n", text1);
 
-	if (fp)
+	if (!fp.error())
 	{
 		newmsg_showfp(fp, &attachcnt);
 	}
@@ -800,14 +696,13 @@ void newmsg_init(const char *folder, const char *pos)
 	}
 	printf("%s\n", text2);
 
-	if (draftmessage && *draftmessage)
+	if (!draftmessage.empty())
 	{
 		printf("<input type=\"hidden\" name=\"draftmessage\" value=\"");
-		output_attrencoded(draftmessage);
+		output_attrencoded(draftmessage.c_str());
 
 		printf("\" />");
 	}
-	if (draftmessage)	free(draftmessage);
 	printf("</td></tr>\n");
 
 	printf("<tr><th valign=\"top\" align=\"right\">"
@@ -829,36 +724,26 @@ void newmsg_init(const char *folder, const char *pos)
 
 	if (libmail_gpg_has_gpg(GPGDIR) == 0)
 	{
-		char *all_addr;
-
 		printf("<tr><td colspan=\"2\" align=\"right\"><input type=\"checkbox\" "
 		       "name=\"sign\" id=\"sign\" /></td><td><label for=\"sign\">%s</label><select name=\"signkey\">",
 		       getarg("SIGNLAB"));
 		gpgselectkey();
 		printf("</select></td></tr>\n");
 
-		all_addr=newmsg_alladdrs(fp);
+		auto all_addr=newmsg_alladdrs(fp);
 
 		printf("<tr valign=\"middle\"><td colspan=\"2\" align=\"right\">"
 		       "<input type=\"checkbox\" name=\"encrypt\" id=\"encrypt\" /></td>"
 		       "<td><table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr valign=\"middle\"><td><label for=\"encrypt\">%s</label></td><td><select size=\"4\" multiple=\"multiple\" name=\"encryptkey\">",
 		       getarg("ENCRYPTLAB"));
-		gpgencryptkeys(all_addr);
+		gpgencryptkeys(all_addr.c_str());
 		printf("</select></td></tr>\n");
 		printf("</table></td></tr>\n");
 
 		if (ishttps())
 			printf("<tr><td colspan=\"2\" align=\"left\">&nbsp;</td><td>%s<input type=\"password\" name=\"passphrase\" /></td></tr>\n",
 			       getarg("PASSPHRASE"));
-
-		if (all_addr)
-			free(all_addr);
 	}
-
-	if (fp)
-		fclose(fp);
-	if (draftmessagefilename)
-		free(draftmessagefilename);
 
 	printf("<tr><td colspan=\"2\">&nbsp;</td><td>");
 	printf("<input type=\"submit\" name=\"previewmsg\" value=\"%s\" />",
@@ -919,16 +804,15 @@ void sendmsg_done()
 
 static int dosendmsg(const char *origdraft)
 {
-pid_t	pid;
-const	char *returnaddr;
-int	pipefd1[2];
-char	*filename;
-const char *line;
-char	*draftmessage;
-int	isgpgerr;
-unsigned long filesize;
-struct stat stat_buf;
-int dsn;
+	pid_t	pid;
+	const	char *returnaddr;
+	int	pipefd1[2];
+	const char *line;
+	char	*draftmessage;
+	int	isgpgerr;
+	unsigned long filesize;
+	struct stat stat_buf;
+	int dsn;
 
 	if (tokencheck()) /* Duplicate submission - message was already sent */
 	{
@@ -948,9 +832,9 @@ int dsn;
 	if (!draftmessage)
 		enomem();
 
-	filename=newmsg_createsentmsg(draftmessage, &isgpgerr);
+	auto filename=newmsg_createsentmsg(draftmessage, &isgpgerr);
 
-	if (!filename)
+	if (filename.empty())
 	{
 		char *draftbase=maildir_basename(draftmessage);
 
@@ -973,8 +857,7 @@ int dsn;
 	if (pipe(pipefd1) != 0)
 	{
 		cgi_put("foldermsg", "ERROR: pipe() failed.");
-		maildir_msgpurgefile(INBOX "." SENT, filename);
-		free(filename);
+		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 		free(draftmessage);
 		return (0);
 	}
@@ -987,8 +870,7 @@ int dsn;
 		cgi_put("foldermsg", "ERROR: fork() failed.");
 		close(pipefd1[0]);
 		close(pipefd1[1]);
-		maildir_msgpurgefile(INBOX "." SENT, filename);
-		free(filename);
+		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 		free(draftmessage);
 		return (0);
 	}
@@ -997,10 +879,10 @@ int dsn;
 	{
 	static const char noexec[]="ERROR: Unable to execute sendit.sh.\n";
 	static const char nofile[]="ERROR: Temp file not available - probably exceeded quota.\n";
-	char	*tmpfile=maildir_find(INBOX "." SENT, filename);
+	auto tmpfile=maildir_find(INBOX "." SENT, filename.c_str());
 	int	fd;
 
-		if (!tmpfile)
+		if (tmpfile.empty())
 		{
 			if (fwrite((char*)nofile, 1, sizeof(nofile)-1, stderr))
 				; /* ignore */
@@ -1009,7 +891,7 @@ int dsn;
 
 		close(0);
 
-		fd=maildir_safeopen(tmpfile, O_RDONLY, 0);
+		fd=maildir_safeopen(tmpfile.c_str(), O_RDONLY, 0);
 		dup2(pipefd1[1], 1);
 		dup2(pipefd1[1], 2);
 		close(pipefd1[0]);
@@ -1051,68 +933,67 @@ int dsn;
 		if (*draftmessage)
 		{
 		char	*base=maildir_basename(draftmessage);
-		char	*draftfile=maildir_find(INBOX "." DRAFTS, base);
+		auto draftfile=maildir_find(INBOX "." DRAFTS, base);
 
 			free(base);
 
 			/* Remove draft file */
 
-			if (draftfile)
+			if (!draftfile.empty())
 			{
-			char	*replytofolder=0, *replytomsg=0;
-			char	*header, *value;
-			FILE	*fp;
-			int	x;
+				std::string replytofolder, replytomsg;
+				int	x;
 
-				fp=0;
-				x=maildir_safeopen(draftfile, O_RDONLY, 0);
-				if ( maildir_parsequota(draftfile, &filesize))
+				x=maildir_safeopen(draftfile.c_str(),
+						   O_RDONLY, 0);
+				if ( maildir_parsequota(draftfile.c_str(),
+							&filesize))
 				{
 					if (x < 0 || fstat(x, &stat_buf))
 						stat_buf.st_size=0;
 					filesize=stat_buf.st_size;
 				}
 
-				if (x >= 0)
-					if ((fp=fdopen(x, "r")) == 0)
-						close(x);
+				rfc822::fdstreambuf fp{x};
+
+				rfc2045::entity::line_iter<false>
+					::headers headers{fp};
+
+				headers.name_lc=true;
 
 				/* First, look for a message that we should
 				** mark as replied */
 
-				while (fp && (header=maildir_readheader(fp,
-						&value, 0)) != 0)
+				do
 				{
-					if (strcmp(header,"x-reply-to-folder")
-						== 0 && !replytofolder)
-					{
-						replytofolder=strdup(value);
-						if (!replytofolder)
-							enomem();
-					}
-					if (strcmp(header,"x-reply-to-msg")
-						== 0 && !replytomsg)
-					{
-						replytomsg=strdup(value);
-						if (!replytomsg)
-							enomem();
-					}
-					if (replytofolder && replytomsg)
+					const auto &[header, value]=headers.name_content();
+
+					if (header.empty())
 						break;
-				}
-				if (fp)	fclose(fp);
 
-				if (replytofolder && replytomsg)
-					maildir_markreplied(replytofolder,
-							replytomsg);
-				if (replytofolder)	free(replytofolder);
-				if (replytomsg)	free(replytomsg);
+					if (header == "x-reply-to-folder")
+					{
+						replytofolder=value;
+					}
+					if (header == "x-reply-to-msg")
+					{
+						replytomsg=value;
+					}
+					if (!replytofolder.empty() &&
+					    !replytomsg.empty())
+						break;
+				} while (headers.next());
 
-				maildir_quota_deleted(".",
-						      -(long)filesize, -1);
+				if (!replytofolder.empty() &&
+				    !replytomsg.empty())
+					maildir_markreplied(
+						replytofolder.c_str(),
+						replytomsg.c_str()
+					);
 
-				unlink(draftfile);
-				free(draftfile);
+				maildir_quota_deleted(".", -(long)filesize, -1);
+
+				unlink(draftfile.c_str());
 			}
 		}
 
@@ -1121,27 +1002,25 @@ int dsn;
 		if (*cgi("fcc") == 0)
 		{
 			unsigned long filesize=0;
-			char	*tmpfile=maildir_find(INBOX "." SENT, filename);
+			auto tmpfile=maildir_find(INBOX "." SENT,
+						  filename.c_str());
 
-			if (tmpfile)
+			if (!tmpfile.empty())
 			{
-				maildir_parsequota(tmpfile, &filesize);
-				unlink(tmpfile);
+				maildir_parsequota(tmpfile.c_str(), &filesize);
+				unlink(tmpfile.c_str());
 				maildir_quota_deleted(".", -(long)filesize,-1);
-				free(tmpfile);
 			}
 		}
 
-		free(filename);
 		free(draftmessage);
 		sendmsg_done();
 		return (1);
 	}
 
-	if (stat(filename, &stat_buf) == 0)
+	if (stat(filename.c_str(), &stat_buf) == 0)
 		maildir_quota_deleted(".", -(long)stat_buf.st_size, -1);
-	maildir_msgpurgefile(INBOX "." SENT, filename);
-	free(filename);
+	maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 
 	{
 	char *draftbase=maildir_basename(draftmessage);

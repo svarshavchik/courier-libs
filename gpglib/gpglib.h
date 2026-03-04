@@ -1,7 +1,7 @@
 #ifndef	gpglib_h
 #define	gpglib_h
 /*
-** Copyright 2001-2016 S. Varshavchik.  See COPYING for
+** Copyright 2001-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -206,40 +206,6 @@ int libmail_gpg_read(int (*)(const char *, size_t, void *),
 char *libmail_gpg_options(const char *gpgdir);
 	/* Filename of the options file.  If gpgdir is NULL try
 	** the environment variables. */
-
-
-struct rfc2045 *libmail_gpgmime_is_multipart_signed(const struct rfc2045 *);
-	/*
-	** Return ptr to signed content if ptr is a multipart/signed.
-	*/
-
-struct rfc2045 *libmail_gpgmime_is_multipart_encrypted(const struct rfc2045 *);
-	/*
-	** Return ptr to encrypted content if ptr is a multipart/encrypted.
-	*/
-
-int libmail_gpgmime_has_mimegpg(const struct rfc2045 *);
-	/*
-	** Return non-zero if MIME content has any signed or encrypted
-	** content.
-	*/
-
-int libmail_gpgmime_is_decoded(const struct rfc2045 *, int *);
-	/*
-	** Return non-zero if this is a multipart/mixed section generated
-	** by mimegpg, and return the GnuPG return code.
-	*/
-
-struct rfc2045 *libmail_gpgmime_decoded_content(const struct rfc2045 *);
-	/*
-	** If is_decoded, then return the ptr to the decoded content.
-	** (note - if decryption failed, NULL is returned).
-	*/
-
-struct rfc2045 *libmail_gpgmime_signed_content(const struct rfc2045 *);
-	/*
-	** If is_multipart_signed, return ptr to the signed content.
-	*/
 
 #ifdef  __cplusplus
 }

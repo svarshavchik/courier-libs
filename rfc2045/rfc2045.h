@@ -22,6 +22,7 @@
 #include <utility>
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 #include <map>
 #include <optional>
 #include <variant>
@@ -31,6 +32,7 @@
 #include <streambuf>
 #include <optional>
 #include <condition_variable>
+#include <tuple>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc2045charset.h"
@@ -158,6 +160,8 @@ struct rfc2045 {
 		// converted to 8bit or 7bit, as appropriate)
 		eightbit_always='A'
 	};
+
+	static std::string append_url(std::string_view, std::string_view);
 
 #endif
 	struct rfc2045 *parent;
@@ -1180,9 +1184,16 @@ auto rfc2231_attr_encode(std::string_view name,
 
   rfc2045::entity::line_iter<false>::headers headers{entity, input_stream};
 
+  rfc2045::entity::line_iter<false>::headers headers{input_stream};
+
   headers.name_lc=true;
   headers.keep_eol=false;
   headers.max=16384;
+
+  while (!headers.finished())
+  {
+	...
+  }
 
   std::string_view current_header{headers.current_header()};
 
@@ -1191,8 +1202,10 @@ auto rfc2231_attr_encode(std::string_view name,
   bool flag=headers.next();
 
   The headers class is actually a template, whose template parameter gets
-  deduced from the constructor's second parameter. The template implements
-  reading one header at a time, of a MIME entity's headers. It's constructed
+  deduced from the constructor's last parameter. The template implements
+  reading one header at a time, of the given MIME entity's headers (two
+  arguments passed to the constructor) or the current position in the input
+  stream (one argument passed to the constructor. It's constructed
   from a MIME entity object, and a std::streambuf object or another object
   with the following methods that are compatible with std::streambuf's:
 
@@ -1237,14 +1250,16 @@ auto rfc2231_attr_encode(std::string_view name,
   next() returns false if there are no more headers in the MIME entity. Note
   that the empty line that separates the MIME entity's headers from its body
   is considered to be a header, and is included in the headers returned here.
+  finished() returns true after next() returns false.
 
-  Note: the headers template reads as big of a header as exists in the MIME
-  entity. RFC2045_ERRLONGUNFOLDEDHEADER can be consulted, if desired.
+  NOTE: headers longer than max are silently truncated.
 
   rfc2045::entity::line_iter<false>::headers headers{input_stream};
 
   Passing in only an input stream results in reading the headers from that
-  stream, until an empty line gets read, indicating end of headers.
+  stream, until an empty line gets read, indicating end of headers. An optional
+  size_t parameter to the constructor sets an explicit upper limit on the
+  number of characters left.
 
   The underlying stream object must implement pubseekoff() in addition
   to pubseekpos().
@@ -1326,6 +1341,20 @@ auto rfc2231_attr_encode(std::string_view name,
   decode()'s template parameter defaults to false and sets the newline sequence
   that the MIME object was parsed with (false, default, is "\n", and true
   is "\r\n").
+
+  decoder.decode<false, false>(entity);
+
+  if (decoder.decoding_error)
+  {
+     // ...
+  }
+
+  decode()'s optional second template parameter defaults to true. If the
+  decoded MIME content cannot be converted to the specified character set,
+  the non-converted portion gets deleted and an error message gets appended
+  to the decoded text. Setting the optional second tempalte parameter to false
+  omits the error message. The decoding_error flag can be checked to determine
+  if this happened.
 
   REWRITING MIME ENTITIES
   =======================
@@ -1457,8 +1486,19 @@ class rfc2045::entity_info {
 
 	std::vector<rfc2045::entity> subentities;
 
+protected:
 	// Parent entity. rfc2045::entity will update this, nullptr for top lvl
 	rfc2045::entity *parent_entity=nullptr;
+public:
+	rfc2045::entity *get_parent_entity()
+	{
+		return parent_entity;
+	}
+
+	const rfc2045::entity *get_parent_entity() const
+	{
+		return parent_entity;
+	}
 
 	size_t	startpos=0,	/* Position where this entity's header begins */
 		startbody=0,	/* Where the body of the entity starts */
@@ -1571,6 +1611,15 @@ class rfc2045::entity_info {
 				iter->second.value == "flowed";
 		}
 
+		bool delsp_yes() const
+		{
+			auto iter=parameters.find("delsp");
+
+			return iter != parameters.end() &&
+				std::string_view{iter->second.value}.substr(
+					0, 1
+				) == "y";
+		}
 	};
 
 	// We look into Content-Type: so often we might as well store its
@@ -1586,10 +1635,15 @@ class rfc2045::entity_info {
 	// so we'll just grab them and parse them
 	// later.
 	std::string content_disposition, content_description,
+		content_base,
 		content_location, content_md5, content_language;
 
 	// Parsed identifier
 	std::string content_id;
+
+	// Strip the fluff
+
+	std::string content_id_value() const;
 
 	// Whether an explicit Content-Type: header was parsed.
 	bool has_content_type_header{false};
@@ -1753,6 +1807,31 @@ class rfc2045::entity : public entity_info {
 			std::string_view full_header);
 	};
 
+	// Utility class for detecting the presence of a proposed boundary
+	//
+	// The constructor takes a reference to a proposed boundary string.
+	// The overloaded () operator receives the raw contents, a chunk at
+	// a time.
+	//
+	// operator bool() indicates whether the MIME boundary delimiter
+	// string was found, there was a line in the raw contents that starts
+	// with -- followed by the boundary string.
+
+	struct boundary_detector {
+		std::string &boundary;
+	private:
+		bool found=false;
+		bool checked=false;
+		std::string line;
+
+	public:
+		// NOTE: boundary gets tolowercase()d.
+		boundary_detector(std::string &boundary);
+		~boundary_detector();
+		void operator()(const char *, size_t);
+		operator bool() const { return found; }
+	};
+
 	// Factory for iterators and parsers that use LF(false) or CRLF(true)
 	// newline sequence.
 
@@ -1783,7 +1862,7 @@ class rfc2045::entity : public entity_info {
 
 			autoconvert(e, closure, src, counter, metadata);
 
-			if constexpr (std::is_same_v<out_iter, out_iter &>)
+			if constexpr (!std::is_same_v<out_iter, out_iter &>)
 			{
 				return closure;
 			}
@@ -1803,6 +1882,10 @@ class rfc2045::entity : public entity_info {
 			src_type &src,
 			autoconvert_meta &metadata);
 	};
+
+	// Allow default constructor to be invoked if this entity is a part
+	// of a tuple
+	entity(std::tuple<>) noexcept : entity() {}
 
 	entity() noexcept;
 
@@ -1932,6 +2015,9 @@ public:
 		return find(this, id);
 	}
 
+	entity *find_content_type(std::string_view content_type);
+	const entity *find_content_type(std::string_view content_type) const;
+
 	struct dsn {
 		std::string_view action;
 		std::string_view original_recipient;
@@ -1979,6 +2065,34 @@ public:
 		handler.finish();
 		return true;
 	}
+
+	// Return ptr to signed content if ptr is a multipart/signed.
+
+	const entity *is_multipart_signed() const;
+
+	// Return ptr to encrypted content if ptr is a multipart/encrypted.
+	const entity *is_multipart_encrypted() const;
+
+	// Return whether MIME content has any signed or encrypted content.
+
+	bool has_mimegpg() const;
+
+	// Returns a value if this is a multipart/mixed section generated
+	// by mimegpg, and returns the GnuPG return code.
+	//
+
+	std::optional<int> is_decoded() const;
+
+	/*
+	** If is_multipart_decoded(), then return the ptr to the decoded
+	** content (note - if decryption failed, NULL is returned).
+	*/
+
+	const entity *decoded_content() const;
+
+	// If is_multipart_signed(), return ptr to the signed content.
+
+	const entity *signed_content() const;
 };
 
 template<bool crlf>
@@ -2654,6 +2768,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			content_type.lowercase_value("charset");
 			content_type.lowercase_value("boundary");
 			content_type.lowercase_value("format");
+			content_type.lowercase_value("delsp");
 		}
 		if (name == "content-transfer-encoding")
 		{
@@ -2682,7 +2797,37 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		}
 		if (name == "content-location")
 		{
-			content_location=header;
+			content_location.clear();
+
+			rfc822::tokens tokens{header};
+
+			content_location.reserve(
+				rfc822::tokens::unquote(
+					tokens.begin(),
+					tokens.end(),
+					rfc822::length_counter{}));
+
+			rfc822::tokens::unquote(
+				tokens.begin(),
+				tokens.end(),
+				std::back_inserter(content_location));
+		}
+		if (name == "content-base")
+		{
+			content_base.clear();
+
+			rfc822::tokens tokens{header};
+
+			content_base.reserve(
+				rfc822::tokens::unquote(
+					tokens.begin(),
+					tokens.end(),
+					rfc822::length_counter{}));
+
+			rfc822::tokens::unquote(
+				tokens.begin(),
+				tokens.end(),
+				std::back_inserter(content_base));
 		}
 		if (name == "content-language")
 		{
@@ -2701,7 +2846,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			rfc822::addresses addresses{tokens};
 
 			if (addresses.size())
-				addresses.back().unquote_name(
+				addresses.front().unquote_name(
 					std::back_inserter(content_id)
 				);
 		}
@@ -3037,6 +3182,7 @@ struct rfc2045::headers_base {
 protected:
 	const size_t empty_line_size;
 
+	bool line_read{false};
 	size_t left; // How many characters left until the end of headers.
 
 	std::string header_line;
@@ -3052,6 +3198,11 @@ public:
 	std::string_view current_header();
 	std::tuple<std::string_view, std::string_view> name_content();
 	std::tuple<std::string, bool> convert_name_check_empty();
+
+	bool finished() const
+	{
+		return left == 0;
+	}
 };
 
 template<bool crlf>
@@ -3060,8 +3211,10 @@ struct rfc2045::entity::line_iter<crlf>::headers : headers_base {
 
 	src_type &src;
 
+	bool stop_on_empty_line=true;
 public:
 
+	// Read the header portion of this MIME entity
 	headers(const entity &e, src_type &src)
 		: headers_base{crlf ? 2:1}, src{src}
 	{
@@ -3075,7 +3228,9 @@ public:
 			left=0;
 	}
 
-	headers(src_type &src)
+	// Read the headers at this position.
+
+	headers(src_type &src, size_t counter=0)
 		: headers_base{crlf ? 2:1}, src{src}
 	{
 		const auto err_value=static_cast<
@@ -3100,6 +3255,13 @@ public:
 		{
 			left=endpos-curpos;
 		}
+
+		if (counter > 0 && counter <= left)
+		{
+			left=counter;
+			stop_on_empty_line=false;
+		}
+
 	}
 
 	~headers()=default;
@@ -3113,6 +3275,7 @@ public:
 	bool next() override
 	{
 		header_line.clear();
+		line_read=true;
 
 		if (!left)
 			return false;
@@ -3194,9 +3357,10 @@ public:
 		}
 
 		// Empty line results in an EOF, here, if a MIME entity
-		// was not passed in the constructor.
+		// was not passed in the constructor, and no explicit byte
+		// count was given.
 
-		if (line_size <= empty_line_size)
+		if (line_size <= empty_line_size && stop_on_empty_line)
 			left=0;
 
 		if (name_lc)
@@ -3258,6 +3422,9 @@ class rfc822::mime_decoder {
 	bool add_eol=false;
 	bool header_name_lc=true;
 	bool decode_subentities=true;
+
+	bool decoding_error=false;
+	bool report_decoding_error=true;
 
 	template<bool crlf=false>
 	void decode(const rfc2045::entity &e);
@@ -3376,14 +3543,14 @@ void rfc822::mime_decoder<out_iter, src_type>::decode(
 	if (!decode_body)
 		return;
 
-	bool errflag=false;
+	decoding_error=false;
 
 	if (charset.empty() || std::string_view{
 			e.content_type.value
 		}.substr(0, 5) != "text/")
 	{
 		if (!e.decode_body(src, out))
-			errflag=true;
+			decoding_error=true;
 	}
 	else
 	{
@@ -3399,20 +3566,20 @@ void rfc822::mime_decoder<out_iter, src_type>::decode(
 					      converter(ptr, n);
 				      }))
 		{
-			errflag=true;
+			decoding_error=true;
 		}
 
 		bool conversion_error;
 		converter.end(conversion_error);
 
 		if (conversion_error)
-			errflag=true;
+			decoding_error=true;
 	}
 
 	if (add_eol)
 		out(eol.data(), eol.size());
 
-	if (errflag)
+	if (decoding_error && report_decoding_error)
 	{
 		std::string_view error_message{"[MIME decoding error]"};
 		out(error_message.data(), error_message.size());
@@ -3523,54 +3690,19 @@ bool rfc2045::entity::line_iter<crlf>::try_boundary(
 		return false;
 	}
 
-	bool found=false;
-	std::string line;
+	boundary_detector detector{boundary};
 
-	tolowercase(boundary);
-
-	std::function<void (const char *, size_t)> closure=
+	rfc822::mime_decoder do_decoder{
 		[&]
 		(const char *ptr, size_t n)
 		{
-			if (found)
-				return;
-
-			for (size_t j=0; j<n; j++)
-			{
-				char c=ptr[j];
-
-				if (c >= 'A' && c <= 'Z')
-					c += 'a'-'A';
-
-				if (line.size() <= boundary.size()+2)
-					line.push_back(c);
-
-				if (ptr[j] == '\n')
-				{
-					line.clear();
-					continue;
-				}
-
-				if (line.size() < boundary.size()+2)
-					continue;
-
-				if (line[0] == '-' && line[1] == '-' &&
-				    std::equal(boundary.begin(),
-					       boundary.end(),
-					       line.begin()+2))
-				{
-					found=true;
-				}
-			}
-
-		};
-
-	rfc822::mime_decoder do_decoder{closure, src};
+			detector(ptr, n);
+		}, src};
 
 	do_decoder.decode_header=true;
 	do_decoder.decode(e);
 
-	return found;
+	return detector;
 }
 template<typename src_type>
 std::string rfc2045::entity::new_boundary(src_type &&src, unsigned &counter)

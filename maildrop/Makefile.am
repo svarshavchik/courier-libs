@@ -65,6 +65,7 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 mailbot_LDFLAGS = -static
 
 mailbot_old_SOURCES=mailbot-old.c
+nodist_EXTRA_mailbot_old_SOURCES=forcecpp.C
 mailbot_old_DEPENDENCIES=$(mailbot_DEPENDENCIES)
 mailbot_old_LDADD=$(mailbot_LDADD)
 mailbot_old_LDFLAGS = -static
