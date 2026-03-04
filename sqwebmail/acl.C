@@ -54,7 +54,7 @@
 
 #include	<courier-unicode.h>
 #include <string>
-
+#include <fstream>
 
 /* ACL support stuff */
 
@@ -124,13 +124,13 @@ extern "C" const char *maildir_shared_index_file()
 static bool acl_read2(
 	maildir_aclt_list *l,
 	struct maildir_info *minfo,
-	char **owner
+	std::string &owner
 );
 
 static bool acl_read(
 	maildir_aclt_list *l,
 	const char *folder,
-	char **owner
+	std::string &owner
 )
 {
 	struct maildir_info minfo;
@@ -148,7 +148,7 @@ static bool acl_read(
 
 static bool acl_read2(maildir_aclt_list *l,
 	      struct maildir_info *minfo,
-	      char **owner)
+	      std::string &owner)
 {
 	bool rc;
 	char *p;
@@ -162,12 +162,12 @@ static bool acl_read2(maildir_aclt_list *l,
 					  ACL_LOOKUP ACL_READ
 					  ACL_SEEN ACL_WRITE
 					  ACL_INSERT
-					  ACL_DELETEMSGS ACL_EXPUNGE, NULL) < 0
-		    || (*owner=strdup("vendor=courier.internal")) == NULL)
+					  ACL_DELETEMSGS ACL_EXPUNGE, NULL))
 		{
 			maildir_aclt_list_destroy(l);
 			return false;
 		}
+		owner="vendor=courier.internal";
 		return true;
 	}
 
@@ -182,27 +182,25 @@ static bool acl_read2(maildir_aclt_list *l,
 	rc=maildir_acl_read(l, minfo->homedir,
 			    strncmp(p, "./", 2) == 0 ? p+2:p) == 0;
 	free(p);
-	if (owner && rc)
+	if (rc)
 	{
-		*owner=minfo->owner;
-		minfo->owner=NULL;
+		owner=minfo->owner;
 	}
+
 	return rc;
 }
 
 void acl_computeRightsOnFolder(const char *folder, char *rights)
 {
 	maildir_aclt_list l;
-	char *owner;
+	std::string owner;
 
-	if (!acl_read(&l, folder, &owner))
+	if (!acl_read(&l, folder, owner))
 	{
 		*rights=0;
 		return;
 	}
-	acl_computeRights(&l, rights, owner);
-	if (owner)
-		free(owner);
+	acl_computeRights(&l, rights, owner.c_str());
 	maildir_aclt_list_destroy(&l);
 }
 
@@ -261,7 +259,7 @@ void listrights()
 {
 	maildir_aclt_list l;
 	char buf[40];
-	char *owner;
+	std::string owner;
 
 	if (*cgi("do.update") || *cgi("delentity"))
 	{
@@ -310,17 +308,15 @@ void listrights()
 		}
 	}
 
-	if (!acl_read(&l, sqwebmail_folder, &owner))
+	if (!acl_read(&l, sqwebmail_folder, owner))
 	{
 		printf("%s", getarg("ACL_cantread"));
 		return;
 	}
 	buf[0]=0;
 	strncat(buf, getarg("ACL_all"), sizeof(buf)-2);
-	acl_computeRights(&l, buf, owner);
+	acl_computeRights(&l, buf, owner.c_str());
 	maildir_aclt_list_destroy(&l);
-	if (owner)
-		free(owner);
 
 	if (!maildir_acl_canlistrights(buf))
 	{
@@ -334,7 +330,7 @@ void listrights()
 static void doupdate()
 {
 	maildir_aclt_list l;
-	char *owner;
+	std::string owner;
 	char buf[2];
 	char *p;
 	struct maildir_info minfo;
@@ -343,18 +339,16 @@ static void doupdate()
 				   login_returnaddr()) < 0)
 		return;
 
-	if (!acl_read2(&l, &minfo, &owner))
+	if (!acl_read2(&l, &minfo, owner))
 	{
 		maildir_info_destroy(&minfo);
 		return;
 	}
 
 	strcpy(buf, ACL_ADMINISTER);
-	acl_computeRights(&l, buf, owner);
+	acl_computeRights(&l, buf, owner.c_str());
 	if (!*buf)
 	{
-		if (owner)
-			free(owner);
 		maildir_aclt_list_destroy(&l);
 		maildir_info_destroy(&minfo);
 		return;
@@ -451,13 +445,11 @@ static void doupdate()
 
 		if (maildir_acl_write(&l, minfo.homedir,
 				      strncmp(p, "./", 2) == 0 ? p+2:p,
-				      owner, &err_ident))
+				      owner.c_str(), &err_ident))
 			printf("%s", getarg("ACL_failed"));
 		free(p);
 	}
 
-	if (owner)
-		free(owner);
 	maildir_aclt_list_destroy(&l);
 	maildir_info_destroy(&minfo);
 }
@@ -506,7 +498,7 @@ void getacl()
 {
 	maildir_aclt_list l;
 	char buf[2];
-	char *owner;
+	std::string owner;
 	const char *a;
 	const char *editentity=cgi("editentity");
 	const char *editaccess=cgi("editaccess");
@@ -515,15 +507,13 @@ void getacl()
 	const char *entityval="";
 	int negate=0;
 
-	if (!acl_read(&l, sqwebmail_folder, &owner))
+	if (!acl_read(&l, sqwebmail_folder, owner))
 	{
 		printf("%s", getarg("ACL_noaccess"));
 		return;
 	}
 	strcpy(buf, ACL_ADMINISTER);
-	acl_computeRights(&l, buf, owner);
-	if (owner)
-		free(owner);
+	acl_computeRights(&l, buf, owner.c_str());
 
 	if (buf[0] == 0)
 	{
