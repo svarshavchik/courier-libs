@@ -98,9 +98,12 @@ Open some file or a pipe for reading and writing.
 ******************************************************************************/
 
 static rfc822::fdstreambuf openfile_or_pipe(std::string_view filename,
-					    std::string_view mode)
+					    std::string_view mode,
+					    int &fd_to_dup)
 {
-	int	fd, fd_to_dup = fd_wanted(filename, mode);
+	int	fd;
+
+	fd_to_dup = fd_wanted(filename, mode);
 
 	if (fd_to_dup >= 0)
 		fd = dup(fd_to_dup);
@@ -129,7 +132,9 @@ contents into it.
 
 static rfc822::fdstreambuf openfile(std::string_view filename)
 {
-	rfc822::fdstreambuf fp=openfile_or_pipe(filename, "r");
+	int ignore;
+
+	rfc822::fdstreambuf fp=openfile_or_pipe(filename, "r", ignore);
 	int	fd=fp.fileno();;
 
 	if (!isreg(fd))	/* Must be a pipe */
@@ -201,7 +206,8 @@ Build argv/argc from a file.
 
 static void read_args(std::vector<std::string> &args, std::string file)
 {
-	auto streambuf=openfile_or_pipe(file, "r");
+	int dupped_fd;
+	auto streambuf=openfile_or_pipe(file, "r", dupped_fd);
 	std::istream i{&streambuf};
 	std::string buffer;
 
@@ -225,14 +231,15 @@ static void read_args(std::vector<std::string> &args, std::string file)
 		if (std::string_view{&*b,
 				     static_cast<size_t>(e-b)} == "-")
 		{
-			if (isreg(streambuf.fileno()))
+			if (dupped_fd >= 0 && isreg(streambuf.fileno()))
 			{
 				auto orig_pos=streambuf.pubseekoff(
 					0, std::ios_base::cur
 				);
 				if (orig_pos == -1 ||
 				    lseek(streambuf.fileno(), orig_pos,
-					  SEEK_SET) == -1)
+					  SEEK_SET) == -1 ||
+				    dup2(streambuf.fileno(), dupped_fd) < 0)
 				{
 					perror("seek");
 					exit(1);
@@ -1079,6 +1086,7 @@ char	buf2[NUMBUFSIZE+1];
 	}
 	close(pipefd[1]);
 
+	int ignore;
 	/*
 	** Open the pipe by calling openfile(), automatically creating
 	** the scratch file, if necessary.
@@ -1089,14 +1097,16 @@ char	buf2[NUMBUFSIZE+1];
 
 	rfc822::fdstreambuf fp=
 		usescratch ? openfile(buf)
-		:openfile_or_pipe(buf, "r");
+		:openfile_or_pipe(buf, "r", ignore);
 	close(pipefd[0]);	/* fd was duped by openfile */
 	return (fp);
 }
 
 void mimestruct::openoutput()
 {
-	outputfilebuf=openfile_or_pipe(outputfile, std::string_view{"w"});
+	int ignore;
+	outputfilebuf=openfile_or_pipe(outputfile, std::string_view{"w"},
+				       ignore);
 }
 
 void mimestruct::openjoinmultipart()
@@ -1117,21 +1127,23 @@ void mimestruct::openjoinmultipart()
 
 void mimestruct::opencreatesimplemime()
 {
+	int ignore;
 	if (inputchild1)
 		inputfilebuf1=openchild(*inputchild1, &child1,
 			mimeencoding ? 0:1);
 	else
 		inputfilebuf1= mimeencoding
-			? openfile_or_pipe(inputfile1, "r")
+			? openfile_or_pipe(inputfile1, "r", ignore)
 			: openfile(inputfile1);
 	openoutput();
 }
 
 void mimestruct::opencreatemultipartmime()
 {
+	int ignore;
 	if (inputchild1)
 		inputfilebuf1=openchild(*inputchild1, &child1, 1);
 	else
-		inputfilebuf1=openfile_or_pipe(inputfile1, "r");
+		inputfilebuf1=openfile_or_pipe(inputfile1, "r", ignore);
 	openoutput();
 }
