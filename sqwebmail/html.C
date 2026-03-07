@@ -121,17 +121,16 @@ struct htmlfilter_info {
 	void *output_func_arg;
 
 	/* Content base for relative URLs */
-	char *contentbase;
+	char *contentbase{nullptr};
 
 	/* Prepend to http: and https: links */
-	char *http_prefix;
+	std::string http_prefix;
 
 	/* Prepent to mailto: links */
-	char *mailto_prefix;
+	std::string mailto_prefix;
 
 	/* A cid: link gets passed to this function for processing. */
-	char *(*convert_cid_func)(const char *, void *);
-	void *convert_cid_func_arg;
+	std::function<std::string (const char *)> convert_cid_func;
 
 	/* Current handle for the input HTML stream */
 
@@ -164,7 +163,7 @@ struct htmlfilter_info {
 	char32_t value_quote;
 
 	/* Current tag being processed */
-	const struct taginfo *tag;
+	const struct taginfo *tag=nullptr;
 
 	/* Whether parsed an empty tag */
 	int tag_empty;
@@ -185,7 +184,7 @@ struct htmlfilter_info {
 	** contents should be discarded
 	*/
 
-	size_t n_discarded;
+	size_t n_discarded=0;
 };
 
 static void free_last_attr(struct htmlfilter_info *p)
@@ -278,9 +277,8 @@ struct htmlfilter_info *htmlfilter_alloc(void (*output_func)
 					 (const char32_t *, size_t, void *),
 					 void *output_func_arg)
 {
-	struct htmlfilter_info *p;
+	struct htmlfilter_info *p=new htmlfilter_info;
 
-	p=static_cast<htmlfilter_info *>(calloc(1, sizeof(*p)));
 	if (!p)
 		return p;
 
@@ -310,13 +308,7 @@ void htmlfilter_free(struct htmlfilter_info *p)
 	if (p->contentbase)
 		free(p->contentbase);
 
-	if (p->http_prefix)
-		free(p->http_prefix);
-
-	if (p->mailto_prefix)
-		free(p->mailto_prefix);
-
-	free(p);
+	delete p;
 }
 
 void htmlfilter_set_contentbase(struct htmlfilter_info *p,
@@ -330,29 +322,21 @@ void htmlfilter_set_contentbase(struct htmlfilter_info *p,
 
 
 void htmlfilter_set_http_prefix(struct htmlfilter_info *p,
-				const char *http_prefix)
+				std::string http_prefix)
 {
-	if (p->http_prefix)
-		free(p->http_prefix);
-
-	p->http_prefix=http_prefix ? strdup(http_prefix):NULL;
+	p->http_prefix=std::move(http_prefix);
 }
 
 void htmlfilter_set_mailto_prefix(struct htmlfilter_info *p,
-				  const char *mailto_prefix)
+				  std::string mailto_prefix)
 {
-	if (p->mailto_prefix)
-		free(p->mailto_prefix);
-
-	p->mailto_prefix=mailto_prefix ? strdup(mailto_prefix):NULL;
+	p->mailto_prefix=std::move(mailto_prefix);
 }
 
 void htmlfilter_set_convertcid(struct htmlfilter_info *p,
-			       char *(*convert_cid_func)(const char *, void *),
-			       void *convert_cid_func_arg)
+			       std::function<std::string (const char *)> convert_cid_func)
 {
-	p->convert_cid_func=convert_cid_func;
-	p->convert_cid_func_arg=convert_cid_func_arg;
+	p->convert_cid_func=std::move(convert_cid_func);
 }
 
 void htmlfilter(struct htmlfilter_info *p,
@@ -1210,15 +1194,10 @@ static int change_href(struct htmlfilter_info *p,
 
 	if (strncmp(url, "cid:", 4) == 0 && p->convert_cid_func)
 	{
-		char *q;
+		std::string q=p->convert_cid_func(url+4);
 
-		if ((q=(*p->convert_cid_func)
-		     (url+4, p->convert_cid_func_arg)) != NULL)
-		{
-			unicode_buf_append_char(dst, q, strlen(q));
-			free(q);
-			return 1;
-		}
+		unicode_buf_append_char(dst, q.c_str(), q.size());
+		return 1;
 	}
 
 	if (must_be_cid)
@@ -1226,16 +1205,20 @@ static int change_href(struct htmlfilter_info *p,
 
 	if ((strncmp(url, "http:", 5) == 0 ||
 	     strncmp(url, "https:", 6) == 0)
-	    && p->http_prefix && *p->http_prefix)
+	    && !p->http_prefix.empty())
 	{
 		*was_http_url=1;
-		unicode_buf_append_char(dst, p->http_prefix, strlen(p->http_prefix));
+		unicode_buf_append_char(
+			dst,
+			p->http_prefix.c_str(),
+			p->http_prefix.size()
+		);
 		append_orig_href(p, dst, url);
 		return 1;
 	}
 
 	if (strncmp(url, "mailto:", 7) == 0
-	    && p->mailto_prefix && *p->mailto_prefix)
+	    && !p->mailto_prefix.empty())
 	{
 		size_t i;
 
@@ -1246,8 +1229,11 @@ static int change_href(struct htmlfilter_info *p,
 				break;
 			}
 
-		unicode_buf_append_char(dst, p->mailto_prefix,
-					strlen(p->mailto_prefix));
+		unicode_buf_append_char(
+			dst,
+			p->mailto_prefix.c_str(),
+			p->mailto_prefix.size()
+		);
 		append_orig_href(p, dst, url+7);
 		return 1;
 	}

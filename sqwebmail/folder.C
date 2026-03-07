@@ -2074,30 +2074,32 @@ const char *redirect_hash(const char *timestamp)
 	return md5_hash_courier(buffer);
 }
 
-static char *get_url_to_mime_part(const char *mimeid, void *arg)
+static std::string get_url_to_mime_part(const char *mimeid)
 {
 	const char *mimegpgfilename=cgi(MIMEGPGFILENAME);
 	const char *pos;
-	char *p, *q;
+	const char *p;
 
 	p=scriptptrget();
 	pos=cgi("pos");
 
-	q=static_cast<char *>(
-		malloc(strlen(p)+strlen(pos) +
-		       strlen(mimegpgfilename)+
-		       strlen(mimeid)+
-		       sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename="))
+	std::string q;
+	q.reserve(
+		strlen(p)+strlen(pos) +
+		strlen(mimegpgfilename)+strlen(mimeid)+
+		sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename=")-1
 	);
-	if (!q)	enomem();
-	strcpy(q, p);
-	strcat(q, "&form=fetch&pos=");
-	strcat(q, pos);
-	strcat(q, "&mimeid=");
-	strcat(q, mimeid);
+	q=p;
+	q+="&form=fetch&pos=";
+	q+=pos;
+	q+="&mimeid=";
+	q+=mimeid;
 
 	if (*mimegpgfilename)
-		strcat(strcat(q, "&mimegpgfilename="), mimegpgfilename);
+	{
+		q+="&mimegpgfilename=";
+		q+=mimegpgfilename;
+	}
 
 	return (q);
 }
@@ -2158,8 +2160,6 @@ void folder_showmsg(const char *dir, size_t pos)
 		char nowbuffer[NUMBUFSIZE];
 		time_t now;
 		char *hash;
-		char *washpfix;
-		char *washpfixmailto;
 		char *scriptnameget=scriptptrget();
 		static const char formbuf[]="&form=newmsg&to=";
 
@@ -2181,29 +2181,27 @@ void folder_showmsg(const char *dir, size_t pos)
 
 		hash=cgiurlencode(redirect_hash(nowbuffer));
 
-		washpfix=static_cast<char *>(
-			malloc(strlen(script_name)
-			       + strlen(hash ? hash:"") + strlen(nowbuffer)
-			       + 100)
+		std::string washpfix;
+		washpfix.reserve(
+			strlen(script_name)
+			+ strlen(hash ? hash:"") + strlen(nowbuffer)
+			+ 100
 		);
-		if (!washpfix)	enomem();
 
-		strcat(strcat(strcat(strcat(strcat(strcpy(washpfix,
-							  script_name),
-						   "?timestamp="),
-					    nowbuffer),
-				     "&md5="),
-			      (hash ? hash:"")),
-		       "&redirect=");
+		washpfix=script_name;
+		washpfix+="?timestamp=";
+		washpfix+=nowbuffer;
+		washpfix+="&md5=";
+		washpfix+=(hash ? hash:"");
+		washpfix+="&redirect=";
 
 		if (hash)
 			free(hash);
 
-		washpfixmailto=static_cast<char *>(
-			malloc(strlen(scriptnameget)+sizeof(formbuf))
-		);
-		if (!washpfixmailto)	enomem();
-		strcat(strcpy(washpfixmailto, scriptnameget), formbuf);
+		std::string washpfixmailto;
+		washpfixmailto.reserve(strlen(scriptnameget)+sizeof(formbuf));
+		washpfixmailto=scriptnameget;
+		washpfixmailto+=formbuf;
 		free(scriptnameget);
 
 		info->wash_http_prefix=washpfix;
@@ -2228,9 +2226,6 @@ void folder_showmsg(const char *dir, size_t pos)
 
 		msg2html(fp, message, info);
 		msg2html_free(info);
-
-		free(washpfix);
-		free(washpfixmailto);
 	}
 
 	if (*cgi(MIMEGPGFILENAME) == 0)
@@ -2324,23 +2319,15 @@ static int importkey_func(const char *p, size_t cnt, void *voidptr)
 ** "x.foo".  If we're currently showing (INBOX|shared|#shared).foo, return
 ** an empty string.
 */
-static char *get_parent_folder(const char *p)
+static std::string get_parent_folder(std::string_view p)
 {
-	const char *q;
+	auto q=p.rfind('.');
 
-	q=strrchr(p, '.');
-
-	if (q)
+	if (q != std::string_view::npos)
 	{
-		char	*s;
-
-		s=static_cast<char *>(malloc(q-p+1));
-		if (!s)	enomem();
-		memcpy(s, p, q-p);
-		s[q-p]=0;
-		return (s);
+		return std::string{p.data(), p.data()+q};
 	}
-	return (strdup(""));
+	return "";
 }
 
 static int checkrename(const char *origfolder,
@@ -3094,9 +3081,9 @@ static void do_folderlist(const char *inbox_pfix,
 
 	if (*folderdir && strcmp(folderdir, INBOX))
 	{
-		char *parentfolder;
+		std::string parentfolder;
 		size_t	i;
-		char *q, *r;
+		char *r;
 		const char *c;
 
 		if (strncmp(folderdir, SHARED ".", sizeof(SHARED)) == 0)
@@ -3118,10 +3105,6 @@ static void do_folderlist(const char *inbox_pfix,
 		else
 			parentfolder=get_parent_folder(folderdir);
 
-		for (q=parentfolder; *q; q++)
-			if (*q == '.')
-				break;
-
 		printf("<tr><td align=\"left\" colspan=\"2\" class=\"folderparentdir\">%s", folders_img);
 		printf("&lt;&lt;&lt;&nbsp;");
 
@@ -3136,37 +3119,43 @@ static void do_folderlist(const char *inbox_pfix,
 #endif
 
 		i=0;
-		while (parentfolder[i])
+		std::string buf;
+
+		while (i < parentfolder.size())
 		{
-		char	*p=strchr(parentfolder+i, '.');
-		int	c;
+			auto p=parentfolder.find('.', i);
 
-			if (!p)	p=parentfolder+strlen(parentfolder);
-			c= *p;
-			*p=0;
+			if (p > parentfolder.size())
+				p=parentfolder.size();
 
-			if (strchr(parentfolder, '.'))
+			buf.clear();
+			buf.append(parentfolder, 0, p);
+
+			if (std::string_view{
+				parentfolder
+			}.substr(0, p).find('.') != std::string_view::npos)
 				printf(".");
 			printf("<a href=\"");
 			output_scriptptrget();
 			printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
-			output_urlencoded(parentfolder);
+			output_urlencoded(buf.c_str());
 			printf("\">");
-			if (strcmp(parentfolder, NEWSHAREDSP) == 0)
+			if (buf == NEWSHAREDSP)
 				printf("%s", getarg("PUBLICFOLDERS"));
 			else
-				list_folder_xlate(parentfolder,
-						  parentfolder+i,
-						  name_inbox,
-						  name_drafts,
-						  name_sent,
-						  name_trash);
+				list_folder_xlate(
+					buf.c_str(),
+					parentfolder.substr(i, p-i).c_str(),
+					name_inbox,
+					name_drafts,
+					name_sent,
+					name_trash
+				);
 			printf("</a>");
-			if ( (*p=c) != 0)	++p;
-			i=p-parentfolder;
+			if (p < parentfolder.size())	++p;
+			i=p;
 		}
 		printf("</td></tr>\n");
-		free(parentfolder);
 	}
 	else if (strcmp(inbox_pfix, INBOX))
 	{

@@ -12,9 +12,9 @@ static void write_stdout(const char32_t *uc, size_t n, void *dummy)
 	}
 }
 
-static char *cid_func(const char *cid, void *dummy)
+static std::string cid_func(const char *cid)
 {
-	return strdup(cid);
+	return cid;
 }
 
 int main(int argc, char **argv)
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
 	htmlfilter_set_http_prefix(p, "http://redirect?");
 	htmlfilter_set_mailto_prefix(p, "http://mailto?");
-	htmlfilter_set_convertcid(p, cid_func, NULL);
+	htmlfilter_set_convertcid(p, cid_func);
 
 	while (fgets(buf, sizeof(buf), stdin) != NULL)
 	{

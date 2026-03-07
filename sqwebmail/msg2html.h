@@ -46,8 +46,7 @@ struct msg2html_info {
 	int is_preview_mode=0;
 	/* True: sqwebmail is showing a draft message in preview mode */
 
-	char *(*get_url_to_mime_part)(const char *mimeid,
-				      void *arg)=nullptr;
+	std::function<std::string (const char *mimeid)> get_url_to_mime_part;
 	/*
 	** Return a malloced buffer with a URL that would point to the
 	** message's indicated MIME part.
@@ -59,10 +58,10 @@ struct msg2html_info {
 	void (*html_content_follows)()=nullptr;
 	/* If not NULL - HTML content follows */
 
-	const char *wash_http_prefix=nullptr;
+	std::string wash_http_prefix;
 	/* Prepended to http: URLs, which get encoded */
 
-	const char *wash_mailto_prefix=nullptr;
+	std::string wash_mailto_prefix;
 	/* Prepended to mailto: URLs */
 
 	void (*message_rfc822_action)(std::string_view idptr)=nullptr;
