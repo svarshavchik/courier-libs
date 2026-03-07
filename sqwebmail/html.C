@@ -130,8 +130,7 @@ struct htmlfilter_info {
 	char *mailto_prefix;
 
 	/* A cid: link gets passed to this function for processing. */
-	char *(*convert_cid_func)(const char *, void *);
-	void *convert_cid_func_arg;
+	std::function<std::string (const char *)> convert_cid_func;
 
 	/* Current handle for the input HTML stream */
 
@@ -278,9 +277,8 @@ struct htmlfilter_info *htmlfilter_alloc(void (*output_func)
 					 (const char32_t *, size_t, void *),
 					 void *output_func_arg)
 {
-	struct htmlfilter_info *p;
+	struct htmlfilter_info *p=new htmlfilter_info;
 
-	p=static_cast<htmlfilter_info *>(calloc(1, sizeof(*p)));
 	if (!p)
 		return p;
 
@@ -316,7 +314,7 @@ void htmlfilter_free(struct htmlfilter_info *p)
 	if (p->mailto_prefix)
 		free(p->mailto_prefix);
 
-	free(p);
+	delete p;
 }
 
 void htmlfilter_set_contentbase(struct htmlfilter_info *p,
@@ -348,11 +346,9 @@ void htmlfilter_set_mailto_prefix(struct htmlfilter_info *p,
 }
 
 void htmlfilter_set_convertcid(struct htmlfilter_info *p,
-			       char *(*convert_cid_func)(const char *, void *),
-			       void *convert_cid_func_arg)
+			       std::function<std::string (const char *)> convert_cid_func)
 {
-	p->convert_cid_func=convert_cid_func;
-	p->convert_cid_func_arg=convert_cid_func_arg;
+	p->convert_cid_func=std::move(convert_cid_func);
 }
 
 void htmlfilter(struct htmlfilter_info *p,
@@ -1210,15 +1206,10 @@ static int change_href(struct htmlfilter_info *p,
 
 	if (strncmp(url, "cid:", 4) == 0 && p->convert_cid_func)
 	{
-		char *q;
+		std::string q=p->convert_cid_func(url+4);
 
-		if ((q=(*p->convert_cid_func)
-		     (url+4, p->convert_cid_func_arg)) != NULL)
-		{
-			unicode_buf_append_char(dst, q, strlen(q));
-			free(q);
-			return 1;
-		}
+		unicode_buf_append_char(dst, q.c_str(), q.size());
+		return 1;
 	}
 
 	if (must_be_cid)

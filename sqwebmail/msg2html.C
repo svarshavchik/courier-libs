@@ -947,21 +947,21 @@ struct convert_cid_info {
 
 static void add_decoded_link(const rfc2045::entity *, std::string_view, int);
 
-static char *convertcid(const char *cidurl, void *voidp)
+static std::string convertcid(
+	const char *cidurl,
+	struct convert_cid_info &cid_info
+)
 {
-	struct convert_cid_info *cid_info=
-		(struct convert_cid_info *)voidp;
-
-	auto message=cid_info->message;
-	std::string id=cid_info->id;
+	auto message=cid_info.message;
+	std::string id=cid_info.id;
 	size_t move_up=0;
 	std::string mimegpgfilename;
 
 	mimegpgfilename.reserve(
-		cgi_encode::estimate(cid_info->info->mimegpgfilename));
+		cgi_encode::estimate(cid_info.info->mimegpgfilename));
 
 	cgi_encode::encode(std::back_inserter(mimegpgfilename),
-			   cid_info->info->mimegpgfilename);
+			   cid_info.info->mimegpgfilename);
 
 	while (message->content_type.value != "multipart/related")
 	{
@@ -1000,13 +1000,12 @@ static char *convertcid(const char *cidurl, void *voidp)
 		return strdup("");
 	}
 
-	char *p;
+	std::string p;
 
-	if (!cid_info->info->get_url_to_mime_part)
-		p=strdup("");
+	if (!cid_info.info->get_url_to_mime_part)
+		p="";
 	else
-		p=(*cid_info->info->get_url_to_mime_part)(found_id.c_str(),
-							  cid_info->info);
+		p=cid_info.info->get_url_to_mime_part(found_id.c_str());
 
 	if (mimegpgfilename.size() && found->get_parent_entity())
 	{
@@ -1088,7 +1087,13 @@ static void showtexthtml(std::streambuf &fd,
 		convert_cid_info cid_info{&message, id, info};
 
 		htmlfilter_set_http_prefix(hf_info, info->wash_http_prefix);
-		htmlfilter_set_convertcid(hf_info, &convertcid, &cid_info);
+		htmlfilter_set_convertcid(hf_info,
+			[&]
+			(const char *ptr)
+			{
+				return convertcid(ptr, cid_info);
+			}
+		);
 
 		htmlfilter_set_contentbase(hf_info, content_base.c_str());
 

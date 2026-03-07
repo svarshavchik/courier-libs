@@ -2074,30 +2074,32 @@ const char *redirect_hash(const char *timestamp)
 	return md5_hash_courier(buffer);
 }
 
-static char *get_url_to_mime_part(const char *mimeid, void *arg)
+static std::string get_url_to_mime_part(const char *mimeid)
 {
 	const char *mimegpgfilename=cgi(MIMEGPGFILENAME);
 	const char *pos;
-	char *p, *q;
+	const char *p;
 
 	p=scriptptrget();
 	pos=cgi("pos");
 
-	q=static_cast<char *>(
-		malloc(strlen(p)+strlen(pos) +
-		       strlen(mimegpgfilename)+
-		       strlen(mimeid)+
-		       sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename="))
+	std::string q;
+	q.reserve(
+		strlen(p)+strlen(pos) +
+		strlen(mimegpgfilename)+strlen(mimeid)+
+		sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename=")-1
 	);
-	if (!q)	enomem();
-	strcpy(q, p);
-	strcat(q, "&form=fetch&pos=");
-	strcat(q, pos);
-	strcat(q, "&mimeid=");
-	strcat(q, mimeid);
+	q=p;
+	q+="&form=fetch&pos=";
+	q+=pos;
+	q+="&mimeid=";
+	q+=mimeid;
 
 	if (*mimegpgfilename)
-		strcat(strcat(q, "&mimegpgfilename="), mimegpgfilename);
+	{
+		q+="&mimegpgfilename=";
+		q+=mimegpgfilename;
+	}
 
 	return (q);
 }
