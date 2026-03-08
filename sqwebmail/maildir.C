@@ -3861,7 +3861,7 @@ void matches_free(MATCHEDSTR **p, unsigned n)
 ** Convert folder names to modified-UTF7 encoding.
 */
 
-char *folder_toutf8(const char *foldername)
+std::string folder_toutf8(const char *foldername)
 {
 	char *p;
 	int converr;
@@ -3876,12 +3876,13 @@ char *folder_toutf8(const char *foldername)
 	}
 
 	if (p)
-		return (p);
+	{
+		std::string s{p};
+		free(p);
+		return s;
+	}
 
-	p=strdup(foldername);
-	if (!p)
-		enomem();
-	return (p);
+	return foldername;
 }
 
 char *folder_fromutf8(const char *foldername)

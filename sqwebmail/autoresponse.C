@@ -72,33 +72,29 @@ const char	*autoresp_text2=getarg("TEXT2");
 	if ( *cgi("do.newautoresp"))
 	{
 		const char *name=cgi("newname");
-		char *p;
 
-		p=folder_toutf8(name);
+		auto p=folder_toutf8(name);
 
-		if (!p || !mail::autoresponse::validate("", p))
+		if (!mail::autoresponse::validate("", p.c_str()))
 		{
-			free(p);
 			printf("%s", getarg("BADNAME"));
 			return;
 		}
 
 		std::ifstream i;
 
-		mail::autoresponse::open(i, "", p);
+		mail::autoresponse::open(i, "", p.c_str());
 
 		if (i)
 		{
-			free(p);
 			printf("%s", getarg("EEXIST"));
 			return;
 		}
 
 		printf("%s%s%s\n", autoresp_title1, name, autoresp_title2);
 		printf("<input type=\"hidden\" name=\"autoresponse\" value=\"");
-		output_attrencoded(p);
+		output_attrencoded(p.c_str());
 		printf("\" />\n");
-		free(p);
 
 		printf("%s%s\n", autoresp_text1, autoresp_text2);
 		printf("%s<input type=\"file\" size=\"20\" name=\"uploadfile\" /><br />",

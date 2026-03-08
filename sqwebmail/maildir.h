@@ -110,7 +110,6 @@ extern void maildir_savefoldermsgs(const char *);
 ** Convert folder names to modified-UTF8.
 */
 
-extern char *folder_toutf8(const char *);
 extern char *folder_fromutf8(const char *);
 #if 0
 {
@@ -127,6 +126,7 @@ extern int maildir_closemsg(rfc822::fdstreambuf &,
 			    unsigned long);
 extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 				 const char *, const char *);
+extern std::string folder_toutf8(const char *);
 #endif
 
 /*

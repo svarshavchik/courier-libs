@@ -108,12 +108,14 @@ extern char *get_imageurl();
 #define	MIMEGPGFILENAME "mimegpgfilename"
 #define SEARCHRESFILENAME "searchres"
 
-char *trim_spaces(const char *s);
-
 #if 0
 {
 #endif
 #ifdef __cplusplus
 }
+#include <string>
+
+std::string trim_spaces(const char *s);
+
 #endif
 #endif

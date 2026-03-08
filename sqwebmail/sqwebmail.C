@@ -171,7 +171,7 @@ struct template_stack {
 
 static struct template_stack *template_stack=NULL;
 
-char *trim_spaces(const char *s);
+std::string trim_spaces(const char *s);
 
 extern "C" size_t get_timeoutsoft()
 {
@@ -2099,7 +2099,6 @@ extern "C" void rename_sent_folder(int really)
 
 	time_t t;
 	struct tm *tm;
-	char *pp;
 
 	if (really)
 		(void)maildir_create(INBOX "." SENT); /* No matter what */
@@ -2127,13 +2126,12 @@ extern "C" void rename_sent_folder(int really)
 	if (strftime (buf, sizeof(buf), "%m-%b", tm) == 0)
 		return;
 
-	pp=folder_toutf8(buf);
+	auto pp=folder_toutf8(buf);
 
 	if (strftime (buf2, sizeof(buf), "." SENT ".%Y.", tm) == 0)
 		return;
 
-	strcat(buf2, pp);
-	free(pp);
+	strcat(buf2, pp.c_str());
 
 	if (really)
 		rename("." SENT, buf2);
@@ -2257,7 +2255,6 @@ static int setuidgid(uid_t u, gid_t g, const char *dir, void *dummy)
 
 static void main2()
 {
-const char	*u;
 const char	*ip_addr;
 char	*pi;
 char	*pi_malloced;
@@ -2268,7 +2265,7 @@ time_t	timeouthard=get_timeouthard();
 #ifdef	GZIP
 	gzip_save_fd= -1;
 #endif
-	u=ip_addr=pi=NULL;
+	ip_addr=pi=NULL;
 
 	ip_addr=getenv("REMOTE_ADDR");
 
@@ -2352,7 +2349,7 @@ time_t	timeouthard=get_timeouthard();
 		if (!pi)	enomem();
 
 		(void)strtok(pi, "/");	/* Skip login */
-		u=strtok(NULL, "/");	/* mailboxid */
+		auto u=strtok(NULL, "/");	/* mailboxid */
 		sqwebmail_sessiontoken=strtok(NULL, "/"); /* sessiontoken */
 		q=strtok(NULL, "/");	/* login time */
 		login_time=0;
@@ -2548,24 +2545,31 @@ time_t	timeouthard=get_timeouthard();
 		cgi_setup();
 		init_default_locale();
 
-		if (*(u=trim_spaces(cgi("username"))))
+		auto u=trim_spaces(cgi("username"));
+
+		if (!u.empty())
 			/* Request to log in */
 		{
 			const char *p=cgi("password");
 			const char *mailboxid;
 			const char *u2=cgi("logindomain");
-			char	*ubuf=static_cast<char *>(
-				malloc(strlen(u)+strlen(u2)+2)
+
+			std::string ubuf;
+
+			ubuf.reserve(
+				u.size()+strlen(u2)+2
 			);
 
-			if (ubuf == NULL) enomem();
-			strcpy(ubuf, u);
+			ubuf=u;
 			if (*u2)
-				strcat(strcat(ubuf, "@"), u2);
+			{
+				ubuf+="@";
+				ubuf+=u2;
+			}
 
 			maildir_cache_start();
 
-			if (*p && (mailboxid=do_login(ubuf, p, ip_addr))
+			if (*p && (mailboxid=do_login(ubuf.c_str(), p, ip_addr))
 			    != 0)
 			{
 				char	*q;
@@ -2648,18 +2652,16 @@ time_t	timeouthard=get_timeouthard();
 				maildir_autopurge();
 				unlink(SHAREDPATHCACHE);
 
-				sqpcp_login(ubuf, p);
+				sqpcp_login(ubuf.c_str(), p);
 				maildir_acl_reset(".");
 
 				http_redirect_argss(*cgi("inpublic") ?
 						    "&form=folders":
 						    "&form=refreshfr", "", "");
-				free(ubuf);
 				return;
 			}
 			maildir_cache_cancel();
 
-			free(ubuf);
 			if (setgid(getgid()) < 0 ||
 			    setuid(getuid()) < 0)	/* Drop root prevs */
 			{
@@ -2677,10 +2679,12 @@ time_t	timeouthard=get_timeouthard();
 			exit(1);
 		}
 
-		if ( *(u=cgi("redirect")))
+		const char *url;
+
+		if ( *(url=cgi("redirect")))
 			/* Redirection request to hide the referral tag */
 		{
-			redirect(u);
+			redirect(url);
 		}
 		else if ( *cgi("noframes") == '1')
 			output_form("login.html");	/* Main frame */
@@ -2791,24 +2795,14 @@ size_t i;
 
 /* Trim leading and trailing white spaces from string */
 
-char *trim_spaces(const char *s)
+std::string trim_spaces(const char *s)
 {
-	char *p, *q;
+	while (*s && isspace(*s))
+		++s;
 
-	p=strdup(s);
-	if (!p)
-		enomem();
+	std::string p=s;
+	while (!p.empty() && isspace(p.back()))
+		p.pop_back();
 
-	if (*p)
-	{
-		for (q=p+strlen(p)-1; q >= p && isspace(*q); q--)
-			*q=0;
-
-		for (q=p; *q && isspace(*q); q++)
-			;
-		if (p != q)
-			p=q;
-	}
-
-	return (p);
+	return p;
 }

@@ -2548,11 +2548,9 @@ void folder_list()
 
 	if (*cgi("do.create"))
 	{
-		const char	*newfoldername=trim_spaces(cgi("foldername"));
-		const char	*newdirname=trim_spaces(cgi("dirname"));
+		auto newfoldername=trim_spaces(cgi("foldername"));
+		auto newdirname=trim_spaces(cgi("dirname"));
 		const char	*folderdir=cgi("folderdir");
-		char	*futf7;
-		char	*dutf7;
 
 		/*
 		** New folder names cannot contain .s, and must be considered
@@ -2562,42 +2560,39 @@ void folder_list()
 		if (!*folderdir)
 			folderdir=INBOX;
 
-		futf7=folder_toutf8(newfoldername);
-		dutf7=folder_toutf8(newdirname);;
+		auto futf7=folder_toutf8(newfoldername.c_str());
+		auto dutf7=folder_toutf8(newdirname.c_str());
 
-		if (!*newfoldername ||
-		    strchr(futf7, '.') ||
-		    strchr(dutf7, '.'))
+		if (newfoldername.empty() ||
+		    strchr(futf7.c_str(), '.') ||
+		    strchr(dutf7.c_str(), '.'))
 		{
-			free(futf7);
-			free(dutf7);
 			folder_err_msg=err_invalid;
 		}
 		else
 		{
-			char	*p;
 			struct maildir_info minfo;
 			char *q;
 
-			p=static_cast<char *>(
-				malloc(strlen(folderdir)+strlen(futf7)
-				       +strlen(dutf7)+3)
+			std::string p;
+
+			p.reserve(
+				strlen(folderdir)+futf7.length()
+				+dutf7.length()+3
 			);
 
-			if (!p)	enomem();
-			strcpy(p, folderdir);
-			if (*dutf7)
+			p=folderdir;
+			if (dutf7.length())
 			{
-				if (*p)	strcat(p, ".");
-				strcat(p, dutf7);
+				if (!p.empty())
+					p += ".";
+				p += dutf7;
 			}
-			if (*p)	strcat(p, ".");
-			strcat(p, futf7);
+			if (!p.empty())
+				p += ".";
+			p += futf7;
 
-			free(futf7);
-			free(dutf7);
-
-			if (maildir_info_imap_find(&minfo, p,
+			if (maildir_info_imap_find(&minfo, p.c_str(),
 						   login_returnaddr()) < 0)
 			{
 				folder_err_msg=err_invalid;
@@ -2618,7 +2613,8 @@ void folder_list()
 			}
 			else
 			{
-				if (checkcreate(p, *newdirname != 0) == 0)
+				if (checkcreate(p.c_str(),
+						!newdirname.empty()) == 0)
 				{
 					if (maildir_make(q, 0700, 0700, 1))
 						folder_err_msg=err_exists;
@@ -2627,8 +2623,10 @@ void folder_list()
 						char buf[1];
 
 						buf[0]=0;
-						acl_computeRightsOnFolder(p,
-									  buf);
+						acl_computeRightsOnFolder(
+							p.c_str(),
+							buf
+						);
 						/* Initialize ACLs correctly */
 					}
 				}
@@ -2685,21 +2683,20 @@ void folder_list()
 		char	*pp=strdup(p);
 		struct maildir_info mifrom, mito;
 		const char *qutf7=cgi("renametofolder");
-		const char *r=trim_spaces(cgi("renametoname"));
+		auto r=trim_spaces(cgi("renametoname"));
 		char	*s;
-		char	*rutf7;
 
-		rutf7=folder_toutf8(r);
+		auto rutf7=folder_toutf8(r.c_str());
 
 		s=static_cast<char *>(
-			malloc(strlen(qutf7)+strlen(rutf7)+1)
+			malloc(strlen(qutf7)+rutf7.length()+1)
 		);
 
 		if (!s)	enomem();
 
-		strcat(strcpy(s, qutf7), rutf7);
+		strcat(strcpy(s, qutf7), rutf7.c_str());
 
-		if (strchr(r, '.') == NULL
+		if (r.find('.') == r.npos
 		    && maildir_info_imap_find(&mifrom, pp,
 					      login_returnaddr()) == 0)
 		{
@@ -2723,7 +2720,6 @@ void folder_list()
 		{
 			folder_err_msg=err_invalid;
 		}
-		free(rutf7);
 		free(pp);
 		free(s);
 		maildir_quota_recalculate(".");
