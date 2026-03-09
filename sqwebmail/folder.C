@@ -2448,21 +2448,12 @@ static void dorename(const char *origfolder,
 	free(t);
 }
 
-struct publicfolderlist_helper {
-	char *name;
-	char *homedir;
-	char *maildir;
-};
-
-static void freeph(struct publicfolderlist_helper *ph)
-{
-	if (ph->name)
-		free(ph->name);
-	if (ph->homedir)
-		free(ph->homedir);
-	if (ph->maildir)
-		free(ph->maildir);
-	memset(ph, 0, sizeof(*ph));
+namespace {
+	struct publicfolderlist_helper {
+		std::string name;
+		std::string homedir;
+		std::string maildir;
+	};
 }
 
 static void do_folderlist(const char *pfix, const char *homedir,
@@ -2680,31 +2671,29 @@ void folder_list()
 	if (*cgi("do.rename"))
 	{
 		const char *p=cgi("DELETE");
-		char	*pp=strdup(p);
 		struct maildir_info mifrom, mito;
 		const char *qutf7=cgi("renametofolder");
 		auto r=trim_spaces(cgi("renametoname"));
-		char	*s;
+		std::string s;
 
 		auto rutf7=folder_toutf8(r.c_str());
 
-		s=static_cast<char *>(
-			malloc(strlen(qutf7)+rutf7.length()+1)
+		s.reserve(
+			strlen(qutf7)+rutf7.length()
 		);
 
-		if (!s)	enomem();
-
-		strcat(strcpy(s, qutf7), rutf7.c_str());
+		s=qutf7;
+		s+=rutf7;
 
 		if (r.find('.') == r.npos
-		    && maildir_info_imap_find(&mifrom, pp,
+		    && maildir_info_imap_find(&mifrom, p,
 					      login_returnaddr()) == 0)
 		{
-			if (maildir_info_imap_find(&mito, s,
+			if (maildir_info_imap_find(&mito, s.c_str(),
 						   login_returnaddr()) == 0)
 			{
-				if (checkrename(pp, s) == 0)
-					dorename(pp, &mifrom, &mito,
+				if (checkrename(p, s.c_str()) == 0)
+					dorename(p, &mifrom, &mito,
 						 err_invalid,
 						 err_cantdelete,
 						 err_exists);
@@ -2720,8 +2709,6 @@ void folder_list()
 		{
 			folder_err_msg=err_invalid;
 		}
-		free(pp);
-		free(s);
 		maildir_quota_recalculate(".");
 	}
 
@@ -2732,13 +2719,14 @@ void folder_list()
 
 static int do_publicfolderlist_cb(struct maildir_newshared_enum_cb *cb)
 {
-	struct publicfolderlist_helper *h=
-		(struct publicfolderlist_helper *)cb->cb_arg;
+	auto h=reinterpret_cast<publicfolderlist_helper *>(cb->cb_arg);
 
-	h->name=strdup(cb->name);
+	if (cb->name)
+		h->name=cb->name;
 	if (cb->homedir)
-		h->homedir=strdup(cb->homedir);
-	h->maildir=strdup(cb->maildir);
+		h->homedir=cb->homedir;
+	if (cb->maildir)
+		h->maildir=cb->maildir;
 	return 0;
 }
 
@@ -2757,7 +2745,7 @@ static void parse_hierarchy(const char *folderdir,
 	const char *q;
 	size_t l;
 	size_t n;
-	struct publicfolderlist_helper ph;
+	publicfolderlist_helper ph, ph_save;
 	int eof;
 
 	if (strchr(folderdir, '/'))
@@ -2784,8 +2772,6 @@ static void parse_hierarchy(const char *folderdir,
 	indexfile=NULL;
 	subhierarchy=NULL;
 	p=folderdir;
-
-	memset(&ph, 0, sizeof(ph));
 
 	while ((index=maildir_shared_cache_read(index, indexfile,
 						subhierarchy)) != NULL)
@@ -2824,7 +2810,8 @@ static void parse_hierarchy(const char *folderdir,
 		}
 
 		index->indexfile.startingpos=index->records[n].offset;
-		freeph(&ph);
+
+		ph={};
 		if (maildir_newshared_nextAt(&index->indexfile, &eof,
 					     &do_publicfolderlist_cb, &ph) ||
 		    eof)
@@ -2833,13 +2820,12 @@ static void parse_hierarchy(const char *folderdir,
 			break;
 		}
 
-		if (ph.homedir)
+		if (!ph.homedir.empty())
 		{
-			char *loc=maildir_location(ph.homedir,
-						   ph.maildir);
-			char *m_path;
-			char *m_inbox;
-
+			char *loc=maildir_location(
+				ph.homedir.c_str(),
+				ph.maildir.c_str()
+			);
 			if (loc)
 			{
 				while (*p)
@@ -2849,38 +2835,31 @@ static void parse_hierarchy(const char *folderdir,
 					++p;
 				}
 
-				m_path=static_cast<char *>(
-					malloc(p-folderdir+1)
-				);
-				if (!m_path)
-					enomem();
-				memcpy(m_path, folderdir, p-folderdir);
-				m_path[p-folderdir]=0;
+				std::string m_path;
 
-				m_inbox=static_cast<char *>(
-					malloc(strlen(m_path)+1+strlen(p))
-				);
-				if (!m_inbox)
-					enomem();
+				m_path.reserve(p-folderdir);
 
-				strcat(strcpy(m_inbox, m_path), p);
+				m_path.append(folderdir, p);
 
-				savepath(m_path, loc);
-				(*maildir_hier_cb)(m_path, loc, m_inbox,
-						  m_path);
+				std::string m_inbox;
+
+				m_inbox.reserve(m_path.length()+strlen(p));
+
+				m_inbox.append(m_path);
+				m_inbox+=p;
+
+				savepath(m_path.c_str(), loc);
+				(*maildir_hier_cb)(m_path.c_str(), loc, m_inbox.c_str(),
+						  m_path.c_str());
 				free(loc);
-				free(m_path);
-				free(m_inbox);
 			}
-			freeph(&ph);
 			return;
 		}
 
-		indexfile=ph.maildir;
+		ph_save=std::move(ph);
+		indexfile=ph_save.maildir.c_str();
 		subhierarchy=index->records[n].name;
 	}
-
-	freeph(&ph);
 
 	(*sharedhier_cb)(folderdir, index);
 }
@@ -2895,7 +2874,6 @@ static void do_sharedhierlist(const char *folderdir,
 	const char *folders_img;
 	const char *name_inbox;
 	int eof;
-	char *url, *url2;
 
 	p=strrchr(folderdir, '.');
 
@@ -2905,8 +2883,6 @@ static void do_sharedhierlist(const char *folderdir,
 
 	folders_img=getarg("FOLDERSICON");
 	name_inbox=getarg("INBOX");
-
-	memset(&ph, 0, sizeof(ph));
 
        	printf("<table width=\"100%%\" border=\"0\" cellpadding=\"2\" cellspacing=\"0\" class=\"folderlist\">\n"
 	       "<tr><td align=\"left\" "
@@ -2934,7 +2910,6 @@ static void do_sharedhierlist(const char *folderdir,
 	for (q=folderdir; q<p; )
 	{
 		const char *r;
-		char *s;
 
 		if (*q == '.')
 		{
@@ -2952,25 +2927,20 @@ static void do_sharedhierlist(const char *folderdir,
 			output_scriptptrget();
 			printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
 
+			std::string s;
 
-			s=static_cast<char *>(malloc(r-folderdir+1));
-			if (!s)
-				enomem();
+			s.reserve(r-folderdir);
 
-			memcpy(s, folderdir, r-folderdir);
-			s[r-folderdir]=0;
+			s.append(folderdir, r);
 
-			output_urlencoded(s);
+			output_urlencoded(s.c_str());
 			printf("\">");
-			free(s);
+			s.clear();
+			s.reserve(r-q);
 
-			s=static_cast<char *>(malloc(r-q+1));
-			if (!s)
-				enomem();
-			memcpy(s, q, r-q);
-			s[r-q]=0;
-			list_folder(s);
-			free(s);
+			s.append(q, r);
+
+			list_folder(s.c_str());
 			printf("</a>");
 		}
 		q=r;
@@ -2982,19 +2952,18 @@ static void do_sharedhierlist(const char *folderdir,
 	while (*q && *q != '.')
 		++q;
 
-	url=static_cast<char *>(malloc(q-folderdir+1));
-	if (!url)
-		enomem();
-	memcpy(url, folderdir, q-folderdir);
-	url[q-folderdir]=0;
+	std::string url;
+
+	url.reserve(q-folderdir);
+
+	url.append(folderdir, q);
 
 	for (n=0; index && n<index->nrecords; n++)
 	{
-		freeph(&ph);
-
 		if (n == 0)
 			index->indexfile.startingpos=0;
 
+		ph={};
 		if ((n == 0 ? &maildir_newshared_nextAt:
 		     &maildir_newshared_next)(&index->indexfile, &eof,
 					      &do_publicfolderlist_cb, &ph) ||
@@ -3003,9 +2972,10 @@ static void do_sharedhierlist(const char *folderdir,
 			break;
 		}
 
-		if (ph.homedir)
+		if (!ph.homedir.empty())
 		{
-			char *d=maildir_location(ph.homedir, ph.maildir);
+			char *d=maildir_location(ph.homedir.c_str(),
+						 ph.maildir.c_str());
 
 			if (d)
 			{
@@ -3023,9 +2993,9 @@ static void do_sharedhierlist(const char *folderdir,
 		output_scriptptrget();
 		printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
 
-		output_urlencoded(url);
+		output_urlencoded(url.c_str());
 
-		url2=maildir_info_imapmunge(ph.name);
+		auto url2=maildir_info_imapmunge(ph.name.c_str());
 
 		if (!url2)
 			enomem();
@@ -3037,8 +3007,6 @@ static void do_sharedhierlist(const char *folderdir,
 		free(url2);
 		printf("</a></td></tr>\n");
 	}
-	free(url);
-	freeph(&ph);
 	printf("</table>\n");
 }
 
@@ -3079,7 +3047,6 @@ static void do_folderlist(const char *inbox_pfix,
 	{
 		std::string parentfolder;
 		size_t	i;
-		char *r;
 		const char *c;
 
 		if (strncmp(folderdir, SHARED ".", sizeof(SHARED)) == 0)
@@ -3088,15 +3055,12 @@ static void do_folderlist(const char *inbox_pfix,
 				if (*c == '.')
 					break;
 
-			r=static_cast<char *>(
-				malloc(strlen(inbox_pfix)+strlen(c)+1)
-			);
-			if (!r)
-				enomem();
-			strcat(strcpy(r, inbox_pfix), c);
+			std::string r;
+			r.reserve(strlen(inbox_pfix)+strlen(c));
+			r+=inbox_pfix;
+			r+=c;
 
 			parentfolder=get_parent_folder(r);
-			free(r);
 		}
 		else
 			parentfolder=get_parent_folder(folderdir);
@@ -3279,15 +3243,11 @@ static void do_folderlist(const char *inbox_pfix,
 
 			if ((p=strchr(shortname, '.')) != 0)
 			{
-				char *s;
-				char	*t;
+				std::string s, t;
 				unsigned tot_nnew, tot_nother;
 
-				s=static_cast<char *>(malloc(p-folders[i]+1));
-				if (!s)
-					enomem();
-				memcpy(s, folders[i], p-folders[i]);
-				s[p-folders[i]]=0;
+				s.reserve(p-folders[i]);
+				s.append(folders[i], p-folders[i]);
 
 				printf("<tr class=\"foldersubdir\"><td align=\"left\">");
 				if (acl_img && strchr(acl_buf, ACL_ADMINISTER[0]))
@@ -3295,7 +3255,7 @@ static void do_folderlist(const char *inbox_pfix,
 					printf("<a href=\"");
 					output_scriptptrget();
 					printf("&amp;form=acl&amp;folder=");
-					output_urlencoded(s);
+					output_urlencoded(s.c_str());
 					printf("\">%s</a>&nbsp;", acl_img);
 				}
 
@@ -3305,22 +3265,18 @@ static void do_folderlist(const char *inbox_pfix,
 					printf("<a href=\"");
 					output_scriptptrget();
 					printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir=");
-					output_urlencoded(s);
+					output_urlencoded(s.c_str());
 					printf("\">");
 				}
-				free(s);
 
-				t=static_cast<char *>(malloc(p-shortname+1));
-				if (!t)	enomem();
-				memcpy(t, shortname, p-shortname);
-				t[p-shortname]=0;
+				t.reserve(p-shortname);
+				t.append(shortname, p-shortname);
 				list_folder_xlate(folders[i],
-						  t,
+						  t.c_str(),
 						  name_inbox,
 						  name_drafts,
 						  name_sent,
 						  name_trash);
-				free(t);
 				if (strchr(acl_buf, ACL_LOOKUP[0]))
 				{
 					printf("</a>");
@@ -3480,7 +3436,7 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 	for (i=0; folders[i]; i++)
 	{
 		const char *p=folders[i];
-		char	*q;
+		std::string q;
 		size_t	ql;
 		char acl_buf[2];
 
@@ -3498,31 +3454,28 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 
 		p=strrchr(p, '.');
 		if (!p)	continue;
-		q=static_cast<char *>(malloc(p-folders[i]+1));
-		if (!q)	enomem();
-		memcpy(q, folders[i], p-folders[i]);
-		q[p-folders[i]]=0;
+		q.reserve(p-folders[i]);
+		q.append(folders[i], p-folders[i]);
 		strcpy(acl_buf, ACL_CREATE);
-		acl_computeRightsOnFolder(q, acl_buf);
+		acl_computeRightsOnFolder(q.c_str(), acl_buf);
 		if (acl_buf[0])
 		{
 			printf("<option value=\"");
-			output_attrencoded(q);
+			output_attrencoded(q.c_str());
 			printf(".\"%s>",
-			       strcmp(q, cgi("folderdir")) == 0
+			       q == cgi("folderdir")
 			       ? " selected='selected'":"");
-			list_folder(strchr(q, '.')+1);
+			list_folder(strchr(q.c_str(), '.')+1);
 			printf(".</option>\n");
 		}
-		ql=strlen(q);
+		ql=q.size();
 		while (folders[++i])
 		{
-			if (memcmp(folders[i], q, ql) ||
+			if (memcmp(folders[i], q.c_str(), ql) ||
 				folders[i][ql] != '.' ||
 				strchr(folders[i]+ql+1, '.'))	break;
 		}
 		--i;
-		free(q);
 	}
 	maildir_freefolders(&folders);
 	printf("</select>\n");

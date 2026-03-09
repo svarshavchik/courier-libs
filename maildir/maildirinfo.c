@@ -88,8 +88,7 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 {
 	const char *p;
 	struct imap_find_shared ifs;
-	const char *indexfile;
-	char *indexfile_cpy;
+	char *indexfile;
 	struct maildir_shindex_cache *curcache;
 	const char *subhierarchy;
 
@@ -204,7 +203,6 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 	ifs.maildir=NULL;
 
 	indexfile=NULL;
-	indexfile_cpy=NULL;
 	curcache=NULL;
 	subhierarchy=NULL;
 
@@ -215,12 +213,6 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 
 		curcache=maildir_shared_cache_read(curcache, indexfile,
 						   subhierarchy);
-
-		if (indexfile_cpy)
-		{
-			free(indexfile_cpy);
-			indexfile_cpy=NULL;
-		}
 
 		if (!curcache)
 			break;
@@ -270,6 +262,11 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 					    &eof,
 					    imap_find_cb, &ifs);
 
+		if (indexfile)
+		{
+			free(indexfile);
+		}
+
 		if (rc || eof)
 		{
 			fprintf(stderr, "ERR: Internal error -"
@@ -284,7 +281,7 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 
 		if (!ifs.homedir)
 		{
-			indexfile=indexfile_cpy=ifs.maildir;
+			indexfile=ifs.maildir;
 			ifs.maildir=NULL;
 			subhierarchy=curcache->records[i].name;
 
@@ -393,8 +390,6 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 		return 0;
 	}
 
-	if (indexfile_cpy)
-		free(indexfile_cpy);
 	if (ifs.homedir)
 	{
 		free(ifs.homedir);
