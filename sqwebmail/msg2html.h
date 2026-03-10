@@ -8,13 +8,16 @@
 #include <string>
 #include <string_view>
 #include <functional>
+#include <tuple>
+#include <vector>
+#include <unordered_set>
 
-struct msg2html_smiley_list {
-	struct msg2html_smiley_list *next;
-	char *code;
-	char *url;
-};
+// Tuple:
+//           ":->"
+//           "<img src=\"...\">"
+typedef std::tuple<std::string, std::string> smiley;
 
+typedef std::unordered_set<char> smiley_index_t;
 
 struct msg2html_info {
 	const char *output_character_set=nullptr;
@@ -122,8 +125,8 @@ struct msg2html_info {
 	std::function<std::string (std::string_view url,
 				   std::string_view disp_url)> get_textlink;
 
-	struct msg2html_smiley_list *smileys=nullptr;
-	char smiley_index[50];
+	std::vector<smiley> smileys;
+	smiley_index_t smiley_index;
 };
 
 struct msg2html_info *msg2html_alloc(const char *charset);
@@ -157,8 +160,8 @@ msg2html_textplain_start(const char *message_charset,
 				      std::string_view disp_url)
 			 > &get_textlink,
 
-			 const char *smiley_index,
-			 struct msg2html_smiley_list *smileys,
+			 const smiley_index_t *smiley_index,
+			 const std::vector<smiley> *smileys,
 			 int wikifmt,
 
 			 void (*output_func)(const char *p,

@@ -51,45 +51,12 @@ struct msg2html_info *msg2html_alloc(const char *charset)
 void msg2html_add_smiley(struct msg2html_info *i,
 			 const char *txt, const char *imgurl)
 {
-	char buf[2];
-	struct msg2html_smiley_list *l;
-
-	buf[0]=*txt;
-	buf[1]=0;
-
-	if (strlen(i->smiley_index) < sizeof(i->smiley_index)-1)
-		strcat(i->smiley_index, buf);
-
-
-	if ((l=static_cast<msg2html_smiley_list *>(
-		     malloc(sizeof(struct msg2html_smiley_list)))
-	    ) != NULL)
-	{
-		if ((l->code=strdup(txt)) != NULL)
-		{
-			if ((l->url=strdup(imgurl)) != NULL)
-			{
-				l->next=i->smileys;
-				i->smileys=l;
-				return;
-			}
-			free(l->code);
-		}
-		free(l);
-	}
+	i->smiley_index.insert(*txt);
+	i->smileys.emplace_back(txt, imgurl);
 }
 
 void msg2html_free(struct msg2html_info *p)
 {
-	struct msg2html_smiley_list *sl;
-
-	while ((sl=p->smileys) != NULL)
-	{
-		p->smileys=sl->next;
-		free(sl->code);
-		free(sl->url);
-		free(sl);
-	}
 	delete p;
 }
 
@@ -1241,8 +1208,8 @@ struct msg2html_textplain_info {
 	** Optionally replace smiley sequences with image URLs
 	*/
 
-	const char *smiley_index=nullptr; /* First character in all smiley seqs */
-	struct msg2html_smiley_list *smileys=nullptr; /* All smiley seqs */
+	const smiley_index_t *smiley_index=nullptr; /* First character in all smiley seqs */
+	const std::vector<smiley> *smileys=nullptr; /* All smiley seqs */
 
 	/*
 	** Flag - convert text/plain content to HTML using wiki-style
@@ -1356,13 +1323,12 @@ struct msg2html_textplain_info {
 ** without escaping them.
 */
 static void text_emit_passthru(struct msg2html_textplain_info *info,
-			       const char *str)
+			       std::string_view str)
 {
-	while (*str)
+	for (unsigned char ch:str)
 	{
-		char32_t ch=(unsigned char)*str++;
-
-		info->info.passthru(&ch, 1);
+		char32_t widechar=ch;
+		info->info.passthru(&widechar, 1);
 	}
 }
 
@@ -1683,7 +1649,6 @@ static void text_line_contents_with_lookahead(const char32_t *txt,
 
 	info->lookahead_saved=0;
 
-
 	/*
 	** At the beginning of the line, if using wiki markups, make sure
 	** there's enough stuff buffered for the main logic to do its work.
@@ -1721,8 +1686,8 @@ static void text_line_contents_with_lookahead(const char32_t *txt,
 
 	while (txt_size)
 	{
-		struct msg2html_smiley_list *l;
-		int flag=0;
+		bool flag{false};
+		bool smiley_found{false};
 
 		/* Look for the first char that might be a smiley */
 
@@ -1730,7 +1695,8 @@ static void text_line_contents_with_lookahead(const char32_t *txt,
 		{
 			if ((unsigned char)txt[i] == txt[i] &&
 			    info->smiley_index &&
-			    strchr(info->smiley_index, txt[i]))
+			    info->smiley_index->find(txt[i]) !=
+			    info->smiley_index->end())
 				break;
 		}
 
@@ -1745,41 +1711,41 @@ static void text_line_contents_with_lookahead(const char32_t *txt,
 		/*
 		** Ok, now figure out if this is a smiley.
 		*/
-
-		for (l=info->smileys; l; l=l->next)
+		for (const auto &[code, url]: *info->smileys)
 		{
 			size_t j;
 
-			if (strlen(l->code) > txt_size)
+			if (code.size() > txt_size)
 			{
-				flag=1;
+				flag=true;
 				continue; /* Not enough context */
 			}
 
-			for (j=0; l->code[j]; j++)
+			for (j=0; j < code.size(); j++)
 			{
 				if ( (unsigned char)txt[j] != txt[j])
 					break;
 
 				if ((unsigned char)txt[j] !=
-				    (unsigned char)l->code[j])
+				    (unsigned char)code[j])
 					break;
 			}
 
-			if (l->code[j] == 0)
+			if (j == code.size())
 			{
 				process_text(txt, 0, info);
 				/* May be needed to start a paragraph */
 
-				text_emit_passthru(info, l->url);
+				text_emit_passthru(info, url);
 
 				txt += j;
 				txt_size -= j;
+				smiley_found=true;
 				break;
 			}
 		}
 
-		if (l) /* A smiley was found */
+		if (smiley_found) /* A smiley was found */
 			continue;
 
 		if (flag) /* Insufficient context */
@@ -2719,8 +2685,8 @@ msg2html_textplain_start(const char *message_charset,
 				      std::string_view disp_url)
 			 > &get_textlink,
 
-			 const char *smiley_index,
-			 struct msg2html_smiley_list *smileys,
+			 const smiley_index_t *smiley_index,
+			 const std::vector<smiley> *smileys,
 			 int wikifmt,
 
 			 void (*output_func)(const char *p,
@@ -2842,8 +2808,8 @@ static void showtextplain(std::streambuf &fd,
 					    info->output_character_set,
 					    isflowed, isdelsp,
 					    info->get_textlink,
-					    info->smiley_index,
-					    info->smileys,
+					    &info->smiley_index,
+					    &info->smileys,
 					    0,
 					    output_html_func, NULL);
 
