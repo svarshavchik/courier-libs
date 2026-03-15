@@ -27,6 +27,7 @@ Closing tag: [<  / span>]
 Opening tag: {< SpAn DiR='val"ue'>]
 Closing tag: [<  / span>]
 
+<div title=&#10; alt=&#x10;> </div>
 Bad tags:
 
 <-

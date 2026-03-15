@@ -27,6 +27,7 @@ Closing tag: [</span>]
 Opening tag: {<span dir="val&#x22;ue">]
 Closing tag: [</span>]
 
+<div title="&#xA;" alt="&#x10;"> </div>
 Bad tags:
 
 -
@@ -44,7 +45,7 @@ Bad tags:
 <div><span class="urlhost">[localhost]</span><a href="http://redirect?http%3A%2F%2Flocalhost%2F%3Ffoo%3D%22bar" target="_blank" title="http://localhost/?foo=&#x22;bar">localhost</a></div>
 <div><span class="urlhost">[localhost]</span><a href="http://redirect?https%3A%2F%2Flocalhost" target="_blank" title="https://localhost">localhost</a></div>
 <div><a href="http://mailto?nobody%40example%2Ecom%26subject%3Dfoo%26to%3Dnobody">nobody@example.com</a></div>
-<div><a href="&#x3C;nobody@example.com&#x3E;">nobody@example.com</a></div>
+<div><a href="cid:&#x3C;nobody@example.com&#x3E;">nobody@example.com</a></div>
 <div><a>nobody@example.com</a></div>
 
 Checking nesting (max 128):
@@ -91,4 +92,4 @@ Checking IMG
 
 <img alt="Blocked image" />
 
-<img src="&#x3C;internal&#x3E;" alt="Allowed image" />
+<img src="cid:&#x3C;internal&#x3E;" alt="Allowed image" />

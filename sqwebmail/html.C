@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 S. Varshavchik.  See COPYING for
+** Copyright 2011-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -12,8 +12,12 @@
 #include "rfc2045/rfc2045.h"
 #include <stdlib.h>
 #include <string.h>
+#include <string>
+#include <algorithm>
 
 #define SPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r')
+
+#include <fstream>
 
 struct taginfo {
 
@@ -30,6 +34,7 @@ static const char hex[]="0123456789ABCDEF";
 
 #define FLAG_BLOCKQUOTE_CITE 0x1000
 
+// This list must be in alphabetical order
 static const struct taginfo tags[]={
 	{"a"},
 	{"abbr"},
@@ -109,8 +114,8 @@ static const struct taginfo span_discard_tag={" discard",
 					      FLAG_DISCARD | FLAG_NOPRINT};
 
 struct attr {
-	struct unicode_buf name; /* Attribute name */
-	struct unicode_buf value; /* Attribute value */
+	std::u32string name; /* Attribute name */
+	std::u32string value; /* Attribute value */
 };
 
 struct htmlfilter_info {
@@ -121,7 +126,7 @@ struct htmlfilter_info {
 	void *output_func_arg;
 
 	/* Content base for relative URLs */
-	char *contentbase{nullptr};
+	std::string contentbase;
 
 	/* Prepend to http: and https: links */
 	std::string http_prefix;
@@ -142,19 +147,19 @@ struct htmlfilter_info {
 	** An & entity name. Or a tag name. Or an attribute name or value.
 	*/
 
-	struct unicode_buf atom;
+	std::u32string atom;
 
 	/*
 	** An attribute value
 	*/
 
-	struct unicode_buf value;
+	std::u32string value;
 
 	/*
 	** Another atom
 	*/
 
-	struct unicode_buf atom2;
+	std::u32string atom2;
 
 	/*
 	** Quoting character
@@ -166,10 +171,9 @@ struct htmlfilter_info {
 	const struct taginfo *tag=nullptr;
 
 	/* Whether parsed an empty tag */
-	int tag_empty;
+	bool tag_empty{false};
 
-	struct attr attrs[32];
-	size_t attrs_index;
+	std::vector<attr> attrs;
 
 	/*
 	** Current list of active elements.
@@ -186,20 +190,6 @@ struct htmlfilter_info {
 
 	size_t n_discarded=0;
 };
-
-static void free_last_attr(struct htmlfilter_info *p)
-{
-	size_t i=--p->attrs_index;
-
-	unicode_buf_deinit(&p->attrs[i].name);
-	unicode_buf_deinit(&p->attrs[i].value);
-}
-
-static void free_attrs(struct htmlfilter_info *p)
-{
-	while (p->attrs_index)
-		free_last_attr(p);
-}
 
 static size_t handle_chars(struct htmlfilter_info *p,
 			   const char32_t *uc,
@@ -285,10 +275,6 @@ struct htmlfilter_info *htmlfilter_alloc(void (*output_func)
 	p->output_func=output_func;
 	p->output_func_arg=output_func_arg;
 
-	unicode_buf_init(&p->atom, 2048);
-	unicode_buf_init(&p->atom2, 2048);
-	unicode_buf_init(&p->value, 8192);
-
 	p->handler_func=handle_chars;
 	return p;
 }
@@ -297,27 +283,13 @@ static void close_elements_until(struct htmlfilter_info *p, size_t i);
 
 void htmlfilter_free(struct htmlfilter_info *p)
 {
-	close_elements_until(p, 0);
-
-	free_attrs(p);
-
-	unicode_buf_deinit(&p->atom);
-	unicode_buf_deinit(&p->atom2);
-	unicode_buf_deinit(&p->value);
-
-	if (p->contentbase)
-		free(p->contentbase);
-
 	delete p;
 }
 
 void htmlfilter_set_contentbase(struct htmlfilter_info *p,
 				const char *contentbase)
 {
-	if (p->contentbase)
-		free(p->contentbase);
-
-	p->contentbase=strdup(contentbase);
+	p->contentbase=contentbase;
 }
 
 
@@ -407,9 +379,8 @@ static size_t handle_chars(struct htmlfilter_info *p,
 				return i;
 			}
 
-			unicode_buf_clear(&p->atom);
-
-			unicode_buf_append(&p->atom, uc+i, 1);
+			p->atom.clear();
+			p->atom.push_back(uc[i]);
 			p->handler_func=handle_entity;
 			return 1;
 		case '<':
@@ -419,8 +390,7 @@ static size_t handle_chars(struct htmlfilter_info *p,
 				return i;
 			}
 			p->handler_func=seen_lt;
-
-			free_attrs(p);
+			p->attrs.clear();
 			return 1;
 
 		case '>':
@@ -469,9 +439,9 @@ static size_t handle_entity(struct htmlfilter_info *p,
 {
 	size_t i;
 
-	if (unicode_buf_len(&p->atom) == 1 && *uc == '#')
+	if (p->atom.size() == 1 && *uc == '#')
 	{
-		unicode_buf_append(&p->atom, uc, 1);
+		p->atom.push_back(*uc);
 		return 1;
 	}
 
@@ -481,7 +451,7 @@ static size_t handle_entity(struct htmlfilter_info *p,
 
 		if (c != 0)
 		{
-			unicode_buf_append(&p->atom, &c, 1);
+			p->atom.push_back(c);
 			continue;
 		}
 
@@ -491,8 +461,7 @@ static size_t handle_entity(struct htmlfilter_info *p,
 			/*
 			** It's well-formed
 			*/
-			output(p, unicode_buf_ptr(&p->atom),
-			       unicode_buf_len(&p->atom));
+			output(p, p->atom.data(), p->atom.size());
 			output_chars(p, ";", 1);
 			return ++i;
 		}
@@ -522,7 +491,7 @@ static size_t seen_lt(struct htmlfilter_info *p,
 		return 1;
 	}
 
-	unicode_buf_clear(&p->atom);
+	p->atom.clear();
 	p->handler_func=seen_ltspace;
 	return seen_ltspace(p, uc, cnt);
 }
@@ -697,43 +666,23 @@ static size_t seen_commentdashdash(struct htmlfilter_info *p,
 }
 
 /*
-** Comparison function for bsearch() when searching the tags array.
-*/
-
-static int search_tags(const void *key, const void *elem)
-{
-	size_t i;
-	const char *cp=((const struct taginfo *)elem)->tagname;
-	char32_t c;
-	const struct unicode_buf *ukey=(struct unicode_buf *)key;
-	const char32_t *k=unicode_buf_ptr(ukey);
-	size_t kl=unicode_buf_len(ukey);
-
-	for (i=0; (c=i >= kl ? 0:k[i]) != 0 || cp[i] != 0; ++i)
-	{
-		char32_t c2=(unsigned char)cp[i];
-
-		if (c < c2)
-			return -1;
-
-		if (c > c2)
-			return 1;
-	}
-	return 0;
-}
-
-/*
 ** Sometimes we may need to change one element into another one.
 */
 
 static const struct taginfo *change_element(const struct taginfo *tag)
 {
-	if (strcmp(tag->tagname, "base") == 0)
-		return &div_tag;
+	std::string_view tagname=tag->tagname;
 
-	if (strcmp(tag->tagname, "script") == 0 ||
-	    strcmp(tag->tagname, "style") == 0)
+	if (tagname == "base")
+	{
+		return &div_tag;
+	}
+
+	if (tagname == "script" ||
+	    tagname == "style")
+	{
 		return &span_discard_tag;
+	}
 	return tag;
 }
 
@@ -793,8 +742,10 @@ static void output_escaped(struct htmlfilter_info *p,
 
 static void open_element(struct htmlfilter_info *p)
 {
-	size_t i=0;
-	int discard_was_increased=0;
+	bool discard_was_increased=false;
+
+	if (p->tag->flags & FLAG_NOENDTAG)
+		p->tag_empty=true; /* Make it so, Number One. */
 
 	p->tag=change_element(p->tag);
 
@@ -805,11 +756,8 @@ static void open_element(struct htmlfilter_info *p)
 	if ((p->tag->flags & FLAG_DISCARD) || p->n_discarded)
 	{
 		++p->n_discarded;
-		discard_was_increased=1;
+		discard_was_increased=true;
 	}
-
-	if (p->tag->flags & FLAG_NOENDTAG)
-		p->tag_empty=1; /* Make it so, Number One. */
 
 	if (p->tag->flags & FLAG_NOPRINT)
 		++p->n_discarded; /* Temporary */
@@ -824,36 +772,30 @@ static void open_element(struct htmlfilter_info *p)
 
 	if (strcmp(p->tag->tagname, "a") == 0)
 	{
-		size_t i;
-
-		for (i=0; i<p->attrs_index; ++i)
+		for (auto &attr:p->attrs)
 		{
-			if (unicode_buf_cmp_str(&p->attrs[i].name, "title", 5)
-			    == 0)
+			if (attr.name == U"title")
 			{
 				size_t j, k;
 
-				for (j=0; j<unicode_buf_len(&p->attrs[i].value);
+				for (j=0; j<attr.value.size();
 				     ++j)
 				{
-					if (unicode_buf_ptr(&p->attrs[i].value)
-					    [j] == ':')
+					if (attr.value[j] == ':')
 					{
 						++j;
 						break;
 					}
 				}
 
-				while (j<unicode_buf_len(&p->attrs[i].value) &&
-				       unicode_buf_ptr(&p->attrs[i].value)[j]
-				       == '/')
+				while (j<attr.value.size() &&
+				       attr.value[j] == '/')
 					++j;
 				k=j;
 
-				while (k<unicode_buf_len(&p->attrs[i].value))
+				while (k<attr.value.size())
 				{
-					switch (unicode_buf_ptr(&p->attrs[i]
-								.value)[k]) {
+					switch (attr.value[k]) {
 					case '/':
 					case '?':
 					case '#':
@@ -873,10 +815,8 @@ static void open_element(struct htmlfilter_info *p)
 					output_chars(p, span,
 						     sizeof(span)-1);
 					output_escaped(p,
-						       unicode_buf_ptr(&p->
-								       attrs[i]
-								       .value)
-						       +j, k-j);
+						       attr.value.data()+j,
+						       k-j);
 
 					output_chars(p, "]</span>", 8);
 				}
@@ -888,18 +828,17 @@ static void open_element(struct htmlfilter_info *p)
 	output_chars(p, "<", 1);
 	output_chars(p, p->tag->tagname, strlen(p->tag->tagname));
 
-	for (i=0; i<p->attrs_index; ++i)
+	for (auto &attr:p->attrs)
 	{
-		output_chars(p, " ", 1);
-		output(p, unicode_buf_ptr(&p->attrs[i].name),
-		       unicode_buf_len(&p->attrs[i].name));
+		output(p, U" ", 1);
+		output(p, attr.name.data(), attr.name.size());
 
-		if (unicode_buf_len(&p->attrs[i].value) > 0)
+		if (attr.value.size() > 0)
 		{
 			output_chars(p, "=\"", 2);
 
-			output_escaped(p, unicode_buf_ptr(&p->attrs[i].value),
-				       unicode_buf_len(&p->attrs[i].value));
+			output_escaped(p, attr.value.data(),
+				       attr.value.size());
 			output_chars(p, "\"", 1);
 		}
 	}
@@ -983,6 +922,35 @@ static void close_elements_until(struct htmlfilter_info *p, size_t i)
 	}
 }
 
+static const taginfo &find_tag(struct htmlfilter_info *p)
+{
+	auto tag=std::lower_bound(
+		std::begin(tags),
+		std::end(tags),
+		p->atom,
+		[]
+		(auto &left, auto &right)
+		{
+			return std::lexicographical_compare(
+				left.tagname,
+				left.tagname+strlen(left.tagname),
+				right.begin(),
+				right.end()
+			);
+		}
+	);
+
+	if (!(tag < std::end(tags) &&
+			strlen(tag->tagname) == p->atom.size() &&
+			std::equal(p->atom.begin(), p->atom.end(),
+				tag->tagname)))
+	{
+		tag=&unknown_tag;
+	}
+
+	return *tag;
+}
+
 /*
 ** HANDLER: Seen </
 */
@@ -998,26 +966,10 @@ static size_t seen_closing_elem(struct htmlfilter_info *p,
 	{
 		if (uc[i] == '>')
 		{
-			const struct taginfo *tag;
-
 			p->handler_func=handle_chars;
 
-			tag=static_cast<const taginfo *>(
-				bsearch(&p->atom,
-					tags,
-					sizeof(tags)/sizeof(tags[0]),
-					sizeof(tags[0]),
-					search_tags)
-			);
-
-			/*
-			** Change unknown elements to a <span>
-			*/
-
-			if (!tag)
-				tag= &unknown_tag;
-
-			close_element(p, tag);
+			const taginfo &tag=find_tag(p);
+			close_element(p, &tag);
 			return i+1;
 		}
 
@@ -1028,7 +980,7 @@ static size_t seen_closing_elem(struct htmlfilter_info *p,
 
 		if ((c=uc[i]) == ':' || (c=isualnum(c)) != 0)
 		{
-			unicode_buf_append(&p->atom, &c, 1);
+			p->atom.push_back(c);
 			continue;
 		}
 
@@ -1061,7 +1013,7 @@ static size_t seen_opening_elem(struct htmlfilter_info *p,
 
 		if ((c=uc[i]) == ':' || (c=isualnum(c)) != 0)
 		{
-			unicode_buf_append(&p->atom, &c, 1);
+			p->atom.push_back(c);
 			continue;
 		}
 
@@ -1069,23 +1021,10 @@ static size_t seen_opening_elem(struct htmlfilter_info *p,
 		** End of element name.
 		*/
 
-		p->tag=static_cast<const taginfo *>(
-			bsearch(&p->atom,
-				tags,
-				sizeof(tags)/sizeof(tags[0]),
-				sizeof(tags[0]),
-				search_tags)
-		);
-
-		/*
-		** Change unknown elements to a <span>
-		*/
-
-		if (!p->tag)
-			p->tag= &unknown_tag;
+		p->tag=&find_tag(p);
 
 		p->handler_func=seen_attr;
-		p->tag_empty=0;
+		p->tag_empty=false;
 		return i;
 	}
 	return i;
@@ -1106,13 +1045,13 @@ static size_t seen_attr(struct htmlfilter_info *p,
 
 	if (*uc == '/')
 	{
-		p->tag_empty=1;
+		p->tag_empty=true;
 		return 1;
 	}
 
 	if (isualnum(*uc))
 	{
-		unicode_buf_clear(&p->atom);
+		p->atom.clear();
 		p->handler_func=seen_attrname;
 		return seen_attrname(p, uc, cnt);
 	}
@@ -1130,10 +1069,10 @@ static size_t seen_attr(struct htmlfilter_info *p,
 */
 
 static void append_orig_href(struct htmlfilter_info *p,
-			     struct unicode_buf *dst,
-			     const char *url)
+			     std::u32string &dst,
+			     std::string_view url)
 {
-	size_t n=strlen(url);
+	size_t n=url.size();
 
 	while (n)
 	{
@@ -1151,14 +1090,14 @@ static void append_orig_href(struct htmlfilter_info *p,
 			b[1]=hex[ (url[0] >> 4) & 15];
 			b[2]=hex[ url[0] & 15];
 
-			unicode_buf_append(dst, b, 3);
-			++url;
-			--n;
+			dst.append(b, b+3);
+			url.remove_prefix(1);
+			n -= 1;
 			continue;
 		}
 
-		unicode_buf_append_char(dst, url, i);
-		url += i;
+		dst.append(url.begin(), url.begin()+i);
+		url.remove_prefix(i);
 		n -= i;
 	}
 }
@@ -1166,79 +1105,71 @@ static void append_orig_href(struct htmlfilter_info *p,
 /*
 ** Munge an HREF url accordingly.
 **
-** Returns non-0 if the URL was recognized and munged.
+** Returns true if the URL was recognized and munged.
 **
-** A 0 return means that I do not understand what this URL is, so it should
+** A false return means that I do not understand what this URL is, so it should
 ** be omitted.
 */
 
-static int change_href(struct htmlfilter_info *p,
-		       char *url,
-		       struct unicode_buf *dst,
-		       int must_be_cid, /* Understand only CID: urls */
-		       int *was_http_url
-		       /* Set to non-0 if the munged URL was http or https */
+static bool change_href(struct htmlfilter_info *p,
+		       std::string &url,
+		       std::u32string &dst,
+		       bool must_be_cid, /* Understand only CID: urls */
+		       bool &was_http_url
+		       /* Set to true if the munged URL was http or https */
 		       )
 {
-	size_t i;
-
-	*was_http_url=0;
+	dst.clear();
+	was_http_url=false;
 
 	/* Convert the method to lowercase */
 
-	for (i=0; url[i] && url[i] != ':'; ++i)
+	for (size_t i=0; i < url.size() && url[i] != ':'; ++i)
 	{
 		if (url[i] >= 'A' && url[i] <= 'Z')
 			url[i] += 'a'-'A';
 	}
 
-	if (strncmp(url, "cid:", 4) == 0 && p->convert_cid_func)
+	if (std::string_view{url}.substr(0, 4 ) == "cid:"
+		&& p->convert_cid_func)
 	{
-		std::string q=p->convert_cid_func(url+4);
+		std::string q=p->convert_cid_func(url.data()+4);
 
-		unicode_buf_append_char(dst, q.c_str(), q.size());
-		return 1;
+		dst.append(q.begin(), q.end());
+		return true;
 	}
 
 	if (must_be_cid)
-		return 0;
+		return false;
 
-	if ((strncmp(url, "http:", 5) == 0 ||
-	     strncmp(url, "https:", 6) == 0)
+	if (((std::string_view{url}.substr(0, 5) == "http:") ||
+	    (std::string_view{url}.substr(0, 6) == "https:"))
 	    && !p->http_prefix.empty())
 	{
-		*was_http_url=1;
-		unicode_buf_append_char(
-			dst,
-			p->http_prefix.c_str(),
-			p->http_prefix.size()
-		);
+		was_http_url=true;
+		dst.append(p->http_prefix.begin(), p->http_prefix.end());
 		append_orig_href(p, dst, url);
-		return 1;
+		return true;
 	}
 
-	if (strncmp(url, "mailto:", 7) == 0
+	if (std::string_view{url}.substr(0, 7) == "mailto:"
 	    && !p->mailto_prefix.empty())
 	{
 		size_t i;
 
-		for (i=0; url[i]; ++i)
+		for (i=0; i < url.size(); ++i)
 			if (url[i] == '?')
 			{
 				url[i]='&';
 				break;
 			}
 
-		unicode_buf_append_char(
-			dst,
-			p->mailto_prefix.c_str(),
-			p->mailto_prefix.size()
-		);
-		append_orig_href(p, dst, url+7);
-		return 1;
+		dst.append(p->mailto_prefix.begin(), p->mailto_prefix.end());
+		append_orig_href(p, dst, std::string_view{url}.substr(7));
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 /*
@@ -1249,62 +1180,34 @@ static int change_href(struct htmlfilter_info *p,
 */
 
 static void save_attr_int(struct htmlfilter_info *p,
-			  struct unicode_buf *name,
-			  struct unicode_buf *value)
+			  const std::u32string &name,
+			  const std::u32string &value)
 {
-	struct attr *cur_attr;
-
-	if (p->attrs_index >= sizeof(p->attrs)/sizeof(p->attrs[0]))
+	if (p->attrs.size() >= 32)
 		return;
 
-	cur_attr=p->attrs + p->attrs_index;
-
-	++p->attrs_index;
-
-	unicode_buf_init_copy(&cur_attr->name, name);
-	unicode_buf_init_copy(&cur_attr->value, value);
+	p->attrs.push_back({name, value});
 }
 
-static int is_attr(struct htmlfilter_info *p, const char *c)
+static bool is_attr(struct htmlfilter_info *p, const char *c)
 {
-	return unicode_buf_cmp_str(&p->atom, c, strlen(c)) == 0;
+	return (p->atom.size() == strlen(c)) &&
+		std::equal(p->atom.begin(), p->atom.end(), c);
 }
 
 /*
 ** Convert the current attribute that contains a URL to utf-8, if necessary
 ** and resolve against contentbase, if necessary.
 */
-static char *resolve_url(struct htmlfilter_info *p)
+static std::string resolve_url(struct htmlfilter_info *p)
 {
-	char *buf;
-	size_t size;
-	char *cp;
-
-	unicode_convert_handle_t h=
-		unicode_convert_fromu_init("utf-8", &buf, &size, 1);
-
-	if (h)
+	auto buf=unicode::iconvert::fromu::convert(
+		p->value,
+		unicode::utf_8
+	).first;
+	if (!p->contentbase.empty())
 	{
-		unicode_convert_uc(h, unicode_buf_ptr(&p->value),
-				     unicode_buf_len(&p->value));
-
-		if (unicode_convert_deinit(h, NULL))
-			buf=NULL;
-	}
-	else
-	{
-		buf=NULL;
-	}
-
-	if (!buf)
-		return NULL;
-
-	if (p->contentbase && *p->contentbase)
-	{
-		cp=rfc2045_append_url(p->contentbase, buf);
-
-		free(buf);
-		buf=cp;
+		buf=rfc2045::append_url(p->contentbase, buf);
 	}
 	return (buf);
 }
@@ -1314,42 +1217,30 @@ static char *resolve_url(struct htmlfilter_info *p)
 ** then invoke change_href() and save the result as the replacement
 ** HREF/SRC attribute.
 **
-** Returns the original HREF/SRC was HTTP or HTTPS url in the malloc-ed
-** buffer, or NULL if the HREF/SRC was not http or https (but something else).
+** Returns the original HREF/SRC was HTTP or HTTPS url, an empty string if the
+** HREF/SRC was not http or https (but something else).
 */
 
-static char *handle_url(struct htmlfilter_info *p,
-			int must_be_cid)
+static std::string handle_url(struct htmlfilter_info *p, bool must_be_cid)
 {
-	struct unicode_buf new_href;
-	char *cp;
-	int http_url;
+	std::u32string new_href;
+	bool http_url;
 
-	char *retval=NULL;
+	std::string retval;
 
-	if ((cp=resolve_url(p)) == NULL)
-		return NULL;
+	auto cp=resolve_url(p);
 
-	unicode_buf_init(&new_href, (size_t)-1);
-
-	if (change_href(p, cp, &new_href, must_be_cid, &http_url))
+	if (change_href(p, cp, new_href, must_be_cid, http_url))
 	{
-		save_attr_int(p, &p->atom, &new_href);
-
+		save_attr_int(p, p->atom, new_href);
 		if (!http_url)
 		{
-			free(cp);
-			cp=NULL;
+			cp.clear();
 		}
 
-		retval=cp;
-		cp=NULL;
+		retval=std::move(cp);
 	}
 
-	if (cp)
-		free(cp);
-
-	unicode_buf_deinit(&new_href);
 	return retval;
 }
 
@@ -1358,24 +1249,22 @@ static char *handle_url(struct htmlfilter_info *p,
 ** Only one occurence of each attribute.
 */
 
-static int attr_already_exists(struct htmlfilter_info *p,
-			       struct unicode_buf *name)
+static bool attr_already_exists(struct htmlfilter_info *p,
+			       const std::u32string &name)
 {
-	size_t i;
-
-	for (i=0; i<p->attrs_index; ++i)
+	for (auto &attr:p->attrs)
 	{
-		if (unicode_buf_cmp(&p->attrs[i].name, name) == 0)
-			return 1;
+		if (attr.name == name)
+			return true;
 	}
-	return 0;
+	return false;
 }
 
 static void save_attr(struct htmlfilter_info *p)
 {
 	p->handler_func=seen_attr;
 
-	if (attr_already_exists(p, &p->atom))
+	if (attr_already_exists(p, p->atom))
 		return;
 
 	/*
@@ -1385,19 +1274,18 @@ static void save_attr(struct htmlfilter_info *p)
 	*/
 
 	if (is_attr(p, "type") && strcmp(p->tag->tagname, "blockquote") == 0 &&
-	    unicode_buf_len(&p->value) == 4)
+	    p->value.size() == 4)
 	{
-		size_t i;
+		size_t i=0;
 
 		for (i=0; i<4; ++i)
-			if (isualnum(unicode_buf_ptr(&p->value)[i])
+			if (isualnum(p->value[i])
 			    != static_cast<char32_t>("cite"[i]))
 				break;
 
 		if (i == 4)
 		{
 			size_t n=0, j;
-			char buf[10];
 
 			for (j=0; j<p->n_open_elements; ++j)
 				if (p->open_elements[j]->flags &
@@ -1406,17 +1294,13 @@ static void save_attr(struct htmlfilter_info *p)
 
 			p->tag=&blockquote_cite_tag;
 
-			sprintf(buf, "cite%d", (int)(n % 3));
+			p->value=U"cite#";
+			p->value[4]= '0' + (n % 3);
 
-			unicode_buf_clear(&p->value);
-			unicode_buf_append_char(&p->value, buf, strlen(buf));
-
-			unicode_buf_clear(&p->atom);
-			unicode_buf_append_char(&p->atom, "class", 5);
-
-			if (!attr_already_exists(p, &p->atom))
+			p->atom = U"class";
+			if (!attr_already_exists(p, p->atom))
 			{
-				save_attr_int(p, &p->atom, &p->value);
+				save_attr_int(p, p->atom, p->value);
 				return;
 			}
 		}
@@ -1449,17 +1333,13 @@ static void save_attr(struct htmlfilter_info *p)
 	    )
 	{
 		/* Safe attributes */
-
-		save_attr_int(p, &p->atom, &p->value);
+		save_attr_int(p, p->atom, p->value);
 		return;
 	}
 
 	if (is_attr(p, "src") && strcmp(p->tag->tagname, "img") == 0)
 	{
-		char *url=handle_url(p, 1);
-
-		if (url)
-			free(url);
+		(void)handle_url(p, true);
 		return;
 	}
 
@@ -1467,50 +1347,31 @@ static void save_attr(struct htmlfilter_info *p)
 	{
 		if (strcmp(p->tag->tagname, "base") == 0)
 		{
-			char *buf=static_cast<char *>(
-				malloc(unicode_buf_len(&p->value)+1)
-			);
+			std::string buf{p->value.begin(), p->value.end()};
 
-			if (buf)
-			{
-				size_t i;
-
-				for (i=0; i<unicode_buf_len(&p->value); ++i)
-				{
-					buf[i]=unicode_buf_ptr(&p->value)[i];
-				}
-				buf[i]=0;
-
-				htmlfilter_set_contentbase(p, buf);
-				free(buf);
-			}
+			p->contentbase=std::move(buf);
 			return;
 		}
 
 
 		if (strcmp(p->tag->tagname, "a") == 0)
 		{
-			char *url;
+			auto url=handle_url(p, false);
 
-			if ((url=handle_url(p, 0)) != NULL)
+			if (!url.empty())
 			{
 				/* Append target=_blank to HREF */
 
-				unicode_buf_clear(&p->atom);
-				unicode_buf_append_char(&p->atom, "target", 6);
-				unicode_buf_clear(&p->value);
-				unicode_buf_append_char(&p->value, "_blank", 6);
-				save_attr_int(p, &p->atom, &p->value);
+				p->atom = U"target";
+				p->value = U"_blank";
+				save_attr_int(p, p->atom, p->value);
 
 				/* Append the full URL in the title tag */
 
-				unicode_buf_clear(&p->atom);
-				unicode_buf_append_char(&p->atom, "title", 5);
-				unicode_buf_clear(&p->value);
-				unicode_buf_append_char(&p->value, url, strlen(url));
-				save_attr_int(p, &p->atom, &p->value);
-				free(url);
-
+				p->atom = U"title";
+				p->value.clear();
+				p->value.append(url.begin(), url.end());
+				save_attr_int(p, p->atom, p->value);
 			}
 			return;
 		}
@@ -1533,11 +1394,11 @@ static size_t seen_attrname(struct htmlfilter_info *p,
 
 		if ((c=uc[i]) == ':' || c == '-' || (c=isualnum(c)) != 0)
 		{
-			unicode_buf_append(&p->atom, &c, 1);
+			p->atom.push_back(c);
 			continue;
 		}
 
-		unicode_buf_clear(&p->value);
+		p->value.clear();
 		p->value_quote=0;
 
 		p->handler_func=seen_attr; /* No value expected */
@@ -1587,8 +1448,8 @@ static size_t seen_attrvalue(struct htmlfilter_info *p,
 	{
 		if (uc[i] == '&')
 		{
- 			unicode_buf_append(&p->value, uc, i);
-			unicode_buf_clear(&p->atom2);
+			p->value.append(uc, uc+i);
+			p->atom2.clear();
 			p->handler_func=seen_attrvalue_entity;
 			return i+1;
 		}
@@ -1602,19 +1463,19 @@ static size_t seen_attrvalue(struct htmlfilter_info *p,
 		{
 			if (uc[i] == p->value_quote)
 			{
-				unicode_buf_append(&p->value, uc, i);
+				p->value.append(uc, uc+i);
 				save_attr(p);
 				return i+1;
 			}
 		}
 		else if (SPACE(uc[i]) || uc[i] == '/' || uc[i] == '>')
 		{
-			unicode_buf_append(&p->value, uc, i);
+			p->value.append(uc, uc+i);
 			save_attr(p);
 			return i;
 		}
 	}
-	unicode_buf_append(&p->value, uc, i);
+	p->value.append(uc, uc+i);
 	return cnt;
 }
 
@@ -1630,11 +1491,10 @@ static void append_entity(struct htmlfilter_info *p)
 {
 	char32_t v=0;
 
-	if (unicode_buf_len(&p->atom2) &&
-	    unicode_buf_ptr(&p->atom2)[0] == '#')
+	if (p->atom2.size() && p->atom2[0] == '#')
 	{
-		const char32_t *u=unicode_buf_ptr(&p->atom2);
-		size_t n=unicode_buf_len(&p->atom2);
+		const char32_t *u=p->atom2.data();
+		size_t n=p->atom2.size();
 
 		++u;
 		--n;
@@ -1680,12 +1540,12 @@ static void append_entity(struct htmlfilter_info *p)
 		char entitybuf[32];
 		size_t i;
 
-		if (unicode_buf_len(&p->atom2) >= sizeof(entitybuf))
+		if (p->atom2.size() >= sizeof(entitybuf))
 			return;
 
-		for (i=0; i<unicode_buf_len(&p->atom2); ++i)
+		for (i=0; i<p->atom2.size(); ++i)
 		{
-			char32_t c=unicode_buf_ptr(&p->atom2)[i];
+			char32_t c=p->atom2[i];
 
 			if ((unsigned char)c != c)
 				return;
@@ -1697,7 +1557,7 @@ static void append_entity(struct htmlfilter_info *p)
 			return;
 	}
 
-	unicode_buf_append(&p->value, &v, 1);
+	p->value.push_back(v);
 }
 
 /*
@@ -1715,9 +1575,9 @@ static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
 {
 	size_t i;
 
-	if (unicode_buf_len(&p->atom2) == 0 && *uc == '#')
+	if (p->atom2.empty() && *uc == '#')
 	{
-		unicode_buf_append(&p->atom2, uc, 1);
+		p->atom2.push_back(*uc);
 		return 1;
 	}
 
@@ -1727,7 +1587,7 @@ static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
 
 		if (c)
 		{
-			unicode_buf_append(&p->atom2, uc+i, 1);
+			p->atom2.push_back(c);
 			continue;
 		}
 
@@ -1741,12 +1601,8 @@ static size_t seen_attrvalue_entity(struct htmlfilter_info *p,
 
 			/* Broken URL, most likely */
 
-			{
-				char32_t amp='&';
-
-				unicode_buf_append(&p->value, &amp, 1);
-			}
-			unicode_buf_append_buf(&p->value, &p->atom2);
+			p->value.push_back('&');
+			p->value.append(p->atom2.begin(), p->atom2.end());
 			break;
 		default:
 			/* Not ...&foo;..., not ...&foo&..., not ...&foo=... */

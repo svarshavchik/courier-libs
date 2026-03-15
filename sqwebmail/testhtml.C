@@ -14,7 +14,7 @@ static void write_stdout(const char32_t *uc, size_t n, void *dummy)
 
 static std::string cid_func(const char *cid)
 {
-	return cid;
+	return std::string{"cid:"} + cid;
 }
 
 int main(int argc, char **argv)
