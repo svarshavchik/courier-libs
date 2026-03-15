@@ -265,6 +265,7 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 		if (indexfile)
 		{
 			free(indexfile);
+			indexfile=NULL;
 		}
 
 		if (rc || eof)
@@ -388,6 +389,11 @@ int maildir_info_imap_find(struct maildir_info *info, const char *path,
 		}
 
 		return 0;
+	}
+
+	if (indexfile)
+	{
+		free(indexfile);
 	}
 
 	if (ifs.homedir)
