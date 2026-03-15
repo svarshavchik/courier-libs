@@ -55,25 +55,25 @@ int main()
 
 	maildir_aclt_destroy(&b);
 	CHK(maildir_aclt_init(&b, "arx", NULL) == 0);
-	CHK(maildir_aclt_add(&a, NULL, &b) == 0);
+	maildir_aclt_add(&a, NULL, &b);
 	CHK(strcmp(maildir_aclt_ascstr(&a), "arwx") == 0);
-	CHK(maildir_aclt_add(&a, "bwz", NULL) == 0);
+	maildir_aclt_add(&a, "bwz", NULL);
 	CHK(strcmp(maildir_aclt_ascstr(&a), "abrwxz") == 0);
 
 	maildir_aclt_destroy(&b);
 	CHK(maildir_aclt_init(&b, "wry", NULL) == 0);
-	CHK(maildir_aclt_del(&a, NULL, &b) == 0);
+	maildir_aclt_del(&a, NULL, &b);
 	CHK(strcmp(maildir_aclt_ascstr(&a), "abxz") == 0);
-	CHK(maildir_aclt_del(&a, "abc", NULL) == 0);
+	maildir_aclt_del(&a, "abc", NULL);
 	CHK(strcmp(maildir_aclt_ascstr(&a), "xz") == 0);
 
 	maildir_aclt_list_init(&l);
-	CHK(maildir_aclt_list_add(&l, "owner", NULL, &a) == 0);
-	CHK(maildir_aclt_list_add(&l, "user1", NULL, &a) == 0);
-	CHK(maildir_aclt_list_add(&l, "user2", NULL, &b) == 0);
-	CHK(maildir_aclt_list_add(&l, "owner", NULL, &b) == 0);
-	CHK(maildir_aclt_list_del(&l, "user1") == 0);
-	CHK(maildir_aclt_list_del(&l, "user3") == 0);
+	maildir_aclt_list_add(&l, "owner", NULL, &a);
+	maildir_aclt_list_add(&l, "user1", NULL, &a);
+	maildir_aclt_list_add(&l, "user2", NULL, &b);
+	maildir_aclt_list_add(&l, "owner", NULL, &b);
+	maildir_aclt_list_del(&l, "user1");
+	maildir_aclt_list_del(&l, "user3");
 	CHK(maildir_aclt_list_lookup(&l, "owner") != NULL &&
 	    strcmp(maildir_aclt_list_lookup(&l, "owner"), "rwy") == 0);
 	maildir_aclt_destroy(&a);
@@ -105,7 +105,7 @@ int main()
 	CHK(maildir_aclt_list_enum(&l, cb_enum, buf) == 0 &&
 	    strcmp(buf, "owner.aceilrstwx.administrators.aceilrstwx.") == 0);
 
-	CHK(maildir_aclt_list_add(&l, "anyone", "lr", NULL) == 0);
+	maildir_aclt_list_add(&l, "anyone", "lr", NULL);
 	CHK(maildir_acl_write(&l, "confmdtest", ".", NULL, NULL) == 0);
 	maildir_aclt_list_destroy(&l);
 	CHK(maildir_acl_read(&l, "confmdtest", ".") == 0);
@@ -174,9 +174,9 @@ int main()
 #endif
 
 	maildir_aclt_list_destroy(&l);
-	CHK(maildir_aclt_list_add(&l, "owner", "swite", NULL) == 0);
-	CHK(maildir_aclt_list_add(&l, "anyone", "lr", NULL) == 0);
-	CHK(maildir_aclt_list_add(&l, "-user1", "r", NULL) == 0);
+	maildir_aclt_list_add(&l, "owner", "swite", NULL);
+	maildir_aclt_list_add(&l, "anyone", "lr", NULL);
+	maildir_aclt_list_add(&l, "-user1", "r", NULL);
 
 	{
 		static const char *id[3];

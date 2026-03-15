@@ -2549,12 +2549,8 @@ static int acl_read_folder(maildir_aclt_list *aclt_list,
 	if (strcmp(path, SHARED) == 0)
 	{
 		maildir_aclt_list_init(aclt_list);
-		if (maildir_aclt_list_add(aclt_list, "anyone",
-					  ACL_LOOKUP, NULL) < 0)
-		{
-			maildir_aclt_list_destroy(aclt_list);
-			return -1;
-		}
+		maildir_aclt_list_add(aclt_list, "anyone",
+				      ACL_LOOKUP, NULL);
 		return 0;
 	}
 
@@ -2564,25 +2560,17 @@ static int acl_read_folder(maildir_aclt_list *aclt_list,
 
 		if (strchr(path+sizeof(SHARED), '.') == 0)
 		{
-			if (maildir_aclt_list_add(aclt_list,
-						  "anyone",
-						  ACL_LOOKUP, NULL) < 0)
-			{
-				maildir_aclt_list_destroy(aclt_list);
-				return -1;
-			}
+			maildir_aclt_list_add(aclt_list,
+					      "anyone",
+					      ACL_LOOKUP, NULL);
 		}
 
 		p=maildir_shareddir(maildir, path+sizeof(SHARED));
 		if (!p)
 		{
-			if (maildir_aclt_list_add(aclt_list,
-						  "anyone",
-						  ACL_LOOKUP, NULL) < 0)
-			{
-				maildir_aclt_list_destroy(aclt_list);
-				return -1;
-			}
+			maildir_aclt_list_add(aclt_list,
+					      "anyone",
+					      ACL_LOOKUP, NULL);
 			return 0;
 		}
 		q=(char *)malloc(strlen(p)+sizeof("/new"));
@@ -2595,22 +2583,17 @@ static int acl_read_folder(maildir_aclt_list *aclt_list,
 		strcat(strcpy(q, p), "/new");
 		free(p);
 
-		if (maildir_aclt_list_add(aclt_list,
-					  "anyone",
-					  access(q, W_OK) == 0 ?
-					  ACL_LOOKUP ACL_READ
-					  ACL_SEEN ACL_WRITE ACL_INSERT
+		maildir_aclt_list_add(aclt_list,
+				      "anyone",
+				      access(q, W_OK) == 0 ?
+				      ACL_LOOKUP ACL_READ
+				      ACL_SEEN ACL_WRITE ACL_INSERT
 
-					  ACL_DELETEFOLDER /* Wrong, but needed for ACL1 compatibility */
+				      ACL_DELETEFOLDER /* Wrong, but needed for ACL1 compatibility */
 
-					  ACL_DELETEMSGS ACL_EXPUNGE:
-					  ACL_LOOKUP ACL_READ ACL_SEEN
-					  ACL_WRITE, NULL) < 0)
-		{
-			free(q);
-			maildir_aclt_list_destroy(aclt_list);
-			return -1;
-		}
+				      ACL_DELETEMSGS ACL_EXPUNGE:
+				      ACL_LOOKUP ACL_READ ACL_SEEN
+				      ACL_WRITE, NULL);
 		free(q);
 		return 0;
 	}
@@ -2706,12 +2689,8 @@ static int get_acllist(maildir_aclt_list *l,
 		maildir_aclt_list_init(l);
 		rc=0;
 
-		if (maildir_aclt_list_add(l, "anyone",
-					  ACL_LOOKUP, NULL) < 0)
-		{
-			maildir_aclt_list_destroy(l);
-			rc=-1;
-		}
+		maildir_aclt_list_add(l, "anyone",
+				      ACL_LOOKUP, NULL);
 	}
 	else
 	{
@@ -3282,17 +3261,29 @@ static int fix_acl_delete(int (*func)(maildir_aclt *, const char *,
 	return rc;
 }
 
+static void fix_acl_delete(std::string &s)
+{
+	auto iter=std::remove(s.begin(), s.end(), ACL_DELETE_SPECIAL[0]);
+
+	if (iter == s.end())
+		return;
+
+	s.erase(iter, s.end());
+
+	s += ACL_DELETEFOLDER ACL_DELETEMSGS ACL_EXPUNGE;
+}
+
 static int fix_acl_delete2(maildir_aclt_list *aclt_list,
 			   const char *identifier,
 			   const char *aclstr)
 {
 	char *p, *q;
-	int rc;
 
 	if (strchr(aclstr, ACL_DELETE_SPECIAL[0]) == NULL)
-		return maildir_aclt_list_add(aclt_list, identifier, aclstr,
-					     NULL);
-
+	{
+		maildir_aclt_list_add(aclt_list, identifier, aclstr, NULL);
+		return 0;
+	}
 
 	p=(char *)malloc(strlen(aclstr)+sizeof(ACL_DELETEFOLDER
 					       ACL_DELETEMSGS
@@ -3310,9 +3301,9 @@ static int fix_acl_delete2(maildir_aclt_list *aclt_list,
 
 	strcpy(q, ACL_DELETEFOLDER ACL_DELETEMSGS ACL_EXPUNGE);
 
-	rc=maildir_aclt_list_add(aclt_list, identifier, p, NULL);
+	maildir_aclt_list_add(aclt_list, identifier, p, NULL);
 	free(p);
-	return rc;
+	return 0;
 }
 
 void aclminimum(const char *identifier)
@@ -3445,19 +3436,28 @@ static int do_acl_mod_0(void *void_arg)
 		const char *oldacl;
 
 		if (fix_acl_delete(&maildir_aclt_init,
-				   &newacl, newrights+1) < 0
-		    || ((oldacl=maildir_aclt_list_lookup(aclt_list, identifier))
-			!= NULL && maildir_aclt_add(&newacl, oldacl, NULL) < 0)
-		    || maildir_aclt_list_add(aclt_list, identifier, NULL,
-					     &newacl) < 0 ||
-		    acl_write_folder(aclt_list, mi->homedir,
-					     mi->maildir,
-					     mi->owner, acl_error) < 0)
+				   &newacl, newrights+1) < 0)
+		{
+			maildir_aclt_destroy(&newacl);
+			return -1;
+		}
 
-			{
-				maildir_aclt_destroy(&newacl);
-				return -1;
-			}
+		if ((oldacl=maildir_aclt_list_lookup(aclt_list, identifier))
+		    != NULL)
+		{
+			maildir_aclt_add(&newacl, oldacl, NULL);
+		}
+
+		maildir_aclt_list_add(aclt_list, identifier, NULL, &newacl);
+
+		if (acl_write_folder(aclt_list, mi->homedir,
+				     mi->maildir,
+				     mi->owner, acl_error) < 0)
+
+		{
+			maildir_aclt_destroy(&newacl);
+			return -1;
+		}
 		maildir_aclt_destroy(&newacl);
 	}
 	else if (newrights[0] == '-')
@@ -3468,33 +3468,57 @@ static int do_acl_mod_0(void *void_arg)
 		oldacl=maildir_aclt_list_lookup(aclt_list, identifier);
 
 		if (maildir_aclt_init(&newacl,
-				      oldacl, NULL) < 0
-		    || fix_acl_delete(&maildir_aclt_del,
-				      &newacl, newrights+1) < 0
-		    || (strlen(maildir_aclt_ascstr(&newacl)) == 0 ?
-			maildir_aclt_list_del(aclt_list, identifier):
-			maildir_aclt_list_add(aclt_list, identifier,
-					      NULL, &newacl)) < 0 ||
-		    acl_write_folder(aclt_list, mi->homedir,
-					     mi->maildir,
-					     mi->owner,
-					     acl_error) < 0)
-			{
-				maildir_aclt_destroy(&newacl);
-				return -1;
-			}
+				      oldacl, NULL) < 0)
+		{
 			maildir_aclt_destroy(&newacl);
+			return -1;
+		}
+
+		std::string s{newrights+1};
+
+		fix_acl_delete(s);
+
+		maildir_aclt_del(&newacl, s.c_str(), NULL);
+
+		if (strlen(maildir_aclt_ascstr(&newacl)) == 0)
+		{
+			maildir_aclt_list_del(aclt_list, identifier);
+		}
+		else
+		{
+			maildir_aclt_list_add(aclt_list, identifier,
+					      NULL, &newacl);
+		}
+
+		if (acl_write_folder(aclt_list, mi->homedir,
+				     mi->maildir,
+				     mi->owner,
+				     acl_error) < 0)
+		{
+			maildir_aclt_destroy(&newacl);
+			return -1;
+		}
+		maildir_aclt_destroy(&newacl);
 	}
 	else
 	{
 		acl_error=NULL;
 
-		if ((newrights[0] == 0 ?
-		     maildir_aclt_list_del(aclt_list, identifier):
-		     fix_acl_delete2(aclt_list, identifier, newrights)) < 0
-		    || acl_write_folder(aclt_list, mi->homedir,
-					mi->maildir, mi->owner,
-					acl_error) < 0)
+		if (newrights[0] == 0)
+		{
+			maildir_aclt_list_del(aclt_list, identifier);
+		}
+		else
+		{
+			if (fix_acl_delete2(aclt_list, identifier, newrights)<0)
+			{
+				return -1;
+			}
+		}
+
+		if (acl_write_folder(aclt_list, mi->homedir,
+				     mi->maildir, mi->owner,
+				     acl_error) < 0)
 		{
 			return -1;
 		}
@@ -3760,8 +3784,9 @@ static int do_acldelete(void *void_arg)
 
 	acl_error=NULL;
 
-	if (maildir_aclt_list_del(&aclt_list, ai->identifier) < 0 ||
-	    acl_write_folder(&aclt_list, mi->homedir, mi->maildir,
+	maildir_aclt_list_del(&aclt_list, ai->identifier);
+
+	if (acl_write_folder(&aclt_list, mi->homedir, mi->maildir,
 			     mi->owner, &acl_error) < 0)
 	{
 		aclfailed(mailbox, acl_error);

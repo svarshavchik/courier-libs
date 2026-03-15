@@ -32,6 +32,10 @@ struct aclt : public std::string {
 	aclt(const char *);
 	~aclt();
 
+	// Add or remove access chars.
+	//
+	// Duplicates are automatically removed.
+
 	aclt &operator+=(const std::string &);
 	aclt &operator-=(const std::string &);
 
@@ -40,7 +44,7 @@ struct aclt : public std::string {
 };
 
 /*
-** A node in a list of ACLs
+** A node in a list of ACLs. An identifiers, and its ACLs.
 */
 
 struct aclt_node {
@@ -54,35 +58,111 @@ struct aclt_node {
 
 struct aclt_list : std::vector<aclt_node> {
 
+	// Add an <identifier,acl> pair.
+	//
+	// Sanity check: identifiers with control characters are quietly
+	// ignored.
+
 	void add(const std::string &identifier, const aclt &acl);
+
+	/* Remove an identifier */
 
 	void del(const std::string &identifier);
 
 	aclt_list();
 	~aclt_list();
 
+	/*
+	** Compute my access rights.  Initializes 'aclt'.
+	**
+	** The closure should return >0 if identifier refers to the entity
+	** whose access rights are to be computed; 0 if it does not, <0 if
+	** an error occured.
+	**
+	** As a special case,compute() handles "anonymous" and "anyone"
+	** identifiers on its own.
+	**
+	** As a special case, if the closure function returns >0 for the
+	** identifier "owner", the computed access rights will always include
+	** the ADMIN right.
+	**
+	** compute() uses ACL2=UNION; the computed access rights
+	** consist of the union of all rights granted to all identifiers
+	** that include the entity, minus the union of all reights revoked
+	** from all identifiers that include the entity.
+	*/
+
 	int compute( aclt &,
 		     const std::function<int (const char *)> &) const;
 
-	int computerights(aclt &,
+	/*
+	** A wrapper for maildir_acl_compute.
+	**
+	** Computes 'rights' - my rights on the mailbox.
+	**
+	** me: my login identifier.
+	**
+	** folder_owner: the owner of the mailbox folder whose rights are computed,
+	** should also take the form of "user=<n>".
+	**
+	** options: This is parsed as a comma-separated string. All strings
+	** of the from "group=" are also added to the ACL lookup. This
+	** typically comes from the "OPTIONS" environment variable.
+	**
+	** Returns 0 upon success, after placing the computed access rights in
+	** 'rights'.
+	*/
+
+	int computerights(aclt &rights,
 			  const std::string &me,
 			  const std::string &owner,
 			  const std::string &options);
 
+	/*
+	** Write ACLs for maildir maildir.path.
+	**
+	** Returns 0 for success, <0 for failure.
+	**
+	** Additional parameters:
+	**
+	** owner: the owner entity of the folder represented by 'path'.
+	*/
+
 	int write(const std::string &maildir,
 		  const std::string &path,
 		  const std::string &owner) const;
+
+	/*
+	** failedrights will be initialized to a non-null identifier string if
+	** write() fails because aclt_list
+	** illegally revokes minimum rights from this identifier (admin/lookup).
+	*/
 
 	int write(const std::string &maildir,
 		  const std::string &path,
 		  const std::string &owner,
 		  std::string &failed_rights) const;
 
+	/*
+	** Read ACLs for maildir maildir.path.
+	**
+	** maildir: Path to the main maildir.
+	**
+	** path: ".folder.subfolder".
+	**
+	** aclt_list is an uninitialized maildir_aclt_list
+	**
+	** Returns 0 for success, <0 for failure.
+	*/
+
 	int read(const std::string &maildir,
 		 const std::string &path);
 };
 
+/* Remove stale ACL entries */
 void acl_reset(const std::string &maildir);
+
+/* Remove a particular ACL entry */
 bool acl_delete(const std::string &maildir, const std::string &path);
 
 #if 0
@@ -105,7 +185,9 @@ typedef struct maildir_aclt_impl *maildir_aclt;
 
 
 /*
-** Initialize an aclt.  The second or third args specify its initial value.
+** C wrapper for a maildir::aclt
+**
+** Initialize the aclt.  The second or third args specify its initial value.
 ** Both may be NULL.  Only one can be non-NULL.
 */
 
@@ -118,15 +200,15 @@ int maildir_aclt_init(maildir_aclt *aclt,
 void maildir_aclt_destroy(maildir_aclt *aclt);
 
 
-/* Add or remove access chars. */
+/* See aclt's += and -= operators */
 
-int maildir_aclt_add(maildir_aclt *aclt,
+void maildir_aclt_add(maildir_aclt *aclt,
 		      const char *add_strs,
 		      const maildir_aclt *add_aclt);
 
-int maildir_aclt_del(maildir_aclt *aclt,
-		     const char *del_strs,
-		     const maildir_aclt *del_aclt);
+void maildir_aclt_del(maildir_aclt *aclt,
+		      const char *del_strs,
+		      const maildir_aclt *del_aclt);
 
 /* return a const char * that contains the acl */
 
@@ -138,25 +220,27 @@ struct maildir_aclt_list_impl;
 
 typedef struct maildir_aclt_list_impl *maildir_aclt_list;
 
-/* Initialize and destroy the list */
+/*
+** C wrappers for a maildir::aclt_list
+*/
 
 void maildir_aclt_list_init(maildir_aclt_list *aclt_list);
 void maildir_aclt_list_destroy(maildir_aclt_list *aclt_list);
 
-/* Add an <identifier,acl> pair.  Returns 0 on success, -1 on failure */
+/* A wrapper for aclt_list::add */
 
-int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
-			  const char *identifier,
-			  const char *aclt_str,
-			  maildir_aclt *aclt_cpy);
+void maildir_aclt_list_add(maildir_aclt_list *aclt_list,
+			   const char *identifier,
+			   const char *aclt_str,
+			   maildir_aclt *aclt_cpy);
 
-/* Remove an identifier */
+/* Wrapper for aclt_list::del */
 
-int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
+void maildir_aclt_list_del(maildir_aclt_list *aclt_list,
 			  const char *identifier);
 
 /*
-** Enumerate the ACL list.  The callback function, cb_func, gets
+** Enumerate the ACL list vector.  The callback function, cb_func, gets
 ** invoked for each ACL list entry.  The callback function receives:
 ** identifier+rights pair; as well as the transparent pass-through
 ** argument.  A nonzero return from the callback function terminates
@@ -171,7 +255,9 @@ int maildir_aclt_list_enum(maildir_aclt_list *aclt_list,
 					  void *cb_arg),
 			   void *cb_arg);
 
-/* Find an identifier, returns NULL if not found, else its ACL gets returned */
+/* Searches the aclt_list vector.
+** Find an identifier, returns NULL if not found, else its ACL gets returned.
+*/
 
 const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
 				     const char *identifier);
@@ -231,15 +317,7 @@ const char *maildir_aclt_list_lookup(maildir_aclt_list *aclt_list,
 extern int maildir_acl_disabled;
 
 /*
-** Read ACLs for maildir maildir.path.
-**
-** maildir: Path to the main maildir.
-**
-** path: ".folder.subfolder".
-**
-** aclt_list is an uninitialized maildir_aclt_list
-**
-** Returns 0 for success, <0 for failure.
+** Creates a new maildir::aclt_list and calls read().
 */
 
 int maildir_acl_read(maildir_aclt_list *aclt_list,
@@ -247,18 +325,9 @@ int maildir_acl_read(maildir_aclt_list *aclt_list,
 		     const char *path);
 
 /*
-** Write ACLs for maildir maildir.path.
-**
-** Returns 0 for success, <0 for failure.
-**
-** Additional parameters:
-**
-** owner: the owner entity of the folder represented by 'path'.
-**
-** err_failedrights: if not NULL, *err_failedrights will be initialized to
-** a non-null identifier string if maildir_acl_set fails because aclt_list
-** illegally revokes minimum rights from the identifier (admin/lookup).
-**
+** Wrapper for aclt_list::write, with a failed_rights returned value.
+** Passing in a null pointer is equivalent to calling the overload without
+** a failed_rights parameter.
 */
 
 int maildir_acl_write(maildir_aclt_list *aclt_list,
@@ -267,33 +336,25 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 		      const char *owner,
 		      const char **err_failedrights);
 
-/* Remove stale ACL entries */
-
+/*
+** C wrapper for maildir::acl_reset()
+*/
 void maildir_acl_reset(const char *maildir);
 
-/* Remove a particular ACL entry */
+/*
+** C wrapper for maildir::acl_delete().
+*/
 
 int maildir_acl_delete(const char *maildir,
 		       const char *path);   /* .folder.subfolder */
 
 /*
-** Compute my access rights.  Initializes 'aclt'. 'aclt_list' is the ACL.
+** C wrapper for aclt_list::compute().
 **
-** The callback function should return >0 if identifier refers to the entity
-** whose access rights are to be computed; 0 if it does not, <0 if an error
-** occurred.
-**
-** As a special case, maildir_acl_compute() handles "anonymous" and "anyone"
-** identifiers on its own.
-**
-** As a special case, if the callback function returns >0 for the identifier
-** "owner", the computed access rights will always include the ADMIN right.
-**
-** maildir_aclt_compute() uses ACL2=UNION; the computed access rights
-** consist of the union of all rights granted to all identifiers that include
-** the entity, minus the union of all reights revoked from all identifiers
-** that include the entity.
+** The closure calls that passed-in function parameter, with the additional
+** void pointer parameter, that gets passed through unchanged.
 */
+
 int maildir_acl_compute(maildir_aclt *aclt, maildir_aclt_list *aclt_list,
 			int (*cb_func)(const char *identifier,
 				       void *void_arg), void *void_arg);
@@ -308,23 +369,7 @@ int maildir_acl_compute_array(maildir_aclt *aclt,
 			      const char * const *identifiers);
 
 /*
-** A wrapper for maildir_acl_compute.
-**
-** Compute 'rights' - my rights on the mailbox.
-**
-** acl_list: the mailbox's ACL.
-**
-** me: my login identifier.
-**
-** folder_owner: the owner of the mailbox folder whose rights are computed,
-** should also take the form of "user=<n>".
-**
-** options: This is parsed as a comma-separated string. All strings of the
-** from "group=" are also added to the ACL lookup. This typically comes from
-** the "OPTIONS" environment variable.
-**
-** Returns 0 upon success, after placing the computed access rights in
-** 'rights'.
+** A C wrapper for maildir::aclt_list::computerights().
 */
 
 int maildir_acl_computerights(maildir_aclt *rights,

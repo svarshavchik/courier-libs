@@ -938,14 +938,10 @@ static int read_acls(maildir_aclt_list *aclt_list,
 
 			maildir_aclt_list_init(aclt_list);
 
-			if (maildir_aclt_list_add(aclt_list,
-						  "anyone",
-						  ACL_LOOKUP,
-						  NULL) < 0)
-			{
-				maildir_aclt_list_destroy(aclt_list);
-				return -1;
-			}
+			maildir_aclt_list_add(aclt_list,
+					      "anyone",
+					      ACL_LOOKUP,
+					      NULL);
 			return 0;
 		}
 
@@ -2974,15 +2970,7 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 	{
 		if (dodelete)
 		{
-			if (maildir_aclt_list_del(&aclt_list,
-						  identifier) < 0)
-			{
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
-			}
+			maildir_aclt_list_del(&aclt_list, identifier);
 			continue;
 		}
 
@@ -3011,32 +2999,13 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 			);
 			if (oldacl)
 			{
-				if (maildir_aclt_add(&newacl,
-						     oldacl, NULL)
-				    < 0)
-				{
-					maildir_aclt_destroy(&newacl);
-					maildir_aclt_list_destroy(&aclt_list);
-					writes("-ERR Error: ");
-					writes(strerror(errno));
-					writes("\n");
-					return 0;
-				}
+				maildir_aclt_add(&newacl,
+						 oldacl, NULL);
 			}
 
-			if (maildir_aclt_list_add(&aclt_list,
-						  identifier,
-						  NULL,
-						  &newacl) < 0)
-			{
-				maildir_aclt_destroy(&newacl);
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
+			maildir_aclt_list_add(&aclt_list, identifier, NULL,
+					      &newacl);
 
-			}
 			maildir_aclt_destroy(&newacl);
 			continue;
 		}
@@ -3064,51 +3033,35 @@ static int dosetdeleteacl(void *cb_arg, int dodelete)
 			}
 
 
-			if (maildir_aclt_del(&newacl,
-					     action+1, NULL)
-				    < 0)
-			{
-				maildir_aclt_destroy(&newacl);
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
-			}
+			maildir_aclt_del(&newacl, action+1, NULL);
 
 			if (strlen(maildir_aclt_ascstr(&newacl))
-			    == 0 ?
-			    maildir_aclt_list_del(&aclt_list,
-						  identifier)
-			    :maildir_aclt_list_add(&aclt_list,
-						   identifier,
-						   NULL,
-						   &newacl) < 0)
+			    == 0)
 			{
-				maildir_aclt_destroy(&newacl);
-				maildir_aclt_list_destroy(&aclt_list);
-				writes("-ERR Error: ");
-				writes(strerror(errno));
-				writes("\n");
-				return 0;
-
+				maildir_aclt_list_del(&aclt_list, identifier);
 			}
+			else
+			{
+				maildir_aclt_list_add(&aclt_list,
+						      identifier,
+						      NULL,
+						      &newacl);
+			}
+
 			maildir_aclt_destroy(&newacl);
 			continue;
 		}
 
-		if (strlen(action) == 0 ?
-		    maildir_aclt_list_del(&aclt_list,
-					  identifier):
-		    maildir_aclt_list_add(&aclt_list,
-					  identifier,
-					  action, NULL) < 0)
+		if (strlen(action) == 0)
 		{
-			maildir_aclt_list_destroy(&aclt_list);
-			writes("-ERR Error: ");
-			writes(strerror(errno));
-			writes("\n");
-			return 0;
+			maildir_aclt_list_del(&aclt_list,
+					      identifier);
+		}
+		else
+		{
+			maildir_aclt_list_add(&aclt_list,
+					      identifier,
+					      action, NULL);
 		}
 	}
 

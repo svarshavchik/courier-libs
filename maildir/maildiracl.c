@@ -146,22 +146,22 @@ int main(int argc, char *argv[])
 		{
 			if (maildir_aclt_init(&a,
 					      maildir_aclt_list_lookup
-					      (&l, identifier), NULL) ||
-			    maildir_aclt_add(&a, rights+1, NULL))
+					      (&l, identifier), NULL))
 			{
 				perror(argv[0]);
 				exit(1);
 			}
+			maildir_aclt_add(&a, rights+1, NULL);
 		} else if (*rights == '-')
 		{
 			if (maildir_aclt_init(&a,
 					      maildir_aclt_list_lookup
-					      (&l, identifier), NULL) ||
-			    maildir_aclt_del(&a, rights+1, NULL))
+					      (&l, identifier), NULL))
 			{
 				perror(argv[0]);
 				exit(1);
 			}
+			maildir_aclt_del(&a, rights+1, NULL);
 		}
 		else if (maildir_aclt_init(&a, rights, NULL))
 		{
@@ -169,11 +169,7 @@ int main(int argc, char *argv[])
 			exit (1);
 		}
 
-		if (maildir_aclt_list_add(&l, identifier, NULL, &a))
-		{
-			perror(argv[0]);
-			exit(1);
-		}
+		maildir_aclt_list_add(&l, identifier, NULL, &a);
 
 		if (maildir_acl_write(&l, maildir, folder, "owner",
 				      &err_failedrights))
@@ -210,11 +206,7 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		if (maildir_aclt_list_del(&l, identifier))
-		{
-			perror(maildir);
-			exit(1);
-		}
+		maildir_aclt_list_del(&l, identifier);
 
 		if (maildir_acl_write(&l, maildir, folder, "owner",
 				      &err_failedrights))

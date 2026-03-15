@@ -158,15 +158,11 @@ static bool acl_read2(maildir_aclt_list *l,
 		/* Legacy shared., punt. */
 
 		maildir_aclt_list_init(l);
-		if (maildir_aclt_list_add(l, "anyone",
-					  ACL_LOOKUP ACL_READ
-					  ACL_SEEN ACL_WRITE
-					  ACL_INSERT
-					  ACL_DELETEMSGS ACL_EXPUNGE, NULL))
-		{
-			maildir_aclt_list_destroy(l);
-			return false;
-		}
+		maildir_aclt_list_add(l, "anyone",
+				      ACL_LOOKUP ACL_READ
+				      ACL_SEEN ACL_WRITE
+				      ACL_INSERT
+				      ACL_DELETEMSGS ACL_EXPUNGE, NULL);
 		owner="vendor=courier.internal";
 		return true;
 	}
@@ -357,8 +353,7 @@ static void doupdate()
 
 	if (*cgi("delentity"))
 	{
-		if (maildir_aclt_list_del(&l, cgi("delentity")))
-			printf("%s", getarg("ACL_failed"));
+		maildir_aclt_list_del(&l, cgi("delentity"));
 	}
 
 	if (*cgi("do.update"))
@@ -433,9 +428,10 @@ static void doupdate()
 			++p;
 		}
 
-		if (entity.empty() ||
-		    maildir_aclt_list_add(&l, entity.c_str(), new_acl, NULL) < 0)
+		if (entity.empty())
 			printf("%s", getarg("ACL_failed"));
+
+		maildir_aclt_list_add(&l, entity.c_str(), new_acl, NULL);
 	}
 
 	p=maildir_name2dir(".", minfo.maildir);

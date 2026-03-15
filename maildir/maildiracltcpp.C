@@ -113,15 +113,15 @@ void maildir_aclt_destroy(maildir_aclt *aclt)
 
 /* Add or remove access chars. */
 
-int maildir_aclt_add(maildir_aclt *aclt,
-		     const char *add_strs,
-		     const maildir_aclt *add_aclt)
+void maildir_aclt_add(maildir_aclt *aclt,
+		      const char *add_strs,
+		      const maildir_aclt *add_aclt)
 {
 	if (add_aclt && *add_aclt)
 		add_strs= (*add_aclt)->impl.c_str();
 
 	if (!add_strs || !*add_strs)
-		return 0;
+		return;
 
 	if (*aclt)
 	{
@@ -129,24 +129,23 @@ int maildir_aclt_add(maildir_aclt *aclt,
 	}
 	else
 	{
-		return maildir_aclt_init(aclt, add_strs, NULL);
+		if (maildir_aclt_init(aclt, add_strs, NULL))
+			abort();
 	}
-
-	return 0;
 }
 
-int maildir_aclt_del(maildir_aclt *aclt,
-		     const char *del_strs,
-		     const maildir_aclt *del_aclt)
+void maildir_aclt_del(maildir_aclt *aclt,
+		      const char *del_strs,
+		      const maildir_aclt *del_aclt)
 {
 	if (del_aclt && *del_aclt)
 		del_strs= (*del_aclt)->impl.c_str();
 
 	if (!del_strs)
-		return 0;
+		return;
 
 	if (!*aclt)
-		return 0;
+		return;
 
 	(*aclt)->impl -= del_strs;
 
@@ -154,7 +153,6 @@ int maildir_aclt_del(maildir_aclt *aclt,
 	{
 		maildir_aclt_destroy(aclt);
 	}
-	return 0;
 }
 
 const char *maildir_aclt_ascstr(const maildir_aclt *aclt)
@@ -227,7 +225,7 @@ static maildir_aclt_list_impl *get_impl(maildir_aclt_list *aclt_list)
 		return *aclt_list;
 
 	if (!(*aclt_list=new maildir_aclt_list_impl))
-		return NULL;
+		abort();
 
 	return *aclt_list;
 }
@@ -244,15 +242,12 @@ void maildir_aclt_list_destroy(maildir_aclt_list *aclt_list)
 
 /* Add an <identifier,acl> pair.  Returns 0 on success, -1 on failure */
 
-int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
-			  const char *identifier,
-			  const char *aclt_str,
-			  maildir_aclt *aclt_cpy)
+void maildir_aclt_list_add(maildir_aclt_list *aclt_list,
+			   const char *identifier,
+			   const char *aclt_str,
+			   maildir_aclt *aclt_cpy)
 {
 	auto impl=get_impl(aclt_list);
-
-	if (!impl)
-		return -1;
 
 	if (aclt_cpy)
 	{
@@ -266,23 +261,18 @@ int maildir_aclt_list_add(maildir_aclt_list *aclt_list,
 		aclt_str="";
 
 	impl->list.add(identifier, {aclt_str});
-	return 0;
 }
 
 /*
 ** Remove 'identifier' from the ACL list.
 */
 
-int maildir_aclt_list_del(maildir_aclt_list *aclt_list,
+void maildir_aclt_list_del(maildir_aclt_list *aclt_list,
 			  const char *identifier)
 {
 	auto impl=get_impl(aclt_list);
 
-	if (!impl)
-		return -1;
-
 	impl->list.del(identifier);
-	return 0;
 }
 
 /*
@@ -606,10 +596,19 @@ int maildir_acl_write(maildir_aclt_list *aclt_list,
 		      const char *owner,
 		      const char **err_failedrights)
 {
-	maildir::aclt_list default_list;
+	if (!*aclt_list)
+	{
+		maildir_aclt_list_impl default_list;
+		maildir_aclt_list default_list_ptr= &default_list;
 
-	return do_maildir_acl_write(
-		*aclt_list ? (*aclt_list)->list:default_list,
+		return maildir_acl_write(&default_list_ptr,
+					 maildir,
+					 path,
+					 owner,
+					 err_failedrights);
+	}
+
+	return do_maildir_acl_write((*aclt_list)->list,
 		maildir,
 		path,
 		owner,
@@ -662,12 +661,21 @@ int maildir_acl_compute(maildir_aclt *aclt, maildir_aclt_list *aclt_list,
 			int (*cb_func)(const char *isme,
 				       void *void_arg), void *void_arg)
 {
+	if (!*aclt_list)
+	{
+		maildir_aclt_list_impl default_list;
+		maildir_aclt_list default_list_ptr= &default_list;
+
+		return maildir_acl_compute(aclt, &default_list_ptr, cb_func,
+					   void_arg);
+	}
+
 	if (!(*aclt=new maildir_aclt_impl{""}))
 		return -1;
 
 	maildir::aclt_list default_list;
 
-	int rc=(*aclt_list ? (*aclt_list)->list:default_list).compute(
+	int rc=(*aclt_list)->list.compute(
 		(*aclt)->impl,
 		[cb_func, void_arg]
 		(const char *identifier)
@@ -1015,12 +1023,21 @@ int maildir_acl_compute_array(maildir_aclt *aclt,
 			      maildir_aclt_list *aclt_list,
 			      const char * const *identifiers)
 {
+	if (!*aclt_list)
+	{
+		maildir_aclt_list_impl default_list;
+		maildir_aclt_list default_list_ptr= &default_list;
+
+		return maildir_acl_compute_array(aclt, &default_list_ptr,
+						 identifiers);
+	}
+
 	if (!(*aclt=new maildir_aclt_impl{""}))
 		return -1;
 
 	maildir::aclt_list default_list;
 
-	int rc= (*aclt_list ? (*aclt_list)->list:default_list).compute(
+	int rc= (*aclt_list)->list.compute(
 		(*aclt)->impl,
 		[&]
 		(const char *identifier)
@@ -1053,12 +1070,19 @@ int maildir_acl_computerights(maildir_aclt *aclt,
 			      const char *folder_owner,
 			      const char *options)
 {
+	if (!*aclt_list)
+	{
+		maildir_aclt_list_impl default_list;
+		maildir_aclt_list default_list_ptr= &default_list;
+
+		return maildir_acl_computerights(aclt, &default_list_ptr,
+						 me, folder_owner, options);
+	}
+
 	if (!(*aclt=new maildir_aclt_impl{""}))
 		return -1;
 
-	maildir::aclt_list default_list;
-
-	int rc= (*aclt_list ? (*aclt_list)->list:default_list).computerights(
+	int rc= (*aclt_list)->list.computerights(
 		(*aclt)->impl,
 		me,
 		folder_owner,
