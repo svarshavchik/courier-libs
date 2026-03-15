@@ -46,6 +46,9 @@
 #include	<string_view>
 #include	<charconv>
 #include	<fstream>
+#include	<unordered_set>
+#include	<algorithm>
+#include	<tuple>
 
 #ifndef WEXITSTATUS
 #define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
@@ -759,6 +762,13 @@ void sqpcp_eventstart()
 			cgi_put("headersubject", subj_buf.c_str());
 		}
 	} while (h.next());
+
+	std::sort(event_time_list.begin(),
+		  event_time_list.end(),
+		  [](const auto &a, const auto &b)
+		  {
+			  return (a.start < b.start);
+		  });
 }
 
 void sqpcp_eventend()
@@ -936,24 +946,25 @@ void sqpcp_summary()
 	if (tmptr)
 	{
 		char *p=scriptptrget();
-		char *q=static_cast<char *>(malloc(strlen(p)+200));
 
-		if (!q)
-		{
-			free(p);
-			enomem();
-		}
+		std::string q;
+		q.reserve(strlen(p)+200);
+		q=p;
+		q += "&amp;form=eventdaily&amp;clearcache=1&amp;date=";
 
-		strcpy(q, p);
-		free(p);
-		strcat(q, "&amp;form=eventdaily&amp;clearcache=1&amp;date=");
-		sprintf(q+strlen(q), "%04d%02d%02d",
-			tmptr->tm_year + 1900,
-			tmptr->tm_mon+1,
-			tmptr->tm_mday);
+		char yyyy[5];
+		char mm[4];
+		char dd[4];
+		*std::to_chars(yyyy, yyyy+5, tmptr->tm_year + 1900).ptr=0;
+		*std::to_chars(mm+1, mm+4, tmptr->tm_mon+1).ptr=0;
+		*std::to_chars(dd+1, dd+4, tmptr->tm_mday).ptr=0;
+		mm[0]='0';
+		dd[0]='0';
+		q += yyyy;
+		q += mm+strlen(mm)-2;
+		q += dd+strlen(dd)-2;
 
-		printf(getarg("CALENDAR"), q);
-		free(q);
+		printf(getarg("CALENDAR"), q.c_str());
 	}
 
 	printf("<table class=\"eventsummary\" width=\"100%%\">");
@@ -1058,7 +1069,7 @@ void sqpcp_summary()
 					       "</td></tr>\n");
 				if (strcmp(date, date2))
 				{
-					printf("<tr><td colspan=\"2\">"
+					printf("<tr><td colspan=\"2\" style=\"white-space: nowrap\">"
 					       "<a href=\"");
 					print_event_link_url(
 						cr.eventid.c_str(),
@@ -1076,7 +1087,7 @@ void sqpcp_summary()
 				}
 				else
 				{
-					printf("<tr><td width=\"1%%\">"
+					printf("<tr><td width=\"1%%\" style=\"white-space: nowrap\">"
 					       "<a href=\"");
 					print_event_link_url(
 						cr.eventid.c_str(),
@@ -1084,7 +1095,7 @@ void sqpcp_summary()
 					);
 					printf("&amp;date=%s\">", yyyymmdd);
 					print_safe(date);
-					printf("</a></td><td>&nbsp;"
+					printf("</a></td><td style=\"white-space: nowrap\" >&nbsp;"
 					       "<a href=\"");
 					print_event_link_url(
 						cr.eventid.c_str(),
@@ -1544,49 +1555,32 @@ void sqpcp_newevent()
 
 /* Split apart date/time string into space-separated words */
 
-static char **mkargv(char *p, int *argc)
+static std::vector<char *>mkargv(char *p)
 {
-	int pass;
-	char **argv=0;
-	char *q;
+	std::vector<char *>argv;
 
-	/* Two passes - count words, then make them */
-
-	for (pass=0; pass<2; pass++)
+	while (*p)
 	{
-		if (pass)
+		if (isspace((int)(unsigned char)*p))
 		{
-			if ((argv=static_cast<char **>(malloc(sizeof(char *)* (*argc+1)))) == NULL)
-				return (NULL);
+			++p;
+			continue;	/* Skip leading space */
 		}
-		*argc=0;
 
-		for (q=p; *q; )
+		argv.push_back(p);
+
+		while (*p)  /* Look for next space */
 		{
-			if (isspace((int)(unsigned char)*q))
+			if (isspace((int)(unsigned char)*p))
 			{
-				++q;
-				continue;	/* Skip leading space */
+				*p=0;
+				++p;
+				break;
 			}
-
-			if (pass)
-				argv[ *argc ] = q;
-			++*argc;
-
-			while (*q)	/* Look for next space */
-			{
-				if (isspace((int)(unsigned char)*q))
-				{
-					if (pass)
-						*q=0;
-					++q;
-					break;
-				}
-				++q;
-			}
+			++p;
 		}
 	}
-	argv[ *argc ] = 0;
+	argv.push_back(nullptr);
 	return (argv);
 }
 
@@ -1595,29 +1589,18 @@ static int savetime(time_t, time_t, void *);
 static int addtime(int newdraftfd)
 {
 	struct pcp_parse_datetime_info pdi;
-	char *t_buf;
-	char **t_argv;
 	time_t starttime, endtime;
-	int argn, argc;
+	int argn;
 	int h, m;
 
 	pdi.today_name=cgi("today");		/* Locale string */
 	pdi.tomorrow_name=cgi("tomorrow");	/* Locale string */
 
-	t_buf=strdup(cgi("starttime"));
-	if (!t_buf)
-		return (-1);
-	t_argv=mkargv(t_buf, &argc);
-	if (!t_argv)
-	{
-		free(t_buf);
-		return (-1);
-	}
+	std::string t_buf=cgi("starttime");
+	auto t_argv=mkargv(t_buf.data());
 
 	argn=0;
-	starttime=pcp_parse_datetime(&argn, argc, t_argv, &pdi);
-	free(t_argv);
-	free(t_buf);
+	starttime=pcp_parse_datetime(&argn, t_argv.size()-1, t_argv.data(), &pdi);
 	if (!starttime)
 		return (-1);
 	h=atoi(cgi("hours"));
@@ -1627,35 +1610,24 @@ static int addtime(int newdraftfd)
 
 	endtime=starttime + h * 60 * 60 + m * 60;
 
-	argn=0;
-	t_buf=strdup(cgi("endtime"));
-	if (!t_buf)
-		return (-1);
-	t_argv=mkargv(t_buf, &argc);
-	if (!t_argv)
-	{
-		free(t_buf);
-		return (-1);
-	}
+	t_buf=cgi("endtime");
+	t_argv=mkargv(t_buf.data());
 
-	if (argc == 0)	/* Not a weekly event */
+	if (t_argv.size() == 1)	/* Not a weekly event */
 	{
 		savetime(starttime, endtime, &newdraftfd);
 	}
 	else
 	{
-		if (pcp_parse_datetime_until(starttime, endtime, &argn, argc,
-					     t_argv,
+		argn=0;
+		if (pcp_parse_datetime_until(starttime, endtime, &argn, t_argv.size()-1,
+					     t_argv.data(),
 					     atoi(cgi("recurring")),
 					     savetime, &newdraftfd))
 		{
-			free(t_argv);
-			free(t_buf);
 			return (-1);
 		}
 	}
-	free(t_argv);
-	free(t_buf);
 	return (0);
 }
 
@@ -1674,8 +1646,6 @@ static int savetime(time_t from, time_t to, void *dummy)
 
 static void addparticipant(int fd, const char *n)
 {
-	char *nn, *p, *q;
-
 	const char *domain;
 
 	domain=getenv("AUTHADDR");
@@ -1697,25 +1667,26 @@ static void addparticipant(int fd, const char *n)
 	if (strchr(n, '\n') || strchr(n, '\r'))
 		return;
 
-	if ((nn=static_cast<char *>(malloc(strlen(n)+strlen(domain)+2))) == NULL)
-		enomem();
+	std::string nn;
+	nn.reserve(strlen(n)+strlen(domain)+1);
+	nn=n;
 
-	strcpy(nn, n);
+	while (nn.size() && isspace((int)(unsigned char)nn.back()))
+		nn.pop_back();
 
-	for (p=q=nn; *p; p++)
-		if (!isspace((int)(unsigned char)*p))
-			q=p+1;
-	*q=0;
+	while (nn.size() && isspace((int)(unsigned char)nn.front()))
+		nn.erase(0, 1);
 
-	if (strchr(nn, '@') == 0)
-		strcat(strcat(nn, "@"), domain);
-
+	if (nn.find('@') == nn.npos)
+	{
+		nn += '@';
+		nn += domain;
+	}
 
 	maildir_writemsgstr(fd, "X-Event-Participant: ");
-	maildir_writemsgstr(fd, nn);
+	maildir_writemsgstr(fd, nn.c_str());
 	maildir_writemsgstr(fd, "\n");
-	add_my_participant(nn);
-	free(nn);
+	add_my_participant(nn.c_str());
 }
 
 /* ------------- Save text ------------- */
@@ -2028,14 +1999,8 @@ static void saveerror(struct PCP *pcp, const int *xerror)
 	cgi_put("pcperror", errmsgbuf);
 }
 
-struct proxy_list_entry {
-	struct proxy_list_entry *next;
-	char *userid;
-} ;
-
 struct proxy_update_list {
-	struct proxy_list_entry *new_list;
-	struct proxy_list_entry *delete_list;
+	std::unordered_set<std::string> new_list, delete_list;
 } ;
 
 static void proxy_update_list_save(const char *action,
@@ -2044,52 +2009,13 @@ static void proxy_update_list_save(const char *action,
 {
 	struct proxy_update_list *pul=(struct proxy_update_list *)voidarg;
 
-	struct proxy_list_entry **eptr, *e;
-
 	if (strcmp(action, "NEW") == 0)
-		eptr= &pul->new_list;
+		pul->new_list.insert(userid);
 	else if (strcmp(action, "DELETE") == 0)
-		eptr= &pul->delete_list;
-	else
-		return;
-
-	while (*eptr && strcmp( (*eptr)->userid, userid) == 0)
-		eptr= &(*eptr)->next;
-
-	if ((e=static_cast<struct proxy_list_entry *>(malloc(sizeof(struct proxy_list_entry)))) == NULL ||
-	    (e->userid=strdup(userid)) == NULL)
-	{
-		if (e)
-			free(e);
-		fprintf(stderr, "CRIT: out of memory.\n");
-		return;
-	}
-
-	e->next= *eptr;
-	*eptr=e;
+		pul->delete_list.insert(userid);
 }
-
-static void proxy_update_list_free(struct proxy_update_list *p)
-{
-	struct proxy_list_entry *e;
-
-	while ((e=p->new_list) != NULL)
-	{
-		p->new_list=e->next;
-		free(e->userid);
-		free(e);
-	}
-
-	while ((e=p->delete_list) != NULL)
-	{
-		p->delete_list=e->next;
-		free(e->userid);
-		free(e);
-	}
-}
-
 static void proxy_notify_email_msg(rfc822::fdstreambuf &,
-				   struct proxy_list_entry *,
+				   const std::unordered_set<std::string> &,
 				   const char *,
 				   const struct PCP_event_time *,
 				   unsigned);
@@ -2106,12 +2032,12 @@ static void proxy_notify_email(rfc822::fdstreambuf &f,
 }
 
 static void dosendnotice(FILE *, FILE *, rfc822::fdstreambuf &,
-			 struct proxy_list_entry *,
+			 const std::unordered_set<std::string> &,
 			 const char *, const struct PCP_event_time *,
 			 unsigned);
 
 static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
-				   struct proxy_list_entry *l,
+				   const std::unordered_set<std::string> &l,
 				   const char *templatestr,
 				   const struct PCP_event_time *t,
 				   unsigned tn)
@@ -2124,7 +2050,7 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 	const char *returnaddr=login_returnaddr();
 	char subjectlabel[100];
 
-	if (!l)
+	if (l.empty())
 		return;
 
 	f.pubseekpos(0);
@@ -2221,12 +2147,11 @@ static void dosendnotice(FILE *tofp,	/* Pipe to sendit.sh */
 					** canned verbiage
 					*/
 			 rfc822::fdstreambuf &eventfp,	/* Original event */
-			 struct proxy_list_entry *idlist,
+			 const std::unordered_set<std::string> &idlist,
 			 const char *subjectlabel,
 			 const struct PCP_event_time *time_list,
 			 unsigned n_time_list)
 {
-	const char *p;
 	int c;
 	unsigned u;
 
@@ -2250,15 +2175,10 @@ static void dosendnotice(FILE *tofp,	/* Pipe to sendit.sh */
 		}
 	} while (h.next());
 
-	p="To: ";
-
-	while (idlist)
+	for (const auto &id: idlist)
 	{
-		fprintf(tofp, "%s%s", p, idlist->userid);
-		p=",\n  ";
-		idlist=idlist->next;
+		fprintf(tofp, "To: %s\n", id.c_str());
 	}
-	fprintf(tofp, "\n");
 
 	while ((c=getc(tmpfp)) != EOF)
 		putc(c, tofp);
@@ -2328,14 +2248,11 @@ static int dosave(rfc822::fdstreambuf &fp, struct saveinfo &si)
 	init_save_conflict();
 	c.add_conflict_callback=save_conflict;
 
-	memset(&pul, 0, sizeof(pul));
-
 	c.proxy_callback= &proxy_update_list_save;
 	c.proxy_callback_ptr= &pul;
 
 	if (pcp_commit(pcp, nei, &c))
 	{
-		proxy_update_list_free(&pul);
 		saveerror(pcp, &c.errcode);
 		pcp_destroy_eventid(pcp, nei);
 		return (-1);
@@ -2343,7 +2260,6 @@ static int dosave(rfc822::fdstreambuf &fp, struct saveinfo &si)
 	pcp_destroy_eventid(pcp, nei);
 	unlink(CACHE);	/* Have it rebuilt */
 	proxy_notify_email(fp, &pul, c.event_times, c.n_event_times);
-	proxy_update_list_free(&pul);
 	refreshcache(pcp);
 	return (0);
 }
@@ -2630,29 +2546,13 @@ void sqpcp_nextday()
 
 /* -------------- Display event stuff --------------- */
 
-struct display_retr_time_list {
-	struct display_retr_time_list *next;
-	time_t start;
-	time_t end;
-} ;
-
-struct display_retr_participant_list {
-	struct display_retr_participant_list *next;
-	char *participant;
-} ;
-
 struct display_retr {
 	FILE *f;
 
-	struct display_retr_time_list *time_list;
-	struct display_retr_participant_list *participant_list;
-
+	// time_list is a tuple of start and end time.
+	std::vector<std::tuple<time_t, time_t>> time_list;
+	std::vector<std::string> participant_list;
 } ;
-
-static void free_display_retr(struct display_retr *r)
-{
-}
-
 
 static int save_displayed_event(struct PCP_retr *, const char *, int, void *);
 
@@ -2726,46 +2626,27 @@ static int set_status(struct PCP_retr *pcp, int status, void *dummy)
 static int save_displayed_date(struct PCP_retr *r, time_t start, time_t end,
 			       void *vp)
 {
-	struct display_retr *dr=(struct display_retr *)vp;
+	display_retr *dr=reinterpret_cast<display_retr *>(vp);
 
-	struct display_retr_time_list **ptr, *p;
+	auto ptr=dr->time_list.begin();
+	while (ptr != dr->time_list.end() && std::get<0>(*ptr) < start)
+		++ptr;
 
-	for (ptr= &dr->time_list; *ptr; ptr=&(*ptr)->next)
-		if ((*ptr)->start > start)
-			break;
-
-	if ((p=static_cast<struct display_retr_time_list *>(malloc(sizeof(struct display_retr_time_list)))) == NULL)
-		return (-1);
-
-	p->next= *ptr;
-	*ptr=p;
-	p->start=start;
-	p->end=end;
-
+	dr->time_list.insert(ptr, {start, end});
 	return (0);
 }
 
 static int save_displayed_participants(struct PCP_retr *r, const char *address,
 				       const char *dummy, void *vp)
 {
-	struct display_retr *dr=(struct display_retr *)vp;
+	display_retr *dr=reinterpret_cast<display_retr *>(vp);
 
-	struct display_retr_participant_list **ptr, *p;
+	auto ptr=dr->participant_list.begin();
+	while (ptr != dr->participant_list.end() &&
+	       strcasecmp(ptr->c_str(), address) < 0)
+		++ptr;
 
-	for (ptr= &dr->participant_list; *ptr; ptr=&(*ptr)->next)
-		if (strcasecmp((*ptr)->participant, address) > 0)
-			break;
-
-	if ((p=static_cast<struct display_retr_participant_list *>(malloc(sizeof(struct display_retr_participant_list)))) == NULL)
-		return (-1);
-
-	if ((p->participant=strdup(address)) == NULL)
-	{
-		free(p);
-		return (-1);
-	}
-	p->next= *ptr;
-	*ptr=p;
+	dr->participant_list.insert(ptr, address);
 	return (0);
 }
 
@@ -2774,10 +2655,8 @@ void sqpcp_displayevent()
 	struct PCP *pcp=sqpcp_calendar();
 	const char *event_id_list[2];
 	struct PCP_retr r;
-	struct display_retr dr;
+	display_retr dr;
 	struct maildir_tmpcreate_info createInfo;
-	struct display_retr_time_list *tl;
-	struct display_retr_participant_list *pl;
 
 	if (!pcp)
 		return;
@@ -2786,7 +2665,6 @@ void sqpcp_displayevent()
 	event_id_list[1]=0;
 
 	memset(&r, 0, sizeof(r));
-	memset(&dr, 0, sizeof(dr));
 	r.event_id_list=event_id_list;
 	r.callback_arg=&dr;
 	r.callback_rfc822_func=save_displayed_event;
@@ -2808,7 +2686,6 @@ void sqpcp_displayevent()
 
 	if (pcp_retr(pcp, &r))
 	{
-		free_display_retr(&dr);
 		fclose(dr.f);
 		cgi_put(MIMEGPGFILENAME, "");
 		unlink(createInfo.tmpname);
@@ -2821,12 +2698,12 @@ void sqpcp_displayevent()
 	printf("<table class=\"calendarevent\" align=\"center\" border=\"0\"><tr valign=\"top\"><th align=\"left\">%s</th><td>",
 	       getarg("EVENT"));
 
-	for (tl=dr.time_list; tl; tl=tl->next)
+	for (auto &t : dr.time_list)
 	{
 		char buffer[512];
 
 		if (pcp_fmttimerange(buffer, sizeof(buffer),
-				     tl->start, tl->end))
+				     std::get<0>(t), std::get<1>(t)))
 			continue;
 
 		printf("<span class=\"tt\">");
@@ -2835,21 +2712,20 @@ void sqpcp_displayevent()
 	}
 	printf("</td></tr>\n");
 
-	if (dr.participant_list)
+	if (!dr.participant_list.empty())
 	{
 		printf("<tr valign=\"top\"><th align=\"left\">%s</th><td>",
 		       getarg("PARTICIPANTS"));
-		for (pl=dr.participant_list; pl; pl=pl->next)
+		for (auto &p:dr.participant_list)
 		{
 			printf("<span class=\"tt\">&lt;");
-			print_safe(pl->participant);
+			print_safe(p.c_str());
 			printf("&gt;</span><br />\n");
 		}
 		printf("</td></tr>");
 	}
 	printf("</table>\n");
 	folder_showmsg(INBOX "." DRAFTS, 0);
-	free_display_retr(&dr);
 	cgi_put(MIMEGPGFILENAME, "");
 	maildir_tmpcreate_free(&createInfo);
 }
@@ -2858,7 +2734,8 @@ static int save_displayed_event(struct PCP_retr *r,
 				const char *buf, int cnt,
 				void *vp)
 {
-	if (fwrite( buf, cnt, 1, ((struct display_retr *)vp)->f) != 1)
+	if (fwrite( buf, cnt, 1,
+		reinterpret_cast<display_retr *>(vp)->f) != 1)
 		return (-1);
 
 	return (0);
@@ -2985,7 +2862,6 @@ void sqpcp_dodelete()
 		o << "Date: " << rfc822_mkdate(t) << "\n\n";
 	}
 
-	memset(&pul, 0, sizeof(pul));
 	del.proxy_callback=&proxy_update_list_save;
 	del.proxy_callback_ptr=&pul;
 
@@ -2998,7 +2874,6 @@ void sqpcp_dodelete()
 	{
 		proxy_notify_email(tmpfp, &pul, NULL, 0);
 	}
-	proxy_update_list_free(&pul);
 	unlink(CACHE);
 	output_form("eventdaily.html");
 }
@@ -3606,59 +3481,38 @@ void sqpcp_displaymonth()
 /* -------------------------------------------------------------------- */
 /* Access control lists */
 
-static void addacl(const char *);
+static void addacl(std::string);
 
 struct acl_list {
-	struct acl_list *next;
-	char *addr;
-	char *name;
-	int flags;
+	std::string addr;
+	std::string name;
+	int flags{0};
 } ;
 
 static int listacl(const char *a, int f, void *vp)
 {
-	struct acl_list **p=(struct acl_list **)vp, *q;
+	auto p=reinterpret_cast<std::vector<acl_list> *>(vp);
 
-	if ((q=static_cast<struct acl_list *>(malloc(sizeof(struct acl_list)))) == NULL)
-		return (-1);
-	memset(q, 0, sizeof(*q));
-	if ((q->addr=strdup(a)) == NULL)
-	{
-		free(q);
-		return (-1);
-	}
-
-	q->flags=f;
-
-	while (*p)
-	{
-		if (strcasecmp( (*p)->addr, a) > 0)
-			break;
-		p= &(*p)->next;
-	}
-
-	q->next= *p;
-	*p=q;
+	p->push_back({a, "", f});
 	return (0);
 }
 
 static int save_listacl_names(const char *addr, const char *name,
 			      void *vp)
 {
-	struct acl_list *p=(struct acl_list *)vp;
+	auto listp=reinterpret_cast<std::vector<acl_list> *>(vp);
 
-	for ( ; name && p; p=p->next)
-		if (strcasecmp(p->addr, addr) == 0 && p->name == 0)
-			p->name=strdup(name);
+	for (auto &p:*listp)
+		if (p.addr == addr && p.name.empty())
+			p.name=name;
 	return (0);
 }
 
 void sqpcp_eventacl()
 {
 	const char *p;
-	struct acl_list *acl_list=NULL;
+	std::vector<acl_list> acl_list;
 	struct PCP *pcp;
-	struct acl_list *pp;
 
 	if (!sqpcp_has_groupware())
 		return;
@@ -3688,70 +3542,62 @@ void sqpcp_eventacl()
 		}
 	}
 
-	if (pcp_list_acl(pcp, listacl, &acl_list))
+	auto list_result=pcp_list_acl(pcp, listacl, &acl_list);
+
+	std::sort(acl_list.begin(), acl_list.end(),
+			[](const auto &a, const auto &b)
+			{
+				return (a.addr < b.addr);
+			});
+
+	if (list_result)
 	{
 		saveerror(pcp, NULL);
 		showerror();
 	}
-	else if (ab_get_nameaddr(save_listacl_names, acl_list))
+	else if (ab_get_nameaddr(save_listacl_names, &acl_list))
 	{
 		int dummy=PCP_ERR_SYSERR;
 
 		saveerror(NULL, &dummy);
 		showerror();
 	}
-	else if (acl_list)
+	else if (!acl_list.empty())
 	{
 		printf("<table align=\"center\">\n");
 
-		for (pp=acl_list; pp; pp=pp->next)
+		for (auto &pp: acl_list)
 		{
 			printf("<tr><td align=\"right\"><span class=\"tt\">");
-			if (pp->addr)
-				ab_nameaddr_show(pp->name, pp->addr);
+			if (!pp.addr.empty())
+				ab_nameaddr_show(pp.name.c_str(), pp.addr.c_str());
 
 			printf("</span></td><td>-");
-			if (pp->flags & PCP_ACL_MODIFY)
+			if (pp.flags & PCP_ACL_MODIFY)
 				printf("&nbsp;%s", getarg("MODIFY"));
-			if (pp->flags & PCP_ACL_CONFLICT)
+			if (pp.flags & PCP_ACL_CONFLICT)
 				printf("&nbsp;%s", getarg("CONFLICT"));
 			printf("</td><td><a href=\"");
 			output_scriptptrget();
 			printf("&amp;form=eventacl&amp;remove=");
-			output_urlencoded(pp->addr);
+			output_urlencoded(pp.addr.c_str());
 			printf("\">%s</a></td></tr>\n", getarg("REMOVE"));
 		}
 		printf("</table>\n");
 	}
-
-	while ((pp=acl_list) != NULL)
-	{
-		acl_list=pp->next;
-		if (pp->addr)
-			free(pp->addr);
-		if (pp->name)
-			free(pp->name);
-		free(pp);
-	}
 }
 
-static void addacl(const char *p)
+static void addacl(std::string p)
 {
 	int flags=0;
 	struct PCP *pcp;
 
-	if (strchr(p, '@') == NULL)
+	if (p.find('@') == std::string::npos)
 	{
 		const char *mhn=myhostname();
-		char *q=static_cast<char *>(malloc(strlen(p)+strlen(mhn)+2));
 
-		if (!q)
-			enomem();
-
-		strcat(strcat(strcpy(q, p), "@"), mhn);
-		addacl(q);
-		free(q);
-		return;
+		p += '@';
+		p += mhn;
 	}
 
 	if (*cgi("aclMODIFY"))
@@ -3780,7 +3626,7 @@ static void addacl(const char *p)
 		return;
 	}
 
-	if (pcp_acl(pcp, p, flags))
+	if (pcp_acl(pcp, p.c_str(), flags))
 	{
 		saveerror(pcp, NULL);
 		showerror();

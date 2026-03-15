@@ -131,11 +131,24 @@
                         </td>
                       </tr>
                       <tr>
-                        <th align="right">[#RECURRING#]</th>
+                        <th align="right" style='white-space: nowrap'>[#RECURRING#]</th>
                         <td width="100%"><input type="text" size="10"
-                          maxlength="10" name="endtime" /><span
-                          class="tt">&nbsp;MM/DD/YYYY</span></td>
+                          maxlength="10" name="endtime" /></td>
                       </tr>
+                        <td>&nbsp;</td>
+                        <td>
+                          <table border="0">
+                            <tbody>
+                              <tr valign="top">
+                                <td>Examples:</td>
+                                <td><span class="tt">
+                                  Sep&nbsp;1&nbsp;2001&nbsp;<br />
+                                  9/1/2001&nbsp;<br />
+                                  2001.09.01&nbsp;</span></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
                       <tr>
                         <td>&nbsp;</td>
                         <td>(For a recurring event only - enter ending
@@ -150,7 +163,7 @@
                           name="hours" value="1" /><span
                           class="tt">hr&nbsp;</span><input type="text"
                           size="2" maxlength="2" name="mins" value="0"
-                          /><span class="tt">min&nbsp;</span> 
+                          /><span class="tt">min&nbsp;</span>
                           <input type="submit" value="Add event time(s)"
                           name="do.neweventtime" />&nbsp;&nbsp;<!-- [#?8#]-->
                         </td>
@@ -228,7 +241,7 @@
                       </tr>
                     </tbody>
                   </table>
-                  [#EVENTATTACH#] 
+                  [#EVENTATTACH#]
                   <input type="submit" value="&nbsp;Delete attachment "
                   name="do.neweventdeleteattach" />
 

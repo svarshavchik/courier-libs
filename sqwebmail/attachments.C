@@ -52,7 +52,6 @@ extern "C" {
 }
 #endif
 
-extern char *alloc_filename(const char *, const char *, const char *);
 extern int newdraftfd;
 extern void output_scriptptrget();
 
