@@ -66,6 +66,8 @@
 
 #include	"strftime.h"
 
+#include <fstream>
+
 static time_t	current_time;
 
 extern time_t rfc822_parsedt(const char *);
@@ -3476,8 +3478,11 @@ static int writeerr;
 off_t writebufpos;
 int	writebuf8bit;
 
-int	maildir_createmsg(const char *foldername, const char *seq,
-		char **retname)
+int	maildir_createmsg(
+	const char *foldername,
+	const char *seq,
+	std::string &retname
+)
 {
 	char	*p;
 	char	*dir=xlate_mdir(foldername);
@@ -3514,22 +3519,11 @@ int	maildir_createmsg(const char *foldername, const char *seq,
 		error("maildir_createmsg: cannot create temp file.");
 	}
 
-
 	filename=createInfo.newname;
-	createInfo.newname=NULL;
-
-	maildir_tmpcreate_free(&createInfo);
 
 	p=strrchr(filename, '/');
-	*retname=strdup(p+1);
-
-	if (*retname == 0)
-	{
-		close(n);
-		free(filename);
-		enomem();
-	}
-	free(filename);
+	retname=p+1;
+	maildir_tmpcreate_free(&createInfo);
 
 	/* Buffer writes */
 
@@ -3541,21 +3535,15 @@ int	maildir_createmsg(const char *foldername, const char *seq,
 	return (n);
 }
 
-int	maildir_createmsg(const char *foldername, const char *seq,
-			  std::string &retname)
-{
-	char *ptr;
-	auto n=maildir_createmsg(foldername, seq, &ptr);
-	retname=ptr;
-	free(ptr);
-	return n;
-}
-
 
 /* Like createmsg, except we're rewriting the contents of this message here,
 ** so we might as well use the same name. */
 
-int maildir_recreatemsg(const char *folder, const char *name, char **baseptr)
+int maildir_recreatemsg(
+	const char *folder,
+	const char *name,
+	std::string &baseptr
+)
 {
 char	*dir=xlate_mdir(folder);
 char	*base;
@@ -3566,9 +3554,9 @@ int	n;
 	p=alloc_filename(dir, "tmp", base);
 
 	free(dir);
-	*baseptr=base;
+	baseptr=base;
+	free(base);
 	n=maildir_safeopen(p, O_CREAT|O_RDWR|O_TRUNC, 0644);
-	if (n < 0)	free(base);
 	free(p);
 	writebufcnt=0;
 	writebufleft=0;
@@ -3576,21 +3564,6 @@ int	n;
 	writebufpos=0;
 	writebuf8bit=0;
 	return (n);
-}
-
-int maildir_recreatemsg(const char *folder, const char *name,
-			std::string &baseptr)
-{
-	char *ptr;
-
-	auto n=maildir_recreatemsg(folder, name, &ptr);
-
-	if (n >= 0)
-	{
-		baseptr=ptr;
-		free(ptr);
-	}
-	return n;
 }
 
 /* Flush write buffer */
@@ -3677,14 +3650,14 @@ int	maildir_writemsg_flush(int n )
 
 static int maildir_closemsg_common(int n,
 	const char *folder,
-	const char *retname,
+	const std::string &retname,
 	int isok,
 	unsigned long prevsize
 );
 
 int	maildir_closemsg(int n,	/* File descriptor */
 	const char *folder,	/* Folder */
-	const char *retname,	/* Filename in folder */
+	const std::string &retname,	/* Filename in folder */
 	int isok,	/* 0 - discard it (I changed my mind),
 			   1 - keep it
 			  -1 - keep it even if we'll exceed the quota
@@ -3701,7 +3674,7 @@ int	maildir_closemsg(int n,	/* File descriptor */
 int	maildir_closemsg(
 	rfc822::fdstreambuf &n,
 	const char *folder,
-	const char *retname,
+	const std::string &retname,
 	int isok,
 	unsigned long prevsize
 )
@@ -3716,13 +3689,13 @@ int	maildir_closemsg(
 static int	maildir_closemsg_common(
 	int n,
 	const char *folder,
-	const char *retname,
+	const std::string &retname,
 	int isok,
 	unsigned long prevsize
 )
 {
 	char	*dir=xlate_mdir(folder);
-	char	*oldname=alloc_filename(dir, "tmp", retname);
+	char	*oldname=alloc_filename(dir, "tmp", retname.c_str());
 	struct	stat	stat_buf;
 
 
@@ -3733,7 +3706,7 @@ static int	maildir_closemsg_common(
 		enomem();
 	}
 
-	auto newname=maildir_find(folder, retname);
+	auto newname=maildir_find(folder, retname.c_str());
 		/* If we called recreatemsg before */
 
 	if (newname.empty())
@@ -3803,28 +3776,31 @@ static int	maildir_closemsg_common(
 }
 
 static void	maildir_deletenewmsg_common(const char *folder,
-					    const char *retname);
+					    const std::string &filename);
 
-void	maildir_deletenewmsg(int n, const char *folder, const char *retname)
+void	maildir_deletenewmsg(
+	int n,
+	const char *folder,
+	const std::string &filename
+)
 {
-
 	close(n);
-	maildir_deletenewmsg_common(folder, retname);
+	maildir_deletenewmsg_common(folder, filename);
 }
 
 void	maildir_deletenewmsg(rfc822::fdstreambuf &n,
-			     const char *folder, const char *retname)
+			     const char *folder, const std::string &filename)
 {
 	n={};
-	maildir_deletenewmsg_common(folder, retname);
+	maildir_deletenewmsg_common(folder, filename);
 }
 
 static void	maildir_deletenewmsg_common(
-	const char *folder, const char *retname
+	const char *folder, const std::string &filename
 )
 {
 char	*dir=xlate_mdir(folder);
-char	*oldname=alloc_filename(dir, "tmp", retname);
+char	*oldname=alloc_filename(dir, "tmp", filename.c_str());
 
 	unlink(oldname);
 	free(oldname);

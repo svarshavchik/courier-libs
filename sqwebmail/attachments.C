@@ -457,7 +457,7 @@ extern "C" void attach_delete(const char *draft)
 	}
 
 	if ( maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
-			      draftfilename.c_str(),
+			      draftfilename,
 			      isok ? 1:0,
 		stat_buf.st_size))
 	{
@@ -722,9 +722,9 @@ extern "C" int attach_upload(const char *draft,
 	if (draftfp.error())
 	{
 		maildir_closemsg(newdraftfd, INBOX "." DRAFTS,
-				 draftfilename.c_str(), 0, 0);
+				 draftfilename, 0, 0);
 		maildir_closemsg(attachfd, INBOX "." DRAFTS,
-				 attachfilename.c_str(), 0, 0);
+				 attachfilename, 0, 0);
 		enomem();
 	}
 
@@ -952,7 +952,7 @@ extern "C" int attach_upload(const char *draft,
 				 attachfilename.c_str(), 0, 0);
 		close(newdraftfd);
 		maildir_deletenewmsg(attachfd, INBOX "." DRAFTS,
-				     attachfilename.c_str());
+				     attachfilename);
 		return (-3);
 	}
 

@@ -552,6 +552,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 /* We're on the 'new event' screen */
 
 	std::string draftfilename;
+
 	if (curdraft && *curdraft)	/* Reuse a draft filename */
 		newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, curdraft, draftfilename);
 	else

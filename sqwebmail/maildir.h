@@ -4,7 +4,7 @@
 #define	maildir_h
 
 /*
-** Copyright 1998 - 2002 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -82,12 +82,8 @@ extern int maildir_create(const char *);
 extern int maildir_delete(const char *, int);
 extern int maildir_rename_wrapper(const char *, const char *);
 
-extern int maildir_createmsg(const char *, const char *, char **);
-extern int maildir_recreatemsg(const char *, const char *, char **);
 extern void maildir_writemsg(int, const char *, size_t);
 extern void maildir_writemsgstr(int, const char *);
-extern int maildir_closemsg(int, const char *, const char *, int,
-	unsigned long);
 extern void listrights();
 extern void getacl();
 
@@ -102,7 +98,6 @@ extern off_t	writebufpos;	/* File position updated by writemsg */
 extern int	writebuf8bit;	/* 8 bit character flag */
 
 extern int maildir_writemsg_flush(int);
-extern void maildir_deletenewmsg(int n, const char *, const char *);
 extern unsigned maildir_countof(const char *);
 extern void maildir_savefoldermsgs(const char *);
 
@@ -121,11 +116,16 @@ extern std::string maildir_find(const char *, const char *);
 extern std::string maildir_posfind(const char *, size_t *);
 extern int maildir_recreatemsg(const char *, const char *, std::string &);
 extern int maildir_createmsg(const char *, const char *, std::string &);
+extern int maildir_closemsg(int, const char *, const std::string &, int,
+	unsigned long);
 extern int maildir_closemsg(rfc822::fdstreambuf &,
-			    const char *, const char *, int,
+			    const char *, const std::string &, int,
 			    unsigned long);
+extern void maildir_deletenewmsg(int n, const char *, const std::string &);
 extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
-				 const char *, const char *);
+			     const char *, const std::string &filename);
+extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
+				 const char *, const std::string &);
 extern std::string folder_toutf8(const char *);
 #endif
 

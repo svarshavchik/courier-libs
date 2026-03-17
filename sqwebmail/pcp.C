@@ -1372,7 +1372,6 @@ static void showerror()
 
 void sqpcp_newevent()
 {
-	char *draftfilename;
 	int newdraftfd;
 	const char *p;
 	unsigned long prev_size=0;
@@ -1427,13 +1426,15 @@ void sqpcp_newevent()
 			p="";
 	}
 
+	std::string draftfilename;
+
 	if (p && *p)
 	{
-		newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, p, &draftfilename);
+		newdraftfd=maildir_recreatemsg(INBOX "." DRAFTS, p, draftfilename);
 	}
 	else
 	{
-		newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, &draftfilename);
+		newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, draftfilename);
 		maildir_writemsgstr(newdraftfd, "X-Event: 1\n");
 
 		draftmessage_buf=draftfilename;
@@ -1533,8 +1534,6 @@ void sqpcp_newevent()
 	{
 		printf("%s", getarg("QUOTAERR"));
 	}
-
-	free(draftfilename);
 }
 
 /* Split apart date/time string into space-separated words */
@@ -2870,12 +2869,12 @@ int sqpcp_eventedit()
 {
 	struct PCP *pcp=sqpcp_calendar();
 	int newdraftfd;
-	char *draftfilename;
+	std::string draftfilename;
 
 	if (!pcp)
 		return (-1);
 
-	newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, &draftfilename);
+	newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, draftfilename);
 	if (doeventedit(pcp, newdraftfd))
 	{
 		maildir_deletenewmsg(newdraftfd, INBOX "." DRAFTS, draftfilename);
@@ -2886,16 +2885,12 @@ int sqpcp_eventedit()
 	}
 	else
 	{
-		static char *filenamebuf=0;
-
-		if (filenamebuf)
-			free(filenamebuf);
+		static std::string filenamebuf;
 
 		filenamebuf=draftfilename;
-		cgi_put("draftmessage", filenamebuf);
+		cgi_put("draftmessage", filenamebuf.c_str());
 		return (0);
 	}
-	free(draftfilename);
 	return (-1);
 }
 
