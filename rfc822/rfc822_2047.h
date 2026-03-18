@@ -333,6 +333,43 @@ template<typename out_iter_type> auto tokens::display_name(
 
 inline void display_header_no_sep() {}
 
+// Output iterator used by display_header_unicode(). The Unicode line-
+// breaking algorithm is used to determine the potential line breaking
+// positions in an unstructured header.
+
+template<typename out_iter, typename wrap_iter>
+struct display_header_unicode_lb : unicode::linebreakc_callback_base {
+
+private:
+	out_iter &iter;
+	wrap_iter &wrap;
+public:
+	display_header_unicode_lb(out_iter &iter,
+				  wrap_iter &wrap)
+		: iter{iter}, wrap{wrap}
+	{
+	}
+
+	using unicode::linebreakc_callback_base::operator<<;
+
+	display_header_unicode_lb &operator*() { return *this; }
+	display_header_unicode_lb &operator++() { return *this; }
+	display_header_unicode_lb &operator++(int) { return *this; }
+	display_header_unicode_lb &operator=(char32_t c)
+	{
+		this->operator<<(c);
+		return *this;
+	}
+private:
+	virtual int callback(int lbc, char32_t c) override
+	{
+		if (lbc != UNICODE_LB_NONE)
+			wrap();
+		*iter++=c;
+		return 0;
+	}
+};
+
 // Here's the name of a header, and here's its encoded contents. Convert
 // the header to Unicode.
 //
@@ -343,7 +380,8 @@ inline void display_header_no_sep() {}
 //
 // An optional fourth parameter is a closure that gets invoked after
 // formatting the comma separators between addresses, in a header that
-// contains addresses.
+// contains addresses. In non-address headers the closure gets invoked after
+// every potential line break, and before iterating over the next character.
 
 template<typename out_iter, typename mark_sep_t=void (*)()>
 auto display_header_unicode(std::string_view headername,
@@ -383,10 +421,12 @@ auto display_header_unicode(std::string_view headername,
 	}
 	else
 	{
+		display_header_unicode_lb break_iter{iter, mark_sep};
+
 		rfc2047::decode_unicode(
 			headercontents.begin(),
 			headercontents.end(),
-			iter,
+			break_iter,
 			[&](auto &&b, auto &&e, auto &&error_message)
 			{
 				std::string_view emsg{error_message};
@@ -398,6 +438,8 @@ auto display_header_unicode(std::string_view headername,
 				}
 				*iter++=')';
 			});
+
+		break_iter.finish();
 	}
 
 	if constexpr(!std::is_same_v<out_iter, out_iter &>)
@@ -449,6 +491,140 @@ auto display_header(std::string_view headername,
 	}
 	if constexpr(!std::is_same_v<out_iter, out_iter &>)
 		return iter;
+}
+
+// Use display_header_unicode() to convert the contents of the given header
+// into Unicode strings. Use the Unicode linebreaking algorithm to wrap
+// the header contents to the given width.
+
+template<typename out_iter>
+auto wrap_header_unicode(std::string_view headername,
+			 std::string_view headercontents,
+			 size_t target_width,
+			 out_iter &&iter)
+{
+	std::u32string line;
+	size_t line_len=0;
+
+	std::u32string us;
+
+	auto flush=[&]
+	{
+		size_t l=0;
+
+		for (auto &c:us)
+		{
+			l += unicode_wcwidth(c);
+		}
+
+		if (line.empty() || line_len+l <= target_width)
+		{
+			line += us;
+			line_len += l;
+			us.clear();
+			return;
+		}
+
+		*iter++=line;
+		line=std::move(us);
+		line_len=l;
+		us.clear();
+	};
+
+	display_header_unicode(
+		headername, headercontents,
+		std::back_inserter(us),
+		flush);
+
+	if (!us.empty())
+		flush();
+
+	if (!line.empty())
+		*iter++=line;
+
+	if constexpr(!std::is_same_v<out_iter, out_iter &>)
+		return iter;
+}
+
+// Iterator class used by wrap_header(). This is an output iterator over
+// std::u32string-s, which converts each Unicode string to the given character
+// set and forwards it to the output iterator over std::string-s.
+
+template<typename out_iter>
+class wrap_header_iter {
+	out_iter &iter;
+	const std::string &chset;
+public:
+	bool conversion_error{false};
+
+	wrap_header_iter(out_iter &iter, const std::string &chset)
+		: iter{iter}, chset{chset} {}
+
+	wrap_header_iter(const wrap_header_iter &o)
+		: iter{o.iter}
+	{
+	}
+
+	wrap_header_iter &operator=(const wrap_header_iter &)
+	{
+		return *this;
+	}
+
+	wrap_header_iter &operator*() { return *this; }
+
+	wrap_header_iter &operator++() { return *this; }
+	wrap_header_iter &operator++(int) { return *this; }
+
+private:
+	std::string s;
+public:
+
+	wrap_header_iter &operator=(const std::u32string &us)
+	{
+		bool errflag=false;
+
+		s.clear();
+
+		unicode::iconvert::fromu::convert(
+			us.begin(), us.end(), chset,
+			std::back_inserter(s), errflag);
+
+		if (errflag)
+			conversion_error=true;
+		*iter++=std::move(s);
+		return *this;
+	}
+
+};
+
+// Call wrap_header_unicode(), then convert the Unicode text to the given
+// character set. The passed in iterator is an output iterator over
+// std::string-s, and iterates over each wrapped line.
+//
+// If the output iterator gets passed by value then this returns a tuple
+// containing the ending value of the output iterator and a conversion error
+// flag, indicating that a conversion error was encountered converting the
+// Unicode string to the requested character set.
+//
+// If the output iterator gets passed by reference then it gets modified in
+// place and wrap_header() returns a boolean conversion error flag.
+
+template<typename out_iter>
+auto wrap_header(std::string_view headername,
+		 std::string_view headercontents,
+		 size_t target_width,
+		 const std::string &chset,
+		 out_iter &&iter)
+{
+	wrap_header_iter wrap_iter{iter, chset};
+
+	wrap_header_unicode(headername, headercontents, target_width,
+			    wrap_iter);
+
+	if constexpr(!std::is_same_v<out_iter, out_iter &>)
+		return std::tuple{iter, wrap_iter.conversion_error};
+	else
+		return wrap_iter.conversion_error;
 }
 
 // Implement do_print in order to generate Ascii-compatible encoding of

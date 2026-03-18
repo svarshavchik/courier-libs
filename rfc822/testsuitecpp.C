@@ -560,6 +560,78 @@ static void testparsedt()
 	}
 }
 
+void testwrapunicode()
+{
+	std::vector<std::string> wrapped;
+
+	auto ret=rfc822::wrap_header(
+		"subject",
+		"The quick brown fox jumped over the lazy dog's tail.",
+		20,
+		"utf-8",
+		std::back_inserter(wrapped));
+
+	static_assert(std::is_same_v<decltype(std::back_inserter(wrapped)),
+		      std::decay_t<decltype(std::get<0>(ret))>>,
+		      "wrap_header() returns the ending value of the iterator");
+
+	if (wrapped != std::vector<std::string>{
+			"The quick brown fox ",
+			"jumped over the ",
+			"lazy dog's tail."})
+	{
+		std::cerr << "wrap_header test 1 failed\n";
+		exit(1);
+	}
+
+	wrapped.clear();
+	auto iter=std::back_inserter(wrapped);
+
+	auto ret2=rfc822::wrap_header(
+		"subject",
+		"The quick brown fox jumped over the lazy dog's tail.",
+		15,
+		"utf-8",
+		iter);
+	static_assert(std::is_same_v<decltype(ret2), bool>,
+		      "wrap_header() returns a bool value");
+
+	if (wrapped != std::vector<std::string>{
+			"The quick ",
+			"brown fox ",
+			"jumped over ",
+			"the lazy dog's ",
+			"tail."})
+	{
+		std::cerr << "wrap_header test 2 failed\n";
+		exit(1);
+	}
+
+	wrapped.clear();
+	rfc822::wrap_header(
+		"subject",
+		"The quick brown fox jumped over the lazy dog's tail.",
+		4,
+		"utf-8",
+		iter);
+
+	if (wrapped != std::vector<std::string>{
+			"The ",
+			"quick ",
+			"brown ",
+			"fox ",
+			"jumped ",
+			"over ",
+			"the ",
+			"lazy ",
+			"dog's ",
+			"tail."})
+	{
+		std::cerr << "wrap_header test 3 failed\n";
+		exit(1);
+	}
+}
+
 int main()
 {
 	alarm(60);
@@ -939,5 +1011,6 @@ int main()
 	fclose(fp);
 
 	testparsedt();
+	testwrapunicode();
 	return 0;
 }

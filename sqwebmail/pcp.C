@@ -1139,9 +1139,6 @@ void sqpcp_summary()
 static void print_event_subject(std::string_view flags, const char *subject,
 				unsigned w)
 {
-	unsigned i;
-	char *p;
-
 	/* Print event flags first: CANCELLED... */
 
 	for (auto b=flags.begin(), e=flags.end(); b != e; )
@@ -1166,34 +1163,23 @@ static void print_event_subject(std::string_view flags, const char *subject,
 		printf("%s", getarg(s.c_str()));
 	}
 
-	p=rfc822_display_hdrvalue_tobuf("subject",
-					subject ? subject:"",
-					sqwebmail_content_charset,
-					NULL,
-					NULL);
+	std::vector<std::string> address;
 
-	if (!p)
-		p=strdup(subject ? subject:"");
+	rfc822::wrap_header(
+		"subject",
+		subject ? subject:"",
+		w,
+		sqwebmail_content_charset,
+		std::back_inserter(address)
+	);
 
-	if (!p)
-		return;
+	if (address.empty())
+		address.push_back({});
 
-	if (strlen(p) > w)
-	{
-		/* Truncate long subject lines */
-		i=w-5;
-		while (i)
-		{
-			if (isspace((int)(unsigned char) p[i]))
-			{
-				strcpy(p+i, "...");
-				break;
-			}
-			--i;
-		}
-	}
-	print_safe(p);
-	free(p);
+	if (address.size() > 1)
+		address[0] += "...";
+
+	print_safe(address[0].c_str());
 }
 
 /* ------- New event support code -------- */
@@ -1397,7 +1383,7 @@ void sqpcp_newevent()
 	bool do_delparticipant= *cgi("do.delparticipant") ? true:false;
 	time_t delstart=0, delend=0;
 
-	static char *draftmessage_buf=0;
+	static std::string draftmessage_buf;
 
 	showerror();
 
@@ -1450,10 +1436,8 @@ void sqpcp_newevent()
 		newdraftfd=maildir_createmsg(INBOX "." DRAFTS, 0, &draftfilename);
 		maildir_writemsgstr(newdraftfd, "X-Event: 1\n");
 
-		if (draftmessage_buf)
-			free(draftmessage_buf);
-		if ((draftmessage_buf=strdup(draftfilename)) != 0)
-			cgi_put("draftmessage", draftmessage_buf);
+		draftmessage_buf=draftfilename;
+		cgi_put("draftmessage", draftmessage_buf.c_str());
 	}
 
 	if (do_newevent || do_delevent || do_newparticipant
@@ -2427,7 +2411,7 @@ static void do_daily_view(std::vector<cacherecord> &recs, int viewtype,
 					     start, end))
 				continue;
 
-			printf("<tr><td align=\"left\">");
+			printf("<tr><td align=\"left\" style=\"white-space: nowrap\">");
 			print_event_link(rec.eventid.c_str(),
 					 "", "class=\"dailyeventtimes\"");
 			print_safe(timerange);
@@ -2445,7 +2429,7 @@ static void do_daily_view(std::vector<cacherecord> &recs, int viewtype,
 					FMTTIME_TIME))
 				continue;
 
-			printf("<tr><td align=\"left\">");
+			printf("<tr><td align=\"left\" style=\"white-space: nowrap\">");
 			print_event_link(rec.eventid.c_str(),
 						"", "class=\"dailyeventtimes\"");
 			print_safe(time1);
