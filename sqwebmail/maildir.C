@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2011 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -128,10 +128,9 @@ struct timeval tv;
 
 /* Translate folder name into directory name */
 
-static char *xlate_mdir(const char *foldername)
+static std::string xlate_mdir(const char *foldername)
 {
 	struct maildir_info minfo;
-	char	*p;
 
 	if (maildir_info_imap_find(&minfo, foldername,
 				   login_returnaddr())<0)
@@ -156,7 +155,7 @@ static char *xlate_mdir(const char *foldername)
 		enomem();
 	}
 
-	p=maildir_name2dir(minfo.homedir, minfo.maildir);
+	auto p=maildir::name2dir(minfo.homedir, minfo.maildir);
 
 	maildir_info_destroy(&minfo);
 	return p;
@@ -1213,7 +1212,6 @@ static bool goodcache(const char *foldername)
 
 void maildir_autopurge()
 {
-	char	*dir;
 	char	*dirbuf;
 	struct	stat	stat_buf;
 	DIR	*dirp;
@@ -1350,13 +1348,12 @@ void maildir_autopurge()
 		   MAILDIRCURCACHE "/.purgecnt") < 0)
 		enomem();
 
-	dir=xlate_mdir(INBOX "." TRASH);
+	auto trashdir=xlate_mdir(INBOX "." TRASH);
 
 	/* Delete old files in tmp */
 
 	time(&current_time);
-	dirbuf=alloc_filename(dir, "cur", "");
-	free(dir);
+	dirbuf=alloc_filename(trashdir.c_str(), "cur", "");
 
 	for (dirp=opendir(dirbuf); dirp && (dire=readdir(dirp)) != 0; )
 	{
@@ -3328,28 +3325,27 @@ size_t	cnt;
 
 int maildir_create(const char *foldername)
 {
-	char	*dir;
 	int	rc= -1;
 
-	dir=xlate_mdir(foldername);
-	if (!dir)
+	auto dir=xlate_mdir(foldername);
+	if (dir.empty())
 		return 0;
 
-	if (mkdir(dir, 0700) == 0)
+	if (mkdir(dir.c_str(), 0700) == 0)
 	{
-	char *tmp=alloc_filename(dir, "tmp", "");
+	char *tmp=alloc_filename(dir.c_str(), "tmp", "");
 
 		if (mkdir(tmp, 0700) == 0)
 		{
-		char *tmp2=alloc_filename(dir, "new", "");
+		char *tmp2=alloc_filename(dir.c_str(), "new", "");
 
 			if (mkdir(tmp2, 0700) == 0)
 			{
-			char *tmp3=alloc_filename(dir, "cur", "");
+			char *tmp3=alloc_filename(dir.c_str(), "cur", "");
 
 				if (mkdir(tmp3, 0700) == 0)
 				{
-				char *tmp4=alloc_filename(dir, "maildirfolder",
+				char *tmp4=alloc_filename(dir.c_str(), "maildirfolder",
 					"");
 
 					close(open(tmp4, O_RDWR|O_CREAT, 0600));
@@ -3364,8 +3360,7 @@ int maildir_create(const char *foldername)
 		if (rc)	rmdir(tmp);
 		free(tmp);
 	}
-	if (rc)	rmdir(dir);
-	free(dir);
+	if (rc)	rmdir(dir.c_str());
 	return (rc);
 }
 
@@ -3439,7 +3434,7 @@ int	maildir_createmsg(
 )
 {
 	char	*p;
-	char	*dir=xlate_mdir(foldername);
+	auto	dir=xlate_mdir(foldername);
 	char	*filename;
 	int	n;
 	struct maildir_tmpcreate_info createInfo;
@@ -3448,7 +3443,7 @@ int	maildir_createmsg(
 
 	maildir_tmpcreate_init(&createInfo);
 
-	createInfo.maildir=dir;
+	createInfo.maildir=dir.c_str();
 	createInfo.uniq=seq;
 	createInfo.doordie=1;
 
@@ -3499,15 +3494,13 @@ int maildir_recreatemsg(
 	std::string &baseptr
 )
 {
-char	*dir=xlate_mdir(folder);
-char	*base;
-char	*p;
-int	n;
+	auto	dir=xlate_mdir(folder);
+	char	*base;
+	char	*p;
+	int	n;
 
 	base=maildir_basename(name);
-	p=alloc_filename(dir, "tmp", base);
-
-	free(dir);
+	p=alloc_filename(dir.c_str(), "tmp", base);
 	baseptr=base;
 	free(base);
 	n=maildir_safeopen(p, O_CREAT|O_RDWR|O_TRUNC, 0644);
@@ -3648,8 +3641,8 @@ static int	maildir_closemsg_common(
 	unsigned long prevsize
 )
 {
-	char	*dir=xlate_mdir(folder);
-	char	*oldname=alloc_filename(dir, "tmp", retname.c_str());
+	auto	dir=xlate_mdir(folder);
+	char	*oldname=alloc_filename(dir.c_str(), "tmp", retname.c_str());
 	struct	stat	stat_buf;
 
 
@@ -3724,7 +3717,6 @@ static int	maildir_closemsg_common(
 		if (newname != realnewname)
 			rename(newname.c_str(), realnewname);
 	}
-	free(dir);
 	free(oldname);
 	return (isok && isok != -2? 0:-1);
 }
@@ -3753,12 +3745,11 @@ static void	maildir_deletenewmsg_common(
 	const char *folder, const std::string &filename
 )
 {
-char	*dir=xlate_mdir(folder);
-char	*oldname=alloc_filename(dir, "tmp", filename.c_str());
+	auto	dir=xlate_mdir(folder);
+	char	*oldname=alloc_filename(dir.c_str(), "tmp", filename.c_str());
 
 	unlink(oldname);
 	free(oldname);
-	free(dir);
 }
 
 void maildir_cleanup()

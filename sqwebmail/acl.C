@@ -151,7 +151,6 @@ static bool acl_read2(maildir_aclt_list *l,
 	      std::string &owner)
 {
 	bool rc;
-	char *p;
 
 	if (minfo->mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
@@ -170,14 +169,16 @@ static bool acl_read2(maildir_aclt_list *l,
 	if (minfo->homedir == NULL || minfo->maildir == NULL)
 		return false;
 
-	p=maildir_name2dir(".", minfo->maildir);
+	auto p=maildir::name2dir(".", minfo->maildir);
 
-	if (!p)
+	if (p.empty())
 		return false;
 
-	rc=maildir_acl_read(l, minfo->homedir,
-			    strncmp(p, "./", 2) == 0 ? p+2:p) == 0;
-	free(p);
+	if (std::string_view{p}.substr(0, 2) == "./")
+		p.erase(0, 2);
+
+	rc=maildir_acl_read(l, minfo->homedir, p.c_str()) == 0;
+
 	if (rc)
 	{
 		owner=minfo->owner;
@@ -329,7 +330,6 @@ static void doupdate()
 	maildir_aclt_list l;
 	std::string owner;
 	char buf[2];
-	char *p;
 	struct maildir_info minfo;
 
 	if (maildir_info_imap_find(&minfo, sqwebmail_folder,
@@ -434,17 +434,19 @@ static void doupdate()
 		maildir_aclt_list_add(&l, entity.c_str(), new_acl, NULL);
 	}
 
-	p=maildir_name2dir(".", minfo.maildir);
+	auto pacl=maildir::name2dir(".", minfo.maildir);
 
-	if (p)
+	if (!pacl.empty())
 	{
 		const char *err_ident;
 
+		if (std::string_view{pacl}.substr(0, 2) == "./")
+			pacl.erase(0, 2);
+
 		if (maildir_acl_write(&l, minfo.homedir,
-				      strncmp(p, "./", 2) == 0 ? p+2:p,
+				      pacl.c_str(),
 				      owner.c_str(), &err_ident))
 			printf("%s", getarg("ACL_failed"));
-		free(p);
 	}
 
 	maildir_aclt_list_destroy(&l);
