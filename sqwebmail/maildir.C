@@ -162,10 +162,9 @@ static char *xlate_mdir(const char *foldername)
 	return p;
 }
 
-static char *xlate_shmdir(const char *foldername)
+static std::string xlate_shmdir(const char *foldername)
 {
 	struct maildir_info minfo;
-	char	*p;
 
 	if (maildir_info_imap_find(&minfo, foldername,
 				   login_returnaddr())<0)
@@ -183,7 +182,7 @@ static char *xlate_shmdir(const char *foldername)
 		enomem();
 	}
 
-	p=maildir_name2dir(minfo.homedir, minfo.maildir);
+	auto p=maildir::name2dir(minfo.homedir, minfo.maildir);
 
 	maildir_info_destroy(&minfo);
 	return p;
@@ -283,24 +282,19 @@ char *alloc_filename(const char *dir1, const char *dir2, const char *filename)
 
 std::string maildir_find(const char *folder, const char *filename)
 {
-char	*p;
-char	*d=xlate_shmdir(folder);
-int	fd;
+	auto d=xlate_shmdir(folder);
+	int	fd;
 
-	if (!d)	return (0);
-	p=maildir_filename(d, 0, filename);
-	free(d);
-
-	if (!p)	enomem();
+	if (d.empty())	return ("");
+	auto p=maildir::filename(d, "", filename);
 
 	std::string ret;
 
-	if ((fd=open(p, O_RDONLY)) >= 0)
+	if ((fd=open(p.c_str(), O_RDONLY)) >= 0)
 	{
 		close(fd);
 		ret=p;
 	}
-	free(p);
 	return ret;
 }
 
@@ -426,12 +420,8 @@ char	*q;
 char	*r;
 unsigned long ul;
 
-	{
-		char	*maildir=xlate_shmdir(folder);
-
-		if (!maildir)	return (-1);
-		free(maildir);
-	}
+	if (xlate_shmdir(folder).empty())
+		return (-1);
 
 	cachename=foldercachename(folder);
 
@@ -787,12 +777,12 @@ void maildir_msgpurgefile(const char *folder, const char *msgid)
 
 	if (!filename.empty())
 	{
-		char *d=xlate_shmdir(folder);
+		auto d=xlate_shmdir(folder);
 
-		if (d)
+		if (!d.empty())
 		{
 			if (strncmp(folder, SHARED ".", sizeof(SHARED))
-			    && maildirquota_countfolder(d) &&
+			    && maildirquota_countfolder(d.c_str()) &&
 			    maildirquota_countfile(filename.c_str()))
 			{
 				unsigned long filesize=0;
@@ -812,7 +802,6 @@ void maildir_msgpurgefile(const char *folder, const char *msgid)
 							      -(int64_t)filesize,
 							      -1);
 			}
-			free(d);
 		}
 		unlink(filename.c_str());
 	}
@@ -851,7 +840,6 @@ static int do_msgmove(const char *from,
 		      const char *file, const char *dest, size_t pos,
 		      int check_acls)
 {
-	char *destdir, *fromdir;
 	const char *p;
 	char *basename;
 	struct stat stat_buf;
@@ -874,11 +862,11 @@ static int do_msgmove(const char *from,
 
 	/* Update quota */
 
-	destdir=xlate_shmdir(dest);
-	if (!destdir)	enomem();
+	auto destdir=xlate_shmdir(dest);
+	if (destdir.empty())	enomem();
 
-	fromdir=xlate_shmdir(from);
-	if (!fromdir)	enomem();
+	auto fromdir=xlate_shmdir(from);
+	if (fromdir.empty())	enomem();
 
 	from_shared=strncmp(from, SHARED ".", sizeof(SHARED)) == 0;
 	dest_shared=strncmp(dest, SHARED ".", sizeof(SHARED)) == 0;
@@ -894,15 +882,15 @@ static int do_msgmove(const char *from,
 			/* Recover from possible corruption */
 
 		if ((dest_shared
-		     || !maildirquota_countfolder(destdir)) &&
+		     || !maildirquota_countfolder(destdir.c_str())) &&
 		    maildirquota_countfile(file))
 		{
 
 			if (!from_shared)
 				maildir_quota_deleted(".", -(int64_t)filesize, -1);
 		}
-		else if (!dest_shared && maildirquota_countfolder(destdir) &&
-			 (from_shared || !maildirquota_countfolder(fromdir))
+		else if (!dest_shared && maildirquota_countfolder(destdir.c_str()) &&
+			 (from_shared || !maildirquota_countfolder(fromdir.c_str()))
 			 )
 			/* Moving FROM trash */
 		{
@@ -910,15 +898,12 @@ static int do_msgmove(const char *from,
 			if (maildir_quota_add_start(".", &quotainfo,
 						    filesize, 1, NULL))
 			{
-				free(fromdir);
 				return (-1);
 			}
 
 			maildir_quota_add_end(&quotainfo, filesize, 1);
 		}
 	}
-
-	free(fromdir);
 
 	if (from_shared || dest_shared)
 	{
@@ -928,24 +913,12 @@ static int do_msgmove(const char *from,
 
 		if (dest_shared)	/* Copy to the sharable folder */
 		{
-			char	*p=static_cast<char *>(
-				malloc(strlen(destdir)+sizeof("/shared"))
-			);
-
-			if (!p)
-			{
-				free(destdir);
-				enomem();
-				exit(0); /* gcc warning fix */
-			}
-			strcat(strcpy(p, destdir), "/shared");
-			free(destdir);
-			destdir=p;
+			destdir += "/shared";
 		}
 
 		maildir_tmpcreate_init(&createInfo);
 
-		createInfo.maildir=destdir;
+		createInfo.maildir=destdir.c_str();
 		createInfo.uniq="copy";
 		createInfo.doordie=1;
 
@@ -954,7 +927,6 @@ static int do_msgmove(const char *from,
 
 		if ((tofd=maildir_tmpcreate_fd(&createInfo)) < 0)
 		{
-			free(destdir);
 			error(strerror(errno));
 		}
 
@@ -968,7 +940,6 @@ static int do_msgmove(const char *from,
 		if ((fromfd=maildir_semisafeopen(file, O_RDONLY, 0)) < 0)
 		{
 			int terrno = errno;
-			free(destdir);
 			close(tofd);
 			unlink(createInfo.tmpname);
 			maildir_tmpcreate_free(&createInfo);
@@ -982,7 +953,6 @@ static int do_msgmove(const char *from,
 			int terrno = errno;
 			close(fromfd);
 			close(tofd);
-			free(destdir);
 			unlink(createInfo.tmpname);
 			maildir_tmpcreate_free(&createInfo);
 			error3(__FILE__, __LINE__, "Failed to copy message",
@@ -1007,7 +977,6 @@ static int do_msgmove(const char *from,
 					free(l);
 					unlink(createInfo.tmpname);
 					maildir_tmpcreate_free(&createInfo);
-					free(destdir);
 					return (0);
 				}
 			}
@@ -1027,7 +996,6 @@ static int do_msgmove(const char *from,
 
 		if (maildir_movetmpnew(createInfo.tmpname, createInfo.newname))
 		{
-			free(destdir);
 			unlink(createInfo.tmpname);
 			maildir_tmpcreate_free(&createInfo);
 			error(strerror(errno));
@@ -1052,8 +1020,7 @@ static int do_msgmove(const char *from,
 		maildir_remflagname(basename, 'D');
 		maildir_remflagname(basename, 'R');
 	}
-	newname=alloc_filename(destdir, "cur", basename);
-	free(destdir);
+	newname=alloc_filename(destdir.c_str(), "cur", basename);
 	free(basename);
 
 	/* When DELETE is called for a message in TRASH, from and dest will
@@ -1224,27 +1191,24 @@ static void maildir_checknew(const char *folder, const char *dir)
 ** Automatically purge deleted messages.
 */
 
-static int goodcache(const char *foldername)
+static bool goodcache(const char *foldername)
 {
 	struct maildir_info minfo;
-	char *folderdir;
 	struct stat stat_buf;
 
 	if (maildir_info_imap_find(&minfo, foldername, login_returnaddr())<0
 	    || minfo.homedir == NULL || minfo.maildir == NULL)
-		return 0;
+		return false;
 
 	maildir_info_destroy(&minfo);
 
-	folderdir=xlate_shmdir(foldername);
+	auto folderdir=xlate_shmdir(foldername);
 
-	if (stat(folderdir, &stat_buf) < 0)
+	if (folderdir.empty() || stat(folderdir.c_str(), &stat_buf) < 0)
 	{
-		free(folderdir);
-		return 0;
+		return false;
 	}
-	free(folderdir);
-	return 1;
+	return true;
 }
 
 void maildir_autopurge()
@@ -1329,10 +1293,10 @@ void maildir_autopurge()
 
 	i=0;
 
+	std::string folderdir;
+
 	for (dirp=opendir(MAILDIRCURCACHE); dirp && (dire=readdir(dirp)); )
 	{
-		char *folderdir;
-
 		if (dire->d_name[0] == '.')
 			continue;
 
@@ -1343,19 +1307,14 @@ void maildir_autopurge()
 			{
 				if (!goodcache(strchr(dire->d_name, '.')+1))
 				{
-					folderdir=static_cast<char *>(
-						malloc(sizeof(MAILDIRCURCACHE
-							      "/")
-						       + strlen(dire->
-								d_name))
+					folderdir.clear();
+					folderdir.reserve(
+						sizeof(MAILDIRCURCACHE "/")
+						+ strlen(dire->d_name)-1
 					);
-					if (!folderdir)
-						enomem();
-					strcat(strcpy(folderdir,
-						      MAILDIRCURCACHE "/"),
-					       dire->d_name);
-					unlink(folderdir);
-					free(folderdir);
+					folderdir.append(MAILDIRCURCACHE "/");
+					folderdir.append(dire->d_name);
+					unlink(folderdir.c_str());
 				}
 				break;
 			}
@@ -1363,15 +1322,14 @@ void maildir_autopurge()
 			continue;
 		}
 
-		folderdir=static_cast<char *>(
-			malloc(sizeof(MAILDIRCURCACHE "/")
-			       + strlen(dire->d_name))
+		folderdir.clear();
+		folderdir.reserve(
+			sizeof(MAILDIRCURCACHE "/")
+			+ strlen(dire->d_name)-1
 		);
-		if (!folderdir)
-			enomem();
-		strcat(strcpy(folderdir, MAILDIRCURCACHE "/"), dire->d_name);
-		unlink(folderdir);
-		free(folderdir);
+		folderdir.append(MAILDIRCURCACHE "/");
+		folderdir.append(dire->d_name);
+		unlink(folderdir.c_str());
 	}
 	if (dirp)
 		closedir(dirp);
@@ -3166,41 +3124,38 @@ static int chkcache(const char *folder)
 
 static void	maildir_getfoldermsgs(const char *folder)
 {
-char	*dir=xlate_shmdir(folder);
+	auto dir=xlate_shmdir(folder);
 
-	if (!dir)	return;
+	if (dir.empty())	return;
 
 	mkdir (MAILDIRCURCACHE, 0700);
 
 	while ( chkcache(folder) )
 	{
 		closedb();
-		createmdcache(folder, dir);
+		createmdcache(folder, dir.c_str());
 	}
-	free(dir);
 }
 
 void	maildir_remcache(const char *folder)
 {
-	char	*dir=xlate_shmdir(folder);
 	char	*cachename=foldercachename(folder);
 
 	unlink(cachename);
 	if (folderdatname && strcmp(folderdatname, cachename) == 0)
 		closedb();
 	free(cachename);
-	free(dir);
 }
 
 void	maildir_reload(const char *folder)
 {
-char	*dir=xlate_shmdir(folder);
-char	*curname;
-struct	stat	stat_buf;
+	auto	dir=xlate_shmdir(folder);
+	char	*curname;
+	struct	stat	stat_buf;
 
-	if (!dir)	return;
+	if (dir.empty())	return;
 
-	curname=alloc_filename(dir, "cur", ".");
+	curname=alloc_filename(dir.c_str(), "cur", ".");
 	time(&current_time);
 
 	/* Remove old cache file when: */
@@ -3211,10 +3166,9 @@ struct	stat	stat_buf;
 			stat_buf.st_mtime >= cachemtime)
 		{
 			closedb();
-			createmdcache(folder, dir);
+			createmdcache(folder, dir.c_str());
 		}
 	}
-	free(dir);
 	maildir_getfoldermsgs(folder);
 	free(curname);
 }

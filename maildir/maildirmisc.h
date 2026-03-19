@@ -103,15 +103,6 @@ char *maildir_folderdir(const char *,		/* maildir */
 	** to EINVAL, and return (0).
 	*/
 
-char *maildir_filename(const char *,		/* maildir */
-	const char *,				/* folder */
-	const char *);				/* filename */
-	/*
-	** Builds the filename to this message, suitable for opening.
-	** If the file doesn't appear to be there, search the maildir to
-	** see if someone changed the flags, and return the current filename.
-	*/
-
 int maildir_safeopen(const char *,		/* filename */
 	int,				/* mode */
 	int);				/* perm */
@@ -245,9 +236,14 @@ namespace maildir {
 	std::string name2dir(const std::string &, const std::string &);
 	std::string folderdir(const std::string &, const std::string &);
 	std::string location(const std::string &, const std::string &);
-	std::string filename(const std::string &,
-			     const std::string &,
-			     const std::string &);
+
+	// Builds the filename to this message, suitable for opening.
+	// If the file doesn't appear to be there, search the maildir to
+	// see if someone changed the flags, and return the current filename.
+
+	std::string filename(const std::string &maildir,
+			     const std::string &folder,
+			     const std::string &filename);
 
 	std::string getlink(const std::string &);
 	int semisafeopen(const std::string &, int, int);

@@ -40,26 +40,14 @@
 
 
 /*
-** char *maildir_filename(const char *maildir, const char *folder,
-**   const char *filename)
+** std::string maildir_filename(const std::string &maildir,
+**                              const std::string &folder,
+**                              const std::string &filename)
 **	- find a message in a maildir
 **
 ** Return the full path to the indicated message.  If the message flags
 ** in filename have changed, we search the maildir for this message.
 */
-
-char *maildir_filename(const char *maildir,
-		       const char *folder, const char *filename)
-{
-	std::string s=maildir::filename(maildir ? maildir:"",
-					folder ? folder:"",
-					filename);
-
-	if (s.empty())
-		return nullptr;
-
-	return strdup(s.c_str());
-}
 
 std::string maildir::filename(const std::string &maildir,
 			      const std::string &folder,

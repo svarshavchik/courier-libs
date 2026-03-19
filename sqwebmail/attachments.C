@@ -539,7 +539,8 @@ static std::string search_mime_type(const char *mimetype, const char *filename)
 		auto s=std::string_view{p}.substr(n);
 
 		while (!s.empty() &&
-			!(s=s.substr(s.find_first_not_of(" \t"))).empty())
+			!(s=s.substr(std::min(s.find_first_not_of(" \t"),
+					      s.size()))).empty())
 		{
 			auto n=s.find_first_of(" \t");
 			if (n == std::string_view::npos)
