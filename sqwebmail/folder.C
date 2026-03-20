@@ -71,7 +71,7 @@
 #endif
 
 #include	"strftime.h"
-
+#include	<fstream>
 extern "C" {
 #if 0
 }
@@ -293,28 +293,20 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 	}
 	else if (*cgi("cmdpurgeall"))
 	{
-	    char *deldir;
-	    struct maildir_info minfo;
-
-	    if (maildir_info_imap_find(&minfo, dir, login_returnaddr())<0)
+	    auto minfo=maildir::info_imap_find(dir, login_returnaddr());
+	    if (!minfo)
 		    return "othererror";
 
-	    if ((deldir=maildir_name2dir(minfo.homedir, minfo.maildir)) == NULL)
-	    {
-		maildir_info_destroy(&minfo);
+	    auto deldir=maildir::name2dir(minfo.homedir, minfo.maildir);
+	    if (deldir.empty())
 		return "othererror";
-	    }
-
 	    std::string cur;
-	    cur.reserve(strlen(deldir) + 5);
+	    cur.reserve(deldir.size() + 5);
 	    cur = deldir;
 	    cur += "/cur";
 
 	    rc = maildir_del_content(cur.c_str());
 	    maildir_quota_recalculate(".");
-
-	    maildir_info_destroy(&minfo);
-	    free(deldir);
 
 	}
 	else if (*cgi("cmdmove"))
@@ -1464,20 +1456,18 @@ static void show_transfer_dest_real1(const char *inbox_pfix,
 
 		if (strncmp(folders[i], SHARED ".", sizeof(SHARED)) == 0)
 		{
-		char	*d=maildir_shareddir(".", strchr(folders[i], '.')+1);
-		struct	stat	stat_buf;
+			auto d=maildir::shareddir(".", strchr(folders[i], '.')+1);
+			struct	stat	stat_buf;
 
-			if (!d)
+			if (d.empty())
 			{
 				maildir_freefolders(&folders);
 				enomem();
 			}
-			if (stat(d, &stat_buf))	/* Not subscribed */
+			if (stat(d.c_str(), &stat_buf))	/* Not subscribed */
 			{
-				free(d);
 				continue;
 			}
-			free(d);
 
 			if (!has_shared)
 			{
@@ -2364,88 +2354,72 @@ static int checkrename(const char *origfolder,
 }
 
 static void dorename(const char *origfolder,
-		     struct maildir_info *mifrom,
-		     struct maildir_info *mito,
+		     const maildir::info &mifrom,
+		     const maildir::info &mito,
 		     const char *err_invalid,
 		     const char *err_cantdelete,
 		     const char *err_exists)
 {
-	char *s;
-	char *t;
-	char *u;
-
-	const char *p;
 	struct	stat	stat_buf;
 
-	if (mifrom->homedir == NULL ||
-	    mifrom->maildir == NULL ||
-	    mito->homedir == NULL ||
-	    mito->maildir == NULL ||
-	    strcmp(mifrom->homedir, mito->homedir))
+	if (!mifrom.regular_maildir() ||
+	    !mito.regular_maildir() ||
+	    mifrom.homedir != mito.homedir)
 	{
 		folder_err_msg=err_invalid;
 		return;
 	}
 
-	s=maildir_name2dir(".", mifrom->maildir);
-	t=maildir_name2dir(".", mito->maildir);
-
-	if (!s || !t)
+	auto s=maildir::name2dir(".", mifrom.maildir);
+	auto t=maildir::name2dir(".", mito.maildir);
+	if (s.empty() || t.empty())
 	{
-		if (s) free(s);
-		if (t) free(t);
 		folder_err_msg=err_invalid;
 		return;
 	}
 
-	p=s;
-	if (strncmp(p, "./", 2) == 0) p += 2;
+	std::string_view p{s};
+	if (p.substr(0, 2) == "./")
+		p.remove_prefix(2);
 
-	if (strcmp(p, ".") == 0 ||
-	    strcmp(p, "." SENT) == 0 ||
-	    strcmp(p, "." DRAFTS) == 0 ||
-	    strcmp(p, "." TRASH) == 0)
+	if (p == "." ||
+	    p == "." SENT ||
+	    p == "." DRAFTS ||
+	    p == "." TRASH)
 	{
-		free(s);
-		free(t);
 		folder_err_msg=err_invalid;
 		return;
 	}
 
-	u=maildir_name2dir(mito->homedir, mito->maildir);
-	if (!u)
+	auto u=maildir::name2dir(mito.homedir, mito.maildir);
+	if (u.empty())
 	{
-		free(s);
-		free(t);
 		folder_err_msg=err_invalid;
 		return;
 	}
 
-	if (stat(u, &stat_buf) == 0)
+	if (stat(u.c_str(), &stat_buf) == 0)
 	{
-		free(s);
-		free(t);
 		folder_err_msg=err_exists;
 		return;
 	}
-	free(u);
 
 	if (mailfilter_folderused(origfolder))
 	{
-		free(s);
-		free(t);
 		folder_err_msg=err_cantdelete;
 		return;
 	}
 
-	if (maildir_rename(mifrom->homedir,
-			   strncmp(s, "./", 2) == 0 ? s+2:s,
-			   strncmp(t, "./", 2) == 0 ? t+2:t,
+	if (std::string_view{s}.substr(0, 2) == "./")
+		s.erase(0, 2);
+	if (std::string_view{t}.substr(0, 2) == "./")
+		t.erase(0, 2);
+
+	if (maildir_rename(mifrom.homedir.c_str(),
+			   s.c_str(),
+			   t.c_str(),
 			   MAILDIR_RENAME_FOLDER, NULL))
 		folder_err_msg=err_cantdelete;
-
-	free(s);
-	free(t);
 }
 
 namespace {
@@ -2461,63 +2435,54 @@ static void do_folderlist(const char *pfix, const char *homedir,
 static void do_sharedhierlist(const char *sharedhier,
 			      struct maildir_shindex_cache *cache);
 
-static int checkcreate(const char *f, int isrec)
+static bool checkcreate(std::string s, bool isrec)
 {
-	char *s=strdup(f);
-	char *q;
 	char buf[2];
-	struct maildir_info minfo;
 
-	if (!s)
+	if (s.empty())
 	{
 		folder_err_msg=getarg("CREATEPERMS");
-		return -1;
+		return false;
 	}
 
 	if (isrec)
 	{
-		if ((q=strrchr(s, '.')) == NULL ||
-		    (*q=0, checkcreate(s, 0)) < 0)
+		size_t lastdot=s.find_last_of('.');
+
+		if (lastdot == std::string::npos ||
+		    checkcreate(s.substr(0, lastdot), false) == false)
 		{
-			free(s);
 			folder_err_msg=getarg("CREATEPERMS");
-			return -1;
+			return false;
 		}
-		*q='.';
 	}
 
-	if (maildir_info_imap_find(&minfo, s, login_returnaddr()) < 0)
+	auto minfo=maildir::info_imap_find(s, login_returnaddr());
+	if (!minfo)
 	{
-		free(s);
 		folder_err_msg=getarg("CREATEPERMS");
-		return -1;
+		return false;
 	}
 
-	if (strchr(minfo.maildir, '.') == NULL)
+	if (strchr(minfo.maildir.c_str(), '.') == NULL)
 	{
-		free(s);
 		folder_err_msg=getarg("CREATEPERMS");
-		return -1;
+		return false;
 	}
 
-	maildir_acl_delete(minfo.homedir,
-			   strchr(minfo.maildir, '.'));
-
-	maildir_info_destroy(&minfo);
+	maildir_acl_delete(minfo.homedir.c_str(),
+			   strchr(minfo.maildir.c_str(), '.'));
 
 	strcpy(buf, ACL_CREATE);
-
-	if ((q=strrchr(s, '.')) == NULL ||
-	    (*q=0,
-	     acl_computeRightsOnFolder(s, buf),
+	size_t lastdot=s.find_last_of('.');
+	if (lastdot == std::string::npos ||
+	    (acl_computeRightsOnFolder(s.substr(0, lastdot).c_str(), buf),
 	     buf[0]) == 0)
 	{
-		free(s);
 		folder_err_msg=getarg("CREATEPERMS");
-		return -1;
+		return false;
 	}
-	free(s);
-	return 0;
+	return true;
 }
 
 void folder_list()
@@ -2562,9 +2527,6 @@ void folder_list()
 		}
 		else
 		{
-			struct maildir_info minfo;
-			char *q;
-
 			std::string p;
 
 			p.reserve(
@@ -2583,31 +2545,26 @@ void folder_list()
 				p += ".";
 			p += futf7;
 
-			if (maildir_info_imap_find(&minfo, p.c_str(),
-						   login_returnaddr()) < 0)
+			auto minfo=maildir::info_imap_find(p.c_str(), login_returnaddr());
+			std::string q;
+			if (!minfo)
 			{
 				folder_err_msg=err_invalid;
 			}
-			else if (minfo.homedir == NULL ||
-				 minfo.maildir == NULL ||
-				 (q=maildir_name2dir(minfo.homedir,
-						     minfo.maildir)) == NULL)
+			else if (!minfo.regular_maildir() ||
+				 (q=maildir::name2dir(minfo.homedir, minfo.maildir)).empty())
 			{
-				maildir_info_destroy(&minfo);
 				folder_err_msg=err_invalid;
 			}
-			else if (access(q, 0) == 0)
+			else if (access(q.c_str(), 0) == 0)
 			{
-				free(q);
-				maildir_info_destroy(&minfo);
 				folder_err_msg=err_exists;
 			}
 			else
 			{
-				if (checkcreate(p.c_str(),
-						!newdirname.empty()) == 0)
+				if (checkcreate(p.c_str(), !newdirname.empty()))
 				{
-					if (maildir_make(q, 0700, 0700, 1))
+					if (maildir_make(q.c_str(), 0700, 0700, 1))
 						folder_err_msg=err_exists;
 					else
 					{
@@ -2621,8 +2578,6 @@ void folder_list()
 						/* Initialize ACLs correctly */
 					}
 				}
-				free(q);
-				maildir_info_destroy(&minfo);
 			}
 		}
 	}
@@ -2647,31 +2602,29 @@ void folder_list()
 	if (*cgi("do.subunsub"))
 	{
 		const char *p=cgi("DELETE");
-		char	*pp=strdup(p);
-		char *d;
+		std::string q;
 
-		if (pp && strncmp(pp, SHARED ".", sizeof(SHARED)) == 0 &&
-		    (d=maildir_shareddir(".", pp+sizeof(SHARED))) != 0)
+		if (strncmp(p, SHARED ".", sizeof(SHARED)) == 0 &&
+		    !(q=maildir::shareddir(".", p+sizeof(SHARED))).empty())
 		{
-		struct stat	stat_buf;
+			struct stat	stat_buf;
 
-			if (stat(d, &stat_buf) == 0)
+			if (stat(q.c_str(), &stat_buf) == 0)
+			{
 				maildir_shared_unsubscribe(".",
-							   pp+sizeof(SHARED));
+							   p+sizeof(SHARED));
+			}
 			else
+			{
 				maildir_shared_subscribe(".",
-							 pp+sizeof(SHARED));
-			free(d);
+							 p+sizeof(SHARED));
+			}
 		}
-
-		if (pp)
-			free(pp);
 	}
 
 	if (*cgi("do.rename"))
 	{
 		const char *p=cgi("DELETE");
-		struct maildir_info mifrom, mito;
 		const char *qutf7=cgi("renametofolder");
 		auto r=trim_spaces(cgi("renametoname"));
 		std::string s;
@@ -2685,25 +2638,24 @@ void folder_list()
 		s=qutf7;
 		s+=rutf7;
 
-		if (r.find('.') == r.npos
-		    && maildir_info_imap_find(&mifrom, p,
-					      login_returnaddr()) == 0)
+		if (r.find('.') == r.npos)
 		{
-			if (maildir_info_imap_find(&mito, s.c_str(),
-						   login_returnaddr()) == 0)
+			auto mifrom=maildir::info_imap_find(p, login_returnaddr());
+			auto mito=maildir::info_imap_find(s.c_str(),
+						   login_returnaddr());
+
+			if (mifrom && mito)
 			{
 				if (checkrename(p, s.c_str()) == 0)
-					dorename(p, &mifrom, &mito,
+					dorename(p, mifrom, mito,
 						 err_invalid,
 						 err_cantdelete,
 						 err_exists);
-				maildir_info_destroy(&mifrom);
 			}
 			else
 			{
 				folder_err_msg=err_invalid;
 			}
-			maildir_info_destroy(&mito);
 		}
 		else
 		{
@@ -3194,17 +3146,17 @@ static void do_folderlist(const char *inbox_pfix,
 		if (strncmp(shortname, SHARED ".",
 			    sizeof(SHARED)) == 0)
 		{
-			char	*dir;
 			struct	stat	stat_buf;
 
 			pfix="+++";
 
-			dir=maildir_shareddir(".",
-					      shortname+sizeof(SHARED));
-			if (!dir)	continue;
-			if (stat(dir, &stat_buf))
+			auto dir=maildir::shareddir(
+				".",
+				shortname+sizeof(SHARED)
+			);
+			if (dir.empty())	continue;
+			if (stat(dir.c_str(), &stat_buf))
 				isunsubscribed=1;
-			free(dir);
 		}
 
 		if (strcmp(shortname, inbox_name) == 0 &&

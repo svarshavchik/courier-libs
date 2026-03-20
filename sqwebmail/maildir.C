@@ -130,10 +130,8 @@ struct timeval tv;
 
 static std::string xlate_mdir(const char *foldername)
 {
-	struct maildir_info minfo;
-
-	if (maildir_info_imap_find(&minfo, foldername,
-				   login_returnaddr())<0)
+	auto minfo=maildir::info_imap_find(foldername, login_returnaddr());
+	if (!minfo)
 	{
 		cginocache();
 		printf("Content-Type: text/plain\n\n"
@@ -143,9 +141,8 @@ static std::string xlate_mdir(const char *foldername)
 		fake_exit(1);
 	}
 
-	if (minfo.homedir == NULL || minfo.maildir == NULL)
+	if (!minfo.regular_maildir())
 	{
-		maildir_info_destroy(&minfo);
 		cginocache();
 		printf("Content-Type: text/plain\n\n"
 		       "Mailbox \"%s\" is not supported.\n",
@@ -155,36 +152,28 @@ static std::string xlate_mdir(const char *foldername)
 		enomem();
 	}
 
-	auto p=maildir::name2dir(minfo.homedir, minfo.maildir);
-
-	maildir_info_destroy(&minfo);
-	return p;
+	return maildir::name2dir(minfo.homedir, minfo.maildir);
 }
 
 static std::string xlate_shmdir(const char *foldername)
 {
-	struct maildir_info minfo;
+	auto minfo=maildir::info_imap_find(foldername, login_returnaddr());
 
-	if (maildir_info_imap_find(&minfo, foldername,
-				   login_returnaddr())<0)
+	if (!minfo)
 	{
 		printf("Content-Type: text/plain\n\n%s\n", foldername);
 		enomem();
 	}
 
 	if (minfo.mailbox_type == MAILBOXTYPE_OLDSHARED)
-		return maildir_shareddir(".", strchr(foldername, '.')+1);
+		return maildir::shareddir(".", strchr(foldername, '.')+1);
 
-	if (minfo.homedir == NULL || minfo.maildir == NULL)
+	if (!minfo.regular_maildir())
 	{
-		maildir_info_destroy(&minfo);
 		enomem();
 	}
 
-	auto p=maildir::name2dir(minfo.homedir, minfo.maildir);
-
-	maildir_info_destroy(&minfo);
-	return p;
+	return maildir::name2dir(minfo.homedir, minfo.maildir);
 }
 
 /* Display message size in meaningfull form */
@@ -1192,14 +1181,14 @@ static void maildir_checknew(const char *folder, const char *dir)
 
 static bool goodcache(const char *foldername)
 {
-	struct maildir_info minfo;
 	struct stat stat_buf;
 
-	if (maildir_info_imap_find(&minfo, foldername, login_returnaddr())<0
-	    || minfo.homedir == NULL || minfo.maildir == NULL)
+	auto minfo=maildir::info_imap_find(foldername, login_returnaddr());
+	if (!minfo)
 		return false;
 
-	maildir_info_destroy(&minfo);
+	if (!minfo.regular_maildir())
+		return false;
 
 	auto folderdir=xlate_shmdir(foldername);
 
@@ -2539,49 +2528,41 @@ void maildir_count(const char *folder,
 		   unsigned *new_ptr,
 		   unsigned *other_ptr)
 {
-	struct maildir_info minfo;
-	char *dir;
+	std::string dir;
 
 	*new_ptr=0;
 	*other_ptr=0;
 
-	if (maildir_info_imap_find(&minfo, folder,
-				   login_returnaddr()) < 0)
+	auto minfo=maildir::info_imap_find(folder, login_returnaddr());
+
+	if (!minfo)
 		return;
 
 	if (minfo.mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
-		dir=maildir_shareddir(".", strchr(folder, '.')+1);
+		dir=maildir::shareddir(".", strchr(folder, '.')+1);
 
-		if (!dir)
-		{
-			maildir_info_destroy(&minfo);
+		if (dir.empty())
 			return;
-		}
 
-		maildir_shared_sync(dir);
+		maildir_shared_sync(dir.c_str());
 	}
 	else
 	{
-		if (minfo.homedir == NULL || minfo.maildir == NULL)
-		{
-			maildir_info_destroy(&minfo);
+		if (!minfo.regular_maildir())
 			return;
-		}
 
-		dir=maildir_name2dir(minfo.homedir, minfo.maildir);
+		dir=maildir::name2dir(
+			minfo.homedir,
+			minfo.maildir
+		);
 
-		if (!dir)
-		{
-			maildir_info_destroy(&minfo);
+		if (dir.empty())
 			return;
-		}
 	}
 
-	maildir_info_destroy(&minfo);
-	maildir_checknew(folder, dir);
-	dodirscan(folder, dir, new_ptr, other_ptr);
-	free(dir);
+	maildir_checknew(folder, dir.c_str());
+	dodirscan(folder, dir.c_str(), new_ptr, other_ptr);
 }
 
 unsigned maildir_countof(const char *folder)
@@ -3366,28 +3347,27 @@ int maildir_create(const char *foldername)
 
 int maildir_delete(const char *foldername, int deletecontent)
 {
-	char	*dir, *tmp, *newp, *cur;
+	char	*tmp, *newp, *cur;
 	int	rc=0;
 
-	struct maildir_info minfo;
+	auto minfo=maildir::info_imap_find(foldername, login_returnaddr());
 
-	if (maildir_info_imap_find(&minfo, foldername, login_returnaddr())<0)
+	if (!minfo)
 		return -1;
 
-	if (strcmp(minfo.maildir, INBOX) == 0 ||
-	    strcmp(minfo.maildir, INBOX "." SENT) == 0 ||
-	    strcmp(minfo.maildir, INBOX "." TRASH) == 0 ||
-	    strcmp(minfo.maildir, INBOX "." DRAFTS) == 0 ||
-	    (dir=maildir_name2dir(minfo.homedir, minfo.maildir)) == NULL)
+	std::string dir;
 
-	{
-		maildir_info_destroy(&minfo);
+	if (minfo.maildir == INBOX ||
+	    minfo.maildir == INBOX "." SENT ||
+	    minfo.maildir == INBOX "." TRASH ||
+	    minfo.maildir == INBOX "." DRAFTS ||
+	    (dir=maildir::name2dir(minfo.homedir.c_str(),
+					   minfo.maildir.c_str())).empty())
 		return (-1);
-	}
 
-	tmp=alloc_filename(dir, "tmp", "");
-	cur=alloc_filename(dir, "cur", "");
-	newp=alloc_filename(dir, "new", "");
+	tmp=alloc_filename(dir.c_str(), "tmp", "");
+	cur=alloc_filename(dir.c_str(), "cur", "");
+	newp=alloc_filename(dir.c_str(), "new", "");
 
 	if (!deletecontent)
 	{
@@ -3399,18 +3379,16 @@ int maildir_delete(const char *foldername, int deletecontent)
 		}
 	}
 
-	if (rc == 0 && maildir_del(dir))
+	if (rc == 0 && maildir_del(dir.c_str()))
 		rc= -1;
 
 	if (rc == 0)
-		maildir_acl_delete(minfo.homedir,
-				   strchr(minfo.maildir, '.'));
+		maildir_acl_delete(minfo.homedir.c_str(),
+				   strchr(minfo.maildir.c_str(), '.'));
 
-	maildir_info_destroy(&minfo);
 	free(tmp);
 	free(newp);
 	free(cur);
-	free(dir);
 	return (rc);
 }
 

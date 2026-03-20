@@ -1,5 +1,5 @@
 /*
-** Copyright 2004-2011 S. Varshavchik.  See COPYING for
+** Copyright 2004-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -123,7 +123,7 @@ extern "C" const char *maildir_shared_index_file()
 
 static bool acl_read2(
 	maildir_aclt_list *l,
-	struct maildir_info *minfo,
+	const maildir::info &info,
 	std::string &owner
 );
 
@@ -133,26 +133,21 @@ static bool acl_read(
 	std::string &owner
 )
 {
-	struct maildir_info minfo;
-
-	if (maildir_info_imap_find(&minfo, folder,
-				   login_returnaddr())<0)
-	{
+	auto minfo=maildir::info_imap_find(folder, login_returnaddr());
+	if (!minfo)
 		return false;
-	}
 
-	bool rc=acl_read2(l, &minfo, owner);
-	maildir_info_destroy(&minfo);
+	bool rc=acl_read2(l, minfo, owner);
 	return rc;
 }
 
 static bool acl_read2(maildir_aclt_list *l,
-	      struct maildir_info *minfo,
+	      const maildir::info &info,
 	      std::string &owner)
 {
 	bool rc;
 
-	if (minfo->mailbox_type == MAILBOXTYPE_OLDSHARED)
+	if (info.mailbox_type == MAILBOXTYPE_OLDSHARED)
 	{
 		/* Legacy shared., punt. */
 
@@ -166,10 +161,10 @@ static bool acl_read2(maildir_aclt_list *l,
 		return true;
 	}
 
-	if (minfo->homedir == NULL || minfo->maildir == NULL)
+	if (!info.regular_maildir())
 		return false;
 
-	auto p=maildir::name2dir(".", minfo->maildir);
+	auto p=maildir::name2dir(".", info.maildir);
 
 	if (p.empty())
 		return false;
@@ -177,11 +172,11 @@ static bool acl_read2(maildir_aclt_list *l,
 	if (std::string_view{p}.substr(0, 2) == "./")
 		p.erase(0, 2);
 
-	rc=maildir_acl_read(l, minfo->homedir, p.c_str()) == 0;
+	rc=maildir_acl_read(l, info.homedir.c_str(), p.c_str()) == 0;
 
 	if (rc)
 	{
-		owner=minfo->owner;
+		owner=info.owner;
 	}
 
 	return rc;
@@ -251,7 +246,7 @@ static void showrights(const char *buf)
 	}
 }
 
-static void doupdate();
+static void doupdate(const maildir::info &);
 
 void listrights()
 {
@@ -261,30 +256,26 @@ void listrights()
 
 	if (*cgi("do.update") || *cgi("delentity"))
 	{
-		struct maildir_info minfo;
+		auto minfo=maildir::info_imap_find(sqwebmail_folder, login_returnaddr());
 
-		if (maildir_info_imap_find(&minfo, sqwebmail_folder,
-					   login_returnaddr()) == 0)
+		if (minfo)
 		{
-			if (minfo.homedir)
+			if (!minfo.homedir.empty())
 			{
 				struct maildirwatch *w;
 				char *lock;
 				int tryanyway;
 
-				w=maildirwatch_alloc(minfo.homedir);
+				w=maildirwatch_alloc(minfo.homedir.c_str());
 
 				if (!w)
 				{
-					maildir_info_destroy(&minfo);
 					enomem();
 					return;
 				}
 
-				lock=maildir_lock(minfo.homedir, w,
+				lock=maildir_lock(minfo.homedir.c_str(), w,
 						  &tryanyway);
-
-				maildir_info_destroy(&minfo);
 
 				if (lock == NULL)
 				{
@@ -295,7 +286,7 @@ void listrights()
 						return;
 					}
 				}
-				doupdate();
+				doupdate(minfo);
 				if (lock)
 				{
 					unlink(lock);
@@ -325,29 +316,20 @@ void listrights()
 	showrights(buf);
 }
 
-static void doupdate()
+static void doupdate(const maildir::info &minfo)
 {
 	maildir_aclt_list l;
 	std::string owner;
 	char buf[2];
-	struct maildir_info minfo;
 
-	if (maildir_info_imap_find(&minfo, sqwebmail_folder,
-				   login_returnaddr()) < 0)
+	if (!acl_read2(&l, minfo, owner))
 		return;
-
-	if (!acl_read2(&l, &minfo, owner))
-	{
-		maildir_info_destroy(&minfo);
-		return;
-	}
 
 	strcpy(buf, ACL_ADMINISTER);
 	acl_computeRights(&l, buf, owner.c_str());
 	if (!*buf)
 	{
 		maildir_aclt_list_destroy(&l);
-		maildir_info_destroy(&minfo);
 		return;
 	}
 
@@ -443,14 +425,13 @@ static void doupdate()
 		if (std::string_view{pacl}.substr(0, 2) == "./")
 			pacl.erase(0, 2);
 
-		if (maildir_acl_write(&l, minfo.homedir,
+		if (maildir_acl_write(&l, minfo.homedir.c_str(),
 				      pacl.c_str(),
 				      owner.c_str(), &err_ident))
 			printf("%s", getarg("ACL_failed"));
 	}
 
 	maildir_aclt_list_destroy(&l);
-	maildir_info_destroy(&minfo);
 }
 
 static void p_ident_name(const char *identifier)
