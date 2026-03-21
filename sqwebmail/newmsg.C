@@ -836,21 +836,20 @@ static int dosendmsg(const char *origdraft)
 
 	if (filename.empty())
 	{
-		char *draftbase=maildir_basename(draftmessage);
+		auto draftbase=maildir_basename(draftmessage);
 
 		if (isgpgerr)
 		{
-			cgi_put("draftmessage", draftbase);
+			cgi_put("draftmessage", draftbase.c_str());
 			output_form("gpgerr.html");
 		}
 		else
 		{
 			http_redirect_argss("&form=newmsg&pos=%s"
 					    "&draft=%s&error=quota",
-					    cgi("pos"), draftbase);
+					    cgi("pos"), draftbase.c_str());
 		}
 		free(draftmessage);
-		free(draftbase);
 		return (1);
 	}
 
@@ -932,10 +931,8 @@ static int dosendmsg(const char *origdraft)
 	{
 		if (*draftmessage)
 		{
-		char	*base=maildir_basename(draftmessage);
-		auto draftfile=maildir_find(INBOX "." DRAFTS, base);
-
-			free(base);
+			auto base=maildir_basename(draftmessage);
+			auto draftfile=maildir_find(INBOX "." DRAFTS, base.c_str());
 
 			/* Remove draft file */
 
@@ -1023,12 +1020,11 @@ static int dosendmsg(const char *origdraft)
 	maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
 
 	{
-	char *draftbase=maildir_basename(draftmessage);
+		auto draftbase=maildir_basename(draftmessage);
 
 		http_redirect_argsss("&form=newmsg&pos=%s&draft=%s&foldermsg=%s",
-			cgi("pos"), draftbase, line);
+			cgi("pos"), draftbase.c_str(), line);
 		free(draftmessage);
-		free(draftbase);
 	}
 	return (1);
 }
@@ -1058,7 +1054,6 @@ const	char *draftmessage=cgi("draftmessage");
 	if (*cgi("doattachments"))
 	{
 	char	*newdraft=newmsg_createdraft(draftmessage);
-	char	*base;
 
 		if (!newdraft)	enomem();
 		if (*cgi("error"))
@@ -1068,10 +1063,9 @@ const	char *draftmessage=cgi("draftmessage");
 			return;
 		}
 
-		base=maildir_basename(newdraft);
+		auto base=maildir_basename(newdraft);
 		http_redirect_argss("&form=attachments&pos=%s&draft=%s",
-			cgi("pos"), base);
-		free(base);
+			cgi("pos"), base.c_str());
 		free(newdraft);
 		return;
 	}
@@ -1079,22 +1073,20 @@ const	char *draftmessage=cgi("draftmessage");
 	if (*cgi("startspellchk"))
 	{
 	char	*newdraft=newmsg_createdraft(draftmessage);
-	char	*base;
 
 		if (!newdraft)	enomem();
-		base=maildir_basename(newdraft);
+		auto base=maildir_basename(newdraft);
 		free(newdraft);
-		if (spell_start(base) == 0)
+		if (spell_start(base.c_str()) == 0)
 		{
-			cgi_put("draftmessage", base);
+			cgi_put("draftmessage", base.c_str());
 			output_form("spellchk.html");
 		}
 		else
 		{
 			http_redirect_argss("&form=newmsg&pos=%s&draft=%s&previewmsg=SPELLCHK",
-				cgi("pos"), base);
+				cgi("pos"), base.c_str());
 		}
-		free(base);
 		return;
 	}
 #endif

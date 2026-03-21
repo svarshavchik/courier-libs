@@ -175,7 +175,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 			break;
 		default:
 			{
-				char *basename=maildir_basename(filename.c_str());
+				auto basename=maildir_basename(filename.c_str());
 
 				maildir_writemsgstr(draftfd,
 						    "X-Reply-To-Folder: ");
@@ -183,8 +183,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 				maildir_writemsgstr(draftfd,
 						    "\nX-Reply-To-Msg: ");
 
-				maildir_writemsgstr(draftfd, basename);
-				free(basename);
+				maildir_writemsgstr(draftfd, basename.c_str());
 				maildir_writemsgstr(draftfd, "\n");
 			}
 		}

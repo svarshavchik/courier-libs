@@ -53,7 +53,6 @@ extern void maildir_loadsearch(unsigned nfiles,
 
 extern void maildir_count(const char *, unsigned *, unsigned *);
 
-extern char *maildir_basename(const char *);
 extern int maildir_name2pos(const char *, const char *, size_t *);
 
 extern char maildirfile_type(const char *);
@@ -127,6 +126,7 @@ extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 				 const char *, const std::string &);
 extern std::string folder_toutf8(const char *);
+extern std::string maildir_basename(const char *);
 #endif
 
 /*

@@ -894,15 +894,12 @@ static void folder_msg_link(const char *dir, int row, size_t pos, char t)
 	{
 		size_t	mpos=pos;
 		auto filename=maildir_posfind(dir, &mpos);
-		char	*basename=!filename.empty() ? maildir_basename(
-			filename.c_str()
-		):NULL;
+		auto basename=maildir_basename(filename.c_str());
 
 		output_scriptptrget();
 		printf("&amp;form=open-draft&amp;draft=");
-		output_urlencoded(basename);
+		output_urlencoded(basename.c_str());
 		printf("\">");
-		if (basename)	free(basename);
 	}
 }
 
@@ -2320,37 +2317,30 @@ static std::string get_parent_folder(std::string_view p)
 	return "";
 }
 
-static int checkrename(const char *origfolder,
-		       const char *newfolder)
+static bool checkrename(const char *origfolder,
+		        std::string newfolder)
 {
 	char acl_buf[2];
-	char *p, *q;
 
 	strcpy(acl_buf, ACL_DELETEFOLDER);
 	acl_computeRightsOnFolder(origfolder, acl_buf);
 	if (acl_buf[0] == 0)
 	{
 		folder_err_msg=getarg("RENAME");
-		return -1;
+		return false;
 	}
 
 	strcpy(acl_buf, ACL_CREATE);
-	p=strdup(newfolder);
-
-	if (!p || !(q=strrchr(p, '.')) ||
-	    (*q=0,
-	     acl_computeRightsOnFolder(p, acl_buf),
+	auto q=newfolder.rfind('.');
+	if (q == newfolder.npos ||
+	    (acl_computeRightsOnFolder(newfolder.substr(0, q).c_str(), acl_buf),
 	     acl_buf[0]) == 0)
 	{
-		if (p)
-			free(p);
-
 		folder_err_msg=getarg("RENAME");
-		return -1;
+		return false;
 	}
-	free(p);
 
-	return 0;
+	return true;
 }
 
 static void dorename(const char *origfolder,
@@ -2646,7 +2636,7 @@ void folder_list()
 
 			if (mifrom && mito)
 			{
-				if (checkrename(p, s.c_str()) == 0)
+				if (checkrename(p, s.c_str()))
 					dorename(p, mifrom, mito,
 						 err_invalid,
 						 err_cantdelete,

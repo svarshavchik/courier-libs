@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 2011 S. Varshavchik.  See COPYING for
+# Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 # distribution information.
 
 @SET_MAKE@

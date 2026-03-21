@@ -57,18 +57,16 @@ char *newmsg_createdraft(const char *curdraft)
 {
 	if (curdraft && *curdraft)
 	{
-	char	*base=maildir_basename(curdraft);
-	auto filename=maildir_find(INBOX "." DRAFTS, base);
+		auto base=maildir_basename(curdraft);
+		auto filename=maildir_find(INBOX "." DRAFTS, base.c_str());
 
 		if (!filename.empty())
 		{
 			auto p=newmsg_createdraft_do(
 				filename.c_str(), cgi("message"), 0);
 
-			free(base);
 			return strdup(p.c_str());
 		}
-		free(base);
 	}
 	auto p=newmsg_createdraft_do(0, cgi("message"), 0);
 
