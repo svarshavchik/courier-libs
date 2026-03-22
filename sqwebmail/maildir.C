@@ -74,7 +74,7 @@ extern time_t rfc822_parsedt(const char *);
 extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_mailboxid;
 
-static char *folderdatname=0;	/* Which folder has been cached */
+static std::string folderdatname;	/* Which folder has been cached */
 static struct dbobj folderdat;
 static const char *folderdatmode;	/* "R" or "W" */
 
@@ -310,80 +310,74 @@ const char *date_wfmt;
 ** Add a flag to a maildir filename
 */
 
-static char *maildir_addflagfilename(const char *filename, char flag)
+static std::string maildir_addflagfilename(std::string_view filename, char flag)
 {
-	char	*new_filename=static_cast<char *>(malloc(strlen(filename)+5));
+	std::string new_filename;
 	/* We can possibly add as many as four character */
-	char	*p;
-	char	*q;
 
-	strcpy(new_filename, filename);
-	p=strrchr(new_filename, '/');
-	if (!p)	p=new_filename;
-	if ((q=strchr(p, ':')) == 0)
-		strcat(new_filename, ":2,");
-	else if (q[1] != '2' && q[2] != ',')
-		strcpy(p, ":2,");
-	p=strchr(p, ':');
-	if (strchr(p, flag))
+	new_filename.reserve(filename.size() + 4);
+	new_filename = filename;
+	size_t p=new_filename.rfind('/');
+	if (p == std::string::npos)
+		p=0;
+	size_t q=new_filename.find(':', p);
+	if (q == std::string::npos)
+		new_filename += ":2,";
+	else if (new_filename[q+1] != '2' && new_filename[q+2] != ',')
+		new_filename.replace(q, new_filename.size()-q, ":2,");
+	p=new_filename.find(':', p);
+	if (new_filename.find(flag, p) != std::string::npos)
 	{
-		free(new_filename);
-		return (0);		/* Already set */
+		return ("");		/* Already set */
 	}
 
 	p += 2;
-	while (*p && *p < flag)	p++;
-	q=p+strlen(p);
-	while ((q[1]=*q) != *p)
-		--q;
-	*p=flag;
+	while (p < new_filename.size() && new_filename[p] < flag) p++;
+	new_filename.insert(p, 1, flag);
 	return (new_filename);
 }
 
 static void closedb()
 {
-	if (folderdatname)
+	if (!folderdatname.empty())
 	{
 		dbobj_close(&folderdat);
-		free(folderdatname);
-		folderdatname=0;
+		folderdatname.clear();
 	}
 }
 
-static char *foldercachename(const char *folder)
+static std::string foldercachename(std::string_view folder)
 {
-	char *f;
+	std::string f;
 
-	if (strchr(folder, '/'))
+	if (folder.find('/') != folder.npos)
 	{
 		enomem();
 		return NULL;
 	}
 
-	f=static_cast<char *>(malloc(sizeof(MAILDIRCURCACHE "/" DBNAME ".")
-				     +strlen(folder)));
-	if (!f)
-		enomem();
+	f.reserve(sizeof(MAILDIRCURCACHE "/" DBNAME ".") - 1 + folder.size());
+	f = MAILDIRCURCACHE "/" DBNAME ".";
+	f += folder;
 
-	return strcat(strcpy(f, MAILDIRCURCACHE "/" DBNAME "."),
-		      folder);
+	return f;
 }
 
 static int opencache(const char *folder, const char *mode)
 {
-char	*cachename;
-size_t	l;
-char	*p;
-char	*q;
-char	*r;
-unsigned long ul;
+	size_t	l;
+	char	*p;
+	std::string q;
 
 	if (xlate_shmdir(folder).empty())
 		return (-1);
 
-	cachename=foldercachename(folder);
+	auto cachename=foldercachename(folder);
 
-	if (folderdatname && strcmp(folderdatname, cachename) == 0)
+	if (cachename.empty())
+		return (-1);
+
+	if (folderdatname == cachename)
 	{
 		if (strcmp(mode, "W") == 0 &&
 			strcmp(folderdatmode, "W"))
@@ -394,7 +388,6 @@ unsigned long ul;
 			*/
 		else
 		{
-			free(cachename);
 			return (0);
 				/* We already have this folder cache open */
 		}
@@ -403,15 +396,13 @@ unsigned long ul;
 	folderdatmode=mode;
 
 	dbobj_init(&folderdat);
-	if (dbobj_open(&folderdat, cachename, mode))	return (-1);
+	if (dbobj_open(&folderdat, cachename.c_str(), mode))	return (-1);
 	folderdatname=cachename;
 
 	if ((p=dbobj_fetch(&folderdat, "HEADER", 6, &l, "")) == 0)
 		return (0);
-	q=static_cast<char *>(malloc(l+1));
-	if (!q)	enomem();
-	memcpy(q, p, l);
-	q[l]=0;
+	q.reserve(l);
+	q.assign(p, l);
 	free(p);
 
 	cachemtime=0;
@@ -420,30 +411,46 @@ unsigned long ul;
 	isoldestfirst=0;
 	sortorder=0;
 
-	for (p=q; (p=strtok(p, "\n")) != 0; p=0)
+	std::string_view header{q};
+	while (!header.empty())
 	{
-		if ((r=strchr(p, '=')) == 0)	continue;
-		*r++=0;
-		if (strcmp(p, "SAVETIME") == 0 &&
-			parse_ul(r, &ul))
-			cachemtime=ul;
-		else if (strcmp(p, "COUNT") == 0)
-			parse_ul(r, &all_cnt);
-		else if (strcmp(p, "NEWCOUNT") == 0)
-			parse_ul(r, &new_cnt);
-		else if (strcmp(p, "SORT") == 0)
-		{
-		unsigned long ul;
-		const char *s;
+		std::string_view line;
 
-			if ((s=parse_ul(r, &ul)) != 0)
+		auto nl=header.find('\n');
+		if (nl == header.npos)
+		{
+			line=header;
+			header="";
+		}
+		else {
+			line=header.substr(0, nl);
+			header.remove_prefix(nl+1);
+		}
+
+		auto r=line.find('=');
+		if (r == line.npos)	continue;
+		std::string_view key=line.substr(0, r);
+		std::string_view value=line.substr(r+1);
+		const char *s=value.data();
+		const char *t=s+value.size();
+
+		if (key == "SAVETIME")
+			std::from_chars(s, t, cachemtime);
+		else if (key == "COUNT")
+			std::from_chars(s, t, all_cnt);
+		else if (key == "NEWCOUNT")
+			std::from_chars(s, t, new_cnt);
+		else if (key == "SORT")
+		{
+			auto res=std::from_chars(s, t, isoldestfirst);
+			if (res.ec == std::errc())
 			{
-				isoldestfirst=ul;
-				sortorder= *s;
+				s=res.ptr;
+				if (s < t)
+					sortorder=*s;
 			}
 		}
 	}
-	free(q);
 	return (0);
 }
 
@@ -620,7 +627,7 @@ static void update_foldermsgs(const char *folder, const char *newname, size_t po
 static void maildir_markflag(const char *folder, size_t pos, char flag)
 {
 MSGINFO	*p;
-char	*new_filename;
+std::string new_filename;
 
 	if (opencache(folder, "W") || (p=get_msginfo(pos)) == 0)
 	{
@@ -632,10 +639,10 @@ char	*new_filename;
 	if (filename.empty())
 		return;
 
-	if ((new_filename=maildir_addflagfilename(filename.c_str(), flag)) != 0)
+	if (!(new_filename=maildir_addflagfilename(filename, flag)).empty())
 	{
-		rename(filename.c_str(), new_filename);
-		update_foldermsgs(folder, new_filename, pos);
+		rename(filename.c_str(), new_filename.c_str());
+		update_foldermsgs(folder, new_filename.c_str(), pos);
 	}
 }
 
@@ -651,7 +658,7 @@ void maildir_markread(const char *folder, size_t pos)
 
 void maildir_markreplied(const char *folder, const char *message)
 {
-	char	*new_filename;
+	std::string new_filename;
 	char acl_buf[2];
 
 	strcpy(acl_buf, ACL_WRITE);
@@ -663,9 +670,9 @@ void maildir_markreplied(const char *folder, const char *message)
 	auto filename=maildir_find(folder, message);
 
 	if (!filename.empty() &&
-	    (new_filename=maildir_addflagfilename(filename.c_str(), 'R')) != 0)
+	    (new_filename=maildir_addflagfilename(filename, 'R')).empty())
 	{
-		rename(filename.c_str(), new_filename);
+		rename(filename.c_str(), new_filename.c_str());
 	}
 }
 
@@ -801,7 +808,7 @@ static int do_msgmove(const char *from,
 	const char *p;
 	char *basename;
 	struct stat stat_buf;
-	char	*new_filename;
+	std::string new_filename;
 	unsigned long	filesize=0;
 	int	no_link=0;
 	struct maildirsize quotainfo;
@@ -994,11 +1001,10 @@ static int do_msgmove(const char *from,
 		}
 	}
 
-	if ((new_filename=maildir_addflagfilename(file, 'T')) != 0)
+	if (!(new_filename=maildir_addflagfilename(file, 'T')).empty())
 	{
-		rename(file, new_filename);
-		update_foldermsgs(from, new_filename, pos);
-		free(new_filename);
+		rename(file, new_filename.c_str());
+		update_foldermsgs(from, new_filename.c_str(), pos);
 	}
 	return (0);
 }
@@ -2784,8 +2790,8 @@ MSGINFO *maildir_ngetinfo(const char *filename)
 static unsigned long save_cnt, savenew_cnt;
 static time_t	save_time;
 
-static char	*save_dbname;
-static char	*save_tmpdbname;
+static std::string save_dbname;
+static std::string save_tmpdbname;
 struct dbobj	tmpdb;
 
 static void maildir_save_start(const char *folder,
@@ -2830,13 +2836,13 @@ static void maildir_save_start(const char *folder,
 	close(fd);
 
 	save_tmpdbname=createInfo.tmpname;
-	createInfo.tmpname=NULL;
 	maildir_tmpcreate_free(&createInfo);
 
 	dbobj_init(&tmpdb);
 
-	if (dbobj_open(&tmpdb, save_tmpdbname, "N")) {
-		fprintf(stderr, "ERR: Can't create cache file |%s|: %s\n", save_tmpdbname, strerror(errno));
+	if (dbobj_open(&tmpdb, save_tmpdbname.c_str(), "N")) {
+		fprintf(stderr, "ERR: Can't create cache file |%s|: %s\n",
+			save_tmpdbname.c_str(), strerror(errno));
 		error("Can't create cache file.");
 	}
 
@@ -2925,11 +2931,11 @@ static void maildir_save_end(const char *maildir)
 		enomem();
 	dbobj_close(&tmpdb);
 
-	rename(save_tmpdbname, save_dbname);
-	unlink(save_tmpdbname);
+	rename(save_tmpdbname.c_str(), save_dbname.c_str());
+	unlink(save_tmpdbname.c_str());
 
-	free(save_dbname);
-	free(save_tmpdbname);
+	save_dbname.clear();
+	save_tmpdbname.clear();
 }
 
 void maildir_savefoldermsgs(const char *folder)
@@ -3036,12 +3042,13 @@ static void	maildir_getfoldermsgs(const char *folder)
 
 void	maildir_remcache(const char *folder)
 {
-	char	*cachename=foldercachename(folder);
+	auto cachename=foldercachename(folder);
 
-	unlink(cachename);
-	if (folderdatname && strcmp(folderdatname, cachename) == 0)
+	if (cachename.empty())
+		return;
+	unlink(cachename.c_str());
+	if (folderdatname == cachename)
 		closedb();
-	free(cachename);
 }
 
 void	maildir_reload(const char *folder)
