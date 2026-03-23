@@ -416,23 +416,20 @@ static void folder_msg_unlink(const char *, int, size_t, char);
 static char *truncate_at(const char *, const char *, size_t);
 
 static void show_msg(const char *dir,
-		     MSGINFO *msg,
-		     MATCHEDSTR *matches,
+		     const MSGINFO &msg,
+		     const std::vector<MATCHEDSTR> &matches,
 		     int row,
 		     const char *charset);
 
 void folder_contents(const char *dir, size_t pos)
 {
-MSGINFO	**contents;
-MATCHEDSTR **matches;
-int	i, found;
-int	morebefore, moreafter;
-const char	*nomsg, *selectalllab;
- const char	*unselectalllab;
-const char	*qerrmsg;
-long highend;
-unsigned long last_message_searched=0;
-unsigned long *last_message_searched_ptr=NULL;
+	bool	found;
+	bool	morebefore, moreafter;
+	const char	*nomsg, *selectalllab;
+	const char	*unselectalllab;
+	const char	*qerrmsg;
+	size_t highend;
+	std::optional<size_t> last_message_searched;
 
 	qerrmsg=getarg("PERMERR");
 
@@ -456,39 +453,25 @@ unsigned long *last_message_searched_ptr=NULL;
 
 	maildir_reload(dir);
 
+	maildir_contents_t contents;
+
 	if (*cgi("search"))
 	{
-#if 0
-	{
-		FILE *fp=fopen("/tmp/pid", "w");
+		morebefore=false;
+		moreafter=false;
 
-		if (fp)
-		{
-			fprintf(fp, "%d", (int)getpid());
-			fclose(fp);
-			sleep(10);
-		}
-	}
-#endif
+		size_t last_message_searched_ret;
 
-		morebefore=0;
-		moreafter=0;
-		maildir_loadsearch(pref_flagpagesize, &contents, &matches,
-				   &last_message_searched);
+		contents=maildir_loadsearch(pref_flagpagesize,
+				   last_message_searched_ret);
 
-		for (i=0; i<pref_flagpagesize; i++)
-		{
-			if (contents[i] == 0)	continue;
-
-			last_message_searched_ptr= &last_message_searched;
-			break;
-		}
+		if (contents.size())
+			last_message_searched=last_message_searched_ret;
 	}
 	else
 	{
-		contents=maildir_read(dir, pref_flagpagesize, &pos,
-				      &morebefore, &moreafter);
-		matches=NULL;
+		contents=maildir_read(dir, pref_flagpagesize, pos,
+				      morebefore, moreafter);
 	}
 
 	time(&current_time);
@@ -497,15 +480,17 @@ unsigned long *last_message_searched_ptr=NULL;
 	unselectalllab=getarg("UNSELECTALL");
 
 	if (maildir_countof(dir) <= pos + pref_flagpagesize - 1)
-		highend = (long)(maildir_countof(dir) - 1);
+	{
+		highend = maildir_countof(dir);
+		if (highend > 0)
+			highend--;
+	}
 	else
-		highend = (long)(pos + pref_flagpagesize - 1);
-	if (highend < 0) highend = 0;
-
+		highend = pos + pref_flagpagesize - 1;
 	if (!qerrmsg)	qerrmsg="";
 
 	folder_navigate(dir, pos, highend, morebefore, moreafter,
-			last_message_searched_ptr);
+			last_message_searched);
 
 	printf("<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"4\"><tr class=\"folder-index-header\"><th align=\"center\">%s</th><th>&nbsp;</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr>\n",
 		getarg("NUM"),
@@ -516,16 +501,17 @@ unsigned long *last_message_searched_ptr=NULL;
 		getarg("SUBJECT"),
 		getarg("SIZE"));
 
-	found=0;
-	for (i=0; i<pref_flagpagesize; i++)
+	found=false;
+	for (int i=0; i<pref_flagpagesize; i++)
 	{
-		if (contents[i] == 0)	continue;
-		found=1;
+		if (static_cast<size_t>(i) >= contents.size())
+			break;
+		found=true;
 
-		show_msg(dir, contents[i], matches ? matches[i]:NULL, i,
+		auto &[info, matches]=contents[i];
+		show_msg(dir, info, matches, i,
 			 sqwebmail_content_charset);
 	}
-
 	if (found)
 	{
 		puts("<tr class=\"folder-index-bg-1\"><td colspan=\"6\"><hr /></td></tr>");
@@ -558,7 +544,7 @@ unsigned long *last_message_searched_ptr=NULL;
 
 		printf("</table>\n");
 		folder_navigate(dir, pos, highend, morebefore, moreafter,
-				last_message_searched_ptr);
+				last_message_searched);
 	}
 	if (!found && nomsg)
 	{
@@ -567,10 +553,6 @@ unsigned long *last_message_searched_ptr=NULL;
 		puts("<br /></p></td></tr>");
 		printf("</table>\n");
 	}
-
-	maildir_free(contents, pref_flagpagesize);
-	if (matches)
-		matches_free(matches, pref_flagpagesize);
 }
 
 
@@ -590,8 +572,8 @@ static void show_msg_match_str(const char *prefix,
 			       const char *classname);
 
 static void show_msg(const char *dir,
-		     MSGINFO *msg,
-		     MATCHEDSTR *matches,
+		     const MSGINFO &msg,
+		     const std::vector<MATCHEDSTR> &matches,
 		     int row,
 		     const char *charset)
 {
@@ -600,9 +582,9 @@ static void show_msg(const char *dir,
 	const char *p, *q;
 	size_t l;
 	char type[8];
-	char *folder_index_entry_start, *folder_index_entry_end;
+	const char *folder_index_entry_start, *folder_index_entry_end;
 
-	size_t msgnum=msg->msgnum;
+	size_t msgnum=msg.msgnum;
 
 	date=MSGINFO_DATE(msg);
 	from=MSGINFO_FROM(msg);
@@ -702,16 +684,15 @@ static void show_msg(const char *dir,
 	folder_msg_unlink(dir, row, msgnum, type[0]);
 	printf("%s</td><td align=\"right\" class=\"message-size\">%s%s&nbsp;%s<br /></td></tr>\n", folder_index_entry_end, folder_index_entry_start, size, folder_index_entry_end);
 
-	while (matches && matches->match)
+	for (const auto &m: matches)
 	{
 		printf("<tr class=\"folder-index-bg-%d\"><td align=\"right\" class=\"message-number\" colspan=\"3\">&nbsp;</td><td class=\"message-searchmatch\" colspan=\"3\">", (row & 1)+1);
 		show_msg_match_str("...",
-				   matches->prefix, "", "searchmatch-affix");
-		show_msg_match_str("", matches->match, "", "searchmatch");
-		show_msg_match_str("", matches->suffix,
+				   m.prefix.c_str(), "", "searchmatch-affix");
+		show_msg_match_str("", m.match.c_str(), "", "searchmatch");
+		show_msg_match_str("", m.suffix.c_str(),
 				   "...", "searchmatch-affix");
 		printf("</td></tr>\n");
-		++matches;
 	}
 }
 
@@ -735,7 +716,7 @@ static void show_msg_match_str(const char *prefix,
 }
 
 static void do_folder_navigate(const char *dir, size_t pos, long highend,
-			       int morebefore, int moreafter)
+			       bool morebefore, bool moreafter)
 {
 	const char	*firstlab, *lastlab;
 	const char	*beforelab, *afterlab;
@@ -833,8 +814,8 @@ static void do_folder_navigate(const char *dir, size_t pos, long highend,
 }
 
 void folder_navigate(const char *dir, size_t pos, long highend,
-		     int morebefore, int moreafter,
-		     unsigned long *last_message_searched_ptr)
+		     bool morebefore, bool moreafter,
+		     const std::optional<size_t> &last_message_searched)
 {
 	printf("<table width=\"100%%\" class=\"folder-nextprev-background\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
 
@@ -848,10 +829,10 @@ void folder_navigate(const char *dir, size_t pos, long highend,
 		printf("</td>");
 
 		printf("<td class=\"folder-last-message-searched\">");
-		if (last_message_searched_ptr)
+		if (last_message_searched)
 		{
 			printf(getarg("LASTMESSAGESEARCHED"),
-			       *last_message_searched_ptr+1);
+				static_cast<long>(*last_message_searched+1));
 		}
 		else
 		{
@@ -909,8 +890,8 @@ static void folder_msg_unlink(const char *dir, int row, size_t pos, char t)
 }
 
 size_t	msg_pos, msg_count;
-static char	*msg_posfile;
-static int	msg_hasprev, msg_hasnext;
+static std::string msg_posfile;
+static bool	msg_hasprev, msg_hasnext;
 static size_t	msg_searchpos;
 static long	msg_prevpos, msg_prev_searchpos;
 static long	msg_nextpos, msg_next_searchpos;
@@ -941,15 +922,11 @@ static int	initnextprevcnt;
 
 void folder_initnextprev(const char *dir, size_t pos)
 {
-	MSGINFO	**info;
 	const	char *p;
 	const	char *msg_numlab, *msg_numnewlab;
 	static std::string filename;
 	int fd;
 
-	MSGINFO *recp;
-	MSGINFO **search_contents=NULL;
-	MATCHEDSTR **search_matches=NULL;
 	unsigned long last_message_searched=0;
 
 	cgi_put(MIMEGPGFILENAME, "");
@@ -1047,66 +1024,61 @@ void folder_initnextprev(const char *dir, size_t pos)
 
 	msg_searchpos=atol(cgi("searchrow"));
 
-	info=maildir_read(dir, 1, &pos, &msg_hasprev, &msg_hasnext);
+	auto info=maildir_read(dir, 1, pos, msg_hasprev, msg_hasnext);
 
-	recp=info[0];
+	MSGINFO recp;
+	if (!info.empty())
+		recp=std::get<0>(info[0]);
+
 	msg_pos=pos;
 	msg_prevpos=msg_pos-1;
 	msg_nextpos=msg_pos+1;
 	msg_prev_searchpos=msg_prevpos;
 	msg_next_searchpos=msg_nextpos;
 
+	maildir_contents_t search_contents;
+
 	if (*cgi("search"))
-		maildir_loadsearch(pref_flagpagesize,
-				   &search_contents,
-				   &search_matches,
-				   &last_message_searched);
-
-
-	if (search_contents)
 	{
+		search_contents=maildir_loadsearch(pref_flagpagesize,
+							last_message_searched);
 		if (msg_searchpos < (size_t)pref_flagpagesize &&
-		    search_contents[msg_searchpos])
+		    msg_searchpos < search_contents.size())
 		{
-			recp=search_contents[msg_searchpos];
+			recp=std::get<0>(search_contents[msg_searchpos]);
 
-			msg_pos=recp->msgnum;
-			if ((msg_hasprev=msg_searchpos > 0 &&
-			     search_contents[msg_searchpos-1]) != 0)
+			msg_pos=recp.msgnum;
+			msg_hasprev=msg_searchpos > 0 &&
+			     msg_searchpos-1 < search_contents.size();
+			if (msg_hasprev)
 			{
-				msg_prevpos=search_contents
-					[msg_searchpos-1]->msgnum;
+				msg_prevpos=std::get<0>(search_contents
+					[msg_searchpos-1]).msgnum;
 				msg_prev_searchpos=msg_searchpos-1;
 			}
 
-			if ((msg_hasnext=msg_searchpos + 1 <
+			msg_hasnext=msg_searchpos + 1 <
 			     (size_t)(pref_flagpagesize) &&
-			     search_contents[msg_searchpos+1]) != 0)
+			     msg_searchpos+1 < search_contents.size();
+			if (msg_hasnext)
 			{
-				msg_nextpos=search_contents
-					[msg_searchpos+1]->msgnum;
+				msg_nextpos=std::get<0>(search_contents
+					[msg_searchpos+1]).msgnum;
 				msg_next_searchpos=msg_searchpos+1;
 			}
-
 		}
 	}
 
 	p=strrchr(MSGINFO_FILENAME(recp), '/');
 	if (p)	p++;
 	else	p=MSGINFO_FILENAME(recp);
-	msg_posfile=strdup(p);
-	if (!msg_posfile)	enomem();
+	msg_posfile=p;
 
 	if ((msg_type=maildirfile_type(MSGINFO_FILENAME(recp)))
 		== MSGTYPE_NEW) msg_numlab=msg_numnewlab;
 
 	msg_msglab=msg_numlab;
 	msg_count=maildir_countof(dir);
-	maildir_free(info, 1);
-	if (search_contents)
-		maildir_free(search_contents, pref_flagpagesize);
-	if (search_matches)
-		matches_free(search_matches, pref_flagpagesize);
 }
 
 std::string get_msgfilename(const char *folder, size_t *pos)
@@ -1201,7 +1173,7 @@ void folder_nextprev()
 		tokennewget();
 		folder_searchlink();
 		printf("&amp;posfile=");
-		output_urlencoded(msg_posfile);
+		output_urlencoded(msg_posfile.c_str());
 		printf("&amp;form=delmsg&amp;pos=%ld\">",
 			(long)msg_pos);
 	}
@@ -1504,14 +1476,13 @@ void folder_msgmove()
 		msg_golab ? msg_golab:"");
 	printf("<input type=\"hidden\" name=\"pos\" value=\"%s\" />", cgi("pos"));
 	printf("<input type=\"hidden\" name=\"posfile\" value=\"");
-	output_attrencoded(msg_posfile ? msg_posfile:"");
+	output_attrencoded(msg_posfile.c_str());
 	printf("\" /></td></tr></table>\n");
 }
 
 void folder_delmsg(size_t pos)
 {
-MSGINFO	**info;
-int	dummy;
+bool	dummy;
 const	char *f=cgi("posfile");
 size_t	newpos;
 int	rc=0;
@@ -1543,9 +1514,9 @@ char nbuf[MAXLONGSIZE+10];
 	}
 
 	newpos=pos+1;
-	info=maildir_read(sqwebmail_folder, 1, &newpos, &dummy, &dummy);
+	auto info=maildir_read(sqwebmail_folder, 1, newpos, dummy, dummy);
 
-	if (info[0] && newpos != pos)
+	if (info.size() > 0 && newpos != pos)
 	{
 		sprintf(nbuf, "%lu", (unsigned long)newpos);
 	}
@@ -1553,8 +1524,6 @@ char nbuf[MAXLONGSIZE+10];
 	{
 		sprintf(nbuf, "%lu", (unsigned long)pos);
 	}
-
-	maildir_free(info, 1);
 
 	if (*cgi("search"))
 	{
@@ -2969,7 +2938,6 @@ static void do_folderlist(const char *inbox_pfix,
 	char acl_buf[4];
 	char	**folders;
 	size_t	i;
-	unsigned nnew, nother;
 	size_t folderdir_l;
 
 	name_inbox=getarg("INBOX");
@@ -3128,7 +3096,7 @@ static void do_folderlist(const char *inbox_pfix,
 
 		size_t	j;
 		const char *pfix;
-		int isunsubscribed=0;
+		bool isunsubscribed=false;
 		const char	*img=folder_img;
 
 		pfix="&gt;&gt;&gt;";
@@ -3146,7 +3114,7 @@ static void do_folderlist(const char *inbox_pfix,
 			);
 			if (dir.empty())	continue;
 			if (stat(dir.c_str(), &stat_buf))
-				isunsubscribed=1;
+				isunsubscribed=true;
 		}
 
 		if (strcmp(shortname, inbox_name) == 0 &&
@@ -3187,7 +3155,6 @@ static void do_folderlist(const char *inbox_pfix,
 			if ((p=strchr(shortname, '.')) != 0)
 			{
 				std::string s, t;
-				unsigned tot_nnew, tot_nother;
 
 				s.reserve(p-folders[i]);
 				s.append(folders[i], p-folders[i]);
@@ -3225,8 +3192,7 @@ static void do_folderlist(const char *inbox_pfix,
 					printf("</a>");
 				}
 
-				tot_nnew=0;
-				tot_nother=0;
+				size_t tot_nnew=0, tot_nother=0;
 
 				j=i;
 				while (folders[j] && memcmp(folders[j], folders[i],
@@ -3240,7 +3206,9 @@ static void do_folderlist(const char *inbox_pfix,
 						++j;
 						continue;
 					}
-					maildir_count(folders[j], &nnew, &nother);
+
+					size_t nnew, nother;
+					maildir_count(folders[j], nnew, nother);
 					++j;
 					tot_nnew += nnew;
 					tot_nother += nother;
@@ -3249,23 +3217,23 @@ static void do_folderlist(const char *inbox_pfix,
 				if (tot_nnew)
 				{
 					printf(" <span class=\"subfolderlistunread\">");
-					printf(unread_label, tot_nnew);
+					printf(unread_label, static_cast<unsigned>(tot_nnew));
 					printf("</span>");
 				}
-				printf("</td><td align=\"right\" valign=\"top\"><span class=\"subfoldercnt\">%d</span>&nbsp;&nbsp;</td></tr>\n\n",
-				       tot_nnew + tot_nother);
+				printf("</td><td align=\"right\" valign=\"top\"><span class=\"subfoldercnt\">%u</span>&nbsp;&nbsp;</td></tr>\n\n",
+				       static_cast<unsigned>(tot_nnew + tot_nother));
 				continue;
 			}
 		}
 
-		nnew=0;
+		size_t nnew=0, nother=0;
 		nother=0;
 
 		if (strchr(acl_buf, ACL_LOOKUP[0]) == NULL)
-			isunsubscribed=1;
+			isunsubscribed=true;
 
 		if (!isunsubscribed)
-			maildir_count(folders[i], &nnew, &nother);
+			maildir_count(folders[i], nnew, nother);
 
 		printf("<tr%s><td align=\"left\" valign=\"top\">",
 			isunsubscribed ? " class=\"folderunsubscribed\"":"");
@@ -3310,8 +3278,8 @@ static void do_folderlist(const char *inbox_pfix,
 
 		if (!isunsubscribed)
 		{
-			printf("<span class=\"foldercnt\">%d</span>&nbsp;&nbsp;",
-			       nnew + nother);
+			printf("<span class=\"foldercnt\">%u</span>&nbsp;&nbsp;",
+			       static_cast<unsigned>(nnew + nother));
 		}
 		else
 		printf("&nbsp;\n");
@@ -3513,7 +3481,7 @@ void folder_cleanup()
 	msg_nextlab=0;
 	msg_prevlab=0;
 	msg_deletelab=0;
-	msg_posfile=0;
+	msg_posfile.clear();
 	msg_replyalllab=0;
 	msg_replylistlab=0;
 	msg_replylab=0;
@@ -3523,8 +3491,8 @@ void folder_cleanup()
 
 	msg_type=0;
 	initnextprevcnt=0;
-	msg_hasprev=0;
-	msg_hasnext=0;
+	msg_hasprev=false;
+	msg_hasnext=false;
 	msg_pos=0;
 	msg_count=0;
 }

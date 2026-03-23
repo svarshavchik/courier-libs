@@ -26,26 +26,29 @@
 #include	<sys/time.h>
 #endif
 
-typedef struct {
-	size_t  msgnum; /* Filled in by maildir_read() and maildir_search() */
-	char	*filename;
-	char	*date_s;
-	char	*from_s;
-	char	*subject_s;
-	char	*size_s;
-	time_t	date_n;
-	unsigned long size_n;
-	time_t	mi_mtime;
-	ino_t	mi_ino;
-	} MSGINFO;
-
-#define	MSGINFO_FILENAME(n)	((const char *)(n)->filename)
-#define	MSGINFO_DATE(n)	((const char *)(n)->date_s)
-#define	MSGINFO_FROM(n)	((const char *)(n)->from_s)
-#define	MSGINFO_SUBJECT(n)	((const char *)(n)->subject_s)
-#define	MSGINFO_SIZE(n)	((const char *)(n)->size_s)
-
 #ifdef __cplusplus
+#include <string>
+#include <optional>
+
+struct MSGINFO {
+	size_t  msgnum{0}; /* Filled in by maildir_read() and maildir_search() */
+	std::string filename;
+	std::string date_s;
+	std::string from_s;
+	std::string subject_s;
+	std::string size_s;
+	time_t	date_n{0};
+	unsigned long size_n{0};
+	time_t	mi_mtime{0};
+	ino_t	mi_ino{0};
+};
+
+#define	MSGINFO_FILENAME(n)	((n).filename.c_str())
+#define	MSGINFO_DATE(n)	((n).date_s.c_str())
+#define	MSGINFO_FROM(n)	((n).from_s.c_str())
+#define	MSGINFO_SUBJECT(n)	((n).subject_s.c_str())
+#define	MSGINFO_SIZE(n)	((n).size_s.c_str())
+
 extern "C" {
 #endif
 #if 0
@@ -55,8 +58,6 @@ extern "C" {
 extern void folder_search(const char *, size_t);
 extern void folder_contents_title();
 extern void folder_contents(const char *, size_t);
-extern void folder_navigate(const char *, size_t, long, int, int,
-			    unsigned long *);
 extern void folder_delmsgs(const char *, size_t);
 extern void folder_showmsg(const char *, size_t);
 extern void folder_keyimport(const char *, size_t);
@@ -71,6 +72,14 @@ extern void print_safe(const char *);
 extern void call_print_safe_to_stdout(const char *p, size_t cnt);
 extern void folder_cleanup();
 extern void maildir_cleanup();
+extern void folder_navigate(
+	const char *dir,
+	size_t pos,
+	long highend,
+	bool morebefore,
+	bool moreafter,
+	const std::optional<size_t> &last_message_searched_ptr
+);
 extern const char *redirect_hash(const char *);
 
 #if 0
@@ -84,11 +93,11 @@ extern const char *redirect_hash(const char *);
 #define	MSGTYPE_DELETED	'D'
 #define	MSGTYPE_REPLIED	'R'
 
-typedef struct {
-	char *prefix;
-	char *match;
-	char *suffix;
-} MATCHEDSTR;
+struct MATCHEDSTR {
+	std::string prefix;
+	std::string match;
+	std::string suffix;
+};
 
 
 #endif

@@ -20,6 +20,7 @@ struct unicode_info;
 
 #ifdef __cplusplus
 #include <string>
+#include <vector>
 #include "rfc822/rfc822.h"
 
 extern "C" {
@@ -28,30 +29,10 @@ extern "C" {
 }
 #endif
 
-MSGINFO *maildir_ngetinfo(const char *);
-void maildir_nfreeinfo(MSGINFO *);
-
-extern void maildir_free(MSGINFO **, unsigned);
-extern void matches_free(MATCHEDSTR **, unsigned);
-
-
 extern void maildir_remcache(const char *);
 extern void maildir_reload(const char *);
 
-extern MSGINFO **maildir_read(const char *, unsigned,
-	size_t *, int *, int *);
-extern void maildir_search(const char *dirname,
-			   size_t pos,
-			   const char *searchtxt,
-			   const char *charset,
-			   unsigned nfiles);
-
-extern void maildir_loadsearch(unsigned nfiles,
-			       MSGINFO ***retmsginfo,
-			       MATCHEDSTR ***retmatches,
-			       unsigned long *last_message_searched);
-
-extern void maildir_count(const char *, unsigned *, unsigned *);
+extern void maildir_count(const char *, size_t &, size_t &);
 
 extern int maildir_name2pos(const char *, const char *, size_t *);
 
@@ -97,7 +78,7 @@ extern off_t	writebufpos;	/* File position updated by writemsg */
 extern int	writebuf8bit;	/* 8 bit character flag */
 
 extern int maildir_writemsg_flush(int);
-extern unsigned maildir_countof(const char *);
+extern size_t maildir_countof(const char *);
 extern void maildir_savefoldermsgs(const char *);
 
 /*
@@ -127,6 +108,25 @@ extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 				 const char *, const std::string &);
 extern std::string folder_toutf8(const char *);
 extern std::string maildir_basename(const char *);
+MSGINFO maildir_ngetinfo(const char *);
+
+typedef std::vector<
+	std::tuple<MSGINFO, std::vector<MATCHEDSTR>>
+> maildir_contents_t;
+
+extern maildir_contents_t maildir_read(const char *, size_t,
+	size_t &, bool &, bool &);
+extern void maildir_search(const char *dirname,
+			   size_t pos,
+			   const char *searchtxt,
+			   const char *charset,
+			   size_t nfiles);
+
+extern maildir_contents_t maildir_loadsearch(
+	size_t nfiles,
+	size_t &last_message_searched
+);
+
 #endif
 
 /*

@@ -67,6 +67,8 @@
 #include	"strftime.h"
 
 #include <fstream>
+#include <optional>
+#include <set>
 
 static time_t	current_time;
 
@@ -79,7 +81,7 @@ static struct dbobj folderdat;
 static const char *folderdatmode;	/* "R" or "W" */
 
 static time_t cachemtime;	/* Modification time of the cache file */
-static unsigned long new_cnt, all_cnt;
+static size_t new_cnt, all_cnt;
 static int isoldestfirst;
 static char sortorder;
 
@@ -363,19 +365,19 @@ static std::string foldercachename(std::string_view folder)
 	return f;
 }
 
-static int opencache(const char *folder, const char *mode)
+static bool opencache(const char *folder, const char *mode)
 {
 	size_t	l;
 	char	*p;
 	std::string q;
 
 	if (xlate_shmdir(folder).empty())
-		return (-1);
+		return (false);
 
 	auto cachename=foldercachename(folder);
 
 	if (cachename.empty())
-		return (-1);
+		return (false);
 
 	if (folderdatname == cachename)
 	{
@@ -388,7 +390,7 @@ static int opencache(const char *folder, const char *mode)
 			*/
 		else
 		{
-			return (0);
+			return (true);
 				/* We already have this folder cache open */
 		}
 	}
@@ -396,11 +398,11 @@ static int opencache(const char *folder, const char *mode)
 	folderdatmode=mode;
 
 	dbobj_init(&folderdat);
-	if (dbobj_open(&folderdat, cachename.c_str(), mode))	return (-1);
+	if (dbobj_open(&folderdat, cachename.c_str(), mode))	return (false);
 	folderdatname=cachename;
 
 	if ((p=dbobj_fetch(&folderdat, "HEADER", 6, &l, "")) == 0)
-		return (0);
+		return (true);
 	q.reserve(l);
 	q.assign(p, l);
 	free(p);
@@ -451,7 +453,7 @@ static int opencache(const char *folder, const char *mode)
 			}
 		}
 	}
-	return (0);
+	return (true);
 }
 
 /* And, remove a flag */
@@ -481,169 +483,162 @@ char	*p;
 	}
 }
 
-static MSGINFO *get_msginfo(unsigned long n)
+static std::optional<MSGINFO> get_msginfo(unsigned long n)
 {
-char	namebuf[MAXLONGSIZE+40];
-char	*p;
-size_t	len;
-unsigned long ul;
+	char	namebuf[MAXLONGSIZE+40];
+	char	*p;
+	size_t	len;
 
-static	char *buf=0;
-size_t	bufsize=0;
-static	MSGINFO msginfo_buf;
+	std::string buf;
+
+	std::optional<MSGINFO> ret;
 
 	sprintf(namebuf, "REC%lu", n);
 
 	p=dbobj_fetch(&folderdat, namebuf, strlen(namebuf), &len, "");
-	if (!p)	return (0);
+	if (!p)	return ret;
 
-	if (!buf || len > bufsize)
-	{
-		buf= static_cast<char *>(buf ? realloc(buf, len+1):
-					 malloc(len+1));
-		if (!buf)	enomem();
-		bufsize=len;
-	}
-	memcpy(buf, p, len);
-	buf[len]=0;
+	buf.assign(p, len);
 	free(p);
 
-	memset(&msginfo_buf, 0, sizeof(msginfo_buf));
-	static char empty_str[]="";
-	msginfo_buf.filename= msginfo_buf.date_s= msginfo_buf.from_s=
-		msginfo_buf.subject_s= msginfo_buf.size_s=empty_str;
+	MSGINFO &msginfo_buf=ret.emplace();
 
-	for (p=buf; (p=strtok(p, "\n")) != 0; p=0)
+	std::string_view buf_parse{buf};
+
+	while (!buf_parse.empty())
 	{
-	char	*q=strchr(p, '=');
+		std::string_view line;
 
-		if (!q)	continue;
-		*q++=0;
-
-		if (strcmp(p, "FILENAME") == 0)
-			msginfo_buf.filename=q;
-		else if (strcmp(p, "FROM") == 0)
-			msginfo_buf.from_s=q;
-		else if (strcmp(p, "SUBJECT") == 0)
-			msginfo_buf.subject_s=q;
-		else if (strcmp(p, "SIZES") == 0)
-			msginfo_buf.size_s=q;
-		else if (strcmp(p, "DATE") == 0 &&
-			parse_ul(q, &ul))
+		auto nl=buf_parse.find('\n');
+		if (nl == buf_parse.npos)
 		{
-			msginfo_buf.date_n=ul;
-			msginfo_buf.date_s=displaydate(msginfo_buf.date_n);
+			line=buf_parse;
+			buf_parse="";
 		}
-		else if (strcmp(p, "SIZEN") == 0 &&
-			parse_ul(q, &ul))
-			msginfo_buf.size_n=ul;
-		else if (strcmp(p, "TIME") == 0 &&
-			parse_ul(q, &ul))
-			msginfo_buf.mi_mtime=ul;
-		else if (strcmp(p, "INODE") == 0 &&
-			parse_ul(q, &ul))
-			msginfo_buf.mi_ino=ul;
+		else {
+			line=buf_parse.substr(0, nl);
+			buf_parse.remove_prefix(nl+1);
+		}
+
+		auto r=line.find('=');
+		if (r == line.npos) continue;
+		std::string_view key=line.substr(0, r);
+		std::string_view value=line.substr(r+1);
+		const char *s=value.data();
+		const char *t=s+value.size();
+
+		if (key == "FILENAME")
+			msginfo_buf.filename=value;
+		else if (key == "FROM")
+			msginfo_buf.from_s=value;
+		else if (key == "SUBJECT")
+			msginfo_buf.subject_s=value;
+		else if (key == "SIZES")
+			msginfo_buf.size_s=value;
+		else if (key == "DATE")
+		{
+			auto res=std::from_chars(s, t, msginfo_buf.date_n);
+			if (res.ec == std::errc())
+				msginfo_buf.date_s=displaydate(msginfo_buf.date_n);
+		}
+		else if (key == "SIZEN")
+		{
+			std::from_chars(s, t, msginfo_buf.size_n);
+		}
+		else if (key == "TIME")
+		{
+			std::from_chars(s, t, msginfo_buf.mi_mtime);
+		}
+		else if (key == "INODE")
+		{
+			std::from_chars(s, t, msginfo_buf.mi_ino);
+		}
 	}
-	return (&msginfo_buf);
+
+	return ret;
 }
 
-static MSGINFO *get_msginfo_alloc(unsigned long n)
+static void put_msginfo(const MSGINFO &m, unsigned long n)
 {
-MSGINFO	*msginfop=get_msginfo(n);
-MSGINFO *p;
+	char	namebuf[MAXLONGSIZE+40];
+	std::string rec;
 
-	if (!msginfop)	return (0);
+	rec.reserve(m.filename.size()+m.from_s.size()+m.subject_s.size()
+				+m.size_s.size()+MAXLONGSIZE*4+
+				sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
+				"SIZEN=\nTIME=\nINODE=\n")+100);
 
-	if ((p= (MSGINFO *) malloc(sizeof(*p))) == 0)
-		enomem();
+	rec.append("FILENAME=").append(m.filename).append("\nFROM=").append(m.from_s)
+		.append("\nSUBJECT=").append(m.subject_s).append("\nSIZES=").append(m.size_s)
+		.append("\nDATE=");
 
-	memset(p, 0, sizeof(*p));
-	if ((p->filename=strdup(msginfop->filename)) == 0 ||
-		(p->date_s=strdup(msginfop->date_s)) == 0 ||
-		(p->from_s=strdup(msginfop->from_s)) == 0 ||
-		(p->subject_s=strdup(msginfop->subject_s)) == 0 ||
-		(p->size_s=strdup(msginfop->size_s)) == 0)
-		enomem();
-	p->date_n=msginfop->date_n;
-	p->size_n=msginfop->size_n;
-	p->mi_mtime=msginfop->mi_mtime;
-	p->mi_ino=msginfop->mi_ino;
-	return (p);
-}
-
-static void put_msginfo(MSGINFO *m, unsigned long n)
-{
-char	namebuf[MAXLONGSIZE+40];
-char	*rec;
+	*std::to_chars(namebuf, namebuf+sizeof(namebuf)-1, m.date_n).ptr=0;
+	rec.append(namebuf);
+	rec.append("\nSIZEN=");
+	*std::to_chars(namebuf, namebuf+sizeof(namebuf)-1, m.size_n).ptr=0;
+	rec.append(namebuf);
+	rec.append("\nTIME=");
+	*std::to_chars(namebuf, namebuf+sizeof(namebuf)-1, m.mi_mtime).ptr=0;
+	rec.append(namebuf);
+	rec.append("\nINODE=");
+	*std::to_chars(namebuf, namebuf+sizeof(namebuf)-1, m.mi_ino).ptr=0;
+	rec.append(namebuf);
 
 	sprintf(namebuf, "REC%lu", n);
-
-	rec=static_cast<char *>(
-		malloc(strlen(m->filename)+strlen(m->from_s)+
-		       strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
-		       sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
-			      "SIZEN=\nTIME=\nINODE=\n")+100
-		)
-	);
-	if (!rec)	enomem();
-
-	sprintf(rec, "FILENAME=%s\nFROM=%s\nSUBJECT=%s\nSIZES=%s\n"
-		"DATE=%lu\n"
-		"SIZEN=%lu\n"
-		"TIME=%lu\n"
-		"INODE=%lu\n",
-		m->filename,
-		m->from_s,
-		m->subject_s,
-		m->size_s,
-		(unsigned long)m->date_n,
-		(unsigned long)m->size_n,
-		(unsigned long)m->mi_mtime,
-		(unsigned long)m->mi_ino);
-
 	if (dbobj_store(&folderdat, namebuf, strlen(namebuf),
-		rec, strlen(rec), "R"))
+		rec.c_str(), rec.size(), "R"))
 		enomem();
-	free(rec);
 }
 
-static void update_foldermsgs(const char *folder, const char *newname, size_t pos)
+static void update_foldermsgs(
+	const char *folder,
+	std::string_view newname,
+	size_t pos
+)
 {
-	MSGINFO	*p;
-	char *n;
+	std::string_view n{newname.substr(newname.rfind('/')+1)};
 
-	n=const_cast<char *>(strrchr(newname, '/')+1);
-	if (opencache(folder, "W") || (p=get_msginfo(pos)) == 0)
+	if (opencache(folder, "W") )
 	{
-		error("Internal error in update_foldermsgs");
-		return;
+		auto p=get_msginfo(pos);
+
+		if (p)
+		{
+			p->filename=std::string{n.begin(), n.end()};
+			put_msginfo(*p, pos);
+			return;
+		}
 	}
 
-	p->filename=n;
-
-	put_msginfo(p, pos);
+	error("Internal error in update_foldermsgs");
 }
 
 static void maildir_markflag(const char *folder, size_t pos, char flag)
 {
-MSGINFO	*p;
-std::string new_filename;
-
-	if (opencache(folder, "W") || (p=get_msginfo(pos)) == 0)
+	if (opencache(folder, "W") )
 	{
-		error("Internal error in maildir_markflag");
-		return;
+		auto p=get_msginfo(pos);
+		if (p)
+		{
+			auto filename=maildir_find(folder, p->filename.c_str());
+			if (filename.empty())
+				return;
+
+			std::string new_filename;
+			if (!(new_filename=maildir_addflagfilename(filename, flag)).empty())
+			{
+				rename(filename.c_str(), new_filename.c_str());
+				update_foldermsgs(
+					folder,
+					std::string_view{new_filename.c_str(), new_filename.size()},
+					pos
+				);
+			}
+			return;
+		}
 	}
 
-	auto filename=maildir_find(folder, p->filename);
-	if (filename.empty())
-		return;
-
-	if (!(new_filename=maildir_addflagfilename(filename, flag)).empty())
-	{
-		rename(filename.c_str(), new_filename.c_str());
-		update_foldermsgs(folder, new_filename.c_str(), pos);
-	}
+	error("Internal error in maildir_markflag");
 }
 
 void maildir_markread(const char *folder, size_t pos)
@@ -678,15 +673,17 @@ void maildir_markreplied(const char *folder, const char *message)
 
 std::string maildir_posfind(const char *folder, size_t *pos)
 {
-	MSGINFO	*p;
-
-	if (opencache(folder, "R") || (p=get_msginfo( *pos)) == 0)
+	if (opencache(folder, "R"))
 	{
-		error("Internal error in maildir_posfind");
-		return ("");
+		auto p=get_msginfo( *pos);
+		if (p)
+		{
+			return maildir_find(folder, p->filename.c_str());
+		}
 	}
 
-	return maildir_find(folder, p->filename);
+	error("Internal error in maildir_posfind");
+	return "";
 }
 
 
@@ -696,7 +693,7 @@ int maildir_name2pos(const char *folder, const char *filename, size_t *pos)
 	size_t len;
 
 	maildir_reload(folder);
-	if (opencache(folder, "R"))
+	if (!opencache(folder, "R"))
 	{
 		error("Internal error in maildir_name2pos");
 		return (0);
@@ -1447,34 +1444,38 @@ static int subjectcmp(const char *a, const char *b)
 ** on Maildir writers observing the required naming conventions.
 */
 
-static int messagecmp(const MSGINFO **pa, const MSGINFO **pb)
+namespace {
+	struct messagecmp {
+		bool operator()(const MSGINFO &a, const MSGINFO &b) const;
+	};
+}
+
+bool messagecmp::operator()(const MSGINFO &a, const MSGINFO &b) const
 {
-int	gt=1, lt=-1;
-int	n;
-const MSGINFO *a= *pa;
-const MSGINFO *b= *pb;
+	bool gt=false, lt=true;
+	int	n;
 
 	if (pref_flagisoldest1st)
 	{
-		gt= -1;
-		lt= 1;
+		gt= true;
+		lt= false;
 	}
 
 	switch (pref_flagsortorder)	{
 	case 'F':
-		n=strcasecmp(a->from_s, b->from_s);
-		if (n)	return (n);
+		n=a.from_s.compare(b.from_s);
+		if (n)	return (n < 0);
 		break;
 	case 'S':
-		n=subjectcmp(a->subject_s, b->subject_s);
-		if (n)	return (n);
+		n=subjectcmp(a.subject_s.c_str(), b.subject_s.c_str());
+		if (n)	return (n < 0);
 		break;
 	}
-	if (a->date_n < b->date_n)	return (gt);
-	if (a->date_n > b->date_n)	return (lt);
+	if (a.date_n < b.date_n)	return (gt);
+	if (a.date_n > b.date_n)	return (lt);
 
-	if (a->mi_ino < b->mi_ino)	return (gt);
-	if (a->mi_ino > b->mi_ino)	return (lt);
+	if (a.mi_ino < b.mi_ino)	return (gt);
+	if (a.mi_ino > b.mi_ino)	return (lt);
 	return (0);
 }
 
@@ -1521,7 +1522,7 @@ int	seen_trash=0, seen_r=0, seen_s=0;
 	return (MSGTYPE_NEW);
 }
 
-static int docount(const char *fn, unsigned *new_cnt, unsigned *other_cnt)
+static int docount(const char *fn, size_t &new_cnt, size_t &other_cnt)
 {
 const char *filename=strrchr(fn, '/');
 char	c;
@@ -1534,42 +1535,44 @@ char	c;
 	c=maildirfile_type(filename);
 
 	if (c == MSGTYPE_NEW)
-		++ *new_cnt;
+		++new_cnt;
 	else
-		++ *other_cnt;
+		++other_cnt;
 	return (1);
 }
 
-MSGINFO **maildir_read(const char *dirname, unsigned nfiles,
-		       size_t *starting_pos,
-		       int *morebefore, int *moreafter)
+maildir_contents_t maildir_read(const char *dirname, size_t nfiles,
+				size_t &starting_pos,
+				bool &morebefore, bool &moreafter)
 {
-	MSGINFO	**msginfo;
-	size_t	i;
+	maildir_contents_t msginfo;
 
-	if ((msginfo=static_cast<MSGINFO **>(
-		     malloc(sizeof(MSGINFO *)*nfiles))) == 0)
-		enomem();
-	for (i=0; i<nfiles; i++)
-		msginfo[i]=0;
+	msginfo.reserve(nfiles);
 
-	if (opencache(dirname, "W"))	return (msginfo);
+	if (!opencache(dirname, "W"))	return (msginfo);
 
 	if (nfiles > all_cnt)	nfiles=all_cnt;
-	if (*starting_pos + nfiles > all_cnt)
-		*starting_pos=all_cnt-nfiles;
+	if (starting_pos + nfiles > all_cnt)
+		starting_pos=all_cnt-nfiles;
 
-	*morebefore = *starting_pos > 0;
+	morebefore = starting_pos > 0;
 
+	size_t i;
 	for (i=0; i<nfiles; i++)
 	{
-		if (*starting_pos + i >= all_cnt)	break;
-		if ((msginfo[i]= get_msginfo_alloc(*starting_pos + i)) == 0)
+		if (starting_pos + i >= all_cnt)	break;
+		auto p=get_msginfo(starting_pos + i);
+		if (!p)
 			break;
 
-		msginfo[i]->msgnum=*starting_pos+i;
+		p->msgnum=starting_pos+i;
+		msginfo.emplace_back(
+			*p,
+			std::vector<MATCHEDSTR>{}
+		);
 	}
-	*moreafter= *starting_pos + i < all_cnt;
+	moreafter= starting_pos + i < all_cnt;
+
 	return (msginfo);
 }
 
@@ -1625,128 +1628,99 @@ static char *load_str(FILE *fp)
 	return str;
 }
 
-static void save_msginfo(const MSGINFO *p, MATCHEDSTR *context, FILE *fp)
+static void save_msginfo(
+	const MSGINFO &p,
+	const std::vector<MATCHEDSTR> &context,
+	FILE *fp
+)
 {
-	size_t context_cnt;
-	MATCHEDSTR *c;
+	save_int(p.msgnum, fp);
+	save_str(p.filename.c_str(), fp);
+	save_str(p.date_s.c_str(), fp);
+	save_str(p.from_s.c_str(), fp);
+	save_str(p.subject_s.c_str(), fp);
+	save_str(p.size_s.c_str(), fp);
+	save_int(p.date_n, fp);
+	save_int(p.size_n, fp);
+	save_int(p.mi_mtime, fp);
+	save_int(p.mi_ino, fp);
 
-	save_int(p->msgnum, fp);
-	save_str(p->filename, fp);
-	save_str(p->date_s, fp);
-	save_str(p->from_s, fp);
-	save_str(p->subject_s, fp);
-	save_str(p->size_s, fp);
-	save_int(p->date_n, fp);
-	save_int(p->size_n, fp);
-	save_int(p->mi_mtime, fp);
-	save_int(p->mi_ino, fp);
+	save_int(context.size(), fp);
 
-	for (context_cnt=0, c=context; c && c->match; ++c, ++context_cnt)
-		;
-
-	save_int(context_cnt, fp);
-
-	for (c=context; c && c->match; ++c)
+	for (const auto &ms: context)
 	{
-		save_str(c->prefix, fp);
-		save_str(c->match, fp);
-		save_str(c->suffix, fp);
+		save_str(ms.prefix.c_str(), fp);
+		save_str(ms.match.c_str(), fp);
+		save_str(ms.suffix.c_str(), fp);
 	}
 }
 
-static void load_msginfo(MSGINFO **retinfo,
-			 MATCHEDSTR **retmatches,
-			 FILE *fp)
+static std::tuple<MSGINFO, std::vector<MATCHEDSTR>> load_msginfo(
+	FILE *fp
+)
 {
-	MSGINFO *p=static_cast<MSGINFO *>(malloc(sizeof(MSGINFO)));
+	std::tuple<MSGINFO, std::vector<MATCHEDSTR>> ret;
+
+	auto &[p, context] = ret;
 	size_t context_cnt;
-	MATCHEDSTR *c;
 
-	if (p == 0)
-		enomem();
-
-	load_int(p->msgnum, fp);
-	p->filename=load_str(fp);
-	p->date_s=load_str(fp);
-	p->from_s=load_str(fp);
-	p->subject_s=load_str(fp);
-	p->size_s=load_str(fp);
-	load_int(p->date_n, fp);
-	load_int(p->size_n, fp);
-	load_int(p->mi_mtime, fp);
-	load_int(p->mi_ino, fp);
-
-	*retinfo=p;
-
+	load_int(p.msgnum, fp);
+	p.filename=load_str(fp);
+	p.date_s=load_str(fp);
+	p.from_s=load_str(fp);
+	p.subject_s=load_str(fp);
+	p.size_s=load_str(fp);
+	load_int(p.date_n, fp);
+	load_int(p.size_n, fp);
+	load_int(p.mi_mtime, fp);
+	load_int(p.mi_ino, fp);
 	load_int(context_cnt, fp);
 
-	*retmatches=NULL;
+	context.reserve(context_cnt);
 
-	if (context_cnt)
+	for (size_t i=0; i<context_cnt; i++)
 	{
-		*retmatches=c=static_cast<MATCHEDSTR *>(
-			malloc(sizeof(MATCHEDSTR)*(context_cnt+1))
-		);
+		MATCHEDSTR ms;
 
-		for (; context_cnt; --context_cnt)
-		{
-			char *prefix=load_str(fp);
-			char *match=load_str(fp);
-			char *suffix=load_str(fp);
+		ms.prefix=load_str(fp);
+		ms.match=load_str(fp);
+		ms.suffix=load_str(fp);
 
-			if (c)
-			{
-				c->prefix=prefix;
-				c->match=match;
-				c->suffix=suffix;
-				++c;
-			}
-			else
-			{
-				free(prefix);
-				free(match);
-				free(suffix);
-			}
-		}
-
-		if (c)
-		{
-			c->prefix=NULL;
-			c->match=NULL;
-			c->suffix=NULL;
-		}
+		context.push_back(std::move(ms));
 	}
+
+	return ret;
 }
 
-static void execute_maildir_search(const char *dirname,
-				   size_t pos,
-				   const char *searchtxt,
-				   const char *charset,
-				   unsigned nfiles,
-				   MSGINFO ***retval,
-				   MATCHEDSTR ***retcontext,
-				   unsigned long *last_message_searched);
+static maildir_contents_t execute_maildir_search(
+	const char *dirname,
+	size_t pos,
+	const char *searchtxt,
+	const char *charset,
+	size_t nfiles,
+	size_t &last_message_searched);
 
 #define SEARCHFORMATVER 1
 
-void maildir_search(const char *dirname,
-		    size_t pos,
-		    const char *searchtxt,
-		    const char *charset,
-		    unsigned nfiles)
+void maildir_search(
+	const char *dirname,
+	size_t pos,
+	const char *searchtxt,
+	const char *charset,
+	size_t nfiles
+)
 {
 	struct maildir_tmpcreate_info createInfo;
 
-	MSGINFO **p;
-	MATCHEDSTR **pcontext;
-	char *filename;
+	static std::string filename;
 	FILE *fp;
-	unsigned i;
 
-	unsigned long last_message_searched=0;
+	size_t last_message_searched=0;
 
-	execute_maildir_search(dirname, pos, searchtxt, charset,
-			       nfiles, &p, &pcontext, &last_message_searched);
+	auto p=execute_maildir_search(
+		dirname, pos, searchtxt, charset,
+		nfiles, last_message_searched
+	);
 
 	maildir_purgesearch();
 
@@ -1756,17 +1730,12 @@ void maildir_search(const char *dirname,
 	createInfo.doordie=1;
 
 	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
-	{
-		if (p)
-			maildir_free(p, nfiles);
 		error("Can't create new file.");
-	}
 
 	filename=createInfo.tmpname;
-	createInfo.tmpname=NULL;
 	maildir_tmpcreate_free(&createInfo);
 
-	chmod(filename, 0600);
+	chmod(filename.c_str(), 0600);
 
 	{
 		char ver=SEARCHFORMATVER;
@@ -1775,69 +1744,36 @@ void maildir_search(const char *dirname,
 		save_int(last_message_searched, fp);
 	}
 
-	for (i=0; i<nfiles; i++)
-		if (p[i])
-			save_msginfo(p[i], pcontext[i], fp);
+	for (auto &[info, matches]: p)
+		save_msginfo(info, matches, fp);
 	fflush(fp);
 	if (ferror(fp) || fclose(fp))
 		error("Cannot create temp file");
 
-	cgi_put(SEARCHRESFILENAME, strrchr(filename, '/')+1);
-
-	if (p)
-		maildir_free(p, nfiles);
-	if (pcontext)
-		matches_free(pcontext, nfiles);
+	cgi_put(SEARCHRESFILENAME, strrchr(filename.c_str(), '/')+1);
 }
 
-void maildir_loadsearch(unsigned nfiles,
-			MSGINFO ***retmsginfo,
-			MATCHEDSTR ***retmatches,
-			unsigned long *last_message_searched)
+maildir_contents_t maildir_loadsearch(
+	size_t nfiles,
+	size_t &last_message_searched
+)
 {
-	MSGINFO	**msginfo;
-	MATCHEDSTR **matches;
+        maildir_contents_t ret;
 
-	unsigned i;
+	size_t i;
 	const char *filename;
-	char *buf;
 	FILE *fp;
 	char ver;
 
-	if ((msginfo=static_cast<MSGINFO **>(
-		     malloc(sizeof(MSGINFO *)*nfiles))
-	    )== 0)
-		enomem();
-
-	if ((matches=static_cast<MATCHEDSTR **>(
-		     malloc(sizeof(MATCHEDSTR *)*nfiles))
-	    ) == 0)
-	{
-		free(msginfo);
-		enomem();
-	}
-
-	for (i=0; i<nfiles; i++)
-	{
-		msginfo[i]=0;
-		matches[i]=0;
-	}
-
+	ret.reserve(nfiles);
 	filename=cgi(SEARCHRESFILENAME);
 	CHECKFILENAME(filename);
 
-	buf=static_cast<char *>(malloc(strlen(filename)+5));
-
-	if (!buf)
-	{
-		free(msginfo);
-		enomem();
-	}
-
-	strcat(strcpy(buf, "tmp/"), filename);
-
-	fp=fopen(buf, "r");
-	free(buf);
+	std::string buf;
+	buf.reserve(strlen(filename)+5);
+	buf="tmp/";
+	buf += filename;
+	fp=fopen(buf.c_str(), "r");
 
 	if (fp)
 	{
@@ -1845,7 +1781,7 @@ void maildir_loadsearch(unsigned nfiles,
 
 		if (ver == SEARCHFORMATVER)
 		{
-			load_int(*last_message_searched, fp);
+			load_int(last_message_searched, fp);
 			for (i=0; i<nfiles; ++i)
 			{
 				int ch=getc(fp);
@@ -1854,35 +1790,20 @@ void maildir_loadsearch(unsigned nfiles,
 					break;
 				ungetc(ch, fp);
 
-				load_msginfo(&msginfo[i], &matches[i], fp);
+				ret.push_back(load_msginfo(fp));
 			}
 		}
 		fclose(fp);
 	}
 
-	for (i=0; i<nfiles; ++i)
+	for (auto &[msginfo, matches]: ret)
 	{
-		MSGINFO *p;
+		auto p=get_msginfo(msginfo.msgnum);
 
-		if (msginfo[i] == 0)
-			continue;
-
-		p=get_msginfo(msginfo[i]->msgnum);
-
-		if (p && p->mi_ino == msginfo[i]->mi_ino) /* Safety first */
-		{
-			char *f=strdup(p->filename);
-			if (f)
-			{
-				if (msginfo[i]->filename)
-					free(msginfo[i]->filename);
-				msginfo[i]->filename=f;
-			}
-		}
+		if (p && p->mi_ino == msginfo.mi_ino) /* Safety first */
+			msginfo.filename=p->filename;
 	}
-
-	*retmsginfo=msginfo;
-	*retmatches=matches;
+	return ret;
 }
 
 static const char spaces[]=" \t\r\n";
@@ -1892,14 +1813,10 @@ static const char spaces[]=" \t\r\n";
 /* After matching, save surrounding context here */
 
 struct searchresults_match_context {
-	struct searchresults_match_context *next;
 
-	char32_t *match_context_before;
-	char32_t *match_context;
-
-	char32_t *match_context_after;
-	size_t match_context_after_len;
-	size_t match_context_after_max_len;
+	std::u32string match_context_before;
+	std::u32string match_context;
+	std::u32string match_context_after;
 };
 
 struct searchresults {
@@ -1912,73 +1829,50 @@ struct searchresults {
 	char utf8buf[512];
 	size_t utf8buf_cnt;
 
-	char32_t *context_buf;
+	std::unique_ptr<char32_t[]> context_buf;
 	size_t context_buf_len;
 
 	size_t context_buf_head;
 	size_t context_buf_tail;
 
-	struct searchresults_match_context *matched_context_head;
-	struct searchresults_match_context **matched_context_tail;
+	std::vector<searchresults_match_context> matched_context;
 
 	struct maildir_searchengine *se;
 
 };
 
-static MATCHEDSTR *creatematches(struct searchresults *sr);
+static std::vector<MATCHEDSTR> creatematches(struct searchresults *sr);
 
 static int searchresults_init(struct searchresults *sr,
 			      struct maildir_searchengine *se);
-
-static void searchresults_destroy(struct searchresults *sr);
 
 static int do_maildir_search(const char *filename,
 			     struct searchresults *sr);
 
 
-static void execute_maildir_search(const char *dirname,
-				   size_t pos,
-				   const char *searchtxt,
-				   const char *charset,
-				   unsigned nfiles,
-				   MSGINFO ***retval,
-				   MATCHEDSTR ***retcontext,
-				   unsigned long *last_message_searched)
+static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir_search(
+	const char *dirname,
+	size_t pos,
+	const char *searchtxt,
+	const char *charset,
+	size_t nfiles,
+	size_t &last_message_searched)
 {
-	MSGINFO	**msginfo;
-	MATCHEDSTR **matches;
-	unsigned long i;
-	unsigned j;
+	std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> msginfo;
+	size_t i;
 	char *utf8str;
 	char *p, *q;
 
-	if ((*retval=msginfo=static_cast<MSGINFO **>(
-		     malloc(sizeof(MSGINFO *)*nfiles))
-	    ) == 0)
-		enomem();
+	msginfo.reserve(nfiles);
 
-	if ((*retcontext=matches=static_cast<MATCHEDSTR **>(
-		     malloc(sizeof(MATCHEDSTR *)*nfiles))
-	    ) == 0)
-	{
-		free(msginfo);
-		enomem();
-	}
+	if (!opencache(dirname, "W"))	return msginfo;
 
-	for (i=0; i<nfiles; i++)
-	{
-		msginfo[i]=0;
-		matches[i]=0;
-	}
-
-	if (opencache(dirname, "W"))	return;
-
-	if (pos >= all_cnt) return;
+	if (pos >= all_cnt) return msginfo;
 
 	utf8str=unicode_convert_toutf8(searchtxt, charset, NULL);
 
 	if (!utf8str)
-		return;
+		return msginfo;
 
 	/* Normalize whitespace in the search string */
 
@@ -2032,18 +1926,19 @@ static void execute_maildir_search(const char *dirname,
 			}
 		}
 
-		j=0;
-
-		for (i=0, j=0; rc == 0 && pos+i<all_cnt && j<nfiles; ++i)
+		for (i=0; rc == 0 && pos+i<all_cnt && msginfo.size()<nfiles; ++i)
 		{
-			MSGINFO *info=get_msginfo_alloc(pos+i);
+			auto info=get_msginfo(pos+i);
 
 			if (!info)
 				continue;
 
-			*last_message_searched= pos+i;
+			last_message_searched= pos+i;
 
-			auto filename=maildir_find(dirname, info->filename);
+			auto filename=maildir_find(
+				dirname,
+				info->filename.c_str()
+			);
 
 			maildir_search_reset(&se);
 
@@ -2058,23 +1953,19 @@ static void execute_maildir_search(const char *dirname,
 					if (do_maildir_search(filename.c_str(),
 							      &sr))
 					{
-						msginfo[j]=info;
-						matches[j]=creatematches(&sr);
-						info=NULL;
-						++j;
+						msginfo.emplace_back(
+							std::move(*info),
+							creatematches(&sr)
+						);
 					}
-
-					searchresults_destroy(&sr);
 				}
 			}
-
-			if (info)
-				maildir_nfreeinfo(info);
 		}
 		maildir_search_destroy(&se);
 	}
 
 	free(utf8str);
+	return msginfo;
 }
 
 #define sr_context_buf_index_inc(sr,n) ( ( (n)+1 ) % ( (sr)->context_buf_len))
@@ -2090,90 +1981,32 @@ static int searchresults_init(struct searchresults *sr,
 	sr->utf8buf_cnt=0;
 
 	sr->context_buf_len=maildir_search_len(se)+SEARCH_MATCH_CONTEXT_LEN*2+1;
-	sr->context_buf=static_cast<char32_t *>(
-		malloc(sr->context_buf_len * sizeof(char32_t))
-	);
+	sr->context_buf=std::unique_ptr<char32_t[]>(new char32_t[sr->context_buf_len]);
 
-	if (sr->context_buf == NULL)
-		return -1;
 	sr->context_buf_head=0;
 	sr->context_buf_tail=0;
 
-	sr->matched_context_head=NULL;
-	sr->matched_context_tail=&sr->matched_context_head;
-
 	return 0;
-}
-
-static void searchresults_destroy(struct searchresults *sr)
-{
-	while (sr->matched_context_head)
-	{
-		struct searchresults_match_context *c=sr->matched_context_head;
-
-		sr->matched_context_head=c->next;
-
-		free(c->match_context_before);
-		free(c->match_context_after);
-		free(c->match_context);
-	}
-
-	free(sr->context_buf);
 }
 
 /* Save context before, and the matched context */
 
 static void search_found_save_context(struct searchresults *sr)
 {
-	struct searchresults_match_context *c=
-		static_cast<searchresults_match_context *>(
-			malloc(sizeof(struct searchresults_match_context))
-		);
-	size_t n, i, j;;
+	auto &c=sr->matched_context.emplace_back();
 
-	if (c == NULL)
-		return;
-
-	if ((c->match_context_before=static_cast<char32_t *>(
-		     malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-			    * sizeof(char32_t)))) == NULL)
-	{
-		free(c);
-		return;
-	}
-
-	if ((c->match_context=static_cast<char32_t *>(
-		     malloc((maildir_search_len(sr->se)+1)
-			    * sizeof(char32_t)))) == NULL)
-	{
-		free(c->match_context_before);
-		free(c);
-		return;
-	}
-
-	if ((c->match_context_after=static_cast<char32_t *>(
-		     malloc((SEARCH_MATCH_CONTEXT_LEN+1)
-			    * sizeof(char32_t)))) == NULL)
-	{
-		free(c->match_context);
-		free(c->match_context_before);
-		free(c);
-		return;
-	}
-
-	c->next=NULL;
-
-	*sr->matched_context_tail=c;
-	sr->matched_context_tail= &c->next;
+	c.match_context_before.reserve(SEARCH_MATCH_CONTEXT_LEN);
+	c.match_context.reserve(maildir_search_len(sr->se));
+	c.match_context_after.reserve(SEARCH_MATCH_CONTEXT_LEN);
 
 	/*
 	** Subtract from the head of the context buffer to arrive at the
 	** start of the matched context
 	*/
 
-	n=sr->context_buf_head;
+	size_t n=sr->context_buf_head;
 
-	for (i=maildir_search_len(sr->se); i > 0; --i)
+	for (size_t i=maildir_search_len(sr->se); i > 0; --i)
 	{
 		if (n == sr->context_buf_tail)
 			break; /* Shouldn't happen */
@@ -2183,17 +2016,16 @@ static void search_found_save_context(struct searchresults *sr)
 
 	/* From here to the head is the matched context */
 
-	j=0;
-	for (i=n; i != sr->context_buf_head; )
+	for (size_t i=n; i != sr->context_buf_head; )
 	{
-		c->match_context[j++]=sr->context_buf[i];
+		c.match_context.push_back(sr->context_buf[i]);
 		i=sr_context_buf_index_inc(sr, i);
 	}
-	c->match_context[j]=0;
 
 	/* Now, look before the start of the matched context */
 
-	for (i=n, j=0; j<SEARCH_MATCH_CONTEXT_LEN; ++j)
+	size_t i=n;
+	for (size_t j=0; j<SEARCH_MATCH_CONTEXT_LEN; ++j)
 	{
 		if (i == sr->context_buf_tail)
 			break; /* Possible */
@@ -2201,16 +2033,11 @@ static void search_found_save_context(struct searchresults *sr)
 		i=sr_context_buf_index_dec(sr, i);
 	}
 
-	j=0;
 	while (i != n)
 	{
-		c->match_context_before[j++]=sr->context_buf[i];
+		c.match_context_before.push_back(sr->context_buf[i]);
 		i=sr_context_buf_index_inc(sr, i);
 	}
-	c->match_context_before[j]=0;
-
-	c->match_context_after_len=0;
-	c->match_context_after_max_len=SEARCH_MATCH_CONTEXT_LEN;
 }
 
 static int do_search_utf8(struct searchresults *res)
@@ -2225,7 +2052,7 @@ static int do_search_utf8(struct searchresults *res)
 	if (res->finished)
 		return -1;
 
-	res->utf8buf[res->utf8buf_cnt]=0;
+	auto utf8_len=res->utf8buf_cnt;
 	res->utf8buf_cnt=0;
 
 	h=unicode_convert_tou_init("utf-8",
@@ -2235,7 +2062,7 @@ static int do_search_utf8(struct searchresults *res)
 
 	if (h)
 	{
-		unicode_convert(h, res->utf8buf, strlen(res->utf8buf));
+		unicode_convert(h, res->utf8buf, utf8_len);
 		if (unicode_convert_deinit(h, NULL) == 0)
 			;
 		else
@@ -2244,8 +2071,6 @@ static int do_search_utf8(struct searchresults *res)
 
 	for (n=0; uc && uc[n]; n++)
 	{
-		struct searchresults_match_context *c;
-
 		char32_t origch=uc[n];
 		char32_t ch=unicode_lc(origch);
 
@@ -2262,11 +2087,10 @@ static int do_search_utf8(struct searchresults *res)
 				sr_context_buf_index_inc(res, res->context_buf_tail);
 		/* Accumulate post-match context for matched hits */
 
-		for (c=res->matched_context_head; c; c=c->next)
+		for (auto &c: res->matched_context)
 		{
-			if (c->match_context_after_len <
-			    c->match_context_after_max_len)
-				c->match_context_after[c->match_context_after_len++]=origch;
+			if (c.match_context_after.size() < SEARCH_MATCH_CONTEXT_LEN)
+				c.match_context_after.push_back(origch);
 		}
 
 		if (maildir_search_found(res->se))
@@ -2385,93 +2209,46 @@ static int do_maildir_search(const char *filename,
 	return sr->foundcnt ? 1:0;
 }
 
-static void savematch(struct searchresults_match_context *smc,
-		      MATCHEDSTR **curptr);
-
-static MATCHEDSTR *creatematches(struct searchresults *sr)
+static std::vector<MATCHEDSTR> creatematches(struct searchresults *sr)
 {
-	size_t n=0;
-	struct searchresults_match_context *smc;
-	MATCHEDSTR *retval, *retptr;
+	size_t n=sr->matched_context.size();
+	std::vector<MATCHEDSTR> retval;
 
-	/* Count, allocate the array */
-	for (smc=sr->matched_context_head; smc; smc=smc->next)
-		++n;
+	retval.reserve(n+1);
 
-	if ((retval=static_cast<MATCHEDSTR *>(
-		     malloc(sizeof(MATCHEDSTR)*(n+1)))) == NULL)
-		return NULL;
-
-	retptr=retval;
-
-	for (smc=sr->matched_context_head; smc; smc=smc->next)
+	for (auto &c: sr->matched_context)
 	{
-		savematch(smc, &retptr);
+		MATCHEDSTR ms;
+
+		ms.prefix=unicode::iconvert::fromu::convert(
+			c.match_context_before,
+			unicode::utf_8
+		).first;
+		ms.match=unicode::iconvert::fromu::convert(
+			c.match_context,
+			unicode::utf_8
+		).first;
+		ms.suffix=unicode::iconvert::fromu::convert(
+			c.match_context_after,
+			unicode::utf_8
+		).first;
+
+		retval.push_back(ms);
 	}
 
-	/* Last one */
-
-	retptr->prefix=NULL;
-	retptr->match=NULL;
-	retptr->suffix=NULL;
 	return retval;
 }
 
-static char *match_conv(const char32_t *uc)
-{
-	char *cbuf;
-	size_t csize;
-	unicode_convert_handle_t h;
-	size_t i;
-
-	if ((h=unicode_convert_fromu_init("utf-8", &cbuf, &csize, 1)) == NULL)
-		return NULL;
-
-	for (i=0; uc[i]; ++i)
-		;
-
-	unicode_convert_uc(h, uc, i);
-
-	if (unicode_convert_deinit(h, NULL))
-		return NULL;
-	return cbuf;
-}
-
-static void savematch(struct searchresults_match_context *smc,
-		      MATCHEDSTR **curptr)
-{
-	if ( ((*curptr)->prefix=match_conv(smc->match_context_before))
-	     == NULL)
-		return;
-
-	if ( ((*curptr)->match=match_conv(smc->match_context)) == NULL)
-	{
-		free( (*curptr)->prefix );
-		return;
-	}
-
-	smc->match_context_after[smc->match_context_after_len]=0;
-
-	if ( ((*curptr)->suffix=match_conv(smc->match_context_after))
-	     == NULL)
-	{
-		free( (*curptr)->match );
-		free( (*curptr)->prefix );
-		return;
-	}
-	++ (*curptr);
-}
-
-static void dodirscan(const char *, const char *, unsigned *, unsigned *);
+static void dodirscan(const char *, const char *, size_t &, size_t &);
 
 void maildir_count(const char *folder,
-		   unsigned *new_ptr,
-		   unsigned *other_ptr)
+		   size_t &new_ptr,
+		   size_t &other_ptr)
 {
 	std::string dir;
 
-	*new_ptr=0;
-	*other_ptr=0;
+	new_ptr=0;
+	other_ptr=0;
 
 	auto minfo=maildir::info_imap_find(folder, login_returnaddr());
 
@@ -2505,15 +2282,15 @@ void maildir_count(const char *folder,
 	dodirscan(folder, dir.c_str(), new_ptr, other_ptr);
 }
 
-unsigned maildir_countof(const char *folder)
+size_t maildir_countof(const char *folder)
 {
 	maildir_getfoldermsgs(folder);
 	return (all_cnt);
 }
 
 static void dodirscan(const char *folder,
-		      const char *dir, unsigned *new_cnt,
-		      unsigned *other_cnt)
+		      const char *dir, size_t &new_cnt,
+		      size_t &other_cnt)
 {
 	DIR *dirp;
 	struct dirent *de;
@@ -2524,8 +2301,8 @@ static void dodirscan(const char *folder,
 	FILE	*fp;
 	struct maildir_tmpcreate_info createInfo;
 
-	*new_cnt=0;
-	*other_cnt=0;
+	new_cnt=0;
+	other_cnt=0;
 	auto curname=std::string(dir) + "/cur";
 
 	if (stat(curname.c_str(), &cur_stat))
@@ -2542,13 +2319,13 @@ static void dodirscan(const char *folder,
 		    c_stat.st_mtime > cur_stat.st_mtime &&
 		    fgets(buf, sizeof(buf), fp))
 		{
-			unsigned long n;
-			unsigned long o;
+			size_t n;
+			size_t o;
 
 			if ((p=parse_ul(buf, &n)) && (p=parse_ul(p, &o)))
 			{
-				*new_cnt=n;
-				*other_cnt=o;
+				new_cnt=n;
+				other_cnt=o;
 				fclose(fp);
 				return;	/* Valid cache of count */
 			}
@@ -2560,7 +2337,12 @@ static void dodirscan(const char *folder,
 	while (dirp && (de=readdir(dirp)) != NULL)
 		docount(de->d_name, new_cnt, other_cnt);
 	if (dirp)	closedir(dirp);
-	sprintf(cntbuf, "%u %u\n", *new_cnt, *other_cnt);
+
+	auto fmtret=std::to_chars(cntbuf, cntbuf+sizeof(cntbuf)-2, new_cnt);
+	*fmtret.ptr++=' ';
+	fmtret=std::to_chars(fmtret.ptr, cntbuf+sizeof(cntbuf)-2, other_cnt);
+	*fmtret.ptr++='\n';
+	*fmtret.ptr++='\0';
 
 	maildir_tmpcreate_init(&createInfo);
 	createInfo.maildir=".";
@@ -2609,18 +2391,6 @@ static void dodirscan(const char *folder,
 	}
 }
 
-void maildir_free(MSGINFO **files, unsigned nfiles)
-{
-unsigned i;
-
-	for (i=0; i<nfiles; i++)
-	{
-		if ( files[i] )
-			maildir_nfreeinfo( files[i] );
-	}
-	free(files);
-}
-
 /*****************************************************************************
 
 The MSGINFO structure contains the summary of the headers found in all
@@ -2632,23 +2402,11 @@ containing the contents.
 
 *****************************************************************************/
 
-/* Deallocate an individual MSGINFO structure */
-
-void maildir_nfreeinfo(MSGINFO *mi)
-{
-	if (mi->filename)	free(mi->filename);
-	if (mi->date_s)	free(mi->date_s);
-	if (mi->from_s)	free(mi->from_s);
-	if (mi->subject_s)	free(mi->subject_s);
-	if (mi->size_s)	free(mi->size_s);
-	free(mi);
-}
 
 /* Initialize a MSGINFO structure by reading the message headers */
 
-MSGINFO *maildir_ngetinfo(const char *filename)
+MSGINFO maildir_ngetinfo(const char *filename)
 {
-	MSGINFO	*mi;
 	struct stat stat_buf;
 	const char *p;
 	int	is_sent_header=0;
@@ -2671,17 +2429,13 @@ MSGINFO *maildir_ngetinfo(const char *filename)
 		|| strncmp(filename, "." DRAFTS "/", sizeof(DRAFTS)+1) == 0)
 		is_sent_header=1;
 
-	if ((mi=(MSGINFO *)malloc(sizeof(MSGINFO))) == 0)
-		enomem();
-
-	memset(mi, '\0', sizeof(*mi));
+	MSGINFO mi;
 
 	rfc822::fdstreambuf fp{maildir_semisafeopen(filename, O_RDONLY, 0)};
 
 	if (fp.error())
 	{
-		free(mi);
-		return (NULL);
+		return (mi);
 	}
 
 	/* mi->filename shall be the base filename, normalized as :2, */
@@ -2690,23 +2444,19 @@ MSGINFO *maildir_ngetinfo(const char *filename)
 		p++;
 	else	p=filename;
 
-	if (!(mi->filename=strdup(p)))
-		enomem();
+	mi.filename=p;
 
 	if (fstat(fp.fileno(), &stat_buf) == 0)
 	{
-		mi->mi_mtime=stat_buf.st_mtime;
-		mi->mi_ino=stat_buf.st_ino;
-		mi->size_n=stat_buf.st_size;
-		mi->size_s=strdup( showsize(stat_buf.st_size));
-		mi->date_n=mi->mi_mtime;	/* Default if no Date: */
-		if (!mi->size_s)	enomem();
+		mi.mi_mtime=stat_buf.st_mtime;
+		mi.mi_ino=stat_buf.st_ino;
+		mi.size_n=stat_buf.st_size;
+		mi.size_s=showsize(stat_buf.st_size);
+		mi.date_n=mi.mi_mtime;	/* Default if no Date: */
 	}
 	else
 	{
-		free(mi->filename);
-		free(mi);
-		return (0);
+		return (mi);
 	}
 
 	rfc2045::entity::line_iter<false>::headers headers{fp};
@@ -2727,20 +2477,17 @@ MSGINFO *maildir_ngetinfo(const char *filename)
 				std::back_inserter(s)
 			);
 
-			if (mi->subject_s)	free(mi->subject_s);
-
-			if (!(mi->subject_s=strdup(s.c_str())))	enomem();
+			mi.subject_s=s;
 		}
 
-		if (hdr == "date" && mi->date_s == 0)
+		if (hdr == "date" && mi.date_s.empty())
 		{
 			std::optional<time_t> t=rfc822::parse_date(val);
 
 			if (t)
 			{
-				mi->date_n=*t;
-				mi->date_s=strdup(displaydate(mi->date_n));
-				if (!mi->date_s)	enomem();
+				mi.date_n=*t;
+				mi.date_s=displaydate(mi.date_n);
 			}
 		}
 
@@ -2770,16 +2517,16 @@ MSGINFO *maildir_ngetinfo(const char *filename)
 
 		}
 
-		if (mi->date_s && !fromheader.empty() && mi->subject_s)
+		if (!mi.date_s.empty() && !fromheader.empty() && !mi.subject_s.empty())
 			break;
 	} while (headers.next());
 
-	if (!(mi->from_s=strdup(fromheader.c_str())))	enomem();
-	if (!mi->date_s)
-		mi->date_s=strdup(displaydate(mi->date_n));
-	if (!mi->date_s)	enomem();
-	if (!mi->from_s && !(mi->from_s=strdup("")))	enomem();
-	if (!mi->subject_s && !(mi->subject_s=strdup("")))	enomem();
+	mi.from_s=fromheader;
+	std::replace(mi.from_s.begin(), mi.from_s.end(), '\n', ' ');
+	std::replace(mi.subject_s.begin(), mi.subject_s.end(), '\n', ' ');
+	if (mi.date_s.empty())
+		mi.date_s=displaydate(mi.date_n);
+
 	return (mi);
 }
 
@@ -2850,52 +2597,61 @@ static void maildir_save_start(const char *folder,
 	savenew_cnt=0;
 }
 
-static void maildir_saveinfo(MSGINFO *m)
+static void maildir_saveinfo(const MSGINFO &m)
 {
-	char	*rec, *p;
+	std::string rec;
 	char	recnamebuf[MAXLONGSIZE+40];
 
-	rec=static_cast<char *>(
-		malloc(strlen(m->filename)+strlen(m->from_s)+
-		       strlen(m->subject_s)+strlen(m->size_s)+MAXLONGSIZE*4+
+	rec.reserve(m.filename.size()+m.from_s.size()+
+		       m.subject_s.size()+m.size_s.size()+MAXLONGSIZE*4+
 		       sizeof("FILENAME=\nFROM=\nSUBJECT=\nSIZES=\nDATE=\n"
-			      "SIZEN=\nTIME=\nINODE=\n")+100)
-	);
-	if (!rec)	enomem();
+			      "SIZEN=\nTIME=\nINODE=\n")+100);
 
-	sprintf(rec, "FILENAME=%s\nFROM=%s\nSUBJECT=%s\nSIZES=%s\n"
-		"DATE=%lu\n"
-		"SIZEN=%lu\n"
-		"TIME=%lu\n"
-		"INODE=%lu\n",
-		m->filename,
-		m->from_s,
-		m->subject_s,
-		m->size_s,
-		(unsigned long)m->date_n,
-		(unsigned long)m->size_n,
-		(unsigned long)m->mi_mtime,
-		(unsigned long)m->mi_ino);
+	rec="FILENAME=";
+	rec += m.filename;
+	rec += "\nFROM=";
+	rec += m.from_s;
+	rec += "\nSUBJECT=";
+	rec += m.subject_s;
+	rec += "\nSIZES=";
+	rec += m.size_s;
+
+	char buf[MAXLONGSIZE+1];
+	*std::to_chars(buf, buf+sizeof(buf)-1, m.date_n).ptr=0;
+	rec+="\nDATE=";
+	rec+=buf;
+	rec+="\nSIZEN=";
+	*std::to_chars(buf, buf+sizeof(buf)-1, m.size_n).ptr=0;
+	rec+=buf;
+	rec+="\nTIME=";
+	*std::to_chars(buf, buf+sizeof(buf)-1, m.mi_mtime).ptr=0;
+	rec+=buf;
+	rec+="\nINODE=";
+	*std::to_chars(buf, buf+sizeof(buf)-1, m.mi_ino).ptr=0;
+	rec+=buf;
+	rec+="\n";
 	sprintf(recnamebuf, "REC%lu", (unsigned long)save_cnt);
+
 	if (dbobj_store(&tmpdb, recnamebuf, strlen(recnamebuf),
-		rec, strlen(rec), "R"))
+		rec.c_str(), rec.size(), "R"))
 		enomem();
-	free(rec);
 
 	/* Reverse lookup */
-	rec=static_cast<char *>(malloc(strlen(m->filename)+10));
-	if (!rec)
-		enomem();
-	strcat(strcpy(rec, "FILE"), m->filename);
-	if ((p=strchr(rec, ':')) != 0)
-		*p=0;
+	rec.clear();
+	rec.reserve(m.filename.size()+10);
+	rec="FILE";
+	rec += m.filename;
+	auto p=rec.find(':');
+	if (p != std::string::npos)
+		rec.erase(p);
 	sprintf(recnamebuf, "%lu", (unsigned long)save_cnt);
-	if (dbobj_store(&tmpdb, rec, strlen(rec),
+
+	if (dbobj_store(&tmpdb, rec.c_str(), rec.size(),
 			recnamebuf, strlen(recnamebuf), "R"))
 		enomem();
 
 	save_cnt++;
-	if (maildirfile_type(m->filename) == MSGTYPE_NEW)
+	if (maildirfile_type(m.filename.c_str()) == MSGTYPE_NEW)
 		savenew_cnt++;
 }
 
@@ -2944,18 +2700,11 @@ void maildir_savefoldermsgs(const char *folder)
 
 /************************************************************************/
 
-struct	MSGINFO_LIST {
-	struct MSGINFO_LIST	*next;
-	MSGINFO *minfo;
-	} ;
-
 static void createmdcache(const char *folder, const char *maildir)
 {
-DIR *dirp;
-struct dirent *de;
-struct MSGINFO_LIST *milist, *newmi;
-MSGINFO	*mi;
-unsigned long cnt=0;
+	DIR *dirp;
+	struct dirent *de;
+	std::set<MSGINFO, messagecmp> msgset;
 
 	auto curname=std::string(maildir) + "/cur";
 
@@ -2963,7 +2712,6 @@ unsigned long cnt=0;
 
 	maildir_save_start(folder, maildir, current_time);
 
-	milist=0;
 	dirp=opendir(curname.c_str());
 	while (dirp && (de=readdir(dirp)) != NULL)
 	{
@@ -2972,52 +2720,21 @@ unsigned long cnt=0;
 
 		auto filename=curname + "/" + de->d_name;
 
-		mi=maildir_ngetinfo(filename.c_str());
-		if (!mi)	continue;
+		auto mi=maildir_ngetinfo(filename.c_str());
 
-		if (!(newmi=static_cast<MSGINFO_LIST *>(
-			      malloc(sizeof(struct MSGINFO_LIST)))
-		    )) enomem();
-		newmi->next= milist;
-		milist=newmi;
-		newmi->minfo=mi;
-		++cnt;
+		msgset.insert(std::move(mi));
 	}
 	if (dirp)	closedir(dirp);
 
-	if (milist)
-	{
-		MSGINFO **miarray=static_cast<MSGINFO **>(
-			malloc(sizeof(MSGINFO *) * cnt)
-		);
-		unsigned long i;
-
-		if (!miarray)	enomem();
-		i=0;
-		while (milist)
-		{
-			miarray[i++]=milist->minfo;
-			newmi=milist;
-			milist=newmi->next;
-			free(newmi);
-		}
-
-		qsort(miarray, cnt, sizeof(*miarray),
-			( int (*)(const void *, const void *)) messagecmp);
-		for (i=0; i<cnt; i++)
-		{
-			maildir_saveinfo(miarray[i]);
-			maildir_nfreeinfo(miarray[i]);
-		}
-		free(miarray);
-	}
+	for (auto &m:msgset)
+		maildir_saveinfo(m);
 
 	maildir_save_end(maildir);
 }
 
 static int chkcache(const char *folder)
 {
-	if (opencache(folder, "W"))	return (-1);
+	if (!opencache(folder, "W"))	return (-1);
 
 	if (isoldestfirst != pref_flagisoldest1st)	return (-1);
 	if (sortorder != pref_flagsortorder)		return (-1);
@@ -3064,7 +2781,7 @@ void	maildir_reload(const char *folder)
 
 	/* Remove old cache file when: */
 
-	if (opencache(folder, "W") == 0)
+	if (opencache(folder, "W"))
 	{
 		if ( stat(curname.c_str(), &stat_buf) != 0 ||
 			stat_buf.st_mtime >= cachemtime)
@@ -3643,27 +3360,6 @@ static void	maildir_deletenewmsg_common(
 void maildir_cleanup()
 {
 	closedb();
-}
-
-void matches_free(MATCHEDSTR **p, unsigned n)
-{
-	size_t i;
-
-	for (i=0; p && i<n; ++i)
-	{
-		MATCHEDSTR *q;
-
-		for (q=p[i]; q && q->match; ++q)
-		{
-			free(q->prefix);
-			free(q->match);
-			free(q->suffix);
-		}
-		if (p[i])
-			free(p[i]);
-	}
-	if (p)
-		free(p);
 }
 
 /*
