@@ -3,9 +3,6 @@
 ** distribution information.
 */
 
-
-/*
-*/
 #include	"config.h"
 #include	<stdio.h>
 #include	<string.h>
@@ -689,7 +686,8 @@ std::string maildir_posfind(const char *folder, size_t *pos)
 
 int maildir_name2pos(const char *folder, const char *filename, size_t *pos)
 {
-	char *p, *q;
+	std::string p;
+	char *q;
 	size_t len;
 
 	maildir_reload(folder);
@@ -699,22 +697,19 @@ int maildir_name2pos(const char *folder, const char *filename, size_t *pos)
 		return (0);
 	}
 
-	p=static_cast<char *>(malloc(strlen(filename)+10));
-	if (!p)
-		enomem();
-	strcat(strcpy(p, "FILE"), filename);
-	q=strchr(p, ':');
-	if (q)
-		*q=0;
+	p.reserve(strlen(filename)+10);
+	p.append("FILE").append(filename);
+	auto colon=p.find(':');
+	if (colon != p.npos)
+		p.resize(colon);
 
-	q=dbobj_fetch(&folderdat, p, strlen(p), &len, "");
-	free(p);
+	q=dbobj_fetch(&folderdat, p.c_str(), p.size(), &len, "");
 
 	if (!q)
 		return (-1);
 
 	*pos=0;
-	for (p=q; len; --len, p++)
+	for (auto p=q; len; --len, p++)
 	{
 		if (isdigit((int)(unsigned char)*p))
 			*pos = *pos * 10 + (*p-'0');
@@ -1327,23 +1322,17 @@ void maildir_purgemimegpg()
 {
 	DIR	*dirp;
 	struct	dirent	*dire;
-	char *p;
 
 	for (dirp=opendir("tmp"); dirp && (dire=readdir(dirp)) != 0; )
 	{
 		if (strstr(dire->d_name, ":mimegpg:") == 0 &&
 		    strstr(dire->d_name, ":calendar:") == 0)	continue;
 
-		p=static_cast<char *>(
-			malloc(sizeof("tmp/")+strlen(dire->d_name))
-		);
+		std::string p;
+		p.reserve(sizeof("tmp/")-1+strlen(dire->d_name));
+		p.append("tmp/").append(dire->d_name);
 
-		if (p)
-		{
-			strcat(strcpy(p, "tmp/"), dire->d_name);
-			unlink(p);
-			free(p);
-		}
+		unlink(p.c_str());
 	}
 
 	if (dirp)
@@ -1356,22 +1345,15 @@ void maildir_purgesearch()
 {
 	DIR	*dirp;
 	struct	dirent	*dire;
-	char *p;
 
 	for (dirp=opendir("tmp"); dirp && (dire=readdir(dirp)) != 0; )
 	{
 		if (strstr(dire->d_name, ":search:") == 0)	continue;
 
-		p=static_cast<char *>(
-			malloc(sizeof("tmp/")+strlen(dire->d_name))
-		);
-
-		if (p)
-		{
-			strcat(strcpy(p, "tmp/"), dire->d_name);
-			unlink(p);
-			free(p);
-		}
+		std::string p;
+		p.reserve(sizeof("tmp/")-1+strlen(dire->d_name));
+		p.append("tmp/").append(dire->d_name);
+		unlink(p.c_str());
 	}
 
 	if (dirp)
@@ -1601,30 +1583,26 @@ static void save_str(const char *str, FILE *fp)
 			(n)=(n) << 8 | (unsigned char)getc(fp);	\
 	} while(0);
 
-static char *load_str(FILE *fp)
+static std::string load_str(FILE *fp)
 {
 	size_t l;
 	size_t i;
-	char *str;
 
 	load_int(l, fp);
 
 	if (feof(fp))
 		l=0;
 
-	str=static_cast<char *>(malloc(l+1));
-
-	if (!str)
-		enomem();
+	std::string str;
+	str.reserve(l);
 
 	for (i=0; i<l; i++)
 	{
 		char c=getc(fp);
 
-		str[i]=c;
+		str.push_back(c);
 	}
 
-	str[i]=0;
 	return str;
 }
 
@@ -2794,45 +2772,20 @@ void	maildir_reload(const char *folder)
 }
 
 /*
-	maildir_listfolders(char ***) - read all the folders in the mailbox.
-	maildir_freefolders(char ***) - deallocate memory
-*/
-
-static void addfolder(const char *name, char ***buf, size_t *size, size_t *cnt)
-{
-	if (*cnt >= *size)
-	{
-		char	**newbuf=static_cast<char **>(
-			*buf ? realloc(*buf, (*size + 10) * sizeof(char *))
-			: malloc( (*size+10) * sizeof(char *)));
-
-		if (!newbuf)	enomem();
-		*buf=newbuf;
-		*size += 10;
-	}
-
-	(*buf)[*cnt]=0;
-	if ( name && ((*buf)[*cnt]=strdup(name)) == 0)	enomem();
-	++*cnt;
-}
-
-/*
 **  Return a sorted list of folders.
 **
 */
 
 struct add_shared_info {
-	char ***p;
-	size_t *s;
-	size_t *c;
+	std::vector<std::string> *folders;
 	const char *inbox_pfix;
-	} ;
+};
 
 static void list_callback(const char *n, void *vp)
 {
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
-	char *o;
+	std::string o;
 
 	while (*n)
 	{
@@ -2841,73 +2794,58 @@ static void list_callback(const char *n, void *vp)
 		++n;
 	}
 
-	o=static_cast<char *>(malloc(strlen(i->inbox_pfix)+strlen(n)+1));
-	if (!o)
-		enomem();
-	strcat(strcpy(o, i->inbox_pfix), n);
+	o.reserve(strlen(i->inbox_pfix)+strlen(n));
+	o=i->inbox_pfix;
+	o += n;
 
-	addfolder(o, i->p, i->s, i->c);
-
-	free(o);
+	i->folders->push_back(o);
 }
 
 static void list_shared_callback(const char *n, void *vp)
 {
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
-	char *p=static_cast<char *>(malloc(sizeof(SHARED ".") + strlen(n)));
+	std::string o;
 
-	if (!p)
-		enomem();
-	strcat(strcpy(p, SHARED "."), n);
+	o.reserve(sizeof(SHARED ".")-1 + strlen(n));
+	o=SHARED ".";
+	o += n;
 
-	addfolder(p, i->p, i->s, i->c);
-	free(p);
+	i->folders->push_back(o);
 }
 
 static void list_sharable_callback(const char *n, void *vp)
 {
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
-	char *p=static_cast<char *>(malloc(sizeof(SHARED ".") + strlen(n)));
+	std::string o;
 	size_t j;
 
-	if (!p)
-		enomem();
-	strcat(strcpy(p, SHARED "."), n);
+	o.reserve(sizeof(SHARED ".")-1 + strlen(n));
+	o=SHARED ".";
+	o += n;
 
-	for (j=0; j< *i->c; j++)
-		if (strcmp( (*i->p)[j], p) == 0)
-		{
-			free(p);
+	for (auto &f: *i->folders)
+		if (f == o)
 			return;
-		}
 
-	addfolder(p, i->p, i->s, i->c);
-	free(p);
+	i->folders->push_back(o);
 }
 
-static int shcomparefunc( char **a, char **b)
+static bool shcomparefunc( const std::string &a, const std::string &b)
 {
-	char	*ca= *a, *cb= *b;
-
-	return (strcasecmp(ca, cb));
+	return (strcasecmp(a.c_str(), b.c_str()) < 0);
 }
 
-void maildir_listfolders(const char *inbox_pfix,
-			 const char *homedir,
-			 char ***fp)
+std::vector<std::string> maildir_listfolders(
+	const char *inbox_pfix,
+	const char *homedir
+)
 {
-	size_t	fbsize=0;
-	size_t	fbcnt=0;
 	struct add_shared_info info;
-	size_t	sh_cnt;
+	std::vector<std::string> folders;
 
-	*fp=0;
-
-	info.p=fp;
-	info.s= &fbsize;
-	info.c= &fbcnt;
+	info.folders=&folders;
 	info.inbox_pfix=inbox_pfix;
 
 	if (!homedir)
@@ -2925,25 +2863,14 @@ void maildir_listfolders(const char *inbox_pfix,
 	if (strcmp(homedir, ".") == 0)
 		maildir_list_shared(".", list_shared_callback, &info);
 
-	sh_cnt=fbcnt;
+	auto sh_cnt=folders.size();
 	if (strcmp(homedir, ".") == 0)
 		maildir_list_sharable(".", list_sharable_callback, &info);
 
-	qsort( (*fp), sh_cnt, sizeof(**fp),
-		(int (*)(const void *, const void *))shcomparefunc);
+	std::sort(folders.begin(), folders.begin()+sh_cnt, shcomparefunc);
+	std::sort(folders.begin()+sh_cnt, folders.end(), shcomparefunc);
 
-	qsort( (*fp)+sh_cnt, fbcnt-sh_cnt, sizeof(**fp),
-		(int (*)(const void *, const void *))shcomparefunc);
-	addfolder(NULL, fp, &fbsize, &fbcnt);
-}
-
-void maildir_freefolders(char ***fp)
-{
-size_t	cnt;
-
-	for (cnt=0; (*fp)[cnt]; cnt++)
-		free( (*fp)[cnt] );
-	free(*fp);
+	return (folders);
 }
 
 int maildir_create(const char *foldername)

@@ -3,9 +3,6 @@
 ** distribution information.
 */
 
-
-/*
-*/
 #include	"config.h"
 #include	<stdio.h>
 #include	<string.h>
@@ -1376,18 +1373,16 @@ static void show_transfer_dest_real1(const char *inbox_pfix,
 				     const char *cur_folder,
 				     const char *inbox_name)
 {
-	char	**folders;
-	size_t	i;
 	const	char *p;
 	int	has_shared=0;
 
-	maildir_listfolders(inbox_pfix, homedir, &folders);
-	for (i=0; folders[i]; i++)
+	auto folders=maildir_listfolders(inbox_pfix, homedir);
+	for (auto &f:folders)
 	{
 		char acl_buf[2];
 
 		strcpy(acl_buf, ACL_INSERT);
-		acl_computeRightsOnFolder(folders[i], acl_buf);
+		acl_computeRightsOnFolder(f.c_str(), acl_buf);
 
 		if (acl_buf[0] == 0)
 			continue;
@@ -1397,21 +1392,21 @@ static void show_transfer_dest_real1(const char *inbox_pfix,
 		if (cur_folder == NULL || strcmp(cur_folder,
 						 INBOX "." DRAFTS))
 		{
-			if (strcmp(folders[i], INBOX "." DRAFTS) == 0)
+			if (strcmp(f.c_str(), INBOX "." DRAFTS) == 0)
 				continue;
 		}
 		else
 		{
-			if (strncmp(folders[i], SHARED ".",
+			if (strncmp(f.c_str(), SHARED ".",
 				    sizeof(SHARED)) &&
-			    strcmp(folders[i], INBOX "." TRASH))
+			    strcmp(f.c_str(), INBOX "." TRASH))
 				continue;
 		}
 
-		if (cur_folder && strcmp(cur_folder, folders[i]) == 0)
+		if (cur_folder && strcmp(cur_folder, f.c_str()) == 0)
 			continue;
 
-		p=folders[i];
+		p=f.c_str();
 
 		if (strcmp(p, INBOX) == 0)
 			p=folder_inbox;
@@ -1421,16 +1416,15 @@ static void show_transfer_dest_real1(const char *inbox_pfix,
 			p=folder_trash;
 		else if (strcmp(p, INBOX "." SENT) == 0)
 			p=folder_sent;
-		if (!p)	p=folders[i];
+		if (!p)	p=f.c_str();
 
-		if (strncmp(folders[i], SHARED ".", sizeof(SHARED)) == 0)
+		if (strncmp(f.c_str(), SHARED ".", sizeof(SHARED)) == 0)
 		{
-			auto d=maildir::shareddir(".", strchr(folders[i], '.')+1);
+			auto d=maildir::shareddir(".", strchr(f.c_str(), '.')+1);
 			struct	stat	stat_buf;
 
 			if (d.empty())
 			{
-				maildir_freefolders(&folders);
 				enomem();
 			}
 			if (stat(d.c_str(), &stat_buf))	/* Not subscribed */
@@ -1446,20 +1440,19 @@ static void show_transfer_dest_real1(const char *inbox_pfix,
 		}
 
 		printf("<option value=\"");
-		output_attrencoded(folders[i]);
+		output_attrencoded(f.c_str());
 		printf("\">");
 
-		if (strncmp(folders[i], NEWSHARED, sizeof(NEWSHARED)-1) == 0)
+		if (strncmp(f.c_str(), NEWSHARED, sizeof(NEWSHARED)-1) == 0)
 		{
 			printf("%s.", getarg("PUBLICFOLDERS"));
 		}
 
-		p=strchr(folders[i], '.');
+		p=strchr(f.c_str(), '.');
 
-		list_folder(p ? p+1:folders[i]);
+		list_folder(p ? p+1:f.c_str());
 		printf("</option>\n");
 	}
-	maildir_freefolders(&folders);
 }
 
 void folder_msgmove()
@@ -2936,8 +2929,6 @@ static void do_folderlist(const char *inbox_pfix,
 	const char	*unread_label;
 	const char	*acl_img;
 	char acl_buf[4];
-	char	**folders;
-	size_t	i;
 	size_t folderdir_l;
 
 	name_inbox=getarg("INBOX");
@@ -2952,8 +2943,7 @@ static void do_folderlist(const char *inbox_pfix,
 
        	printf("<table width=\"100%%\" border=\"0\" cellpadding=\"2\" cellspacing=\"0\" class=\"folderlist\">\n");
 
-	maildir_listfolders(inbox_pfix, homedir, &folders);
-
+	auto folders=maildir_listfolders(inbox_pfix, homedir);
 	if (*folderdir && strcmp(folderdir, INBOX))
 	{
 		std::string parentfolder;
@@ -3089,12 +3079,11 @@ static void do_folderlist(const char *inbox_pfix,
 
 	folderdir_l=strlen(folderdir);
 
-	for (i=0; folders[i]; i++)
+	for (size_t i=0; i<folders.size(); i++)
 	{
 		const	char *p;
-		const	char *shortname=folders[i];
+		const	char *shortname=folders[i].c_str();
 
-		size_t	j;
 		const char *pfix;
 		bool isunsubscribed=false;
 		const char	*img=folder_img;
@@ -3156,8 +3145,8 @@ static void do_folderlist(const char *inbox_pfix,
 			{
 				std::string s, t;
 
-				s.reserve(p-folders[i]);
-				s.append(folders[i], p-folders[i]);
+				s.reserve(p-folders[i].c_str());
+				s.append(folders[i].c_str(), p-folders[i].c_str());
 
 				printf("<tr class=\"foldersubdir\"><td align=\"left\">");
 				if (acl_img && strchr(acl_buf, ACL_ADMINISTER[0]))
@@ -3181,7 +3170,7 @@ static void do_folderlist(const char *inbox_pfix,
 
 				t.reserve(p-shortname);
 				t.append(shortname, p-shortname);
-				list_folder_xlate(folders[i],
+				list_folder_xlate(folders[i].c_str(),
 						  t.c_str(),
 						  name_inbox,
 						  name_drafts,
@@ -3194,12 +3183,12 @@ static void do_folderlist(const char *inbox_pfix,
 
 				size_t tot_nnew=0, tot_nother=0;
 
-				j=i;
-				while (folders[j] && memcmp(folders[j], folders[i],
-							    p-folders[i]+1) == 0)
+				size_t j=i;
+				while (j < folders.size() && memcmp(folders[j].c_str(), folders[i].c_str(),
+							    p-folders[i].c_str()+1) == 0)
 				{
 					strcpy(acl_buf, ACL_LOOKUP ACL_READ);
-					acl_computeRightsOnFolder(folders[j],
+					acl_computeRightsOnFolder(folders[j].c_str(),
 								  acl_buf);
 					if (acl_buf[0] == 0)
 					{
@@ -3208,7 +3197,7 @@ static void do_folderlist(const char *inbox_pfix,
 					}
 
 					size_t nnew, nother;
-					maildir_count(folders[j], nnew, nother);
+					maildir_count(folders[j].c_str(), nnew, nother);
 					++j;
 					tot_nnew += nnew;
 					tot_nother += nother;
@@ -3233,7 +3222,7 @@ static void do_folderlist(const char *inbox_pfix,
 			isunsubscribed=true;
 
 		if (!isunsubscribed)
-			maildir_count(folders[i], nnew, nother);
+			maildir_count(folders[i].c_str(), nnew, nother);
 
 		printf("<tr%s><td align=\"left\" valign=\"top\">",
 			isunsubscribed ? " class=\"folderunsubscribed\"":"");
@@ -3243,24 +3232,24 @@ static void do_folderlist(const char *inbox_pfix,
 			printf("<a href=\"");
 			output_scriptptrget();
 			printf("&amp;form=acl&amp;folder=");
-			output_urlencoded(folders[i]);
+			output_urlencoded(folders[i].c_str());
 			printf("\">%s</a>&nbsp", acl_img);
 		}
 
 		printf("%s&nbsp;<input type=\"radio\" name=\"DELETE\" value=\"", img);
-		output_attrencoded(folders[i]);
+		output_attrencoded(folders[i].c_str());
 		printf("\" />&nbsp;");
 		if (!isunsubscribed)
 		{
 			printf("<a class=\"folderlink\" href=\"");
 			output_scriptptrget();
 			printf("&amp;form=folder&amp;folder=");
-			output_urlencoded(folders[i]);
+			output_urlencoded(folders[i].c_str());
 			printf("\">");
 		}
 
-		list_folder_xlate(folders[i],
-				  strcmp(folders[i], inbox_name) == 0
+		list_folder_xlate(folders[i].c_str(),
+				  strcmp(folders[i].c_str(), inbox_name) == 0
 				  ? INBOX:shortname,
 				  name_inbox,
 				  name_drafts,
@@ -3285,7 +3274,6 @@ static void do_folderlist(const char *inbox_pfix,
 		printf("&nbsp;\n");
 		printf("</td></tr>\n\n");
 	}
-	maildir_freefolders(&folders);
 
 	if (strcmp(folderdir, INBOX) == 0 && !maildir_newshared_disabled)
 	{
@@ -3334,19 +3322,16 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 				    const char *cur_folder,
 				    const char *inbox_name)
 {
-	char	**folders;
-	int	i;
 	size_t pl=strlen(inbox_pfix);
 
 	printf("<select name=\"renametofolder\">\n");
 	printf("<option value=\"%s.\">", inbox_pfix);
 	printf("( ... )");
 	printf("</option>\n");
-
-	maildir_listfolders(inbox_pfix, homedir, &folders);
-	for (i=0; folders[i]; i++)
+	auto folders=maildir_listfolders(inbox_pfix, homedir);
+	for (size_t i=0; i < folders.size(); i++)
 	{
-		const char *p=folders[i];
+		const char *p=folders[i].c_str();
 		std::string q;
 		size_t	ql;
 		char acl_buf[2];
@@ -3365,8 +3350,8 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 
 		p=strrchr(p, '.');
 		if (!p)	continue;
-		q.reserve(p-folders[i]);
-		q.append(folders[i], p-folders[i]);
+		q.reserve(p-folders[i].c_str());
+		q.append(folders[i].c_str(), p-folders[i].c_str());
 		strcpy(acl_buf, ACL_CREATE);
 		acl_computeRightsOnFolder(q.c_str(), acl_buf);
 		if (acl_buf[0])
@@ -3380,15 +3365,14 @@ static void folder_rename_dest_real(const char *inbox_pfix,
 			printf(".</option>\n");
 		}
 		ql=q.size();
-		while (folders[++i])
+		while (++i < folders.size())
 		{
-			if (memcmp(folders[i], q.c_str(), ql) ||
-				folders[i][ql] != '.' ||
-				strchr(folders[i]+ql+1, '.'))	break;
+			if (memcmp(folders[i].c_str(), q.c_str(), ql) ||
+				folders[i].c_str()[ql] != '.' ||
+				strchr(folders[i].c_str()+ql+1, '.'))	break;
 		}
 		--i;
 	}
-	maildir_freefolders(&folders);
 	printf("</select>\n");
 }
 

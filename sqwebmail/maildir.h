@@ -54,10 +54,7 @@ extern char *maildir_readheader_mimepart(FILE *, char **, int,
 extern char *maildir_readline(FILE *);
 extern char *maildir_readheader_nolc(FILE *, char **);
 
-extern void maildir_listfolders(const char *inbox_name,
-				const char *homedir, char ***);
 extern void maildir_readfolders(char ***);
-extern void maildir_freefolders(char ***);
 extern int maildir_create(const char *);
 extern int maildir_delete(const char *, int);
 extern int maildir_rename_wrapper(const char *, const char *);
@@ -125,6 +122,11 @@ extern void maildir_search(const char *dirname,
 extern maildir_contents_t maildir_loadsearch(
 	size_t nfiles,
 	size_t &last_message_searched
+);
+
+extern std::vector<std::string> maildir_listfolders(
+	const char *inbox_name,
+	const char *homedir
 );
 
 #endif

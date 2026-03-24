@@ -355,17 +355,14 @@ struct maildirfilterrule *r;
 
 void mailfilter_listfolders()
 {
-char	**folders;
-int	i;
-const char *f=cgi("savefolder");
+	const char *f=cgi("savefolder");
 
 	printf("<select name=\"savefolder\">");
 
-	maildir_listfolders(INBOX, ".", &folders);
-
-	for (i=0; folders[i]; i++)
+	auto folders=maildir_listfolders(INBOX, ".");
+	for (auto &folder:folders)
 	{
-		const char *p=folders[i];
+		const char *p=folder.c_str();
 		int selected=0;
 
 		if (strcmp(p, INBOX) &&
@@ -400,8 +397,6 @@ const char *f=cgi("savefolder");
 		list_folder(p);
 		printf("</option>\n");
 	}
-
-	maildir_freefolders(&folders);
 	printf("</select>");
 }
 
