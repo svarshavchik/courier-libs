@@ -44,7 +44,7 @@ static std::string foldername_filename_convert(const std::string &src_chset,
 
 		bool errflag;
 
-		s += unicode::iconvert::convert({p, b},
+		s += unicode::iconvert::convert(std::string{p, b},
 						src_chset,
 						dst_chset,
 						errflag);
