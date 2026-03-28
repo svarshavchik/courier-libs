@@ -334,6 +334,7 @@ void rfc822print_token(int token_token,
 #include <type_traits>
 #include <optional>
 #include <streambuf>
+#include <tuple>
 
 namespace rfc822 {
 #if 0
@@ -1646,6 +1647,22 @@ struct addresses : std::vector<address> {
 
 bool header_is_addr(std::string_view header_name,
 		    bool include_in_reply_to=true);
+
+// The passed in string is the raw subject line. Uses display_header() to
+// do any RF-C2047 decoding, afterwards, strip off Re: Fwd: and [BLOB]s from
+// the subject line, convert it to uppercase. Returns:
+//
+// - the stripped, uppercased, subject line, in UTF-8
+// - A bitmask, of what was stripped off: CORESUBJ_RE, CORESUBJ_FWD
+
+std::tuple<std::string, int> coresubj(std::string_view str);
+
+// Same as coresubj() but without doing RFC-2047 decoding and without
+// the uppercase conversion.
+std::tuple<std::string, int> coresubj_nouc(std::string_view str);
+
+// Same as coresubj_nouc(), but [BLOB]s are not removed from the subject line.
+std::tuple<std::string, int> coresubj_keepblobs(std::string_view str);
 
 // Subclass std::streambuf and implement it on top of a file descriptor. The
 // file descriptor is owned by fdstreambuf and is closed in the destructor.

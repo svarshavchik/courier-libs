@@ -177,7 +177,7 @@ static void check_sender()
 		h=hdr("from");
 
 	if (h.size() == 0)
-		exit(0);
+		return;
 
 	{
 		rfc822::tokens t{h};
@@ -298,7 +298,7 @@ static void check_db()
 	size_t val_len;
 	char *val;
 
-	if (dbfile.empty())
+	if (dbfile.empty() || sender.empty())
 		return;
 
 	std::string dbname;
@@ -831,7 +831,7 @@ int main(int argc, char **argv)
 	else
 	{
 		if (!txtfile && !mimefile)
-			usage();
+			txtfile="/dev/null";
 
 		if (txtfile && mimefile)
 			usage();

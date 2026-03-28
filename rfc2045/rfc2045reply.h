@@ -582,18 +582,9 @@ void rfc2045::reply::mkforward(out_closure_t &&out_closure,
 	}
 	else if (!subject.empty())
 	{
-		char	*s=rfc822_coresubj_keepblobs(subject.c_str());
+		subject=std::get<0>(rfc822::coresubj_keepblobs(subject));
 
-		if (!s)
-		{
-			perror("malloc");
-			exit(1);
-		}
-
-		std::string ss{s};
-		free(s);
-
-		out_closure(ss);
+		out_closure(subject);
 		out_closure(" (fwd)");
 	}
 	out_closure("\nMime-Version: 1.0\n");
@@ -945,6 +936,7 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 {
 	std::string oldtocc, oldfrom, oldreplyto, oldtolist;
 	std::string subject;
+	std::string usubject;
 	std::string oldmsgid;
 	std::string oldreferences;
 	std::string oldenvelope;
@@ -967,6 +959,10 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 			{
 				subject = std::string{value.begin(),
 						      value.end()};
+
+				usubject=std::get<0>(
+					rfc822::coresubj_keepblobs(subject)
+				);
 			}
 			else if (header == "reply-to")
 			{
@@ -1249,15 +1245,8 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 		}
 		else
 		{
-			char	*s=rfc822_coresubj_keepblobs(subject.c_str());
-
-			std::string subj{s ? s:""};
-
-			if (s)
-				free(s);
-
 			out_closure("Re: ");
-			out_closure(subj);
+			out_closure(usubject);
 		}
 	}
 

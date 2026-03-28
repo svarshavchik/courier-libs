@@ -66,6 +66,7 @@
 #include <fstream>
 #include <optional>
 #include <set>
+#include <unordered_map>
 
 static time_t	current_time;
 
@@ -1360,63 +1361,6 @@ void maildir_purgesearch()
 		closedir(dirp);
 }
 
-static int subjectcmp(const char *a, const char *b)
-{
-	int	aisre;
-	int	bisre;
-	int	n;
-	char	*as;
-	char	*bs;
-
-	as=rfc822_display_hdrvalue_tobuf("subject", a, "utf-8",
-					 NULL, NULL);
-
-	if (!as)
-		as=strdup(a);
-
-	bs=rfc822_display_hdrvalue_tobuf("subject", b, "utf-8",
-					 NULL, NULL);
-
-	if (!bs)
-		bs=strdup(b);
-
-	if (as)
-	{
-		char *p=rfc822_coresubj(as, &aisre);
-
-		free(as);
-		as=p;
-	}
-
-	if (bs)
-	{
-		char *p=rfc822_coresubj(bs, &bisre);
-
-		free(bs);
-		bs=p;
-	}
-
-	if (!as || !bs)
-	{
-		if (as)	free(as);
-		if (bs)	free(bs);
-		enomem();
-	}
-
-	n=strcasecmp(as, bs);
-	free(as);
-	free(bs);
-
-	if (aisre)
-		aisre=1;	/* Just to be sure */
-
-	if (bisre)
-		bisre=1;	/* Just to be sure */
-
-	if (n == 0)	n=aisre - bisre;
-	return (n);
-}
-
 /*
 ** Messages supposed to be arranged in the reverse chronological order of
 ** arrival.
@@ -1449,7 +1393,7 @@ bool messagecmp::operator()(const MSGINFO &a, const MSGINFO &b) const
 		if (n)	return (n < 0);
 		break;
 	case 'S':
-		n=subjectcmp(a.subject_s.c_str(), b.subject_s.c_str());
+		n=a.subject_s.compare(b.subject_s);
 		if (n)	return (n < 0);
 		break;
 	}
@@ -2383,7 +2327,8 @@ containing the contents.
 
 /* Initialize a MSGINFO structure by reading the message headers */
 
-MSGINFO maildir_ngetinfo(const char *filename)
+static MSGINFO maildir_ngetinfo(const char *filename,
+				std::string &orig_subject)
 {
 	struct stat stat_buf;
 	const char *p;
@@ -2446,16 +2391,26 @@ MSGINFO maildir_ngetinfo(const char *filename)
 		const auto &[hdr, val]=headers.name_content();
 		if (hdr == "subject")
 		{
-			std::string s;
+			// We're going to place the core subject into msginfo,
+			// and store the original, decoded, subject into
+			// orig_subject. The core subject will be used for
+			// sorting and we'll restore it before saving it.
+
+			auto [s, flags] = rfc822::coresubj(val);
+
+			if (flags)
+			{
+				s += " (fwd)"; // Just for sorting purposes.
+			}
+
+			mi.subject_s=std::move(s);
 
 			rfc822::display_header(
 				"subject",
 				val,
-				"utf-8",
-				std::back_inserter(s)
+				unicode::utf_8,
+				std::back_inserter(orig_subject)
 			);
-
-			mi.subject_s=s;
 		}
 
 		if (hdr == "date" && mi.date_s.empty())
@@ -2691,6 +2646,8 @@ static void createmdcache(const char *folder, const char *maildir)
 	maildir_save_start(folder, maildir, current_time);
 
 	dirp=opendir(curname.c_str());
+
+	std::unordered_map<const MSGINFO *, std::string> orig_subjects;
 	while (dirp && (de=readdir(dirp)) != NULL)
 	{
 		if (de->d_name[0] == '.')
@@ -2698,15 +2655,23 @@ static void createmdcache(const char *folder, const char *maildir)
 
 		auto filename=curname + "/" + de->d_name;
 
-		auto mi=maildir_ngetinfo(filename.c_str());
+		std::string orig_subject;
 
-		msgset.insert(std::move(mi));
+		auto mi=maildir_ngetinfo(filename.c_str(), orig_subject);
+
+		orig_subjects.emplace( &*msgset.insert(std::move(mi)).first,
+				       orig_subject );
 	}
 	if (dirp)	closedir(dirp);
 
+	// Before saving it, restore the original subject.
 	for (auto &m:msgset)
-		maildir_saveinfo(m);
+	{
+		auto info=m;
 
+		info.subject_s=std::move(orig_subjects[&m]);
+		maildir_saveinfo(info);
+	}
 	maildir_save_end(maildir);
 }
 
@@ -2819,7 +2784,6 @@ static void list_sharable_callback(const char *n, void *vp)
 	struct add_shared_info *i=
 		(struct add_shared_info *)vp;
 	std::string o;
-	size_t j;
 
 	o.reserve(sizeof(SHARED ".")-1 + strlen(n));
 	o=SHARED ".";

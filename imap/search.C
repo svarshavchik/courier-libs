@@ -815,16 +815,10 @@ static int fill_search_header_done(const char *name, void *arg)
 
 			if (issubject == 0 && sip->as.empty())
 			{
-				int dummy;
-
-				char *p=rfc822_coresubj(
-					decodeinfo->utf8buf.c_str(),
-					&dummy
+				auto [p, flag]=rfc822::coresubj(
+					decodeinfo->utf8buf
 				);
-				if (!p)
-					write_error_exit(0);
-				sip->as=p;
-				free(p);
+				sip->as=std::move(p);
 			}
 			break;
 		case search_header:

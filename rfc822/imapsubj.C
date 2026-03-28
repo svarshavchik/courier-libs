@@ -1,10 +1,8 @@
 /*
-** Copyright 2000 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
-/*
-*/
 #include	"config.h"
 #include	<stdio.h>
 #include	<ctype.h>
@@ -14,82 +12,117 @@
 #include	<strings.h>
 #endif
 #include	"rfc822.h"
+#include	"rfc2047.h"
+#include	<string>
+#include	<string_view>
+#include	<optional>
+#include	<tuple>
+#include	<algorithm>
+#include	<courier-unicode.h>
 
 /* Skip over blobs */
 
-static char *skipblob(char *p, char **save_blob_ptr)
+static std::string_view skipblob(
+	std::string_view p,
+	std::optional<std::string> &blob_out)
 {
-	char *q;
-	char *orig_p=p;
-	int isalldigits=1;
+	if (p.empty() || p[0] != '[')
+		return p;
 
-	if (*p == '[')
+	bool isalldigits{true};
+
+	size_t i;
+
+	for (i=1; i < p.size(); ++i)
 	{
-		for (q= p+1; *q; q++)
-			if (*q == '[' || *q == ']')
-				break;
-			else if (strchr("0123456789", *q) == NULL)
-				isalldigits=0;
-
-		if (*q == ']')
-		{
-			p=q+1;
-
-			while (isspace((int)(unsigned char)*p))
-			{
-				++p;
-			}
-
-			if (save_blob_ptr && *save_blob_ptr && !isalldigits)
-			{
-				while (orig_p != p)
-					*(*save_blob_ptr)++=*orig_p++;
-			}
-
-			return (p);
-		}
+		if (p[i] == '[' || p[i] == ']')
+			break;
+		if (p[i] < '0' || p[i] > '9')
+			isalldigits=false;
 	}
-	return (p);
+
+	if (i == p.size() || p[i] != ']')
+		return p;
+
+	++i;
+
+	while (i < p.size() && unicode_isspace(p[i]))
+		++i;
+
+	if (!isalldigits && blob_out)
+		*blob_out += p.substr(0, i);
+	p.remove_prefix(i);
+
+	return p;
 }
 
-static char *skipblobs(char *p, char **save_blob_ptr)
+static std::string_view skipblobs(
+	std::string_view p,
+	std::optional<std::string> &blob_out)
 {
-	char *q=p;
+	std::string_view q=p;
 
 	do
 	{
 		p=q;
-		q=skipblob(p, save_blob_ptr);
+		q=skipblob(p, blob_out);
 	} while (q != p);
 	return (q);
 }
 
+static bool prefixcmp(std::string_view str, std::string_view pfix)
+{
+	if (str.size() < pfix.size())
+		return false;
+
+	return std::equal(str.data(), str.data()+pfix.size(), pfix.data(),
+		[](auto a, auto b)
+		{
+			return unicode_lc(static_cast<unsigned char>(a))
+				== unicode_lc(static_cast<unsigned char>(b));
+		}
+	);
+}
+
 /* Remove artifacts from the subject header */
 
-static void stripsubj(char *s, int *hasrefwd, char *save_blob_buf)
+static std::tuple<std::string_view, int> stripsubj(
+	std::string &str,
+	std::optional<std::string> &blob_out)
 {
-	char	*p;
-	char	*q;
-	int doit;
+	std::string dummy_blob;
+	std::string &blob_ptr=
+		blob_out ? *blob_out : dummy_blob;
 
-	for (p=q=s; *p; p++)
+	int hasrefwd=0;
+
 	{
-		if (!isspace((int)(unsigned char)*p))
+		auto p=str.begin(), q=p;
+
+		while (p != str.end())
 		{
-			*q++=*p;
-			continue;
-		}
-		while (p[1] && isspace((int)(unsigned char)p[1]))
-		{
+			if (!unicode_isspace(*p))
+			{
+				*q++=*p++;
+				continue;
+			}
+			while (p+1 != str.end() && unicode_isspace(*(p+1)))
+			{
+				++p;
+			}
+			*q++=' ';
 			++p;
 		}
-		*q++=' ';
+		str.erase(q, str.end());
 	}
-	*q=0;
+
+	std::string_view p=str;
+
+	bool doit;
 
 	do
 	{
-		doit=0;
+		doit=false;
 		/*
 		**
 		** (2) Remove all trailing text of the subject that matches
@@ -99,32 +132,30 @@ static void stripsubj(char *s, int *hasrefwd, char *save_blob_buf)
 		**  subj-trailer    = "(fwd)" / WSP
 		*/
 
-		for (p=s; *p; p++)
-			;
-		while (p > s)
+		while (!p.empty())
 		{
-			if ( isspace((int)(unsigned char)p[-1]))
+			if (unicode_isspace(p.back()))
 			{
-				--p;
+				p.remove_suffix(1);
 				continue;
 			}
-			if (p-s >= 5 && strncasecmp(p-5, "(FWD)", 5) == 0)
+			if (p.size() >= 5 && prefixcmp(
+				p.substr(p.size()-5),
+				"(fwd)"
+			))
 			{
-				p -= 5;
-				*hasrefwd |= CORESUBJ_FWD;
+				p.remove_suffix(5);
+				hasrefwd |= CORESUBJ_FWD;
 				continue;
 			}
 			break;
 		}
-		*p=0;
 
-		for (p=s; *p; )
+		while (!p.empty())
 		{
 			for (;;)
 			{
-				char *orig_blob_ptr;
-				int flag=CORESUBJ_FWD;
-
+				int flag=0;
 				/*
 				**
 				** (3) Remove all prefix text of the subject
@@ -140,46 +171,48 @@ static void stripsubj(char *s, int *hasrefwd, char *save_blob_buf)
 				**                   ; any CHAR except '[' and ']'
 				*/
 
-				if (isspace((int)(unsigned char)*p))
+				if (unicode_isspace(p.front()))
 				{
-					++p;
+					p.remove_prefix(1);
 					continue;
 				}
 
-				q=skipblobs(p, NULL);
+				std::optional<std::string> blob;
+				std::string_view q=skipblobs(p, blob);
 
-				if (strncasecmp(q, "RE", 2) == 0)
+				if (prefixcmp(q, "re"))
 				{
+					q.remove_prefix(2);
 					flag=CORESUBJ_RE;
-					q += 2;
 				}
-				else if (strncasecmp(q, "FWD", 3) == 0)
+				else if (prefixcmp(q, "fwd"))
 				{
-					q += 3;
+					q.remove_prefix(3);
+					flag=CORESUBJ_FWD;
 				}
-				else if (strncasecmp(q, "FW", 2) == 0)
+				else if (prefixcmp(q, "fw"))
 				{
-					q += 2;
+					q.remove_prefix(2);
+					flag=CORESUBJ_FWD;
 				}
-				else q=0;
 
-				if (q)
+				if (flag)
 				{
-					orig_blob_ptr=save_blob_buf;
+					size_t orig_size=blob_ptr.size();
 
-					q=skipblob(q, &save_blob_buf);
-					if (*q == ':')
+					q=skipblob(q, blob_out);
+
+					if (q.substr(0, 1) == ":")
 					{
-						p=q+1;
-						*hasrefwd |= flag;
+						p=q.substr(1);
+						hasrefwd |= flag;
 						continue;
 					}
-
-					save_blob_buf=orig_blob_ptr;
+					blob_ptr.erase(orig_size);
 				}
 
-
 				/*
+				**
 				** (4) If there is prefix text of the subject
 				** that matches the subj-blob ABNF, and
 				** removing that prefix leaves a non-empty
@@ -189,23 +222,22 @@ static void stripsubj(char *s, int *hasrefwd, char *save_blob_buf)
 				**                   ; can be a subj-blob
 				*/
 
-				orig_blob_ptr=save_blob_buf;
+				size_t orig_size=blob_ptr.size();
+				q=skipblob(p, blob);
 
-				q=skipblob(p, &save_blob_buf);
-
-				if (q != p && *q)
+				if (q != p && !q.empty())
 				{
 					p=q;
 					continue;
 				}
-				save_blob_buf=orig_blob_ptr;
+				blob_ptr.erase(orig_size);
 				break;
 			}
 
 			/*
 			**
 			** (6) If the resulting text begins with the
-			** subj-fwd-hdr ABNF and ends with the subj-fwd-trl
+`			** subj-fwd-hdr ABNF and ends with the subj-fwd-trl
 			** ABNF, remove the subj-fwd-hdr and subj-fwd-trl and
 			** repeat from step (2).
 			**
@@ -213,84 +245,88 @@ static void stripsubj(char *s, int *hasrefwd, char *save_blob_buf)
 			**
 			**   subj-fwd-trl    = "]"
 			*/
-
-			if (strncasecmp(p, "[FWD:", 5) == 0)
+			if (prefixcmp(p, "[fwd:"))
 			{
-				q=strrchr(p, ']');
-				if (q && q[1] == 0)
+				auto rb=p.find(']');
+				if (rb == p.size()-1)
 				{
-					*q=0;
-					p += 5;
-					*hasrefwd |= CORESUBJ_FWD;
+					p.remove_suffix(1);
+					p.remove_prefix(5);
+					hasrefwd |= CORESUBJ_FWD;
 
-					for (q=s; (*q++=*p++) != 0; )
-						;
-					doit=1;
+					doit=true;
 				}
 			}
 			break;
 		}
 	} while (doit);
 
-	q=s;
-	while ( (*q++ = *p++) != 0)
-		;
-	if (save_blob_buf)
-		*save_blob_buf=0;
+	return {p, hasrefwd};
 }
 
-char *rfc822_coresubj(const char *s, int *hasrefwd)
+std::tuple<std::string, int> rfc822::coresubj(std::string_view str)
 {
-	char *q=strdup(s), *r;
-	int dummy;
+	std::u32string us;
 
-	if (!hasrefwd)
-		hasrefwd= &dummy;
+	display_header_unicode("subject", str, std::back_inserter(us));
 
-	*hasrefwd=0;
-	if (!q)	return (0);
+	for (auto &c:us)
+		c=unicode_uc(c);
 
-	for (r=q; *r; r++)
-		if ((*r & 0x80) == 0)	/* Just US-ASCII casing, thanks */
-		{
-			if (*r >= 'a' && *r <= 'z')
-				*r += 'A'-'a';
-		}
-	stripsubj(q, hasrefwd, 0);
-	return (q);
+	auto s=unicode::iconvert::fromu::convert(us, unicode::utf_8).first;
+
+	std::optional<std::string> blob;
+
+	auto [sv, hasrefwd]=stripsubj(s, blob);
+
+	return {std::string{sv.begin(), sv.end()}, hasrefwd};
 }
 
-char *rfc822_coresubj_nouc(const char *s, int *hasrefwd)
+std::tuple<std::string, int> rfc822::coresubj_nouc(std::string_view str)
 {
-	char *q=strdup(s);
-	int dummy;
+	std::string s{str.begin(), str.end()};
 
-	if (!hasrefwd)
-		hasrefwd= &dummy;
+	std::optional<std::string> blob;
 
-	*hasrefwd=0;
-	if (!q)	return (0);
+	auto [sv, hasrefwd]=stripsubj(s, blob);
 
-	stripsubj(q, hasrefwd, 0);
-	return (q);
+	return {std::string{sv.begin(), sv.end()}, hasrefwd};
+}
+
+std::tuple<std::string, int> rfc822::coresubj_keepblobs(std::string_view str)
+{
+	std::string s{str.begin(), str.end()};
+
+	std::optional<std::string> blob;
+
+	blob.emplace();
+	auto [sv, hasrefwd]=stripsubj(s, blob);
+
+	blob->append(sv);
+	return {std::move(*blob), hasrefwd};
+}
+
+char *rfc822_coresubj(const char *s, int *hasrefwd_ret)
+{
+	auto [str, hasrefwd] = rfc822::coresubj(s);
+
+	if (hasrefwd_ret)
+		*hasrefwd_ret=hasrefwd;
+	return strdup(str.c_str());
+}
+
+char *rfc822_coresubj_nouc(const char *s, int *hasrefwd_ret)
+{
+	auto [str, hasrefwd] = rfc822::coresubj_nouc(s);
+
+	if (hasrefwd_ret)
+		*hasrefwd_ret=hasrefwd;
+	return strdup(str.c_str());
 }
 
 char *rfc822_coresubj_keepblobs(const char *s)
 {
-	char *q=strdup(s), *r;
-	int dummy;
+	auto [str, hasrefwd] = rfc822::coresubj_keepblobs(s);
 
-	if (!q)	return (0);
-
-	r=strdup(s);
-	if (!r)
-	{
-		free(q);
-		return (0);
-	}
-
-	stripsubj(q, &dummy, r);
-	strcat(r, q);
-	free(q);
-	return (r);
+	return strdup(str.c_str());
 }
