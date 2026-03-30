@@ -20,6 +20,7 @@ std::string events;
 #include "testsuitecpp.H"
 #include "rfc2045.h"
 #include "rfc2045cpp.C"
+#include "rfc2045reply.h"
 
 template<bool crlf>
 rfc2045::entity runtest(std::string message,
@@ -901,6 +902,194 @@ void test7()
 	}
 }
 
+void test8()
+{
+	static const struct {
+		rfc2045::replymode_t replymode;
+		size_t wrap_decoded_header;
+		const char *subject;
+		const char *result;
+	} tests[] = {
+		// Test 1
+		{
+			rfc2045::replymode_t::reply,
+			0,
+			"Re: [fwd: message subject]",
+			"To: sender@example.com\n"
+			"Subject: Re: message subject\n"
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; format=flowed; delsp=yes; charset=\"utf-8\"\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"In message subject you write:\n"
+			"\n"
+			"> Original message.\n"
+			"\n"
+			"\n"
+			""
+		},
+		// Test 2
+		{
+			rfc2045::replymode_t::reply,
+			0,
+			"Re: [BLOB] this is a very, very long subject line that should end up being wrapped around [0] (fwd)",
+			"To: sender@example.com\n"
+			"Subject: Re: this is a very, very long subject line that should end up being\n"
+			"  wrapped around [0]\n"
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; format=flowed; delsp=yes; charset=\"utf-8\"\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"In this is a very, very long subject line that should end up being wrapped  \n"
+			"around [0] you write:\n"
+			"\n"
+			"> Original message.\n"
+			"\n"
+			"\n"
+			""
+		},
+		// Test 3
+		{
+			rfc2045::replymode_t::forward,
+			0,
+			"Re: [fwd: message subject]",
+			"Subject: message subject (fwd)\n"
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; format=flowed; delsp=yes; charset=\"utf-8\"\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"\n"
+			"\n"
+			"From: sender@example.com\n"
+			"Subject: Re: [fwd: message subject]\n"
+			"\n"
+			"Original message.\n"
+			""
+		},
+		// Test 4
+		{
+			rfc2045::replymode_t::forward,
+			0,
+			"Re: [BLOB] this is a very, very long subject line that should end up being wrapped around [0] (fwd)",
+			"Subject: this is a very, very long subject line that should end up being\n"
+			"  wrapped around [0] (fwd)\n"
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; format=flowed; delsp=yes; charset=\"utf-8\"\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"\n"
+			"\n"
+			"From: sender@example.com\n"
+			"Subject: Re: [BLOB] this is a very, very long subject line that should end up being wrapped around [0] (fwd)\n"
+			"\n"
+			"Original message.\n"
+			""
+		},
+		// Test 5
+		{
+			rfc2045::replymode_t::forward,
+			77,
+			"Re: [BLOB] this is a very, very long subject line that should end up being wrapped around [0] (fwd)",
+			"Subject: this is a very, very long subject line that should end up being\n"
+			"  wrapped around [0] (fwd)\n"
+			"Mime-Version: 1.0\n"
+			"Content-Type: text/plain; format=flowed; delsp=yes; charset=\"utf-8\"\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"\n"
+			"\n"
+			"\n"
+			"From: sender@example.com\n"
+			"Subject: Re: [BLOB] this is a very, very long subject line that should end up being  \n"
+			"wrapped around [0] (fwd)\n"
+			"\n"
+			"Original message.\n"
+			""
+		},
+	};
+
+	size_t testnum=0;
+
+	for (const auto &test:tests)
+	{
+		++testnum;
+		std::string s{
+			"From: sender@example.com\n"
+			"Subject: "
+		};
+
+		s += test.subject;
+		s += "\n"
+			"\n"
+			"Original message.\n";
+
+		std::istringstream i{s};
+
+		rfc2045::entity_parser<false> parser;
+
+		parser.parse(s.begin(), s.end());
+
+		auto entity=parser.parsed_entity();
+
+		rfc2045::reply reply;
+
+		reply.replymode=test.replymode;
+		reply.replysalut="In %s you write:";
+		reply.wrap_decoded_header=test.wrap_decoded_header;
+
+		std::string result;
+		reply(
+			[&]
+			(const auto &chunk)
+			{
+				result += chunk;
+			},
+			entity,
+			*i.rdbuf()
+		);
+#if UPDATE_TESTSUITE
+		std::cout << "\t\t// Test " << testnum << "\n\t\t{\n"
+			"\t\t\t";
+
+		switch(test.replymode) {
+		case rfc2045::replymode_t::reply:
+			std::cout << "rfc2045::replymode_t::reply";
+			break;
+		case rfc2045::replymode_t::forward:
+			std::cout << "rfc2045::replymode_t::forward";
+			break;
+		default:
+			break;
+		}
+
+		std::cout << ",\n\t\t\t"
+			  << test.wrap_decoded_header
+			  << ",\n\t\t\t\"" << test.subject << "\",\n\t\t\t\"";
+
+		for (auto c:result)
+		{
+			switch(c) {
+			case '\n':
+				std::cout << "\\n\"\n\t\t\t\"";
+				break;
+			case '"':
+				std::cout << "\\\"";
+				break;
+			default:
+				std::cout << c;
+				break;
+			}
+		}
+		std::cout << "\"\n\t\t},\n";
+#else
+		if (result != test.result)
+		{
+			std::cerr << "test 8: test " << testnum << " failed:\n"
+				  << result << "\n";
+			exit(1);
+		}
+#endif
+	}
+}
 int main()
 {
 	alarm(60);
@@ -938,5 +1127,6 @@ int main()
 
 	test6();
 	test7();
+	test8();
 	return 0;
 }

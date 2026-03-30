@@ -53,7 +53,7 @@ reformail_SOURCES=reformail.C
 reformail_LDADD = libmdcommon.la
 reformail_DEPENDENCIES = $(reformail_LDADD)
 
-noinst_PROGRAMS=maildrop reformail mailbot mailbot-old testtimer
+noinst_PROGRAMS=maildrop reformail mailbot testtimer
 
 mailbot_SOURCES=mailbot.C
 mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
@@ -63,12 +63,6 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../rfc822/librfc822.la ../liblock/liblock.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode -lpthread
 mailbot_LDFLAGS = -static
-
-mailbot_old_SOURCES=mailbot-old.c
-nodist_EXTRA_mailbot_old_SOURCES=forcecpp.C
-mailbot_old_DEPENDENCIES=$(mailbot_DEPENDENCIES)
-mailbot_old_LDADD=$(mailbot_LDADD)
-mailbot_old_LDFLAGS = -static
 
 testtimer_SOURCES=testtimer.C
 testtimer_LDADD=libmdcommon.la
@@ -80,7 +74,6 @@ check-am: testsuite testsuite.mailbot
 	$(MAKE) run-testsuite
 	$(MAKE) run-testsuite2
 	$(MAKE) run-testsuite-mailbot
-	$(MAKE) run-testsuite-mailbot-old
 
 run-testsuite: testsuite
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
@@ -99,14 +92,6 @@ run-testsuite-mailbot: testsuite.mailbot
 		export VALGRIND_EXTRA_OPTS; \
 		rm -f ./mailbot.tst; \
 		ln -s mailbot mailbot.tst; \
-		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
-	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
-	rm -f mailbot.tst testsuite.diff
-
-run-testsuite-mailbot-old: testsuite.mailbot
-	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
-		rm -f ./mailbot.tst; \
-		ln -s mailbot-old mailbot.tst; \
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
 	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
 	rm -f mailbot.tst testsuite.diff

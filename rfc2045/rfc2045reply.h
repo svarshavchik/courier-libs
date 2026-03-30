@@ -86,7 +86,7 @@ struct rfc2045::reply {
 	//
 	// %F - the original message's sender's name
 	//
-	// %S - the Subject: header from the original message
+	// %s - the Subject: header from the original message
 	//
 	// %d - the original message's date, in the local timezone
 	//
@@ -169,7 +169,11 @@ struct rfc2045::reply {
 	std::function<bool (std::string_view)> is_mailinglist;
 
 	// The respondent's local charset
-	std::string charset;
+	std::string charset{unicode::utf_8};
+
+	// When forwarding the original message, whether to line-wrap
+	// the original message's decoded header and to which line width.
+	size_t wrap_decoded_header{0};
 
 	// This is used instead of replysalut for forwards.
 	std::string_view forwardsep;
@@ -197,6 +201,26 @@ struct rfc2045::reply {
 	}
 
 private:
+	struct wrap_raw {
+		virtual void out(std::string)=0;
+
+		void wrap(std::string_view raw_header);
+	};
+
+	template<typename out_closure_t> struct wrap_raw_impl : wrap_raw {
+		out_closure_t &out_closure;
+
+		wrap_raw_impl(out_closure_t &out_closure)
+			: out_closure{out_closure}
+		{
+		}
+
+		void out(std::string s) override
+		{
+			out_closure(s);
+		}
+	};
+
 	template<typename out_closure_t, typename src_type>
 	void mkforward(out_closure_t &&out_closure,
 		       const rfc2045::entity &message,
@@ -584,7 +608,9 @@ void rfc2045::reply::mkforward(out_closure_t &&out_closure,
 	{
 		subject=std::get<0>(rfc822::coresubj_keepblobs(subject));
 
-		out_closure(subject);
+		wrap_raw_impl wrap{out_closure};
+
+		wrap.wrap(subject);
 		out_closure(" (fwd)");
 	}
 	out_closure("\nMime-Version: 1.0\n");
@@ -739,7 +765,7 @@ void rfc2045::reply::mkforward(out_closure_t &&out_closure,
 		hi.name_lc=false;
 		hi.keep_eol=true;
 
-		std::string hdrbuf;
+		std::u32string hdrbuf;
 
 		do
 		{
@@ -760,20 +786,58 @@ void rfc2045::reply::mkforward(out_closure_t &&out_closure,
 			{
 				const auto &[name, content] = hi.name_content();
 
-				hdrbuf=name;
-				hdrbuf += ": ";
+				hdrbuf=std::u32string{name.begin(), name.end()};
 
-				rfc822::display_header(
-					name,
-					content,
-					charset,
-					std::back_inserter(hdrbuf)
-				);
+				for (auto &c:hdrbuf)
+					c &= 0xFF; // Precaution.
+				hdrbuf += U": ";
+
+				if (wrap_decoded_header)
+				{
+					std::vector<std::u32string>
+						wrapped_header;
+
+					auto iter=std::back_insert_iterator(
+						wrapped_header
+					);
+					rfc822::wrap_line_unicode wrapper{
+						iter,
+						wrap_decoded_header
+					};
+
+					rfc822::display_header_unicode(
+						name, content,
+						wrapper,
+						wrapper
+					);
+					wrapper.finish();
+
+					std::u32string_view pfix1=U"";
+
+					for (auto &h:wrapped_header)
+					{
+						hdrbuf += pfix1;
+						hdrbuf += h;
+
+						pfix1=U" \n";
+					}
+				}
+				else
+				{
+					rfc822::display_header_unicode(
+						name,
+						content,
+						std::back_inserter(hdrbuf)
+					);
+				}
 
 				if (hdrbuf.back() != '\n')
 					hdrbuf.push_back('\n');
 
-				out_closure(hdrbuf);
+				out_closure(unicode::iconvert::fromu::convert(
+						    hdrbuf,
+						    charset
+					    ).first);
 			}
 		} while (hi.next());
 
@@ -1087,7 +1151,7 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 			!sender_name.empty() ? sender_name:
 			!sender_addr.empty() ? sender_addr:"@",
 			date,
-			subject);
+			usubject);
 	}
 
 	if (!oldreplyto.empty())
@@ -1246,7 +1310,10 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 		else
 		{
 			out_closure("Re: ");
-			out_closure(usubject);
+
+			wrap_raw_impl wrap{out_closure};
+
+			wrap.wrap(usubject);
 		}
 	}
 
@@ -1373,7 +1440,6 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 	out_closure("\n");
 	if (writesig_func)
 		writesig_func();
-	out_closure("\n");
 
 	if (dsn_report_type)
 	{

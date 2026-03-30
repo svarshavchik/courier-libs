@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2018 S. Varshavchik.  See COPYING for
+** Copyright 2000-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -39,6 +39,41 @@ static std::string mksalutation_datefmt(std::string_view fmt,
 		}
 	}
 	return date_s;
+}
+
+namespace {
+
+	struct addnewline {
+		std::string s;
+
+		using iterator_category=std::output_iterator_tag;
+		using value_type=void;
+		using pointer=void;
+		using reference=void;
+		using difference_type=void;
+
+		addnewline &operator*()
+		{
+			return *this;
+		}
+		addnewline &operator++()
+		{
+			return *this;
+		}
+		addnewline &operator++(int)
+		{
+			return *this;
+		}
+
+		addnewline &operator=(std::string l)
+		{
+			if (!s.empty())
+				s += " \n";
+			s += std::move(l);
+
+			return *this;
+		}
+	};
 }
 
 std::string rfc2045::reply::mksalutation(std::string_view salutation_template,
@@ -141,7 +176,30 @@ std::string rfc2045::reply::mksalutation(std::string_view salutation_template,
 		}
 	}
 
-	return salutation;
+	addnewline adder;
+
+	unicode::iconvert::fromu::string_converter make_wrapped{
+		adder,
+		charset
+	};
+
+	rfc822::wrap_line_unicode wrapper{make_wrapped, 75};
+
+	rfc822::display_header_unicode_lb do_wrap{wrapper, wrapper};
+	bool errflag;
+
+	unicode::iconvert::tou::convert(
+		salutation.begin(),
+		salutation.end(),
+		charset,
+		errflag,
+		do_wrap
+	);
+
+	do_wrap.finish();
+	wrapper.finish();
+
+	return adder.s;
 }
 
 std::string rfc2045::reply::mkreferences(std::string_view oldref,
@@ -185,4 +243,61 @@ std::string rfc2045::reply::mkreferences(std::string_view oldref,
 	}
 
 	return s;
+}
+
+void rfc2045::reply::wrap_raw::wrap(std::string_view raw_header)
+{
+	const char *next_eolseq=nullptr;
+
+	while (!raw_header.empty())
+	{
+		if (unicode_isspace(
+			    static_cast<unsigned char>(raw_header[0])
+		    ))
+		{
+			raw_header.remove_prefix(1);
+			continue;
+		}
+
+		size_t s=70;
+
+		if (raw_header.size() <= s)
+			s=raw_header.size();
+		else
+		{
+			while (s)
+			{
+				if (unicode_isspace(
+					    static_cast<unsigned char>(
+						    raw_header[s])))
+				{
+					while (unicode_isspace(
+						       static_cast<
+						       unsigned char>(
+							       raw_header[s-1]
+						       )))
+						--s;
+					break;
+				}
+				--s;
+			}
+
+			if (s == 0)
+			{
+				for (s=70; s<raw_header.size(); ++s)
+				{
+					if (unicode_isspace(
+						    static_cast<unsigned char>(
+							    raw_header[s])))
+						break;
+				}
+			}
+		}
+
+		if (next_eolseq)
+			out({next_eolseq});
+		next_eolseq="\n  ";
+		out({raw_header.data(), s});
+		raw_header.remove_prefix(s);
+	}
 }

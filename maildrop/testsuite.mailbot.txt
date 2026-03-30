@@ -14,7 +14,6 @@ Hóla! writes:
 
 autoreply text
 
-
 Precedence: junk
 Auto-Submitted: auto-replied
 To: =?iso-8859-1?Q?H=F3la!?= sender <test@xn--80ah.example.com>
@@ -32,7 +31,6 @@ Hóla! sender writes:
 > message
 
 autoreply text
-
 
 Precedence: junk
 Auto-Submitted: auto-replied
@@ -45,15 +43,16 @@ Content-Type: text/plain; format=flowed; delsp=yes; charset=utf-8
 Content-Transfer-Encoding: 8bit
 
 On Sun, 22 Nov 2009 10:57:32 -0500,
-in alt.test (alt.test.1,alt.test.2), Hóla! sender (test@да.example.com),
-in message <message1@example.com>, Re: test message, Hóla! (fwd), writes:
+in alt.test (alt.test.1,alt.test.2),  
+Hóla! sender (test@да.example.com),
+in message <message1@example.com>, test  
+message, Hóla!, writes:
 
 > Original
 > test
 > message
 
 autoreply text
-
 
 Precedence: junk
 Auto-Submitted: auto-replied
@@ -74,7 +73,6 @@ Hóla! sender writes:
 
 autoreply text
 
-
 Precedence: junk
 Auto-Submitted: auto-replied
 To: =?iso-8859-1?Q?H=F3la!?= sender <test@xn--80ah.example.com>
@@ -87,7 +85,6 @@ Content-Type: text/plain; format=flowed; delsp=yes; charset=utf-8
 Content-Transfer-Encoding: 8bit
 
 autoreply text
-
 
 Precedence: junk
 Auto-Submitted: auto-replied
@@ -490,7 +487,6 @@ nobody@example.com writes:
 
 autoreply text
 
-
 Precedence: junk
 Auto-Submitted: auto-replied
 Subject: 
@@ -525,7 +521,6 @@ Content-Type: text/plain; format=flowed; delsp=yes; charset=utf-8
 Content-Transfer-Encoding: 8bit
 
 DSN message text
-
 
 
 --
@@ -568,7 +563,6 @@ Content-Transfer-Encoding: 8bit
 DSN message text
 
 
-
 --
 Content-Type: message/feedback-report; charset="utf-8"
 Content-Transfer-Encoding: 8bit
@@ -608,7 +602,6 @@ Content-Transfer-Encoding: 8bit
 DSN message text
 
 
-
 --
 Content-Type: message/feedback-report; charset="utf-8"
 Content-Transfer-Encoding: 8bit
@@ -645,7 +638,6 @@ sender@example.com writes:
 
 Autoresponse test
 
-
 Precedence: junk
 Auto-Submitted: auto-replied
 To: nobody@example.com
@@ -660,7 +652,6 @@ nobody@example.com writes:
 
 Autoresponse test
 
-
 Precedence: junk
 Auto-Submitted: auto-replied
 To: nobody@example.com
@@ -674,7 +665,6 @@ nobody@example.com writes:
 > Original message
 
 Autoresponse test
-
 
 Precedence: junk
 Auto-Submitted: auto-replied
@@ -710,7 +700,6 @@ nobody@example.com writes:
 > Original message
 
 Autoresponse test
-
 
 Precedence: junk
 Auto-Submitted: auto-replied

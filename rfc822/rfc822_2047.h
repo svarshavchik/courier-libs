@@ -370,6 +370,97 @@ private:
 	}
 };
 
+// Use the Unicode linebreaking algorithm to wrap a line to the given width.
+//
+// This is intended to be used as an object that's passed as both the output
+// iterator and the wrapping closure to display_header_unicode_lb's
+// constructor.
+//
+// An output iterator over std::u32strings is passed to the constructor,
+// together with the target width.
+//
+// Then, display_header_unicode_lb iterates over unicode characters, followed
+// by calling its finish() method, then this one's finish() method.
+
+template<typename out_iter>
+struct wrap_line_unicode {
+private:
+	const size_t target_width;
+	out_iter &iter;
+
+public:
+	using iterator_category=std::output_iterator_tag;
+	using value_type=void;
+	using pointer=void;
+	using reference=void;
+	using difference_type=void;
+
+	wrap_line_unicode &operator*()
+	{
+		return *this;
+	}
+	wrap_line_unicode &operator++()
+	{
+		return *this;
+	}
+	wrap_line_unicode &operator++(int)
+	{
+		return *this;
+	}
+
+	wrap_line_unicode &operator=(char32_t c)
+	{
+		us.push_back(c);
+		return *this;
+	}
+
+	wrap_line_unicode(out_iter &iter, size_t target_width)
+		: target_width{target_width}, iter{iter}
+	{
+	}
+
+
+private:
+
+	std::u32string line;
+	size_t line_len=0;
+
+	std::u32string us;
+public:
+
+	void operator()()
+	{
+		size_t l=0;
+
+		for (auto &c:us)
+		{
+			l += unicode_wcwidth(c);
+		}
+
+		if (line.empty() || line_len+l <= target_width)
+		{
+			line += us;
+			line_len += l;
+			us.clear();
+			return;
+		}
+
+		*iter++=line;
+		line=std::move(us);
+		line_len=l;
+		us.clear();
+	};
+
+	void finish()
+	{
+		if (!us.empty())
+			operator()();
+
+		if (!line.empty())
+			*iter++=line;
+	}
+};
+
 // Here's the name of a header, and here's its encoded contents. Convert
 // the header to Unicode.
 //
@@ -503,44 +594,15 @@ auto wrap_header_unicode(std::string_view headername,
 			 size_t target_width,
 			 out_iter &&iter)
 {
-	std::u32string line;
-	size_t line_len=0;
-
-	std::u32string us;
-
-	auto flush=[&]
-	{
-		size_t l=0;
-
-		for (auto &c:us)
-		{
-			l += unicode_wcwidth(c);
-		}
-
-		if (line.empty() || line_len+l <= target_width)
-		{
-			line += us;
-			line_len += l;
-			us.clear();
-			return;
-		}
-
-		*iter++=line;
-		line=std::move(us);
-		line_len=l;
-		us.clear();
-	};
+	wrap_line_unicode wrapper{iter, target_width};
 
 	display_header_unicode(
 		headername, headercontents,
-		std::back_inserter(us),
-		flush);
+		wrapper,
+		wrapper
+	);
 
-	if (!us.empty())
-		flush();
-
-	if (!line.empty())
-		*iter++=line;
+	wrapper.finish();
 
 	if constexpr(!std::is_same_v<out_iter, out_iter &>)
 		return iter;
