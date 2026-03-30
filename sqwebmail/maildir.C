@@ -36,22 +36,10 @@
 #include	<unistd.h>
 #endif
 
-#if	HAVE_DIRENT_H
-#include	<dirent.h>
-#define	NAMLEN(dirent)	strlen(dirent->d_name)
-#else
-#define	dirent	direct
-#define	NAMLEN(dirent)	((dirent)->d_namlen)
-#if	HAVE_SYS_NDIR_H
-#include	<sys/ndir.h>
-#endif
-#if	HAVE_SYS_DIR_H
-#include	<sys/dir.h>
-#endif
-#if	HAVE_NDIR_H
-#include	<ndir.h>
-#endif
-#endif
+#include	<filesystem>
+#include	<system_error>
+
+namespace fs = std::filesystem;
 
 #include	<sys/types.h>
 #include	<sys/stat.h>
@@ -1036,8 +1024,6 @@ static std::string foldercountfilename(const char *folder)
 static void maildir_checknew(const char *folder, const char *dir)
 {
 	struct	stat	stat_buf;
-	DIR	*dirp;
-	struct	dirent	*dire;
 	char	acl_buf[2];
 
 	/* Delete old files in tmp */
@@ -1080,14 +1066,18 @@ static void maildir_checknew(const char *folder, const char *dir)
 	strcpy(acl_buf, ACL_EXPUNGE);
 	acl_computeRightsOnFolder(folder, acl_buf);
 
-	for (dirp=opendir(dirbuf.c_str()); dirp && (dire=readdir(dirp)) != 0; )
-	{
-		if (dire->d_name[0] == '.')	continue;
+	std::error_code ec;
 
-		if (maildirfile_type(dire->d_name) == MSGTYPE_DELETED &&
+	for (const auto &entry : fs::directory_iterator(dirbuf, ec))
+	{
+		std::string filename = entry.path().filename().string();
+
+		if (filename[0] == '.')	continue;
+
+		if (maildirfile_type(filename.c_str()) == MSGTYPE_DELETED &&
 		    acl_buf[0])
 		{
-			auto p=dirbuf + "/" + dire->d_name;
+			auto p=dirbuf + "/" + filename;
 
 			/*
 			** Because of the funky way we do things,
@@ -1102,7 +1092,7 @@ static void maildir_checknew(const char *folder, const char *dir)
 				struct stat stat_buf;
 				unsigned long filesize=0;
 
-				if (maildir_parsequota(dire->d_name,
+				if (maildir_parsequota(filename.c_str(),
 						       &filesize))
 					if (stat(p.c_str(), &stat_buf) == 0)
 						filesize=stat_buf.st_size;
@@ -1119,7 +1109,6 @@ static void maildir_checknew(const char *folder, const char *dir)
 				*/
 		}
 	}
-	if (dirp)	closedir(dirp);
 }
 
 /*
@@ -1149,8 +1138,6 @@ static bool goodcache(const char *foldername)
 void maildir_autopurge()
 {
 	struct	stat	stat_buf;
-	DIR	*dirp;
-	struct	dirent	*dire;
 	char buffer[80];
 	size_t n, i;
 	FILE *fp;
@@ -1159,29 +1146,30 @@ void maildir_autopurge()
 	** quotas, so automatically upgrade all folders.
 	*/
 
-	for (dirp=opendir("."); dirp && (dire=readdir(dirp)) != 0; )
-	{
-		if (dire->d_name[0] != '.')	continue;
-		if (strcmp(dire->d_name, "..") == 0)	continue;
+	std::error_code ec;
 
-		if (strcmp(dire->d_name, "."))
-		{
-			auto filename=std::string(dire->d_name) + "/maildirfolder";
-			close(open(filename.c_str(), O_RDWR|O_CREAT, 0644));
-		}
+	for (const auto &entry : fs::directory_iterator(".", ec))
+	{
+		std::string filename = entry.path().filename().string();
+
+		if (filename[0] != '.')	continue;
+
+		auto f=filename + "/maildirfolder";
+
+		close(open(f.c_str(), O_RDWR|O_CREAT, 0644));
 
 		/* Eliminate obsoleted cache files */
 
-		auto filename=std::string(dire->d_name) + "/" MAILDIRCOUNTCACHE;
+		f=filename + "/" MAILDIRCOUNTCACHE;
 
-		unlink(filename.c_str());
+		unlink(f.c_str());
 
-		filename=std::string(dire->d_name) + "/" MAILDIRCURCACHE;
+		f=filename + "/" MAILDIRCURCACHE;
 
-		unlink(filename.c_str());
+		unlink(f.c_str());
 
-		filename=std::string(dire->d_name) + "/" MAILDIRCURCACHE "." DBNAME;
-		unlink(filename.c_str());
+		f=filename + "/" MAILDIRCURCACHE "." DBNAME;
+		unlink(f.c_str());
 	}
 
 	/* Version 0.24 top level remove */
@@ -1193,8 +1181,7 @@ void maildir_autopurge()
 	unlink(MAILDIRCURCACHE "." DBNAME);
 	mkdir (MAILDIRCURCACHE, 0700);
 
-	if (dirp)
-		closedir(dirp);
+
 
 	/*
 	** Periodically purge stale cache files of nonexistent folders.
@@ -1217,44 +1204,31 @@ void maildir_autopurge()
 
 	std::string folderdir;
 
-	for (dirp=opendir(MAILDIRCURCACHE); dirp && (dire=readdir(dirp)); )
+	for (const auto &entry : fs::directory_iterator(MAILDIRCURCACHE, ec))
 	{
-		if (dire->d_name[0] == '.')
+		std::string filename = entry.path().filename().string();
+
+		if (filename[0] == '.')
 			continue;
 
-		if (strncmp(dire->d_name, DBNAME ".", sizeof(DBNAME)) == 0 ||
-		    strncmp(dire->d_name, "cnt.", 4) == 0)
+		if (filename.compare(0, sizeof(DBNAME), DBNAME ".") == 0 ||
+		    filename.compare(0, 4, "cnt.") == 0)
 		{
 			if (i == n)
 			{
-				if (!goodcache(strchr(dire->d_name, '.')+1))
+				if (!goodcache(strchr(filename.c_str(), '.')+1))
 				{
-					folderdir.clear();
-					folderdir.reserve(
-						sizeof(MAILDIRCURCACHE "/")
-						+ strlen(dire->d_name)-1
-					);
-					folderdir.append(MAILDIRCURCACHE "/");
-					folderdir.append(dire->d_name);
+					folderdir = std::string(MAILDIRCURCACHE "/") + filename;
 					unlink(folderdir.c_str());
 				}
-				break;
 			}
 			++i;
 			continue;
 		}
 
-		folderdir.clear();
-		folderdir.reserve(
-			sizeof(MAILDIRCURCACHE "/")
-			+ strlen(dire->d_name)-1
-		);
-		folderdir.append(MAILDIRCURCACHE "/");
-		folderdir.append(dire->d_name);
+		folderdir = std::string(MAILDIRCURCACHE "/") + filename;
 		unlink(folderdir.c_str());
 	}
-	if (dirp)
-		closedir(dirp);
 
 	if (i == n)
 		++i;
@@ -1279,18 +1253,20 @@ void maildir_autopurge()
 	time(&current_time);
 	auto dirbuf=trashdir + "/cur";
 
-	for (dirp=opendir(dirbuf.c_str()); dirp && (dire=readdir(dirp)) != 0; )
+	for (const auto &entry : fs::directory_iterator(dirbuf, ec))
 	{
-		if (dire->d_name[0] == '.')	continue;
-		auto filename=dirbuf + "/" + dire->d_name;
+		std::string filename = entry.path().filename().string();
 
-		if (stat(filename.c_str(), &stat_buf) == 0 &&
+		if (filename[0] == '.')	continue;
+		auto p=dirbuf + "/" + filename;
+
+		if (stat(p.c_str(), &stat_buf) == 0 &&
 		    pref_autopurge &&
 		    stat_buf.st_ctime < current_time
 		    - pref_autopurge * 24 * 60 * 60)
 		{
 			if (maildirquota_countfolder(dirbuf.c_str()) &&
-			    maildirquota_countfile(filename.c_str()))
+			    maildirquota_countfile(p.c_str()))
 			{
 				unsigned long filesize=0;
 
@@ -1303,10 +1279,9 @@ void maildir_autopurge()
 							      -1);
 			}
 
-			unlink(filename.c_str());
+			unlink(p.c_str());
 		}
 	}
-	if (dirp)	closedir(dirp);
 
 	maildir_purgemimegpg();
 }
@@ -1321,44 +1296,36 @@ void maildir_autopurge()
 
 void maildir_purgemimegpg()
 {
-	DIR	*dirp;
-	struct	dirent	*dire;
+	std::error_code ec;
 
-	for (dirp=opendir("tmp"); dirp && (dire=readdir(dirp)) != 0; )
+	for (const auto &entry: fs::directory_iterator("tmp", ec))
 	{
-		if (strstr(dire->d_name, ":mimegpg:") == 0 &&
-		    strstr(dire->d_name, ":calendar:") == 0)	continue;
+		std::string filename = entry.path().filename().string();
 
-		std::string p;
-		p.reserve(sizeof("tmp/")-1+strlen(dire->d_name));
-		p.append("tmp/").append(dire->d_name);
+		if (filename.find(":mimegpg:") == std::string::npos &&
+		    filename.find(":calendar:") == std::string::npos)	continue;
+
+		std::string p = std::string("tmp/") + filename;
 
 		unlink(p.c_str());
 	}
-
-	if (dirp)
-		closedir(dirp);
 }
 
 /* Ditto for search results */
 
 void maildir_purgesearch()
 {
-	DIR	*dirp;
-	struct	dirent	*dire;
+	std::error_code ec;
 
-	for (dirp=opendir("tmp"); dirp && (dire=readdir(dirp)) != 0; )
+	for (const auto &entry: fs::directory_iterator("tmp", ec))
 	{
-		if (strstr(dire->d_name, ":search:") == 0)	continue;
+		std::string filename = entry.path().filename().string();
 
-		std::string p;
-		p.reserve(sizeof("tmp/")-1+strlen(dire->d_name));
-		p.append("tmp/").append(dire->d_name);
+		if (filename.find(":search:") == std::string::npos)	continue;
+
+		std::string p = std::string("tmp/") + filename;
 		unlink(p.c_str());
 	}
-
-	if (dirp)
-		closedir(dirp);
 }
 
 /*
@@ -2214,8 +2181,6 @@ static void dodirscan(const char *folder,
 		      const char *dir, size_t &new_cnt,
 		      size_t &other_cnt)
 {
-	DIR *dirp;
-	struct dirent *de;
 	struct stat cur_stat;
 	struct stat c_stat;
 	const	char *p;
@@ -2255,10 +2220,12 @@ static void dodirscan(const char *folder,
 		fclose(fp);
 	}
 
-	dirp=opendir(curname.c_str());
-	while (dirp && (de=readdir(dirp)) != NULL)
-		docount(de->d_name, new_cnt, other_cnt);
-	if (dirp)	closedir(dirp);
+	{
+		std::error_code ec;
+
+		for (const auto &entry : fs::directory_iterator(curname, ec))
+			docount(entry.path().filename().string().c_str(), new_cnt, other_cnt);
+	}
 
 	auto fmtret=std::to_chars(cntbuf, cntbuf+sizeof(cntbuf)-2, new_cnt);
 	*fmtret.ptr++=' ';
@@ -2635,8 +2602,6 @@ void maildir_savefoldermsgs(const char *folder)
 
 static void createmdcache(const char *folder, const char *maildir)
 {
-	DIR *dirp;
-	struct dirent *de;
 	std::set<MSGINFO, messagecmp> msgset;
 
 	auto curname=std::string(maildir) + "/cur";
@@ -2645,24 +2610,25 @@ static void createmdcache(const char *folder, const char *maildir)
 
 	maildir_save_start(folder, maildir, current_time);
 
-	dirp=opendir(curname.c_str());
-
+	std::error_code ec;
 	std::unordered_map<const MSGINFO *, std::string> orig_subjects;
-	while (dirp && (de=readdir(dirp)) != NULL)
+
+	for (const auto &entry : fs::directory_iterator(curname, ec))
 	{
-		if (de->d_name[0] == '.')
+		std::string filename = entry.path().filename().string();
+
+		if (filename[0] == '.')
 			continue;
 
-		auto filename=curname + "/" + de->d_name;
+		auto f = curname + "/" + filename;
 
 		std::string orig_subject;
 
-		auto mi=maildir_ngetinfo(filename.c_str(), orig_subject);
+		auto mi=maildir_ngetinfo(f.c_str(), orig_subject);
 
 		orig_subjects.emplace( &*msgset.insert(std::move(mi)).first,
 				       orig_subject );
 	}
-	if (dirp)	closedir(dirp);
 
 	// Before saving it, restore the original subject.
 	for (auto &m:msgset)
