@@ -128,6 +128,8 @@ extern std::vector<std::string> maildir_listfolders(
 	const char *homedir
 );
 
+extern void maildir_remflagname(std::string &filename, char flag);
+
 #endif
 
 /*

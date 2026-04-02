@@ -51,7 +51,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirwatch.C maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
-	maildirkwtest2 maildirkwtest3 testautoresponse \
+	maildirkwtest2 maildirkwtest3 testautoresponse testmaildirmisc \
 	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch
 
 deliverquota_SOURCES=deliverquota.c
@@ -128,6 +128,10 @@ testautoresponse_SOURCES=testautoresponse.C
 testautoresponse_LDADD=libmaildir.la -lcourier-unicode
 testautoresponse_DEPENDENCIES=libmaildir.la
 
+testmaildirmisc_SOURCES=testmaildirmisc.C
+testmaildirmisc_LDADD=libmaildir.la -lcourier-unicode
+testmaildirmisc_DEPENDENCIES=libmaildir.la
+
 EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	testsuitevalgrind \
 	README.imapkeywords.html \
@@ -179,6 +183,9 @@ check-am:
 	rm -rf testsuite.out
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testautoresponse
+	./testmaildirmisc
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testmaildirmisc
 
 if HAVE_SGML
 

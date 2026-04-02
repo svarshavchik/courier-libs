@@ -442,33 +442,6 @@ static bool opencache(const char *folder, const char *mode)
 	return (true);
 }
 
-/* And, remove a flag */
-
-static void maildir_remflagname(char *filename, char flag)
-{
-char	*p;
-
-	p=strrchr(filename, '/');
-	if (!p)	p=filename;
-	if ((p=strchr(p, ':')) == 0)	return;
-	else if (p[1] != '2' && p[2] != ',')
-		return;
-
-	p=strchr(p, ':');
-	p += 3;
-
-	while (*p && isalpha((int)(unsigned char)*p))
-	{
-		if (*p == flag)
-		{
-			while ( (*p=p[1]) != 0)
-				p++;
-			return;
-		}
-		p++;
-	}
-}
-
 static std::optional<MSGINFO> get_msginfo(unsigned long n)
 {
 	char	namebuf[MAXLONGSIZE+40];
@@ -787,13 +760,12 @@ static int do_msgmove(const char *from,
 		      int check_acls)
 {
 	const char *p;
-	char *basename;
 	struct stat stat_buf;
 	std::string new_filename;
 	unsigned long	filesize=0;
 	int	no_link=0;
 	struct maildirsize quotainfo;
-	int from_shared, dest_shared;
+	bool from_shared, dest_shared;
 	char acl_buf[4];
 
 	if (stat(file, &stat_buf) || stat_buf.st_nlink != 1)
@@ -852,7 +824,7 @@ static int do_msgmove(const char *from,
 
 	if (from_shared || dest_shared)
 	{
-		struct maildir_tmpcreate_info createInfo;
+		maildir::tmpcreate_info createInfo;
 		int	fromfd, tofd;
 		char	*l;
 
@@ -861,16 +833,14 @@ static int do_msgmove(const char *from,
 			destdir += "/shared";
 		}
 
-		maildir_tmpcreate_init(&createInfo);
-
-		createInfo.maildir=destdir.c_str();
+		createInfo.maildir=destdir;
 		createInfo.uniq="copy";
-		createInfo.doordie=1;
+		createInfo.doordie=true;
 
 		if ( dest_shared )
 			umask (0022);
 
-		if ((tofd=maildir_tmpcreate_fd(&createInfo)) < 0)
+		if ((tofd=createInfo.fd()) < 0)
 		{
 			error(strerror(errno));
 		}
@@ -878,16 +848,19 @@ static int do_msgmove(const char *from,
 		if (dest_shared)
 		/* We need to copy it directly into /cur of the dest folder */
 		{
-			memcpy(strrchr(createInfo.newname, '/')-3, "cur", 3);
-						/* HACK!!!!!!!!!!!! */
+			auto p=createInfo.newname.rfind('/');
+
+			createInfo.newname[p-3]='c';
+			createInfo.newname[p-2]='u';
+			createInfo.newname[p-1]='r';
+			/* HACK!!!!!!!!!!!! */
 		}
 
 		if ((fromfd=maildir_semisafeopen(file, O_RDONLY, 0)) < 0)
 		{
 			int terrno = errno;
 			close(tofd);
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
+			unlink(createInfo.tmpname.c_str());
 			error3(__FILE__, __LINE__, "Failed to open for read:",
 				file, terrno);
 		}
@@ -898,8 +871,7 @@ static int do_msgmove(const char *from,
 			int terrno = errno;
 			close(fromfd);
 			close(tofd);
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
+			unlink(createInfo.tmpname.c_str());
 			error3(__FILE__, __LINE__, "Failed to copy message",
 				"", terrno);
 		}
@@ -920,54 +892,52 @@ static int do_msgmove(const char *from,
 				if (strcmp(dest, INBOX "." TRASH) == 0)
 				{
 					free(l);
-					unlink(createInfo.tmpname);
-					maildir_tmpcreate_free(&createInfo);
+					unlink(createInfo.tmpname.c_str());
 					return (0);
 				}
+			}
+			else {
+				// Danglink link, delete it.
+				unlink(file);
 			}
 			free(l);
 		}
 
 		if (strchr(acl_buf, ACL_DELETEMSGS[0]) == 0)
-			maildir_remflagname(createInfo.newname, 'T');
+			maildir::remflagname(createInfo.newname, 'T');
 		if (strchr(acl_buf, ACL_SEEN[0]) == 0)
-			maildir_remflagname(createInfo.newname, 'S');
+			maildir::remflagname(createInfo.newname, 'S');
 		if (strchr(acl_buf, ACL_WRITE[0]) == 0)
 		{
-			maildir_remflagname(createInfo.newname, 'F');
-			maildir_remflagname(createInfo.newname, 'D');
-			maildir_remflagname(createInfo.newname, 'R');
+			maildir::remflagname(createInfo.newname, 'F');
+			maildir::remflagname(createInfo.newname, 'D');
+			maildir::remflagname(createInfo.newname, 'R');
 		}
 
-		if (maildir_movetmpnew(createInfo.tmpname, createInfo.newname))
+		if (maildir::movetmpnew(createInfo.tmpname, createInfo.newname))
 		{
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
+			unlink(createInfo.tmpname.c_str());
 			error(strerror(errno));
 		}
 		no_link=1;	/* Don't call link(), below */
-		maildir_tmpcreate_free(&createInfo);
 	}
 
 	p=strrchr(file, '/');
 	if (p)	++p;
 	else	p=file;
 
-	if ( (basename=strdup(p)) == NULL)
-		enomem();
-	maildir_remflagname(basename, 'T');	/* Remove any deleted flag for new name */
+	std::string basename{p};
+	maildir::remflagname(basename, 'T');	/* Remove any deleted flag for new name */
 
 	if (strchr(acl_buf, ACL_SEEN[0]) == 0)
-		maildir_remflagname(basename, 'S');
+		maildir::remflagname(basename, 'S');
 	if (strchr(acl_buf, ACL_WRITE[0]) == 0)
 	{
-		maildir_remflagname(basename, 'F');
-		maildir_remflagname(basename, 'D');
-		maildir_remflagname(basename, 'R');
+		maildir::remflagname(basename, 'F');
+		maildir::remflagname(basename, 'D');
+		maildir::remflagname(basename, 'R');
 	}
 	auto newname=destdir + "/cur/" + basename;
-
-	free(basename);
 
 	/* When DELETE is called for a message in TRASH, from and dest will
 	** be the same, so we just mark the file as Trashed, to be removed

@@ -258,6 +258,7 @@ namespace maildir {
 	void shared_sync(const std::string &);
 	bool shared_isrw(const std::string &);
 	void unlinksharedmsg(const std::string &);
+	void remflagname(std::string &, char);
 }
 #endif
 

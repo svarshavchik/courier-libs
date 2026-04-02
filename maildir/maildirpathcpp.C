@@ -94,6 +94,25 @@ std::string maildir::location(const std::string &homedir,
 	return ret;
 }
 
+void maildir::remflagname(std::string &filename, char flag)
+{
+	size_t p=filename.rfind(':');
+
+	if (p == filename.npos)
+		return;
+
+	if (filename.find('/', p) != filename.npos)
+		return;
+
+	if (std::string_view{filename}.substr(p, 3) != ":2,")
+		return;
+
+	p=filename.find(flag, p+3);
+
+	if (p != filename.npos)
+		filename.erase(p, 1);
+}
+
 extern "C"
 char *maildir_location(const char *homedir,
 		       const char *maildir)

@@ -1,13 +1,14 @@
 #include "html.h"
+#include "maildir.h"
 
-#include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 static void write_stdout(const char32_t *uc, size_t n, void *dummy)
 {
 	while (n)
 	{
-		putchar(*uc++);
+		std::cout << (char)static_cast<unsigned char>(*uc++);
 		--n;
 	}
 }
@@ -20,9 +21,8 @@ static std::string cid_func(const char *cid)
 int main(int argc, char **argv)
 {
 	struct htmlfilter_info *p;
-	char buf[1024];
-	char32_t ubuf[1024];
-	size_t n;
+	std::string buf;
+	std::u32string ubuf;
 
 	p=htmlfilter_alloc(write_stdout, NULL);
 
@@ -30,16 +30,12 @@ int main(int argc, char **argv)
 	htmlfilter_set_mailto_prefix(p, "http://mailto?");
 	htmlfilter_set_convertcid(p, cid_func);
 
-	while (fgets(buf, sizeof(buf), stdin) != NULL)
+	while (std::getline(std::cin, buf))
 	{
-		size_t i;
+		buf += "\n";
+		ubuf.assign(buf.begin(), buf.end());
 
-		n=strlen(buf);
-
-		for (i=0; i<n; i++)
-			ubuf[i]=buf[i];
-
-		htmlfilter(p, ubuf, i);
+		htmlfilter(p, ubuf.data(), ubuf.size());
 	}
 	htmlfilter_free(p);
 	return 0;
