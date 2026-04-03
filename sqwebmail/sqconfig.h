@@ -1,5 +1,3 @@
-/*
-*/
 #ifndef	sqconfig_h
 #define	sqconfig_h
 

@@ -24,9 +24,11 @@ static char linebuf[256];
 
 const char *read_sqconfig(const char *dir, const char *configfile, time_t *mtime)
 {
-char *p=malloc(strlen(dir) + strlen(configfile) + 2);
-struct stat stat_buf;
-FILE	*f;
+	char *p=static_cast<char *>(
+		malloc(strlen(dir) + strlen(configfile) + 2)
+	);
+	struct stat stat_buf;
+	FILE	*f;
 
 	if (!p)	enomem();
 	strcat(strcat(strcpy(p, dir), "/"), configfile);
@@ -49,7 +51,9 @@ FILE	*f;
 
 void write_sqconfig(const char *dir, const char *configfile, const char *val)
 {
-	char *p=malloc(strlen(dir) + strlen(configfile) + 2);
+	char *p=static_cast<char *>(
+		malloc(strlen(dir) + strlen(configfile) + 2)
+	);
 
 	struct maildir_tmpcreate_info createInfo;
 	FILE *fp;

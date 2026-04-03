@@ -111,7 +111,7 @@ sqwebmaild_SOURCES=acl.C acl.h \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
 		newmsg_createaddrheader.C \
 		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.c pref.h \
-		sqconfig.c sqconfig.h sqwebmail.C \
+		sqconfig.C sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
 		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
 
