@@ -71,19 +71,17 @@ const char	*sysbook=getarg("SYSBOOK");
 
 	if (*cgi("delabook"))
 	{
-		struct maildir_tmpcreate_info createInfo;
+		maildir::tmpcreate_info createInfo;
 		int fd;
-		maildir_tmpcreate_init(&createInfo);
 
 		createInfo.uniq="abook";
 
-		if ((fd=maildir_tmpcreate_fd(&createInfo)) >= 0)
+		if ((fd=createInfo.fd()) >= 0)
 		{
 			close(fd);
-			unlink(createInfo.tmpname);
-			ldapabook_del(LOCALABOOK, createInfo.tmpname,
+			unlink(createInfo.tmpname.c_str());
+			ldapabook_del(LOCALABOOK, createInfo.tmpname.c_str(),
 				      cgi("ABOOK"));
-			maildir_tmpcreate_free(&createInfo);
 		}
 	}
 
@@ -244,9 +242,8 @@ const struct ldapabook *ptr;
 
 	if (ptr && (f=getfilter()) != 0)
 	{
-		char	*tmpname=0;
 		struct search_info si;
-		struct maildir_tmpcreate_info createInfo;
+		maildir::tmpcreate_info createInfo;
 
 		pref_setldap(ptr->name);
 		printf("<pre>");
@@ -257,15 +254,10 @@ const struct ldapabook *ptr;
 		si.errmsgbuf[0]=0;
 		si.counter=0;
 
-		maildir_tmpcreate_init(&createInfo);
 		createInfo.uniq="ldap";
-		createInfo.doordie=1;
+		createInfo.doordie=true;
 
-		si.fpw=maildir_tmpcreate_fp(&createInfo);
-
-		tmpname=createInfo.tmpname;
-		createInfo.tmpname=NULL;
-		maildir_tmpcreate_free(&createInfo);
+		si.fpw=createInfo.fp();
 
 		if (ldapabook_search(ptr, LDAPSEARCH, f, parsesearch,
 				     save_errmsg, &si) == 0)
@@ -308,10 +300,6 @@ const struct ldapabook *ptr;
 		}
 		fclose(si.fpw);
 
-		if (tmpname)
-		{
-			unlink(tmpname);
-			free(tmpname);
-		}
+		unlink(createInfo.tmpname.c_str());
 	}
 }

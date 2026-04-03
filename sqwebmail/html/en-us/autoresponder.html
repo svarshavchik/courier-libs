@@ -16,7 +16,6 @@
 [#$EEXIST=<span style="color: #ee0000">ERROR: Autoreply name already exists</span><br />#]
 [#$SAVEFAILED=<span style="color: #ee0000">ERROR: Unable to save autoreply text: %s</span><br />#]
 [#$QUOTA=<span style="color: #ee0000">ERROR: autoreply exceeds allowed quota</span>#]
-[#$ERROR=<span style="color: #ee0000">ERROR: %s</span><br />#]
 [#$INUSE=<span style="color: #ee0000">ERROR: Autoreply <span class="tt">%s</span> currently used by a mail filter</span><br />#]
 
 [#$UPLOAD=Upload file: #]
@@ -101,14 +100,14 @@
               </tr>
               <tr>
                 <td align="right">Existing autoreplies:</td>
-                <td>[#select:autoresponse_choose:autoresplist#][#option:#][#endoption#][#AUTORESPONSE_LIST#][#endselect#] 
-                  <input type="submit" value="Edit" name="do.autorespedit" /> 
+                <td>[#select:autoresponse_choose:autoresplist#][#option:#][#endoption#][#AUTORESPONSE_LIST#][#endselect#]
+                  <input type="submit" value="Edit" name="do.autorespedit" />
                   <input type="submit" value="Delete"
                   name="do.autorespdelete" /></td>
               </tr>
               <tr>
                 <td align="right">Create new autoreply:</td>
-                <td><input type="text" size="20" name="newname" /> 
+                <td><input type="text" size="20" name="newname" />
                   <input type="submit" value="Create" name="do.newautoresp"
                 /></td>
               </tr>

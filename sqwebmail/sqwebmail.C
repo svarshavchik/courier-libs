@@ -3,9 +3,6 @@
 ** distribution information.
 */
 
-
-/*
-*/
 #include	"sqwebmail.h"
 #include	"sqconfig.h"
 #include	"auth.h"
@@ -88,8 +85,6 @@ extern char *crypt(const char *, const char *);
 #include	"htmllibdir.h"
 
 #include	"logindomainlist.h"
-
-#include	"strftime.h"
 
 extern "C" {
 #if 0
@@ -1103,32 +1098,31 @@ static void do_output_form_loop(FILE *f)
 		}
 		else if (strcmp(kw, "d") == 0)
 		{
-			const char *f=cgi("folderdir");
-			char *origc, *c;
+			std::string c=folder_fromutf8(cgi("folderdir"));
 			const char *sep="";
 
-			origc=c=folder_fromutf8(f);
-
-			if (*c && strcmp(c, INBOX))
+			if (!c.empty() && c != INBOX)
 			{
 				printf(" - ");
 
-				if (strcmp(c, NEWSHAREDSP) == 0 ||
-				    strncmp(c, NEWSHAREDSP ".",
-					    sizeof(NEWSHAREDSP)) == 0)
+				if (c == NEWSHAREDSP ||
+				    std::string_view{c}.substr(
+					0, sizeof(NEWSHAREDSP)-1
+				    ) == NEWSHAREDSP ".")
 				{
 					printf("%s", getarg("PUBLICFOLDERS"));
 					sep=".";
 				}
 
-				c=strchr(c, '.');
-				if (c)
+				auto p=c.find('.');
+				if (p != std::string::npos)
+					c=c.substr(p+1);
+				if (!c.empty())
 				{
 					printf("%s", sep);
-					print_safe(c+1);
+					print_safe(c.c_str());
 				}
 			}
-			free(origc);
 		}
 		else if (strcmp(kw, "D") == 0)
 		{

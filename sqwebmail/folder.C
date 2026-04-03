@@ -164,7 +164,7 @@ void folder_contents_title()
 const char *lab;
 const char *f;
 const char *inbox_lab, *drafts_lab, *trash_lab, *sent_lab;
-int in_utf8;
+bool in_utf8;
 
 	lab=getarg("FOLDERTITLE");
 
@@ -177,37 +177,39 @@ int in_utf8;
 	sent_lab=getarg("SENT");
 
 	f=sqwebmail_folder;
-	in_utf8=1;
+	in_utf8=true;
 
 	if (strcmp(f, INBOX) == 0)	f=inbox_lab;
 	else if (strcmp(f, INBOX "." DRAFTS) == 0)	f=drafts_lab;
 	else if (strcmp(f, INBOX "." SENT) == 0)	f=sent_lab;
 	else if (strcmp(f, INBOX "." TRASH) == 0)	f=trash_lab;
-	else in_utf8=0;
+	else in_utf8=false;
 
 	if (lab)
 	{
-		char *ff, *origff;
-
 		printf("%s", lab);
 
-		origff=ff=in_utf8 ?
-			unicode_convert_fromutf8(f,
-						   sqwebmail_content_charset,
-						   NULL)
+		auto ff=in_utf8 ?
+			unicode::iconvert::convert(
+				f,
+				sqwebmail_content_charset,
+				unicode::utf_8
+			)
 			: folder_fromutf8(f);
 
-		if (strcmp(ff, NEWSHAREDSP) == 0 ||
-		    strncmp(ff, NEWSHAREDSP ".", sizeof(NEWSHAREDSP)) == 0)
+		if (ff == NEWSHAREDSP ||
+		    std::string_view{ff}.substr(
+			    0, sizeof(NEWSHAREDSP)
+		    ) == NEWSHAREDSP ".")
 		{
 			printf("%s", getarg("PUBLICFOLDERS"));
-			ff=strchr(ff, '.');
-			static char empty[]="";
-			if (!ff)
-				ff=empty;
+
+			auto p=ff.find('.');
+			if (p != std::string::npos)
+				ff=ff.substr(p);
 		}
+
 		output_attrencoded(ff);
-		free(origff);
 	}
 }
 
@@ -343,15 +345,13 @@ static void savepath(const char *path, const char *maildir)
 	char buf[BUFSIZ];
 	FILE *ofp;
 	FILE *fp;
-	struct maildir_tmpcreate_info createInfo;
-
-	maildir_tmpcreate_init(&createInfo);
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.maildir=".";
 	createInfo.uniq="sharedpath";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	ofp=maildir_tmpcreate_fp(&createInfo);
+	ofp=createInfo.fp();
 
 	fp=fopen(SHAREDPATHCACHE, "r");
 
@@ -389,8 +389,7 @@ static void savepath(const char *path, const char *maildir)
 
 	fprintf(ofp, "%s\n%s\n", maildir, path);
 	fclose(ofp);
-	rename(createInfo.tmpname, SHAREDPATHCACHE);
-	maildir_tmpcreate_free(&createInfo);
+	rename(createInfo.tmpname.c_str(), SHAREDPATHCACHE);
 }
 
 void folder_search(const char *dir, size_t pos)
@@ -932,32 +931,25 @@ void folder_initnextprev(const char *dir, size_t pos)
 
 	if (*cgi("mimegpg") && !(filename=maildir_posfind(dir, &pos)).empty())
 	{
-		char *tptr;
 		int nfd;
 
 		fd=maildir_semisafeopen(filename.c_str(), O_RDONLY, 0);
 
 		if (fd >= 0)
 		{
-			struct maildir_tmpcreate_info createInfo;
+			maildir::tmpcreate_info createInfo;
 
 			maildir_purgemimegpg();
 
-			maildir_tmpcreate_init(&createInfo);
-
 			createInfo.uniq=":mimegpg:";
-			createInfo.doordie=1;
+			createInfo.doordie=true;
 
-			if ((nfd=maildir_tmpcreate_fd(&createInfo)) < 0)
+			if ((nfd=createInfo.fd()) < 0)
 			{
 				error("Can't create new file.");
 			}
 
-			tptr=createInfo.tmpname;
-			createInfo.tmpname=NULL;
-			maildir_tmpcreate_free(&createInfo);
-
-			chmod(tptr, 0600);
+			chmod(createInfo.tmpname.c_str(), 0600);
 
 			/*
 			** Decrypt/check message into a temporary file
@@ -968,13 +960,12 @@ void folder_initnextprev(const char *dir, size_t pos)
 			if (gpgdecode(fd, nfd) < 0)
 			{
 				close(nfd);
-				unlink(tptr);
-				free(tptr);
+				unlink(createInfo.tmpname.c_str());
 			}
 			else
 			{
 				close(fd);
-				filename=tptr;
+				filename=createInfo.tmpname;
 				fd=nfd;
 
 				cgi_put(MIMEGPGFILENAME,
@@ -1279,11 +1270,10 @@ void folder_nextprev()
     printf("</td></tr></table>\n");
 }
 
-extern "C" void list_folder(const char *p)
+void list_folder(std::string_view p)
 {
-	char *s=folder_fromutf8(p);
-	print_safe(s);
-	free(s);
+	auto s=folder_fromutf8(p);
+	print_safe(s.c_str());
 }
 
 void list_folder_xlate(const char *p,
@@ -2468,8 +2458,8 @@ void folder_list()
 		if (!*folderdir)
 			folderdir=INBOX;
 
-		auto futf7=folder_toutf8(newfoldername.c_str());
-		auto dutf7=folder_toutf8(newdirname.c_str());
+		auto futf7=folder_toutf8(newfoldername);
+		auto dutf7=folder_toutf8(newdirname);
 
 		if (newfoldername.empty() ||
 		    strchr(futf7.c_str(), '.') ||
@@ -2581,7 +2571,7 @@ void folder_list()
 		auto r=trim_spaces(cgi("renametoname"));
 		std::string s;
 
-		auto rutf7=folder_toutf8(r.c_str());
+		auto rutf7=folder_toutf8(r);
 
 		s.reserve(
 			strlen(qutf7)+rutf7.length()

@@ -1,8 +1,5 @@
 /*
-*/
-
-/*
-** Copyright 2001-2011 S. Varshavchik.  See COPYING for
+** Copyright 2001-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -107,14 +104,8 @@ const char	*autoresp_text2=getarg("TEXT2");
 	if ( *cgi("do.autorespedit"))
 	{
 		const char *autorespname=cgi("autoresponse_choose");
-		char *s=folder_fromutf8(autorespname);
+		auto s=folder_fromutf8(autorespname);
 		const char *pp;
-
-		if (!s)
-		{
-			printf(getarg("ERROR"), strerror(errno));
-			return;
-		}
 
 		pp=cgi("replytext");
 
@@ -124,22 +115,21 @@ const char	*autoresp_text2=getarg("TEXT2");
 
 		if (!fp && !*pp)
 		{
-			free(s);
 			return;
 		}
 
-		printf("%s%s%s\n", autoresp_title1, s, autoresp_title2);
+		printf("%s", autoresp_title1);
+		output_attrencoded(s.c_str());
+		printf("%s", autoresp_title2);
 
 		if (fp && !read_headers(fp))
 		{
-			free(s);
 			return;
 		}
 
 		printf("<input type=\"hidden\" name=\"autoresponse\" value=\"");
 		output_attrencoded(autorespname);
 		printf("\" />\n");
-		free(s);
 
 		printf("%s", autoresp_text1);
 
@@ -278,10 +268,8 @@ void autoresponsedelete()
 
 		if (mailfilter_autoreplyused(autorespname))
 		{
-			char *s=folder_fromutf8(autorespname);
-			printf(getarg("INUSE"), s ? s:"");
-			if (s)
-				free(s);
+			auto s=folder_fromutf8(autorespname);
+			printf(getarg("INUSE"), s.c_str());
 		}
 		else
 			mail::autoresponse::remove("", autorespname);
@@ -518,14 +506,12 @@ void autoresponselist()
 
 	for (auto &f:list)
 	{
-		char *s;
-
 		printf("<option value=\"");
 		output_attrencoded(f.c_str());
 		printf("\">");
 
-		s=folder_fromutf8(f.c_str());
-		output_attrencoded(s);
+		auto s=folder_fromutf8(f);
+		output_attrencoded(s.c_str());
 		printf("</option>");
 	}
 }
@@ -540,16 +526,13 @@ void autoresponsepick()
 
 	for (auto &f:list)
 	{
-		char *s;
-
 		printf("<option%s value=\"",
 		       strcmp(choice, f.c_str()) ? "":" selected='selected'");
 		output_attrencoded(f.c_str());
 		printf("\">");
 
-		s=folder_fromutf8(f.c_str());
-		output_attrencoded(s);
+		auto s=folder_fromutf8(f);
+		output_attrencoded(s.c_str());
 		printf("</option>");
-		free(s);
 	}
 }

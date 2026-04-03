@@ -78,11 +78,6 @@ extern int maildir_writemsg_flush(int);
 extern size_t maildir_countof(const char *);
 extern void maildir_savefoldermsgs(const char *);
 
-/*
-** Convert folder names to modified-UTF8.
-*/
-
-extern char *folder_fromutf8(const char *);
 #if 0
 {
 #endif
@@ -103,7 +98,12 @@ extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 			     const char *, const std::string &filename);
 extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 				 const char *, const std::string &);
-extern std::string folder_toutf8(const char *);
+/*
+** Convert folder names to modified-UTF8.
+*/
+
+extern std::string folder_fromutf8(std::string_view);
+extern std::string folder_toutf8(std::string_view);
 extern std::string maildir_basename(const char *);
 
 typedef std::vector<

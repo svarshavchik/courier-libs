@@ -1569,8 +1569,6 @@ void maildir_search(
 	size_t nfiles
 )
 {
-	struct maildir_tmpcreate_info createInfo;
-
 	static std::string filename;
 	FILE *fp;
 
@@ -1583,16 +1581,19 @@ void maildir_search(
 
 	maildir_purgesearch();
 
-	maildir_tmpcreate_init(&createInfo);
+	{
+		maildir::tmpcreate_info createInfo;
 
-	createInfo.uniq=":search:";
-	createInfo.doordie=1;
+		createInfo.uniq=":search:";
+		createInfo.doordie=true;
 
-	if ((fp=maildir_tmpcreate_fp(&createInfo)) == NULL)
-		error("Can't create new file.");
+		fp=createInfo.fp();
 
-	filename=createInfo.tmpname;
-	maildir_tmpcreate_free(&createInfo);
+		if (!fp)
+			error("Can't create new file.");
+
+		filename=createInfo.tmpname;
+	}
 
 	chmod(filename.c_str(), 0600);
 
@@ -2156,7 +2157,6 @@ static void dodirscan(const char *folder,
 	const	char *p;
 	char	cntbuf[MAXLONGSIZE*2+4];
 	FILE	*fp;
-	struct maildir_tmpcreate_info createInfo;
 
 	new_cnt=0;
 	other_cnt=0;
@@ -2203,30 +2203,30 @@ static void dodirscan(const char *folder,
 	*fmtret.ptr++='\n';
 	*fmtret.ptr++='\0';
 
-	maildir_tmpcreate_init(&createInfo);
-	createInfo.maildir=".";
-	createInfo.uniq="count";
-	createInfo.doordie=1;
-
-	fp=maildir_tmpcreate_fp(&createInfo);
-	if (!fp)
 	{
-		maildir_tmpcreate_free(&createInfo);
-		return;
+		maildir::tmpcreate_info createInfo;
+
+		createInfo.maildir=".";
+		createInfo.uniq="count";
+		createInfo.doordie=true;
+
+		fp=createInfo.fp();
+		if (!fp)
+		{
+			return;
+		}
+
+		fprintf(fp, "%s", cntbuf);
+		fclose(fp);
+
+		if (rename(createInfo.tmpname.c_str(),
+			   cntfilename.c_str()) < 0 ||
+		    stat(cntfilename.c_str(), &c_stat) < 0)
+		{
+			unlink(cntfilename.c_str());
+			return;
+		}
 	}
-
-	fprintf(fp, "%s", cntbuf);
-	fclose(fp);
-
-	if (rename(createInfo.tmpname, cntfilename.c_str()) < 0 ||
-	    stat(cntfilename.c_str(), &c_stat) < 0)
-	{
-		unlink(cntfilename.c_str());
-		maildir_tmpcreate_free(&createInfo);
-		return;
-	}
-	maildir_tmpcreate_free(&createInfo);
-
 
 	if (c_stat.st_mtime != cur_stat.st_mtime)
 	{
@@ -2415,7 +2415,6 @@ static void maildir_save_start(const char *folder,
 			       const char *maildir, time_t t)
 {
 	int fd;
-	struct maildir_tmpcreate_info createInfo;
 
 	save_dbname=foldercachename(folder);
 
@@ -2439,21 +2438,25 @@ static void maildir_save_start(const char *folder,
 	}
 #endif
 
-	maildir_tmpcreate_init(&createInfo);
-	createInfo.maildir=maildir;
-	createInfo.uniq="sqwebmail-db";
-	createInfo.doordie=1;
-
-	if ((fd=maildir_tmpcreate_fd(&createInfo)) < 0)
 	{
-		fprintf(stderr, "ERR: Can't create cache file %s: %s\n",
-		       maildir, strerror(errno));
-		error(strerror(errno));
-	}
-	close(fd);
+		maildir::tmpcreate_info createInfo;
 
-	save_tmpdbname=createInfo.tmpname;
-	maildir_tmpcreate_free(&createInfo);
+		createInfo.maildir=maildir;
+		createInfo.uniq="sqwebmail-db";
+		createInfo.doordie=true;
+
+		fd=createInfo.fd();
+
+		if (fd < 0)
+		{
+			fprintf(stderr, "ERR: Can't create cache file %s: %s\n",
+				maildir, strerror(errno));
+			error(strerror(errno));
+		}
+		close(fd);
+
+		save_tmpdbname=createInfo.tmpname;
+	}
 
 	dbobj_init(&tmpdb);
 
@@ -2871,24 +2874,24 @@ int	maildir_createmsg(
 	std::string &retname
 )
 {
-	char	*p;
 	auto	dir=xlate_mdir(foldername);
-	char	*filename;
+	std::string filename;
 	int	n;
-	struct maildir_tmpcreate_info createInfo;
 
 	/* Create a new file in the tmp directory. */
 
-	maildir_tmpcreate_init(&createInfo);
-
-	createInfo.maildir=dir.c_str();
-	createInfo.uniq=seq;
-	createInfo.doordie=1;
-
-	if ((n=maildir_tmpcreate_fd(&createInfo)) < 0)
 	{
-		error("maildir_createmsg: cannot create temp file.");
-	}
+		maildir::tmpcreate_info createInfo;
+
+		createInfo.maildir=dir;
+		if (seq)
+			createInfo.uniq=seq;
+		createInfo.doordie=true;
+
+		if ((n=createInfo.fd()) < 0)
+		{
+			error("maildir_createmsg: cannot create temp file.");
+		}
 
 	/*
 	** Ok, new maildir semantics: filename in new is different than in tmp.
@@ -2896,21 +2899,24 @@ int	maildir_createmsg(
 	** the same.  We can fix it like this:
 	*/
 
-	close(n);
+		close(n);
 
-	memcpy(strrchr(createInfo.newname, '/')-3, "tmp", 3); /* Hack */
 
-	if (rename(createInfo.tmpname, createInfo.newname) < 0 ||
-	    (n=open(createInfo.newname, O_RDWR)) < 0)
-	{
-		error("maildir_createmsg: cannot create temp file.");
+		memcpy(createInfo.newname.data()+createInfo.newname.rfind('/')
+		       -3, "tmp", 3); /* Hack */
+
+		if (rename(createInfo.tmpname.c_str(),
+			   createInfo.newname.c_str()) < 0 ||
+		    (n=open(createInfo.newname.c_str(), O_RDWR)) < 0)
+		{
+			error("maildir_createmsg: cannot create temp file.");
+		}
+
+		filename=createInfo.newname;
+
+		auto p=filename.rfind('/');
+		retname=filename.substr(p+1);
 	}
-
-	filename=createInfo.newname;
-
-	p=strrchr(filename, '/');
-	retname=p+1;
-	maildir_tmpcreate_free(&createInfo);
 
 	/* Buffer writes */
 
@@ -3193,51 +3199,20 @@ void maildir_cleanup()
 ** Convert folder names to modified-UTF7 encoding.
 */
 
-std::string folder_toutf8(const char *foldername)
+std::string folder_toutf8(std::string_view foldername)
 {
-	char *p;
-	int converr;
-
-	p=unicode_convert_tobuf(foldername, sqwebmail_content_charset,
-				  unicode_x_smap_modutf8, &converr);
-
-	if (p && converr)
-	{
-		free(p);
-		p=NULL;
-	}
-
-	if (p)
-	{
-		std::string s{p};
-		free(p);
-		return s;
-	}
-
-	return foldername;
+	return unicode::iconvert::convert(
+		foldername,
+		sqwebmail_content_charset,
+		unicode_x_smap_modutf8
+	);
 }
 
-char *folder_fromutf8(const char *foldername)
+std::string folder_fromutf8(std::string_view foldername)
 {
-	char *p;
-	int converr;
-
-	p=unicode_convert_tobuf(foldername,
-				  unicode_x_smap_modutf8,
-				  sqwebmail_content_charset,
-				  &converr);
-
-	if (p && converr)
-	{
-		free(p);
-		p=NULL;
-	}
-
-	if (p)
-		return (p);
-
-	p=strdup(foldername);
-	if (!p)
-		enomem();
-	return (p);
+	return unicode::iconvert::convert(
+		foldername,
+		unicode_x_smap_modutf8,
+		sqwebmail_content_charset
+	);
 }

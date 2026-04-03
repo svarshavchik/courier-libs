@@ -2639,7 +2639,7 @@ void sqpcp_displayevent()
 	const char *event_id_list[2];
 	struct PCP_retr r;
 	display_retr dr;
-	struct maildir_tmpcreate_info createInfo;
+	maildir::tmpcreate_info createInfo;
 
 	if (!pcp)
 		return;
@@ -2656,23 +2656,22 @@ void sqpcp_displayevent()
 
 	maildir_purgemimegpg(); /* Delete previous :calendar: file */
 
-	maildir_tmpcreate_init(&createInfo);
 	createInfo.uniq=":calendar:";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((dr.f=maildir_tmpcreate_fp(&createInfo)) == NULL)
+	if ((dr.f=createInfo.fp()) == NULL)
 	{
 		error(strerror(errno));
 	}
 
-	cgi_put(MIMEGPGFILENAME, strrchr(createInfo.tmpname, '/')+1);
+	cgi_put(MIMEGPGFILENAME,
+		createInfo.tmpname.c_str()+createInfo.tmpname.rfind('/')+1);
 
 	if (pcp_retr(pcp, &r))
 	{
 		fclose(dr.f);
 		cgi_put(MIMEGPGFILENAME, "");
-		unlink(createInfo.tmpname);
-		maildir_tmpcreate_free(&createInfo);
+		unlink(createInfo.tmpname.c_str());
 		show_pcp_errmsg(pcp_errmsg(pcp));
 		return;
 	}
@@ -2710,7 +2709,6 @@ void sqpcp_displayevent()
 	printf("</table>\n");
 	folder_showmsg(INBOX "." DRAFTS, 0);
 	cgi_put(MIMEGPGFILENAME, "");
-	maildir_tmpcreate_free(&createInfo);
 }
 
 static int save_displayed_event(struct PCP_retr *r,

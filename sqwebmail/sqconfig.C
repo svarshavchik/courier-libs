@@ -17,6 +17,7 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	"maildir/maildircreate.h"
+#include <fstream>
 
 /* Assume all configuration data fits in 256 char buffer. */
 
@@ -55,7 +56,7 @@ void write_sqconfig(const char *dir, const char *configfile, const char *val)
 		malloc(strlen(dir) + strlen(configfile) + 2)
 	);
 
-	struct maildir_tmpcreate_info createInfo;
+	maildir::tmpcreate_info createInfo;
 	FILE *fp;
 
 	if (!p)	enomem();
@@ -68,31 +69,27 @@ void write_sqconfig(const char *dir, const char *configfile, const char *val)
 		return;
 	}
 
-	maildir_tmpcreate_init(&createInfo);
-
 	createInfo.maildir=dir;
 	createInfo.uniq="config";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	fp=maildir_tmpcreate_fp(&createInfo);
+	fp=createInfo.fp();
 
 	if (!fp)
 		enomem();
 
 
-	free(createInfo.newname);
 	createInfo.newname=p;
-
 	fprintf(fp, "%s\n", val);
 	fflush(fp);
 	if (ferror(fp))	eio("Error after write:",p);
 	fclose(fp);
+	free(p);
 
 	/* Note - umask should already turn off the 077 bits, but
 	** just in case someone screwed up previously, I'll fix it
 	** myself */
 
-	chmod(createInfo.tmpname, 0600);
-	rename(createInfo.tmpname, createInfo.newname);
-	maildir_tmpcreate_free(&createInfo);
+	chmod(createInfo.tmpname.c_str(), 0600);
+	rename(createInfo.tmpname.c_str(), createInfo.newname.c_str());
 }

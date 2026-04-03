@@ -20,7 +20,7 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 
-extern "C" void list_folder(const char *);
+extern void list_folder(std::string_view);
 extern "C" void output_attrencoded(const char *);
 extern const char *sqwebmail_content_charset;
 
