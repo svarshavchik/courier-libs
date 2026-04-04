@@ -60,7 +60,7 @@
 
 extern "C" const char *sqwebmail_folder;
 extern "C" void output_urlencoded(const char *p);
-extern "C" void output_attrencoded(const char *p);
+void output_attrencoded(const char *p);
 extern "C" void output_scriptptrget();
 extern "C" void output_scriptptr();
 extern "C" void output_scriptptrpostinfo();

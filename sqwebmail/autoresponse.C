@@ -39,7 +39,7 @@
 #endif
 
 extern const char *sqwebmail_content_charset;
-extern "C" void output_attrencoded(const char *);
+void output_attrencoded(const char *);
 extern std::string calc_mime_type(const char *filename);
 
 extern void charset_warning(const char *);

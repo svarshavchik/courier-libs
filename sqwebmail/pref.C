@@ -70,7 +70,7 @@ static const char hex[]="0123456789ABCDEF";
 
 static int nybble(char c)
 {
-char	*p=strchr(hex, c);
+	auto p=strchr(hex, c);
 
 	if (p)	return (p-hex);
 	return (0);
@@ -246,7 +246,7 @@ const char *q;
 			|| value[i] == '+')
 			l += 2;
 
-	p=malloc(l);
+	p=static_cast<char *>(malloc(l));
 	if (!p)	enomem();
 	strcpy(p, prefs);
 	if (!value || !*value)	return (p);
@@ -541,7 +541,7 @@ char *pref_getfile(FILE *fp)
 		return NULL;
 	}
 
-	utf8_buf=malloc(st.st_size+1);
+	utf8_buf=static_cast<char *>(malloc(st.st_size+1));
 
 	if (!utf8_buf)
 	{
@@ -549,7 +549,7 @@ char *pref_getfile(FILE *fp)
 		return NULL;
 	}
 
-	if (fread(utf8_buf, 1, st.st_size, fp) != st.st_size)
+	if (fread(utf8_buf, st.st_size, 1, fp) != 1)
 	{
 		fclose(fp);
 		return NULL;
@@ -632,7 +632,7 @@ static void setgpgconfig(const char *name, const char *value)
 	if (!q)
 		enomem();
 
-	s=malloc(strlen(q)+strlen(name)+strlen(value)+4);
+	s=static_cast<char *>(malloc(strlen(q)+strlen(name)+strlen(value)+4));
 	if (!s)
 		enomem();
 	*s=0;

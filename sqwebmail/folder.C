@@ -100,7 +100,6 @@ extern const char *sqwebmail_folder;
 extern void output_scriptptrget();
 extern void output_scriptptr();
 extern void output_scriptptrpostinfo();
-extern void output_attrencoded(const char *);
 extern void output_urlencoded(const char *);
 extern char *scriptptrget();
 #if 0
@@ -110,6 +109,7 @@ extern char *scriptptrget();
 
 extern const char *showsize(unsigned long);
 extern void output_attrencoded(std::string_view);
+extern void output_attrencoded(const char *);
 
 void print_safe_len(const char *p, size_t n, void (*func)(const char *, size_t))
 {

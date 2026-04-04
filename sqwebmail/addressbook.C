@@ -30,8 +30,8 @@
 
 extern const char *sqwebmail_content_charset;
 
-extern "C" void output_attrencoded(const char *);
-extern "C" void output_attrencoded_fp(const char *, FILE *);
+void output_attrencoded(const char *);
+void output_attrencoded_fp(const char *, FILE *);
 void output_attrencoded_fplen(const char *, size_t, FILE *);
 extern void print_safe(const char *);
 extern void call_print_safe_to_stdout(const char *p, size_t cnt);

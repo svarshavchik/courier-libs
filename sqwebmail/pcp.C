@@ -68,9 +68,9 @@ extern "C" FILE *open_langform(const char *lang, const char *formname,
 			       int print_header);
 
 extern "C" const char *myhostname();
-extern "C" void output_attrencoded_oknl_fp(const char *, FILE *);
+void output_attrencoded_oknl_fp(const char *, FILE *);
 extern "C" void output_scriptptrget();
-extern "C" void output_attrencoded(const char *);
+void output_attrencoded(const char *);
 extern "C" void print_safe(const char *);
 extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_content_language;

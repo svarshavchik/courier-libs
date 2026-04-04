@@ -28,13 +28,14 @@
 
 extern "C" {
 	extern void output_scriptptrget();
-	extern void output_attrencoded(const char *);
-	extern void output_attrencoded_oknl(const char *p);
-	extern void output_urlencoded(const char *);
-	extern void output_attrencoded_fp(const char *, FILE *);
-	extern void output_attrencoded_oknl_fp(const char *, FILE *);
 	extern const char *sqwebmail_content_charset;
 };
+
+extern void output_attrencoded(const char *);
+extern void output_attrencoded_oknl(const char *p);
+extern void output_urlencoded(const char *);
+extern void output_attrencoded_fp(const char *, FILE *);
+extern void output_attrencoded_oknl_fp(const char *, FILE *);
 
 #include	<courier-unicode.h>
 

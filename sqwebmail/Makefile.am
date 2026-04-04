@@ -110,10 +110,10 @@ sqwebmaild_SOURCES=acl.C acl.h \
 		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
 		newmsg_createaddrheader.C \
-		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.c pref.h \
+		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.C pref.h \
 		sqconfig.C sqconfig.h sqwebmail.C \
 		strftime.c strftime.h \
-		sqwebmail.h token.c token.h $(SQISPELLSOURCES)
+		sqwebmail.h token.C token.h $(SQISPELLSOURCES)
 
 sqwebmaild_LDADD=libwebmail.la \
 	$(COMMONLDADD) \

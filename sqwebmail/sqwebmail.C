@@ -257,7 +257,7 @@ void print_attrencodedlen(const char *p, size_t len, int oknl, FILE *fp)
 	}
 }
 
-extern "C" void output_attrencoded_fp(const char *p, FILE *fp)
+void output_attrencoded_fp(const char *p, FILE *fp)
 {
 	print_attrencodedlen(p, strlen(p), 0, fp);
 }
@@ -267,7 +267,7 @@ void output_attrencoded_fplen(const char *p, size_t len, FILE *fp)
 	print_attrencodedlen(p, len, 0, fp);
 }
 
-extern "C" void output_attrencoded(const char *p)
+void output_attrencoded(const char *p)
 {
 	output_attrencoded_fp(p, stdout);
 }
@@ -277,17 +277,17 @@ void output_attrencoded(std::string_view p)
 	print_attrencodedlen(p.data(), p.size(), 0, stdout);
 }
 
-extern "C" void output_attrencoded_oknl_fp(const char *p, FILE *fp)
+void output_attrencoded_oknl_fp(const char *p, FILE *fp)
 {
 	print_attrencodedlen(p, strlen(p), 1, fp);
 }
 
-extern "C" void output_attrencoded_oknl(const char *p)
+void output_attrencoded_oknl(const char *p)
 {
 	output_attrencoded_oknl_fp(p, stdout);
 }
 
-extern "C" void output_attrencoded_nltobr(const char *p)
+void output_attrencoded_nltobr(const char *p)
 {
 	print_attrencodedlen(p, strlen(p), 2, stdout);
 }
@@ -2084,7 +2084,7 @@ char	*cl=http11_best_content_language(templatedir,
 #endif
 }
 
-extern "C" void rename_sent_folder(int really)
+void rename_sent_folder(int really)
 {
 	char buf[128];
 	char buf2[256];
