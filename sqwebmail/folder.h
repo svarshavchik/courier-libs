@@ -1,5 +1,3 @@
-/*
-*/
 #ifndef	folder_h
 #define	folder_h
 
@@ -10,7 +8,7 @@
 #endif
 
 /*
-** Copyright 1998 - 2001 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -26,7 +24,6 @@
 #include	<sys/time.h>
 #endif
 
-#ifdef __cplusplus
 #include <string>
 #include <optional>
 
@@ -48,12 +45,6 @@ struct MSGINFO {
 #define	MSGINFO_FROM(n)	((n).from_s.c_str())
 #define	MSGINFO_SUBJECT(n)	((n).subject_s.c_str())
 #define	MSGINFO_SIZE(n)	((n).size_s.c_str())
-
-extern "C" {
-#endif
-#if 0
-}
-#endif
 
 extern void folder_search(const char *, size_t);
 extern void folder_contents_title();
@@ -81,13 +72,6 @@ extern void folder_navigate(
 	const std::optional<size_t> &last_message_searched_ptr
 );
 extern const char *redirect_hash(const char *);
-
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
 #define	MSGTYPE_NEW	'N'
 #define	MSGTYPE_DELETED	'D'

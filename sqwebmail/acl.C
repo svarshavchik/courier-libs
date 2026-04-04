@@ -58,12 +58,12 @@
 
 /* ACL support stuff */
 
-extern "C" const char *sqwebmail_folder;
-extern "C" void output_urlencoded(const char *p);
+extern const char *sqwebmail_folder;
+extern void output_urlencoded(const char *p);
 void output_attrencoded(const char *p);
-extern "C" void output_scriptptrget();
-extern "C" void output_scriptptr();
-extern "C" void output_scriptptrpostinfo();
+void output_scriptptrget();
+extern void output_scriptptr();
+extern void output_scriptptrpostinfo();
 
 extern dev_t sqwebmail_homedir_dev;
 extern ino_t sqwebmail_homedir_ino;

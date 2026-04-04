@@ -105,7 +105,7 @@ sqwebmaild_SOURCES=acl.C acl.h \
 		addressbook.C addressbook.h args.c attachments.C \
 		auth.c auth.h autoresponse.C autoresponse.h \
 		changepw.c \
-		folder.C folder.h gpg.c gpg.h \
+		folder.C folder.h gpg.C gpg.h \
 		ldaplist.C logindomainlist.c logindomainlist.h \
 		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \

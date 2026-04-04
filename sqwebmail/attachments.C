@@ -47,11 +47,6 @@
 #include	"htmllibdir.h"
 #include	<courier-unicode.h>
 
-extern "C" {
-#if 0
-}
-#endif
-
 extern int newdraftfd;
 extern void output_scriptptrget();
 
@@ -62,10 +57,6 @@ extern const char *sqwebmail_content_language;
 
 static void attachment_showname(const char *);
 
-#if 0
-{
-#endif
-}
 
 extern void output_attrencoded(std::string_view);
 extern void output_urlencoded(std::string_view);
@@ -130,7 +121,6 @@ static std::tuple<std::string, rfc822::fdstreambuf, rfc2045::entity
 	return ret;
 }
 
-extern "C"
 void attachments_head(const char *folder, const char *pos, const char *draft)
 {
 int	cnt=0;
@@ -419,7 +409,7 @@ static bool del_some_attachments(rfc822::fdstreambuf &fp,
 	return (true);
 }
 
-extern "C" void attach_delete(const char *draft)
+void attach_delete(const char *draft)
 {
 	auto &&[oldname, fp, message] = open_draft_message(draft);
 
@@ -632,9 +622,11 @@ const char *r;
 }
 #endif
 
-extern "C" int attach_upload(const char *draft,
-			     const char *attpubkey,
-			     const char *attprivkey)
+int attach_upload(
+	const char *draft,
+	const char *attpubkey,
+	const char *attprivkey
+)
 {
 	std::string attachfilename;
 	int	n;

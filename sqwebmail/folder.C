@@ -69,12 +69,9 @@
 
 #include	"strftime.h"
 #include	<fstream>
-extern "C" {
-#if 0
-}
-#endif
-extern FILE *open_langform(const char *lang, const char *formname,
-			   int print_header);
+
+FILE *open_langform(const char *lang, const char *formname,
+			int print_header);
 
 extern const char *sqwebmail_content_language;
 extern char sqwebmail_folder_rights[];
@@ -102,10 +99,6 @@ extern void output_scriptptr();
 extern void output_scriptptrpostinfo();
 extern void output_urlencoded(const char *);
 extern char *scriptptrget();
-#if 0
-{
-#endif
-}
 
 extern const char *showsize(unsigned long);
 extern void output_attrencoded(std::string_view);

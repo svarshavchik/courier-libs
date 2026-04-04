@@ -1,10 +1,6 @@
 /*
-** Copyright 2001-2011 S. Varshavchik.  See COPYING for
+** Copyright 2001-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
-*/
-
-
-/*
 */
 #include	"sqwebmail.h"
 #include	"config.h"
@@ -472,8 +468,6 @@ void gpgdo()
 		setdefault(cgi("seckeyname"));
 }
 
-static char gpgerrbuf[1024];
-
 static int read_fd(char *buf, size_t cnt, void *vp)
 {
 	FILE *fp=(FILE *)vp;
@@ -563,7 +557,7 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 	for (p=k; (p=strtok(p, " ")) != NULL; p=NULL)
 		++n;
 
-	argvec=malloc((n * 2 + 22)*sizeof(char *));
+	argvec=static_cast<char **>(malloc((n * 2 + 22)*sizeof(char *)));
 	if (!argvec)
 	{
 		fclose(out_fp);
@@ -593,25 +587,29 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 
 
 	i=0;
-	argvec[i++] = "--no-tty";
+	char notty_opt[] = "--no-tty";
+	char defaultkeyopt[] = "--default-key";
+
+	argvec[i++] = notty_opt;
 	if (signkey)
 	{
-		argvec[i++]="--default-key";
+		argvec[i++]=defaultkeyopt;
 		argvec[i++]=(char *)signkey;
 	}
 
-	argvec[i++]="--always-trust";
+	char alwaystrustopt[] = "--always-trust";
+	char ropt[] = "-r";
+	argvec[i++]=alwaystrustopt;
 
 	for (p=strcpy(k, encryptkeys ? encryptkeys:"");
 	     (p=strtok(p, " ")) != NULL; p=NULL)
 	{
-		argvec[i++]="-r";
+		argvec[i++]=ropt;
 		argvec[i++]=p;
 	}
-	argvec[i]=0;
+	argvec[i]=nullptr;
 	gi.argc=i;
 	gi.argv=argvec;
-
 	i=libmail_gpg_signencode(signkey ? 1:0,
 				 n > 0 ? LIBMAIL_GPG_ENCAPSULATE:0,
 				 &gi);
@@ -702,7 +700,8 @@ int gpgdecode(int in_fd, int out_fd)
 	gi.errhandler_func= gpg_error_save;
 	gi.errhandler_arg= NULL;
 
-	argvec[0] = "--no-tty";
+	char notty[]="--no-tty";
+	argvec[0] = notty;
 	argvec[1]=NULL;
 	gi.argc=1;
 	gi.argv=argvec;

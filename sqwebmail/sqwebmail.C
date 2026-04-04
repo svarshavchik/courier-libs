@@ -86,23 +86,12 @@ extern char *crypt(const char *, const char *);
 
 #include	"logindomainlist.h"
 
-extern "C" {
-#if 0
-}
-#endif
-
 extern void print_safe(const char *);
 
 extern void sent_gpgerrtxt();
 extern void sent_gpgerrresume();
-
 const char *sqwebmail_mailboxid=0;
 const char *sqwebmail_folder=0;
-
-#if 0
-{
-#endif
-}
 
 extern void spell_show();
 extern void spell_check_continue();
@@ -153,7 +142,7 @@ static int gzip_save_fd;
 
 static const char *sqwebmail_formname;
 
-extern "C" void attachments_head(const char *, const char *, const char *);
+extern void attachments_head(const char *, const char *, const char *);
 extern void attachments_opts(const char *);
 extern void doattach(const char *, const char *);
 
@@ -168,7 +157,7 @@ static struct template_stack *template_stack=NULL;
 
 std::string trim_spaces(const char *s);
 
-extern "C" size_t get_timeoutsoft()
+size_t get_timeoutsoft()
 {
 	time_t n=TIMEOUTSOFT;
 	const char *p;
@@ -181,7 +170,7 @@ extern "C" size_t get_timeoutsoft()
 	return n;
 }
 
-extern "C" size_t get_timeouthard()
+size_t get_timeouthard()
 {
 	time_t n=TIMEOUTHARD;
 	const char *p;
@@ -217,7 +206,6 @@ extern "C" void rfc2045_error(const char *p)
 	error(p);
 }
 
-extern "C"
 void print_attrencodedlen(const char *p, size_t len, int oknl, FILE *fp)
 {
 	for (; len; p++, --len)
@@ -292,7 +280,7 @@ void output_attrencoded_nltobr(const char *p)
 	print_attrencodedlen(p, strlen(p), 2, stdout);
 }
 
-extern "C" void output_urlencoded(const char *p)
+void output_urlencoded(const char *p)
 {
 char	*q=cgiurlencode(p);
 
@@ -313,7 +301,7 @@ const	char *p=cgihttpscriptptr();
 	printf("%s", p);
 }
 
-extern "C" const char *nonloginscriptptr()
+const char *nonloginscriptptr()
 {
 #if	USE_HTTPS
 	return (cgihttpsscriptptr());
@@ -324,8 +312,7 @@ extern "C" const char *nonloginscriptptr()
 #endif
 }
 
-
-extern "C" void output_scriptptr()
+void output_scriptptr()
 {
 const	char *p=nonloginscriptptr();
 
@@ -342,7 +329,7 @@ const	char *p=nonloginscriptptr();
 	}
 }
 
-extern "C" void output_loginscriptptr_get()
+void output_loginscriptptr_get()
 {
 	output_loginscriptptr();
 	if (sqwebmail_mailboxid)
@@ -357,7 +344,7 @@ extern "C" void output_loginscriptptr_get()
 	}
 }
 
-extern "C" char *scriptptrget()
+char *scriptptrget()
 {
 char	*q=0;
 size_t	l=0;
@@ -398,7 +385,7 @@ char	buf[NUMBUFSIZE];
 	return (q);
 }
 
-extern "C" void output_scriptptrget()
+void output_scriptptrget()
 {
 char	*p=scriptptrget();
 
@@ -407,7 +394,7 @@ char	*p=scriptptrget();
 	return;
 }
 
-extern "C" void output_scriptptrpostinfo()
+void output_scriptptrpostinfo()
 {
 	if (sqwebmail_folder)
 	{
@@ -483,7 +470,7 @@ extern "C" char *get_imageurl()
 }
 
 
-extern "C" FILE *open_langform(const char *lang, const char *formname,
+FILE *open_langform(const char *lang, const char *formname,
 		    int print_header)
 {
 	char	*formpath;
@@ -512,7 +499,7 @@ extern "C" FILE *open_langform(const char *lang, const char *formname,
 	return (f);
 }
 
-extern "C" int ishttps()
+int ishttps()
 {
 	const char *p=getenv("HTTPS");
 
@@ -815,7 +802,7 @@ static void fix_xml_header(FILE *f)
 	printf("%s", linebuf);
 }
 
-extern "C" void output_form(const char *formname)
+void output_form(const char *formname)
 {
 	FILE	*f;
 

@@ -64,25 +64,25 @@
 
 #include	"strftime.h"
 
-extern "C" FILE *open_langform(const char *lang, const char *formname,
-			       int print_header);
+FILE *open_langform(const char *lang, const char *formname,
+			int print_header);
 
 extern "C" const char *myhostname();
 void output_attrencoded_oknl_fp(const char *, FILE *);
-extern "C" void output_scriptptrget();
+void output_scriptptrget();
 void output_attrencoded(const char *);
-extern "C" void print_safe(const char *);
+void print_safe(const char *);
 extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_content_language;
-extern "C" void output_form(const char *);
-extern "C" void newmsg_preview(const char *);
-extern "C" void output_urlencoded(const char *);
-extern "C" void attachments_head(const char *, const char *, const char *);
-extern std::string newmsg_createsentmsg(const char *, int *);
+void output_form(const char *);
+void newmsg_preview(const char *);
+void output_urlencoded(const char *);
+void attachments_head(const char *, const char *, const char *);
+std::string newmsg_createsentmsg(const char *, int *);
 extern const char *sqwebmail_mailboxid;
-extern "C" char *scriptptrget();
-extern "C" void attach_delete(const char *);
-extern "C" int attach_upload(const char *,
+char *scriptptrget();
+void attach_delete(const char *);
+int attach_upload(const char *,
 			     const char *,
 			     const char *);
 
@@ -90,7 +90,7 @@ extern void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt);
 
 static struct PCP *calendar=NULL;
 static void refreshcache(struct PCP *);
-extern "C" size_t get_timeoutsoft();
+size_t get_timeoutsoft();
 
 /*
 ** CGI process startup

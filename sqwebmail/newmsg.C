@@ -44,25 +44,25 @@
 #include	"htmllibdir.h"
 #include	<courier-unicode.h>
 
-extern "C" const char *sqwebmail_content_charset;
+extern const char *sqwebmail_content_charset;
 extern int spell_start(const char *);
-extern "C" const char *sqwebmail_mailboxid;
-extern "C" const char *sqwebmail_folder;
-extern "C" void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
-extern void call_print_safe_to_stdout(const char *, size_t);
-extern "C" void print_attrencodedlen(const char *, size_t, int, FILE *);
+extern const char *sqwebmail_mailboxid;
+extern const char *sqwebmail_folder;
+void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
+void call_print_safe_to_stdout(const char *, size_t);
+void print_attrencodedlen(const char *, size_t, int, FILE *);
 void output_attrencoded_nltobr(const char *);
 void output_attrencoded_oknl(const char *);
 void output_attrencoded(const char *);
-extern "C" void output_scriptptrget();
-extern "C" void output_form(const char *);
-extern "C" void output_urlencoded(const char *);
+void output_scriptptrget();
+void output_form(const char *);
+void output_urlencoded(const char *);
 
 extern std::string newmsg_newdraft(const char *, const char *, const char *,
 				   const char *);
 extern char *newmsg_createdraft(const char *);
 extern std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr);
-extern "C" int ishttps();
+extern int ishttps();
 
 static void newmsg_header(const char *label, const char *field,
 			  const char *encoded, const char *val)
@@ -426,7 +426,7 @@ void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt)
 	}
 }
 
-extern "C" void newmsg_preview(const char *p)
+void newmsg_preview(const char *p)
 {
 	size_t pos;
 
