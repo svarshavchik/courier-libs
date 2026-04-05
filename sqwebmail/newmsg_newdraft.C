@@ -127,7 +127,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 		if (!f)	f="";
 
 		f=rfc2047_encode_header_tobuf("to", f,
-					      sqwebmail_content_charset);
+					      sqwebmail_content_charset.c_str());
 
 		maildir_writemsgstr(draftfd, f);
 		maildir_writemsgstr(draftfd, "\n");

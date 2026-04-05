@@ -2043,7 +2043,7 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 
 	subjectlabel[0]=0;
 
-	if ((tmpfp=open_langform(sqwebmail_content_language,
+	if ((tmpfp=open_langform(sqwebmail_content_language.c_str(),
 				 "eventnotifysubject.txt", 0)) != NULL)
 	{
 		if (fgets(subjectlabel, sizeof(subjectlabel), tmpfp) == NULL)
@@ -2059,7 +2059,7 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 	if (subjectlabel[0] == 0)
 		strcpy(subjectlabel, "[calendar]");
 
-	if ((tmpfp=open_langform(sqwebmail_content_language, templatestr, 0))
+	if ((tmpfp=open_langform(sqwebmail_content_language.c_str(), templatestr, 0))
 	    == NULL)
 	{
 		fprintf(stderr, "CRIT: %s: %s\n", templatestr, strerror(errno));

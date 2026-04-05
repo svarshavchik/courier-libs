@@ -15,9 +15,9 @@ size_t strftime_unicode(char *s, size_t max, const char *fmt,
 {
 	char sbuf[128] = "\0";
 
-	if (sqwebmail_system_charset && *sqwebmail_system_charset
-	    && sqwebmail_content_charset && *sqwebmail_content_charset
-	    && strcasecmp(sqwebmail_system_charset, "ASCII"))
+	if (!sqwebmail_system_charset.empty()
+	    && !sqwebmail_content_charset.empty()
+	    && strcasecmp(sqwebmail_system_charset.c_str(), "ASCII"))
 	{
 		bool errflag;
 		auto sfmt=unicode::iconvert::convert(

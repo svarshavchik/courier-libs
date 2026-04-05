@@ -114,7 +114,7 @@ static void listpubsec(int flag,
 	li.default_key=default_key;
 
 	memset(&gli, 0, sizeof(gli));
-	gli.charset=sqwebmail_content_charset;
+	gli.charset=sqwebmail_content_charset.c_str();
 
 	gli.disabled_msg=getarg("DISABLED");
 	gli.revoked_msg=getarg("REVOKED");
@@ -348,7 +348,7 @@ void gpgcreate()
 
 	linelen=0;
 
-	libmail_gpg_genkey(GPGDIR, sqwebmail_content_charset,
+	libmail_gpg_genkey(GPGDIR, sqwebmail_content_charset.c_str(),
 			   newname, newaddress, newcomment,
 			   skl, ekl,
 			   newexpire, newexpirewhen,

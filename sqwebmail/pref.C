@@ -285,7 +285,7 @@ char *pref_getfile(FILE *fp)
 	fclose(fp);
 
 	sig_buf=unicode_convert_fromutf8(utf8_buf,
-					   sqwebmail_content_charset,
+					   sqwebmail_content_charset.c_str(),
 					   NULL);
 	free(utf8_buf);
 

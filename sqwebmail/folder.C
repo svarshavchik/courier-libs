@@ -388,7 +388,7 @@ void folder_search(const char *dir, size_t pos)
 	maildir_search(dir,
 		       pos,
 		       cgi("searchtxt"),
-		       sqwebmail_content_charset,
+		       sqwebmail_content_charset.c_str(),
 		       pref_flagpagesize);
 
 	http_redirect_argss("&search=1&form=folder&pos=%s&"
@@ -496,7 +496,7 @@ void folder_contents(const char *dir, size_t pos)
 
 		auto &[info, matches]=contents[i];
 		show_msg(dir, info, matches, i,
-			 sqwebmail_content_charset);
+			 sqwebmail_content_charset.c_str());
 	}
 	if (found)
 	{
@@ -689,7 +689,7 @@ static void show_msg_match_str(const char *prefix,
 {
 	char *p;
 
-	p=unicode_convert_fromutf8(utf8match, sqwebmail_content_charset,
+	p=unicode_convert_fromutf8(utf8match, sqwebmail_content_charset.c_str(),
 				     NULL);
 
 	if (p)
@@ -1543,7 +1543,7 @@ static void html_warning()
 
 static void init_smileys(struct msg2html_info *info)
 {
-	FILE *fp=open_langform(sqwebmail_content_language, "smileys.txt", 0);
+	FILE *fp=open_langform(sqwebmail_content_language.c_str(), "smileys.txt", 0);
 	char buf[1024];
 
 	char imgbuf[3000];
@@ -2082,7 +2082,7 @@ void folder_showmsg(const char *dir, size_t pos)
 		message.parse(parser);
 	}
 
-	info=script_name ? msg2html_alloc(sqwebmail_content_charset):NULL;
+	info=script_name ? msg2html_alloc(sqwebmail_content_charset.c_str()):NULL;
 
 	if (info)
 	{
@@ -3372,7 +3372,7 @@ void folder_download(const char *folder, size_t pos, const char *mimeid)
 
 	cginocache();
 	msg2html_download(fd, mimeid, *cgi("download") == '1',
-			  sqwebmail_content_charset);
+			  sqwebmail_content_charset.c_str());
 }
 
 void folder_showtransfer()

@@ -68,7 +68,7 @@ unsigned cnt;
 	for (cnt=0, r=mf.first; r; r=r->next, ++cnt)
 	{
 		char *p=unicode_convert_fromutf8(r->rulename_utf8,
-						   sqwebmail_content_charset,
+						   sqwebmail_content_charset.c_str(),
 						   NULL);
 
 		printf("<option value=\"%u\">", cnt);
@@ -209,7 +209,7 @@ struct maildirfilterrule *r;
 		if (namebuf)	free(namebuf);
 		p=r->rulename_utf8 ? r->rulename_utf8:"";
 
-		namebuf=unicode_convert_fromutf8(p, sqwebmail_content_charset,
+		namebuf=unicode_convert_fromutf8(p, sqwebmail_content_charset.c_str(),
 						   NULL);
 
 		if (!namebuf)	enomem();
@@ -223,7 +223,7 @@ struct maildirfilterrule *r;
 
 		if (headernamebuf)	free(headernamebuf);
 		headernamebuf=unicode_convert_fromutf8(p,
-							 sqwebmail_content_charset,
+							 sqwebmail_content_charset.c_str(),
 							 NULL);
 		if (!headernamebuf)	enomem();
 		cgi_put("headername", headernamebuf);
@@ -243,7 +243,7 @@ struct maildirfilterrule *r;
 
 		headervaluebuf=
 			unicode_convert_fromutf8(p,
-						   sqwebmail_content_charset,
+						   sqwebmail_content_charset.c_str(),
 						   NULL);
 		if (!headervaluebuf)	enomem();
 
@@ -629,9 +629,9 @@ const char *autoreply_from="";
 
 	if (!r)
 		r=maildir_filter_appendrule(&mf, rulename, type, flags, fieldname_cpy,
-					    fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset, &err_num);
+					    fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset.c_str(), &err_num);
 	else if (maildir_filter_ruleupdate(&mf, r, rulename, type, flags, fieldname_cpy,
-					   fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset, &err_num))
+					   fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset.c_str(), &err_num))
 		r=0;
 	free(tofolder);
 	if (fieldname_cpy)

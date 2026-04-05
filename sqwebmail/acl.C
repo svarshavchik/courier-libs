@@ -436,7 +436,7 @@ static void doupdate(const maildir::info &minfo)
 static void p_ident_name(const char *identifier)
 {
 	char *val=unicode_convert_fromutf8(identifier,
-					     sqwebmail_content_charset,
+					     sqwebmail_content_charset.c_str(),
 					     NULL);
 
 	if (val)

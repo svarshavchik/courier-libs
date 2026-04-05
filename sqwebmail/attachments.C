@@ -862,7 +862,7 @@ int attach_upload(
 
 	static char Copt[]="-C";
 	argvec[n++]=Copt;
-	argvec[n++]=(char *)sqwebmail_content_charset;
+	argvec[n++]=(char *)sqwebmail_content_charset.c_str();
 
 	signal(SIGCHLD, SIG_DFL);
 
@@ -896,7 +896,7 @@ int attach_upload(
 
 	if (pid1 == 0)
 	{
-		setenv("CHARSET", sqwebmail_content_charset, 1);
+		setenv("CHARSET", sqwebmail_content_charset.c_str(), 1);
 		dup2(attachfd.fileno(), 0);
 		dup2(pipefd[1], 1);
 		attachfd={};

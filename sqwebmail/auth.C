@@ -242,13 +242,13 @@ static std::string uhdrbuf;
 	}
 
 	if (authcharset[0] == 0
-	    && sqwebmail_system_charset && *sqwebmail_system_charset
-	    && strcasecmp(sqwebmail_system_charset, "ASCII"))
-		strncat(authcharset, sqwebmail_system_charset,
+	    && !sqwebmail_system_charset.empty()
+	    && strcasecmp(sqwebmail_system_charset.c_str(), "ASCII"))
+		strncat(authcharset, sqwebmail_system_charset.c_str(),
 			sizeof(authcharset)-1);
 
 	if (authcharset[0]
-	    && sqwebmail_content_charset && *sqwebmail_content_charset
+	    && !sqwebmail_content_charset.empty()
 	    && (ufullname=unicode_convert_toutf8(fullname, authcharset,NULL)))
 		fullname = ufullname;
 

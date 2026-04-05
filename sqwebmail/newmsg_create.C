@@ -195,7 +195,7 @@ size_t	l;
 		return;
 	}
 
-	s=rfc2047_encode_str(p, sqwebmail_content_charset,
+	s=rfc2047_encode_str(p, sqwebmail_content_charset.c_str(),
 			     rfc2047_qp_allow_any);
 
 	header_wrap(hdrname, s, NULL, &l);
@@ -456,7 +456,7 @@ void wrap_text(struct wrap_info *uw,
 		while (i<newmsg_size && newmsg[i] != '\n')
 			++i;
 
-		h=unicode_convert_tou_init(sqwebmail_content_charset,
+		h=unicode_convert_tou_init(sqwebmail_content_charset.c_str(),
 					     &uc, &ucsize, 0);
 
 		if (h)
@@ -692,7 +692,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	{
 		has_attachments=true;
 		newmsg_create_multipart(newdraftfd,
-			sqwebmail_content_charset,
+			sqwebmail_content_charset.c_str(),
 					multipart_boundary.c_str());
 
 		maildir_writemsgstr(newdraftfd, "--");
@@ -726,7 +726,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	maildir_writemsgstr(newdraftfd,
 			    "Content-Type: text/plain; format=flowed; delsp=yes;"
 			    " charset=\"");
-	maildir_writemsgstr(newdraftfd, sqwebmail_content_charset);
+	maildir_writemsgstr(newdraftfd, sqwebmail_content_charset.c_str());
 	maildir_writemsgstr(newdraftfd, "\"\n");
 
 	maildir_writemsgstr(newdraftfd, "Content-Transfer-Encoding: ");
@@ -738,7 +738,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	sig=pref_getsig();
 	footer=pref_getfile(http11_open_langfile(
 				    get_templatedir(),
-				    sqwebmail_content_language,
+				    sqwebmail_content_language.c_str(),
 				    "footer"));
 
 	while (newmsg_size &&
@@ -749,7 +749,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	{
 		struct wrap_info uw;
 
-		wrap_text_init(&uw, sqwebmail_content_charset,
+		wrap_text_init(&uw, sqwebmail_content_charset.c_str(),
 			       save_textplain, NULL);
 
 		wrap_text(&uw, newmsg, newmsg_size);
@@ -782,14 +782,14 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		maildir_writemsgstr(newdraftfd, multipart_boundary.c_str());
 		maildir_writemsgstr(newdraftfd, "\n"
 				    "Content-Type: text/html; charset=\"");
-		maildir_writemsgstr(newdraftfd, sqwebmail_content_charset);
+		maildir_writemsgstr(newdraftfd, sqwebmail_content_charset.c_str());
 		maildir_writemsgstr(newdraftfd, "\"\n"
 				    "Content-Transfer-Encoding: ");
 		transferencoding2pos=writebufpos;
 		maildir_writemsgstr(newdraftfd, "7bit\n\n");
 
-		info=msg2html_textplain_start(sqwebmail_content_charset,
-					      sqwebmail_content_charset,
+		info=msg2html_textplain_start(sqwebmail_content_charset.c_str(),
+					      sqwebmail_content_charset.c_str(),
 					      true,
 					      true,
 					      mkurl,
@@ -803,7 +803,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		{
 			struct wrap_info uw;
 
-			wrap_text_init(&uw, sqwebmail_content_charset,
+			wrap_text_init(&uw, sqwebmail_content_charset.c_str(),
 				       convert_text2html, info);
 
 			wrap_text(&uw, newmsg, newmsg_size);
@@ -816,8 +816,8 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		if (sig && *sig)
 		{
 
-			info=msg2html_textplain_start(sqwebmail_content_charset,
-						      sqwebmail_content_charset,
+			info=msg2html_textplain_start(sqwebmail_content_charset.c_str(),
+						      sqwebmail_content_charset.c_str(),
 						      true,
 						      true,
 						      mkurl,
@@ -831,7 +831,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 			{
 				struct wrap_info uw;
 
-				wrap_text_init(&uw, sqwebmail_content_charset,
+				wrap_text_init(&uw, sqwebmail_content_charset.c_str(),
 					       convert_text2html, info);
 
 				wrap_text(&uw, sig, strlen(sig));
@@ -843,8 +843,8 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		{
 			save_textplain("<br />\n", 7, NULL);
 
-			info=msg2html_textplain_start(sqwebmail_content_charset,
-						      sqwebmail_content_charset,
+			info=msg2html_textplain_start(sqwebmail_content_charset.c_str(),
+						      sqwebmail_content_charset.c_str(),
 						      true,
 						      true,
 						      mkurl,

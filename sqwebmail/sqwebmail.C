@@ -112,15 +112,15 @@ extern void doldapsearch();
 	ACL_DELETEFOLDER
 char sqwebmail_folder_rights[sizeof(ALL_RIGHTS)];
 
-const char *sqwebmail_sessiontoken=0;
+std::string sqwebmail_sessiontoken;
 
-const char *sqwebmail_content_language=0;
-const char *sqwebmail_content_locale;
-const char *sqwebmail_system_charset=0;
-static char *sys_locale_charset=0;
+std::string sqwebmail_content_language;
+std::string sqwebmail_content_locale;
+std::string sqwebmail_system_charset;
+std::string sys_locale_charset;
 
-const char *sqwebmail_content_ispelldict;
-const char *sqwebmail_content_charset;
+std::string sqwebmail_content_ispelldict;
+std::string sqwebmail_content_charset;
 
 dev_t sqwebmail_homedir_dev;
 ino_t sqwebmail_homedir_ino;
@@ -321,7 +321,8 @@ const	char *p=nonloginscriptptr();
 	char	buf[NUMBUFSIZE];
 
 		printf("/login/%s/%s/%s", q,
-			sqwebmail_sessiontoken ?  sqwebmail_sessiontoken:" ",
+			!sqwebmail_sessiontoken.empty() ?
+				sqwebmail_sessiontoken.c_str():" ",
 			libmail_str_time_t(login_time, buf));
 		free(q);
 	}
@@ -336,7 +337,8 @@ void output_loginscriptptr_get()
 	char	buf[NUMBUFSIZE];
 
 		printf("/login/%s/%s/%s", q,
-			sqwebmail_sessiontoken ?  sqwebmail_sessiontoken:" ",
+			!sqwebmail_sessiontoken.empty() ?
+				sqwebmail_sessiontoken.c_str():" ",
 			libmail_str_time_t(login_time, buf));
 		free(q);
 	}
@@ -367,7 +369,8 @@ char	buf[NUMBUFSIZE];
 		ADD("/login/");
 		ADDE(sqwebmail_mailboxid);
 		ADD("/");
-		ADD(sqwebmail_sessiontoken ? sqwebmail_sessiontoken:" ");
+		ADD(!sqwebmail_sessiontoken.empty() ?
+			sqwebmail_sessiontoken.c_str():" ");
 		ADD("/");
 		ADD(libmail_str_time_t(login_time, buf));
 
@@ -602,8 +605,8 @@ static int timezonefile( int (*callback_func)(const char *, const char *,
 	FILE *f=NULL;
 	char buffer[BUFSIZ];
 
-	if (sqwebmail_content_language)
-		f=open_langform(sqwebmail_content_language, "TIMEZONELIST", 0);
+	if (!sqwebmail_content_language.empty())
+		f=open_langform(sqwebmail_content_language.c_str(), "TIMEZONELIST", 0);
 
 	if (!f)	f=open_langform(HTTP11_DEFAULTLANG, "TIMEZONELIST", 0);
 
@@ -749,8 +752,8 @@ static FILE *do_open_form(const char *formname, int flag)
 	    == NULL)
 		return (NULL);
 
-	if (sqwebmail_content_language)
-		f=open_langform(sqwebmail_content_language, formname, flag);
+	if (!sqwebmail_content_language.empty())
+		f=open_langform(sqwebmail_content_language.c_str(), formname, flag);
 	if (!f)	f=open_langform(HTTP11_DEFAULTLANG, formname, flag);
 
 	if (!f)
@@ -795,7 +798,7 @@ static void fix_xml_header(FILE *f)
 
 	if (strncasecmp(linebuf, "<?xml version=", 14) == 0)
 		sprintf(linebuf, "<?xml version=\"1.0\" encoding=\"%s\"?>\n",
-			sqwebmail_content_charset);
+			sqwebmail_content_charset.c_str());
 
 	printf("%s", linebuf);
 }
@@ -869,8 +872,8 @@ void output_form(const char *formname)
 
 	printf("Content-Type: text/html");
 
-	if (sqwebmail_content_charset)
-		printf("; charset=%s", sqwebmail_content_charset);
+	if (!sqwebmail_content_charset.empty())
+		printf("; charset=%s", sqwebmail_content_charset.c_str());
 
 	printf("\n\n");
 
@@ -1978,14 +1981,13 @@ void cleanup()
 	sqwebmail_formname = NULL;
 	sqwebmail_mailboxid=0;
 	sqwebmail_folder=0;
-	sqwebmail_sessiontoken=0;
-	sqwebmail_content_language=0;
-	sqwebmail_content_locale=0;
-	sqwebmail_system_charset=0;
-	if (sys_locale_charset)
-		free(sys_locale_charset);
-	sys_locale_charset=0;
-	sqwebmail_content_ispelldict=0;
+	sqwebmail_sessiontoken.clear();
+	sqwebmail_content_language.clear();
+	sqwebmail_content_charset.clear();
+	sqwebmail_content_locale.clear();
+	sqwebmail_system_charset.clear();
+	sys_locale_charset.clear();
+	sqwebmail_content_ispelldict.clear();
 	folder_cleanup();
 	maildir_cleanup();
 	mailfilter_cleanup();
@@ -2019,19 +2021,9 @@ static void catch_sig(int n)
 
 static void setlang()
 {
-	static char *lang_buf=0;
-	char *p;
-
-	if (sqwebmail_content_locale && *sqwebmail_content_locale
-	    && (p=static_cast<char *>(
-			malloc(sizeof("LANG=")+strlen(sqwebmail_content_locale)))
-	    )!=0)
+	if (!sqwebmail_content_locale.empty())
 	{
-		strcat(strcpy(p, "LANG="), sqwebmail_content_locale);
-		putenv(p);
-		if (lang_buf)
-			free(lang_buf);
-		lang_buf=p;
+		setenv("LANG", sqwebmail_content_locale.c_str(), 1);
 	}
 }
 
@@ -2053,15 +2045,15 @@ char	*cl=http11_best_content_language(templatedir,
 	free(cl);
 #if	HAVE_LOCALE_H
 #if	HAVE_SETLOCALE
-	setlocale(LC_ALL, sqwebmail_content_locale);
+	setlocale(LC_ALL, sqwebmail_content_locale.c_str());
 #if	USE_LIBCHARSET
-	setlocale(LC_CTYPE, sqwebmail_content_locale);
+	setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
 	sqwebmail_system_charset = locale_charset();
 #elif	HAVE_LANGINFO_CODESET
-	setlocale(LC_CTYPE, sqwebmail_content_locale);
-	sqwebmail_system_charset = sys_locale_charset=strdup(nl_langinfo(CODESET));
+	setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
+	sqwebmail_system_charset = sys_locale_charset=nl_langinfo(CODESET);
 #else
-	sqwebmail_system_charset = NULL;
+	sqwebmail_system_charset.clear();
 #endif	/* USE_LIBCHARSET */
 	setlocale(LC_CTYPE, "C");
 	setlang();
@@ -2349,7 +2341,7 @@ time_t	timeouthard=get_timeouthard();
 		/* Ok, boys and girls, time to validate the connection as
 		** follows */
 
-		if (	!sqwebmail_sessiontoken
+		if (	sqwebmail_sessiontoken.empty()
 
 		/* 1. Read IPFILE.  Check that it's timestamp is current enough,
 		** and the session hasn't timed out.
@@ -2369,17 +2361,14 @@ time_t	timeouthard=get_timeouthard();
 			|| !(p=strtok(q, " "))
 			|| (strcmp(p, ip_addr) && strcmp(p, "none"))
 			|| !(p=strtok(NULL, " "))
-			|| strcmp(p, sqwebmail_sessiontoken)
+			|| strcmp(p, sqwebmail_sessiontoken.c_str())
 			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_language=strdup(p))
-			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_locale=strdup(p))
-			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_ispelldict=strdup(p))
-			|| !(p=strtok(NULL, " "))
+			|| !(sqwebmail_content_language=p, p=strtok(NULL, " "))
+			|| !(sqwebmail_content_locale=p, p=strtok(NULL, " "))
+			|| !(sqwebmail_content_ispelldict=p, p=strtok(NULL, " "))
 			|| set_timezone(p)
 			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_charset=strdup(p))
+			|| !(sqwebmail_content_charset=p, 1)
 
 		/* 3. Check the timestamp on the TIMESTAMP file.  See if the
 		** session has reached its soft timeout.
@@ -2459,16 +2448,16 @@ time_t	timeouthard=get_timeouthard();
 
 #if	HAVE_LOCALE_H
 #if	HAVE_SETLOCALE
-		setlocale(LC_ALL, sqwebmail_content_locale);
+		setlocale(LC_ALL, sqwebmail_content_locale.c_str());
 #if	USE_LIBCHARSET
-		setlocale(LC_CTYPE, sqwebmail_content_locale);
+		setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
 		sqwebmail_system_charset = locale_charset();
 #elif	HAVE_LANGINFO_CODESET
-		setlocale(LC_CTYPE, sqwebmail_content_locale);
+		setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
 		sqwebmail_system_charset = sys_locale_charset
-			= strdup(nl_langinfo(CODESET));
+			= nl_langinfo(CODESET);
 #else
-		sqwebmail_system_charset = NULL;
+		sqwebmail_system_charset.clear();
 #endif  /* USE_LIBCHARSET */
 		setlocale(LC_CTYPE, "C");
 		setlang();
@@ -2553,7 +2542,7 @@ time_t	timeouthard=get_timeouthard();
 			if (*p && (mailboxid=do_login(ubuf.c_str(), p, ip_addr))
 			    != 0)
 			{
-				char	*q;
+				std::string q;
 				const	char *saveip=ip_addr;
 				char	*tz;
 
@@ -2565,25 +2554,29 @@ time_t	timeouthard=get_timeouthard();
 				if (*cgi("sameip") == 0)
 					saveip="none";
 
-				q=static_cast<char *>(
-					malloc(strlen(saveip)
-					       +strlen(sqwebmail_sessiontoken)
-					       +strlen(sqwebmail_content_language)
-					       +strlen(sqwebmail_content_ispelldict)
-					       +strlen(sqwebmail_content_charset)
-					       +strlen(tz)
-					       +strlen(sqwebmail_content_locale)+7)
-				);
-				if (!q)	enomem();
-				sprintf(q, "%s %s %s %s %s %s %s", saveip,
-					sqwebmail_sessiontoken,
-					sqwebmail_content_language,
-					sqwebmail_content_locale,
-					sqwebmail_content_ispelldict,
-					tz,
-					sqwebmail_content_charset);
-				write_sqconfig(".", IPFILE, q);
-				free(q);
+				q.reserve(
+					strlen(saveip)
+					+sqwebmail_sessiontoken.size()
+					+sqwebmail_content_language.size()
+					+sqwebmail_content_ispelldict.size()
+					+sqwebmail_content_charset.size()
+					+strlen(tz)
+					+sqwebmail_content_locale.size()+6);
+
+				q.append(saveip);
+				q.append(" ");
+				q.append(sqwebmail_sessiontoken);
+				q.append(" ");
+				q.append(sqwebmail_content_language);
+				q.append(" ");
+				q.append(sqwebmail_content_locale);
+				q.append(" ");
+				q.append(sqwebmail_content_ispelldict);
+				q.append(" ");
+				q.append(tz);
+				q.append(" ");
+				q.append(sqwebmail_content_charset);
+				write_sqconfig(".", IPFILE, q.c_str());
 				free(tz);
 				time(&login_time);
 				{
@@ -2607,17 +2600,17 @@ time_t	timeouthard=get_timeouthard();
 				write_sqconfig(".", TIMESTAMP, "");
 #if	HAVE_LOCALE_H
 #if	HAVE_SETLOCALE
-				setlocale(LC_ALL, sqwebmail_content_locale);
+				setlocale(LC_ALL, sqwebmail_content_locale.c_str());
 #if	USE_LIBCHARSET
-				setlocale(LC_CTYPE, sqwebmail_content_locale);
+				setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
 				sqwebmail_system_charset = locale_charset();
 #elif	HAVE_LANGINFO_CODESET
-				setlocale(LC_CTYPE, sqwebmail_content_locale);
+				setlocale(LC_CTYPE, sqwebmail_content_locale.c_str());
 
 				sqwebmail_system_charset = sys_locale_charset
-					= strdup(nl_langinfo(CODESET));
+					= nl_langinfo(CODESET);
 #else
-				sqwebmail_system_charset = NULL;
+				sqwebmail_system_charset.clear();
 #endif	/* USE_LIBCHARSET */
 				setlocale(LC_CTYPE, "C");
 				setlang();

@@ -306,7 +306,7 @@ static std::string spell_check(const std::string &line, unsigned pnum,
 	if (line.size() <= pos)	return {};	/* Sanity check */
 
 	ispellptr.reset();
-	ispellptr.emplace(sqwebmail_content_ispelldict, line.substr(pos));
+	ispellptr.emplace(sqwebmail_content_ispelldict.c_str(), line.substr(pos));
 	if (!ispellptr)	enomem();
 	for (auto &word:ispellptr->misspelled_words)
 		word.word_pos += pos;
@@ -546,9 +546,9 @@ static std::string dictname()
 {
 	std::string p;
 
-	if (sqwebmail_content_ispelldict)
+	if (!sqwebmail_content_ispelldict.empty())
 	{
-		p.reserve(strlen(sqwebmail_content_ispelldict)+20);
+		p.reserve(sqwebmail_content_ispelldict.size()+20);
 
 		p="sqwebmail-dict-";
 		p+=sqwebmail_content_ispelldict;

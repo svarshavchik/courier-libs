@@ -142,7 +142,7 @@ const char	*autoresp_text2=getarg("TEXT2");
 			show_textarea_init(&info, 0);
 
 			h=unicode_convert_init("utf-8",
-						 sqwebmail_content_charset,
+						 sqwebmail_content_charset.c_str(),
 						 show_autoresponse_trampoline,
 						 &info);
 
@@ -436,7 +436,7 @@ static void end_upload(void *vp)
 	{
 		static char copt_str[]="-C";
 		argvec[3]=copt_str;
-		argvec[4]=(char *)sqwebmail_content_charset;
+		argvec[4]=(char *)sqwebmail_content_charset.c_str();
 		n=5;
 	}
 

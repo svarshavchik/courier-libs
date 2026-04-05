@@ -4,7 +4,7 @@
 #include <iostream>
 #include <optional>
 
-const char *sqwebmail_content_charset=unicode::utf_8;
+std::string sqwebmail_content_charset=unicode::utf_8;
 
 std::string savedconfigfile;
 
