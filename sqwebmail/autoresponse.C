@@ -38,7 +38,6 @@
 #define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
 
-extern const char *sqwebmail_content_charset;
 void output_attrencoded(const char *);
 extern std::string calc_mime_type(const char *filename);
 

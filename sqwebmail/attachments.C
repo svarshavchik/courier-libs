@@ -52,8 +52,6 @@ extern void output_scriptptrget();
 
 extern int ishttps();
 
-extern const char *sqwebmail_content_charset;
-extern const char *sqwebmail_content_language;
 
 static void attachment_showname(const char *);
 

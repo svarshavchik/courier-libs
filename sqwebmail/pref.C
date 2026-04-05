@@ -1,11 +1,8 @@
 /*
-** Copyright 1998 - 2008 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
-
-/*
-*/
 #include	"pref.h"
 #include	"config.h"
 #include	"auth.h"
@@ -56,7 +53,6 @@ int pref_wikifmt;
 
 char *pref_from=0;
 char *pref_ldap=0;
-extern const char *sqwebmail_content_charset;
 
 #if ENABLE_WEBPASS
 extern int check_sqwebpass(const char *);

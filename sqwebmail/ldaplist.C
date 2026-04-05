@@ -28,7 +28,6 @@
 
 extern "C" {
 	extern void output_scriptptrget();
-	extern const char *sqwebmail_content_charset;
 };
 
 extern void output_attrencoded(const char *);

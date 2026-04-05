@@ -71,8 +71,6 @@ void output_attrencoded_oknl_fp(const char *, FILE *);
 void output_scriptptrget();
 void output_attrencoded(const char *);
 void print_safe(const char *);
-extern const char *sqwebmail_content_charset;
-extern const char *sqwebmail_content_language;
 void output_form(const char *);
 void newmsg_preview(const char *);
 void output_urlencoded(const char *);

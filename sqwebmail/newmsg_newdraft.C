@@ -32,7 +32,6 @@
 #endif
 
 extern const char *sqwebmail_mailboxid;
-extern const char *sqwebmail_content_charset;
 
 extern std::string get_msgfilename(const char *, size_t *);
 

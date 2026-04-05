@@ -6,8 +6,6 @@
 #include	"sqwebmail.h"
 #include	<courier-unicode.h>
 
-extern const char *sqwebmail_system_charset;
-extern const char *sqwebmail_content_charset;
 
 #if	HAVE_LOCALE_H
 #if	HAVE_SETLOCALE

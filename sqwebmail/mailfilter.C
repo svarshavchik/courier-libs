@@ -22,7 +22,6 @@
 
 extern void list_folder(std::string_view);
 void output_attrencoded(const char *);
-extern const char *sqwebmail_content_charset;
 
 static const char *internal_err=0;
 

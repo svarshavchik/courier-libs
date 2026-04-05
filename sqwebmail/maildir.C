@@ -59,7 +59,6 @@ namespace fs = std::filesystem;
 static time_t	current_time;
 
 extern time_t rfc822_parsedt(const char *);
-extern const char *sqwebmail_content_charset;
 extern const char *sqwebmail_mailboxid;
 
 static std::string folderdatname;	/* Which folder has been cached */

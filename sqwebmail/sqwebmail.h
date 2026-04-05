@@ -114,5 +114,12 @@ extern char *get_imageurl();
 
 std::string trim_spaces(const char *s);
 
+extern const char *sqwebmail_sessiontoken;
+extern const char *sqwebmail_content_language;
+extern const char *sqwebmail_content_locale;
+extern const char *sqwebmail_content_ispelldict;
+extern const char *sqwebmail_content_charset;
+extern const char *sqwebmail_system_charset;
+
 #endif
 #endif

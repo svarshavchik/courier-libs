@@ -44,7 +44,6 @@
 #include	"htmllibdir.h"
 #include	<courier-unicode.h>
 
-extern const char *sqwebmail_content_charset;
 extern int spell_start(const char *);
 extern const char *sqwebmail_mailboxid;
 extern const char *sqwebmail_folder;

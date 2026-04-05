@@ -73,18 +73,15 @@
 FILE *open_langform(const char *lang, const char *formname,
 			int print_header);
 
-extern const char *sqwebmail_content_language;
 extern char sqwebmail_folder_rights[];
 extern const char *sqwebmail_mailboxid;
 extern char *get_imageurl();
-extern const char *sqwebmail_content_locale;
 extern void print_attrencodedlen(const char *, size_t, int, FILE *);
 
 extern void maildir_cleanup();
 extern const char *nonloginscriptptr();
 extern int pref_flagpagesize;
 extern int ishttps();
-extern const char *sqwebmail_content_charset;
 extern int verify_shared_index_file;
 
 extern time_t rfc822_parsedt(const char *);

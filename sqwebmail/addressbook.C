@@ -28,7 +28,6 @@
 #include	<string_view>
 #define	ADDRESSBOOK	"sqwebmail-addressbook"
 
-extern const char *sqwebmail_content_charset;
 
 void output_attrencoded(const char *);
 void output_attrencoded_fp(const char *, FILE *);

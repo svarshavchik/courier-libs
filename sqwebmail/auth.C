@@ -36,7 +36,6 @@
 #include	"auth.h"
 #include	"htmllibdir.h"
 
-extern const char *sqwebmail_content_charset, *sqwebmail_system_charset;
 #include	<courier-unicode.h>
 
 const char *myhostname()

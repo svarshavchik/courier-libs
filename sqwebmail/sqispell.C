@@ -26,9 +26,7 @@
 #include	<optional>
 #include	<fstream>
 
-extern const char *sqwebmail_content_charset;
 extern void output_form(const char *);
-extern const char *sqwebmail_content_ispelldict;
 extern void output_attrencoded(std::string_view);
 
 static void spelladd(const char *);

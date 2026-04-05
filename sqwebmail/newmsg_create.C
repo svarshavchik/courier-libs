@@ -37,11 +37,6 @@
 
 /* Also in attachments.c */
 
-extern const char *rfc822_mkdt(time_t);
-
-extern const char *sqwebmail_content_charset;
-extern const char *sqwebmail_content_language;
-
 int newdraftfd;
 extern const char *sqwebmail_mailboxid;
 extern void create_addrheader(std::string_view header,

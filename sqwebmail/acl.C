@@ -68,7 +68,6 @@ extern void output_scriptptrpostinfo();
 extern dev_t sqwebmail_homedir_dev;
 extern ino_t sqwebmail_homedir_ino;
 
-extern const char *sqwebmail_content_charset;
 int verify_shared_index_file=0;
 
 int maildir_info_suppress(const char *maildir)
