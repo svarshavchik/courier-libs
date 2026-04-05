@@ -129,8 +129,6 @@ static int noimages=0;
 
 time_t	login_time;
 
-extern "C" int nochangepass();
-
 /* Need to cache the following environment variables */
 static const char * const authvars[] = { "AUTHADDR", "AUTHFULLNAME",
 					 "OPTIONS", "AUTHENTICATED", 0 };

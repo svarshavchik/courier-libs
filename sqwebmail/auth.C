@@ -36,18 +36,16 @@
 #include	"auth.h"
 #include	"htmllibdir.h"
 
-extern int check_sqwebpass(const char *);
-
-extern char *sqwebmail_content_charset, *sqwebmail_system_charset;
+extern const char *sqwebmail_content_charset, *sqwebmail_system_charset;
 #include	<courier-unicode.h>
 
 const char *myhostname()
 {
 char    buf[512];
-static char *my_hostname=0;
+static std::string my_hostname;
 FILE	*f;
 
-	if (my_hostname == 0)
+	if (my_hostname.empty())
 	{
 		buf[0]=0;
 		if ((f=fopen(HOSTNAMEFILE, "r")) != 0)
@@ -66,11 +64,9 @@ FILE	*f;
 		if (buf[0] == 0 && gethostname(buf, sizeof(buf)-1))
 			strcpy(buf, "localhost");
 
-		if ((my_hostname=malloc(strlen(buf)+1)) == 0)
-			enomem();
-		strcpy(my_hostname, buf);
+		my_hostname = buf;
 	}
-	return (my_hostname);
+	return (my_hostname.c_str());
 }
 
 static int login_maildir(const char *maildir)
@@ -115,7 +111,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 		return (-1);
 	}
 
-	b=malloc(sizeof("AUTHADDR=")+strlen(c));
+	b=static_cast<char *>(malloc(sizeof("AUTHADDR=")+strlen(c)));
 
 	if (!b)
 		enomem();
@@ -128,7 +124,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 
 	n=a->fullname;
 	if (!n) n="";
-	b=malloc(sizeof("AUTHFULLNAME=")+strlen(n));
+	b=static_cast<char *>(malloc(sizeof("AUTHFULLNAME=")+strlen(n)));
 
 	if (!b)
 		enomem();
@@ -141,7 +137,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 	n=a->options;
 	if (!n) n="";
 
-	b=malloc(sizeof("OPTIONS=")+strlen(n));
+	b=static_cast<char *>(malloc(sizeof("OPTIONS=")+strlen(n)));
 
 	if (!b)
 		enomem();
@@ -154,7 +150,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 	n=a->address;
 	if (!n) n="";
 
-	b=malloc(sizeof("AUTHENTICATED=")+strlen(n));
+	b=static_cast<char *>(malloc(sizeof("AUTHENTICATED=")+strlen(n)));
 
 	if (!b)
 		enomem();
@@ -230,8 +226,11 @@ int prelogin(const char *u)
 
 const char *login_returnaddr()
 {
-	static char *addrbuf=0;
+	static std::string addrbuf;
 	const char *p, *domain="";
+
+	if (!addrbuf.empty())
+		return addrbuf.c_str();
 
 	if ((p=getenv("AUTHENTICATED")) == NULL || *p == 0)
 		p=getenv("AUTHADDR");
@@ -239,14 +238,16 @@ const char *login_returnaddr()
 	if (strchr(p, '@') == 0)
 		domain=myhostname();
 
-	if (addrbuf)	free(addrbuf);
-	addrbuf=malloc(strlen(domain)+strlen(p)+2);
-	if (!addrbuf)	enomem();
+	addrbuf.clear();
+	addrbuf.reserve(strlen(domain)+strlen(p)+2);
 
-	strcpy(addrbuf, p);
+	addrbuf = p;
 	if (*domain)
-		strcat(strcat(addrbuf, "@"), domain);
-	return (addrbuf);
+	{
+		addrbuf += "@";
+		addrbuf += domain;
+	}
+	return (addrbuf.c_str());
 }
 
 const char *login_fromhdr()
@@ -255,14 +256,13 @@ const char *address=login_returnaddr();
 const char *fullname=getenv("AUTHFULLNAME");
 int	l;
 const char *p;
-char	*q;
 
-static char *hdrbuf=0;
+std::string hdrbuf;
 
 FILE *fp;
 char authcharset[128];
 char *ufullname=0;
-static char *uhdrbuf=0;
+static std::string uhdrbuf;
 
 	if (!fullname || !*fullname)
 		return (address);	/* That was easy */
@@ -300,35 +300,38 @@ static char *uhdrbuf=0;
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
 			*p == '<' || *p == '>')	++l;
 
-	if (hdrbuf)	free(hdrbuf);
-	hdrbuf=malloc(l);
-	if (!hdrbuf)	enomem();
-	q=hdrbuf;
-	*q++='"';
+	hdrbuf.reserve(l);
+	hdrbuf += '"';
 	for (p=fullname; *p; p++)
 	{
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
-			*p == '<' || *p == '>')	*q++ = '\\';
-		*q++= *p;
+			*p == '<' || *p == '>')	hdrbuf += '\\';
+		hdrbuf += *p;
 	}
-	*q++='"';
-	*q++=' ';
-	*q++='<';
+	hdrbuf += '"';
+	hdrbuf += ' ';
+	hdrbuf += '<';
 	for (p=address; *p; p++)
 	{
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
-			*p == '<' || *p == '>')	*q++ = '\\';
-		*q++= *p;
+			*p == '<' || *p == '>')	hdrbuf += '\\';
+		hdrbuf += *p;
 	}
-	*q++='>';
-	*q=0;
+	hdrbuf += '>';
 
 	if (ufullname)	free(ufullname);
-	if (uhdrbuf)	free(uhdrbuf);
-	if ((uhdrbuf=unicode_convert_fromutf8(hdrbuf,
-						sqwebmail_content_charset,
-						NULL)) != NULL)
-		return (uhdrbuf);
 
-	return (hdrbuf);
+	bool errflag;
+
+	uhdrbuf = unicode::iconvert::convert(
+		hdrbuf,
+		unicode::utf_8,
+		sqwebmail_content_charset,
+		errflag
+	);
+
+	if (errflag)
+		uhdrbuf=hdrbuf;
+
+	return (uhdrbuf.c_str());
 }

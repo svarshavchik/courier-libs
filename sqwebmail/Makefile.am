@@ -103,7 +103,7 @@ endif
 
 sqwebmaild_SOURCES=acl.C acl.h \
 		addressbook.C addressbook.h args.c attachments.C \
-		auth.c auth.h autoresponse.C autoresponse.h \
+		auth.C auth.h autoresponse.C autoresponse.h \
 		changepw.c \
 		folder.C folder.h gpg.C gpg.h \
 		ldaplist.C logindomainlist.c logindomainlist.h \
@@ -112,7 +112,7 @@ sqwebmaild_SOURCES=acl.C acl.h \
 		newmsg_createaddrheader.C \
 		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.C pref.h \
 		sqconfig.C sqconfig.h sqwebmail.C \
-		strftime.c strftime.h \
+		strftime.C strftime.h \
 		sqwebmail.h token.C token.h $(SQISPELLSOURCES)
 
 sqwebmaild_LDADD=libwebmail.la \

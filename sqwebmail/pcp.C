@@ -67,7 +67,6 @@
 FILE *open_langform(const char *lang, const char *formname,
 			int print_header);
 
-extern "C" const char *myhostname();
 void output_attrencoded_oknl_fp(const char *, FILE *);
 void output_scriptptrget();
 void output_attrencoded(const char *);
