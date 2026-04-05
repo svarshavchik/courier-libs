@@ -6,7 +6,6 @@
 #include	"sqwebmail.h"
 #include	<courier-unicode.h>
 
-
 #if	HAVE_LOCALE_H
 #if	HAVE_SETLOCALE
 #if	USE_LIBCHARSET || HAVE_LANGINFO_CODESET
@@ -15,57 +14,40 @@ size_t strftime_unicode(char *s, size_t max, const char *fmt,
 			const struct tm *tm)
 {
 	char sbuf[128] = "\0";
-	char *buf;
 
 	if (sqwebmail_system_charset && *sqwebmail_system_charset
 	    && sqwebmail_content_charset && *sqwebmail_content_charset
 	    && strcasecmp(sqwebmail_system_charset, "ASCII"))
 	{
-		int err;
-		char *sfmt=unicode_convert_tobuf(fmt,
-						   sqwebmail_content_charset,
-						   sqwebmail_system_charset,
-						   &err);
+		bool errflag;
+		auto sfmt=unicode::iconvert::convert(
+			fmt,
+			sqwebmail_content_charset,
+			sqwebmail_system_charset,
+			errflag);
 
-		if (sfmt && err)
+		if (!errflag)
 		{
-			free(sfmt);
-			sfmt=0;
-		}
-
-		if (sfmt)
-		{
-			strftime(sbuf, sizeof(sbuf), sfmt, tm);
+			strftime(sbuf, sizeof(sbuf), sfmt.c_str(), tm);
 			sbuf[sizeof(sbuf)-1] = 0;
-			free(sfmt);
 
-			buf=unicode_convert_tobuf(sbuf,
+			auto buf=unicode::iconvert::convert(
+						    sbuf,
 						    sqwebmail_system_charset,
 						    sqwebmail_content_charset,
-						    &err);
+						    errflag);
 
-			if (buf && err)
+			if (!errflag)
 			{
-				free(buf);
-				buf=0;
+				strncpy(s, buf.c_str(), max-1);
+				s[max-1]=0;
+				return strlen(s);
 			}
-
-			if (buf)
-			{
-				strncpy(s, buf, max);
-				free(buf);
-			}
-			else
-			{
-				strncpy(s, sbuf, max);
-			}
-			return strlen(s);
 		}
 	}
 
 	return strftime(s, max, fmt, tm);
 }
-
 #endif
 #endif
 #endif

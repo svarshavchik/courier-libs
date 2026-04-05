@@ -1,3 +1,7 @@
+2026-04-05  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* strftime.h: Fix possible encoding problem with shown timestamps.
+
 2026-04-01  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fix display glitch when removing a message from a sharable
