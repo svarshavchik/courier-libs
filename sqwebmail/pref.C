@@ -16,20 +16,7 @@
 #include	<stdlib.h>
 #include	<sys/stat.h>
 #include	<unistd.h>
-
-#define	OLDEST1ST	"OLDEST1ST"
-#define	FULLHEADERS	"FULLHEADERS"
-#define	SORTORDER	"SORT"
-#define	PAGESIZE	"PAGESIZE"
-#define	AUTOPURGE_V	"AUTOPURGE"
-#define	NOHTML		"NOHTML"
-#define	FROM		"FROM"
-#define	LDAP		"LDAP"
-#define FLOWEDTEXT	"NOFLOWEDTEXT"
-#define NOARCHIVE	"NOARCHIVE"
-#define NOAUTORENAMESENT	"NOAUTORENAMESENT"
-#define STARTOFWEEK	"STARTOFWEEK"
-#define WIKITEXT		"WIKITEXT"
+#include	<charconv>
 
 #define	OLDEST1ST_PREF	"oldest1st"
 #define	FULLHEADERS_PREF "fullheaders"
@@ -39,20 +26,8 @@
 #define NOAUTORENAMESENT_PREF "noautorenamesent"
 
 #define DEFAULTKEY	"DEFAULTKEY"
+#define STARTOFWEEK_PREF "STARTOFWEEK"
 
-int pref_flagisoldest1st, pref_flagfullheaders;
-int pref_showhtml;
-int pref_flagsortorder;
-int pref_flagpagesize;
-int pref_autopurge;
-int pref_noflowedtext;
-int pref_noarchive;
-int pref_noautorenamesent;
-int pref_startofweek;
-int pref_wikifmt;
-
-char *pref_from=0;
-char *pref_ldap=0;
 
 #if ENABLE_WEBPASS
 extern int check_sqwebpass(const char *);
@@ -61,161 +36,6 @@ extern void set_sqwebpass(const char *);
 extern void output_attrencoded_oknl(const char *);
 extern const char *sqwebmail_mailboxid;
 extern void rename_sent_folder(int really);
-
-static const char hex[]="0123456789ABCDEF";
-
-static int nybble(char c)
-{
-	auto p=strchr(hex, c);
-
-	if (p)	return (p-hex);
-	return (0);
-}
-
-static void decode(char *t)
-{
-char *s;
-
-	for (s=t; *s; s++)
-	{
-		if (*s != '+')
-		{
-			*t++ = *s;
-			continue;
-		}
-		if (s[1] == 0 || s[2] == 0)
-			continue;
-		*t++ = nybble(s[1]) * 16 + nybble(s[2]);
-		s += 2;
-	}
-	*t=0;
-}
-
-void pref_init()
-{
-const	char *p;
-char	*q, *r;
-
-	p=read_sqconfig(".", CONFIGFILE, 0);
-	pref_flagisoldest1st=0;
-	pref_flagfullheaders=0;
-	pref_flagsortorder=0;
-	pref_flagpagesize=10;
-	pref_noarchive=0;
-
-	{
-		const char *autorenamesent=AUTORENAMESENT;
-
-		const char *p=getenv("SQWEBMAIL_AUTORENAMESENT");
-		if (p && *p)
-			autorenamesent = p;
-
-		pref_noautorenamesent=strncmp(autorenamesent, "no", 2) == 0;
-	}
-
-	pref_startofweek=0;
-	pref_autopurge=AUTOPURGE;
-	pref_showhtml=1;
-	pref_wikifmt=0;
-
-	if(pref_from) {
-		free(pref_from);
-		pref_from=0;
-		}
-
-	if(pref_ldap) {
-		free(pref_ldap);
-		pref_ldap=0;
-		}
-
-
-	if (p)
-	{
-		q=strdup(p);
-		if (!q)	enomem();
-
-		for (r=q; (r=strtok(r, " ")) != 0; r=0)
-		{
-			if (strcmp(r, OLDEST1ST) == 0)
-				pref_flagisoldest1st=1;
-			if (strcmp(r, FULLHEADERS) == 0)
-				pref_flagfullheaders=1;
-			if (strcmp(r, NOHTML) == 0)
-				pref_showhtml=0;
-			if (strcmp(r, WIKITEXT) == 0)
-				pref_wikifmt=1;
-
-			if (strncmp(r, SORTORDER, sizeof(SORTORDER)-1) == 0
-				&& r[sizeof(SORTORDER)-1] == '=')
-				pref_flagsortorder=r[sizeof(SORTORDER)];
-			if (strncmp(r, PAGESIZE, sizeof(PAGESIZE)-1) == 0
-				&& r[sizeof(PAGESIZE)-1] == '=')
-				pref_flagpagesize=atoi(r+sizeof(PAGESIZE));
-			if (strncmp(r, AUTOPURGE_V, sizeof(AUTOPURGE_V)-1) == 0
-				&& r[sizeof(AUTOPURGE_V)-1] == '=')
-				pref_autopurge=atoi(r+sizeof(AUTOPURGE_V));
-			if (strncmp(r, FLOWEDTEXT, sizeof(FLOWEDTEXT)-1) == 0
-				&& r[sizeof(FLOWEDTEXT)-1] == '=')
-				pref_noflowedtext=atoi(r+sizeof(FLOWEDTEXT));
-			if (strncmp(r, NOARCHIVE, sizeof(NOARCHIVE)-1) == 0
-				&& r[sizeof(NOARCHIVE)-1] == '=')
-				pref_noarchive=atoi(r+sizeof(NOARCHIVE));
-			if (strncmp(r, NOAUTORENAMESENT, sizeof(NOAUTORENAMESENT)-1) == 0
-				&& r[sizeof(NOAUTORENAMESENT)-1] == '=')
-				pref_noautorenamesent=atoi(r+sizeof(NOAUTORENAMESENT));
-			if (strncmp(r, FROM, sizeof(FROM)-1) == 0
-				&& r[sizeof(FROM)-1] == '=')
-			{
-				if (pref_from)	free(pref_from);
-				if ((pref_from=strdup(r+sizeof(FROM))) == 0)
-					enomem();
-
-				decode(pref_from);
-			}
-			if (strncmp(r, LDAP, sizeof(LDAP)-1) == 0
-				&& r[sizeof(LDAP)-1] == '=')
-			{
-				if (pref_ldap)	free(pref_ldap);
-				if ((pref_ldap=strdup(r+sizeof(LDAP))) == 0)
-					enomem();
-
-				decode(pref_ldap);
-			}
-			if (strncmp(r, STARTOFWEEK, sizeof(STARTOFWEEK)-1) == 0
-				&& r[sizeof(STARTOFWEEK)-1] == '=')
-			{
-				int n=atoi(r+sizeof(STARTOFWEEK));
-
-				if (n >= 0 && n < 7)
-					pref_startofweek=n;
-			}
-
-		}
-		free(q);
-	}
-	switch (pref_flagpagesize)	{
-	case 20:
-	case 50:
-	case 100:
-	case 250:
-		break;
-	default:
-		pref_flagpagesize=10;
-		break;
-	}
-
-	if (pref_autopurge < 0)	pref_autopurge=0;
-	if (pref_autopurge > MAXPURGE)	pref_autopurge=MAXPURGE;
-
-	switch (pref_flagsortorder)	{
-	case 'F':
-	case 'S':
-		break;
-	default:
-		pref_flagsortorder='D';
-		break;
-	}
-}
 
 #if 0
 #if ENABLE_WEBPASS
@@ -228,89 +48,18 @@ static int goodpass(const char *p)
 #endif
 #endif
 
-static char *append_str(const char *prefs, const char *label,
-	const char *value)
-{
-int	l=strlen(prefs) + sizeof(" =") +
-	strlen(label)+ (value ? strlen(value):0);
-int	i;
-char	*p;
-const char *q;
-
-	for (i=0; value && value[i]; i++)
-		if (value[i] <= ' ' || value[i] >= 127
-			|| value[i] == '+')
-			l += 2;
-
-	p=static_cast<char *>(malloc(l));
-	if (!p)	enomem();
-	strcpy(p, prefs);
-	if (!value || !*value)	return (p);
-
-	strcat(strcat(strcat(p, " "), label), "=");
-	i=strlen(p);
-	for (q=value; *q; q++)
-	{
-		if (*q <= ' ' || *q >= 127 || *q == '+')
-		{
-			sprintf(p+i, "+%02X", (int)(unsigned char)*q);
-			i += 3;
-			continue;
-		}
-		p[i++]= *q;
-	}
-	p[i]=0;
-	return (p);
-}
-
-void pref_update()
-{
-char	buf[1000];
-char	*p;
-char	*q;
-
-	sprintf(buf, SORTORDER "=%c " PAGESIZE "=%d " AUTOPURGE_V "=%d "
-		FLOWEDTEXT "=%d " NOARCHIVE "=%d " NOAUTORENAMESENT "=%d "
-		STARTOFWEEK "=%d",
-		pref_flagsortorder, pref_flagpagesize, pref_autopurge,
-		pref_noflowedtext, pref_noarchive, pref_noautorenamesent,
-		pref_startofweek);
-
-	if (pref_flagisoldest1st)
-		strcat(buf, " " OLDEST1ST);
-
-	if (pref_flagfullheaders)
-		strcat(buf, " " FULLHEADERS);
-
-	if (!pref_showhtml)
-		strcat(buf, " " NOHTML);
-
-	if (pref_wikifmt)
-		strcat(buf, " " WIKITEXT);
-
-	p=append_str(buf, FROM, pref_from);
-	q=append_str(p, LDAP, pref_ldap);
-	write_sqconfig(".", CONFIGFILE, q);
-	free(q);
-	free(p);
-}
-
 void pref_setfrom(const char *p)
 {
-	if (pref_from)	free(pref_from);
-	pref_from=strdup(p);
-	if (!pref_from)	enomem();
+	pref_from=p;
 	pref_update();
 }
 
 void pref_setldap(const char *p)
 {
-	if (pref_ldap && strcmp(p, pref_ldap) == 0)
+	if (pref_ldap == p)
 		return;
 
-	if (pref_ldap)	free(pref_ldap);
-	pref_ldap=strdup(p);
-	if (!pref_ldap)	enomem();
+	pref_ldap=p;
 	pref_update();
 }
 
@@ -318,48 +67,30 @@ void pref_setprefs()
 {
 	if (*cgi("do.changeprefs"))
 	{
-	char	buf[1000];
-	FILE	*fp;
-	char	*p;
-	char	*q;
-
-		sprintf(buf, SORTORDER "=%c " PAGESIZE "=%s " AUTOPURGE_V "=%s "
-			FLOWEDTEXT "=%s "
-			NOARCHIVE "=%s "
-			NOAUTORENAMESENT "=%s "
-			STARTOFWEEK "=%d",
-			*cgi("sortorder"), cgi("pagesize"), cgi("autopurge"),
-			*cgi(FLOWEDTEXT_PREF) ? "1":"0",
-			*cgi(NOARCHIVE_PREF) ? "1":"0",
-			*cgi(NOAUTORENAMESENT_PREF) ? "1":"0",
-			(int)((unsigned)atoi(cgi(STARTOFWEEK)) % 7)
-			);
-
-		if (*cgi(OLDEST1ST_PREF))
-			strcat(buf, " " OLDEST1ST);
-		if (*cgi(FULLHEADERS_PREF))
-			strcat(buf, " " FULLHEADERS);
-		if (!*cgi(HTML_PREF))
-			strcat(buf, " " NOHTML);
-
-		p=append_str(buf, FROM, pref_from);
-		q=append_str(p, LDAP, pref_ldap);
-		write_sqconfig(".", CONFIGFILE, q);
-		free(p);
-		free(q);
+		pref_flagsortorder=*cgi("sortorder");
+		pref_flagpagesize=*cgi("pagesize");
+		pref_autopurge=*cgi("autopurge");
+		pref_noflowedtext=*cgi(FLOWEDTEXT_PREF) ? 1:0;
+		pref_noarchive=*cgi(NOARCHIVE_PREF) ? 1:0;
+		pref_noautorenamesent=*cgi(NOAUTORENAMESENT_PREF) ? 1:0;
+		pref_startofweek=*cgi(STARTOFWEEK_PREF);
+		pref_flagisoldest1st=*cgi(OLDEST1ST_PREF);
+		pref_flagfullheaders=*cgi(FULLHEADERS_PREF);
+		pref_showhtml=*cgi(HTML_PREF);
+		pref_update();
 		pref_init();
+
+		FILE *fp;
+
 		if ((fp=fopen(SIGNATURE, "w")) != NULL)
 		{
-			char *sig_utf8=
-				unicode_convert_toutf8(cgi("signature"),
-							 sqwebmail_content_charset,
-							 NULL);
+			auto s=unicode::iconvert::convert(
+					cgi("signature"),
+					sqwebmail_content_charset,
+					unicode::utf_8);
 
-			if (sig_utf8)
-			{
-				fprintf(fp, "%s", sig_utf8);
-				free(sig_utf8);
-			}
+			if (s.size())
+				fprintf(fp, "%s", s.c_str());
 			fclose(fp);
 		}
 
@@ -449,7 +180,7 @@ void pref_displayweekstart()
 	int i, j;
 	static const int d[3]={6,0,1};
 
-	printf("<select name=\"" STARTOFWEEK "\">");
+	printf("<select name=\"" STARTOFWEEK_PREF "\">");
 
 	for (j=0; j<3; j++)
 	{
@@ -577,91 +308,96 @@ void pref_signature()
 ** GPGCONFIGFILE consists of space-separated settings.
 */
 
-static char *getgpgconfig(const char *name)
+static std::string getgpgconfig(std::string_view name)
 {
-	const char *p;
-	char	*q, *r;
+	auto p=read_sqconfig(".", GPGCONFIGFILE, 0);
 
-	int name_l=strlen(name);
-
-	p=read_sqconfig(".", GPGCONFIGFILE, 0);
-
-	if (p)
+	if (p && p->size())
 	{
-		q=strdup(p);
-		if (!q)
-			enomem();
+		std::string_view q=*p;
 
-		for (r=q; (r=strtok(r, " ")) != NULL; r=NULL)
-			if (strncmp(r, name, name_l) == 0 &&
-			    r[name_l] == '=')
+		while (q.size())
+		{
+			auto r=q.find(' ');
+			if (r == std::string_view::npos)
+				r=q.size();
+			auto w=q.substr(0, r);
+
+			if (r == q.size())
+				q=std::string_view{};
+			else
+				q=q.substr(r+1);
+
+			if (w.size() > name.size() &&
+			    w.substr(0, name.size()) == name &&
+			    w[name.size()] == '=')
 			{
-				r=strdup(r+name_l+1);
-				free(q);
-				if (!r)
-					enomem();
-				return (r);
+				auto value=w.substr(name.size()+1);
+				return std::string{value.begin(), value.end()};
 			}
-		free(q);
+		}
 	}
-	return (NULL);
+	return {};
 }
 
 /*
 ** Enter a setting into GPGCONFIGFILE
 */
 
-static void setgpgconfig(const char *name, const char *value)
+static void setgpgconfig(std::string_view name, std::string_view value)
 {
-	const	char *p;
-	char *q, *r, *s;
-	int name_l=strlen(name);
-
 	/* Get the existing settings */
 
-	p=read_sqconfig(".", GPGCONFIGFILE, 0);
+	auto p=read_sqconfig(".", GPGCONFIGFILE, 0);
 
 	if (!p)
 		p="";
 
-	q=strdup(p);
-	if (!q)
-		enomem();
-
-	s=static_cast<char *>(malloc(strlen(q)+strlen(name)+strlen(value)+4));
-	if (!s)
-		enomem();
-	*s=0;
+	std::string newconfig;
+	newconfig.reserve(p->size()+name.size()+value.size()+4);
 
 	/*
 	** Copy existing settings into a new buffer, deleting any old
 	** setting.
 	*/
+	std::string_view q=*p;
 
-	for (r=q; (r=strtok(r, " ")) != NULL; r=NULL)
+	while (q.size())
 	{
-		if (strncmp(r, name, name_l) == 0 &&
-		    r[name_l] == '=')
-		{
-			continue;
-		}
+		auto r=q.find(' ');
+		if (r == std::string_view::npos)
+			r=q.size();
+		auto w=q.substr(0, r);
 
-		if (*s)
-			strcat(s, " ");
-		strcat(s, r);
+		if (r == q.size())
+			q=std::string_view{};
+		else
+			q=q.substr(r+1);
+
+		size_t equals=w.find('=');
+		if (equals == std::string_view::npos)
+			continue;
+
+		if (w.substr(0, equals) == name)
+			continue;
+
+		if (!newconfig.empty())
+			newconfig+=' ';
+		newconfig+=w;
 	}
 
 	/* Append the new setting */
 
-	if (*s)
-		strcat(s, " ");
-	strcat(strcat(strcat(s, name), "="), value);
-	free(q);
-	write_sqconfig(".", GPGCONFIGFILE, s);
-	free(s);
+	if (!newconfig.empty())
+		newconfig+=' ';
+	newconfig+=name;
+	newconfig+='=';
+	newconfig+=value;
+
+	write_sqconfig(".", GPGCONFIGFILE, newconfig.c_str());
 }
 
-char *pref_getdefaultgpgkey()
+std::string pref_getdefaultgpgkey()
 {
 	return (getgpgconfig(DEFAULTKEY));
 }

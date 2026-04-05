@@ -85,12 +85,7 @@ static int doauthlogin(struct authinfo *a, void *vp)
 				     "disablewebmail");
 	const char *c=(const char *)vp;
 
-	static char *authaddr=NULL;
-	static char *authfullname=NULL;
-	static char *authoptions=NULL;
-	static char *authenticated=NULL;
 	const char *n;
-	char *b;
 	int rc;
 
 
@@ -110,54 +105,22 @@ static int doauthlogin(struct authinfo *a, void *vp)
 		return (-1);
 	}
 
-	b=static_cast<char *>(malloc(sizeof("AUTHADDR=")+strlen(c)));
-
-	if (!b)
-		enomem();
-	strcat(strcpy(b, "AUTHADDR="), c);
-	putenv(b);
-	if (authaddr)
-		free(authaddr);
-	authaddr=b;
-
+	setenv("AUTHADDR", c, 1);
 
 	n=a->fullname;
 	if (!n) n="";
-	b=static_cast<char *>(malloc(sizeof("AUTHFULLNAME=")+strlen(n)));
 
-	if (!b)
-		enomem();
-	strcat(strcpy(b, "AUTHFULLNAME="), n);
-	putenv(b);
-	if (authfullname)
-		free(authfullname);
-	authfullname=b;
+	setenv("AUTHFULLNAME", n, 1);
 
 	n=a->options;
 	if (!n) n="";
 
-	b=static_cast<char *>(malloc(sizeof("OPTIONS=")+strlen(n)));
-
-	if (!b)
-		enomem();
-	strcat(strcpy(b, "OPTIONS="), n);
-	putenv(b);
-	if (authoptions)
-		free(authoptions);
-	authoptions=b;
+	setenv("OPTIONS", n, 1);
 
 	n=a->address;
 	if (!n) n="";
 
-	b=static_cast<char *>(malloc(sizeof("AUTHENTICATED=")+strlen(n)));
-
-	if (!b)
-		enomem();
-	strcat(strcpy(b, "AUTHENTICATED="), n);
-	putenv(b);
-	if (authenticated)
-		free(authenticated);
-	authenticated=b;
+	setenv("AUTHENTICATED", n, 1);
 
 	return (0);
 }

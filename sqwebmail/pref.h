@@ -1,20 +1,11 @@
-/*
-*/
 #ifndef	pref_h
 #define	pref_h
 
-#include <stdio.h>
+#include <string>
 /*
-** Copyright 1998 - 2001 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
 
 extern void pref_setprefs();
 extern void pref_isoldest1st();
@@ -39,8 +30,8 @@ extern int pref_noautorenamesent;
 extern int pref_startofweek;
 extern int pref_wikifmt;
 
-extern char *pref_from;
-extern char *pref_ldap;
+extern std::string pref_from;
+extern std::string pref_ldap;
 
 extern void pref_init();
 extern void pref_signature();
@@ -50,14 +41,7 @@ extern void pref_update();
 extern char *pref_getsig();
 extern char *pref_getfile(FILE *);
 
-extern char *pref_getdefaultgpgkey();
+extern std::string pref_getdefaultgpgkey();
 extern void pref_setdefaultgpgkey(const char *);
-
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -856,8 +856,8 @@ void sqpcp_eventfrom()
 		const char *p=cgi("headerfrom");
 
 		if (!p || !*p)
-			p=pref_from;
-		if (!p || !*p)
+			p=pref_from.c_str();
+		if (!*p)
 			p=login_fromhdr();
 		if (!p)
 			p="";

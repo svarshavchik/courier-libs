@@ -31,6 +31,7 @@ noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
 	testispell \
 	testhtml \
 	testaddressbook \
+	testpref \
 	testlogindomainlist
 
 COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
@@ -94,6 +95,12 @@ testaddressbook_SOURCES=\
 testaddressbook_DEPENDENCIES=$(COMMONDEPENDENCIES)
 testaddressbook_LDADD=$(COMMONLDADD)
 
+testpref_SOURCES=\
+	testpref.C pref2.C
+
+testpref_DEPENDENCIES=$(COMMONDEPENDENCIES)
+testpref_LDADD=$(COMMONLDADD)
+
 #CFLAGS += -Dmalloc=my_malloc -Drealloc=my_realloc -Dfree=my_free -Dstrdup=my_strdup -Dcalloc=my_calloc
 
 if ISPELL
@@ -110,7 +117,7 @@ sqwebmaild_SOURCES=acl.C acl.h \
 		maildir.C maildir.h mailfilter.C \
 		mailfilter.h mailinglist.c mailinglist.h newmsg.C newmsg.h \
 		newmsg_createaddrheader.C \
-		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.C pref.h \
+		newmsg_create.C	newmsg_newdraft.C pcp.C pcp.h pref.C pref.h pref2.C \
 		sqconfig.C sqconfig.h sqwebmail.C \
 		strftime.C strftime.h \
 		sqwebmail.h token.C token.h $(SQISPELLSOURCES)
@@ -245,6 +252,9 @@ check-am:
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
 		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testispell
 	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -
+	./testpref
+	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testpref
 
 check-version:
 	test "$(VERSION)" = "$(TOPLEVEL_VERSION)" && exit 0; \

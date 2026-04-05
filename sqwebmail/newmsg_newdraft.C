@@ -121,7 +121,7 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 
 	maildir_writemsgstr(draftfd, "From: ");
 	{
-	const char *f=pref_from;
+		const char *f=pref_from.c_str();
 
 		if (!f || !*f)	f=login_fromhdr();
 		if (!f)	f="";

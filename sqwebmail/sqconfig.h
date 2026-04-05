@@ -17,22 +17,10 @@
 #if HAVE_SYS_TIME_H
 #include	<sys/time.h>
 #endif
+#include <string>
+#include <optional>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
-
-extern const char *read_sqconfig(const char *, const char *, time_t *);
+extern std::optional<std::string> read_sqconfig(const char *, const char *, time_t *);
 extern void write_sqconfig(const char *, const char *, const char *);
-
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
 #endif

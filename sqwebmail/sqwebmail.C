@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2009 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -2074,7 +2074,6 @@ void rename_sent_folder(int really)
 	char buf[128];
 	char buf2[256];
 	char yyyymm[128];
-	const char *yyyymmp;
 
 	time_t t;
 	struct tm *tm;
@@ -2098,8 +2097,10 @@ void rename_sent_folder(int really)
 	if (strftime (yyyymm, sizeof(yyyymm), "%Y%m", tm) == 0)
 		return;
 
-	if ((yyyymmp=read_sqconfig(".", SENTSTAMP, NULL)) != NULL &&
-	    strcmp(yyyymm, yyyymmp) == 0)
+	auto yyyymmp=read_sqconfig(".", SENTSTAMP, NULL);
+
+	if (yyyymmp &&
+	    *yyyymmp == yyyymm)
 		return;
 
 	if (strftime (buf, sizeof(buf), "%m-%b", tm) == 0)
@@ -2344,6 +2345,7 @@ time_t	timeouthard=get_timeouthard();
 
 		time(&current_time);
 
+		std::optional<std::string> s;
 		/* Ok, boys and girls, time to validate the connection as
 		** follows */
 
@@ -2353,7 +2355,7 @@ time_t	timeouthard=get_timeouthard();
 		** and the session hasn't timed out.
 		*/
 
-			|| !(p=read_sqconfig(".", IPFILE, &last_time))
+			|| !(s=read_sqconfig(".", IPFILE, &last_time))
 
 /*			|| last_time > current_time	*/
 
@@ -2363,7 +2365,7 @@ time_t	timeouthard=get_timeouthard();
 		** token, language, locale, ispell dictionary,
 		** timezone, charset.  Validate both.
 		*/
-			|| !(q=strdup(p))
+			|| !(q=strdup(s->c_str()))
 			|| !(p=strtok(q, " "))
 			|| (strcmp(p, ip_addr) && strcmp(p, "none"))
 			|| !(p=strtok(NULL, " "))

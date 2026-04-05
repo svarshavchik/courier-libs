@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 1999 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -8,8 +8,7 @@
 */
 #include	"sqwebmail.h"
 #include	"sqconfig.h"
-#include	<stdio.h>
-#include	<stdlib.h>
+#include	<fcntl.h>
 #include	<string.h>
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
@@ -17,55 +16,52 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	"maildir/maildircreate.h"
+#include "rfc822/rfc822.h"
+#include <string>
 #include <fstream>
 
-/* Assume all configuration data fits in 256 char buffer. */
-
-static char linebuf[256];
-
-const char *read_sqconfig(const char *dir, const char *configfile, time_t *mtime)
+std::optional<std::string> read_sqconfig(const char *dir, const char *configfile, time_t *mtime)
 {
-	char *p=static_cast<char *>(
-		malloc(strlen(dir) + strlen(configfile) + 2)
-	);
-	struct stat stat_buf;
-	FILE	*f;
+	std::string p;
+	p.reserve(strlen(dir) + strlen(configfile) + 1);
+	p.append(dir);
+	p.append("/");
+	p.append(configfile);
 
-	if (!p)	enomem();
-	strcat(strcat(strcpy(p, dir), "/"), configfile);
-	f=fopen(p, "r");
-	free(p);
-	if (!f)	return (0);
-	if (fstat(fileno(f), &stat_buf) != 0 ||
-		!fgets(linebuf, sizeof(linebuf), f))
+	struct stat stat_buf;
+
+	rfc822::fdstreambuf fsb{
+		open(p.c_str(), O_RDONLY)
+	};
+	if (fsb.error())
+		return {};
+	std::istream f{&fsb};
+
+	std::string linebuf;
+	if (fstat(fsb.fileno(), &stat_buf) != 0 ||
+		!std::getline(f, linebuf))
 	{
-		fclose(f);
-		return (0);
+		return {};
 	}
-	fclose(f);
 	if (mtime)	*mtime=stat_buf.st_mtime;
 
-	linebuf[sizeof(linebuf)-1]=0;
-	if ((p=strchr(linebuf, '\n')) != 0)	*p=0;
-	return (linebuf);
+	return linebuf;
 }
 
 void write_sqconfig(const char *dir, const char *configfile, const char *val)
 {
-	char *p=static_cast<char *>(
-		malloc(strlen(dir) + strlen(configfile) + 2)
-	);
+	std::string p;
+	p.reserve(strlen(dir) + strlen(configfile) + 1);
+	p.append(dir);
+	p.append("/");
+	p.append(configfile);
 
 	maildir::tmpcreate_info createInfo;
 	FILE *fp;
 
-	if (!p)	enomem();
-
-	strcat(strcat(strcpy(p, dir), "/"), configfile);
 	if (!val)
 	{
-		unlink(p);
-		free(p);
+		unlink(p.c_str());
 		return;
 	}
 
@@ -78,13 +74,11 @@ void write_sqconfig(const char *dir, const char *configfile, const char *val)
 	if (!fp)
 		enomem();
 
-
 	createInfo.newname=p;
 	fprintf(fp, "%s\n", val);
 	fflush(fp);
-	if (ferror(fp))	eio("Error after write:",p);
+	if (ferror(fp))	eio("Error after write:",p.c_str());
 	fclose(fp);
-	free(p);
 
 	/* Note - umask should already turn off the 077 bits, but
 	** just in case someone screwed up previously, I'll fix it

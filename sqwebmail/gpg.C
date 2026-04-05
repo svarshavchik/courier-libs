@@ -182,12 +182,10 @@ static int select_key_default(const char *fingerprint, const char *shortname,
 
 void gpgselectkey()
 {
-	char *default_key=pref_getdefaultgpgkey();
+	auto default_key=pref_getdefaultgpgkey();
 
-	listpubsec(1, select_key_default, default_key);
-
-	if (default_key)
-		free(default_key);
+	listpubsec(1, select_key_default, default_key.size() ?
+		   default_key.c_str():nullptr);
 }
 
 void gpgselectpubkey()

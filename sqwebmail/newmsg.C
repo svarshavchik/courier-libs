@@ -616,8 +616,8 @@ void newmsg_init(const char *folder, const char *pos)
 	if (wbnochangingfrom < 2)
 		newmsg_header_rfc822(fromlab, "headerfrom", curfrom,
 			*cgi("from") ? cgi("from"):
-			pref_from && *pref_from ? pref_from:
-			login_fromhdr(), wbnochangingfrom ? 1:0);
+				     pref_from.size() ? pref_from.c_str():
+				     login_fromhdr(), wbnochangingfrom ? 1:0);
 
 	printf("<tr valign=\"middle\"><th align=\"right\">"
 	       "<p class=\"new-message-header\">"

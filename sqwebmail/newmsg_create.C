@@ -624,15 +624,15 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	    || keepheader == NEWMSG_PCP)
 	/* Coming back from msg edit, set headers */
 	{
-	const	char *p=cgi("headerfrom");
+		const	char *p=cgi("headerfrom");
 
-		if (!*p)	p=pref_from;
+		if (!*p)	p=pref_from.c_str();
 		if (!p || !*p || auth_getoptionenvint("wbnochangingfrom"))
 			p=login_fromhdr();
 
 		create_draftheader("From: ", p, 0, true);
 
-		if (!pref_from || strcmp(p, pref_from))
+		if (pref_from.empty() || pref_from != p)
 			pref_setfrom(p);
 
 /* sam ????

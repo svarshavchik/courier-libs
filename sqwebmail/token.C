@@ -12,7 +12,6 @@
 #include	"sqconfig.h"
 #include	"cgi/cgi.h"
 #include	<stdio.h>
-#include	<string.h>
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
@@ -20,6 +19,7 @@
 #if HAVE_SYS_TIME_H
 #include	<sys/time.h>
 #endif
+#include <fstream>
 
 void tokennew()
 {
@@ -41,12 +41,12 @@ time_t	t;
 int tokencheck()
 {
 const char *token=cgi("msgtoken");
-const char *savedtoken;
 
 	if (!token || token[0] == '\0')
 		return(0);
-	savedtoken=read_sqconfig(".", TOKENFILE, 0);
-	if (savedtoken && strcmp(token, savedtoken) == 0)
+	auto savedtoken=read_sqconfig(".", TOKENFILE, 0);
+
+	if (savedtoken && token == *savedtoken)
 		return (-1);
 	return (0);
 }

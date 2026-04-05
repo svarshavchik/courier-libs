@@ -96,7 +96,7 @@ const char	*sysbook=getarg("SYSBOOK");
 			printf("<tr valign=\"top\"><td align=\"right\">");
 			printf("<input type=\"radio\" name=\"ABOOK\"");
 
-			if (pref_ldap && strcmp(pref_ldap, p->name) == 0)
+			if (pref_ldap.size() && pref_ldap == p->name)
 				printf(" checked=\"checked\"");
 
 			printf(" value=\"");
