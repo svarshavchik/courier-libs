@@ -227,6 +227,9 @@ std::u32string rfc822::idn2unicode(std::string &idn)
 	}
 
 	std::u32string u32{reinterpret_cast<char32_t *>(u32_ptr)};
+
+	for (auto &uc:u32)
+		uc=unicode_lc(uc);
 	free(u32_ptr);
 
 	return u32;

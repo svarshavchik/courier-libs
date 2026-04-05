@@ -14,7 +14,7 @@
 #include	"htmllibdir.h"
 #include	<stdio.h>
 #include	<string.h>
-#include	<errno.h>
+#include	<algorithm>
 #if HAVE_SYS_WAIT_H
 #include	<sys/wait.h>
 #endif
@@ -22,32 +22,24 @@
 #include	<fcntl.h>
 #endif
 
-#ifndef WEXITSTATUS
-#define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
-#endif
-#ifndef WIFEXITED
-#define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
-#endif
-
 extern void output_scriptptrget();
 extern void print_attrencodedlen(const char *, size_t, int, FILE *);
 extern void print_safe(const char *);
 
 
-static char gpgerrbuf[1024];
-static size_t gpgerrcnt=0;
+static std::string gpgerrbuf;
 
 static void gpginiterr()
 {
-	gpgerrcnt=0;
+	gpgerrbuf.clear();
 }
 
 static int gpg_error(const char *p, size_t l, void *dummy)
 {
-	while (l && gpgerrcnt < sizeof(gpgerrbuf)-1)
+	l=std::min((size_t)1024-gpgerrbuf.size(), l);
+	if (l)
 	{
-		gpgerrbuf[gpgerrcnt++]= *p++;
-		--l;
+		gpgerrbuf.append(p, l);
 	}
 	return (0);
 }
@@ -71,10 +63,10 @@ int gpgbadarg(const char *p)
 
 static void dump_error()
 {
-	if (gpgerrcnt >= 0)
+	if (gpgerrbuf.size())
 	{
 		printf("<span style=\"color: #e00000\"><pre class=\"gpgerroutput\">");
-		print_attrencodedlen (gpgerrbuf, gpgerrcnt, 1, stdout);
+		print_attrencodedlen (gpgerrbuf.data(), gpgerrbuf.size(), 1, stdout);
 		printf("</pre></span>\n");
 	}
 }
@@ -205,56 +197,48 @@ void gpgselectprivkey()
 
 static int knownkey(const char *shortname, const char *known_keys)
 {
-	struct rfc822t *t=rfc822t_alloc_new(shortname, NULL, NULL);
-	struct rfc822a *a;
-	int i;
+	rfc822::tokens t{shortname};
+	rfc822::addresses a{t};
 
-	if (!t)
-		return (0);
-
-	a=rfc822a_alloc(t);
-
-	if (!a)
+	if (!known_keys)
 	{
-		rfc822t_free(t);
-		return (0);
+		return 0;
 	}
 
-	for (i=0; i<a->naddrs; i++)
+	for (auto &address:a)
 	{
-		char *p=rfc822_getaddr(a, i);
-		int plen;
-		const char *q;
+		if (address.address.empty())
+			return 0;
 
-		if (!p)
-			continue;
+		std::string s;
 
-		if (!*p)
+		address.address.display_address(
+			sqwebmail_content_charset,
+			std::back_inserter(s)
+		);
+
+		std::string_view sknown_keys{known_keys};
+
+		while (!sknown_keys.empty())
 		{
-			free(p);
-			continue;
-		}
+			auto p=sknown_keys.find('\n');
 
-		plen=strlen(p);
+			if (p == std::string_view::npos)
+				p=sknown_keys.size();
 
-		for (q=known_keys; *q; )
-		{
-			if (strncasecmp(q, p, plen) == 0 && q[plen] == '\n')
+			std::string_view skey=sknown_keys.substr(0, p);
+
+			if (s == skey)
 			{
-				free(p);
-				rfc822a_free(a);
-				rfc822t_free(t);
-				return (1);
+				return 1;
 			}
 
-			while (*q)
-				if (*q++ == '\n')
-					break;
+			if (p < sknown_keys.size())
+				++p;
+
+			sknown_keys.remove_prefix(p);
 		}
-		free(p);
 	}
-	rfc822a_free(a);
-	rfc822t_free(t);
 	return (0);
 }
 
@@ -512,7 +496,6 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 	int n;
 	int i;
 	char *p;
-	char **argvec;
 	FILE *passfd=NULL;
 	char passfd_buf[NUMBUFSIZE];
 	struct libmail_gpg_info gi;
@@ -554,17 +537,8 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 	for (p=k; (p=strtok(p, " ")) != NULL; p=NULL)
 		++n;
 
-	argvec=static_cast<char **>(malloc((n * 2 + 22)*sizeof(char *)));
-	if (!argvec)
-	{
-		fclose(out_fp);
-		close(out_dup);
-		fclose(in_fp);
-		close(in_dup);
-		free(k);
-		enomem();
-		return 1;
-	}
+	std::vector<std::string> argvec;
+	argvec.reserve(n * 2 + 22);
 
 	memset(&gi, 0, sizeof(gi));
 
@@ -582,36 +556,34 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 	gi.errhandler_func= gpg_error_save;
 	gi.errhandler_arg= NULL;
 
-
-	i=0;
 	char notty_opt[] = "--no-tty";
 	char defaultkeyopt[] = "--default-key";
 
-	argvec[i++] = notty_opt;
+	argvec.push_back(notty_opt);
 	if (signkey)
 	{
-		argvec[i++]=defaultkeyopt;
-		argvec[i++]=(char *)signkey;
+		argvec.push_back(defaultkeyopt);
+		argvec.push_back(signkey);
 	}
 
-	char alwaystrustopt[] = "--always-trust";
-	char ropt[] = "-r";
-	argvec[i++]=alwaystrustopt;
+	argvec.push_back("--always-trust");
 
 	for (p=strcpy(k, encryptkeys ? encryptkeys:"");
 	     (p=strtok(p, " ")) != NULL; p=NULL)
 	{
-		argvec[i++]=ropt;
-		argvec[i++]=p;
+		argvec.push_back("-r");
+		argvec.push_back(p);
 	}
-	argvec[i]=nullptr;
-	gi.argc=i;
-	gi.argv=argvec;
+
+	std::vector<char *> argv;
+	argv.reserve(argvec.size());
+	for (auto &s:argvec)
+		argv.push_back(s.data());
+	gi.argc=argv.size();
+	gi.argv=argv.data();
 	i=libmail_gpg_signencode(signkey ? 1:0,
 				 n > 0 ? LIBMAIL_GPG_ENCAPSULATE:0,
 				 &gi);
-
-	free(argvec);
 	fclose(out_fp);
 	close(out_dup);
 	fclose(in_fp);
@@ -625,11 +597,9 @@ int gpgdomsg(int in_fd, int out_fd, const char *signkey,
 
 void sent_gpgerrtxt()
 {
-	const char *p;
-
-	for (p=gpgerrbuf; *p; p++)
+	for (char c:gpgerrbuf)
 	{
-		switch (*p) {
+		switch (c) {
 		case '<':
 			printf("&lt;");
 			break;
@@ -637,7 +607,7 @@ void sent_gpgerrtxt()
 			printf("&gt;");
 			break;
 		default:
-			putchar((int)(unsigned char)*p);
+			putchar((int)(unsigned char)c);
 			break;
 		}
 	}
