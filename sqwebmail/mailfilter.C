@@ -67,15 +67,15 @@ unsigned cnt;
 
 	for (cnt=0, r=mf.first; r; r=r->next, ++cnt)
 	{
-		char *p=unicode_convert_fromutf8(r->rulename_utf8,
-						   sqwebmail_content_charset.c_str(),
-						   NULL);
+		std::string p=unicode::iconvert::convert(
+			r->rulename_utf8,
+			unicode::utf_8,
+			sqwebmail_content_charset
+		);
 
 		printf("<option value=\"%u\">", cnt);
-		output_attrencoded(p ? p:r->rulename_utf8);
+		output_attrencoded(p.c_str());
 		printf("</option>");
-		if (p)
-			free(p);
 	}
 	maildir_filter_freerules(&mf);
 }
@@ -165,11 +165,11 @@ struct maildirfilterrule *r;
 	}
 	else if (*cgi("do.edit"))
 	{
-	static char *namebuf=0;
-	static char *headernamebuf=0;
-	static char *headervaluebuf=0;
-	static char *actionbuf=0;
-	char	numbuf[NUMBUFSIZE+1];
+		static std::string namebuf;
+		static std::string headernamebuf;
+		static std::string headervaluebuf;
+		static std::string actionbuf;
+		char	numbuf[NUMBUFSIZE+1];
 
 		printf("<input name=\"currentfilternum\""
 			" type=\"hidden\""
@@ -206,14 +206,15 @@ struct maildirfilterrule *r;
 			r->type == contains ?
 				r->flags & MFR_DOESNOT ? "notcontains":"contains":"");
 
-		if (namebuf)	free(namebuf);
 		p=r->rulename_utf8 ? r->rulename_utf8:"";
 
-		namebuf=unicode_convert_fromutf8(p, sqwebmail_content_charset.c_str(),
-						   NULL);
+		namebuf=unicode::iconvert::convert(
+			p,
+			unicode::utf_8,
+			sqwebmail_content_charset
+		);
 
-		if (!namebuf)	enomem();
-		cgi_put("rulename", namebuf);
+		cgi_put("rulename", namebuf.c_str());
 
 		p=r->fieldname_utf8 ? r->fieldname_utf8:"";
 		if (r->type != startswith &&
@@ -221,12 +222,13 @@ struct maildirfilterrule *r;
 			r->type != contains)	p="";
 		if (r->flags & MFR_BODY)	p="";
 
-		if (headernamebuf)	free(headernamebuf);
-		headernamebuf=unicode_convert_fromutf8(p,
-							 sqwebmail_content_charset.c_str(),
-							 NULL);
-		if (!headernamebuf)	enomem();
-		cgi_put("headername", headernamebuf);
+		headernamebuf=unicode::iconvert::convert(
+			p,
+			unicode::utf_8,
+			sqwebmail_content_charset
+		);
+
+		cgi_put("headername", headernamebuf.c_str());
 
 		p=r->fieldvalue_utf8 ? r->fieldvalue_utf8:"";
 		if (r->type != startswith &&
@@ -239,13 +241,11 @@ struct maildirfilterrule *r;
 			p=libmail_str_size_t( atol(p)+( r->flags & MFR_DOESNOT ? 1:0),
 				numbuf);
 
-		if (headervaluebuf)	free(headervaluebuf);
-
-		headervaluebuf=
-			unicode_convert_fromutf8(p,
-						   sqwebmail_content_charset.c_str(),
-						   NULL);
-		if (!headervaluebuf)	enomem();
+		headervaluebuf=unicode::iconvert::convert(
+			p,
+			unicode::utf_8,
+			sqwebmail_content_charset
+		);
 
 		cgi_put("hasrecipientaddr", "");
 		cgi_put("headervalue", "");
@@ -254,7 +254,7 @@ struct maildirfilterrule *r;
 
 		cgi_put(r->type == hasrecipient ? "hasrecipientaddr":
 			r->type == islargerthan ? "bytecount":
-				"headervalue", headervaluebuf);
+				"headervalue", headervaluebuf.c_str());
 
 		if (r->type == hasrecipient)
 			cgi_put("hasrecipienttype",
@@ -264,12 +264,9 @@ struct maildirfilterrule *r;
 			cgi_put("sizecompare",
 				r->flags & MFR_DOESNOT
 					? "issmallerthan":"islargerthan");
-		if (actionbuf)	actionbuf=0;
 		p=r->tofolder;
 		if (!p)	p="";
-		actionbuf=static_cast<char *>(malloc(strlen(p)+1));
-		if (!actionbuf)	enomem();
-		strcpy(actionbuf, p);
+		actionbuf=p;
 
 		cgi_put("bouncemsg", "");
 		cgi_put("forwardaddy", "");
@@ -278,34 +275,30 @@ struct maildirfilterrule *r;
 		cgi_put("autoresponse_regexp",
 			r->flags & MFR_PLAINSTRING ? "":"1");
 
-		if (actionbuf[0] == '!')
+		if (*actionbuf.c_str() == '!')
 		{
 			cgi_put("action", "forwardto");
-			cgi_put("forwardaddy", actionbuf+1);
+			cgi_put("forwardaddy", actionbuf.c_str()+1);
 		}
-		else if (actionbuf[0] == '*')
+		else if (*actionbuf.c_str() == '*')
 		{
 			cgi_put("action", "bounce");
-			cgi_put("bouncemsg", actionbuf+1);
+			cgi_put("bouncemsg", actionbuf.c_str()+1);
 		}
-		else if (actionbuf[0] == '+')
+		else if (*actionbuf.c_str() == '+')
 		{
 			struct maildir_filter_autoresp_info mfai;
-			static char *autoresp_name_buf=0;
+			static std::string autoresp_name_buf;
 			static char days_buf[NUMBUFSIZE];
-			static char *fromhdr=0;
+			static std::string fromhdr;
 
-			if (maildir_filter_autoresp_info_init_str(&mfai, actionbuf+1))
+			if (maildir_filter_autoresp_info_init_str(&mfai, actionbuf.c_str()+1))
 				enomem();
 
-			if (autoresp_name_buf)
-				free(autoresp_name_buf);
-
-			if ((autoresp_name_buf=strdup(mfai.name)) == NULL)
-				enomem();
+			autoresp_name_buf=mfai.name;
 
 			cgi_put("action", "autoresponse");
-			cgi_put("autoresponse_choose", autoresp_name_buf);
+			cgi_put("autoresponse_choose", autoresp_name_buf.c_str());
 			cgi_put("autoresponse_dsn",
 				mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_DSN
 				? "1":"");
@@ -318,17 +311,13 @@ struct maildirfilterrule *r;
 				days_buf:"");
 			maildir_filter_autoresp_info_free(&mfai);
 
-			if (fromhdr)
-				free(fromhdr);
-			fromhdr=strdup(r->fromhdr ? r->fromhdr:"");
-			if (!fromhdr)
-				enomem();
-			cgi_put("autoresponse_from", fromhdr);
+			fromhdr=r->fromhdr ? r->fromhdr:"";
+			cgi_put("autoresponse_from", fromhdr.c_str());
 
 			if (mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
 				cgi_put("autoresponse_noquote", "1");
 		}
-		else if (strcmp(actionbuf, "exit") == 0)
+		else if (actionbuf == "exit")
 		{
 			cgi_put("action", "purge");
 		}
@@ -336,8 +325,8 @@ struct maildirfilterrule *r;
 		{
 			cgi_put("action", "savefolder");
 			cgi_put("savefolder",
-				strcmp(actionbuf, ".") == 0 ? INBOX:
-				*actionbuf == '.' ? actionbuf+1:actionbuf);
+				actionbuf == "." ? INBOX:
+				*actionbuf.c_str() == '.' ? actionbuf.c_str()+1:actionbuf.c_str());
 		}
 	}
 	else if (*(p=cgi("currentfilternum")) != 0)

@@ -8,9 +8,7 @@
 */
 #include	"sqwebmail.h"
 #include	<stdio.h>
-#include	<errno.h>
 #include	<stdlib.h>
-#include	<ctype.h>
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
@@ -195,13 +193,11 @@ static int parsesearch(const char *cn, const char *mail,
 	char	numbuf[NUMBUFSIZE];
 	char	numbuf2[NUMBUFSIZE+10];
 
-	char *cn_native;
-
-	cn_native=unicode_convert_fromutf8(cn, sqwebmail_content_charset.c_str(),
-					     NULL);
-
-	if (cn_native)
-		cn=cn_native;
+	std::string cn_native=unicode::iconvert::convert(
+		cn,
+		unicode::utf_8,
+		sqwebmail_content_charset
+	);
 
 	fprintf(si->fpw, "<tr valign=\"top\"><td><input type=\"checkbox\" "
 				"name=\"%s\" value=\"&lt;",
@@ -211,19 +207,16 @@ static int parsesearch(const char *cn, const char *mail,
 	output_attrencoded_fp(mail, si->fpw);
 	fprintf(si->fpw, "&gt;");
 
-	output_attrencoded_fp(cn, si->fpw);
+	output_attrencoded_fp(cn_native.c_str(), si->fpw);
 
 	fprintf(si->fpw, "&quot;\" /></td><td><font size=\"+1\" class=\"ldapsearch-name\">\"");
 
-	output_attrencoded_fp(cn, si->fpw);
+	output_attrencoded_fp(cn_native.c_str(), si->fpw);
 	fprintf(si->fpw,
 		"\"</font><font size=\"+1\" class=\"ldapsearch-addr\">&lt;");
 	output_attrencoded_fp(mail, si->fpw);
 	fprintf(si->fpw, "&gt;</font>");
 	fprintf(si->fpw, "</td></tr>\n");
-
-	if (cn_native)
-		free(cn_native);
 	return 0;
 }
 

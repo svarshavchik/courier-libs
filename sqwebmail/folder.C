@@ -68,7 +68,6 @@
 #endif
 
 #include	"strftime.h"
-#include	<fstream>
 
 FILE *open_langform(const char *lang, const char *formname,
 			int print_header);
@@ -687,18 +686,15 @@ static void show_msg_match_str(const char *prefix,
 			       const char *suffix,
 			       const char *classname)
 {
-	char *p;
+	std::string p=unicode::iconvert::convert(
+		utf8match,
+		unicode::utf_8,
+		sqwebmail_content_charset
+	);
 
-	p=unicode_convert_fromutf8(utf8match, sqwebmail_content_charset.c_str(),
-				     NULL);
-
-	if (p)
-	{
-		printf("<span class=\"%s\">%s", classname, prefix);
-		output_attrencoded(p);
-		free(p);
-		printf("%s</span>", suffix);
-	}
+	printf("<span class=\"%s\">%s", classname, prefix);
+	output_attrencoded(p.c_str());
+	printf("%s</span>", suffix);
 }
 
 static void do_folder_navigate(const char *dir, size_t pos, long highend,

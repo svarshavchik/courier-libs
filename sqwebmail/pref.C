@@ -248,59 +248,46 @@ static const char selected[]=" selected='selected'";
 	printf("</select>\n");
 }
 
-char *pref_getsig()
+std::string pref_getsig()
 {
 	return pref_getfile(fopen(SIGNATURE, "r"));
 }
 
-char *pref_getfile(FILE *fp)
+std::string pref_getfile(FILE *fp)
 {
 	struct stat st;
-	char *utf8_buf;
-	char *sig_buf;
 
 	if (fp == NULL)
-		return NULL;
+		return "";
 
 	if (fstat(fileno(fp), &st) < 0)
 	{
 		fclose(fp);
-		return NULL;
+		return "";
 	}
 
-	utf8_buf=static_cast<char *>(malloc(st.st_size+1));
+	std::string utf8_buf;
+	utf8_buf.reserve(st.st_size);
 
-	if (!utf8_buf)
-	{
-		fclose(fp);
-		return NULL;
-	}
-
-	if (fread(utf8_buf, st.st_size, 1, fp) != 1)
-	{
-		fclose(fp);
-		return NULL;
-	}
-	utf8_buf[st.st_size]=0;
+	int c;
+	while ((c=fgetc(fp)) != EOF)
+		utf8_buf.push_back(static_cast<char>(c));
 	fclose(fp);
 
-	sig_buf=unicode_convert_fromutf8(utf8_buf,
-					   sqwebmail_content_charset.c_str(),
-					   NULL);
-	free(utf8_buf);
+	std::string sig_buf=unicode::iconvert::convert(
+		utf8_buf,
+		unicode::utf_8,
+		sqwebmail_content_charset
+	);
 
 	return sig_buf;
 }
 
 void pref_signature()
 {
-	char *p=pref_getsig();
+	std::string p=pref_getsig();
 
-	if (p)
-	{
-		output_attrencoded_oknl(p);
-		free(p);
-	}
+	output_attrencoded_oknl(p.c_str());
 }
 /*
 ** Get a setting from GPGCONFIGFILE

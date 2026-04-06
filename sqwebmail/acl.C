@@ -54,7 +54,6 @@
 
 #include	<courier-unicode.h>
 #include <string>
-#include <fstream>
 
 /* ACL support stuff */
 
@@ -435,18 +434,13 @@ static void doupdate(const maildir::info &minfo)
 
 static void p_ident_name(const char *identifier)
 {
-	char *val=unicode_convert_fromutf8(identifier,
-					     sqwebmail_content_charset.c_str(),
-					     NULL);
+	std::string val=unicode::iconvert::convert(
+		identifier,
+		unicode::utf_8,
+		sqwebmail_content_charset
+	);
 
-	if (val)
-	{
-		output_attrencoded(val);
-		free(val);
-		return;
-	}
-
-	output_attrencoded(identifier);
+	output_attrencoded(val.c_str());
 }
 
 static int getacl_cb(const char *identifier, const char *acl, void *dummy)

@@ -38,8 +38,8 @@ extern void pref_signature();
 extern void pref_setfrom(const char *p);
 extern void pref_setldap(const char *p);
 extern void pref_update();
-extern char *pref_getsig();
-extern char *pref_getfile(FILE *);
+extern std::string pref_getsig();
+extern std::string pref_getfile(FILE *);
 
 extern std::string pref_getdefaultgpgkey();
 extern void pref_setdefaultgpgkey(const char *);

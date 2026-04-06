@@ -532,7 +532,6 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 	int is_newevent=strcmp(cgi("form"), "newevent") == 0;
 	bool has_attachments=false;
 	size_t newmsg_size;
-	char *sig=nullptr, *footer=nullptr;
 
 /*
 ** Trim extra newlines.
@@ -735,11 +734,14 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 
 	/*	maildir_writemsgstr(newdraftfd, "\n"); */
 
-	sig=pref_getsig();
-	footer=pref_getfile(http11_open_langfile(
-				    get_templatedir(),
-				    sqwebmail_content_language.c_str(),
-				    "footer"));
+	auto sig=pref_getsig();
+	auto footer=pref_getfile(
+		http11_open_langfile(
+			get_templatedir(),
+			sqwebmail_content_language.c_str(),
+			"footer"
+		)
+	);
 
 	while (newmsg_size &&
 	       (newmsg[newmsg_size-1] == '\r' ||
@@ -754,7 +756,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 
 		wrap_text(&uw, newmsg, newmsg_size);
 
-		if ((sig && *sig) || (footer && *footer))
+		if (sig.size() || footer.size())
 		{
 			static const char32_t sig_line[]={'-', '-', ' '};
 
@@ -762,13 +764,13 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 			do_save_u_line(&uw, sig_line, 3, 0);
 		}
 
-		if (sig && *sig)
-			wrap_text(&uw, sig, strlen(sig));
+		if (sig.size())
+			wrap_text(&uw, sig.data(), sig.size());
 
-		if (footer && *footer)
+		if (footer.size())
 		{
 			do_save_u_line(&uw, NULL, 0, 0);
-			maildir_writemsg(newdraftfd, footer, strlen(footer));
+			maildir_writemsg(newdraftfd, footer.data(), footer.size());
 		}
 
 	}
@@ -810,10 +812,10 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 			msg2html_textplain_end(info);
 		}
 
-		if ((sig && *sig) || (footer && *footer))
+		if (sig.size() || footer.size())
 			save_textplain("<hr />\n", 7, NULL);
 
-		if (sig && *sig)
+		if (sig.size())
 		{
 
 			info=msg2html_textplain_start(sqwebmail_content_charset.c_str(),
@@ -834,12 +836,12 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 				wrap_text_init(&uw, sqwebmail_content_charset.c_str(),
 					       convert_text2html, info);
 
-				wrap_text(&uw, sig, strlen(sig));
+				wrap_text(&uw, sig.data(), sig.size());
 				msg2html_textplain_end(info);
 			}
 		}
 
-		if (footer && *footer)
+		if (footer.size())
 		{
 			save_textplain("<br />\n", 7, NULL);
 
@@ -856,8 +858,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 
 			if (info)
 			{
-				msg2html_textplain(info, footer,
-						   strlen(footer));
+				msg2html_textplain(info, footer.data(), footer.size());
 				msg2html_textplain_end(info);
 			}
 		}
@@ -869,12 +870,6 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		multipart_boundary.back()=last_boundary_char;
 
 	}
-
-	if (sig)
-		free(sig);
-
-	if (footer)
-		free(footer);
 
 	if (has_attachments)
 	{
