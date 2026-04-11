@@ -121,7 +121,10 @@ const char	*p=getarg("HDRMAXLEN");
 		rfc822::tokens t{encoded};
 		rfc822::addresses a{t};
 
-		auto addresses=a.wrap_display(-1, sqwebmail_content_charset);
+		auto addresses=a.wrap_display(
+			-1,
+			sqwebmail_content_charset
+		);
 
 		for (auto &a:addresses)
 			output_attrencoded(a.c_str());
@@ -617,7 +620,7 @@ void newmsg_init(const char *folder, const char *pos)
 		newmsg_header_rfc822(fromlab, "headerfrom", curfrom,
 			*cgi("from") ? cgi("from"):
 				     pref_from.size() ? pref_from.c_str():
-				     login_fromhdr(), wbnochangingfrom ? 1:0);
+				     login_fromhdr().c_str(), wbnochangingfrom ? 1:0);
 
 	printf("<tr valign=\"middle\"><th align=\"right\">"
 	       "<p class=\"new-message-header\">"

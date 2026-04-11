@@ -848,22 +848,20 @@ void sqpcp_eventfrom()
 	if (auth_getoptionenvint("wbnochangingfrom"))
 	{
 		printf("<span class=\"tt\">");
-		print_safe(login_fromhdr());
+		print_safe(login_fromhdr().c_str());
 		printf("</span>");
 	}
 	else
 	{
-		const char *p=cgi("headerfrom");
+		std::string p=cgi("headerfrom");
 
-		if (!p || !*p)
-			p=pref_from.c_str();
-		if (!*p)
+		if (p.empty())
+			p=pref_from;
+		if (p.empty())
 			p=login_fromhdr();
-		if (!p)
-			p="";
 
 		printf("<input type=\"text\" name=\"headerfrom\" size=\"60\" value=\"");
-		output_attrencoded(p);
+		output_attrencoded(p.c_str());
 		printf("\" />");
 	}
 }

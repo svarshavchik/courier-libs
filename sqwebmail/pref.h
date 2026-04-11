@@ -35,7 +35,7 @@ extern std::string pref_ldap;
 
 extern void pref_init();
 extern void pref_signature();
-extern void pref_setfrom(const char *p);
+extern void pref_setfrom(std::string p);
 extern void pref_setldap(const char *p);
 extern void pref_update();
 extern std::string pref_getsig();

@@ -121,15 +121,11 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 
 	maildir_writemsgstr(draftfd, "From: ");
 	{
-		const char *f=pref_from.c_str();
+		std::string f=pref_from;
 
-		if (!f || !*f)	f=login_fromhdr();
-		if (!f)	f="";
+		if (f.empty())	f=login_fromhdr();
 
-		f=rfc2047_encode_header_tobuf("to", f,
-					      sqwebmail_content_charset.c_str());
-
-		maildir_writemsgstr(draftfd, f);
+		maildir_writemsgstr(draftfd, f.c_str());
 		maildir_writemsgstr(draftfd, "\n");
 	}
 

@@ -48,9 +48,9 @@ static int goodpass(const char *p)
 #endif
 #endif
 
-void pref_setfrom(const char *p)
+void pref_setfrom(std::string p)
 {
-	pref_from=p;
+	pref_from=std::move(p);
 	pref_update();
 }
 

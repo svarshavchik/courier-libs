@@ -212,22 +212,21 @@ const char *login_returnaddr()
 	return (addrbuf.c_str());
 }
 
-const char *login_fromhdr()
+std::string login_fromhdr()
 {
-const char *address=login_returnaddr();
-const char *fullname=getenv("AUTHFULLNAME");
-int	l;
-const char *p;
+	std::string address=login_returnaddr();
+	std::string fullname=getenv("AUTHFULLNAME");
+	int	l;
+	const char *p;
 
-std::string hdrbuf;
+	std::string hdrbuf;
 
-FILE *fp;
-char authcharset[128];
-char *ufullname=0;
-static std::string uhdrbuf;
+	FILE *fp;
+	char authcharset[128];
+	std::string uhdrbuf;
 
-	if (!fullname || !*fullname)
-		return (address);	/* That was easy */
+	if (fullname.empty())
+		return address;
 
 	authcharset[0] = 0;
 	if ((fp=fopen(AUTHCHARSET, "r")))
@@ -248,23 +247,28 @@ static std::string uhdrbuf;
 			sizeof(authcharset)-1);
 
 	if (authcharset[0]
-	    && !sqwebmail_content_charset.empty()
-	    && (ufullname=unicode_convert_toutf8(fullname, authcharset,NULL)))
-		fullname = ufullname;
+	    && !sqwebmail_content_charset.empty())
+	    {
+		fullname=unicode::iconvert::convert(
+			fullname,
+			authcharset,
+			unicode::utf_8
+		);
+	    }
 
-	l=sizeof("\"\" <>")+strlen(address)+strlen(fullname);
+	l=sizeof("\"\" <>")+address.size()+fullname.size();
 
-	for (p=fullname; *p; p++)
+	for (p=fullname.c_str(); *p; p++)
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
 			*p == '<' || *p == '>')	++l;
 
-	for (p=address; *p; p++)
+	for (p=address.c_str(); *p; p++)
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
 			*p == '<' || *p == '>')	++l;
 
 	hdrbuf.reserve(l);
 	hdrbuf += '"';
-	for (p=fullname; *p; p++)
+	for (p=fullname.c_str(); *p; p++)
 	{
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
 			*p == '<' || *p == '>')	hdrbuf += '\\';
@@ -273,15 +277,13 @@ static std::string uhdrbuf;
 	hdrbuf += '"';
 	hdrbuf += ' ';
 	hdrbuf += '<';
-	for (p=address; *p; p++)
+	for (p=address.c_str(); *p; p++)
 	{
 		if (*p == '"' || *p == '\\' || *p == '(' || *p == ')' ||
 			*p == '<' || *p == '>')	hdrbuf += '\\';
 		hdrbuf += *p;
 	}
 	hdrbuf += '>';
-
-	if (ufullname)	free(ufullname);
 
 	bool errflag;
 
@@ -295,5 +297,5 @@ static std::string uhdrbuf;
 	if (errflag)
 		uhdrbuf=hdrbuf;
 
-	return (uhdrbuf.c_str());
+	return (uhdrbuf);
 }
