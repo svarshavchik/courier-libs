@@ -652,6 +652,7 @@ struct address {
 		virtual void emit_name()=0;
 		virtual void emit_char(char)=0;
 
+		virtual bool old_style();
 		void output();
 	};
 

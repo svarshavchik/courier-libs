@@ -235,6 +235,11 @@ std::u32string rfc822::idn2unicode(std::string &idn)
 	return u32;
 }
 
+bool rfc822::address::do_print::old_style()
+{
+	return !a.name.empty() && a.name.begin()->type == '(';
+}
+
 void rfc822::address::do_print::output()
 {
 	if (a.address.empty())
@@ -243,7 +248,7 @@ void rfc822::address::do_print::output()
 		return;
 	}
 
-	if (!a.name.empty() && a.name.begin()->type == '(')
+	if (old_style())
 	{
 		// old style
 
