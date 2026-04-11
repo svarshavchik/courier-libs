@@ -705,9 +705,18 @@ struct address {
 
 		out_iter &iter;
 
+		std::u32string name;
+
 		do_print_unicode(const struct address &a, out_iter &iter)
 			: do_print{a}, iter{iter}
 		{
+			a.unicode_name(std::back_inserter(name));
+		}
+
+		bool old_style() override
+		{
+			return !name.empty() && name.front() == '(' &&
+				name.back() == ')';
 		}
 
 		void emit_address() override
@@ -717,7 +726,8 @@ struct address {
 
 		void emit_name() override
 		{
-			a.unicode_name(iter);
+			for (auto &c:name)
+				*iter++=c;
 		}
 
 		void emit_char(char c) override
@@ -1021,6 +1031,31 @@ struct addresses : std::vector<address> {
 		}
 	};
 
+	// Implement print() by calling address::unicode().
+
+	template<typename iter_b, typename iter_e, typename out_iter_type,
+		 typename print_separator_cb_t>
+	struct do_unicode : do_print_impl<iter_b, iter_e, out_iter_type,
+					 print_separator_cb_t> {
+
+		do_unicode(iter_b &b,
+			   iter_e &e,
+			   out_iter_type &out_iter,
+			   print_separator_cb_t &print_separator_cb)
+			: do_print_impl<iter_b, iter_e, out_iter_type,
+					print_separator_cb_t>{
+			b, e, out_iter, print_separator_cb}
+		{
+		}
+
+		void print() override
+		{
+			this->b->unicode(this->out_iter);
+			++this->b;
+		}
+	};
+
+
 	// Implement print() by calling address::encode().
 	//
 	// The character set is passed in by reference, and must exist until
@@ -1077,7 +1112,7 @@ struct addresses : std::vector<address> {
 			{
 				format(std::forward<iterb_type>(b),
 				       std::forward<itere_type>(e),
-				       out_iter,
+				       std::forward<out_iter_type>(out_iter),
 				       make_default_print_separator<char>(
 					       out_iter
 				       ));
@@ -1109,9 +1144,39 @@ struct addresses : std::vector<address> {
 			{
 				format(std::forward<iterb_type>(b),
 				       std::forward<itere_type>(e),
-				       out_iter,
+				       std::forward<out_iter_type>(out_iter),
 				       chset,
 				       make_default_print_separator<char>(
+					       out_iter
+				       ));
+			}
+		};
+
+		// Helper class used by unicode_wrapped()
+
+		struct unicode {
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type,
+				 typename print_separator_t>
+			static void format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter,
+					   print_separator_t &&print_separator)
+			{
+				do_unicode encoder{b, e, out_iter,
+						   print_separator};
+
+				encoder.output();
+			}
+
+			template<typename iterb_type, typename itere_type,
+				 typename out_iter_type>
+			static auto format(iterb_type &&b, itere_type &&e,
+					   out_iter_type &&out_iter)
+			{
+				format(std::forward<iterb_type>(b),
+				       std::forward<itere_type>(e),
+				       std::forward<out_iter_type>(out_iter),
+				       make_default_print_separator<char32_t>(
 					       out_iter
 				       ));
 			}
@@ -1507,10 +1572,10 @@ struct addresses : std::vector<address> {
 		};
 		wrap_out_iter char32_wrapper{wrapper};
 
-		print(std::forward<iterb_type>(b),
-		      std::forward<itere_type>(e),
-		      char32_wrapper,
-		      wrap_out_iter_sep{wrapper});
+		format::unicode::format(
+			std::forward<iterb_type>(b),
+			std::forward<itere_type>(e),
+			char32_wrapper, wrap_out_iter_sep{wrapper});
 
 		wrapper.end();
 
@@ -1619,27 +1684,23 @@ struct addresses : std::vector<address> {
 			return iter;
 	}
 
-	// wrap_display() uses unicode_wrapped() to write the wrapped
-	// addresses into a vecgtor of std::strings.
-	//
-	// Two passes are done. The first pass counts the number of wrapped
-	// strings, by passing a pseudo-iterator, a length_counter, that
-	// just counts things.
-
-	std::vector<std::string> wrap_display(size_t max_l,
-					      const std::string &chset) const
+	template<typename out_iter_type>
+	auto wrap_display(size_t max_l,
+			  const std::string &chset,
+			  out_iter_type &&iter) const
 	{
-		std::vector<std::string> w;
+		return wrap_display(begin(), end(), max_l, chset,
+				    std::forward<out_iter_type>(iter));
+	}
 
-		// Size up the length.
+	auto wrap_display(size_t max_l,
+			  const std::string &chset) const
+	{
+		std::vector<std::string> lines;
 
-		w.reserve(wrap_display(begin(), end(), max_l, chset,
-				       length_counter{}));
+		wrap_display(max_l, chset, std::back_inserter(lines));
 
-		wrap_display(begin(), end(), max_l, chset,
-			     std::back_inserter(w));
-
-		return w;
+		return lines;
 	}
 };
 

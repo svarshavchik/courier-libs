@@ -9,7 +9,7 @@
 #include	<string_view>
 #include	<iostream>
 
-int main()
+void testutf8()
 {
 	std::string_view testaddresses=
 		"Test Address 1 <testaddress1@example.com>,\n"
@@ -33,7 +33,7 @@ int main()
 				" Test =?utf-8?B?0LjRgdC/0YvRgtCw0L3QuNC1?="
 				" <testaddress2@example.com>,",
 
-				"\"Test =?utf-8?B?0LjRgdC/0YvRgtCw0L3QuNC1?=\""
+				"Test =?utf-8?B?0LjRgdC/0YvRgtCw0L3QuNC1?="
 				" <testaddress2@example.com>, "
 				"test3@xn--80akhbyknj4f.net"
 				" (=?utf-8?Q?Nob=C3=92dy?=)"
@@ -41,6 +41,45 @@ int main()
 	{
 		for (auto &addr:wrapped)
 			std::cout << addr << "\n";
+		exit(1);
 	}
+}
+
+void testdisplay()
+{
+	std::string_view testaddresses=
+		"Test Address 1 <testaddress1@example.com>, "
+		"Test =?utf-8?B?0LjRgdC/0YvRgtCw0L3QuNC1?= <testaddress2@example.com>, "
+		"Test =?utf-8?B?0LjRgdC/0YvRgtCw0L3QuNC1?= <testaddress2@example.com>, "
+		"test3@xn--80akhbyknj4f.net (=?utf-8?Q?Nob=C3=92dy?=)";
+
+	rfc822::tokens t{testaddresses};
+	rfc822::addresses a{t};
+
+	std::vector<std::string> wrapped;
+
+	auto res=a.wrap_display(80, unicode::utf_8,
+				std::back_inserter(wrapped));
+
+	static_assert(std::is_same_v<decltype(res), decltype(
+			      std::back_inserter(wrapped)
+		      )>);
+
+	if (wrapped != std::vector<std::string>{
+			"Test Address 1 <testaddress1@example.com>,",
+			"Test испытание <testaddress2@example.com>,",
+			"Test испытание <testaddress2@example.com>, test3@испытание.net (NobÒdy)"
+		})
+	{
+		for (auto &addr:wrapped)
+			std::cout << addr << "\n";
+		exit(1);
+	}
+}
+
+int main()
+{
+	testutf8();
+	testdisplay();
 	return 0;
 }

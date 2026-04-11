@@ -796,13 +796,14 @@ int main()
 		std::cout << "Unexpected results from unicode_wrapped() (2)\n";
 	}
 
-	if (a4.wrap_display(16, "utf-8") != lines)
+	if (a4.wrap_display(16, unicode::utf_8) != lines)
 	{
 		std::cout << "Unexpected result from wrap_display() (1)\n";
 	}
 
 	check2.clear();
-	rfc822::addresses::wrap_display(a4.begin(), a4.end(), 16, "utf-8",
+	rfc822::addresses::wrap_display(a4.begin(), a4.end(),
+					16, unicode::utf_8,
 					std::back_inserter(check2));
 	if (check2 != lines)
 	{

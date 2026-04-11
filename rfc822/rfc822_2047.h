@@ -154,7 +154,7 @@ template<typename out_iter_type> auto tokens::unicode_name(
 
 		bool last_was_colon_or_semicolon=false;
 
-		for (auto uc:us)
+		for (auto &uc:us)
 		{
 			if (last_was_colon_or_semicolon)
 			{
@@ -178,8 +178,17 @@ template<typename out_iter_type> auto tokens::unicode_name(
 			if ((uc >= 0 && uc < ' ') ||
 			    special.find(uc) < special.size())
 			{
-				quote_inuse=true;
-				break;
+				if (us.size() > 1 && (
+					    (uc == '(' && &uc == us.data()) ||
+					    (uc == ')' && &uc == us.data()+
+					     (us.size()-1))
+				    ))
+					;
+				else
+				{
+					quote_inuse=true;
+					break;
+				}
 			}
 
 			if (uc == ':' || uc == ';')
