@@ -337,6 +337,7 @@ static int do_imapscan_maildir2(imapscaninfo *scaninfo,
 		{
 			write_error_exit(0);
 		}
+		close(fd);
 
 		newdbfilepath=createInfo.tmpname;
 	}
