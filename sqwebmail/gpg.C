@@ -11,6 +11,7 @@
 #include	<courier-unicode.h>
 #include	"numlib/numlib.h"
 #include	"rfc822/rfc822.h"
+#include	"rfc822/rfc2047.h"
 #include	"htmllibdir.h"
 #include	<stdio.h>
 #include	<string.h>
