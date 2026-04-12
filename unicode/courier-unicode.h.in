@@ -1613,16 +1613,6 @@ class iconvert {
 			       /* If not nullptr, second and subsequent chars */
 			       char32_t (*char_func)(char32_t)
 			       =nullptr);
-
-	template<typename output_iterator_t>
-	struct string_converter;
-
-	template<typename iter_t>
-	string_converter(iter_t &, std::string, std::string)
-		-> string_converter<iter_t &>;
-	template<typename iter_t>
-	string_converter(iter_t &&, std::string, std::string)
-		-> string_converter<iter_t>;
  private:
 	bool end(bool *);
 
@@ -1646,7 +1636,7 @@ class iconvert {
 // occurs.
 
 template<typename output_iterator_t>
-struct iconvert::string_converter {
+struct string_converter {
 
 private:
 	output_iterator_t output_iterator;
@@ -1684,13 +1674,20 @@ public:
 		bool flag{false};
 
 		*output_iterator++ =
-			convert(s, charset, dstcharset, flag);
+			iconvert::convert(s, charset, dstcharset, flag);
 
 		if (flag)
 			errflag=true;
 		return *this;
 	}
 };
+
+template<typename iter_t>
+string_converter(iter_t &, std::string, std::string)
+	-> string_converter<iter_t &>;
+template<typename iter_t>
+string_converter(iter_t &&, std::string, std::string)
+	-> string_converter<iter_t>;
 
 /* Convert output of iconvert to char32_ts. */
 
@@ -1749,14 +1746,6 @@ class iconvert::tou : public iconvert {
 	static std::pair<std::u32string, bool>
 		convert(const std::string_view &str,
 			const std::string &chset);
-
-	template<typename output_iterator_t>
-	struct string_converter;
-
-	template<typename iter_t>
-	string_converter(iter_t &, std::string) -> string_converter<iter_t &>;
-	template<typename iter_t>
-	string_converter(iter_t &&, std::string) -> string_converter<iter_t>;
 };
 
 /* Helper class that saves unicode output into an output iterator */
@@ -1843,7 +1832,7 @@ auto iconvert::tou::convert(from_iter_t from_iter,
 // occurs.
 
 template<typename output_iterator_t>
-struct iconvert::tou::string_converter {
+struct tou_string_converter {
 
 private:
 	output_iterator_t output_iterator;
@@ -1859,23 +1848,23 @@ public:
 	typedef void                            reference;
 
 	template<typename iter>
-	string_converter(iter &&output_iterator,
+	tou_string_converter(iter &&output_iterator,
 			 std::string charset)
 		: output_iterator{std::forward<iter>(output_iterator)},
 		  charset{std::move(charset)}
 	{
 	}
 
-	string_converter &operator*() { return *this; }
-	string_converter &operator++() { return *this; }
-	string_converter &operator++(int) { return *this; }
-	string_converter &operator=(std::string_view s)
+	tou_string_converter &operator*() { return *this; }
+	tou_string_converter &operator++() { return *this; }
+	tou_string_converter &operator++(int) { return *this; }
+	tou_string_converter &operator=(std::string_view s)
 	{
 		bool flag{false};
 
 		std::u32string u;
 
-		convert(s.begin(), s.end(), charset, flag,
+		iconvert::tou::convert(s.begin(), s.end(), charset, flag,
 			std::back_inserter(u));
 
 		*output_iterator++ = std::move(u);
@@ -1885,6 +1874,13 @@ public:
 		return *this;
 	}
 };
+
+template<typename iter_t>
+tou_string_converter(iter_t &, std::string) -> tou_string_converter<iter_t &>;
+
+template<typename iter_t>
+tou_string_converter(iter_t &&, std::string) -> tou_string_converter<iter_t>;
+
 /* Convert output of iconvert from char32_ts. */
 
 class iconvert::fromu : public iconvert {
@@ -1936,14 +1932,6 @@ class iconvert::fromu : public iconvert {
 	static std::pair<std::string, bool>
 		convert(const std::u32string_view &ubuf,
 			const std::string &chset);
-
-	template<typename output_iterator_t>
-	struct string_converter;
-
-	template<typename iter_t>
-	string_converter(iter_t &, std::string) -> string_converter<iter_t &>;
-	template<typename iter_t>
-	string_converter(iter_t &&, std::string) -> string_converter<iter_t>;
 };
 
 /* Helper class that saves unicode output into an output iterator */
@@ -2031,7 +2019,7 @@ auto iconvert::fromu::convert(from_iter_t from_iter,
 // occurs.
 
 template<typename output_iterator_t>
-struct iconvert::fromu::string_converter {
+struct fromu_string_converter {
 private:
 	output_iterator_t output_iterator;
 	const std::string charset;
@@ -2046,24 +2034,24 @@ public:
 	typedef void                            reference;
 
 	template<typename iter>
-	string_converter(iter &&output_iterator,
+	fromu_string_converter(iter &&output_iterator,
 			 std::string charset)
 		: output_iterator{std::forward<iter>(output_iterator)},
 		  charset{std::move(charset)}
 	{
 	}
 
-	string_converter &operator*() { return *this; }
-	string_converter &operator++() { return *this; }
-	string_converter &operator++(int) { return *this; }
-	string_converter &operator=(std::u32string_view s)
+	fromu_string_converter &operator*() { return *this; }
+	fromu_string_converter &operator++() { return *this; }
+	fromu_string_converter &operator++(int) { return *this; }
+	fromu_string_converter &operator=(std::u32string_view s)
 	{
 		bool flag{false};
 
 		std::string u;
 
-		convert(s.begin(), s.end(), charset,
-			std::back_inserter(u), flag);
+		iconvert::fromu::convert(s.begin(), s.end(), charset,
+					 std::back_inserter(u), flag);
 
 		*output_iterator++ = std::move(u);
 
@@ -2072,6 +2060,14 @@ public:
 		return *this;
 	}
 };
+
+template<typename iter_t>
+fromu_string_converter(iter_t &, std::string)
+	-> fromu_string_converter<iter_t &>;
+
+template<typename iter_t>
+fromu_string_converter(iter_t &&, std::string)
+	-> fromu_string_converter<iter_t>;
 
 /*
 ** Unicode linebreaking algorithm, tr14.

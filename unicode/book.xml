@@ -578,9 +578,9 @@ See COPYING for distribution information.
 	      <citerefentry><refentrytitle>unicode::iconvert::tou</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry>
 	      </link>,
-	      <link linkend="unicode__iconvert__string_converter">
+	      <link linkend="unicode__string_converter">
 		<citerefentry>
-		  <refentrytitle>unicode::iconvert::string_converter</refentrytitle>
+		  <refentrytitle>unicode::string_converter</refentrytitle>
 		  <manvolnum>3</manvolnum>
 		</citerefentry>
 	      </link>
@@ -5490,7 +5490,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	</refsect1>
       </refentry>
 
-      <refentry id="unicode__iconvert__string_converter">
+      <refentry id="unicode__string_converter">
 	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
 	<refmeta>
 	  <refentrytitle>unicode::iconvert::string_converter</refentrytitle>
@@ -5498,9 +5498,9 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	</refmeta>
 
 	<refnamediv>
-	  <refname>unicode::iconvert::string_converter</refname>
-	  <refname>unicode::iconvert::tou::string_converter</refname>
-	  <refname>unicode::iconvert::fromu::string_converter</refname>
+	  <refname>unicode::string_converter</refname>
+	  <refname>unicode::tou_string_converter</refname>
+	  <refname>unicode::fromu_string_converter</refname>
 	  <refpurpose>Converting output iterators</refpurpose>
 	</refnamediv>
 
@@ -5508,25 +5508,25 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  <programlisting>
 #include &lt;courier-unicode.h&gt;
 
-std::string string;
+std::vector&lt;std::string&gt; strings;
 
-unicode::iconvert::string_converter converter{
-	std::back_inserter(string),
+unicode::string_converter converter{
+	std::back_inserter(strings),
 	unicode::iso_8859_1,
 	unicode::utf_8
 };
 
-std::u32string ustring;
+std::vector&lt;std::u32string&gt; ustrings;
 
-auto ustring_iter=std::back_inserter(ustring);
+auto ustring_iter=std::back_inserter(ustrings);
 
-unicode::iconvert::tou::string_converter touconverter{
+unicode::tou_string_converter touconverter{
 	ustring_iter,
 	unicode::utf_8
 };
 
-unicode::iconvert::fromu::string_converter fromuconverter{
-	std::back_inserter(string);
+unicode::fromu_string_converter fromuconverter{
+	std::back_inserter(strings);
 	unicode::utf_8
 };
 
@@ -5543,7 +5543,7 @@ if (converter.errflag)
 
 auto final_value=fromuconverter.iter();</programlisting>
 	</refsynopsisdiv>
-	<refsect1 id="unicode__iconvert__string_converter_description">
+	<refsect1 id="unicode__string_converter_description">
 	  <title>DESCRIPTION</title>
 
 	  <para>
@@ -5561,7 +5561,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    conversion.
 	  </para>
 
-	  <refsect2 id="unicode__iconvert__string_converter_synopsis">
+	  <refsect2 id="unicode__string_converter_synopsis">
 	    <title>Template functionality</title>
 
 	    <para></para>
@@ -5572,7 +5572,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 		<colspec colname='c3' />
 		<thead>
 		  <row>
-		    <entry><classname>unicode::iconvert</classname> template</entry>
+		    <entry><classname>unicode</classname> template</entry>
 		    <entry>Iterates over</entry>
 		    <entry>Parameter iterates over</entry>
 		  </row>
@@ -5584,12 +5584,12 @@ auto final_value=fromuconverter.iter();</programlisting>
 		    <entry><classname>std::string</classname></entry>
 		  </row>
 		  <row>
-		    <entry><classname>fromu::string_converter</classname></entry>
+		    <entry><classname>fromu_string_converter</classname></entry>
 		    <entry><classname>std::u32string</classname></entry>
 		    <entry><classname>std::string</classname></entry>
 		  </row>
 		  <row>
-		    <entry><classname>tou::string_converter</classname></entry>
+		    <entry><classname>tou_string_converter</classname></entry>
 		    <entry><classname>std::string</classname></entry>
 		    <entry><classname>std::u32string</classname></entry>
 		  </row>
@@ -5598,7 +5598,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    </informaltable>
 	  </refsect2>
 
-	  <refsect2 id="unicode__iconvert__string_converter_additionalparams">
+	  <refsect2 id="unicode__string_converter_additionalparams">
 	    <title>Additional constructor parameters</title>
 
 	    <informaltable border='0'>
@@ -5607,7 +5607,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 		<colspec colname='c3' />
 		<thead>
 		  <row>
-		    <entry><classname>unicode::iconvert</classname> template</entry>
+		    <entry><classname>unicode</classname> template</entry>
 		    <entry>Additional template parameters</entry>
 		  </row>
 		</thead>
@@ -5617,11 +5617,11 @@ auto final_value=fromuconverter.iter();</programlisting>
 		    <entry>"from" and "to" character sets</entry>
 		  </row>
 		  <row>
-		    <entry><classname>fromu::string_converter</classname></entry>
+		    <entry><classname>fromu_string_converter</classname></entry>
 		    <entry>"to" character set</entry>
 		  </row>
 		  <row>
-		    <entry><classname>tou::string_converter</classname></entry>
+		    <entry><classname>tou_string_converter</classname></entry>
 		    <entry>"from" character set</entry>
 		  </row>
 		</tbody>
@@ -5629,7 +5629,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    </informaltable>
 
 	    <para>
-	      <classname>unicode::iconvert::string_converter</classname> is
+	      <classname>unicode::string_converter</classname> is
 	      an output iterator over <classname>std::string</classname> strings.
 	      It takes the <classname>std::string</classname> strings it iterates
 	      over, converts them from one character set to another one, and
@@ -5638,7 +5638,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    </para>
 
 	    <para>
-	      <classname>unicode::iconvert::fromu:string_converter</classname> is
+	      <classname>unicode::fromu_string_converter</classname> is
 	      an output iterator over <classname>std::u32string</classname>
 	      strings.
 	      It takes the <classname>std::u32string</classname> strings it
@@ -5648,7 +5648,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    </para>
 
 	    <para>
-	      <classname>unicode::iconvert::tou:string_converter</classname> is
+	      <classname>unicode::tou_string_converter</classname> is
 	      an output iterator over <classname>std::string</classname>
 	      strings.
 	      It takes the <classname>std::string</classname> strings it
@@ -5659,7 +5659,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	    </para>
 	  </refsect2>
 
-	  <refsect2 id="unicode__iconvert__string_converter_semantics">
+	  <refsect2 id="unicode__string_converter_semantics">
 	    <title>Template parameters</title>
 
 	    <para>
@@ -5709,7 +5709,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 	      <classname>string_converter</classname> is destroyed.
 	    </para>
 	  </refsect2>
-	  <refsect2 id="unicode__iconvert__string_converter_members">
+	  <refsect2 id="unicode__string_converter_members">
 	    <title>Template members</title>
 
 	    <para>

@@ -178,7 +178,7 @@ std::string rfc2045::reply::mksalutation(std::string_view salutation_template,
 
 	addnewline adder;
 
-	unicode::iconvert::fromu::string_converter make_wrapped{
+	unicode::fromu_string_converter make_wrapped{
 		adder,
 		charset
 	};

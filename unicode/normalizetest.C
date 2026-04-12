@@ -337,7 +337,7 @@ void teststringconverter1()
 
 	auto iter=std::back_inserter(converted_strings);
 
-	unicode::iconvert::string_converter converter{
+	unicode::string_converter converter{
 		iter,
 		unicode::iso_8859_1,
 		unicode::utf_8
@@ -347,12 +347,12 @@ void teststringconverter1()
 		      decltype(converter.iter()),
 		      decltype(iter) &&>);
 
-	unicode::iconvert::fromu::string_converter fromu{
+	unicode::fromu_string_converter fromu{
 		converter,
 		unicode::iso_8859_1
 	};
 
-	unicode::iconvert::tou::string_converter tou{
+	unicode::tou_string_converter tou{
 		fromu,
 		unicode::utf_8
 	};
@@ -374,9 +374,9 @@ void teststringconverter2()
 {
 	std::vector<std::string> converted_strings;
 
-	unicode::iconvert::tou::string_converter tou{
-		unicode::iconvert::fromu::string_converter{
-			unicode::iconvert::string_converter{
+	unicode::tou_string_converter tou{
+		unicode::fromu_string_converter{
+			unicode::string_converter{
 				std::back_inserter(converted_strings),
 				unicode::iso_8859_1,
 				unicode::utf_8

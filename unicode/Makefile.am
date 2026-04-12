@@ -118,21 +118,21 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]compose_default_callback.3 \
         $(srcdir)/man/unicode[\:][\:]decompose.3 \
         $(srcdir)/man/unicode[\:][\:]decompose_default_reallocate.3 \
+        $(srcdir)/man/unicode[\:][\:]fromu_string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 \
-        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu[\:][\:]string_converter.3 \
-        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 \
-        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou[\:][\:]string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 \
         $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 \
         $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 \
         $(srcdir)/man/unicode[\:][\:]linebreak_iter.3 \
         $(srcdir)/man/unicode[\:][\:]linebreakc_callback_base.3 \
         $(srcdir)/man/unicode[\:][\:]linebreakc_iter.3 \
+        $(srcdir)/man/unicode[\:][\:]string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]tolower.3 \
         $(srcdir)/man/unicode[\:][\:]totitle.3 \
+        $(srcdir)/man/unicode[\:][\:]tou_string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]toupper.3 \
         $(srcdir)/man/unicode[\:][\:]ucs_2.3 \
         $(srcdir)/man/unicode[\:][\:]ucs_4.3 \
