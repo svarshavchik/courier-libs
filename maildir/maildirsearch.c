@@ -28,6 +28,9 @@ int maildir_search_start_unicode(struct maildir_searchengine *sei,
 
 	memcpy(sei->string, s, n * sizeof(*s));
 
+	for (size_t i=0; i<n; ++i)
+		sei->string[i]=unicode_lc(sei->string[i]);
+
 	if (sei->r)
 		free(sei->r);
 

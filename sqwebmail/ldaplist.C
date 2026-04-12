@@ -142,7 +142,7 @@ const char	*sysbook=getarg("SYSBOOK");
 	ldapabook_free(abooks[1]);
 }
 
-static char *getfilter()
+static std::string getfilter()
 {
 	const char *p;
 
@@ -154,7 +154,7 @@ static char *getfilter()
 	if (!*p)
 		return NULL;
 
-	return unicode_convert_toutf8(p, sqwebmail_content_charset.c_str(), NULL);
+	return unicode::iconvert::convert(p, sqwebmail_content_charset, unicode::utf_8);
 }
 
 struct search_info {
@@ -165,13 +165,10 @@ struct search_info {
 
 int	ldapsearch()
 {
-	char *p;
-
 	if (*cgi("ABOOK") == 0) return (-1);
 
-	if ((p=getfilter()) == NULL)
+	if (getfilter().empty())
 		return -1;
-	free(p);
 	return 0;
 }
 
@@ -222,7 +219,7 @@ static int parsesearch(const char *cn, const char *mail,
 
 void	doldapsearch()
 {
-char	*f;
+std::string f;
 struct ldapabook *abooks[2];
 const struct ldapabook *ptr;
 
@@ -233,7 +230,7 @@ const struct ldapabook *ptr;
 	if (!ptr)
 		ptr=ldapabook_find(abooks[1], cgi("ABOOK"));
 
-	if (ptr && (f=getfilter()) != 0)
+	if (ptr && !(f=getfilter()).empty())
 	{
 		struct search_info si;
 		maildir::tmpcreate_info createInfo;
@@ -252,7 +249,7 @@ const struct ldapabook *ptr;
 
 		si.fpw=createInfo.fp();
 
-		if (ldapabook_search(ptr, LDAPSEARCH, f, parsesearch,
+		if (ldapabook_search(ptr, LDAPSEARCH, f.c_str(), parsesearch,
 				     save_errmsg, &si) == 0)
 		{
 			int	c;

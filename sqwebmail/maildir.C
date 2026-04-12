@@ -1696,14 +1696,14 @@ struct searchresults {
 
 	std::vector<searchresults_match_context> matched_context;
 
-	struct maildir_searchengine *se;
+	mail::Search *se;
 
 };
 
 static std::vector<MATCHEDSTR> creatematches(struct searchresults *sr);
 
 static int searchresults_init(struct searchresults *sr,
-			      struct maildir_searchengine *se);
+			      mail::Search &se);
 
 static int do_maildir_search(const char *filename,
 			     struct searchresults *sr);
@@ -1719,8 +1719,6 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 {
 	std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> msginfo;
 	size_t i;
-	char *utf8str;
-	char *p, *q;
 
 	msginfo.reserve(nfiles);
 
@@ -1728,64 +1726,48 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 
 	if (pos >= all_cnt) return msginfo;
 
-	utf8str=unicode_convert_toutf8(searchtxt, charset, NULL);
-
-	if (!utf8str)
-		return msginfo;
+	auto utf8str=unicode::iconvert::tou::convert(
+		searchtxt,
+		charset
+	).first;
 
 	/* Normalize whitespace in the search string */
 
-	p=q=utf8str;
+	while (!utf8str.empty() &&
+	       unicode_isspace(utf8str.back()))
+		utf8str.pop_back();
 
-	while (*p && strchr(spaces, *p))
-		++p;
+	for (i=0; i<utf8str.size(); ++i)
+		if (!unicode_isspace(utf8str[i]))
+			break;
+	utf8str.erase(0, i);
 
-	while (*p)
+	auto b=utf8str.begin(), p=b, e=utf8str.end();
+	while (b != e)
 	{
-		while (*p && !strchr(spaces, *p))
+		if (!unicode_isspace(*b))
 		{
-			*q++ = *p++;
+			*p++=*b++;
+			continue;
 		}
 
-		while (*p && strchr(spaces, *p))
-			++p;
+		/* Skip consecutive whitespace */
 
-		if (*p)
-			*q++=' ';
+		while (++b != e && unicode_isspace(*b))
+			;
+
+		*p++=' ';
 	}
-	*q=0;
 
-	if (*utf8str)
+	utf8str.erase(p, e);
+
+	if (!utf8str.empty())
 	{
-		struct maildir_searchengine se;
-		int rc=-1;
-		char32_t *ustr;
-		size_t ustr_size;
-		unicode_convert_handle_t h;
+		mail::Search se;
 
-		maildir_search_init(&se);
+		bool rc=se.setString(utf8str);
 
-		h=unicode_convert_tou_init("utf-8",
-					     &ustr,
-					     &ustr_size,
-					     1);
-
-		if (h)
-		{
-			unicode_convert(h, utf8str, strlen(utf8str));
-			if (unicode_convert_deinit(h, NULL) == 0)
-			{
-				size_t n;
-
-				for (n=0; ustr[n]; ++n)
-					ustr[n]=unicode_lc(ustr[n]);
-
-				rc=maildir_search_start_unicode(&se, ustr);
-				free(ustr);
-			}
-		}
-
-		for (i=0; rc == 0 && pos+i<all_cnt && msginfo.size()<nfiles; ++i)
+		for (i=0; rc && pos+i<all_cnt && msginfo.size()<nfiles; ++i)
 		{
 			auto info=get_msginfo(pos+i);
 
@@ -1799,7 +1781,7 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 				info->filename.c_str()
 			);
 
-			maildir_search_reset(&se);
+			se.reset();
 
 			if (!filename.empty())
 			{
@@ -1807,7 +1789,7 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 
 				info->msgnum=pos+i;
 
-				if (searchresults_init(&sr, &se) == 0)
+				if (searchresults_init(&sr, se) == 0)
 				{
 					if (do_maildir_search(filename.c_str(),
 							      &sr))
@@ -1820,10 +1802,8 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 				}
 			}
 		}
-		maildir_search_destroy(&se);
 	}
 
-	free(utf8str);
 	return msginfo;
 }
 
@@ -1831,15 +1811,15 @@ static std::vector<std::tuple<MSGINFO, std::vector<MATCHEDSTR>>> execute_maildir
 #define sr_context_buf_index_dec(sr,n) ( ( (n)+ (sr)->context_buf_len - 1 ) % ( (sr)->context_buf_len))
 
 static int searchresults_init(struct searchresults *sr,
-			      struct maildir_searchengine *se)
+			      mail::Search &se)
 {
 	sr->prevchar=0;
 	sr->foundcnt=0;
 	sr->finished=0;
-	sr->se=se;
+	sr->se=&se;
 	sr->utf8buf_cnt=0;
 
-	sr->context_buf_len=maildir_search_len(se)+SEARCH_MATCH_CONTEXT_LEN*2+1;
+	sr->context_buf_len=se.getSearchLen()+SEARCH_MATCH_CONTEXT_LEN*2+1;
 	sr->context_buf=std::unique_ptr<char32_t[]>(new char32_t[sr->context_buf_len]);
 
 	sr->context_buf_head=0;
@@ -1855,7 +1835,7 @@ static void search_found_save_context(struct searchresults *sr)
 	auto &c=sr->matched_context.emplace_back();
 
 	c.match_context_before.reserve(SEARCH_MATCH_CONTEXT_LEN);
-	c.match_context.reserve(maildir_search_len(sr->se));
+	c.match_context.reserve(sr->se->getSearchLen());
 	c.match_context_after.reserve(SEARCH_MATCH_CONTEXT_LEN);
 
 	/*
@@ -1865,7 +1845,7 @@ static void search_found_save_context(struct searchresults *sr)
 
 	size_t n=sr->context_buf_head;
 
-	for (size_t i=maildir_search_len(sr->se); i > 0; --i)
+	for (size_t i=sr->se->getSearchLen(); i > 0; --i)
 	{
 		if (n == sr->context_buf_tail)
 			break; /* Shouldn't happen */
@@ -1933,7 +1913,7 @@ static int do_search_utf8(struct searchresults *res)
 		char32_t origch=uc[n];
 		char32_t ch=unicode_lc(origch);
 
-		maildir_search_step_unicode(res->se, ch);
+		(*res->se) << ch;
 
 		/* Record the context, one char at a time */
 
@@ -1952,7 +1932,7 @@ static int do_search_utf8(struct searchresults *res)
 				c.match_context_after.push_back(origch);
 		}
 
-		if (maildir_search_found(res->se))
+		if (*res->se)
 		{
 			search_found_save_context(res);
 			if (++res->foundcnt > 3)
@@ -1961,7 +1941,7 @@ static int do_search_utf8(struct searchresults *res)
 				break;
 			}
 
-			maildir_search_reset(res->se);
+			res->se->reset();
 		}
 	}
 
@@ -1974,10 +1954,9 @@ static int do_search_utf8(struct searchresults *res)
 	return 0;
 }
 
-static int do_search(const char *str, size_t n, void *arg)
+static int do_search(const char *str, size_t n,
+		     struct searchresults *res)
 {
-	struct searchresults *res=(struct searchresults *)arg;
-
 	int rc=0;
 
 	while (n && rc == 0)
@@ -2036,35 +2015,32 @@ static int do_search(const char *str, size_t n, void *arg)
 static int do_maildir_search(const char *filename,
 			     struct searchresults *sr)
 {
-	struct rfc2045src *src;
-	struct rfc2045_decodemsgtoutf8_cb cb;
-	int fd=maildir_semisafeopen(filename, O_RDONLY, 0);
-	struct rfc2045 *rfc2045p;
+	rfc822::fdstreambuf sb{maildir_semisafeopen(filename, O_RDONLY, 0)};
 
-	if (fd < 0)
+	if (sb.error())
 		return 0;
 
-	rfc2045p=rfc2045_fromfd(fd);
+	rfc2045::entity message;
 
-	if (rfc2045p == NULL)
-	{
-		close(fd);
-		return 0;
-	}
+	std::istreambuf_iterator<char> b{&sb}, e;
 
-	memset(&cb, 0, sizeof(cb));
-	cb.output_func=do_search;
-	cb.arg=sr;
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+	message.parse(parser);
 
-	if ((src=rfc2045src_init_fd(fd)) != NULL)
-	{
-		if (rfc2045_decodemsgtoutf8(src, rfc2045p, &cb) == 0)
-			do_search_utf8(sr);
-		rfc2045src_deinit(src);
-	}
+	rfc822::mime_decoder decoder{
+		[&sr]
+		(const char *p, size_t n)
+		{
+			do_search(p, n, sr);
+		},
+		sb,
+		unicode::utf_8
+	};
 
-	rfc2045_free(rfc2045p);
-	close(fd);
+	decoder.header_name_lc=false;
+
+	decoder.decode(message);
+
 	return sr->foundcnt ? 1:0;
 }
 

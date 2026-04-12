@@ -136,9 +136,6 @@ class Search {
 
 	struct maildir_searchengine sei;
 
-	std::string String;
-
-	std::vector<unsigned> rbuf;
  public:
 	Search();
 	virtual ~Search();
@@ -150,9 +147,13 @@ class Search {
 
 	bool setString(const std::string &s, const std::string &chset)
 	{
-		String=s;
 		return maildir_search_start_str_chset(&sei, s.c_str(),
 						      chset.c_str()) == 0;
+	}
+
+	bool setString(const std::u32string &ustr)
+	{
+		return maildir_search_start_unicode(&sei, ustr.c_str()) == 0;
 	}
 
 	void reset()
