@@ -121,7 +121,10 @@ man_MANS= \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]convert_tocase.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]fromu[\:][\:]string_converter.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou.3 \
+        $(srcdir)/man/unicode[\:][\:]iconvert[\:][\:]tou[\:][\:]string_converter.3 \
         $(srcdir)/man/unicode[\:][\:]iso_8859_1.3 \
         $(srcdir)/man/unicode[\:][\:]linebreak_callback_base.3 \
         $(srcdir)/man/unicode[\:][\:]linebreak_callback_save_buf.3 \

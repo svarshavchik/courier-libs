@@ -15,6 +15,8 @@
 #include <list>
 #include <functional>
 #include <tuple>
+#include <iterator>
+#include <type_traits>
 
 extern "C" {
 #endif
@@ -1531,14 +1533,14 @@ class iconvert {
 
 	/* Convert between two different charsets */
 
-	static std::string convert(const std::string &text,
+	static std::string convert(const std::string_view &text,
 				   const std::string &charset,
 				   const std::string &dstcharset,
 				   bool &errflag);
 
 	/* Convert between two different charsets */
 
-	static std::string convert(const std::string &text,
+	static std::string convert(const std::string_view &text,
 				   const std::string &charset,
 				   const std::string &dstcharset)
 	{
@@ -1611,12 +1613,83 @@ class iconvert {
 			       /* If not nullptr, second and subsequent chars */
 			       char32_t (*char_func)(char32_t)
 			       =nullptr);
+
+	template<typename output_iterator_t>
+	struct string_converter;
+
+	template<typename iter_t>
+	string_converter(iter_t &, std::string, std::string)
+		-> string_converter<iter_t &>;
+	template<typename iter_t>
+	string_converter(iter_t &&, std::string, std::string)
+		-> string_converter<iter_t>;
  private:
 	bool end(bool *);
 
  public:
 	class tou;
 	class fromu;
+};
+
+// The parameter to the constructor is an output iterator over std::string.
+//
+// This is an output iterator over std::strings that converts each
+// string between two character sets and uses the passed-in parameter to
+// iterate over the converted strings.
+//
+// The constructor's must remain in scope as long as this object exists if it's
+// passed by reference. A copy of the passed-in output iterator is made if it's
+// passed by value, and iter() gives back the new value of the passed-in output
+// iterator, after iteration is complete.
+//
+// The errflag class member is a flag that gets set if a conversion error
+// occurs.
+
+template<typename output_iterator_t>
+struct iconvert::string_converter {
+
+private:
+	output_iterator_t output_iterator;
+
+	const std::string charset;
+	const std::string dstcharset;
+public:
+	std::remove_cv_t<std::remove_reference_t<output_iterator_t>> &&iter()
+	{
+		return std::move(output_iterator);
+	}
+
+	bool errflag{false};
+	typedef std::output_iterator_tag        iterator_category;
+	typedef void                            value_type;
+	typedef void                            difference_type;
+	typedef void                            pointer;
+	typedef void                            reference;
+
+	template<typename iter>
+	string_converter(iter &&output_iterator,
+			 std::string charset,
+			 std::string dstcharset)
+		: output_iterator{std::forward<iter>(output_iterator)},
+		  charset{std::move(charset)},
+		  dstcharset{std::move(dstcharset)}
+	{
+	}
+
+	string_converter &operator*() { return *this; }
+	string_converter &operator++() { return *this; }
+	string_converter &operator++(int) { return *this; }
+	string_converter &operator=(std::string_view s)
+	{
+		bool flag{false};
+
+		*output_iterator++ =
+			convert(s, charset, dstcharset, flag);
+
+		if (flag)
+			errflag=true;
+		return *this;
+	}
 };
 
 /* Convert output of iconvert to char32_ts. */
@@ -1676,6 +1749,14 @@ class iconvert::tou : public iconvert {
 	static std::pair<std::u32string, bool>
 		convert(const std::string_view &str,
 			const std::string &chset);
+
+	template<typename output_iterator_t>
+	struct string_converter;
+
+	template<typename iter_t>
+	string_converter(iter_t &, std::string) -> string_converter<iter_t &>;
+	template<typename iter_t>
+	string_converter(iter_t &&, std::string) -> string_converter<iter_t>;
 };
 
 /* Helper class that saves unicode output into an output iterator */
@@ -1748,6 +1829,62 @@ auto iconvert::tou::convert(from_iter_t from_iter,
 		return out_iter;
 }
 
+// The parameter to the constructor is an output iterator over std::u32string.
+//
+// This is an output iterator over std::strings that converts each std::string
+// to a std::u32string in the specified character set.
+//
+// The constructor's must remain in scope as long as this object exists if it's
+// passed by reference. A copy of the passed-in output iterator is made if it's
+// passed by value, and iter() gives back the new value of the passed-in output
+// iterator, after iteration is complete.
+//
+// The errflag class member is a flag that gets set if a conversion error
+// occurs.
+
+template<typename output_iterator_t>
+struct iconvert::tou::string_converter {
+
+private:
+	output_iterator_t output_iterator;
+	const std::string charset;
+public:
+	auto iter() { return std::move(output_iterator); }
+
+	bool errflag{false};
+	typedef std::output_iterator_tag        iterator_category;
+	typedef void                            value_type;
+	typedef void                            difference_type;
+	typedef void                            pointer;
+	typedef void                            reference;
+
+	template<typename iter>
+	string_converter(iter &&output_iterator,
+			 std::string charset)
+		: output_iterator{std::forward<iter>(output_iterator)},
+		  charset{std::move(charset)}
+	{
+	}
+
+	string_converter &operator*() { return *this; }
+	string_converter &operator++() { return *this; }
+	string_converter &operator++(int) { return *this; }
+	string_converter &operator=(std::string_view s)
+	{
+		bool flag{false};
+
+		std::u32string u;
+
+		convert(s.begin(), s.end(), charset, flag,
+			std::back_inserter(u));
+
+		*output_iterator++ = std::move(u);
+
+		if (flag)
+			errflag=true;
+		return *this;
+	}
+};
 /* Convert output of iconvert from char32_ts. */
 
 class iconvert::fromu : public iconvert {
@@ -1799,6 +1936,14 @@ class iconvert::fromu : public iconvert {
 	static std::pair<std::string, bool>
 		convert(const std::u32string_view &ubuf,
 			const std::string &chset);
+
+	template<typename output_iterator_t>
+	struct string_converter;
+
+	template<typename iter_t>
+	string_converter(iter_t &, std::string) -> string_converter<iter_t &>;
+	template<typename iter_t>
+	string_converter(iter_t &&, std::string) -> string_converter<iter_t>;
 };
 
 /* Helper class that saves unicode output into an output iterator */
@@ -1871,6 +2016,62 @@ auto iconvert::fromu::convert(from_iter_t from_iter,
 	if constexpr(!std::is_same_v<output_iter_t, output_iter_t &>)
 		return out_iter;
 }
+
+// The parameter to the constructor is an output iterator over std::string.
+//
+// This is an output iterator over std::u32strings that converts each
+// std::u32string to a std::string in the specified character set.
+//
+// The constructor's must remain in scope as long as this object exists if it's
+// passed by reference. A copy of the passed-in output iterator is made if it's
+// passed by value, and the output iterator itself is convertible to the
+// new value of the passed-in output iterator after iteration is complete.
+//
+// The errflag class member is a flag that gets set if a conversion error
+// occurs.
+
+template<typename output_iterator_t>
+struct iconvert::fromu::string_converter {
+private:
+	output_iterator_t output_iterator;
+	const std::string charset;
+public:
+	auto iter() { return std::move(output_iterator); }
+
+	bool errflag{false};
+	typedef std::output_iterator_tag        iterator_category;
+	typedef void                            value_type;
+	typedef void                            difference_type;
+	typedef void                            pointer;
+	typedef void                            reference;
+
+	template<typename iter>
+	string_converter(iter &&output_iterator,
+			 std::string charset)
+		: output_iterator{std::forward<iter>(output_iterator)},
+		  charset{std::move(charset)}
+	{
+	}
+
+	string_converter &operator*() { return *this; }
+	string_converter &operator++() { return *this; }
+	string_converter &operator++(int) { return *this; }
+	string_converter &operator=(std::u32string_view s)
+	{
+		bool flag{false};
+
+		std::string u;
+
+		convert(s.begin(), s.end(), charset,
+			std::back_inserter(u), flag);
+
+		*output_iterator++ = std::move(u);
+
+		if (flag)
+			errflag=true;
+		return *this;
+	}
+};
 
 /*
 ** Unicode linebreaking algorithm, tr14.

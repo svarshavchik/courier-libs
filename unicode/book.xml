@@ -576,7 +576,14 @@ See COPYING for distribution information.
 	      <manvolnum>3</manvolnum></citerefentry></link>,
 	    <link linkend="unicode__iconvert__tou">
 	      <citerefentry><refentrytitle>unicode::iconvert::tou</refentrytitle>
-	      <manvolnum>3</manvolnum></citerefentry></link>,
+	      <manvolnum>3</manvolnum></citerefentry>
+	      </link>,
+	      <link linkend="unicode__iconvert__string_converter">
+		<citerefentry>
+		  <refentrytitle>unicode::iconvert::string_converter</refentrytitle>
+		  <manvolnum>3</manvolnum>
+		</citerefentry>
+	      </link>
 	    <link linkend="unicode__tolower">
 	      <citerefentry><refentrytitle>unicode::tolower</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry></link>,
@@ -5074,14 +5081,14 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>srccharset</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
 	    </funcprototype>
 
 	    <funcprototype>
               <funcdef>std::string <function>unicode::iconvert::convert</function></funcdef>
-              <paramdef>const std::string &amp;<parameter>text</parameter></paramdef>
+              <paramdef>const std::string_view &amp;<parameter>text</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>srccharset</parameter></paramdef>
               <paramdef>const std::string &amp;<parameter>dstcharset</parameter></paramdef>
               <paramdef>bool &amp;<parameter>errflag</parameter></paramdef>
@@ -5121,7 +5128,7 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		A text string between two different character sets, returning
+		A text string between two supported character sets, returning
 		the new string.
 	      </para>
 	    </listitem>
@@ -5479,6 +5486,256 @@ extern const char unicode::iso_8859_1[];</funcsynopsisinfo>
 	      <citerefentry><refentrytitle>iconv</refentrytitle>
 	      <manvolnum>3</manvolnum></citerefentry>.
 
+	  </para>
+	</refsect1>
+      </refentry>
+
+      <refentry id="unicode__iconvert__string_converter">
+	<refentryinfo><author><firstname>Sam</firstname><surname>Varshavchik</surname><contrib>Author</contrib></author><productname>Courier Unicode Library</productname></refentryinfo>
+	<refmeta>
+	  <refentrytitle>unicode::iconvert::string_converter</refentrytitle>
+	  <manvolnum>3</manvolnum>
+	</refmeta>
+
+	<refnamediv>
+	  <refname>unicode::iconvert::string_converter</refname>
+	  <refname>unicode::iconvert::tou::string_converter</refname>
+	  <refname>unicode::iconvert::fromu::string_converter</refname>
+	  <refpurpose>Converting output iterators</refpurpose>
+	</refnamediv>
+
+	<refsynopsisdiv>
+	  <programlisting>
+#include &lt;courier-unicode.h&gt;
+
+std::string string;
+
+unicode::iconvert::string_converter converter{
+	std::back_inserter(string),
+	unicode::iso_8859_1,
+	unicode::utf_8
+};
+
+std::u32string ustring;
+
+auto ustring_iter=std::back_inserter(ustring);
+
+unicode::iconvert::tou::string_converter touconverter{
+	ustring_iter,
+	unicode::utf_8
+};
+
+unicode::iconvert::fromu::string_converter fromuconverter{
+	std::back_inserter(string);
+	unicode::utf_8
+};
+
+*converter++ = "Hello world!\n";
+
+*touconvert++ = "Hello world!\n";
+
+*fromuconverter++ = U"Hello world!\n";
+
+if (converter.errflag)
+{
+	//
+}
+
+auto final_value=fromuconverter.iter();</programlisting>
+	</refsynopsisdiv>
+	<refsect1 id="unicode__iconvert__string_converter_description">
+	  <title>DESCRIPTION</title>
+
+	  <para>
+	    These <classname>string_converter</classname> template classes
+	    implement output iterators that iterate over entire string objects.
+	    In most cases the template parameters are specified by the defined
+	    deduction guides for the templates' constructors.
+	  </para>
+
+	  <para>
+	    The first parameter to each template's constructor is another output
+	    iterator. Iterating the template instance over each string results
+	    in converting the string, and then using the output iterator that
+	    was passed to the constructor iterating over the results of the
+	    conversion.
+	  </para>
+
+	  <refsect2 id="unicode__iconvert__string_converter_synopsis">
+	    <title>Template functionality</title>
+
+	    <para></para>
+	    <informaltable border='0'>
+	      <tgroup cols="3">
+		<colspec colname='c1' />
+		<colspec colname='c2' />
+		<colspec colname='c3' />
+		<thead>
+		  <row>
+		    <entry><classname>unicode::iconvert</classname> template</entry>
+		    <entry>Iterates over</entry>
+		    <entry>Parameter iterates over</entry>
+		  </row>
+		</thead>
+		<tbody>
+		  <row>
+		    <entry><classname>string_converter</classname></entry>
+		    <entry><classname>std::string</classname></entry>
+		    <entry><classname>std::string</classname></entry>
+		  </row>
+		  <row>
+		    <entry><classname>fromu::string_converter</classname></entry>
+		    <entry><classname>std::u32string</classname></entry>
+		    <entry><classname>std::string</classname></entry>
+		  </row>
+		  <row>
+		    <entry><classname>tou::string_converter</classname></entry>
+		    <entry><classname>std::string</classname></entry>
+		    <entry><classname>std::u32string</classname></entry>
+		  </row>
+		</tbody>
+	      </tgroup>
+	    </informaltable>
+	  </refsect2>
+
+	  <refsect2 id="unicode__iconvert__string_converter_additionalparams">
+	    <title>Additional constructor parameters</title>
+
+	    <informaltable border='0'>
+	      <tgroup cols="3">
+		<colspec colname='c1' />
+		<colspec colname='c3' />
+		<thead>
+		  <row>
+		    <entry><classname>unicode::iconvert</classname> template</entry>
+		    <entry>Additional template parameters</entry>
+		  </row>
+		</thead>
+		<tbody>
+		  <row>
+		    <entry><classname>string_converter</classname></entry>
+		    <entry>"from" and "to" character sets</entry>
+		  </row>
+		  <row>
+		    <entry><classname>fromu::string_converter</classname></entry>
+		    <entry>"to" character set</entry>
+		  </row>
+		  <row>
+		    <entry><classname>tou::string_converter</classname></entry>
+		    <entry>"from" character set</entry>
+		  </row>
+		</tbody>
+	      </tgroup>
+	    </informaltable>
+
+	    <para>
+	      <classname>unicode::iconvert::string_converter</classname> is
+	      an output iterator over <classname>std::string</classname> strings.
+	      It takes the <classname>std::string</classname> strings it iterates
+	      over, converts them from one character set to another one, and
+	      the output iterator that gets passed to its constructor iterates
+	      over each converted <classname>std::string</classname>.
+	    </para>
+
+	    <para>
+	      <classname>unicode::iconvert::fromu:string_converter</classname> is
+	      an output iterator over <classname>std::u32string</classname>
+	      strings.
+	      It takes the <classname>std::u32string</classname> strings it
+	      iterates, converts them to string in the soecufued character set,
+	      and the output iterator that gets passed to its constructor
+	      iterates over rach converted <classname>std::string</classname>.
+	    </para>
+
+	    <para>
+	      <classname>unicode::iconvert::tou:string_converter</classname> is
+	      an output iterator over <classname>std::string</classname>
+	      strings.
+	      It takes the <classname>std::string</classname> strings it
+	      iterates, converts them to Unicode, using the specified character
+	      set, and the output iterator that gets passed to its constructor
+	      iterates over each converted
+	      <classname>std::u32string</classname>s.
+	    </para>
+	  </refsect2>
+
+	  <refsect2 id="unicode__iconvert__string_converter_semantics">
+	    <title>Template parameters</title>
+
+	    <para>
+	      These <classname>string_converter</classname> templates have
+	      one template parameter. In most cases it's sufficient to
+	      have it deduced from the constructor.
+	      The template parameter is deduced from the first constructor
+	      parameter, an output iterator
+	      <quote><classname>T</classname></quote> as
+	      follows:
+	    </para>
+
+	    <variablelist>
+	      <varlistentry>
+		<term><classname>T</classname> is passed by reference</term>
+		<listitem>
+		  <para>
+		    The template parameter is
+		    <quote>&lt;<classname>T &amp;</classname>&gt;</quote>
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term><classname>T</classname> is passed by value</term>
+		<listitem>
+		  <para>
+		    The template parameter is
+		    <quote>&lt;<classname>T</classname>&gt;</quote>
+		  </para>
+		</listitem>
+	      </varlistentry>
+	    </variablelist>
+
+	    <para>
+	      If the output iterator gets passed by reference, continuing to
+	      iterate the
+	      <classname>string_converter</classname> after the passed in
+	      constructor gets destroyed results in undefined
+	      behavior. The output iterator must exist as long as the
+	      <classname>string_converter</classname> iterates.
+	    </para>
+
+	    <para>
+	      Passing the output iterator by value moves it, and the moved
+	      iterator will exist until the
+	      <classname>string_converter</classname> is destroyed.
+	    </para>
+	  </refsect2>
+	  <refsect2 id="unicode__iconvert__string_converter_members">
+	    <title>Template members</title>
+
+	    <para>
+	      The <methodname>iter</methodname>()
+	      method returns the reference to the
+	      current value of the iterator that was passed to the constructor.
+	      It is typically used to obtain the output iterator that was
+	      passed by value to the constructor, after finishing iterating
+	      over the converted strings.
+	    </para>
+
+	    <para>
+	      The <varname>errflag</varname> <classname>bool</classname>
+	      indicates whether a conversion error occured during iteration
+	      (an iterated-over string could not be converted).
+	    </para>
+	  </refsect2>
+	</refsect1>
+	<refsect1 id="unicode__iconvert__string_converter_seealso">
+	  <title>SEE ALSO</title>
+
+	  <para>
+	    <link linkend="courier-unicode">
+	      <citerefentry>
+		<refentrytitle>courier-unicode</refentrytitle>
+		<manvolnum>7</manvolnum></citerefentry></link>,
 	  </para>
 	</refsect1>
       </refentry>
@@ -5932,7 +6189,6 @@ size_t nchars=scan.finish();
 	  </para>
 	</refsect1>
       </refentry>
-
     </section>
   </section>
   <section id="COPYING">

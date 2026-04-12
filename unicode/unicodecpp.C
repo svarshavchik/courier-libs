@@ -183,38 +183,39 @@ bool unicode::iconvert::operator()(const char32_t *str, size_t cnt)
 	return (unicode_convert_uc(handle, str, cnt) == 0);
 }
 
-std::string unicode::iconvert::convert(const std::string &text,
+std::string unicode::iconvert::convert(const std::string_view &text,
 				       const std::string &charset,
 				       const std::string &dstcharset,
 				       bool &errflag)
 {
+	char *cbufptr;
+	size_t cbufsize;
+
 	int errptr;
 
-	char *p=unicode_convert_tobuf(text.c_str(),
-					charset.c_str(),
-					dstcharset.c_str(),
-					&errptr);
+	auto h=unicode_convert_tocbuf_init(charset.c_str(),
+					   dstcharset.c_str(),
+					   &cbufptr,
+					   &cbufsize,
+					   0);
 
-	if (!p)
+	if (h)
 	{
-		errflag=true;
-		return "[conversion error: " + charset + " to "
-			+ dstcharset + "]";
+		auto error=unicode_convert(h, text.data(), text.size());
+
+		if (unicode_convert_deinit(h, &errptr) == 0)
+		{
+			errflag=errptr != 0;
+			std::string s{cbufptr, cbufsize};
+			free(cbufptr);
+
+			if (error == 0)
+				return s;
+		}
 	}
-
-	errflag= errptr != 0;
-
-	std::string buf;
-
-	try {
-		buf=p;
-		free(p);
-	} catch (...) {
-		free(p);
-		throw;
-	}
-
-	return buf;
+	errflag=true;
+	return "[conversion error: " + charset + " to "
+		+ dstcharset + "]";
 }
 
 

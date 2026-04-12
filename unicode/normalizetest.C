@@ -329,6 +329,95 @@ void testcompose2()
 
 #include <map>
 #include <tuple>
+#include <type_traits>
+
+void teststringconverter1()
+{
+	std::vector<std::string> converted_strings;
+
+	auto iter=std::back_inserter(converted_strings);
+
+	unicode::iconvert::string_converter converter{
+		iter,
+		unicode::iso_8859_1,
+		unicode::utf_8
+	};
+
+	static_assert(std::is_same_v<
+		      decltype(converter.iter()),
+		      decltype(iter) &&>);
+
+	unicode::iconvert::fromu::string_converter fromu{
+		converter,
+		unicode::iso_8859_1
+	};
+
+	unicode::iconvert::tou::string_converter tou{
+		fromu,
+		unicode::utf_8
+	};
+
+	*tou++ = "Hello world!\n";
+	*tou++ = "Hòla!\n";
+
+	if (converted_strings != std::vector<std::string>{
+			"Hello world!\n",
+			"Hòla!\n"
+		})
+	{
+		std::cerr << "string_converter test 1 failed.\n";
+		exit(1);
+	}
+}
+
+void teststringconverter2()
+{
+	std::vector<std::string> converted_strings;
+
+	unicode::iconvert::tou::string_converter tou{
+		unicode::iconvert::fromu::string_converter{
+			unicode::iconvert::string_converter{
+				std::back_inserter(converted_strings),
+				unicode::iso_8859_1,
+				unicode::utf_8
+			},
+			unicode::iso_8859_1
+		},
+		unicode::utf_8
+	};
+
+	static_assert(std::is_same_v<decltype(tou.iter().iter().iter()),
+		      decltype(std::back_inserter(converted_strings)) &&>);
+
+	*tou++ = "Hello world!\n";
+	*tou++ = "Hòla!\n";
+
+	if (converted_strings != std::vector<std::string>{
+			"Hello world!\n",
+			"Hòla!\n"
+		})
+	{
+		std::cerr << "string_converter test 1 failed.\n";
+		exit(1);
+	}
+}
+
+void testerror()
+{
+	bool conv_error{false};
+
+	std::string addr=
+		unicode::iconvert::convert(std::string{"испытание.net"},
+					   unicode::utf_8,
+					   unicode::iso_8859_1,
+					   conv_error);
+
+	if (!conv_error)
+	{
+		std::cerr << "Conversion error not detected.\n";
+		exit(1);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -336,6 +425,8 @@ int main(int argc, char **argv)
 	testtablookup();
 	testcompose1();
 	testcompose2();
-
+	teststringconverter1();
+	teststringconverter2();
+	testerror();
 	return 0;
 }
