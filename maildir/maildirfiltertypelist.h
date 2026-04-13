@@ -2,7 +2,7 @@
 #define	maildirfiltertypelist_h
 
 /*
-** Copyright 2000-2002 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -21,6 +21,6 @@ static struct {
 		{textplain, "textplain"},
 		{islargerthan, "islargerthan"},
 		{anymessage, "anymessage"},
-		{ 0, 0}};
-
+		{ (enum maildirfiltertype)0, 0}
+	};
 #endif

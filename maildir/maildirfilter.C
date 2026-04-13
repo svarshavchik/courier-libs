@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2010 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -49,7 +49,7 @@ struct maildirfilterrule *maildir_filter_appendrule(struct maildirfilter *r,
 					const char *charset,
 					int *errcode)
 {
-struct maildirfilterrule *p=malloc(sizeof(struct maildirfilterrule));
+struct maildirfilterrule *p=static_cast<struct maildirfilterrule *>(malloc(sizeof(struct maildirfilterrule)));
 
 	*errcode=MF_ERR_INTERNAL;
 
@@ -423,7 +423,7 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 	if (p->fieldvalue_utf8)	free(p->fieldvalue_utf8);
 	if ((p->fieldvalue_utf8=strdup(value ? value:"")) == 0)	return (-1);
 	if (p->tofolder)	free(p->tofolder);
-	if ((p->tofolder=malloc(strlen(folder)+1)) == 0)	return (-1);
+	if ((p->tofolder=static_cast<char *>(malloc(strlen(folder)+1))) == 0)	return (-1);
 	strcpy(p->tofolder, folder);
 
 	if (p->fromhdr)		free(p->fromhdr);
@@ -938,7 +938,7 @@ char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *i)
 		days_arg=days_buf;
 	}
 
-	p=malloc(strlen(i->name)+1+strlen(mode_arg)+strlen(days_arg));
+	p=static_cast<char *>(malloc(strlen(i->name)+1+strlen(mode_arg)+strlen(days_arg)));
 	if (!p)
 		return (NULL);
 

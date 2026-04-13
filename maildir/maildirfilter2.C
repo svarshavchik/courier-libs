@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2007 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -22,7 +22,7 @@
 static const char *maildir_filter_config(const char *maildir,
 	const char *varname)
 {
-char *p=malloc(strlen(maildir)+sizeof("/maildirfilterconfig"));
+char *p=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilterconfig")));
 FILE	*f;
 static char configbuf[256];
 
@@ -63,7 +63,7 @@ char *q;
 		return (0);
 	}
 
-	q=malloc(strlen(maildir)+strlen(p)+2);
+	q=static_cast<char *>(malloc(strlen(maildir)+strlen(p)+2));
 	if (!q)
 		return NULL;
 
@@ -133,7 +133,7 @@ int maildir_filter_importmaildirfilter(const char *maildir)
 		int	n;
 
 		while ((n=fread(buf, 1, sizeof(buf), i)) > 0)
-			if (fwrite(buf, 1, n, o) != n)
+			if (fwrite(buf, n, 1, o) != 1)
 			{
 				fclose(o);
 				fclose(i);
@@ -170,7 +170,7 @@ int maildir_filter_importmaildirfilter(const char *maildir)
 
 int maildir_filter_loadmaildirfilter(struct maildirfilter *mf, const char *maildir)
 {
-char *newname=malloc(strlen(maildir)+sizeof("/maildirfilter.tmp"));
+char *newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
 int	rc;
 
 	if (!newname)	return (-1);
@@ -228,7 +228,7 @@ int	rc;
 
 	if (!maildirfilter)	return (-1);
 
-	newname=malloc(strlen(maildir)+sizeof("/maildirfilter.tmp"));
+	newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
 	if (!newname)
 	{
 		free(maildirfilter);
@@ -260,7 +260,7 @@ char *newname;
 
 	if (!maildirfilter)	return;
 
-	newname=malloc(strlen(maildir)+sizeof("/maildirfilter.tmp"));
+	newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
 	if (!newname)
 	{
 		free(maildirfilter);

@@ -2,16 +2,12 @@
 #define	maildirfilter_h
 
 /*
-** Copyright 2000-2004 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
 
 #include	"config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 enum maildirfiltertype {
 	startswith,
@@ -153,9 +149,5 @@ int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *,
 int maildir_filter_autoresp_info_init(struct maildir_filter_autoresp_info *, const char *);
 void maildir_filter_autoresp_info_free(struct maildir_filter_autoresp_info *);
 char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

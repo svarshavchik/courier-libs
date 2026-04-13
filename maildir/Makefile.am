@@ -1,5 +1,5 @@
 #
-# Copyright 1998 - 2005 S. Varshavchik.  See COPYING for
+# Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 # distribution information.
 
 AM_CFLAGS=@PCRE_CFLAGS@
@@ -33,7 +33,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildircache.c maildircache.h \
 	maildircreate.C maildircreate.h \
 	maildirfilename.C maildirgetnew.c \
-	maildirfilter.c maildirfilter2.c maildirfiltercpp.C \
+	maildirfilter.C maildirfilter2.C maildirfiltercpp.C \
 	maildirfilter.h maildirfiltertypelist.h\
 	maildirflags.c maildirmkdir.c \
 	maildirgetquota.c maildirgetquota.h \
@@ -61,7 +61,7 @@ deliverquota_LDADD=libmaildir.la ../rfc822/librfc822.la ../numlib/libnumlib.la
 deliverquota_LDFLAGS=-static
 nodist_EXTRA_deliverquota_SOURCES=dummy.C
 
-maildirmake_SOURCES=maildirmake.c
+maildirmake_SOURCES=maildirmake.C
 maildirmake_DEPENDENCIES=libmaildir.la \
 			../numlib/libnumlib.la \
 			../rfc822/librfc822.la
@@ -69,9 +69,8 @@ maildirmake_LDADD=libmaildir.la \
 			../numlib/libnumlib.la \
 			../rfc822/librfc822.la -lcourier-unicode @PCRE_LDFLAGS@
 maildirmake_LDFLAGS=-static
-nodist_EXTRA_maildirmake_SOURCES=dummy.C
 
-testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.c
+testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.C
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
 testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
 testmaildirfilter_LDFLAGS=-static

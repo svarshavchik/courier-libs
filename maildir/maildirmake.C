@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2018 S. Varshavchik.
+** Copyright 1998 - 2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -37,12 +37,12 @@ static void usage()
 	exit(1);
 }
 
-extern FILE *maildir_shared_fopen(const char *, const char *);
-extern void maildir_shared_fparse(char *, char **, char **);
+extern "C" FILE *maildir_shared_fopen(const char *, const char *);
+extern "C" void maildir_shared_fparse(char *, char **, char **);
 
 static void add(const char *dir, const char *name)
 {
-char	*c=malloc(strlen(name)+1);
+char	*c=static_cast<char *>(malloc(strlen(name)+1));
 char	*s;
 FILE	*fp;
 char	buf[BUFSIZ];
@@ -281,7 +281,9 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 		** Try to convert folder references from mailfilter
 		*/
 
-		mailfilter_newname=malloc(strlen(mailfilter)+10);
+		mailfilter_newname=static_cast<char *>(
+			malloc(strlen(mailfilter)+10)
+		);
 
 		strcat(strcpy(mailfilter_newname, mailfilter), ".new");
 		mf_status=maildir_filter_loadrules(&mf, mailfilter);
@@ -441,8 +443,8 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 		mf_status=MF_LOADNOTFOUND;
 	}
 
-	courierimapsubscribed=malloc(strlen(maildir)+100);
-	courierimapsubscribed_new=malloc(strlen(maildir)+100);
+	courierimapsubscribed=static_cast<char *>(malloc(strlen(maildir)+100));
+	courierimapsubscribed_new=static_cast<char *>(malloc(strlen(maildir)+100));
 
 	strcat(strcpy(courierimapsubscribed, maildir),
 	       "/courierimapsubscribed");
@@ -535,8 +537,12 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 
 		printf("Rename %s to %s\n", list->rename_from, list->rename_to);
 
-		frompath=malloc(strlen(maildir)+strlen(list->rename_from));
-		topath=malloc(strlen(maildir)+strlen(list->rename_to));
+		frompath=static_cast<char *>(
+			malloc(strlen(maildir)+strlen(list->rename_from))
+		);
+		topath=static_cast<char *>(
+			malloc(strlen(maildir)+strlen(list->rename_to))
+		);
 
 		if (!frompath || !topath)
 		{
