@@ -8,6 +8,9 @@
 
 
 #include	"config.h"
+#include	<string_view>
+#include	<string>
+#include	<vector>
 
 enum maildirfiltertype {
 	startswith,
@@ -21,8 +24,7 @@ enum maildirfiltertype {
 	} ;
 
 struct maildirfilterrule {
-	struct maildirfilterrule *next, *prev;
-	char *rulename_utf8;
+	std::string rulename_utf8;
 	enum maildirfiltertype type;
 	int flags;
 
@@ -33,15 +35,13 @@ struct maildirfilterrule {
 #define	MFR_CONTINUE	4	/* Continue filtering (cc instead of to) */
 #define MFR_PLAINSTRING	8	/* Pattern is a plain string, not a regex */
 
-	char *fieldname_utf8;	/* Match this header */
-	char *fieldvalue_utf8;	/* Match/search value */
-	char *tofolder;		/* Destination folder, fwd address, err msg */
-	char *fromhdr;		/* From: header on autoreplies. */
+	std::string fieldname_utf8;	/* Match this header */
+	std::string fieldvalue_utf8;	/* Match/search value */
+	std::string tofolder;		/* Destination folder, fwd address, err msg */
+	std::string fromhdr;		/* From: header on autoreplies. */
 	} ;
 
-struct maildirfilter {
-	struct maildirfilterrule *first, *last;
-	} ;
+typedef std::vector<struct maildirfilterrule> maildirfilter;
 
 /****************************************************************************/
 /*             Low-level filter access functions                            */
@@ -50,46 +50,35 @@ struct maildirfilter {
 /*
 ** A maildirfilter structure is initialized simply by nulling it out, then: */
 
-struct maildirfilterrule *maildir_filter_appendrule(struct maildirfilter *r,
-					const char *name,
-					enum maildirfiltertype type,
-					int flags,
-					const char *header,
-					const char *value,
-					const char *folder,
-					const char *fromhdr,
-					const char *rulecharset,
-					int *errcode);	/* Append a new rule */
+maildirfilterrule *maildir_filter_appendrule(
+	maildirfilter &r,
+	std::string_view name,
+	enum maildirfiltertype type,
+	int flags,
+	std::string_view header,
+	std::string_view value,
+	std::string_view folder,
+	std::string_view fromhdr,
+	std::string rulecharset,
+	int &errcode
+);	/* Append a new rule */
 
-int maildir_filter_setautoreplyfrom(struct maildirfilter *, const char *);
-
-/* Move a given rule up or down in the hierarchy */
-
-void maildir_filter_ruleup(struct maildirfilter *, struct maildirfilterrule *);
-void maildir_filter_ruledown(struct maildirfilter *, struct maildirfilterrule *);
-
-/* Delete a given rule */
-
-void maildir_filter_ruledel(struct maildirfilter *, struct maildirfilterrule *);
 
 /* Update an existing rule */
 
-int maildir_filter_ruleupdate(struct maildirfilter *, struct maildirfilterrule *,
-		  const char *,
-		  enum maildirfiltertype,
-		  int,
-		  const char *,
-		  const char *,
-		  const char *,
-		  const char *,
-		  const char *,
-		  int *);
-
-#define	maildir_filter_freerules(r)	do { \
-	while ( (r)->first )	\
-		maildir_filter_ruledel( (r), (r)->first );	\
-	} while (0)
-
+bool maildir_filter_ruleupdate(
+	maildirfilter &r,
+	maildirfilterrule &p,
+	std::string_view name,
+	enum maildirfiltertype,
+	int flags,
+	std::string_view header,
+	std::string_view value,
+	std::string_view folder,
+	std::string_view fromhdr,
+	std::string rulecharset,
+	int &errcode
+);
 
 /*
 ** maildir_filter_appendrule and maildir_filter_ruleupdate set err_code to the following upon an error
@@ -107,12 +96,13 @@ int maildir_filter_ruleupdate(struct maildirfilter *, struct maildirfilterrule *
 
 /* Save/Load rules from the given file */
 
-int maildir_filter_saverules(struct maildirfilter *,
-		 const char *,		/* Filename */
-		 const char *,		/* Path to maildir from mailfilter */
-		 const char *);		/* The return address */
+bool maildir_filter_saverules(const maildirfilter &,
+		 const std::string &,		/* Filename */
+		 std::string_view,		/* Path to maildir from mailfilter */
+		 std::string_view);		/* The return address */
 
-int maildir_filter_loadrules(struct maildirfilter *, const char *);
+int maildir_filter_loadrules(maildirfilter &,
+		 const std::string &);		/* Filename */
 
 #define	MF_LOADOK	0
 #define	MF_LOADNOTFOUND	1
@@ -123,31 +113,46 @@ int maildir_filter_loadrules(struct maildirfilter *, const char *);
 /*             High-level filter access functions                            */
 /****************************************************************************/
 
-int maildir_filter_importmaildirfilter(const char *); /* Get the maildir filter */
-int maildir_filter_loadmaildirfilter(struct maildirfilter *, const char *);
-int maildir_filter_savemaildirfilter(struct maildirfilter *, const char *, const char *);
-int maildir_filter_exportmaildirfilter(const char *);
-						/* Commit the maildir filter */
-int maildir_filter_hasmaildirfilter(const char *);		/* Is maildir filter defined? */
+namespace maildir {
+	namespace filter {
+#if 0
+	}
+}
+#endif
 
-void maildir_filter_endmaildirfilter(const char *);		/* Remove the temp file */
+bool import(std::string_view); /* Get the maildir filter */
+bool load(maildirfilter &, std::string_view);
+bool save(const maildirfilter &, std::string_view, std::string_view);
+bool commit(std::string_view); /* Commit the maildir filter */
+bool has(std::string_view); /* Is maildir filter defined? */
+
+void cancel(std::string_view); /* Remove the temp file */
+
+
+#if 0
+{
+	{
+#endif
+	}
+}
 
 	/*
 	** A convenient structure to parse autoresponder parameters.
 	*/
 
 struct maildir_filter_autoresp_info {
-	char *name;
-	int mode;
-	unsigned days;
+	std::string name;
+	int mode=0;
+	unsigned days=0;
 } ;
 
 #define MAILDIR_FILTER_AUTORESP_MODE_DSN	1
 #define MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE	2
 
-int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *, const char *);
-int maildir_filter_autoresp_info_init(struct maildir_filter_autoresp_info *, const char *);
-void maildir_filter_autoresp_info_free(struct maildir_filter_autoresp_info *);
-char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *);
+bool maildir_filter_autoresp_info_init_str(maildir_filter_autoresp_info &,
+	std::string_view);
+bool maildir_filter_autoresp_info_init(maildir_filter_autoresp_info &,
+	const char *);
+std::string maildir_filter_autoresp_info_asstr(maildir_filter_autoresp_info &);
 
 #endif

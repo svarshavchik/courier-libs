@@ -975,15 +975,15 @@ bool mddelete(const std::string &s)
 		return false;
 
 	trap_signals();
-	int rc=maildir_del(s.c_str());
+	bool rc=maildir::del(s);
 	if (release_signals())	_exit(0);
-	return (rc == 0);
+	return (rc);
 }
 
 int mdcreate(const char *mailbox)
 {
 	trap_signals();
-	if (maildir_make(mailbox, 0700, 0700, 1) < 0)
+	if (!maildir::make(mailbox, 0700, 0700, 1))
 	{
 		if (release_signals())	_exit(0);
 		return (-1);
@@ -4120,8 +4120,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		if (strncmp(mailbox_name.c_str(), SHARED HIERCHS,
 			    sizeof(SHARED HIERCHS)-1) == 0)
 		{
-			maildir_shared_unsubscribe(
-				0,
+			maildir::shared_unsubscribe(
+				"",
 				mailbox_name.substr(
 					sizeof(SHARED HIERCHS)-1
 				).c_str());
@@ -4406,9 +4406,12 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		}
 
 		if (s.empty() ||
-		    !maildir::shared_subscribe("",
+		    !maildir::shared_subscribe(".",
 					       mi.mailbox.substr(
-						       mi.mailbox.find('.')+1)))
+						       mi.mailbox.find('.')+1
+							   )
+						)
+		)
 		{
 			writes(tag);
 			writes(" NO Cannot subscribe to this folder.\r\n");
@@ -4478,8 +4481,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		fetch_free_cache();
 
 		if (s.empty() ||
-		    maildir_shared_unsubscribe(
-			    0,
+		    !maildir::shared_unsubscribe(
+			    "",
 			    strchr(mi.mailbox.c_str(), '.')+1))
 		{
 			writes(tag);

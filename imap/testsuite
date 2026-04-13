@@ -19,7 +19,7 @@ echo '****************************' >&2
 test ! -d confmdtest || chmod -R u+rwx confmdtest
 test ! -d confmdtest2 || chmod -R u+rwx confmdtest2
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
 
 if test "$IMAPINVOKE" = ""
 then
@@ -337,7 +337,7 @@ e003 noop
 edone logout
 EOF
 cat confmdtest/maildirsize
-../maildir/maildirmake -f Trash confmdtest || exit 1
+../maildir/maildirmake.tst -f Trash confmdtest || exit 1
 
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 f001 select inbox
@@ -369,9 +369,9 @@ gdone logout
 EOF
 
 rm -rf confmdtest2
-../maildir/maildirmake confmdtest2
-../maildir/maildirmake -f a confmdtest2
-../maildir/maildirmake -f b confmdtest2
+../maildir/maildirmake.tst confmdtest2
+../maildir/maildirmake.tst -f a confmdtest2
+../maildir/maildirmake.tst -f b confmdtest2
 
 # This simulates inaccessible permissions. chmod 000 does not work as root.
 rm -rf confmdtest2/.b/*
@@ -434,8 +434,8 @@ cat >confmdtest/.Trash/new/msg2 <<EOF
 Subject: message 2
 EOF
 
-../maildir/maildirmake -f c confmdtest
-../maildir/maildirmake -f Trash confmdtest2
+../maildir/maildirmake.tst -f c confmdtest
+../maildir/maildirmake.tst -f Trash confmdtest2
 
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 ii001 list "" "*"
@@ -552,8 +552,8 @@ TDONE logout
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -f Trash confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -f Trash confmdtest || exit 1
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 J001 list "" "*"
 J002 lsub "" "*"
@@ -568,7 +568,7 @@ JDONE logout
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
 
 cat >confmdtest/new/msg1 <<EOF
 From: postmaster
@@ -646,8 +646,8 @@ KDONE logout
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -f Trash confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -f Trash confmdtest || exit 1
 
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 L001 CREATE INBOX.a
@@ -688,8 +688,8 @@ EOF
 
 rm -rf confmdtest
 
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -q 10C confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -q 10C confmdtest || exit 1
 
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 M001 CREATE INBOX.a
@@ -713,7 +713,7 @@ cat confmdtest/maildirsize
 
 rm -rf confmdtest
 
-../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
 env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 N001 LIST "" "*"
 N002 append inbox (\Deleted) {11}
@@ -729,8 +729,8 @@ NDONE logout
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -q10C confmdtest
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -q10C confmdtest
 env IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 O001 append inbox NIL {11}
 test
@@ -801,7 +801,7 @@ qDONE LOGOUT
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
 
 env IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 R001 CREATE INBOX.a
@@ -903,8 +903,8 @@ RDONE LOGOUT
 EOF
 sed 's/^/R023 /' <confmdtest/.x2/courierimapacl
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -f a confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -f a confmdtest || exit 1
 cat >confmdtest/.a/cur/msg1:2,S <<EOF || exit 1
 From: John <john@example.com>
 To: john <john@example.com>
@@ -970,9 +970,9 @@ SDONE LOGOUT
 EOF
 
 rm -rf confmdtest*
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake confmdtest2 || exit 1
-../maildir/maildirmake confmdtest3 || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest2 || exit 1
+../maildir/maildirmake.tst confmdtest3 || exit 1
 mkdir confmdtest4 || exit 1
 cat >confmdtest4/index <<EOF || exit 1
 user0	1	1	`pwd`	confmdtest
@@ -1104,12 +1104,12 @@ TDONE LOGOUT
 EOF
 
 rm -rf confmdtest confmdtest2
-../maildir/maildirmake confmdtest
-../maildir/maildirmake -f Trash confmdtest
-../maildir/maildirmake -f folder:with:colonTD confmdtest
-../maildir/maildirmake -S confmdtest2
-../maildir/maildirmake -s write -f writable confmdtest2
-../maildir/maildirmake --add another=`pwd`/confmdtest2 confmdtest
+../maildir/maildirmake.tst confmdtest
+../maildir/maildirmake.tst -f Trash confmdtest
+../maildir/maildirmake.tst -f folder:with:colonTD confmdtest
+../maildir/maildirmake.tst -S confmdtest2
+../maildir/maildirmake.tst -s write -f writable confmdtest2
+../maildir/maildirmake.tst --add another=`pwd`/confmdtest2 confmdtest
 
 echo '#! /bin/sh' >confsendmail
 echo "cat >`pwd`/confsendmail.out" >>confsendmail
@@ -1156,7 +1156,7 @@ ls confmdtest/.Trash/cur
 echo "==="
 rm -f confsendmail confsendmail.out
 
-../maildir/maildirmake -q 2C ./confmdtest
+../maildir/maildirmake.tst -q 2C ./confmdtest
 env IMAP_BROKENUIDV=1 IMAP_TRASHFOLDERNAME=Trash IMAP_EMPTYTRASH=Trash:7 \
     MAILDIR=confmdtest AUTHENTICATED=user1 OUTBOX=.Outbox \
     IMAP_KEYWORDS=2\
@@ -1169,9 +1169,9 @@ EOF
 
 rm -rf confmdtest*
 
-../maildir/maildirmake confmdtest || exit 1
-../maildir/maildirmake -f Trash confmdtest || exit 1
-../maildir/maildirmake -f Trash2 confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
+../maildir/maildirmake.tst -f Trash confmdtest || exit 1
+../maildir/maildirmake.tst -f Trash2 confmdtest || exit 1
 
 env IMAP_EMPTYTRASH=2 ./imapd.testmockpurge confmdtest <<EOF | grep maildir_purge
 TRASH1 SELECT INBOX
@@ -1182,7 +1182,7 @@ TRASH2 LOGOUT
 EOF
 
 rm -rf confmdtest
-../maildir/maildirmake confmdtest || exit 1
+../maildir/maildirmake.tst confmdtest || exit 1
 
 env IMAP_BROKENUIDV=1 AUTHENTICATED=user1 $IMAPINVOKE confmdtest <<EOF
 V001 ACL STORE INBOX user=user2 +w
@@ -1235,12 +1235,12 @@ EOF
 
 rm -rf confmdtest confmdtest2
 
-../maildir/maildirmake confmdtest2
-../maildir/maildirmake -f a confmdtest2
+../maildir/maildirmake.tst confmdtest2
+../maildir/maildirmake.tst -f a confmdtest2
 
 mkdir confmdtest2/.a/cur/msg1:2,S
 
-../maildir/maildirmake confmdtest
+../maildir/maildirmake.tst confmdtest
 
 echo "test `pwd`/confmdtest2" >confmdtest/shared-maildirs
 
@@ -1258,7 +1258,7 @@ EOF
 ls confmdtest/shared-folders/test/a/cur 2>&1
 rm -rf confmdtest confmdtest2
 
-../maildir/maildirmake confmdtest
+../maildir/maildirmake.tst confmdtest
 
 cat >confmdtest/cur/msg1:2,S <<EOF || exit 1
 Subject: MIME fetch test
@@ -1309,7 +1309,7 @@ $PERL -e "use POSIX qw(strftime); print strftime(\"%m/%Y\\n\", localtime [stat('
 rm -rf confmdtest
 
 
-../maildir/maildirmake confmdtest
+../maildir/maildirmake.tst confmdtest
 env IMAP_SHAREDMUNGENAMES=1 AUTHENTICATED=user1 IMAP_KEYWORDS=1 IMAP_MOVE_EXPUNGE_TO_TRASH=1 IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
 Y001 ENABLE UTF8=ACCEPT
 Y002 APPEND INBOX UTF8 (~{14}

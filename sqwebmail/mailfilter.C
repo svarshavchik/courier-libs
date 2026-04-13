@@ -53,22 +53,17 @@ static void clrfields()
 
 void mailfilter_list()
 {
-struct maildirfilter mf;
-struct maildirfilterrule *r;
-unsigned cnt;
+	maildirfilter mf;
+	unsigned cnt;
 
-	memset(&mf, 0, sizeof(mf));
-
-	if (maildir_filter_loadmaildirfilter(&mf, "."))
-	{
-		maildir_filter_freerules(&mf);
+	if (!maildir::filter::load(mf, "."))
 		return;
-	}
 
-	for (cnt=0, r=mf.first; r; r=r->next, ++cnt)
+	cnt=0;
+	for (auto &r :mf)
 	{
 		std::string p=unicode::iconvert::convert(
-			r->rulename_utf8,
+			r.rulename_utf8,
 			unicode::utf_8,
 			sqwebmail_content_charset
 		);
@@ -76,20 +71,18 @@ unsigned cnt;
 		printf("<option value=\"%u\">", cnt);
 		output_attrencoded(p.c_str());
 		printf("</option>");
+		++cnt;
 	}
-	maildir_filter_freerules(&mf);
 }
 
 void mailfilter_init()
 {
-const char *p;
-unsigned n;
-struct maildirfilter mf;
-struct maildirfilterrule *r;
+	unsigned n;
+	maildirfilter mf;
 
 	if (*cgi("import"))
 	{
-		if (maildir_filter_importmaildirfilter("."))
+		if (!maildir::filter::import("."))
 		{
 			printf("%s", getarg("BADIMPORT"));
 			return;
@@ -112,8 +105,8 @@ struct maildirfilterrule *r;
 
 	if (*cgi("do.save"))
 	{
-		if (maildir_filter_exportmaildirfilter(".") ||
-			maildir_filter_importmaildirfilter("."))
+		if (!maildir::filter::commit(".") ||
+		    !maildir::filter::import("."))
 			printf("%s", getarg("INTERNAL"));
 		else
 			printf("%s", getarg("UPDATED"));
@@ -122,49 +115,41 @@ struct maildirfilterrule *r;
 
 	if (*cgi("do.add"))
 		clrfields();
-	memset(&mf, 0, sizeof(mf));
 
-	if (maildir_filter_loadmaildirfilter(&mf, "."))
+	if (!maildir::filter::load(mf, "."))
 	{
-		maildir_filter_freerules(&mf);
 		printf("%s", getarg("BADIMPORT"));
 		return;
 	}
-	if (*(p=cgi("currentfilter")) == 0)
+
+	std::string	 p=cgi("currentfilter");
+	if (p.empty())
 	{
-		maildir_filter_freerules(&mf);
 		return;
 	}
-	n=atoi(p);
+	n=atoi(p.c_str());
 
-	for (r=mf.first; n && r; r=r->next)
-		--n;
-	if (!r)
+	if (*cgi("do.moveup") && n > 0 && n < mf.size())
 	{
-		maildir_filter_freerules(&mf);
-		return;
-	}
-
-	if (*cgi("do.moveup") && r)
-	{
-		maildir_filter_ruleup(&mf, r);
-		maildir_filter_savemaildirfilter(&mf, ".", login_returnaddr());
+		std::swap(mf[n-1], mf[n]);
+		maildir::filter::save(mf, ".", login_returnaddr());
 		clrfields();
 	}
-	else if (*cgi("do.movedown") && r)
+	else if (*cgi("do.movedown") && n >= 0 && n+1 < mf.size())
 	{
-		maildir_filter_ruledown(&mf, r);
-		maildir_filter_savemaildirfilter(&mf, ".", login_returnaddr());
+		std::swap(mf[n], mf[n+1]);
+		maildir::filter::save(mf, ".", login_returnaddr());
 		clrfields();
 	}
-	else if (*cgi("do.delete") && r)
+	else if (*cgi("do.delete") && n >= 0 && n < mf.size())
 	{
-		maildir_filter_ruledel(&mf, r);
-		maildir_filter_savemaildirfilter(&mf, ".", login_returnaddr());
+		mf.erase(mf.begin()+n);
+		maildir::filter::save(mf, ".", login_returnaddr());
 		clrfields();
 	}
-	else if (*cgi("do.edit"))
+	else if (*cgi("do.edit") && n >= 0 && n < mf.size())
 	{
+		maildirfilterrule &r=mf[n];
 		static std::string namebuf;
 		static std::string headernamebuf;
 		static std::string headervaluebuf;
@@ -173,54 +158,52 @@ struct maildirfilterrule *r;
 
 		printf("<input name=\"currentfilternum\""
 			" type=\"hidden\""
-			" value=\"%s\" />", p);
+			" value=\"%s\" />", p.c_str());
 
 		cgi_put("filtertype",
-			r->type == startswith ||
-			r->type == endswith ||
-			r->type == contains ?
-				r->flags & MFR_BODY ? "body":"header":
-			r->type == hasrecipient
+			r.type == startswith ||
+			r.type == endswith ||
+			r.type == contains ?
+				r.flags & MFR_BODY ? "body":"header":
+			r.type == hasrecipient
 					? "hasrecipient":
-			r->type == mimemultipart ?
-				r->flags & MFR_DOESNOT ?
+			r.type == mimemultipart ?
+				r.flags & MFR_DOESNOT ?
 					"nothasmultipart":
 					"hasmultipart":
-			r->type == islargerthan ? "hassize":
-			r->type == anymessage
+			r.type == islargerthan ? "hassize":
+			r.type == anymessage
 					? "anymessage":
-			r->type == textplain ?
-				r->flags & MFR_DOESNOT ?
+			r.type == textplain ?
+				r.flags & MFR_DOESNOT ?
 					"nothastextplain":
 					"hastextplain":""
 				) ;
 
 		cgi_put("continuefiltering",
-				r->flags & MFR_CONTINUE ? "1":"");
+				r.flags & MFR_CONTINUE ? "1":"");
 
 		cgi_put("headermatch",
-			r->type == startswith ?
-				r->flags & MFR_DOESNOT ? "notstartswith":"startswith":
-			r->type == endswith ?
-				r->flags & MFR_DOESNOT ? "notendswith":"endswith":
-			r->type == contains ?
-				r->flags & MFR_DOESNOT ? "notcontains":"contains":"");
-
-		p=r->rulename_utf8 ? r->rulename_utf8:"";
+			r.type == startswith ?
+				r.flags & MFR_DOESNOT ? "notstartswith":"startswith":
+			r.type == endswith ?
+				r.flags & MFR_DOESNOT ? "notendswith":"endswith":
+			r.type == contains ?
+				r.flags & MFR_DOESNOT ? "notcontains":"contains":"");
 
 		namebuf=unicode::iconvert::convert(
-			p,
+			r.rulename_utf8,
 			unicode::utf_8,
 			sqwebmail_content_charset
 		);
 
 		cgi_put("rulename", namebuf.c_str());
 
-		p=r->fieldname_utf8 ? r->fieldname_utf8:"";
-		if (r->type != startswith &&
-			r->type != endswith &&
-			r->type != contains)	p="";
-		if (r->flags & MFR_BODY)	p="";
+		p=r.fieldname_utf8;
+		if (r.type != startswith &&
+			r.type != endswith &&
+			r.type != contains)	p="";
+		if (r.flags & MFR_BODY)	p="";
 
 		headernamebuf=unicode::iconvert::convert(
 			p,
@@ -230,16 +213,18 @@ struct maildirfilterrule *r;
 
 		cgi_put("headername", headernamebuf.c_str());
 
-		p=r->fieldvalue_utf8 ? r->fieldvalue_utf8:"";
-		if (r->type != startswith &&
-			r->type != endswith &&
-			r->type != contains &&
-			r->type != hasrecipient &&
-			r->type != islargerthan)	p="";
+		p=r.fieldvalue_utf8;
+		if (r.type != startswith &&
+			r.type != endswith &&
+			r.type != contains &&
+			r.type != hasrecipient &&
+			r.type != islargerthan)	p="";
 
-		if (r->type == islargerthan)
-			p=libmail_str_size_t( atol(p)+( r->flags & MFR_DOESNOT ? 1:0),
-				numbuf);
+		if (r.type == islargerthan)
+			p=libmail_str_size_t(
+				atol(p.c_str())+( r.flags & MFR_DOESNOT ? 1:0),
+				numbuf
+			);
 
 		headervaluebuf=unicode::iconvert::convert(
 			p,
@@ -252,28 +237,30 @@ struct maildirfilterrule *r;
 		cgi_put("bytecount", "");
 		cgi_put("sizecompare", "");
 
-		cgi_put(r->type == hasrecipient ? "hasrecipientaddr":
-			r->type == islargerthan ? "bytecount":
+		cgi_put(r.type == hasrecipient ? "hasrecipientaddr":
+			r.type == islargerthan ? "bytecount":
 				"headervalue", headervaluebuf.c_str());
 
-		if (r->type == hasrecipient)
+		if (r.type == hasrecipient)
+		{
 			cgi_put("hasrecipienttype",
-				r->flags & MFR_DOESNOT ? "nothasrecipient":
+				r.flags & MFR_DOESNOT ? "nothasrecipient":
 					"hasrecipient");
-		if (r->type == islargerthan)
+		}
+		if (r.type == islargerthan)
+		{
 			cgi_put("sizecompare",
-				r->flags & MFR_DOESNOT
+				r.flags & MFR_DOESNOT
 					? "issmallerthan":"islargerthan");
-		p=r->tofolder;
-		if (!p)	p="";
-		actionbuf=p;
+		}
+		actionbuf=r.tofolder;
 
 		cgi_put("bouncemsg", "");
 		cgi_put("forwardaddy", "");
 		cgi_put("savefolder", "");
 
 		cgi_put("autoresponse_regexp",
-			r->flags & MFR_PLAINSTRING ? "":"1");
+			r.flags & MFR_PLAINSTRING ? "":"1");
 
 		if (*actionbuf.c_str() == '!')
 		{
@@ -287,12 +274,12 @@ struct maildirfilterrule *r;
 		}
 		else if (*actionbuf.c_str() == '+')
 		{
-			struct maildir_filter_autoresp_info mfai;
+			maildir_filter_autoresp_info mfai;
 			static std::string autoresp_name_buf;
 			static char days_buf[NUMBUFSIZE];
 			static std::string fromhdr;
 
-			if (maildir_filter_autoresp_info_init_str(&mfai, actionbuf.c_str()+1))
+			if (!maildir_filter_autoresp_info_init_str(mfai, actionbuf.c_str()+1))
 				enomem();
 
 			autoresp_name_buf=mfai.name;
@@ -309,13 +296,14 @@ struct maildirfilterrule *r;
 			libmail_str_size_t(mfai.days, days_buf);
 			cgi_put("autoresponse_days", mfai.days ?
 				days_buf:"");
-			maildir_filter_autoresp_info_free(&mfai);
 
-			fromhdr=r->fromhdr ? r->fromhdr:"";
+			fromhdr=r.fromhdr;
 			cgi_put("autoresponse_from", fromhdr.c_str());
 
 			if (mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
+			{
 				cgi_put("autoresponse_noquote", "1");
+			}
 		}
 		else if (actionbuf == "exit")
 		{
@@ -329,16 +317,12 @@ struct maildirfilterrule *r;
 				*actionbuf.c_str() == '.' ? actionbuf.c_str()+1:actionbuf.c_str());
 		}
 	}
-	else if (*(p=cgi("currentfilternum")) != 0)
+	else if (!(p=cgi("currentfilternum")).empty())
 	{
 		printf("<input name=\"currentfilternum\""
 			" type=\"hidden\""
-			" value=\"%s\" />", p);
+			" value=\"%s\" />", p.c_str());
 	}
-
-
-
-	maildir_filter_freerules(&mf);
 }
 
 void mailfilter_listfolders()
@@ -390,35 +374,28 @@ void mailfilter_listfolders()
 
 void mailfilter_submit()
 {
-struct maildirfilter mf;
-struct maildirfilterrule *r;
-const char *p;
-enum maildirfiltertype type;
-int flags=0;
-const char *rulename=0;
-const char *fieldname=0;
-const char *fieldvalue=0;
-char *tofolder=0;
-char *fieldname_cpy;
-int	err_num;
-char	numbuf[NUMBUFSIZE];
-const char *autoreply_from="";
+	maildirfilter mf;
+	const char *p;
+	enum maildirfiltertype type;
+	int flags=0;
+	const char *rulename=0;
+	std::string fieldname;
+	std::string_view fieldvalue;
+	std::string tofolder;
+	int	err_num;
+	char	numbuf[NUMBUFSIZE];
+	const char *autoreply_from="";
 
-	memset(&mf, 0, sizeof(mf));
-	if (maildir_filter_loadmaildirfilter(&mf, "."))
-	{
-		maildir_filter_freerules(&mf);
+	if (!maildir::filter::load(mf, "."))
 		return;
-	}
 
-	r=0;
 	p=cgi("currentfilternum");
+	size_t n=mf.size();
 	if (*p)
 	{
-	unsigned n=atoi(p);
-
-		for (r=mf.first; r && n; r=r->next)
-			--n;
+		size_t n1=atoi(p);
+		if (n1 < mf.size())
+			n=n1;
 	}
 
 	rulename=cgi("rulename");
@@ -452,7 +429,7 @@ const char *autoreply_from="";
 	}
 	else if (strcmp(p, "hassize") == 0)
 	{
-	unsigned long n=atol(cgi("bytecount"));
+		unsigned long n=atol(cgi("bytecount"));
 
 		type=islargerthan;
 		if (strcmp(cgi("sizecompare"), "issmallerthan") == 0)
@@ -469,7 +446,9 @@ const char *autoreply_from="";
 	else
 	{
 		if (strcmp(p, "body") == 0)
+		{
 			flags |= MFR_BODY;
+		}
 
 		fieldname=cgi("headername");
 		p=cgi("headermatchtype");
@@ -483,7 +462,9 @@ const char *autoreply_from="";
 	}
 
 	if (*cgi("continuefiltering"))
+	{
 		flags |= MFR_CONTINUE;
+	}
 
 	if (!*cgi("autoresponse_regexp"))
 		flags |= MFR_PLAINSTRING;
@@ -492,21 +473,20 @@ const char *autoreply_from="";
 	if (strcmp(p, "forwardto") == 0)
 	{
 		p=cgi("forwardaddy");
-		tofolder=static_cast<char *>(malloc(strlen(p)+2));
-		if (!tofolder)	enomem();
-		strcat(strcpy(tofolder, "!"), p);
+		tofolder.reserve(strlen(p)+1);
+		tofolder="!";
+		tofolder += p;
 	}
 	else if (strcmp(p, "bounce") == 0)
 	{
 		p=cgi("bouncemsg");
-		tofolder=static_cast<char *>(malloc(strlen(p)+2));
-		if (!tofolder)	enomem();
-		strcat(strcpy(tofolder, "*"), p);
+		tofolder.reserve(strlen(p)+1);
+		tofolder="*";
+		tofolder += p;
 	}
 	else if (strcmp(p, "autoresponse") == 0)
 	{
-		struct maildir_filter_autoresp_info mfaii;
-		char *q;
+		maildir_filter_autoresp_info mfaii;
 
 		p=cgi("autoresponse_choose");
 
@@ -534,12 +514,13 @@ const char *autoreply_from="";
 				message.content_type.value == "text/plain";
 		}
 
-		if (maildir_filter_autoresp_info_init(&mfaii, p))
+		if (!mail::autoresponse::validate("", p))
 		{
 			internal_err="AUTOREPLY";
 			cgi_put("internal_err", "1");
 			return;
 		}
+		mfaii.name=p;
 
 		p=cgi("autoresponse_dsn");
 
@@ -574,65 +555,54 @@ const char *autoreply_from="";
 			mfaii.mode=MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE;
 		}
 
-		q=maildir_filter_autoresp_info_asstr(&mfaii);
-		maildir_filter_autoresp_info_free(&mfaii);
+		auto q=maildir_filter_autoresp_info_asstr(mfaii);
 
-		if (!q)
+		if (q.empty())
 			enomem();
 
-		if (!(tofolder=static_cast<char *>(malloc(strlen(q)+2))))
-		{
-			free(q);
-			enomem();
-		}
-
-		tofolder[0]='+';
-		strcpy(tofolder+1, q);
-		free(q);
+		tofolder.reserve(q.size()+1);
+		tofolder="+";
+		tofolder += q;
 		autoreply_from=cgi("autoresponse_from");
 	}
 	else if (strcmp(p, "purge") == 0)
 	{
-		tofolder = strdup("exit");
-		if (!tofolder) enomem();
+		tofolder = "exit";
 	}
 	else
 	{
-		tofolder=strdup(cgi("savefolder"));
-		if (!tofolder)	enomem();
+		tofolder=cgi("savefolder");
 	}
 
-	fieldname_cpy=NULL;
-
-	if (fieldname)
+	if (size_t n=fieldname.rfind(':');
+		!fieldname.empty() && n+1 == fieldname.size())
 	{
-		char *p;
-
-		fieldname_cpy=strdup(fieldname);
-
-		p=strrchr(fieldname_cpy, ':');
-
-		if (p && p[1] == 0)
-			*p=0;
+		fieldname.resize(n);
 	}
 
-	if (!r)
-		r=maildir_filter_appendrule(&mf, rulename, type, flags, fieldname_cpy,
-					    fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset.c_str(), &err_num);
-	else if (maildir_filter_ruleupdate(&mf, r, rulename, type, flags, fieldname_cpy,
-					   fieldvalue, tofolder, autoreply_from, sqwebmail_content_charset.c_str(), &err_num))
-		r=0;
-	free(tofolder);
-	if (fieldname_cpy)
-		free(fieldname_cpy);
-	if (r)
+	if (n >= mf.size())
 	{
-		maildir_filter_savemaildirfilter(&mf, ".", login_returnaddr());
-		maildir_filter_freerules(&mf);
+		mf.push_back({});
+		n=mf.size()-1;
+	}
+
+	if (maildir_filter_ruleupdate(
+		mf,
+		mf[n],
+		rulename,
+		type,
+		flags,
+		fieldname,
+		fieldvalue,
+		tofolder.c_str(),
+		autoreply_from,
+		sqwebmail_content_charset.c_str(),
+		err_num))
+	{
+		maildir::filter::save(mf, ".", login_returnaddr());
 		clrfields();
 		return;
 	}
-	maildir_filter_freerules(&mf);
 
 	internal_err="INTERNAL";
 	if (err_num == MF_ERR_BADRULENAME)
@@ -653,73 +623,59 @@ const char *autoreply_from="";
 
 int mailfilter_folderused(const char *foldername)
 {
-struct maildirfilter mf;
-struct maildirfilterrule *r;
-int	rc;
+	maildirfilter mf;
+	bool	rc;
 
-	memset(&mf, 0, sizeof(mf));
-	if (maildir_filter_hasmaildirfilter(".") ||
-		maildir_filter_importmaildirfilter("."))	return (0);
+	if (!maildir::filter::has(".") ||
+	    !maildir::filter::import("."))	return (0);
 
-	rc=maildir_filter_loadmaildirfilter(&mf, ".");
-	maildir_filter_endmaildirfilter(".");
-	if (rc)
-	{
-		maildir_filter_freerules(&mf);
+	rc=maildir::filter::load(mf, ".");
+	maildir::filter::cancel(".");
+	if (!rc)
 		return (0);
-	}
 
-	for (r=mf.first; r; r=r->next)
+	for (auto &r:mf)
 	{
-		if (r->tofolder == 0)	continue;
-		if (strcmp(foldername, r->tofolder) == 0)
+		if (r.tofolder.empty())	continue;
+		if (r.tofolder == foldername)
 		{
-			maildir_filter_freerules(&mf);
 			return (-1);
 		}
 	}
-	maildir_filter_freerules(&mf);
 	return (0);
 }
 
 int mailfilter_autoreplyused(const char *autoreply)
 {
-	struct maildirfilter mf;
-	struct maildirfilterrule *r;
-	int	rc;
+	maildirfilter mf;
+	bool	rc;
 
-	memset(&mf, 0, sizeof(mf));
-	if (maildir_filter_hasmaildirfilter(".") ||
-	    maildir_filter_importmaildirfilter("."))	return (0);
+	if (!maildir::filter::has(".") ||
+	    !maildir::filter::import("."))	return (0);
 
-	rc=maildir_filter_loadmaildirfilter(&mf, ".");
-	maildir_filter_endmaildirfilter(".");
-	if (rc)
-	{
-		maildir_filter_freerules(&mf);
+	rc=maildir::filter::load(mf, ".");
+	maildir::filter::cancel(".");
+	if (!rc)
 		return (0);
-	}
 
-	for (r=mf.first; r; r=r->next)
+	for (auto &r:mf)
 	{
-		struct maildir_filter_autoresp_info mfai;
+		maildir_filter_autoresp_info mfai;
 
-		if (r->tofolder == 0)	continue;
-		if (r->tofolder[0] != '+')
+		if (r.tofolder.empty())	continue;
+		if (r.tofolder[0] != '+')
 			continue;
 
-		if (maildir_filter_autoresp_info_init_str(&mfai, r->tofolder+1))
+		if (!maildir_filter_autoresp_info_init_str(
+			mfai,
+			std::string_view{r.tofolder}.substr(1)))
 			enomem();
 
-		if (strcmp(autoreply, mfai.name) == 0)
+		if (autoreply == mfai.name)
 		{
-			maildir_filter_autoresp_info_free(&mfai);
-			maildir_filter_freerules(&mf);
 			return (-1);
 		}
-		maildir_filter_autoresp_info_free(&mfai);
 	}
-	maildir_filter_freerules(&mf);
 	return (0);
 }
 

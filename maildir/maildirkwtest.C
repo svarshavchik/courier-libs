@@ -86,8 +86,9 @@ static void folderdir_test()
 		     (!p && tests[i].path) ||
 		     (p && strcmp(p, tests[i].path)))
 		{
-			fprintf(stderr, "folderdir test %u failed\n",
-				(unsigned)i);
+			fprintf(stderr, "folderdir test %u failed: %s != %s\n",
+				(unsigned)i, p, tests[i].path ?
+				tests[i].path : "NULL");
 			exit(1);
 		}
 		free(p);

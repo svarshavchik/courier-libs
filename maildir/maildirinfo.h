@@ -74,6 +74,7 @@ extern char *maildir_info_imapmunge(const char *name);
 }
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace maildir {
@@ -121,10 +122,10 @@ std::vector<std::string> smapfn_fromutf8(const std::string &modutf8);
 */
 
 std::string imap_foldername_to_filename(bool utf8_format,
-					const std::string &foldername);
+					std::string_view foldername);
 
 std::string imap_filename_to_foldername(bool utf8_format,
-					const std::string &filename);
+					std::string_view filename);
 
 #if 0
 {

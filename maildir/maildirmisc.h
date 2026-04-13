@@ -16,8 +16,9 @@
 
 #ifdef  __cplusplus
 #include	<string>
+#include	<string_view>
 #include	<functional>
-
+#include	<tuple>
 namespace maildir {
 #if 0
 }
@@ -31,12 +32,10 @@ namespace maildir {
 std::string shareddir(const std::string &,		/* maildir */
 		      const std::string &);		/* folder */
 
-void list(const std::string &maildir,
+void list(std::string_view maildir,
 	  const std::function<void (const std::string &)> &callback);
 
-void shared_fparse(char *b, char *e,
-		   char * &nameb, char * &namee,
-		   char * &dirb, char * &dire);
+std::tuple<std::string, std::string> shared_fparse(std::string_view);
 
 std::string shared_filename(const std::string &maildir);
 
@@ -76,13 +75,6 @@ extern "C" {
 #define	NEWSHARED "#shared."
 
 #define PUBLIC "public" /* SMAP */
-
-int maildir_make(const char *maildir, int perm, int subdirperm,
-		int folder);
-
-int maildir_del(const char *maildir);
-
-int maildir_del_content(const char *maildir);
 
 char *maildir_name2dir(const char *maildir,	/* DIR location */
 		       const char *foldername); /* INBOX.name */
@@ -159,30 +151,6 @@ int maildir_deletefolder(const char *,		/* maildir */
 	const char *);				/* folder */
 	/* deletes a folder */
 
-void maildir_list(const char *maildir,
-		  void (*func)(const char *, void *),
-		  void *voidp);
-
-/* Wrapper for maildir::list_sharable */
-void maildir_list_sharable(const char *,	/* maildir */
-	void (*)(const char *, void *),		/* callback function */
-	void *);				/* 2nd arg to callback func */
-	/* list sharable folders */
-
-int maildir_shared_subscribe(const char *,	/* maildir */
-		const char *);			/* folder */
-	/* subscribe to a shared folder */
-
-/* Wrapper for maildir::list_shared */
-void maildir_list_shared(const char *,		/* maildir */
-	void (*)(const char *, void *),		/* callback function */
-	void *);			/* 2nd arg to the callback func */
-	/* list subscribed folders */
-
-int maildir_shared_unsubscribe(const char *,	/* maildir */
-		const char *);			/* folder */
-	/* unsubscribe from a shared folder */
-
 	/* Wrapper for maildir::shareddir */
 char *maildir_shareddir(const char *,
 			const char *);
@@ -228,12 +196,17 @@ int maildir_rename(const char *maildir, /* Path to the maildir */
 }
 
 #include <string>
+#include <string_view>
 
 namespace maildir {
 
 	// C++ bindings
+	bool make(std::string_view maildir, int perm, int subdirperm,
+		bool folder);
 
-	std::string name2dir(const std::string &, const std::string &);
+	bool del(std::string_view maildir);
+
+	std::string name2dir(std::string_view, std::string_view);
 	std::string folderdir(const std::string &, const std::string &);
 	std::string location(const std::string &, const std::string &);
 

@@ -24,7 +24,7 @@
 */
 static std::string foldername_filename_convert(const std::string &src_chset,
 					       const std::string &dst_chset,
-					       const std::string &foldername)
+					       std::string_view foldername)
 {
 	std::string s;
 
@@ -61,10 +61,10 @@ static std::string foldername_filename_convert(const std::string &src_chset,
 }
 
 std::string maildir::imap_foldername_to_filename(bool utf8_format,
-						 const std::string &foldername)
+						 std::string_view foldername)
 {
 	if (utf8_format)
-		return foldername;
+		return std::string{foldername};
 
 	return foldername_filename_convert
 		(unicode_x_imap_modutf7,
@@ -73,10 +73,10 @@ std::string maildir::imap_foldername_to_filename(bool utf8_format,
 }
 
 std::string maildir::imap_filename_to_foldername(bool utf8_format,
-						 const std::string &filename)
+						 std::string_view filename)
 {
 	if (utf8_format)
-		return filename;
+		return std::string{filename};
 
 	return foldername_filename_convert
 		("utf-8",

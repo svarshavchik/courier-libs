@@ -1166,17 +1166,15 @@ int maildir::aclt_list::computerights(aclt &ret,
 ** removed.
 */
 
-static void acl_check_cb(const char *mbox, void *voidarg)
+static void acl_check_cb(std::string_view mbox,
+	std::vector<std::string> &aclhierdirlist)
 {
-	std::vector<std::string> &aclhierdirlist=
-		*reinterpret_cast<std::vector<std::string> *>(voidarg);
-
-	if (strncmp(mbox, INBOX ".", sizeof(INBOX ".")-1))
+	if (mbox.substr(0, sizeof(INBOX ".")-1) != INBOX ".")
 		return; /* Just "INBOX" */
 
-	mbox += sizeof(INBOX ".")-1;
+	mbox.remove_prefix(sizeof(INBOX ".")-1);
 
-	auto l=strlen(mbox);
+	auto l=mbox.size();
 
 	aclhierdirlist.erase(
 		std::remove_if(
@@ -1188,7 +1186,7 @@ static void acl_check_cb(const char *mbox, void *voidarg)
 				return aclhierdir.size() < l &&
 					std::equal(aclhierdir.begin(),
 						   aclhierdir.end(),
-						   mbox) &&
+						   mbox.data()) &&
 					mbox[aclhierdir.size()] == '.';
 			}),
 		aclhierdirlist.end());
@@ -1235,7 +1233,11 @@ void maildir::acl_reset(const std::string &maildir)
 	}
 	if (dirp) closedir(dirp);
 
-	maildir_list(maildir.c_str(), acl_check_cb, &aclhierdirlist);
+	maildir::list(maildir, [&]
+		(auto &mbox)
+		{
+			acl_check_cb(mbox, aclhierdirlist);
+		});
 
 	time(&now);
 

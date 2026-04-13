@@ -66,7 +66,7 @@ void rmrf()
 int main(int argc, char **argv)
 {
 	rmrf();
-	maildir_make(TESTDIR, 0700, 0700, 0);
+	maildir::make(TESTDIR, 0700, 0700, false);
 	verify_autoreplies();
 	if (!mail::autoresponse::validate(TESTDIR, "ok") ||
 	    mail::autoresponse::validate(TESTDIR, "not.ok"))

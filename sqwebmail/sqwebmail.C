@@ -85,7 +85,7 @@ extern char *crypt(const char *, const char *);
 #include	"htmllibdir.h"
 
 #include	"logindomainlist.h"
-
+#include	<fstream>
 extern void print_safe(const char *);
 
 extern void sent_gpgerrtxt();
@@ -973,7 +973,7 @@ static void do_output_form_loop(FILE *f)
 			    (c == '2' && strncmp(cgi("folderdir"),
 						 SHARED ".",
 						 sizeof(SHARED))) ||
-			    (c == '4' && maildir_filter_hasmaildirfilter(".")) ||
+			    (c == '4' && !maildir::filter::has(".")) ||
 			    (c == '5' && libmail_gpg_has_gpg(GPGDIR)) ||
 			    (c == '6' && !ishttps()) ||
 			    (c == '7' && !sqpcp_has_calendar()) ||
@@ -1736,7 +1736,7 @@ char	*p;
 
 	if ((strcmp(formname, "filter") == 0
 	     || strcmp(formname, "autoresponse") == 0)
-	    && maildir_filter_hasmaildirfilter("."))
+	    && !maildir::filter::has("."))
 		/* Script kiddies... */
 		formname="nofilter";
 
@@ -1795,7 +1795,7 @@ char	*p;
 	}
 
 	if (strcmp(cgi("fromscreen"), "mailfilter") == 0)
-		maildir_filter_endmaildirfilter(".");	/* Remove the temp file */
+		maildir::filter::cancel(".");	/* Remove the temp file */
 
 	if (strcmp(formname, "logout") == 0)
 	{

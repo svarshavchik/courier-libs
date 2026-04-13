@@ -33,26 +33,27 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildircache.c maildircache.h \
 	maildircreate.C maildircreate.h \
 	maildirfilename.C maildirgetnew.c \
-	maildirfilter.C maildirfilter2.C maildirfiltercpp.C \
+	maildirfilter.C maildirfilter2.C \
 	maildirfilter.h maildirfiltertypelist.h\
 	maildirflags.c maildirmkdir.c \
 	maildirgetquota.c maildirgetquota.h \
 	maildirinfo.c maildirinfo.h maildirinfo2.C \
 	maildirinfocpp.C \
 	maildirkeywords.C maildirkeywords.h maildirlist.C maildirlock.C \
-	maildirmake2.c \
+	maildirmake2.C \
 	maildirnewshared.C maildirnewshared.h maildirnewshared2.C \
 	maildiropen.C maildirparsequota.C \
 	maildirpathcpp.C maildirpurgetmp.c maildirmisc.h \
 	maildirrename.c \
 	maildirsearch.c maildirsearchC.cpp maildirsearch.h \
-	maildirshared.C maildirshared2.C maildirdelfolder.c\
+	maildirshared.C maildirshared2.C \
 	maildirquota.c maildirquota.h maildirrequota.c maildirrequota.h \
 	maildirwatch.C maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
 	maildirkwtest2 maildirkwtest3 testautoresponse testmaildirmisc \
-	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch
+	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch \
+	maildirmake.tst
 
 deliverquota_SOURCES=deliverquota.c
 deliverquota_DEPENDENCIES=libmaildir.la ../rfc822/librfc822.la \
@@ -70,6 +71,12 @@ maildirmake_LDADD=libmaildir.la \
 			../rfc822/librfc822.la -lcourier-unicode @PCRE_LDFLAGS@
 maildirmake_LDFLAGS=-static
 
+maildirmake_tst_SOURCES=maildirmake.tst.C
+maildirmake_tst_DEPENDENCIES=$(maildirmake_DEPENDENCIES)
+maildirmake_tst_LDADD=$(maildirmake_LDADD)
+maildirmake_tst_LDFLAGS=$(maildirmake_LDFLAGS)
+
+
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.C
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
 testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
@@ -83,7 +90,7 @@ maildirkw_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 maildirkw_LDFLAGS=-static
 
 maildirkwtest_SOURCES=maildirkwtest.C
-maildirkwtest_LDADD=$(maildirkw_LDADD)
+maildirkwtest_LDADD=$(maildirkw_LDADD) -lcourier-unicode
 maildirkwtest_DEPENDENCIES=$(maildirkw_DEPENDENCIES)
 maildirkwtest_LDFLAGS=-static
 
@@ -111,13 +118,12 @@ maildiracl_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 maildiracl_LDFLAGS=-static
 nodist_EXTRA_maildiracl_SOURCES=dummy.C
 
-maildiraclttest_SOURCES=testmaildiraclt.c
+maildiraclttest_SOURCES=testmaildiraclt.C
 maildiraclttest_LDADD=libmaildir.la ../liblock/liblock.la \
 		../numlib/libnumlib.la
 maildiraclttest_DEPENDENCIES=libmaildir.la ../liblock/liblock.la \
 		../numlib/libnumlib.la
 maildiraclttest_LDFLAGS=-static
-nodist_EXTRA_maildiraclttest_SOURCES=dummy.C
 
 testmaildirsearch_SOURCES=testmaildirsearch.c
 testmaildirsearch_LDADD=libmaildir.la -lcourier-unicode

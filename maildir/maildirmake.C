@@ -23,6 +23,7 @@
 #include	<ctype.h>
 #include	<errno.h>
 
+#include	"rfc822/rfc822.h"
 #include	"maildircreate.h"
 #include	"maildirmisc.h"
 #include	"maildirinfo.h"
@@ -31,166 +32,163 @@
 #include	"maildirfilter.h"
 #include	<courier-unicode.h>
 
+#include	<string>
+#include	<string_view>
+#include	<vector>
+#include	<fstream>
+
 static void usage()
 {
 	printf("Usage: maildirmake [ options ] maildir\n");
 	exit(1);
 }
 
-extern "C" FILE *maildir_shared_fopen(const char *, const char *);
-extern "C" void maildir_shared_fparse(char *, char **, char **);
-
-static void add(const char *dir, const char *name)
+static void add(const std::string &dir, const std::string &name)
 {
-char	*c=static_cast<char *>(malloc(strlen(name)+1));
-char	*s;
-FILE	*fp;
-char	buf[BUFSIZ];
-char	*ptr, *dirp;
+	auto equals=name.find('=');
 
-	if (!c)
-	{
-		perror("malloc");
-		exit(1);
-	}
-	strcpy(c, name);
-
-	if ((s=strchr(c, '=')) == 0)
+	if (equals == name.npos)
 		usage();
-	*s++=0;
-	if (*s != '/')
+
+	auto s=name.substr(equals+1);
+	std::string c=name.substr(0, equals);
+
+	if (*s.c_str() != '/')
 		usage();
-	if (access(s, R_OK))
+	if (access(s.c_str(), R_OK))
 	{
-		perror(s);
-		exit(1);
-	}
-	if (strchr(c, '.') || strchr(c, '/'))
-	{
-		fprintf(stderr, "%s: invalid name\n", c);
+		perror(s.c_str());
 		exit(1);
 	}
 
-	if (chdir(dir))
+	if (c.find('.') != c.npos || c.find('/') != c.npos)
 	{
-		perror(dir);
+		fprintf(stderr, "%s: invalid name\n", c.c_str());
 		exit(1);
 	}
 
-	if ((fp=fopen(MAILDIRSHAREDRC, "r")) != 0)
+	if (chdir(dir.c_str()))
 	{
-		while ((ptr=fgets(buf, sizeof(buf), fp)) != 0)
+		perror(dir.c_str());
+		exit(1);
+	}
+
+	std::string line;
+
+#if TESTMAILDIRMAKE
+
+#else
+	std::ifstream in(MAILDIRSHAREDRC);
+	if (in)
+	{
+		while (std::getline(in, line))
 		{
-		char	*namep;
+			auto [namep, dirp]=maildir::shared_fparse(line);
 
-			maildir_shared_fparse(buf, &namep, &dirp);
-			if (!namep)	continue;
-			if (strcmp(namep, c) == 0)
+			if (!namep.empty())
 			{
-				fclose(fp);
-				fprintf(stderr,
-		"%s: already defined as a sharable maildir in %s.\n",
-					namep, MAILDIRSHAREDRC);
-				exit(2);
+				if (namep == c)
+				{
+					fprintf(stderr,
+						"%s: already defined as a sharable maildir in %s.\n",
+						namep.c_str(), MAILDIRSHAREDRC);
+					exit(2);
+				}
 			}
 		}
-		fclose(fp);
 	}
-
-	if ((fp=maildir_shared_fopen(".", "a+")) == 0)
+#endif
+	std::fstream out{
+		maildir::shared_filename("."),
+		std::ios::in | std::ios::out | std::ios::app
+	};
+	if (!out)
 	{
-		perror(dir);
+		perror(dir.c_str());
 		exit(1);
 	}
 
-	if (fseek(fp, 0L, SEEK_SET) < 0)
+	while (std::getline(out, line))
 	{
-		perror(dir);
-		exit(1);
-	}
+		auto [namep, dirp]=maildir::shared_fparse(line);
 
-	while ((ptr=fgets(buf, sizeof(buf), fp)) != 0)
-	{
-	char	*namep;
-
-		maildir_shared_fparse(buf, &namep, &dirp);
-		if (!namep)	continue;
-		if (strcmp(namep, c) == 0)
+		if (namep.empty())
+			continue;
+		if (namep == c)
 		{
-			fclose(fp);
 			fprintf(stderr, "%s: already defined as a sharable maildir.\n",
-				namep);
+				namep.c_str());
 			exit(2);
 		}
 	}
-	fprintf(fp, "%s\t%s\n", c, s);
-	if (fflush(fp) || ferror(fp) || fclose(fp))
+	out.clear();
+	out << c << "\t" << s << "\n";
+	out.flush();
+	if (out.fail())
 	{
-		perror("dir");
+		perror(dir.c_str());
 		exit(1);
 	}
 	exit(0);
 }
 
-static void del(const char *dir, const char *n)
+#include <iostream>
+
+static void del(const std::string &dir, const std::string &n)
 {
-FILE	*fp;
-char	buf[BUFSIZ];
-char	buf2[BUFSIZ];
-
-FILE	*fp2;
-int	found;
- struct maildir_tmpcreate_info createInfo;
-
-	if (chdir(dir))
+	if (chdir(dir.c_str()))
 	{
-		perror(dir);
-		exit(1);
-	}
-	if ((fp=maildir_shared_fopen(".", "r")) == 0)
-	{
-		perror(dir);
+		perror(dir.c_str());
 		exit(1);
 	}
 
-	maildir_tmpcreate_init(&createInfo);
+	std::ifstream fp{maildir::shared_filename(".")};
+	std::string line;
+
+	if (!fp)
+	{
+		perror(dir.c_str());
+		exit(1);
+	}
+
+	maildir::tmpcreate_info createInfo;
 
 	createInfo.uniq="shared";
-	createInfo.msgsize=0;
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((fp2=maildir_tmpcreate_fp(&createInfo)) == NULL)
+	rfc822::fdstreambuf sb{createInfo.fd()};
+	if (sb.error())
 	{
-		perror(dir);
+		perror(dir.c_str());
 		exit(1);
 	}
+	std::ostream fp2{&sb};
 
-	found=0;
-	while (fgets(buf, sizeof(buf), fp))
+	bool found=false;
+	while (std::getline(fp, line))
 	{
-	char	*name, *dirp;
+		auto [namep, dirp]=maildir::shared_fparse(line);
 
-		strcpy(buf2, buf);
-		maildir_shared_fparse(buf2, &name, &dirp);
-		if (name && strcmp(name, n) == 0)
+		if (namep == n)
 		{
-			found=1;
+			found=true;
 			continue;
 		}
-		fprintf(fp2, "%s", buf);
+		fp2 << line << '\n';
 	}
-	fclose(fp);
-	if (fflush(fp2) || ferror(fp2) || fclose(fp2)
-	    || rename(createInfo.tmpname, "shared-maildirs"))
+
+	fp2.flush();
+	if (fp2.fail() || sb.error()
+	    || (sb={},
+		rename(createInfo.tmpname.c_str(), "shared-maildirs") < 0))
 	{
-		perror(createInfo.tmpname);
-		unlink(createInfo.tmpname);
+		perror(createInfo.tmpname.c_str());
+		unlink(createInfo.tmpname.c_str());
 		exit(1);
 	}
-	maildir_tmpcreate_free(&createInfo);
 	if (!found)
 	{
-		fprintf(stderr, "%s: not found.\n", n);
+		fprintf(stderr, "%s: not found.\n", n.c_str());
 		exit(1);
 	}
 	exit(0);
@@ -203,90 +201,69 @@ Convert modified-UTF7 folder names to UTF-8 (sort-of).
 *****************************************************************************/
 
 struct convertutf8_list {
-	struct convertutf8_list *next;
-	char *rename_from;
-	char *rename_to;
+	std::string rename_from;
+	std::string rename_to;
 };
 
 struct convertutf8_status {
-	struct convertutf8_list *list;
-	int status;
+	std::vector<convertutf8_list> list;
+	bool error=false;
 };
 
 /* Find folders that need to change */
 
-static void convertutf8_build_list(const char *inbox_name,
-				   void *arg)
+static void convertutf8_build_list(const std::string &inbox_name,
+	struct convertutf8_status *status)
 {
-	struct convertutf8_status *status=
-		(struct convertutf8_status *)arg;
-	struct convertutf8_list *list;
+	auto converted=maildir::imap_foldername_to_filename(false, inbox_name);
 
-	char *converted=imap_foldername_to_filename(0, inbox_name);
-
-	if (!converted)
+	if (converted.empty())
 	{
 		fprintf(stderr,
 			"Error: %s: does not appear to be valid"
 			" modified-UTF7\n",
-			inbox_name);
-		status->status=1;
+			inbox_name.c_str());
+		status->error=true;
 		return;
 	}
 
-	if (strcmp(converted, inbox_name) == 0)
+	if (converted == inbox_name)
 	{
-		free(converted);
 		return;
 	}
-	list=(struct convertutf8_list *)malloc(sizeof(struct convertutf8_list));
-
-	if (!list || !(list->rename_from=strdup(inbox_name)))
-	{
-		perror("malloc");
-		exit(1);
-	}
-
-	list->rename_to=converted;
-	list->next=status->list;
-	status->list=list;
+	status->list.push_back({inbox_name, converted});
 }
 
 void convertutf8(const char *maildir, const char *mailfilter, int doit)
 {
 	struct convertutf8_status status;
-	struct convertutf8_list *list;
-	char *courierimapsubscribed;
-	char *courierimapsubscribed_new;
-	FILE *courierimapsubscribed_fp;
-	struct maildirfilter mf;
+	std::string courierimapsubscribed;
+	std::string courierimapsubscribed_new;
+	maildirfilter mf;
 	int mf_status;
-	char *mailfilter_newname=0;
-
-	memset(&status, 0, sizeof(status));
-	memset(&mf, 0, sizeof(mf));
+	std::string mailfilter_newname;
 
 	printf("Checking %s:\n", maildir);
 
-	maildir_list(maildir, convertutf8_build_list, &status);
+	maildir::list(maildir,
+		      [&](const std::string &folder)
+		      {
+				convertutf8_build_list(folder, &status);
+		      });
 
-	if (status.status)
-		exit(status.status);
+	if (status.error)
+		exit(1);
 
 	if (mailfilter)
 	{
-		struct maildirfilterrule *r;
-
 		/*
 		** Try to convert folder references from mailfilter
 		*/
 
-		mailfilter_newname=static_cast<char *>(
-			malloc(strlen(mailfilter)+10)
-		);
-
-		strcat(strcpy(mailfilter_newname, mailfilter), ".new");
-		mf_status=maildir_filter_loadrules(&mf, mailfilter);
+		mailfilter_newname.reserve(strlen(mailfilter)+10);
+		mailfilter_newname=mailfilter;
+		mailfilter_newname += ".new";
+		mf_status=maildir_filter_loadrules(mf, mailfilter);
 
 		if (mf_status != MF_LOADOK && mf_status != MF_LOADNOTFOUND)
 		{
@@ -294,46 +271,47 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 				mailfilter);
 		}
 
-		for (r=mf.first; r; r=r->next)
+		for (auto &r: mf)
 		{
-			char *converted;
+			std::string converted;
 
 			/* Look for deliveries to a folder */
 
-			if (strncmp(r->tofolder, "INBOX.", 6))
+			if (std::string_view{r.tofolder}.substr(0, 6) != "INBOX.")
 				continue;
 
-			converted=imap_foldername_to_filename(0, r->tofolder);
+			converted=maildir::imap_foldername_to_filename(
+				false,
+				r.tofolder
+			);
 
-			if (!converted)
+			if (converted.empty())
 			{
 				fprintf(stderr, "Error: %s: "
 					"%s: does not appear to be valid "
 					"modified-UTF7\n",
 					mailfilter,
-					r->tofolder);
-				status.status=1;
+					r.tofolder.c_str());
+				status.error=true;
 			}
 
-			if (strcmp(converted, r->tofolder) == 0)
+			if (converted == r.tofolder)
 			{
-				free(converted);
 				continue;
 			}
 
 			printf("Mail filter to %s updated to %s\n",
-			       r->tofolder, converted);
+			       r.tofolder.c_str(), converted.c_str());
 
-			free(r->tofolder);
-			r->tofolder=converted;
+			r.tofolder=converted;
 		}
 
 		if (mf_status == MF_LOADOK)
 		{
-			FILE *fp=fopen(mailfilter, "r");
-			char detected_from[1024];
-			char detected_tomaildir[1024];
-			char buffer[1024];
+			std::ifstream fp(mailfilter);
+			std::string detected_from;
+			std::string detected_tomaildir;
+			std::string buffer;
 			struct stat st_buf;
 
 			/*
@@ -342,8 +320,8 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 			** current filter file.
 			*/
 
-			detected_from[0]=0;
-			detected_tomaildir[0]=0;
+			detected_from.clear();
+			detected_tomaildir.clear();
 
 			if (!fp)
 			{
@@ -351,75 +329,82 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 				exit(1);
 			}
 
-			while (fgets(buffer, sizeof(buffer), fp))
+			while (std::getline(fp, buffer))
 			{
 				char *p, *q;
 
-				if (strncmp(buffer, "FROM='", 6) == 0)
+				if (buffer.find("FROM='") == 0)
 				{
-					char *p=strchr(buffer+6, '\'');
+					size_t slash=buffer.find('\'', 6);
 
-					if (!p)
+					if (slash == std::string::npos)
 					{
 						fprintf(stderr,
 							"Cannot parse %s\n",
 							mailfilter);
-						status.status=1;
+						status.error=true;
 					}
 					else
 					{
-						*p=0;
-						strcpy(detected_from, buffer+6);
+						detected_from=std::string{
+							buffer.data()+6,
+							slash-6
+						};
 
 						/*
 						  Unescape, because saverules()
 						  escapes it.
 						*/
 
-						for (q=p=detected_from; *p; p++)
+						for (q=p=
+							detected_from.data();
+							 *p; p++)
 						{
 							if (*p == '\\' && p[1])
 								++p;
 							*q=*p;
 							++q;
 						}
-						*q=0;
+						detected_from.resize(
+							q-detected_from.data()
+						);
 					}
 				}
 
-				if (strncmp(buffer, "to \"", 4) == 0)
+				if (buffer.find("to \"") == 0)
 				{
-					p=strstr(buffer+4, "/.\"");
+					size_t p=buffer.find("/.\"");
 
-					if (!p)
+					if (p == std::string::npos)
 					{
 						fprintf(stderr,
 							"Cannot parse %s\n",
 							mailfilter);
-						status.status=1;
+						status.error=true;
 					}
 					else
 					{
-						*p=0;
+						detected_tomaildir=std::string{
+							buffer.data()+4,
+							p-4
+						};
 					}
-					strcpy(detected_tomaildir, buffer+4);
 				}
 			}
-			fclose(fp);
-			if (detected_from[0] == 0 ||
-			    detected_tomaildir[0] == 0)
+			if (detected_from.empty() ||
+			    detected_tomaildir.empty())
 			{
 				fprintf(stderr,
 					"Failed to parse %s\n",
 					mailfilter);
-				status.status=1;
+				status.error=true;
 			}
-			maildir_filter_saverules(&mf, mailfilter_newname,
+			maildir_filter_saverules(mf, mailfilter_newname,
 						 detected_tomaildir,
 						 detected_from);
 
 			if (stat(mailfilter, &st_buf) ||
-			    chmod(mailfilter_newname, st_buf.st_mode))
+			    chmod(mailfilter_newname.c_str(), st_buf.st_mode))
 			{
 				perror(mailfilter);
 				exit(1);
@@ -429,10 +414,11 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 			*/
 			if (geteuid() == 0)
 			{
-				if (chown(mailfilter_newname, st_buf.st_uid,
-					  st_buf.st_gid))
+				if (chown(mailfilter_newname.c_str(),
+						st_buf.st_uid,
+						st_buf.st_gid))
 				{
-					perror(mailfilter_newname);
+					perror(mailfilter_newname.c_str());
 					exit(1);
 				}
 			}
@@ -443,148 +429,165 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 		mf_status=MF_LOADNOTFOUND;
 	}
 
-	courierimapsubscribed=static_cast<char *>(malloc(strlen(maildir)+100));
-	courierimapsubscribed_new=static_cast<char *>(malloc(strlen(maildir)+100));
+	courierimapsubscribed.reserve(strlen(maildir)+100);
+	courierimapsubscribed_new.reserve(strlen(maildir)+100);
 
-	strcat(strcpy(courierimapsubscribed, maildir),
-	       "/courierimapsubscribed");
-	strcat(strcpy(courierimapsubscribed_new, maildir),
-	       "/courierimapsubscribed.new");
+	courierimapsubscribed=maildir;
+	courierimapsubscribed_new=maildir;
+
+	courierimapsubscribed += "/courierimapsubscribed";
+	courierimapsubscribed_new += "/courierimapsubscribed.new";
 
 	/*
 	** Update folder references in the IMAP subscription file.
 	*/
 
-	if ((courierimapsubscribed_fp=fopen(courierimapsubscribed, "r"))
-	    != NULL)
+	std::ifstream courierimapsubscribed_fp(courierimapsubscribed.c_str());
+	bool verified_subscribed=false;
+	if (courierimapsubscribed_fp.is_open())
 	{
-		char buffer[2048];
-		FILE *new_fp=fopen(courierimapsubscribed_new, "w");
-		char *converted;
-		struct stat st_buf;
-
-		while (fgets(buffer, sizeof(buffer), courierimapsubscribed_fp))
+		std::ofstream new_fp(courierimapsubscribed_new.c_str());
+		if (!new_fp.is_open())
 		{
-			char *p=strchr(buffer, '\n');
-
-			if (!p)
-			{
-				fprintf(stderr, "Error: courierimapsubscribed: "
-					"folder name too long\n");
-				status.status=1;
-				continue;
-			}
-
-			*p=0;
-
-			converted=imap_foldername_to_filename(0, buffer);
-
-			if (!converted)
-			{
-				fprintf(stderr, "Error: courierimapsubscribed: "
-					"%s: does not appear to be valid "
-					"modified-UTF7\n",
-					buffer);
-				status.status=1;
-				continue;
-			}
-			fprintf(new_fp, "%s\n", converted);
-
-			if (strcmp(buffer, converted))
-			{
-				printf("Subscription to %s changed to %s\n",
-				       buffer, converted);
-			}
-			free(converted);
-		}
-		if (fflush(new_fp) || fclose(new_fp))
-		{
+			perror(courierimapsubscribed_new.c_str());
 			exit(1);
 		}
-		fclose(courierimapsubscribed_fp);
+
+		std::string buffer;
+		struct stat st_buf;
+
+		while (std::getline(courierimapsubscribed_fp, buffer))
+		{
+			auto converted=maildir::imap_foldername_to_filename(
+				false,
+				buffer
+			);
+
+			if (converted.empty())
+			{
+				fprintf(stderr, "Error: %s: %s: does not appear to be "
+					"valid modified-UTF7\n",
+					courierimapsubscribed.c_str(),
+					buffer.c_str());
+				status.error=true;
+				new_fp << buffer << '\n';
+				continue;
+			}
+			new_fp << converted << '\n';
+
+			if (buffer != converted)
+			{
+				printf("Subscription to %s changed to %s\n",
+				       buffer.c_str(), converted.c_str());
+			}
+		}
+
+		if (status.error)
+		{
+			new_fp.close();
+			unlink(courierimapsubscribed_new.c_str());
+			exit(1);
+		}
+
+		new_fp.close();
+		courierimapsubscribed_fp.close();
+		verified_subscribed=true;
+		if (stat(courierimapsubscribed.c_str(), &st_buf) ||
+		    chmod(courierimapsubscribed_new.c_str(), st_buf.st_mode))
+		{
+			perror(courierimapsubscribed.c_str());
+			exit(1);
+		}
 
 		/*
 		** If we're root, preserve the ownership and permission
 		*/
-		if (stat(courierimapsubscribed, &st_buf) ||
-		    chmod(courierimapsubscribed_new, st_buf.st_mode))
-		{
-			perror(courierimapsubscribed);
-			exit(1);
-		}
-
 		if (geteuid() == 0)
 		{
-			if (chown(courierimapsubscribed_new, st_buf.st_uid,
-				  st_buf.st_gid))
+			if (chown(courierimapsubscribed_new.c_str(),
+					st_buf.st_uid,
+					st_buf.st_gid))
 			{
-				perror(courierimapsubscribed_new);
+				perror(courierimapsubscribed_new.c_str());
 				exit(1);
 			}
 		}
 	}
-
-	if (status.status)
+	else
 	{
-		unlink(courierimapsubscribed_new);
-		if (mf_status == MF_LOADOK)
-			unlink(mailfilter_newname);
-		exit(status.status);
-	}
-	for (list=status.list; list; list=list->next)
-	{
-		char *frompath, *topath;
+		std::ofstream new_fp(courierimapsubscribed.c_str());
 
-		printf("Rename %s to %s\n", list->rename_from, list->rename_to);
-
-		frompath=static_cast<char *>(
-			malloc(strlen(maildir)+strlen(list->rename_from))
-		);
-		topath=static_cast<char *>(
-			malloc(strlen(maildir)+strlen(list->rename_to))
-		);
-
-		if (!frompath || !topath)
+		if (!new_fp.is_open())
 		{
-			perror("malloc");
+			perror(courierimapsubscribed.c_str());
 			exit(1);
 		}
+		new_fp.close();
+	}
 
-		strcat(strcpy(frompath, maildir), "/");
-		strcat(strcpy(topath, maildir), "/");
+	if (status.error)
+	{
+		unlink(courierimapsubscribed_new.c_str());
+		if (mf_status == MF_LOADOK)
+			unlink(mailfilter_newname.c_str());
+		exit(1);
+	}
 
-		/* They all have the INBOX. prefix, strip it off */
-		strcat(frompath, strchr(list->rename_from, '.'));
-		strcat(topath, strchr(list->rename_to, '.'));
+	for (auto &list : status.list)
+	{
+		printf("Rename %s to %s\n",
+			list.rename_from.c_str(),
+			list.rename_to.c_str());
+
+		std::string frompath, topath;
+
+		frompath.reserve(
+			std::string_view{maildir}.size() + list.rename_from.size() + 2
+		);
+		topath.reserve(
+			std::string_view{maildir}.size() + list.rename_to.size() + 2
+		);
+
+		frompath=maildir;
+		topath=maildir;
+
+		frompath += "/";
+		frompath += std::string_view{list.rename_from}.substr(
+			list.rename_from.find('.')
+		);
+		topath += "/";
+		topath += std::string_view{list.rename_to}.substr(
+			list.rename_to.find('.')
+		);
 
 		if (doit)
 		{
-			if (rename(frompath, topath))
+			if (rename(frompath.c_str(), topath.c_str()))
 			{
 				fprintf(stderr,
 					"FATAL ERROR RENAMING %s to %s: %s\n",
-					frompath, topath, strerror(errno));
-				status.status=1;
+					frompath.c_str(), topath.c_str(),
+					strerror(errno));
+				status.error=true;
 			}
 		}
-		free(frompath);
-		free(topath);
 	}
 
 	if (doit)
 	{
-		if (courierimapsubscribed_fp)
+		if (verified_subscribed)
 		{
-			printf("Updating %s\n", courierimapsubscribed);
+			printf("Updating %s\n", courierimapsubscribed.c_str());
 
-			if (rename(courierimapsubscribed_new,
-				   courierimapsubscribed))
+			if (rename(courierimapsubscribed_new.c_str(),
+				   courierimapsubscribed.c_str()))
 			{
 				fprintf(stderr,
 					"FATAL ERROR RENAMING %s to %s: %s\n",
-					courierimapsubscribed_new,
-					courierimapsubscribed, strerror(errno));
-				status.status=1;
+					courierimapsubscribed_new.c_str(),
+					courierimapsubscribed.c_str(),
+					strerror(errno));
+				status.error=true;
 			}
 		}
 
@@ -592,21 +595,23 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 		{
 			printf("Updating %s\n", mailfilter);
 
-			if (rename(mailfilter_newname, mailfilter))
+			if (rename(mailfilter_newname.c_str(),
+				   mailfilter))
 			{
 				fprintf(stderr,
 					"FATAL ERROR RENAMING %s to %s: %s\n",
-					mailfilter_newname, mailfilter,
+					mailfilter_newname.c_str(),
+					mailfilter,
 					strerror(errno));
-				status.status=1;
+				status.error=true;
 			}
 		}
 	}
 	else
 	{
-		if (courierimapsubscribed_fp)
+		if (verified_subscribed)
 		{
-			printf("Verified %s\n", courierimapsubscribed);
+			printf("Verified %s\n", courierimapsubscribed.c_str());
 		}
 
 		if (mf_status == MF_LOADOK)
@@ -614,20 +619,18 @@ void convertutf8(const char *maildir, const char *mailfilter, int doit)
 			printf("Verified %s\n", mailfilter);
 		}
 	}
-	exit(status.status);
+	exit(status.error ? 1:0);
 }
 
 int main(int argc, char *argv[])
 {
-const char *maildir, *folder=0;
-char *p;
+std::string maildir, folder;
 int	argn;
 int	perm=0700;
 int	musthavefolder=0;
 int	subdirperm;
 char	*addshared=0, *delshared=0;
 const char *quota=0;
-char	*tmp=0;
 
 	for (argn=1; argn<argc; argn++)
 	{
@@ -636,7 +639,7 @@ char	*tmp=0;
 		if (strncmp(argv[argn], "-f", 2) == 0)
 		{
 			folder=argv[argn]+2;
-			if (*folder == 0 && argn+1 < argc)
+			if (folder.empty() && argn+1 < argc)
 				folder=argv[++argn];
 			continue;
 		}
@@ -654,7 +657,7 @@ char	*tmp=0;
 						       unicode_x_smap_modutf8,
 						       &converr);
 
-			if (converr || !folder)
+			if (converr || folder.empty())
 			{
 				fprintf(stderr, "Cannot convert %s to maildir encoding\n",
 					p);
@@ -722,16 +725,16 @@ char	*tmp=0;
 
 		if (strcmp(argv[argn], "--convutf8") == 0 && argc-argn > 1)
 		{
-			char *maildir=argv[++argn];
-			char *mailfilter=argn < argc ? argv[++argn]:0;
+			auto maildir=argv[++argn];
+			auto mailfilter=argn < argc ? argv[++argn]:0;
 			convertutf8(maildir, mailfilter, 1);
 			exit(0);
 		}
 
 		if (strcmp(argv[argn], "--checkutf8") == 0 && argc-argn > 1)
 		{
-			char *maildir=argv[++argn];
-			char *mailfilter=argn < argc ? argv[++argn]:0;
+			auto maildir=argv[++argn];
+			auto mailfilter=argn < argc ? argv[++argn]:0;
 			convertutf8(maildir, mailfilter, 0);
 			exit(0);
 		}
@@ -753,21 +756,15 @@ char	*tmp=0;
 		exit (0);
 	}
 
-	if (folder && *folder == '.')
+	if (!folder.empty() && folder[0] == '.')
 	{
-		printf("Invalid folder name: %s\n", folder);
+		printf("Invalid folder name: %s\n", folder.c_str());
 		exit(1);
 	}
 
-	if (folder)
+	if (!folder.empty())
 	{
-		if ((p=(char *)malloc(strlen(maildir)+strlen(folder)+4)) == 0)
-		{
-			perror("maildirmake malloc");
-			exit(1);
-		}
-		strcat(strcat(strcpy(p, maildir), "/."), folder);
-		maildir=p;
+		maildir=maildir::folderdir(maildir, folder);
 	}
 	else	if (musthavefolder)
 		usage();
@@ -776,32 +773,26 @@ char	*tmp=0;
 	{
 		struct stat stat_buf;
 
-		if (stat(maildir, &stat_buf) < 0 && errno == ENOENT)
+		if (stat(maildir.c_str(), &stat_buf) < 0 && errno == ENOENT)
 		{
-			if (maildir_make(maildir, perm & ~0022,
+			if (!maildir::make(maildir, perm & ~0022,
 					 (perm & ~0022),
-					 0) < 0)
+					 false))
 			{
-				perror(maildir);
+				perror(maildir.c_str());
 				exit(1);
 			}
 		}
 
-		maildir_quota_set(maildir, quota);
+		maildir_quota_set(maildir.c_str(), quota);
 		exit(0);
 	}
 	subdirperm=perm;
-	if (!folder)	subdirperm=0700;
+	if (folder.empty())	subdirperm=0700;
 	umask(0);
-	if (maildir_make(maildir, perm & ~0022, subdirperm, folder ? 1:0) < 0)
+	if (!maildir::make(maildir, perm & ~0022, subdirperm, !folder.empty()))
 	{
-		tmp=(char *)malloc(strlen(maildir)+14);
-		if (!tmp) {
-			perror("maildirmake malloc");
-			exit(1);
-		}
-		snprintf(tmp, 14+strlen(maildir), "maildirmake: %s", maildir);
-		perror(tmp);
+		perror(("maildirmake: " + maildir).c_str());
 		exit(1);
 	}
 	exit(0);

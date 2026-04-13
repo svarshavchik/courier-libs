@@ -1,5 +1,5 @@
 /*
-** Copyright 2003 S. Varshavchik.
+** Copyright 2003-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -34,7 +34,7 @@ static int cb_enum(const char *identifier,
 	if (strlen(cb) > 7000)
 		return -1;
 
-	strcat(strcat(strcat(strcat(b, identifier), "."),
+	strcat(strcat(strcat(strcat(cb, identifier), "."),
 		      acl), ".");
 	return 0;
 }
@@ -85,8 +85,8 @@ int main()
 	    strcmp(buf, "owner.rwy.user2.rwy.") == 0);
 	maildir_aclt_list_destroy(&l);
 
-	CHK(maildir_del("confmdtest") == 0);
-	CHK(maildir_make("confmdtest", 0700, 0700, 0) == 0);
+	CHK(maildir::del("confmdtest"));
+	CHK(maildir::make("confmdtest", 0700, 0700, false));
 
 	for (i=0; i<150; i++)
 	{
@@ -96,9 +96,9 @@ int main()
 		CHK((fd=open(buf, O_RDWR|O_CREAT|O_TRUNC, 0600)) >= 0);
 		close(fd);
 	}
-	CHK(maildir_del("confmdtest") == 0);
-	CHK(maildir_make("confmdtest", 0700, 0700, 0) == 0);
-	CHK(maildir_make("confmdtest/.foo.bar", 0700, 0700, 0) == 0);
+	CHK(maildir::del("confmdtest"));
+	CHK(maildir::make("confmdtest", 0700, 0700, false));
+	CHK(maildir::make("confmdtest/.foo.bar", 0700, 0700, false));
 	CHK(maildir_acl_read(&l, "confmdtest", ".") == 0);
 
 	buf[0]=0;
@@ -170,7 +170,7 @@ int main()
 #endif
 
 #if 1
-	CHK(maildir_del("confmdtest") == 0);
+	CHK(maildir::del("confmdtest"));
 #endif
 
 	maildir_aclt_list_destroy(&l);

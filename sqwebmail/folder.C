@@ -68,6 +68,7 @@
 #endif
 
 #include	"strftime.h"
+#include	<filesystem>
 
 FILE *open_langform(const char *lang, const char *formname,
 			int print_header);
@@ -293,7 +294,13 @@ static const char *do_folder_delmsgs(const char *dir, size_t pos)
 	    cur = deldir;
 	    cur += "/cur";
 
-	    rc = maildir_del_content(cur.c_str());
+	    std::error_code ec;
+	    for (const auto& entry :
+			std::filesystem::directory_iterator(cur, ec))
+	    {
+		    std::filesystem::remove_all(entry.path(), ec);
+	    }
+	    rc = 0;
 	    maildir_quota_recalculate(".");
 
 	}
@@ -2492,7 +2499,7 @@ void folder_list()
 			{
 				if (checkcreate(p.c_str(), !newdirname.empty()))
 				{
-					if (maildir_make(q.c_str(), 0700, 0700, 1))
+					if (!maildir::make(q, 0700, 0700, true))
 						folder_err_msg=err_exists;
 					else
 					{
@@ -2539,13 +2546,13 @@ void folder_list()
 
 			if (stat(q.c_str(), &stat_buf) == 0)
 			{
-				maildir_shared_unsubscribe(".",
-							   p+sizeof(SHARED));
+				maildir::shared_unsubscribe(".",
+							    p+sizeof(SHARED));
 			}
 			else
 			{
-				maildir_shared_subscribe(".",
-							 p+sizeof(SHARED));
+				maildir::shared_subscribe(".",
+							  p+sizeof(SHARED));
 			}
 		}
 	}

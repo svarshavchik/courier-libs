@@ -9,7 +9,7 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<stdio.h>
-#include	<ctype.h>
+#include        "rfc822/rfc822.h"
 #include	<errno.h>
 #if	HAVE_SYS_STAT_H
 #include	<sys/stat.h>
@@ -17,258 +17,226 @@
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
+#include <fstream>
 
-
-static const char *maildir_filter_config(const char *maildir,
-	const char *varname)
+static std::string maildir_filter_config(std::string_view maildir,
+	std::string_view varname)
 {
-char *p=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilterconfig")));
-FILE	*f;
-static char configbuf[256];
+	std::string line;
+	std::string filename;
 
-	if (!p)	return (0);
-
-	strcat(strcpy(p, maildir), "/maildirfilterconfig");
-	f=fopen(p, "r");
-	free(p);
-
-	if (!f)	f=fopen(MAILDIRFILTERCONFIG, "r");
-	if (!f)	return (0);
-
-	while ((p=fgets(configbuf, sizeof(configbuf), f)) != 0)
+	filename.reserve(maildir.size() + sizeof("/maildirfilterconfig")-1);
+	filename.append(maildir);
+	filename.append("/maildirfilterconfig");
+	std::ifstream f{filename};
+	if (!f)
 	{
-		if ((p=strchr(configbuf, '\n')) != 0)	*p=0;
-		p=strchr(configbuf, '=');
-		if (!p)	continue;
-		*p++=0;
-		if (strcmp(configbuf, varname) == 0)
+		f.open(MAILDIRFILTERCONFIG);
+		if (!f)
+			return "";
+	}
+
+	while (std::getline(f, line))
+	{
+		auto equals=line.find('=');
+		if (equals == line.npos)
+			continue;
+		auto name=std::string_view{line}.substr(0, equals);
+		if (name == varname)
 		{
-			fclose(f);
-			return (p);
+			return (line.substr(equals+1));
 		}
 	}
-	fclose(f);
 	return ("");
 }
 
-static char *maildir_filter_config_maildirfilter(const char *maildir)
+static std::string maildir_filter_config_maildirfilter(std::string_view maildir)
 {
-const char *p=maildir_filter_config(maildir, "MAILDIRFILTER");
-char *q;
+	std::string p=maildir_filter_config(maildir, "MAILDIRFILTER");
 
-	if (!p)	return (0);
-	if (*p == 0)
+	if (p.empty())
 	{
 		errno=ENOENT;
-		return (0);
+		return "";
 	}
 
-	q=static_cast<char *>(malloc(strlen(maildir)+strlen(p)+2));
-	if (!q)
-		return NULL;
-
-	*q=0;
-	if (*p != '/')
-		strcat(strcpy(q, maildir), "/");
-	strcat(q, p);
+	std::string q;
+	if (*p.c_str() != '/')
+	{
+		q.append(maildir);
+		q.append("/");
+	}
+	q.append(p);
 	return (q);
 }
 
-int maildir_filter_importmaildirfilter(const char *maildir)
+static std::string maildir_filter_tmpname(std::string_view maildir)
 {
-	const char *p=maildir_filter_config(maildir, "MAILDIRFILTER");
-	char *maildirfilter;
-	FILE *i, *o;
-	struct maildir_tmpcreate_info createInfo;
+	std::string newname;
 
-	if (!p)	return (-1);
+	newname.reserve(maildir.size() + sizeof("/maildirfilter.tmp")-1);
+	newname.append(maildir);
+	newname.append("/maildirfilter.tmp");
+	return (newname);
+}
 
-	if (!*p)
+bool maildir::filter::import(std::string_view maildir)
+{
+	std::string p=maildir_filter_config(maildir, "MAILDIRFILTER");
+	std::string maildirfiltername=maildir_filter_config_maildirfilter(maildir);
+	std::ifstream i;
+	maildir::tmpcreate_info createInfo;
+
+	if (p.empty())
 	{
 		errno=ENOENT;
-		return (-1);
+		return false;
 	}
 
-	maildirfilter=maildir_filter_config_maildirfilter(maildir);
-	if (!maildirfilter)	return (-1);
-
-	maildir_tmpcreate_init(&createInfo);
+	if (maildirfiltername.empty())
+	{
+		return false;
+	}
 
 	createInfo.maildir=maildir;
 	createInfo.uniq="maildirfilter-tmp";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((o=maildir_tmpcreate_fp(&createInfo)) == NULL)
+	rfc822::fdstreambuf o{
+		createInfo.fd()
+	};
+
+	if (o.error())
+		return false;
+
+	createInfo.newname=maildir_filter_tmpname(maildir);
+
+	i.open(maildirfiltername);
+
+	if (!i)
 	{
-		free(maildirfilter);
-		return (-1);
-	}
-
-	strcat(strcpy(createInfo.newname, maildir),
-	       "/maildirfilter.tmp"); /* We enough we have enough mem: .uniq */
-
-	if ((i=fopen(maildirfilter, "r")) == 0)
-	{
-	struct	maildirfilter mf;
+		maildirfilter mf;
 
 		if (errno != ENOENT)
 		{
-			fclose(o);
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
-			free(maildirfilter);
-			return (-1);
+			o={};
+			unlink(createInfo.tmpname.c_str());
+			return false;
 		}
 
-		memset(&mf, 0, sizeof(mf));
-		fclose(o);
-		unlink(createInfo.tmpname);
-		unlink(createInfo.newname);
-		maildir_filter_savemaildirfilter(&mf, maildir, "");
+		o={};
+		unlink(createInfo.tmpname.c_str());
+		unlink(createInfo.newname.c_str());
+		save(mf, maildir, "");
 		/* write out a blank one */
 	}
 	else
 	{
-		char	buf[BUFSIZ];
-		int	n;
+		std::ostream os{&o};
 
-		while ((n=fread(buf, 1, sizeof(buf), i)) > 0)
-			if (fwrite(buf, n, 1, o) != 1)
-			{
-				fclose(o);
-				fclose(i);
-				unlink(createInfo.tmpname);
-				maildir_tmpcreate_free(&createInfo);
-				free(maildirfilter);
-				return (-1);
-			}
-		if (fflush(o))
+		os << i.rdbuf();
+		o.pubsync();
+
+		if (os.fail() || o.error())
 		{
-			fclose(o);
-			fclose(i);
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
-			free(maildirfilter);
-			return (-1);
+			o={};
+			unlink(createInfo.tmpname.c_str());
+			return false;
 		}
-		fclose(o);
-		fclose(i);
-		if (chmod(createInfo.tmpname, 0600)
-		    || rename(createInfo.tmpname, createInfo.newname))
+		o={};
+		if (chmod(createInfo.tmpname.c_str(), 0600)
+		    || rename(createInfo.tmpname.c_str(), createInfo.newname.c_str()))
 		{
-			unlink(createInfo.tmpname);
-			maildir_tmpcreate_free(&createInfo);
-			free(maildirfilter);
-			return (-1);
+			unlink(createInfo.tmpname.c_str());
+			return false;
 		}
 	}
 
-	maildir_tmpcreate_free(&createInfo);
-	free(maildirfilter);
-	return (0);
+	return true;
 }
 
-int maildir_filter_loadmaildirfilter(struct maildirfilter *mf, const char *maildir)
+bool maildir::filter::load(
+	maildirfilter &mf,
+	std::string_view maildir
+)
 {
-char *newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
-int	rc;
-
-	if (!newname)	return (-1);
-	strcat(strcpy(newname, maildir), "/maildirfilter.tmp");
+	std::string newname=maildir_filter_tmpname(maildir);
+	int	rc;
 
 	rc=maildir_filter_loadrules(mf, newname);
-	free(newname);
 	if (rc && rc != MF_LOADNOTFOUND)
-		rc= -1;
-	else
-		rc=0;
-	return (rc);
+		return false;
+
+	return true;
 }
 
 
-int maildir_filter_savemaildirfilter(struct maildirfilter *mf, const char *maildir,
-			 const char *from)
+bool maildir::filter::save(
+	const maildirfilter &mf,
+	std::string_view maildir,
+	std::string_view from
+)
 {
-	const char *maildirpath=maildir_filter_config(maildir, "MAILDIR");
-	struct maildir_tmpcreate_info createInfo;
-	int fd, rc;
+	auto maildirpath=maildir_filter_config(maildir, "MAILDIR");
+	maildir::tmpcreate_info createInfo;
+	int fd;
 
-	if (!maildirpath || !*maildirpath)
+	if (maildirpath.empty())
 	{
 		errno=EINVAL;
-		return (-1);
+		return (false);
 	}
 
-	maildir_tmpcreate_init(&createInfo);
 	createInfo.maildir=maildir;
 	createInfo.uniq="maildirfilter-tmp";
-	createInfo.doordie=1;
+	createInfo.doordie=true;
 
-	if ((fd=maildir_tmpcreate_fd(&createInfo)) < 0)
-		return -1;
+	if ((fd=createInfo.fd()) < 0)
+		return false;
 
 	close(fd);
-	unlink(createInfo.tmpname);
+	unlink(createInfo.tmpname.c_str());
 
-	strcat(strcpy(createInfo.newname, maildir), "/maildirfilter.tmp");
+	createInfo.newname=maildir_filter_tmpname(maildir);
 
-	rc=maildir_filter_saverules(mf, createInfo.tmpname,
-				    maildirpath, from);
-	if (rc == 0 && rename(createInfo.tmpname, createInfo.newname))
-		rc= -1;
-	maildir_tmpcreate_free(&createInfo);
-	return (rc);
+	if (!maildir_filter_saverules(
+			mf,
+			createInfo.tmpname,
+			maildirpath,
+			from
+		)
+	)
+		return false;
+	if (rename(createInfo.tmpname.c_str(), createInfo.newname.c_str()))
+		return false;
+	return true;
 }
 
-int maildir_filter_exportmaildirfilter(const char *maildir)
+bool maildir::filter::commit(std::string_view maildir)
 {
-char *maildirfilter=maildir_filter_config_maildirfilter(maildir);
-char *newname;
-int	rc;
+	auto maildirfilter=maildir_filter_config_maildirfilter(maildir);
 
-	if (!maildirfilter)	return (-1);
+	if (maildirfilter.empty())	return (false);
 
-	newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
-	if (!newname)
-	{
-		free(maildirfilter);
-		return (-1);
-	}
-
-	strcat(strcpy(newname, maildir), "/maildirfilter.tmp");
-	rc=rename(newname, maildirfilter);
-	free(maildirfilter);
-	free(newname);
-	return (rc);
+	std::string newname=maildir_filter_tmpname(maildir);
+	return (rename(newname.c_str(), maildirfilter.c_str()) == 0);
 }
 
-int maildir_filter_hasmaildirfilter(const char *maildir)
+bool maildir::filter::has(std::string_view maildir)
 {
-const char *p=maildir_filter_config(maildir, "MAILDIR");
+	auto maildirpath=maildir_filter_config(maildir, "MAILDIR");
+	if (maildirpath.empty())	return (false);
 
-	if (!p || !*p)	return (-1);
-
-	p=maildir_filter_config(maildir, "MAILDIRFILTER");
-	if (!p || !*p)	return (-1);
-	return (0);
+	auto maildirfilter=maildir_filter_config(maildir, "MAILDIRFILTER");
+	if (maildirfilter.empty())	return (false);
+	return (true);
 }
 
-void maildir_filter_endmaildirfilter(const char *maildir)
+void maildir::filter::cancel(std::string_view maildir)
 {
-char *maildirfilter=maildir_filter_config_maildirfilter(maildir);
-char *newname;
+	auto maildirfilter=maildir_filter_config_maildirfilter(maildir);
+	if (maildirfilter.empty())	return;
 
-	if (!maildirfilter)	return;
-
-	newname=static_cast<char *>(malloc(strlen(maildir)+sizeof("/maildirfilter.tmp")));
-	if (!newname)
-	{
-		free(maildirfilter);
-		return;
-	}
-
-	strcat(strcpy(newname, maildir), "/maildirfilter.tmp");
-	unlink(newname);
-	free(maildirfilter);
-	free(newname);
+	std::string newname=maildir_filter_tmpname(maildir);
+	unlink(newname.c_str());
 }

@@ -108,7 +108,7 @@ if ((/^Content-Type: *multipart\/mixed/))
 ##Name:rule6
 
 
-if (!( (! /^Content-Type:/) || /^Content-Type: text\/plain$/ || /^Content-Type: text\/plain;/))
+if (!( (! /^Content-Type:/) || /^Content-Type: *text\/plain$/ || /^Content-Type: *text\/plain;/))
 {
    to "Maildir/.nottext/."
 }
@@ -177,7 +177,7 @@ if ((/^x/:b))
 if ((/^subject: *x/))
 {
     echo "bounce"
-    EXITCODE=70
+    EXITCODE=77
     exit
 }
 
@@ -192,7 +192,7 @@ if ((/^subject: *x/))
 if (($SIZE > 100000))
 {
     echo "bounce"
-    EXITCODE=70
+    EXITCODE=77
     exit
 }
 
@@ -208,7 +208,7 @@ if (($SIZE > 100000))
 if (!($SIZE > 100000))
 {
     echo "bounce"
-    EXITCODE=70
+    EXITCODE=77
     exit
 }
 

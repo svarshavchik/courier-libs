@@ -7,85 +7,33 @@
 #include "config.h"
 #endif
 
-#include <sys/types.h>
-#if HAVE_DIRENT_H
-#include <dirent.h>
-#define NAMLEN(dirent) strlen((dirent)->d_name)
-#else
-#define dirent direct
-#define NAMLEN(dirent) (dirent)->d_namlen
-#if HAVE_SYS_NDIR_H
-#include <sys/ndir.h>
-#endif
-#if HAVE_SYS_DIR_H
-#include <sys/dir.h>
-#endif
-#if HAVE_NDIR_H
-#include <ndir.h>
-#endif
-#endif
 #include	<sys/types.h>
 #include	<sys/stat.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<time.h>
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-#include	<stdio.h>
-#include	<ctype.h>
-#include	<errno.h>
-#include	<fcntl.h>
-
+#include	<filesystem>
 #include	"maildirmisc.h"
 
-void maildir::list(const std::string &maildir,
+void maildir::list(std::string_view maildir,
 		   const std::function<void (const std::string &)> &callback)
 {
-	DIR *dirp=opendir(maildir.c_str());
-	struct dirent *de;
+	std::string name;
 
-	while (dirp && (de=readdir(dirp)) != NULL)
+	callback(INBOX);
+	for (auto &e: std::filesystem::directory_iterator(maildir))
 	{
-		if (strcmp(de->d_name, "..") == 0)
+		auto p=e.path();
+		std::string fn=p.filename().string();
+		if (fn.empty() || *fn.c_str() != '.')
 			continue;
 
-		if (de->d_name[0] != '.')
+		std::string p2=p.string();
+		p2+="/cur/.";
+		if (access(p2.c_str(), X_OK))
 			continue;
-
-		std::string p;
-
-		p.reserve(maildir.size()+strlen(de->d_name)+20);
-
-		p=maildir;
-		p+="/";
-		p+=de->d_name;
-		p+="/cur/.";
-
-		if (access(p.c_str(), X_OK))
-		{
-			continue;
-		}
-
-		p=INBOX;
-
-		if (strcmp(de->d_name, "."))
-			p += de->d_name;
-
-		callback(p);
+		name=INBOX;
+		name += fn;
+		callback(name);
 	}
-	if (dirp)
-		closedir(dirp);
-}
-
-void maildir_list(const char *maildir,
-		  void (*func)(const char *, void *),
-		  void *voidp)
-{
-	maildir::list(maildir,
-		      [&]
-		      (const std::string &s)
-		      {
-			      (*func)(s.c_str(), voidp);
-		      });
 }

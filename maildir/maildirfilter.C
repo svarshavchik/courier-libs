@@ -22,7 +22,7 @@
 #if HAVE_SYSEXITS_H
 #include	<sysexits.h>
 #else
-#define	EX_SOFTWARE	70
+#define	EX_NOPERM	77
 #endif
 
 #if	HAVE_PCRE2
@@ -36,144 +36,163 @@
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
+#include <charconv>
+#include <fstream>
 
-
-struct maildirfilterrule *maildir_filter_appendrule(struct maildirfilter *r,
-					const char *name,
+maildirfilterrule *maildir_filter_appendrule(maildirfilter &r,
+					std::string_view name,
 					enum maildirfiltertype type,
 					int flags,
-					const char *header,
-					const char *value,
-					const char *folder,
-					const char *fromhdr,
-					const char *charset,
-					int *errcode)
+					std::string_view header,
+					std::string_view value,
+					std::string_view folder,
+					std::string_view fromhdr,
+					std::string charset,
+					int &errcode)
 {
-struct maildirfilterrule *p=static_cast<struct maildirfilterrule *>(malloc(sizeof(struct maildirfilterrule)));
+	r.push_back({});
 
-	*errcode=MF_ERR_INTERNAL;
+	auto &p=r.back();
 
-	if (!p)	return (0);
-	memset(p, 0, sizeof(*p));
+	errcode=MF_ERR_INTERNAL;
 
-	if ((p->prev=r->last) != 0)
-		p->prev->next=p;
-	else
-		r->first=p;
-	r->last=p;
-
-	if (maildir_filter_ruleupdate(r, p, name, type, flags,
-				      header, value, folder, fromhdr, charset,
-				      errcode))
+	if (!maildir_filter_ruleupdate(
+		r,
+		p,
+		name,
+		type,
+		flags,
+		header,
+		value,
+		folder,
+		fromhdr,
+		charset,
+		errcode
+	))
 	{
-		maildir_filter_ruledel(r, p);
-		return (0);
+		r.pop_back();
+		return (nullptr);
 	}
-	return (p);
+	return (&p);
 }
 
-static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
-					  struct maildirfilterrule *p,
-					  const char *name,
-					  enum maildirfiltertype type,
-					  int flags,
-					  const char *header,
-					  const char *value,
-					  const char *folder,
-					  const char *fromhdr,
-					  int *errcode);
+static bool maildir_filter_ruleupdate_utf8(
+	maildirfilter &r,
+	maildirfilterrule &p,
+	std::string_view name,
+	enum maildirfiltertype type,
+	int flags,
+	std::string_view header,
+	std::string_view value,
+	std::string_view folder,
+	std::string_view fromhdr,
+	int &errcode
+);
 
-int maildir_filter_ruleupdate(struct maildirfilter *r,
-			      struct maildirfilterrule *p,
-			      const char *name,
-			      enum maildirfiltertype type,
-			      int flags,
-			      const char *header,
-			      const char *value,
-			      const char *folder,
-			      const char *fromhdr,
-			      const char *charset,
-			      int *errcode)
+bool maildir_filter_ruleupdate(
+	maildirfilter &r,
+	maildirfilterrule &p,
+	std::string_view name,
+	enum maildirfiltertype type,
+	int flags,
+	std::string_view header,
+	std::string_view value,
+	std::string_view folder,
+	std::string_view fromhdr,
+	std::string charset,
+	int &errcode
+)
 {
-	char *name_utf8;
-	char *header_utf8;
-	char *value_utf8;
-	int rc;
+	bool errflag;
 
-	name_utf8=unicode_convert_toutf8(name ? name:"", charset, NULL);
+	auto name_utf8=unicode::iconvert::convert(
+		name,
+		charset,
+		unicode::utf_8,
+		errflag
+	);
 
-	if (!name_utf8)
+	if (errflag)
 	{
-		*errcode=MF_ERR_BADRULENAME;
-		return -1;
+		errcode=MF_ERR_BADRULENAME;
+		return false;
 	}
 
-	header_utf8=unicode_convert_toutf8(header ? header:"", charset, NULL);
+	auto header_utf8=unicode::iconvert::convert(
+		header,
+		charset,
+		unicode::utf_8,
+		errflag
+	);
 
-	if (!header_utf8)
+	if (errflag)
 	{
-		free(name_utf8);
-		*errcode=MF_ERR_BADRULEHEADER;
-		return -1;
+		errcode=MF_ERR_BADRULEHEADER;
+		return false;
 	}
 
-	value_utf8=unicode_convert_toutf8(value ? value:"", charset, NULL);
+	auto value_utf8=unicode::iconvert::convert(
+		value,
+		charset,
+		unicode::utf_8,
+		errflag
+	);
 
-	if (!value_utf8)
+	if (errflag)
 	{
-		free(name_utf8);
-		free(header_utf8);
-		*errcode=MF_ERR_BADRULEVALUE;
-		return -1;
+		errcode=MF_ERR_BADRULEVALUE;
+		return false;
 	}
-	rc=maildir_filter_ruleupdate_utf8(r, p, name_utf8, type, flags,
-					  header_utf8,
-					  value_utf8,
-					  folder,
-					  fromhdr,
-					  errcode);
-	free(name_utf8);
-	free(value_utf8);
-	free(header_utf8);
-	return rc;
+	return maildir_filter_ruleupdate_utf8(
+		r,
+		p,
+		name_utf8,
+		type,
+		flags,
+		header_utf8,
+		value_utf8,
+		folder,
+		fromhdr,
+		errcode
+	);
 }
 
-static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
-					  struct maildirfilterrule *p,
-					  const char *name,
-					  enum maildirfiltertype type,
-					  int flags,
-					  const char *header,
-					  const char *value,
-					  const char *folder,
-					  const char *fromhdr,
-					  int *errcode)
+static bool maildir_filter_ruleupdate_utf8(
+	maildirfilter &r,
+	maildirfilterrule &p,
+	std::string_view name,
+	enum maildirfiltertype type,
+	int flags,
+	std::string_view header,
+	std::string_view value,
+	std::string_view folder,
+	std::string_view fromhdr,
+	int &errcode
+)
 {
-	const char *c;
-	struct maildirfilterrule *pom;
-
 /*
 ** Before creating a new rule, validate all input.
 */
 
-	*errcode=0;
+	errcode=0;
 
 	/* rule name: may not contain quotes or control characters. */
-	*errcode=MF_ERR_BADRULENAME;
-	if (!*name || strlen(name) > 200)
-		return (-1);
+	errcode=MF_ERR_BADRULENAME;
+	if (name.empty() || name.size() > 200)
+		return false;
 
-	for (c=name; *c; c++)
-		if ((unsigned char)*c < ' ' || *c == '\'' || *c == '"' ||
-			*c == '`')
-			return (-1);
+	for (char c : name)
+		if ((unsigned char)c < ' ' || c == '\'' || c == '"' ||
+			c == '`')
+			return false;
 
 	/* rule name: may not already exist */
-	*errcode=MF_ERR_EXISTS;
+	errcode=MF_ERR_EXISTS;
 
-	for (pom=r->first; pom->next; pom=pom->next) {
-	    if (p!=pom && !strcmp(name, pom->rulename_utf8))
-		return (-1);
+	for (auto &pom : r)
+	{
+	    if (&p!=&pom && name==pom.rulename_utf8)
+		return false;
 	}
 
 	/* rule type: we must know what it is */
@@ -189,17 +208,16 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 	case anymessage:
 		break;
 	default:
-		*errcode=MF_ERR_BADRULETYPE;
-		break;
+		errcode=MF_ERR_BADRULETYPE;
+		return false;
 	} ;
 
 	/* header: */
 
-	*errcode=MF_ERR_BADRULEHEADER;
+	errcode=MF_ERR_BADRULEHEADER;
 
-	c=header;
-	if (strlen(c) > 200)	return (-1);
-	if (*c == 0)
+	if (header.size() > 200)	return false;
+	if (header.empty())
 	{
 		switch (type)	{
 		case hasrecipient:
@@ -217,25 +235,24 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 		default:
 			/* required */
 
-			return (-1);
+			return false;
 		}
 	}
-	else for ( ; *c; c++)
+	else for (char c : header)
 	{
 		/* no control characters */
-		if ((unsigned char)*c <= ' ' || *c == MDIRSEP[0] ||
-		    *c == '\'' ||
-		    *c == '\\' || *c == '"' || *c == '`' || *c == '/')
-			return (-1);
+		if ((unsigned char)c <= ' ' || c == MDIRSEP[0] ||
+		    c == '\'' ||
+		    c == '\\' || c == '"' || c == '`' || c == '/')
+			return false;
 	}
 
 	/* rule pattern */
 
-	*errcode=MF_ERR_BADRULEVALUE;
+	errcode=MF_ERR_BADRULEVALUE;
 
-	c=value;
-	if (strlen(c) > 200)	return (-1);
-	if (*c == 0)
+	if (value.size() > 200)	return false;
+	if (value.empty())
 	{
 		switch (type)	{
 		case mimemultipart:
@@ -245,7 +262,7 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 		default:
 			/* required */
 
-			return (-1);
+			return false;
 		}
 	}
 	else if (!(flags & MFR_PLAINSTRING))
@@ -257,72 +274,74 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 		** special characters, must always be escaped.
 		*/
 
-		while (*c)
+		for (auto c=value.data(); c < value.data()+value.size(); )
 		{
 			if (*c == '/' || *c == '$' || *c == '!'
 				|| *c == '`' || (int)(unsigned char)*c < ' '
-				|| *c == '\'' || *c == '"') return (-1);
+				|| *c == '\'' || *c == '"') return false;
 						/* must be escaped */
 
 			if (type == islargerthan)
 			{
 				if (!isdigit((int)(unsigned char)*c))
-					return (-1);
+					return false;
 			}
 
 			if (*c == '(')
 			{
-				if (type == hasrecipient)	return (-1);
+				if (type == hasrecipient)	return false;
 				++c;
-				if (*c == ')')	return (-1);
+				if (c >= value.data()+value.size() || *c == ')')	return false;
 				continue;
 			}
 			if (*c == ')')
 			{
-				if (type == hasrecipient)	return (-1);
+				if (type == hasrecipient)	return false;
 				++c;
 				continue;
 			}
 			if (*c == '[')	/* This is a set */
 			{
-				if (type == hasrecipient)	return (-1);
+				if (type == hasrecipient)	return false;
 				++c;
-				for (;;)
+
+				char prevch=0;
+
+				for (; c < value.data()+value.size(); c++)
 				{
-					if (*c == '\'' || *c == '"' ||
-						*c == '`')
-						return (-1); /* must be quoted*/
-					if (*c == '\\')
-						++c;
-					if (!*c)	return (-1);
-					if ((int)(unsigned char)*c < ' ')
-						return (-1);
-					++c;
-					if (*c == ']')	break;
-					if (*c != '-')	continue;
-					++c;
+					if ((int)(unsigned char) *c < ' ')
+						return false;
+
+					if (prevch == '\\')
+					{
+						prevch=0;
+						continue;
+					}
 
 					if (*c == '\'' || *c == '"' ||
 						*c == '`')
-						return (-1); /* must be quoted*/
-					if (*c == '\\')
-						++c;
-					if ((int)(unsigned char)*c < ' ')
-						return (-1);
-					if (!*c)	return (-1);
-					++c;
-					if (*c == ']')	break;
+						return false; /* must be quoted*/
+
+					prevch=*c;
+
+					if (prevch == ']')
+						break;
 				}
+
+				if (c >= value.data()+value.size())
+					return false;
 				++c;
 				continue;
 			}
 
 			if (*c == '\\')
 			{
-				if (type == hasrecipient)	return (-1);
+				if (type == hasrecipient)	return false;
 				++c;
 			}
-			if (!*c)	return (-1);
+
+			if (c >= value.data()+value.size())
+				return false;
 			++c;
 		}
 
@@ -335,15 +354,18 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 				int errcode;
 				PCRE2_SIZE errindex;
 				pcre2_code *pcre_regexp=
-					pcre2_compile((PCRE2_SPTR8)value,
-						      PCRE2_ZERO_TERMINATED,
-						      PCRE2_UTF,
-						      &errcode,
-						      &errindex,
-						      NULL);
+					pcre2_compile(
+						reinterpret_cast<PCRE2_SPTR>(
+							value.data()
+						),
+						value.size(),
+						PCRE2_UTF,
+						&errcode,
+						&errindex,
+						NULL);
 
 				if (pcre_regexp == NULL)
-					return -1;
+					return false;
 				pcre2_code_free(pcre_regexp);
 			}
 			break;
@@ -355,574 +377,585 @@ static int maildir_filter_ruleupdate_utf8(struct maildirfilter *r,
 
 	/* validate FROM header */
 
-	*errcode=MF_ERR_BADFROMHDR;
+	errcode=MF_ERR_BADFROMHDR;
 
-	while (fromhdr && *fromhdr && isspace((int)(unsigned char)*fromhdr))
-		++fromhdr;
+	while (fromhdr.size() && fromhdr[0] &&
+		unicode_isspace((int)(unsigned char)fromhdr[0]))
+		fromhdr.remove_prefix(1);
 
-	for (c=fromhdr; *c; c++)
-		if ((int)(unsigned char)*c < ' ')
-			return (-1);
+	for (char ch:fromhdr)
+		if ((int)(unsigned char)ch < ' ')
+			return false;
 
-	*errcode=MF_ERR_BADRULEFOLDER;
+	errcode=MF_ERR_BADRULEFOLDER;
 
 	/* validate name of destination folder */
 
-	c=folder;
-	if (!c)	return (-1);
-	if (strlen(c) > 200)	return (-1);
+	if (folder.empty() || folder.size() > 200)
+		return false;
 
-	if (*c == '*' || *c == '!')
+	if (folder[0] == '*' || folder[0] == '!')
 	{
 		/* Forward, or bounce with an error */
 
-		++c;
-		for ( ; *c; c++)
+		for (char ch:folder)
 		{
-			if (strchr("'\"$\\`;(){}#&<>~", *c) ||
-				(unsigned char)*c < ' ')
-				return (-1);
+			if (strchr("'\"$\\`;(){}#&<>~", ch) ||
+				(unsigned char)ch < ' ')
+				return false;
 		}
 	}
-	else if (*c == '+')	/* Autorespond */
+	else if (folder[0] == '+')	/* Autorespond */
 	{
-		struct maildir_filter_autoresp_info ai;
+		maildir_filter_autoresp_info ai;
 
-		if (maildir_filter_autoresp_info_init_str(&ai, c+1))
-			return (-1);
-
-		maildir_filter_autoresp_info_free(&ai);
+		if (!maildir_filter_autoresp_info_init_str(
+			ai,
+			folder.substr(1)))
+			return false;
 	}
-	else if (strcmp(c, "exit") == 0)	/* Purge */
+	else if (folder == "exit")	/* Purge */
 	{
 	}
 	else
 	{
-		char *s;
+		if (folder != INBOX &&
+			std::string_view{folder}.substr(0, sizeof(INBOX))
+				!= INBOX ".")
+			return false;
 
-		if (strcmp(c, INBOX) &&
-		    strncmp(c, INBOX ".", sizeof(INBOX)))
-			return -1;
+		auto s=maildir::name2dir(".", folder);
 
-		s=maildir_name2dir(".", c);
-
-		if (!s)
-			return -1;
-		free(s);
+		if (s.empty())
+			return false;
 	}
 
 	/* OK, we're good */
 
-	*errcode=MF_ERR_INTERNAL;
+	errcode=MF_ERR_INTERNAL;
 
-	if (p->rulename_utf8)	free(p->rulename_utf8);
-	if ((p->rulename_utf8=strdup(name)) == 0)	return (-1);
-	p->type=type;
-	if (p->fieldname_utf8)	free(p->fieldname_utf8);
-	if ((p->fieldname_utf8=strdup(header ? header:"")) == 0)	return (-1);
-	if (p->fieldvalue_utf8)	free(p->fieldvalue_utf8);
-	if ((p->fieldvalue_utf8=strdup(value ? value:"")) == 0)	return (-1);
-	if (p->tofolder)	free(p->tofolder);
-	if ((p->tofolder=static_cast<char *>(malloc(strlen(folder)+1))) == 0)	return (-1);
-	strcpy(p->tofolder, folder);
-
-	if (p->fromhdr)		free(p->fromhdr);
-	if ((p->fromhdr=strdup(fromhdr ? fromhdr:"")) == NULL)
-		return (-1);
-
-	p->flags=flags;
-	return (0);
+	p.rulename_utf8=std::string{name.begin(), name.end()};
+	p.type=type;
+	p.fieldname_utf8=std::string{header.begin(), header.end()};
+	p.fieldvalue_utf8=std::string{value.begin(), value.end()};
+	p.tofolder=std::string{folder.begin(), folder.end()};
+	p.fromhdr=std::string{fromhdr.begin(), fromhdr.end()};
+	p.flags=flags;
+	return true;
 }
 
-void maildir_filter_ruledel(struct maildirfilter *r, struct maildirfilterrule *p)
-{
-	if (p->prev)	p->prev->next=p->next;
-	else		r->first=p->next;
-
-	if (p->next)	p->next->prev=p->prev;
-	else		r->last=p->prev;
-
-	if (p->rulename_utf8)	free(p->rulename_utf8);
-	if (p->fieldname_utf8)	free(p->fieldname_utf8);
-	if (p->fieldvalue_utf8)	free(p->fieldvalue_utf8);
-	if (p->tofolder)	free(p->tofolder);
-	if (p->fromhdr)		free(p->fromhdr);
-	free(p);
-}
-
-void maildir_filter_ruleup(struct maildirfilter *r, struct maildirfilterrule *p)
-{
-struct maildirfilterrule *q;
-
-	q=p->prev;
-	if (!q)	return;
-	q->next=p->next;
-	if (p->next)	p->next->prev=q;
-	else		r->last=q;
-
-	if ((p->prev=q->prev) != 0)	p->prev->next=p;
-	else	r->first=p;
-
-	p->next=q;
-	q->prev=p;
-}
-
-void maildir_filter_ruledown(struct maildirfilter *r, struct maildirfilterrule *p)
-{
-struct maildirfilterrule *q;
-
-	q=p->next;
-	if (!q)	return;
-	q->prev=p->prev;
-	if (q->prev)	q->prev->next=q;
-	else		r->first=q;
-
-	if ((p->next=q->next) != 0)	p->next->prev=p;
-	else	r->last=p;
-
-	p->prev=q;
-	q->next=p;
-}
-
-static void print_pattern(FILE *f, int flags, const char *v)
+static void print_pattern(std::ofstream &f, int flags, std::string_view v)
 {
 	if (!(flags & MFR_PLAINSTRING))
 	{
-		fprintf(f, "%s%s",
-			*v && isspace((int)(unsigned char)*v) ? "\\":"", v);
+		f << ((v.size() &&
+			unicode_isspace((unsigned char)v[0])) ? "\\":"")
+			<< v;
 		return;
 	}
 
-	while (*v)
+	for (unsigned char ch:v)
 	{
-		if (((int)(unsigned char)*v) <= 0x80 &&
-		    !isalnum((int)(unsigned char)*v))
-			putc('\\', f);
-		putc((int)(unsigned char)*v, f);
-		++v;
+		if (((int)ch) <= 0x80 && !unicode_isalnum(ch))
+			f << '\\';
+		f << ch;
 	}
 }
 
-int maildir_filter_saverules(struct maildirfilter *r, const char *filename,
-			     const char *maildirpath, const char *fromaddr)
+bool maildir_filter_saverules(
+	const maildirfilter &r,
+	const std::string &filename,
+	std::string_view maildirpath,
+	std::string_view fromaddr
+)
 {
-FILE	*f=fopen(filename, "w");
-struct maildirfilterrule *p;
+	std::ofstream f{filename};
+	if (!f) return false;
 
-	if (!f)	return (-1);
+	f << "#MFMAILDROP=2\n"
+	     "#\n"
+	     "# DO NOT EDIT THIS FILE.  This is an automatically"
+	     " generated filter.\n"
+	     "\n";
 
-	fprintf(f,	"#MFMAILDROP=2\n"
-			"#\n"
-			"# DO NOT EDIT THIS FILE.  This is an automatically"
-						" generated filter.\n"
-			"\n");
-
-	for (fprintf(f, "FROM='"); *fromaddr; fromaddr++)
+	f << "FROM='";
+	for (char ch:fromaddr)
 	{
-		if (*fromaddr == '\'' || *fromaddr == '\\')
-			putc('\\', f);
-		putc(*fromaddr, f);
+		if (ch == '\'' || ch == '\\')
+			f << '\\';
+		f << ch;
 	}
-	fprintf(f, "\'\n");
+	f << "'\n";
 
-	for (p=r->first; p; p=p->next)
+	for (const auto &p:r)
 	{
-	const char *fieldname=p->fieldname_utf8 ? p->fieldname_utf8:"";
-	const char *fieldvalue=p->fieldvalue_utf8 ? p->fieldvalue_utf8:"";
-	const char *tofolder=p->tofolder ? p->tofolder:"";
+		f << "##Op:" << typelist[p.type].name << "\n";
+		f << "##Header:" << p.fieldname_utf8 << "\n";
+		f << "##Value:" << p.fieldvalue_utf8 << "\n";
+		f << "##Folder:" <<
+			(p.tofolder == INBOX ? ".":
+			std::string_view{p.tofolder}.substr(0, sizeof(INBOX)) == INBOX "."
+			? std::string_view{p.tofolder}.substr(p.tofolder.find('.')):
+			std::string_view{p.tofolder})
+			<< "\n";
+		f << "##From:" << p.fromhdr << "\n";
 
-		fprintf(f, "##Op:%s\n",
-			typelist[p->type].name);
-		fprintf(f, "##Header:%s\n", fieldname);
-		fprintf(f, "##Value:%s\n", fieldvalue);
-		fprintf(f, "##Folder:%s\n",
-			strcmp(tofolder, INBOX) == 0 ? ".":
-			strncmp(tofolder, INBOX ".", sizeof(INBOX)) == 0
-			? strchr(tofolder, '.'):tofolder);
-		fprintf(f, "##From:%s\n", p->fromhdr ? p->fromhdr:"");
+		if (p.flags & MFR_PLAINSTRING)
+			f << "##PlainString\n";
+		if (p.flags & MFR_DOESNOT)
+			f << "##DoesNot\n";
+		if (p.flags & MFR_BODY)
+			f << "##Body\n";
+		if (p.flags & MFR_CONTINUE)
+			f << "##Continue\n";
 
-		if (p->flags & MFR_PLAINSTRING)
-			fprintf(f, "##PlainString\n");
-		if (p->flags & MFR_DOESNOT)
-			fprintf(f, "##DoesNot\n");
-		if (p->flags & MFR_BODY)
-			fprintf(f, "##Body\n");
-		if (p->flags & MFR_CONTINUE)
-			fprintf(f, "##Continue\n");
+		f << "##Name:" << p.rulename_utf8 << "\n\n";
 
-		fprintf(f, "##Name:%s\n\n", p->rulename_utf8 ? p->rulename_utf8:"");
+		f << "\nif (";
 
-		fprintf(f, "\nif (");
+		if (p.flags & MFR_DOESNOT)
+			f << "!";
+		f << "(";
 
-		if (p->flags & MFR_DOESNOT)
-			fprintf(f, "!");
-		fprintf(f, "(");
-
-		switch (p->type)	{
+		switch (p.type)	{
 		case startswith:
-			if (p->flags & MFR_BODY)
+			if (p.flags & MFR_BODY)
 			{
-				fprintf(f, "/^");
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "/:b");
+				f << "/^";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "/:b";
 			}
 			else
 			{
-				fprintf(f, "/^%s: *", fieldname);
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "/");
+				f << "/^" << p.fieldname_utf8 << ": *";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "/";
 			}
 			break;
 		case endswith:
-			if (p->flags & MFR_BODY)
+			if (p.flags & MFR_BODY)
 			{
-				fprintf(f, "/");
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "$/:b");
+				f << "/";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "$/:b";
 			}
 			else
 			{
-				fprintf(f, "/^%s:.*", fieldname);
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "$/");
+				f << "/^" << p.fieldname_utf8 << ":.*";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "$/";
 			}
 			break;
 		case contains:
-			if (p->flags & MFR_BODY)
+			if (p.flags & MFR_BODY)
 			{
-				fprintf(f, "/");
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "/:b");
+				f << "/";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "/:b";
 			}
 			else
 			{
-				fprintf(f, "/^%s:.*", fieldname);
-				print_pattern(f, p->flags, fieldvalue);
-				fprintf(f, "/");
+				f << "/^" << p.fieldname_utf8 << ":.*";
+				print_pattern(f, p.flags, p.fieldvalue_utf8);
+				f << "/";
 			}
 			break;
 		case hasrecipient:
-			fprintf(f, "hasaddr(\"%s\")", fieldvalue);
+			f << "hasaddr(\"" << p.fieldvalue_utf8 << "\")";
 			break;
 		case mimemultipart:
-			fprintf(f, "/^Content-Type: *multipart\\/mixed/");
+			f << "/^Content-Type: *multipart\\/mixed/";
 			break;
 		case textplain:
-			fprintf(f, " (! /^Content-Type:/) || "
-					"/^Content-Type: text\\/plain$/ || "
-					"/^Content-Type: text\\/plain;/");
+			f << " (! /^Content-Type:/) || "
+					"/^Content-Type: *text\\/plain$/ || "
+					"/^Content-Type: *text\\/plain;/";
 			break;
 		case islargerthan:
-			fprintf(f, "$SIZE > %s", fieldvalue);
+			f << "$SIZE > " << p.fieldvalue_utf8;
 			break;
 		case anymessage:
-			fprintf(f, "1");
+			f << "1";
 			break;
 		}
-		fprintf(f, "))\n"
-			"{\n");
+		f << "))\n"
+			"{\n";
 
-		if (*tofolder == '!')
+		if (*p.tofolder.c_str() == '!')
 		{
-			fprintf(f, "    %s \"| $SENDMAIL -f \" '\"\"' \" %s\"\n",
-				p->flags & MFR_CONTINUE ? "cc":"to",
-					tofolder+1);
+			f << "    " << (p.flags & MFR_CONTINUE ? "cc":"to")
+				<< " \"| $SENDMAIL -f \" '\"\"' \" " << p.tofolder.substr(1)
+				<< "\"\n";
 		}
-		else if (*tofolder == '*')
+		else if (*p.tofolder.c_str() == '*')
 		{
-			fprintf(f, "    echo \"%s\"\n"
-				"    EXITCODE=%d\n"
-				"    exit\n", tofolder+1, EX_SOFTWARE);
+			f << "    echo \"" << p.tofolder.substr(1) << "\"\n"
+				"    EXITCODE=" << EX_NOPERM << "\n"
+				"    exit\n";
 		}
-		else if (*tofolder == '+')
+		else if (*p.tofolder.c_str() == '+')
 		{
 			struct maildir_filter_autoresp_info ai;
 
-			if (maildir_filter_autoresp_info_init_str(&ai, tofolder+1) == 0)
+			if (maildir_filter_autoresp_info_init_str(
+				ai,
+				std::string_view{p.tofolder}.substr(1)))
 			{
-				if (p->fromhdr && p->fromhdr[0])
+				if (!p.fromhdr.empty())
 				{
-					const char *cp;
+					f << "    AUTOREPLYFROM='";
 
-					fprintf(f, "    AUTOREPLYFROM='");
-
-
-					for (cp=p->fromhdr; *cp; ++cp)
+					for (auto cp : p.fromhdr)
 					{
-						if (*cp == '\'' || *cp == '\\')
-							putc('\\', f);
-						putc(*cp, f);
+						if (cp == '\'' || cp == '\\')
+							f << '\\';
+						f << cp;
 					}
-					fprintf(f, "'\n");
+					f << "'\n";
 				}
 				else
-					fprintf(f, "    AUTOREPLYFROM=\"$FROM\"\n"
-						);
+					f << "    AUTOREPLYFROM=\"$FROM\"\n"
+						;
 
-				fprintf(f, "   `%s -A \"X-Sender: $FROM\""
-					" -A \"From: $AUTOREPLYFROM\"",
-					MAILBOT);
+				f << "   `" << MAILBOT << " -A \"X-Sender: $FROM\""
+					" -A \"From: $AUTOREPLYFROM\"";
 				if (ai.mode ==
 				    MAILDIR_FILTER_AUTORESP_MODE_DSN)
-					fprintf(f, " -M \"$FROM\"");
-				fprintf(f, " -m \"%s/autoresponses/%s\"",
-					maildirpath, ai.name);
+					f << " -M \"$FROM\"";
+				f << " -m \"" << maildirpath << "/autoresponses/" << ai.name << "\"";
 				if (ai.mode ==
 				    MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
-					fprintf(f, " -N");
+					f << " -N";
 				if (ai.days > 0)
-					fprintf(f,
-						" -d \"%s/autoresponses/"
-						"%s.dat\" -D %u",
-					maildirpath, ai.name, ai.days);
-				fprintf(f,
-					" $SENDMAIL -t -f \"\"`\n"
+					f << " -d \"" << maildirpath << "/autoresponses/"
+						<< ai.name << ".dat\" -D " << ai.days;
+				f << " $SENDMAIL -t -f \"\"`\n"
 					"    if ($RETURNCODE != 0)\n"
 					"    {\n"
 					"      EXITCODE=$RETURNCODE\n"
 					"      exit\n"
 					"    }\n"
-					);
-				maildir_filter_autoresp_info_free(&ai);
+					;
 			}
 		}
-		else if (strcmp(tofolder, "exit") == 0)
+		else if (p.tofolder == "exit")
 		{
-			fprintf(f, "    exit\n");
+			f << "    exit\n";
 		}
 		else
 		{
-			char *s;
+			auto s=maildir::name2dir(maildirpath, p.tofolder);
 
-			s=maildir_name2dir(maildirpath, tofolder);
-
-			if (!s)
-				fprintf(f, "  # INTERNAL ERROR in maildir_name2dir\n");
+			if (s.empty())
+				f << "  # INTERNAL ERROR in "
+					"maildir::name2dir\n";
 			else
 			{
-				fprintf(f,
-					"   %s \"%s/.\"\n",
-					p->flags & MFR_CONTINUE ? "cc":"to",
-					s);
-				free(s);
+				f << "   " << (p.flags & MFR_CONTINUE ? "cc":"to")
+					<< " \"" << s << "/.\"\n";
 			}
 		}
-		fprintf(f, "}\n\n");
+		f << "}\n\n";
 	}
-	fflush(f);
-	if (ferror(f))
-	{
-		fclose(f);
-		return (-1);
-	}
-	fprintf(f, "to \"%s/.\"\n", maildirpath);
-	if (fclose(f))
-		return (-1);
-	if (chmod(filename, 0600))
-		return (-1);
+	f.flush();
+	f << "to \"" << maildirpath << "/.\"\n"
+		<< std::flush;
+	f.close();
+	if (f.fail())
+		return false;
+	if (chmod(filename.c_str(), 0600))
+		return false;
 
-	return (0);
+	return true;
 }
 
-int maildir_filter_loadrules(struct maildirfilter *r, const char *filename)
+int maildir_filter_loadrules(maildirfilter &r, const std::string &filename)
 {
-FILE	*f=fopen(filename, "r");
-char	buf[BUFSIZ];
-char	*p;
+	std::ifstream f{filename};
+	if (!f) return MF_LOADNOTFOUND;
 
-enum	maildirfiltertype new_type;
-char	new_header[256];
-char	new_value[256];
-char	new_folder[256];
-char	new_autoreplyfrom[512];
+	enum	maildirfiltertype new_type;
+	std::string	new_header;
+	std::string	new_value;
+	std::string	new_folder;
+	std::string	new_autoreplyfrom;
 
-int	flags;
+	int	flags=0;
 
-	if (!f)	return (MF_LOADNOTFOUND);
+	std::string buf;
 
-	if (fgets(buf, sizeof(buf), f) == 0 ||
-		strncmp(buf, "#MFMAILDROP=", 12))
+	if (!std::getline(f, buf) ||
+		std::string_view{buf}.substr(0, 12) != "#MFMAILDROP=")
 	{
-		fclose(f);
 		return (MF_LOADFOREIGN);
 	}
 
-	flags=atoi(buf+12);
-	if (flags != 1 && flags != 2)
+	if (std::from_chars(buf.data()+12, buf.data()+buf.size(), flags).ec
+		!= std::errc{} || (flags != 1 && flags != 2))
 	{
-		fclose(f);
 		return (MF_LOADFOREIGN);
 	}
 
 	new_type=contains;
-	new_header[0]=0;
-	new_value[0]=0;
-	new_folder[0]=0;
-	new_autoreplyfrom[0]=0;
 	flags=0;
 
-#define	SET(f,b) { f[0]=0; strncat( (f), (b), sizeof(f)-1); }
-
-	while ( fgets(buf, sizeof(buf), f))
+	while ( std::getline(f, buf))
 	{
-	int	i;
+		int	i;
 
-		p=strchr(buf, '\n');
-		if (p)	*p=0;
-		if (strncmp(buf, "##", 2))	continue;
-		p=buf+2;
-		while ( *p && isspace((int)(unsigned char)*p))
-			++p;
+		if (std::string_view{buf}.substr(0, 2) != "##")	continue;
+		std::string_view p{buf};
+		p.remove_prefix(2);
+		while ( !p.empty() && unicode_isspace((unsigned char)*p.data()))
+			p.remove_prefix(1);
 
-		if (strncasecmp(p, "From:", 5) == 0)
+		size_t colon=p.find(':');
+		if (colon == std::string_view::npos)
+			colon=p.size();
+		std::string_view header_name=p.substr(0, colon);
+		if (colon < p.size())
+			++colon;
+		std::string_view header_value=p.substr(colon);
+
+		while (!header_value.empty() &&
+			unicode_isspace((unsigned char)*header_value.data()))
+			header_value.remove_prefix(1);
+
+		if (header_name.size() == 4 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"from",
+				[](unsigned char a, unsigned char b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
-			p += 5;
-			SET(new_autoreplyfrom, p);
+			new_autoreplyfrom={header_value.begin(),
+				header_value.end()};
 			continue;
 		}
 
-
-		if (strncasecmp(p, "Op:", 3) == 0)
+		if (header_name.size() == 2 &&
+			std::equal(header_name.begin(), header_name.end(), "op",
+				[](unsigned char a, unsigned char b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
-			p += 3;
-
 			for (i=0; typelist[i].name; i++)
-				if (strcasecmp(typelist[i].name, p) == 0)
+				if (strlen(typelist[i].name) ==
+					header_value.size() &&
+				    std::equal(header_value.begin(),
+					header_value.end(),
+					typelist[i].name,
+					[](unsigned char a, char32_t b)
+					{
+						return unicode_lc(a)==b;
+					}))
 					break;
 			if (!typelist[i].name)
 			{
-				fclose(f);
 				return (MF_LOADFOREIGN);
 			}
 			new_type=typelist[i].type;
 			continue;
 		}
 
-		if (strncasecmp(p, "Header:", 7) == 0)
+		if (header_name.size() == 6 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"header",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
-			p += 7;
-			SET(new_header, p);
+			new_header={header_value.begin(),
+				header_value.end()};
 			continue;
 		}
 
-		if (strncasecmp(p, "Value:", 6) == 0)
+		if (header_name.size() == 5 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"value",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
-			p += 6;
-			SET(new_value, p);
+			new_value={header_value.begin(),
+				header_value.end()};
 			continue;
 		}
 
-		if (strncasecmp(p, "Folder:", 7) == 0)
+		if (header_name.size() == 6 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"folder",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
-			p += 7;
-
-			if (*p == '.')
+			if (*header_value.data() == '.')
 			{
-				strcpy(new_folder, INBOX);
+				new_folder=INBOX;
 			}
 			else
-				new_folder[0]=0;
+				new_folder.clear();
 
-			if (strcmp(p, "."))
-				strncat(new_folder, p,
-					sizeof(new_folder)-1-strlen(new_folder));
+			if (header_value != ".")
+				new_folder += header_value;
 			continue;
 		}
 
-		if (strcasecmp(p, "plainstring") == 0)
+		if (header_name.size() == 11 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"plainstring",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
 			flags |= MFR_PLAINSTRING;
 			continue;
 		}
 
-		if (strcasecmp(p, "doesnot") == 0)
+		if (header_name.size() == 7 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"doesnot",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
 			flags |= MFR_DOESNOT;
 			continue;
 		}
 
-		if (strcasecmp(p, "continue") == 0)
+		if (header_name.size() == 8 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"continue",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
 			flags |= MFR_CONTINUE;
 			continue;
 		}
 
-		if (strcasecmp(p, "body") == 0)
+		if (header_name.size() == 4 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"body",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
 			flags |= MFR_BODY;
 			continue;
 		}
 
-		if (strncasecmp(p, "Name:", 5) == 0)
+		if (header_name.size() == 4 &&
+			std::equal(header_name.begin(), header_name.end(),
+				"name",
+				[](unsigned char a, char32_t b)
+				{
+					return unicode_lc(a)==b;
+				}))
 		{
 		int dummy;
 
-			p += 5;
-			maildir_filter_appendrule(r, p, new_type, flags,
-						  new_header,
-						  new_value, new_folder,
-						  new_autoreplyfrom,
-						  "utf-8", &dummy);
+			if (!maildir_filter_appendrule(
+				r,
+				header_value,
+				new_type,
+				flags,
+				new_header,
+				new_value,
+				new_folder,
+				new_autoreplyfrom,
+				"utf-8",
+				dummy))
+			{
+				return (dummy);
+			}
 			new_type=contains;
-			new_header[0]=0;
-			new_value[0]=0;
-			new_folder[0]=0;
-			new_autoreplyfrom[0]=0;
+			new_header.clear();
+			new_value.clear();
+			new_folder.clear();
+			new_autoreplyfrom.clear();
 			flags=0;
 		}
 	}
-	fclose(f);
 	return (MF_LOADOK);
 }
 
-int maildir_filter_autoresp_info_init_str(struct maildir_filter_autoresp_info *i, const char *c)
+bool maildir_filter_autoresp_info_init_str(
+	maildir_filter_autoresp_info &i,
+	std::string_view c)
 {
-	char *p;
+	auto n=c.find_first_not_of(" \t\r\n");
 
-	memset(i, 0, sizeof(*i));
-	i->name=strdup(c);
-	if (!(i->name))
-		return (-1);
-
-	if (strtok(i->name, " \t\r\n") == NULL)
+	if (n == c.npos)
 	{
 		errno=EINVAL;
-		free(i->name);
-		i->name=0;
-		return (-1);
+		return (false);
 	}
+	c.remove_prefix(n);
 
-	while ((p=strtok(NULL, " \t\r\n")) != NULL)
+	auto m=c.find_first_of(" \t\r\n");
+	if (m == c.npos)
 	{
-		if (strncmp(p, "dsn=", 4) == 0 && atoi(p+4))
-			i->mode=MAILDIR_FILTER_AUTORESP_MODE_DSN;
-		else if (strncmp(p, "days=", 5) == 0)
-			i->days=atoi(p+5);
-		else if (strcmp(p, "noquote") == 0)
-			i->mode=MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE;
+		m=c.size();
 	}
-	return (0);
+	auto word=c.substr(0, m);
+	i.name=std::string{word.begin(), word.end()};
+	c.remove_prefix(m);
+
+	while (!c.empty())
+	{
+		switch (c[0]) {
+		case ' ':
+		case '\t':
+		case '\r':
+		case '\n':
+			c.remove_prefix(1);
+			continue;
+		}
+
+		m=c.find_first_of(" \t\r\n");
+		if (m == c.npos)
+		{
+			m=c.size();
+		}
+		word=c.substr(0, m);
+		c.remove_prefix(m);
+
+		int n;
+		if (word.substr(0, 4) == "dsn=" &&
+			std::from_chars(word.substr(4).data(),
+				word.substr(4).data()+word.substr(4).size(),
+				n).ec == std::errc{} && n)
+			i.mode=MAILDIR_FILTER_AUTORESP_MODE_DSN;
+		else if (word.substr(0, 5) == "days=" &&
+			std::from_chars(word.substr(5).data(),
+				word.substr(5).data()+word.substr(5).size(),
+				i.days).ec == std::errc{})
+			;
+		else if (word == "noquote")
+			i.mode=MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE;
+	}
+	return (true);
 }
 
-void maildir_filter_autoresp_info_free(struct maildir_filter_autoresp_info *i)
+std::string maildir_filter_autoresp_info_asstr(maildir_filter_autoresp_info &i)
 {
-	if (i->name)
-	{
-		free(i->name);
-		i->name=0;
-	}
-}
-
-char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *i)
-{
-	char days_buf[NUMBUFSIZE+10];
+	char days_buf[NUMBUFSIZE+1];
 
 	const char *mode_arg="";
-	const char *days_arg="";
+	const char *days1_arg="";
+	const char *days2_arg="";
 
-	char *p;
-
-	switch (i->mode) {
+	switch (i.mode) {
 	case MAILDIR_FILTER_AUTORESP_MODE_DSN:
 		mode_arg=" dsn=1";
 		break;
@@ -931,17 +964,21 @@ char *maildir_filter_autoresp_info_asstr(struct maildir_filter_autoresp_info *i)
 		break;
 	}
 
-	if (i->days > 0)
+	if (i.days > 0)
 	{
-		strcpy(days_buf, " days=");
-		libmail_str_size_t(i->days, days_buf+6);
-		days_arg=days_buf;
+		*std::to_chars(days_buf, days_buf+NUMBUFSIZE,
+			i.days).ptr=0;
+		days1_arg=" days=";
+		days2_arg=days_buf;
 	}
 
-	p=static_cast<char *>(malloc(strlen(i->name)+1+strlen(mode_arg)+strlen(days_arg)));
-	if (!p)
-		return (NULL);
+	std::string s;
+	s.reserve(i.name.size()+1+strlen(mode_arg)+strlen(days1_arg)+
+		strlen(days2_arg));
+	s += i.name;
+	s += mode_arg;
+	s += days1_arg;
+	s += days2_arg;
 
-	strcat(strcat(strcpy(p, i->name), mode_arg), days_arg);
-	return (p);
+	return (s);
 }

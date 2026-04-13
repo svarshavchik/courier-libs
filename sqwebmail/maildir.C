@@ -2660,54 +2660,46 @@ struct add_shared_info {
 	const char *inbox_pfix;
 };
 
-static void list_callback(const char *n, void *vp)
+static void list_callback(std::string_view n, add_shared_info &i)
 {
-	struct add_shared_info *i=
-		(struct add_shared_info *)vp;
 	std::string o;
 
-	while (*n)
-	{
-		if (*n == '.')
-			break;
-		++n;
-	}
-
-	o.reserve(strlen(i->inbox_pfix)+strlen(n));
-	o=i->inbox_pfix;
+	size_t p=n.find('.');
+	if (p != n.npos)
+		n.remove_prefix(p);
+	else
+		n="";
+	o.reserve(strlen(i.inbox_pfix)+n.size());
+	o=i.inbox_pfix;
 	o += n;
 
-	i->folders->push_back(o);
+	i.folders->push_back(o);
 }
 
-static void list_shared_callback(const char *n, void *vp)
+static void list_shared_callback(std::string_view n, add_shared_info &i)
 {
-	struct add_shared_info *i=
-		(struct add_shared_info *)vp;
 	std::string o;
 
-	o.reserve(sizeof(SHARED ".")-1 + strlen(n));
+	o.reserve(sizeof(SHARED ".")-1 + n.size());
 	o=SHARED ".";
 	o += n;
 
-	i->folders->push_back(o);
+	i.folders->push_back(o);
 }
 
-static void list_sharable_callback(const char *n, void *vp)
+static void list_sharable_callback(std::string_view n, add_shared_info &i)
 {
-	struct add_shared_info *i=
-		(struct add_shared_info *)vp;
 	std::string o;
 
-	o.reserve(sizeof(SHARED ".")-1 + strlen(n));
+	o.reserve(sizeof(SHARED ".")-1 + n.size());
 	o=SHARED ".";
 	o += n;
 
-	for (auto &f: *i->folders)
+	for (auto &f: *i.folders)
 		if (f == o)
 			return;
 
-	i->folders->push_back(o);
+	i.folders->push_back(o);
 }
 
 static bool shcomparefunc( const std::string &a, const std::string &b)
@@ -2736,14 +2728,29 @@ std::vector<std::string> maildir_listfolders(
 	** then sorting the unsubscribed folders separately.
 	*/
 
-	maildir_list(homedir, list_callback, &info);
+	maildir::list(homedir,
+		[&info]
+		(auto &path)
+		{
+			list_callback(path, info);
+		});
 
 	if (strcmp(homedir, ".") == 0)
-		maildir_list_shared(".", list_shared_callback, &info);
+		maildir::list_shared(".",
+			[&info]
+			(auto &path)
+			{
+				list_shared_callback(path, info);
+			});
 
 	auto sh_cnt=folders.size();
 	if (strcmp(homedir, ".") == 0)
-		maildir_list_sharable(".", list_sharable_callback, &info);
+		maildir::list_sharable(".",
+			[&info]
+			(auto &path)
+			{
+				list_sharable_callback(path, info);
+			});
 
 	std::sort(folders.begin(), folders.begin()+sh_cnt, shcomparefunc);
 	std::sort(folders.begin()+sh_cnt, folders.end(), shcomparefunc);
@@ -2820,7 +2827,7 @@ int maildir_delete(const char *foldername, int deletecontent)
 		}
 	}
 
-	if (rc == 0 && maildir_del(dir.c_str()))
+	if (rc == 0 && !maildir::del(dir))
 		rc= -1;
 
 	if (rc == 0)

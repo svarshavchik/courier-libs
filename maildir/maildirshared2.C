@@ -27,67 +27,39 @@ namespace maildir {
 	}
 }
 
-extern "C"
-FILE *maildir_shared_fopen(const char *maildir, const char *mode)
+std::tuple<std::string, std::string> maildir::shared_fparse(std::string_view s)
 {
-	return fopen(maildir::shared_filename(maildir).c_str(), mode);
-}
+	std::string name, dir;
 
-void maildir::shared_fparse(char *b, char *e,
-			    char * &nameb, char * &namee,
-			    char * &dirb, char * &dire)
-{
-	nameb=namee=dirb=dire=e;
+	auto i=s.find('#');
+	if (i != s.npos)
+		s=s.substr(0, i);
 
-	e=std::find(b, e, '\n');
-	e=std::find(b, e, '#');
+	i=s.find_first_not_of(" \t\r\n");
+	if (i == s.npos)
+		return {};
 
-	nameb=b;
+	s=s.substr(i);
+	i=s.find_first_of(" \t\r\n");
+	if (i == s.npos)
+		return {};
 
-	while (b != e)
-	{
-		if (isspace((int)(unsigned char)*b))	break;
-		++b;
-	}
-	if (b == e)
-	{
-		nameb=namee;
-		return;
-	}
+	name=std::string{s.data(), s.data()+i};
 
-	namee=b;
+	s=s.substr(i);
 
-	while (b != e && isspace((int)(unsigned char)*b))
-		++b;
+	i=s.find_first_not_of(" \t\r\n");
+	if (i == s.npos)
+		return {};
 
-	if (b != e)
-	{
-		dirb=b;
-		dire=e;
-		return;
-	}
+	s=s.substr(i);
 
-	nameb=namee=dirb=dire=e;
-}
+	i=s.find_first_of(" \t\r\n");
+	if (i == s.npos)
+		i=s.size();
+	dir=std::string{s.data(), s.data()+i};
 
-extern "C"
-void maildir_shared_fparse(char *p, char **name, char **dir)
-{
-	char *nameb, *namee, *dirb, *dire;
-
-	maildir::shared_fparse(p, p+strlen(p), nameb, namee, dirb, dire);
-
-	if (nameb != namee)
-	{
-		*name=nameb;
-		*namee=0;
-		*dir=dirb;
-		*dire=0;
-	}
-	else
-	{
-		*name=*dir=0;
-	}
+	return {name, dir};
 }
 
 char *maildir_shareddir(const char *maildir, const char *sharedname)

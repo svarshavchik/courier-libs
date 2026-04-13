@@ -18,7 +18,7 @@ const char *header;
 const char *value;
 const char *folder;
 int errcode, i;
-struct maildirfilter mf;
+maildirfilter mf;
 struct maildirfilterrule *r;
 int flags=0;
 const char *charset=getenv("CHARSET");
@@ -26,7 +26,7 @@ const char *charset=getenv("CHARSET");
 	if (argc < 6)
 	{
 		fprintf(stderr, "Invalid args\n");
-		return (1);
+		exit (1);
 	}
 
 	name=argv[1];
@@ -49,43 +49,40 @@ const char *charset=getenv("CHARSET");
 	if (!typelist[i].name)
 	{
 		fprintf(stderr, "unknown op: %s\n", argv[2]);
-		return (1);
+		exit (1);
 	}
 	type=typelist[i].type;
 	header=argv[3];
 	value=argv[4];
 	folder=argv[5];
 
-	memset(&mf, 0, sizeof(mf));
-
-	errcode=maildir_filter_loadrules(&mf, "testrules");
+	errcode=maildir_filter_loadrules(mf, "testrules");
 	if (errcode && errcode != MF_LOADNOTFOUND)
 	{
 		fprintf(stderr, "Error loading testrules: %d\n", errcode);
-		return (1);
+		exit (1);
 	}
 
 	if (!charset)
 		charset="utf-8";
 
-	r=maildir_filter_appendrule(&mf, name, type, flags,
+	r=maildir_filter_appendrule(mf, name, type, flags,
 				    header, value, folder, "", charset,
-				    &errcode);
+				    errcode);
 
 	if (!r)
 	{
 		fprintf(stderr, "Error appending %s: %d\n", name, errcode);
-		return (1);
+		exit (1);
 	}
 
 	unlink("maildirsize");
-	errcode=maildir_filter_saverules(&mf, "testrules2", "Maildir", "nobody@example.com");
-	if (errcode)
+	if (!maildir_filter_saverules(mf, "testrules2", "Maildir", "nobody@example.com"))
 	{
-		fprintf(stderr, "Error saving testrules2: %d\n", errcode);
-		return (1);
+		fprintf(stderr, "Error saving testrules2\n");
+		exit (1);
 	}
 	rename("testrules2", "testrules");
-	printf("Added %s\n", r->rulename_utf8);
-	return (0);
+	printf("Added %s\n", r->rulename_utf8.c_str());
+	exit (0);
 }

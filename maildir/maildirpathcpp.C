@@ -18,23 +18,32 @@
 #include	<stdio.h>
 #include	<ctype.h>
 #include	<errno.h>
-
+#include	<algorithm>
 #include	"maildirmisc.h"
+#include	<courier-unicode.h>
 
-std::string maildir::name2dir(const std::string &maildir,
-			      const std::string &foldername) /* INBOX.name */
+std::string maildir::name2dir(std::string_view maildir,
+			      std::string_view foldername) /* INBOX.name */
 {
 	if (maildir.empty())
 		return name2dir(".", foldername);
-	const auto ll=strlen(INBOX);
 
-	if (strncasecmp(foldername.c_str(), INBOX, ll) == 0 &&
-	    foldername.find('/') == foldername.npos)
+	if (foldername.size() >= sizeof(INBOX)-1 &&
+		foldername.find('/') == std::string_view::npos &&
+		std::equal(foldername.begin(), foldername.begin()+sizeof(INBOX)-1,
+				   INBOX, [](unsigned char a,
+						unsigned char b)
+				   {
+					return unicode_lc(a)==unicode_lc(b);
+				}))
 	{
-		if (foldername[ll] == 0)
-			return maildir; /* INBOX: main maildir inbox */
+		if (foldername.size() == sizeof(INBOX)-1)
+			return std::string{maildir};
+			/* INBOX: main maildir inbox */
 
-		if (foldername[ll] == '.')
+		auto suffix=foldername.substr(sizeof(INBOX)-1);
+
+		if (suffix[0] == '.')
 		{
 			char prev_ch=0;
 
@@ -53,7 +62,15 @@ std::string maildir::name2dir(const std::string &maildir,
 				return "";
 			}
 
-			return maildir + "/" + foldername.substr(ll);
+			std::string path;
+
+			path.reserve(
+				maildir.size() + 1 + suffix.size());
+			path += maildir;
+			path += '/';
+			path += suffix;
+
+			return path;
 		}
 	}
 
