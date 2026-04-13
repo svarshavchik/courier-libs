@@ -265,7 +265,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 	}
 #endif
 
-	courier_authdebug_login( 1, "command=%s", curtoken->tokenbuf );
+	courier_authdebug_login( 1, "command=%s", curtoken->tokenbuf.c_str() );
 
 	if (curtoken->tokenbuf == "LOGOUT")
 	{
@@ -357,7 +357,7 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		rc=auth_login_meta(NULL, p, userid.c_str(), passwd.c_str(),
 				   login_callback, (void *)tag);
 		courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s], port=[%s]",
-				    userid, getenv("TCPREMOTEIP"),
+				    userid.c_str(), getenv("TCPREMOTEIP"),
 				    getenv("TCPREMOTEPORT"));
 		if (rc > 0)
 		{

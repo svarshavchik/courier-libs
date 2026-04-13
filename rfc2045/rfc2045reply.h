@@ -1352,7 +1352,7 @@ void rfc2045::reply::mkreply(out_closure_t &&out_closure,
 
 	void (rfc2045::reply::*dsn_report_gen)(out_closure_t &&,
 					       const rfc2045::entity &,
-					       src_type &);
+					       src_type &){nullptr};
 
 	if (replymode == replymode_t::replydsn && !dsnfrom.empty())
 	{

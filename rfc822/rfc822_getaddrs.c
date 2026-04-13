@@ -11,7 +11,7 @@
 
 static void cntlen(const char *c, size_t l, void *p)
 {
-	c=c;
+	(void)c;
 	*(size_t *)p += l;
 }
 

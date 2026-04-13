@@ -503,10 +503,8 @@ int main(int argc, char **argv)
 
 				rc=auth_login_meta(NULL, q, user.c_str(), p,
 						   login_callback, NULL);
-				courier_safe_printf
-					("INFO: LOGIN "
-					 "FAILED, user=%s, ip=[%s], port=[%s]",
-					 user, ip, port);
+				courier_safe_printf("INFO: LOGIN FAILED, user=%s, ip=[%s], port=[%s]",
+						    user.c_str(), ip, port);
 				if (rc > 0)
 				{
 					perror("ERR: authentication error");

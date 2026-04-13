@@ -149,7 +149,7 @@ static int connect_host(struct proxyinfo *pi, const std::string &host)
 	}
 	freeaddrinfo(res);
 	courier_authdebug_printf
-		("Connection to proxyhost %s failed.", host);
+		("Connection to proxyhost %s failed.", host.c_str());
 	return (-1);
 }
 

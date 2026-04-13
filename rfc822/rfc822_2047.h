@@ -340,6 +340,15 @@ template<typename out_iter_type> auto tokens::display_name(
 		return iter;
 }
 
+template<typename out_iter>
+address::do_print_unicode<out_iter>::do_print_unicode(
+	const struct address &a, out_iter &iter
+)
+	: do_print{a}, iter{iter}
+{
+	a.unicode_name(std::back_inserter(name));
+}
+
 inline void display_header_no_sep() {}
 
 // Output iterator used by display_header_unicode(). The Unicode line-

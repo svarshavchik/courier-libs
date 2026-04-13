@@ -11,13 +11,13 @@
 
 static void print_func(const char *c, size_t n, void *p)
 {
-	p=p;
+	(void)p;
 	fwrite(c, n, 1, stdout);
 }
 
 static void print_separator(const char *s, void *p)
 {
-	p=p;
+	(void)p;
 	printf("%s", s);
 }
 

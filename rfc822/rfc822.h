@@ -707,11 +707,7 @@ struct address {
 
 		std::u32string name;
 
-		do_print_unicode(const struct address &a, out_iter &iter)
-			: do_print{a}, iter{iter}
-		{
-			a.unicode_name(std::back_inserter(name));
-		}
+		do_print_unicode(const struct address &a, out_iter &iter);
 
 		bool old_style() override
 		{
