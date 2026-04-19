@@ -48,7 +48,7 @@ std::string newmsg_createdraft_do(const char *, const char *, int);
 
 /* Save message in a draft file */
 
-char *newmsg_createdraft(const char *curdraft)
+std::string newmsg_createdraft(const char *curdraft)
 {
 	if (curdraft && *curdraft)
 	{
@@ -57,15 +57,11 @@ char *newmsg_createdraft(const char *curdraft)
 
 		if (!filename.empty())
 		{
-			auto p=newmsg_createdraft_do(
+			return newmsg_createdraft_do(
 				filename.c_str(), cgi("message"), 0);
-
-			return strdup(p.c_str());
 		}
 	}
-	auto p=newmsg_createdraft_do(0, cgi("message"), 0);
-
-	return strdup(p.c_str());
+	return newmsg_createdraft_do(0, cgi("message"), 0);
 }
 
 static void create_draftheader_do(const char *hdrname, const char *p,
@@ -108,7 +104,7 @@ static void create_draftheader(const char *hdrname, const char *p,
 #define	ISLWS(c)	((c)=='\t' || (c)=='\r' || (c)=='\n' || (c)==' ')
 
 static void header_wrap(const char *name, const char *hdr,
-			char *outbuf, size_t *outcnt)
+			std::string *outbuf, size_t *outcnt)
 {
 	char	*pfix;
 	size_t	offset=strlen(name);
@@ -142,8 +138,7 @@ static void header_wrap(const char *name, const char *hdr,
 
 		if (outbuf)
 		{
-			strcpy(outbuf, pfix);
-			outbuf += strlen(pfix);
+			outbuf->append(pfix);
 		}
 		*outcnt += strlen(pfix);
 
@@ -154,12 +149,12 @@ static void header_wrap(const char *name, const char *hdr,
 			{
 				if (ISLWS(hdr[j]))
 				{
-					*(outbuf++) = ' ';
+					outbuf->push_back(' ');
 					while (ISLWS(hdr[j+1]))
 						++j;
 				}
 				else
-					*(outbuf++) = hdr[j];
+					outbuf->push_back(hdr[j]);
 			}
 		}
 		*outcnt += i;
@@ -169,18 +164,12 @@ static void header_wrap(const char *name, const char *hdr,
 		while (ISLWS(*hdr))
 			++hdr;
 	}
-	if (outbuf)
-		*outbuf=0;
-	++*outcnt;
 }
-
-#include <fstream>
 
 static void create_draftheader_do(const char *hdrname, const char *p,
 	bool isrfc822addr)
 {
-char	*s, *t;
-size_t	l;
+	size_t	l;
 
 	if (!*p)	return;
 
@@ -195,32 +184,18 @@ size_t	l;
 		return;
 	}
 
-	s=rfc2047_encode_str(p, sqwebmail_content_charset.c_str(),
-			     rfc2047_qp_allow_any);
+	auto s=rfc2047::encode(p, sqwebmail_content_charset,
+			     rfc2047_qp_allow_any).first;
 
-	header_wrap(hdrname, s, NULL, &l);
-	if (l)
-	{
-		if (!(t=static_cast<char *>(malloc(l)))) enomem();
-		header_wrap(hdrname, s, t, &l);
-		if (*t)
-		{
-			free(s);
-			s = t;
-		}
-		else
-			free(t);
-	}
+	header_wrap(hdrname, s.c_str(), NULL, &l);
 
-	if (!s)
-	{
-		close(newdraftfd);
-		enomem();
-	}
+	std::string s2;
+	s2.reserve(l);
+	header_wrap(hdrname, s.c_str(), &s2, &l);
+
 	maildir_writemsgstr(newdraftfd, hdrname);
-	maildir_writemsgstr(newdraftfd, s);
+	maildir_writemsgstr(newdraftfd, s2.c_str());
 	maildir_writemsgstr(newdraftfd, "\n");
-	free(s);
 }
 
 void newmsg_create_multipart(int newdraftfd, const char *charset,
@@ -582,7 +557,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 			if (keepheader == NEWMSG_SQISPELL)
 			{
 				if (header == "mime-version" ||
-				    header.substr(0, 8) == "content-", 8)
+				    header.substr(0, 8) == "content-")
 					continue;
 			}
 			else if (keepheader == NEWMSG_PCP)
@@ -1129,26 +1104,6 @@ std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr)
 }
 
 /* ---------------------------------------------------------------------- */
-
-/* Create a potential multipart boundary separator tag */
-
-char *multipart_boundary_create()
-{
-char	pidbuf[MAXLONGSIZE];
-char	timebuf[MAXLONGSIZE];
-time_t	t;
-char	cntbuf[MAXLONGSIZE];
-static unsigned long cnt=0;
-char	*p;
-
-	sprintf(pidbuf, "%lu", (unsigned long)getpid());
-	time(&t);
-	sprintf(timebuf, "%lu", (unsigned long)t);
-	sprintf(cntbuf, "%lu", cnt++);
-	p=static_cast<char *>(malloc(strlen(pidbuf)+strlen(timebuf) +strlen(cntbuf)+20));
-	sprintf(p, "=_%s_%s_%s_000", cntbuf, pidbuf, timebuf);
-	return (p);
-}
 
 /* Search for the boundary tag in a string buffer - this is the new message
 ** we're creating.  We should really look for the tag at the beginning of the

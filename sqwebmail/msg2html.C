@@ -933,7 +933,7 @@ static std::string convertcid(
 	while (message->content_type.value != "multipart/related")
 	{
 		if (!message->get_parent_entity())
-			return strdup("");
+			return "";
 
 		++move_up;
 		message=message->get_parent_entity();
@@ -964,7 +964,7 @@ static std::string convertcid(
 
 	if (!found)	/* Not found, punt */
 	{
-		return strdup("");
+		return "";
 	}
 
 	std::string p;

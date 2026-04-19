@@ -346,7 +346,7 @@ static void doupdate(const maildir::info &minfo)
 
 		if (strcmp(p, "anonymous") == 0 ||
 		    strcmp(p, "owner") == 0)
-			entity=strdup(p);
+			entity=p;
 		else if (strcmp(p, "user") == 0)
 		{
 			p=cgi("entity");
@@ -373,7 +373,7 @@ static void doupdate(const maildir::info &minfo)
 		}
 		else
 		{
-			entity=strdup(cgi("entity"));
+			entity=cgi("entity");
 		}
 
 		if (*cgi("negate") == '-' && !entity.empty())

@@ -59,7 +59,7 @@ void output_urlencoded(const char *);
 
 extern std::string newmsg_newdraft(const char *, const char *, const char *,
 				   const char *);
-extern char *newmsg_createdraft(const char *);
+extern std::string newmsg_createdraft(const char *);
 extern std::string newmsg_createsentmsg(const char *draftname, int *isgpgerr);
 extern int ishttps();
 
@@ -505,9 +505,7 @@ void newmsg_init(const char *folder, const char *pos)
 				{
 					CHECKFILENAME(p);
 				}
-				char *ptr=newmsg_createdraft(p);
-				draftmessage=ptr;
-				free(ptr);
+				draftmessage=newmsg_createdraft(p);
 			}
 		}
 	}
@@ -810,7 +808,7 @@ static int dosendmsg(const char *origdraft)
 	const	char *returnaddr;
 	int	pipefd1[2];
 	const char *line;
-	char	*draftmessage;
+	std::string draftmessage;
 	int	isgpgerr;
 	unsigned long filesize;
 	struct stat stat_buf;
@@ -827,14 +825,14 @@ static int dosendmsg(const char *origdraft)
 		/* When called from the attachment window, we do NOT create
 		** a new draft message */
 
-		draftmessage=strdup(origdraft);
+		draftmessage=origdraft;
 	}
 	else
 		draftmessage=newmsg_createdraft(origdraft);
-	if (!draftmessage)
+	if (draftmessage.empty())
 		enomem();
 
-	auto filename=newmsg_createsentmsg(draftmessage, &isgpgerr);
+	auto filename=newmsg_createsentmsg(draftmessage.c_str(), &isgpgerr);
 
 	if (filename.empty())
 	{
@@ -851,7 +849,6 @@ static int dosendmsg(const char *origdraft)
 					    "&draft=%s&error=quota",
 					    cgi("pos"), draftbase.c_str());
 		}
-		free(draftmessage);
 		return (1);
 	}
 
@@ -859,7 +856,6 @@ static int dosendmsg(const char *origdraft)
 	{
 		cgi_put("foldermsg", "ERROR: pipe() failed.");
 		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
-		free(draftmessage);
 		return (0);
 	}
 
@@ -872,7 +868,6 @@ static int dosendmsg(const char *origdraft)
 		close(pipefd1[0]);
 		close(pipefd1[1]);
 		maildir_msgpurgefile(INBOX "." SENT, filename.c_str());
-		free(draftmessage);
 		return (0);
 	}
 
@@ -931,7 +926,7 @@ static int dosendmsg(const char *origdraft)
 
 	if (*line == 0)	/* Succesfully sent message */
 	{
-		if (*draftmessage)
+		if (!draftmessage.empty())
 		{
 			auto base=maildir_basename(draftmessage);
 			auto draftfile=maildir_find(INBOX "." DRAFTS, base.c_str());
@@ -1012,7 +1007,6 @@ static int dosendmsg(const char *origdraft)
 			}
 		}
 
-		free(draftmessage);
 		sendmsg_done();
 		return (1);
 	}
@@ -1026,7 +1020,6 @@ static int dosendmsg(const char *origdraft)
 
 		http_redirect_argsss("&form=newmsg&pos=%s&draft=%s&foldermsg=%s",
 			cgi("pos"), draftbase.c_str(), line);
-		free(draftmessage);
 	}
 	return (1);
 }
@@ -1042,10 +1035,7 @@ const	char *draftmessage=cgi("draftmessage");
 
 	if (*cgi("savedraft"))
 	{
-	char	*newdraft=newmsg_createdraft(draftmessage);
-
-		if (!newdraft)	enomem();
-		free(newdraft);
+		newmsg_createdraft(draftmessage);
 		sendmsg_done();
 		return;
 	}
@@ -1055,9 +1045,8 @@ const	char *draftmessage=cgi("draftmessage");
 
 	if (*cgi("doattachments"))
 	{
-	char	*newdraft=newmsg_createdraft(draftmessage);
+		auto newdraft=newmsg_createdraft(draftmessage);
 
-		if (!newdraft)	enomem();
 		if (*cgi("error"))
 		{
 			cgi_put("previewmsg", "1");
@@ -1068,17 +1057,13 @@ const	char *draftmessage=cgi("draftmessage");
 		auto base=maildir_basename(newdraft);
 		http_redirect_argss("&form=attachments&pos=%s&draft=%s",
 			cgi("pos"), base.c_str());
-		free(newdraft);
 		return;
 	}
 #ifdef	ISPELL
 	if (*cgi("startspellchk"))
 	{
-	char	*newdraft=newmsg_createdraft(draftmessage);
-
-		if (!newdraft)	enomem();
+		auto newdraft=newmsg_createdraft(draftmessage);
 		auto base=maildir_basename(newdraft);
-		free(newdraft);
 		if (spell_start(base.c_str()) == 0)
 		{
 			cgi_put("draftmessage", base.c_str());

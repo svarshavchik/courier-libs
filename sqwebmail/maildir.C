@@ -247,14 +247,15 @@ std::string maildir_find(const char *folder, const char *filename)
 ** - return base name of the file (strip off cur or new, strip of trailing :)
 */
 
-std::string maildir_basename(const char *filename)
+std::string maildir_basename(std::string_view filename)
 {
-	const char *q=strrchr(filename, '/');
-
-	if (q)	++q;
-	else	q=filename;
-	std::string p{q};
-	auto r=p.find(':');
+	size_t slash=filename.rfind('/');
+	if (slash == std::string_view::npos)
+		slash=0;
+	else
+		slash++;
+	std::string p{filename.substr(slash)};
+	size_t r=p.find(':');
 	if (r != std::string::npos)
 		p.erase(r);
 

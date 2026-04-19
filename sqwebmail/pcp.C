@@ -1939,7 +1939,7 @@ void sqpcp_save()
 
 static void saveerror(struct PCP *pcp, const int *xerror)
 {
-	static char *errmsgbuf=0;
+	static std::string errmsgbuf;
 	const char *p;
 
 	if (xerror)
@@ -1964,17 +1964,14 @@ static void saveerror(struct PCP *pcp, const int *xerror)
 
 	cgi_put("error", "calendar");
 
-	if (errmsgbuf)
-		free(errmsgbuf);
-
 	/*
 	** Save err msg into a static buffer, because err msg text memory
 	** may go away after the handle is closed.
 	*/
 
 	p=pcp_errmsg(pcp);
-	errmsgbuf=strdup(p ? p:"");
-	cgi_put("pcperror", errmsgbuf);
+	errmsgbuf=p ? p:"";
+	cgi_put("pcperror", errmsgbuf.c_str());
 }
 
 struct proxy_update_list {

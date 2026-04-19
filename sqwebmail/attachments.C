@@ -66,7 +66,6 @@ extern void newmsg_copy_content_headers(const rfc2045::entity &message,
 extern void newmsg_create_multipart(int, const char *, const char *);
 extern void newmsg_copy_nonmime_headers(const rfc2045::entity &message,
 					rfc822::fdstreambuf &fd);
-extern char *multipart_boundary_create();
 extern bool multipart_boundary_checkf(std::string, std::streambuf &);
 extern void sendmsg_done();
 
@@ -595,30 +594,6 @@ static int getkey(const char *keyname, int issecret)
 	upload_end(NULL);
 	return (rc);
 }
-
-#if 0
-static void write_disposition_param(const char *label, const char *value)
-{
-char	*p, *q;
-const char *r;
-
-        while (value && ((r=strchr(value, ':')) || (r=strchr(value, '/'))
-                || (r=strchr(value, '\\'))))
-                value=r+1;
-
-	if (!value || !*value)	return;
-	maildir_writemsgstr(newdraftfd, "; ");
-	maildir_writemsgstr(newdraftfd, label);
-	maildir_writemsgstr(newdraftfd, "=\"");
-	p=strdup(value);
-	if (!p)	enomem();
-	while ((q=strchr(p, '\\')) || (q=strchr(p, '"')))
-		*q='_';
-	maildir_writemsgstr(newdraftfd, p);
-	maildir_writemsgstr(newdraftfd, "\"");
-	free(p);
-}
-#endif
 
 int attach_upload(
 	const char *draft,

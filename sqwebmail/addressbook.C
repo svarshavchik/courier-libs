@@ -681,25 +681,28 @@ void addressbook()
 			{
 			const char *addy=cgi(strcat(strcpy(numbuf2, "ADDY"),
                                         libmail_str_size_t(i, numbuf)));
-			char	*addycpy;
-			char	*name;
 
 				if (*addy == 0)	continue;
 
-				addycpy=strdup(addy);
-				if (!addycpy)	enomem();
+				std::string addycpy=addy;
 
-				name=strchr(addycpy, '>');
-				if (!name)
+				size_t gt=addycpy.find('>');
+				if (gt == std::string::npos)
 				{
-					free(addycpy);
 					continue;
 				}
-				*name++=0;
-				while (*name == ' ')	++name;
-				addy=addycpy;
-				if (*addy == '<')	++addy;
-				ab_add(name, addy, nick1);
+				std::string name=addycpy.substr(gt+1);
+				addycpy.resize(gt);
+
+				for (size_t i=0; i<name.size(); ++i)
+					if (name[i] != ' ')
+						break;
+				name.erase(0, i);
+
+				size_t lt=addycpy.find('<');
+				if (lt != std::string::npos)
+					addycpy.erase(0, lt+1);
+				ab_add(name.c_str(), addycpy.c_str(), nick1);
 			}
 		}
 	}

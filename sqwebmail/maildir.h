@@ -104,7 +104,7 @@ extern void maildir_deletenewmsg(rfc822::fdstreambuf &,
 
 extern std::string folder_fromutf8(std::string_view);
 extern std::string folder_toutf8(std::string_view);
-extern std::string maildir_basename(const char *);
+extern std::string maildir_basename(std::string_view);
 
 typedef std::vector<
 	std::tuple<MSGINFO, std::vector<MATCHEDSTR>>
