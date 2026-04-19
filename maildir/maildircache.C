@@ -66,7 +66,7 @@ int maildir_cache_init(time_t n, const char *d, const char *o,
 	for (x=0; a[x]; x++)
 		;
 
-	if ((authvals=malloc(sizeof(char *)*(x+1))) == NULL)
+	if ((authvals=static_cast<char **>(malloc(sizeof(char *)*(x+1)))) == NULL)
 		return (-1);
 
 	for (x=0; a[x]; x++)
@@ -96,7 +96,7 @@ char	*f, *g;
 		if (*p == '/' || *p == '+' || (int)(unsigned char)*p >= 127)
 			l += 2;
 	}
-	g=malloc(l);
+	g=static_cast<char *>(malloc(l));
 	if (!g)
 	{
 		perror("CRIT: maildircache: malloc failed");
@@ -123,7 +123,7 @@ char	*f, *g;
 
 	l=sizeof("//xx/xxxxxxx") + strlen(cachedir);
 	l += strlen(libmail_str_time_t( login_time, buf)) + strlen(g);
-	f=malloc(l);
+	f=static_cast<char *>(malloc(l));
 	if (!f)
 	{
 		free(g);
@@ -146,7 +146,8 @@ void maildir_cache_start()
 {
 int	pipefd[2];
 char	buf[2048];
-int	i, j;
+size_t i;
+int	j;
 char	*userid, *login_time, *data;
 time_t	login_time_n;
 char	*f;
@@ -336,7 +337,7 @@ int maildir_cache_search(const char *a, time_t b,
 	uid_t	u;
 	gid_t	g;
 	char dir[1024];
-	int	n;
+	size_t	n;
 	int	c;
 
 	if (!f)
@@ -438,13 +439,13 @@ struct purge_list {
 
 static void add_purge_list(struct purge_list **p, const char *a)
 {
-	char *c=malloc(strlen(a) + 1);
+	char *c=strdup(a);
 	struct purge_list *pp;
 
 	if (!c)
 		return;
 
-	pp=malloc(sizeof(struct purge_list));
+	pp=static_cast<purge_list *>(malloc(sizeof(struct purge_list)));
 	if (!pp)
 	{
 		free(c);
@@ -455,7 +456,6 @@ static void add_purge_list(struct purge_list **p, const char *a)
 
 	*p=pp;
 	pp->n=c;
-	strcpy(c, a);
 }
 
 static void rmrf(const char *);

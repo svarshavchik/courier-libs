@@ -30,7 +30,7 @@ libmaildir.deps: config.status
 
 libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildiraclt.h maildiracltcpp.C \
-	maildircache.c maildircache.h \
+	maildircache.C maildircache.h \
 	maildircreate.C maildircreate.h \
 	maildirfilename.C maildirgetnew.c \
 	maildirfilter.C maildirfilter2.C \
