@@ -2239,6 +2239,7 @@ static void accept_pcpd(int sock, int pubsock, int privsock, int flag)
 	int fd;
 	pid_t pid;
 	struct PCP *pcp;
+	time_t now;
 
 	if ((fd=accept_sock(sock)) < 0)
 		return;
@@ -2250,7 +2251,8 @@ static void accept_pcpd(int sock, int pubsock, int privsock, int flag)
 		return;
 	}
 
-	maildir_cache_purge();
+	time(&now);
+	maildir_cache_purge(now);
 	pid=fork();
 
 	if (pid < 0)

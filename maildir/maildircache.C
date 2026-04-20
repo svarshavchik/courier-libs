@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2006 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -26,83 +26,67 @@
 #if	HAVE_FCNTL_H
 #include	<fcntl.h>
 #endif
-#if HAVE_DIRENT_H
-#include <dirent.h>
-#define NAMLEN(dirent) strlen((dirent)->d_name)
-#else
-#define dirent direct
-#define NAMLEN(dirent) (dirent)->d_namlen
-#if HAVE_SYS_NDIR_H
-#include <sys/ndir.h>
-#endif
-#if HAVE_SYS_DIR_H
-#include <sys/dir.h>
-#endif
-#if HAVE_NDIR_H
-#include <ndir.h>
-#endif
-#endif
+
+#include	<iostream>
+#include	<fstream>
+#include	<filesystem>
+#include	<charconv>
 
 #define exit(_a_) _exit(_a_)
 
+#include <string>
+#include <vector>
 
-static const char * const *authvars;
-static char **authvals;
+static std::vector<std::string> authvars;
+static std::vector<std::string> authvals;
 static time_t expinterval;
 static time_t lastclean=0;
 static const char *cachedir;
 static const char *cacheowner;
 
-int maildir_cache_init(time_t n, const char *d, const char *o,
+void maildir_cache_init(time_t n, const char *d, const char *o,
 			const char * const *a)
 {
-	unsigned x;
+	size_t x=0;
 
 	expinterval=n;
 	cachedir=d;
 	cacheowner=o;
-	authvars=a;
+
+	if (a)
+		for (x=0; a[x]; x++)
+			;
+	authvars.reserve(x);
+	authvals.resize(x);
 
 	for (x=0; a[x]; x++)
-		;
-
-	if ((authvals=static_cast<char **>(malloc(sizeof(char *)*(x+1)))) == NULL)
-		return (-1);
-
-	for (x=0; a[x]; x++)
-		authvals[x]=0;
-	return (0);
+		authvars.push_back(a[x]);
 }
 
-static char *create_cache_name(const char *userid, time_t login_time)
+
+static std::string create_cache_name(const char *userid, time_t login_time)
 {
-int	l;
-char	buf[NUMBUFSIZE];
-const char	*p;
-char	*q;
-char	*f, *g;
+	size_t	l;
+	char	buf[NUMBUFSIZE];
 
 	login_time /= expinterval;
-	l=1;
-	for (p=userid; *p; p++)
+	l=0;
+	for (const char *p=userid; *p; p++)
 	{
 		++l;
 		if ((unsigned char)*p < ' ' ||
 		    *p == ';' || *p == '\'' || *p == ';')
 		{
-			fprintf(stderr, "CRIT: maildircache: invalid chars in userid: %s\n", p);
+			std::cerr << "CRIT: maildircache: invalid chars in"
+					  " userid: " << p << "\n";
 			return (NULL);
 		}
 		if (*p == '/' || *p == '+' || (int)(unsigned char)*p >= 127)
 			l += 2;
 	}
-	g=static_cast<char *>(malloc(l));
-	if (!g)
-	{
-		perror("CRIT: maildircache: malloc failed");
-		return (NULL);
-	}
-	q=g;
+	std::string g;
+	g.reserve(l);
+
 	while (*userid)
 	{
 		if (*userid == '/' || *userid == '+'
@@ -110,32 +94,31 @@ char	*f, *g;
 		{
 		static char xdigit[]="0123456789ABCDEF";
 
-			*q++ = '+';
-			*q++ = xdigit[ (*userid >> 4) & 15 ];
-			*q++ = xdigit[ (*userid) & 15 ];
+			g.push_back('+');
+			g.push_back(xdigit[ (*userid >> 4) & 15 ]);
+			g.push_back(xdigit[ (*userid) & 15 ]);
 		}
 		else
-			*q++ = *userid;
+			g.push_back(*userid);
 
 		++userid;
 	}
-	*q=0;
 
 	l=sizeof("//xx/xxxxxxx") + strlen(cachedir);
-	l += strlen(libmail_str_time_t( login_time, buf)) + strlen(g);
-	f=static_cast<char *>(malloc(l));
-	if (!f)
-	{
-		free(g);
-		perror("CRIT: maildircache: malloc failed");
-		return (NULL);
-	}
-	strcat(strcat(strcat(strcpy(f, cachedir), "/"), buf), "/");
-	strncpy(buf, g, 2);
+	l += strlen(libmail_str_time_t( login_time, buf)) + g.size();
+
+	std::string f;
+	f.reserve(l);
+	f += cachedir;
+	f += "/";
+	f += buf;
+	f += "/";
+	strncpy(buf, g.c_str(), 2);
 	buf[2]=0;
 	while (strlen(buf) < 2)	strcat(buf, "+");
-	strcat(strcat(strcat(f, buf), "/"), g);
-	free(g);
+	f += buf;
+	f += "/";
+	f += g;
 	return (f);
 }
 
@@ -144,14 +127,13 @@ static int childpipe;
 
 void maildir_cache_start()
 {
-int	pipefd[2];
-char	buf[2048];
-size_t i;
-int	j;
-char	*userid, *login_time, *data;
-time_t	login_time_n;
-char	*f;
-FILE	*fp;
+	int	pipefd[2];
+	char	buf[2048];
+	size_t i;
+	int	j;
+	char	*userid, *login_time, *data;
+	time_t	login_time_n;
+	std::ofstream fp;
 
 	if (pipe(pipefd) < 0)
 	{
@@ -180,7 +162,8 @@ FILE	*fp;
 
 			/* Problems */
 
-			fprintf(stderr, "CRIT: maildircache: Max cache buffer overflow.\n");
+			std::cerr << "CRIT: maildircache: Max cache"
+					  " buffer overflow.\n";
 			exit(1);
 		}
 
@@ -201,8 +184,9 @@ FILE	*fp;
 
 		if (!pwd || setgid(pwd->pw_gid) || setuid(pwd->pw_uid))
 		{
-			fprintf(stderr, "CRIT: maildircache: Cache create failure - cannot change to user %s\n",
-			       cacheowner);
+			std::cerr << "CRIT: maildircache: Cache create failure"
+					  " - cannot change to user "
+					  << cacheowner << "\n";
 			exit(1);
 		}
 	}
@@ -213,13 +197,15 @@ FILE	*fp;
 	userid=buf;
 	if ((login_time=strchr(userid, ' ')) == 0)
 	{
-		fprintf(stderr, "CRIT: maildircache: Cache create failure - authentication process crashed.\n");
+		std::cerr << "CRIT: maildircache: Cache create failure"
+				  " - authentication process crashed.\n";
 		exit(1);
 	}
 	*login_time++=0;
 	if ((data=strchr(login_time, ' ')) == 0)
 	{
-		fprintf(stderr, "CRIT: maildircache: Cache create failure - authentication process crashed.\n");
+		std::cerr << "CRIT: maildircache: Cache create failure" 
+				  " - authentication process crashed.\n";
 		exit(1);
 	}
 	*data++=0;
@@ -228,53 +214,52 @@ FILE	*fp;
 	while (*login_time >= '0' && *login_time <= '9')
 		login_time_n = login_time_n * 10 + (*login_time++ -'0');
 
-	f=create_cache_name(userid, login_time_n);
+	std::string f=create_cache_name(userid, login_time_n);
 
-	if (!f)
-		exit(0);
-
-	if ((fp=fopen(f, "w")) == 0)	/* Try creating subdirs */
+	fp.open(f.c_str());
+	if (!fp)	/* Try creating subdirs */
 	{
-		char	*p=f+strlen(cachedir);
+		size_t n=strlen(cachedir);
 
-		while (p && *p == '/')
+		while (n < f.size() && f[n] == '/')
 		{
-			*p=0;
-			mkdir(f, 0700);
-			*p='/';
-			p=strchr(p+1, '/');
+			f[n]=0;
+			mkdir(f.c_str(), 0700);
+			f[n]='/';
+			n=f.find('/', n+1);
 		}
 
-		if ((fp=fopen(f, "w")) == 0)
+		fp.open(f.c_str());
+		if (!fp)
 		{
-			fprintf(stderr, "CRIT: maildircache: Cache create failure - unable to create file %s.\n", f);
+			std::cerr << "CRIT: maildircache: Cache create failure" 
+					  " - unable to create file "
+					  << f << "\n";
 			exit(1);
 		}
 	}
 
-	if ( fwrite(data, strlen(data), 1, fp) != 1 || fflush(fp)
-	     || ferror(fp))
+	fp.write(data, strlen(data));
+	if (fp.fail())
 	{
-		fclose(fp);
-		unlink(f);	/* Problems */
-		free(f);
-		fprintf(stderr, "CRIT: maildircache: Cache create failure - write error.\n");
+		fp.close();
+		unlink(f.c_str());	/* Problems */
+		std::cerr << "CRIT: maildircache: Cache create failure" 
+				  " - write error.\n";
 		exit(1);
 	}
-	else	fclose(fp);
-	free(f);
+	else	fp.close();
 	exit(0);
 }
 
-static int savebuf(char *p, int l)
+static int savebuf(std::string_view p)
 {
-	while (l)
+	while (p.size())
 	{
-	int	n=write(childpipe, p, l);
+	int	n=write(childpipe, p.data(), p.size());
 
 		if (n <= 0)	return (-1);
-		p += n;
-		l -= n;
+		p = p.substr(n);
 	}
 	return (0);
 }
@@ -282,33 +267,37 @@ static int savebuf(char *p, int l)
 void maildir_cache_save(const char *a, time_t b, const char *homedir,
 		      uid_t u, gid_t g)
 {
-char	buf[2048];
-char	buf2[NUMBUFSIZE];
-pid_t	p;
-int	waitstat;
+	std::string buf;
+	char	buf2[NUMBUFSIZE];
+	pid_t	p;
+	int	waitstat;
 
-	strcat(strcpy(buf, a), " ");
-	strcat(strcat(buf, libmail_str_time_t(b, buf2)), " ");
-	strcat(strcat(buf, libmail_str_uid_t(u, buf2)), " ");
-	strcat(strcat(buf, libmail_str_gid_t(g, buf2)), " ");
-	strncat(buf, homedir, sizeof(buf)-2-strlen(homedir));
-	strcat(buf, "\n");
+	buf += a;
+	buf += " ";
+	buf += libmail_str_time_t(b, buf2);
+	buf += " ";
+	buf += libmail_str_uid_t(u, buf2);
+	buf += " ";
+	buf += libmail_str_gid_t(g, buf2);
+	buf += " ";
+	buf += homedir;
+	buf += "\n";
 
-	if (savebuf(buf, strlen(buf)) == 0)
+	if (savebuf(buf) == 0)
 	{
-	int	i;
-
-		for (i=0; authvars[i]; i++)
+		for (auto &v:authvars)
 		{
 		const char *p;
 
-			strcat(strcpy(buf, authvars[i]), "=");
-			p=getenv(authvars[i]);
-			if (!p || strlen(p)+strlen(buf) >= sizeof(buf)-2 ||
-				strchr(p, '\n'))
+			buf.clear();
+			buf += v;
+			buf += "=";
+			p=getenv(v.c_str());
+			if (strchr(p, '\n'))
 				continue;
-			strcat(strcat(buf, p), "\n");
-			if (savebuf(buf, strlen(buf)))	break;
+			buf += p;
+			buf += "\n";
+			if (savebuf(buf))	break;
 		}
 	}
 	close(childpipe);
@@ -332,146 +321,74 @@ int maildir_cache_search(const char *a, time_t b,
 			 int (*callback_func)(uid_t, gid_t, const char *,
 					      void *), void *callback_arg)
 {
-	char *f=create_cache_name(a, b);
-	FILE *fp;
+	std::string f=create_cache_name(a, b);
+	std::ifstream fp;
 	uid_t	u;
 	gid_t	g;
-	char dir[1024];
 	size_t	n;
 	int	c;
 
-	if (!f)
-		return (-1);
-	fp=fopen(f, "r");
-	free(f);
+	fp.open(f);
 	if (!fp)
 		return (-1);
 
 	u=0;
-	while ((c=getc(fp)) != ' ')
+	while ((c=fp.get()) != ' ')
 	{
 		if (c < '0' || c > '9')
-		{
-			fclose(fp);
 			return (-1);
-		}
 		u=u*10 + (c-'0');
 	}
 
 	g=0;
-	while ((c=getc(fp)) != ' ')
+	while ((c=fp.get()) != ' ')
 	{
 		if (c < '0' || c > '9')
-		{
-			fclose(fp);
 			return (-1);
-		}
 		g=g*10 + (c-'0');
 	}
 
-	for (n=0; (c=getc(fp)) != EOF; n++)
+	std::string dir;
+	while ((c=fp.get()) != EOF)
 	{
 		if (c == '\n')	break;
-		if (n >= sizeof(dir)-1)
-		{
-			fclose(fp);
-			fprintf(stderr, "CRIT: maildircache: Cache record overflow.\n");
-			return (-1);
-		}
-		dir[n]=(char)c;
+		dir.push_back(c);
 	}
-	dir[n]=0;
 
-	if ((n=(*callback_func)(u, g, dir, callback_arg)) != 0)
-	{
-		fclose(fp);
+	if ((n=(*callback_func)(u, g, dir.c_str(), callback_arg)) != 0)
 		return (n);
-	}
 
 	if (c != EOF)
 	{
-		while (fgets(dir, sizeof(dir), fp))
+		while (std::getline(fp, dir))
 		{
-		char	*q;
-
-			if ( (q=strchr(dir, '\n')) == 0)
+			for (size_t i=0; i<authvars.size(); i++)
 			{
-				fclose(fp);
-				fprintf(stderr, "CRIT: maildircache: Cache record overflow.\n");
-				return (-1);
-			}
-			*q=0;
+				size_t l=authvars[i].size();
 
-			for (n=0; authvars[n]; n++)
-			{
-				int l=strlen(authvars[n]);
-
-				if (strncmp(dir, authvars[n], l) == 0 &&
+				if (dir.size() <= l)
+					continue;
+				if (strncmp(dir.data(), authvars[i].c_str(), l) == 0 &&
 				    dir[l] == '=')
 				{
-					char *s=strdup(dir);
+					authvals[i]=dir;
+					putenv(authvals[i].data());
 
-					if (!s)
-					{
-						fclose(fp);
-						perror("CRIT: maildircache: malloc failed");
-						return (-1);
-					}
-
-					putenv(s);
-
-					if (authvals[n])
-						free(authvals[n]);
-					authvals[n]=s;
 					break;
 				}
 			}
 		}
-		fclose(fp);
 	}
 	return (0);
 }
 
-struct purge_list {
-	struct purge_list *next;
-	char *n;
-} ;
-
-static void add_purge_list(struct purge_list **p, const char *a)
+void maildir_cache_purge(time_t now)
 {
-	char *c=strdup(a);
-	struct purge_list *pp;
-
-	if (!c)
-		return;
-
-	pp=static_cast<purge_list *>(malloc(sizeof(struct purge_list)));
-	if (!pp)
-	{
-		free(c);
-		return;
-	}
-
-	pp->next=*p;
-
-	*p=pp;
-	pp->n=c;
-}
-
-static void rmrf(const char *);
-
-void maildir_cache_purge()
-{
-	time_t now;
 	pid_t p;
 	int waitstat;
 	struct passwd *pw;
-	struct purge_list *pl;
-	DIR *dirp;
-	struct dirent *de;
+	std::vector<std::string> pl;
 	struct sigaction sa, oldsa;
-
-	time(&now);
 
 	if (lastclean && lastclean >= now - expinterval)
 		return;
@@ -503,103 +420,62 @@ void maildir_cache_purge()
 		return;
 	}
 
+#ifndef UNIT_TEST
 	p=fork();
 
 	if (p)
 		exit(0);
+#endif
 
 	pw=getpwnam(cacheowner);
 
 	if (!pw)
 	{
-		fprintf(stderr, "CRIT: maildircache: no such user %s - cannot purge login cache dir\n",
-		       cacheowner);
+		std::cerr << "CRIT: maildircache: no such user "
+				  << cacheowner
+				  << " - cannot purge login cache dir\n";
 		exit(0);
 	}
 
 	if (setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0)
 	{
-		fprintf(stderr, "CRIT: maildircache: cannot change to uid/gid for %s - cannot purge login cache dir\n",
-		       cacheowner);
+		std::cerr << "CRIT: maildircache: cannot change to uid/gid for "
+				  << cacheowner
+				  << " - cannot purge login cache dir\n";
 		exit(0);
 	}
 
 	if (chdir(cachedir))
 	{
-		fprintf(stderr, "CRIT: maildircache: cannot change dir to %s\n", cachedir);
+		std::cerr << "CRIT: maildircache: cannot change dir to "
+				  << cachedir << "\n";
 		exit(0);
 	}
-
-	pl=NULL;
-
-	dirp=opendir(".");
 
 	now /= expinterval;
 	--now;
 
-	while (dirp && (de=readdir(dirp)) != NULL)
+	for (auto &de:std::filesystem::directory_iterator("."))
 	{
-		if (!isdigit((int)(unsigned char)de->d_name[0]))
+		std::string n=de.path().filename();
+		if (n[0] < '0' || n[0] > '9')
 			continue;
 
-		if (atol(de->d_name) >= now)
+		time_t timestamp;
+
+		if (std::from_chars(n.data(), n.data()+n.size(), timestamp).ec
+			!= std::errc{})
 			continue;
 
-		add_purge_list(&pl, de->d_name);
+		if (timestamp >= now)
+			continue;
+
+		pl.push_back(n);
 	}
-	if (dirp)
-		closedir(dirp);
 
-	while (pl)
+	for (auto &p:pl)
 	{
-		struct purge_list *p=pl;
-
-		pl=pl->next;
-
-		rmrf(p->n);
-		free(p->n);
-		free(p);
+		std::filesystem::remove_all(p);
 	}
 	exit(0);
-}
-
-static void rmrf(const char *d)
-{
-	DIR *dirp;
-	struct dirent *de;
-	struct purge_list *pl=NULL, *p;
-
-	if (chdir(d))
-		return;
-
-	dirp=opendir(".");
-
-	while (dirp && (de=readdir(dirp)) != NULL)
-	{
-		if (strcmp(de->d_name, ".") == 0 ||
-		    strcmp(de->d_name, "..") == 0)
-			continue;
-
-		add_purge_list(&pl, de->d_name);
-	}
-	if (dirp)
-		closedir(dirp);
-
-	while (pl)
-	{
-		p=pl;
-
-		pl=pl->next;
-
-		if (unlink(p->n))
-			rmrf(p->n);
-		free(p->n);
-		free(p);
-	}
-
-	if (chdir("..") < 0 || rmdir(d) < 0)
-	{
-		fprintf(stderr, "CRIT: maildircache: cannot chdir to .. while purging login cache\n");
-		exit(1);
-	}
 }

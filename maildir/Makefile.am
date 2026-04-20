@@ -53,7 +53,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \
 	maildirkwtest2 maildirkwtest3 testautoresponse testmaildirmisc \
 	maildirkw maildiracl maildiraclttest testmaildirsearch maildirwatch \
-	maildirmake.tst
+	maildirmake.tst testmaildircache
 
 deliverquota_SOURCES=deliverquota.c
 deliverquota_DEPENDENCIES=libmaildir.la ../rfc822/librfc822.la \
@@ -76,12 +76,15 @@ maildirmake_tst_DEPENDENCIES=$(maildirmake_DEPENDENCIES)
 maildirmake_tst_LDADD=$(maildirmake_LDADD)
 maildirmake_tst_LDFLAGS=$(maildirmake_LDFLAGS)
 
+testmaildircache_SOURCES=testmaildircache.C
+testmaildircache_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
+testmaildircache_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
+testmaildircache_LDFLAGS=-static
 
 testmaildirfilter_SOURCES=maildirfiltertypelist.h testmaildirfilter.C
 testmaildirfilter_DEPENDENCIES=libmaildir.la ../numlib/libnumlib.la
 testmaildirfilter_LDADD=libmaildir.la ../numlib/libnumlib.la -lcourier-unicode  @PCRE_LDFLAGS@
 testmaildirfilter_LDFLAGS=-static
-nodist_EXTRA_testmaildirfilter_SOURCES=dummy.C
 
 maildirkw_SOURCES=maildirkw.C
 maildirkw_LDADD=libmaildir.la ../liblock/liblock.la ../numlib/libnumlib.la
@@ -142,6 +145,7 @@ EXTRA_DIST=README.maildirquota.html README.maildirquota.txt \
 	README.imapkeywords.html \
 	README.maildirfilter.html \
 	README.sharedfolders.html README.sharedfolders.txt \
+	testmaildircache.tst \
 	testsuite testsuite.txt testsuite2 testsuite2.txt quotawarnmsg $(DOCS)
 
 README.maildirquota.txt: README.maildirquota.html
@@ -191,6 +195,15 @@ check-am:
 	./testmaildirmisc
 	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
 		LC_ALL=C; export LC_ALL; valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testmaildirmisc
+	LC_ALL=C; export LC_ALL; \
+		./testmaildircache > testmaildircache.out 2>&1 || exit 1; \
+	diff -U 3 $(srcdir)/testmaildircache.tst testmaildircache.out || exit 1; \
+	rm -f testmaildircache.out
+	VALGRIND="`which valgrind 2>/dev/null`"; test "$$VALGRIND" != "" || exit 0; \
+		LC_ALL=C; export LC_ALL; valgrind -q --tool=memcheck --leak-check=yes --error-exitcode=1 \
+			./testmaildircache > testmaildircache.out 2>&1 || exit 1; \
+	diff -U 3 $(srcdir)/testmaildircache.tst testmaildircache.out || exit 1; \
+	rm -f testmaildircache.out
 
 if HAVE_SGML
 

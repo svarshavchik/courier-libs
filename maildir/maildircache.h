@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2001 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -90,18 +90,27 @@ extern "C" {
 }
 #endif
 
-extern int maildir_cache_init(time_t, const char *, const char *,
-			      const char * const *);
+extern void maildir_cache_init(
+	time_t,
+	const char *,
+	const char *,
+	const char * const *);
+
 extern void maildir_cache_start(void);
-extern void maildir_cache_save(const char *, time_t, const char *, uid_t,
-			       gid_t);
+
+extern void maildir_cache_save(
+	const char *,
+	time_t,
+	const char *,
+	uid_t,
+	gid_t);
 extern void maildir_cache_cancel(void);
 
 extern int maildir_cache_search(const char *, time_t,
 				int (*)(uid_t, gid_t, const char *, void *),
 				void *);
 
-extern void maildir_cache_purge();
+extern void maildir_cache_purge(time_t now);
 
 #if 0
 {

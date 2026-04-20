@@ -39,6 +39,7 @@
 /sharedindexinstall
 /sharedindexsplit
 /testautoresponse
+/testmaildircache
 /testmaildirfilter
 /testmaildirmisc
 /testmaildirsearch

@@ -2274,11 +2274,7 @@ time_t	timeouthard=get_timeouthard();
 		timeouthard=get_timeouthard();
 	}
 
-	if (maildir_cache_init(timeouthard, CACHEDIR, CACHEOWNER, authvars))
-	{
-		printf("Content-Type: text/plain\n\nmaildir_cache_init() failed\n");
-		fake_exit(0);
-	}
+	maildir_cache_init(timeouthard, CACHEDIR, CACHEOWNER, authvars);
 
 	pi=getenv("PATH_INFO");
 
