@@ -1,5 +1,5 @@
 /*
-** Copyright 2001-2006 S. Varshavchik.  See COPYING for
+** Copyright 2001-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -112,7 +112,7 @@ static int inputchar(struct PCP *pcp)
 		if (input_line_len + BUFSIZ >= input_buffer_len)
 		{
 			size_t n=input_line_len + BUFSIZ;
-			char *p=realloc(input_buffer, n);
+			char *p=static_cast<char *>(realloc(input_buffer, n));
 
 			if (!p)
 			{
@@ -289,7 +289,7 @@ static int addrcmp(const char *a, const char *b)
 
 	if (strchr(a, '@') == NULL)
 	{
-		aa=malloc(strlen(a)+strlen(h)+2);
+		aa=static_cast<char *>(malloc(strlen(a)+strlen(h)+2));
 
 		if (!aa)
 		{
@@ -304,7 +304,7 @@ static int addrcmp(const char *a, const char *b)
 
 	if (strchr(b, '@') == NULL)
 	{
-		aa=malloc(strlen(b)+strlen(h)+2);
+		aa=static_cast<char *>(malloc(strlen(b)+strlen(h)+2));
 
 		if (!aa)
 		{
@@ -334,7 +334,7 @@ static struct proxy_list *proxy(const char *proxy_userid, char **errmsg)
 			return (p);
 	}
 
-	p=malloc(sizeof(struct proxy_list));
+	p=static_cast<struct proxy_list *>(malloc(sizeof(struct proxy_list)));
 	if (!p)
 		return (NULL);
 	memset(p, 0, sizeof(*p));
@@ -519,10 +519,10 @@ static int mkparticipants(struct PCP_save_event *se)
 	if (cnt == 0)
 		return (0);
 
-	if ((new_commit_participants_buf=malloc(l)) == NULL)
+	if ((new_commit_participants_buf=static_cast<char *>(malloc(l))) == NULL)
 		return (-1);
 	if ((new_commit_participants
-	     =calloc(cnt, sizeof(struct PCP_event_participant))) == NULL)
+	     =static_cast<struct PCP_event_participant *>(calloc(cnt, sizeof(struct PCP_event_participant)))) == NULL)
 		return (-1);
 
 	l=0;
@@ -752,7 +752,7 @@ static int do_report_conflict(const char *e, time_t start, time_t end,
 {
 	struct extra_conflict_info *eci=(struct extra_conflict_info *)vp;
 	struct report_conflict_info **p=eci->conflict_list;
-	struct report_conflict_info *q=malloc(sizeof(**p));
+	struct report_conflict_info *q=static_cast<struct report_conflict_info *>(malloc(sizeof(**p)));
 
 	if (!q)
 		return (-1);
@@ -846,7 +846,7 @@ static void dobook(struct PCP *pcp)
 		from_s[14]=0;
 		to_s[14]=0;
 
-		if ( (*last=malloc(sizeof(**last))) == NULL)
+		if ( (*last=static_cast<struct book_time_list *>(malloc(sizeof(**last)))) == NULL)
 		{
 			printf("500 %s\n", strerror(errno));
 			rc= -1;
@@ -872,7 +872,7 @@ static void dobook(struct PCP *pcp)
 		rc= -1;
 	}
 
-	if (rc == 0 && (new_times=calloc(n, sizeof(struct PCP_event_time)))
+	if (rc == 0 && (new_times=static_cast<struct PCP_event_time *>(calloc(n, sizeof(struct PCP_event_time))))
 	    == NULL)
 	{
 		printf("500 %s\n", strerror(errno));
@@ -1319,7 +1319,7 @@ static int retr(struct PCP *pcp)
 	{
 		char *s=strdup(q);
 
-		if (!s || (p=malloc(sizeof(struct retrinfo_event_list)))
+		if (!s || (p=static_cast<struct retrinfo_event_list *>(malloc(sizeof(struct retrinfo_event_list))))
 		    == NULL)
 		{
 			perror("malloc");
@@ -1334,7 +1334,7 @@ static int retr(struct PCP *pcp)
 	if (ri.event_list == NULL)
 		return (-1);
 
-	if ((ri.event_list_array=malloc((n+1) * sizeof(const char *)))
+	if ((ri.event_list_array=static_cast<const char **>(malloc((n+1) * sizeof(const char *))))
 	    == NULL)
 	{
 		perror("malloc");
@@ -1412,7 +1412,7 @@ struct acl_list {
 static int list_acl_callback(const char *who, int flags, void *dummy)
 {
 	struct acl_list **p=(struct acl_list **)dummy;
-	struct acl_list *q=malloc(sizeof(struct acl_list));
+	struct acl_list *q=static_cast<struct acl_list *>(malloc(sizeof(struct acl_list)));
 
 	if (!q)
 		return (-1);

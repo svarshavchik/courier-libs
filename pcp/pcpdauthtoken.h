@@ -19,9 +19,23 @@
 ** 128-bit secret token.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 void authtoken_init();
 time_t authtoken_check();
 char *authtoken_create(const char *, time_t);
 int authtoken_verify(const char *, const char *, time_t *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

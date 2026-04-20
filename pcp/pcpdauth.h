@@ -11,6 +11,13 @@
 #include <sys/types.h>
 #include <pwd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct userid_callback {
 	const char *userid;
 	const char *homedir;
@@ -31,5 +38,12 @@ int authpcp_login(const char *, const char *,
 
 char *auth_myhostname();
 char *auth_choplocalhost(const char *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

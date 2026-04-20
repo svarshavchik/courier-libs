@@ -10,6 +10,13 @@
 #include "config.h"
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
 struct PCP;
 
 struct pcpdtimer {
@@ -26,5 +33,12 @@ extern struct pcpdtimer *first_timer, *last_timer;
 
 void pcpdtimer_install(struct pcpdtimer *, time_t);
 void pcpdtimer_triggered(struct pcpdtimer *);
+
+#if 0
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif
