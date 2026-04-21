@@ -1,5 +1,5 @@
 /*
-** Copyright 2007 S. Varshavchik.
+** Copyright 2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -38,7 +38,7 @@ char	*buf;
 			for (i=0; c[i] && c[i] != ';'; i++)
 				;
 
-			buf=malloc(i+1);
+			buf=static_cast<char *>(malloc(i+1));
 			if (!buf)	enomem();
 			memcpy(buf, c, i);
 			buf[i]=0;
@@ -52,7 +52,7 @@ char	*buf;
 				++c;
 			} while (isspace((int)(unsigned char)*c));
 	}
-	buf=malloc(1);
+	buf=static_cast<char *>(malloc(1));
 	if (!buf)	enomem();
 	*buf=0;
 	return (buf);
