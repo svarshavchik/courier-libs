@@ -677,26 +677,13 @@ static int callback_timezonelist(const char *tz, const char *n, void *dummy)
 	return (0);
 }
 
-static int set_timezone(const char *p)
+static void set_timezone(std::string_view p)
 {
-	static char *s_buffer=0;
-	char *buffer;
+	if (p.empty() || p == "*")
+		return;
 
-	if (!p || !*p || strcmp(p, "*") == 0)
-		return (0);
-
-	buffer=static_cast<char *>(malloc(strlen(p)+10));
-	if (!buffer)
-		return (0);
-	strcat(strcpy(buffer, "TZ="), p);
-
-	putenv(buffer);
-
-	if (s_buffer)
-		free(buffer);
-	s_buffer=buffer;
-
-	return (0);
+	std::string sv{p};
+	setenv("TZ", sv.c_str(), 1);
 }
 
 static int callback_get_timezone(const char *, const char *, void *);
@@ -2221,6 +2208,96 @@ static bool setuidgid(uid_t u, gid_t g, const char *dir)
 	return (true);
 }
 
+static bool validate_request(
+	const char *ip_addr, time_t current_time,
+	time_t timeoutsoft)
+{
+	time_t last_time;
+
+	std::optional<std::string> s;
+	/* Ok, boys and girls, time to validate the connection as
+	** follows */
+
+	if (sqwebmail_sessiontoken.empty()
+
+		/* 1. Read IPFILE.  Check that it's timestamp is current enough,
+		** a	nd the session hasn't timed out.
+		*/
+
+		|| !(s=read_sqconfig(".", IPFILE, &last_time)))
+
+/*			|| last_time > current_time	*/
+
+		return false;
+
+	/* 2. IPFILE will contain seven words - IP address, session
+	** token, language, locale, ispell dictionary,
+	** timezone, charset.  Validate both.
+	*/
+	std::string_view sv{*s};
+
+	size_t word=0;
+
+	while (!sv.empty())
+	{
+		size_t n=sv.find_first_not_of(' ');
+		if (n == std::string_view::npos)
+			break;
+
+		sv.remove_prefix(n);
+
+		n=sv.find_first_of(' ');
+		if (n == std::string_view::npos)
+			n=sv.size();
+
+		std::string_view token=sv.substr(0, n);
+
+		sv.remove_prefix(n);
+
+		switch (word++)
+		{
+			case 0:
+				if (token != ip_addr && token != "none")
+					return false;
+				break;
+			case 1:
+				if (token != sqwebmail_sessiontoken)
+					return false;
+				break;
+			case 2:
+				sqwebmail_content_language=std::string{token};
+				break;
+			case 3:
+				sqwebmail_content_locale=std::string{token};
+				break;
+			case 4:
+				sqwebmail_content_ispelldict=std::string{token};
+				break;
+			case 5:
+				set_timezone(token);
+				break;
+			case 6:
+				sqwebmail_content_charset=std::string{token};
+				break;
+		}
+	}
+
+	if (word != 7)
+		return false;
+
+	/* 3. Check the timestamp on the TIMESTAMP file.  See if the
+	** session has reached its soft timeout.
+	*/
+
+	if (!read_sqconfig(".", TIMESTAMP, &last_time))
+		return false;
+
+	if (last_time + timeoutsoft < current_time)
+		return false;
+
+	return true;
+}
+
 static void main2()
 {
 	const char	*ip_addr;
@@ -2263,10 +2340,6 @@ static void main2()
 
 	umask(0077);
 
-	{
-		timeouthard=get_timeouthard();
-	}
-
 	maildir_cache_init(timeouthard, CACHEDIR, CACHEOWNER, authvars);
 
 	auto pi_env=getenv("PATH_INFO");
@@ -2298,9 +2371,7 @@ static void main2()
 
 	if (!pi.empty() && std::string_view{pi}.substr(0, 7) == "/login/")
 	{
-		const char	*p;
-		time_t	last_time, current_time;
-		char *q;
+		time_t	current_time;
 		time_t	timeoutsoft=get_timeoutsoft();
 
 		/* Logging into the mailbox */
@@ -2319,62 +2390,16 @@ static void main2()
 			login_time_sv.remove_prefix(1);
 		}
 
+		time(&current_time);
+
 		if (!maildir_cache_search(
 				u, login_time,
 				[&](uid_t uid, gid_t gid, const std::string &homedir)
 				{
 					return setuidgid(uid, gid, homedir.c_str());
-				}
-			)
-		    && prelogin(std::string{u}.c_str()))
-		{
-			error("Unable to access your mailbox, sqwebmail permissions may be wrong.");
-		}
-
-		time(&current_time);
-
-		std::optional<std::string> s;
-		/* Ok, boys and girls, time to validate the connection as
-		** follows */
-
-		if (	sqwebmail_sessiontoken.empty()
-
-		/* 1. Read IPFILE.  Check that it's timestamp is current enough,
-		** and the session hasn't timed out.
-		*/
-
-			|| !(s=read_sqconfig(".", IPFILE, &last_time))
-
-/*			|| last_time > current_time	*/
-
-			|| last_time + timeouthard < current_time
-
-		/* 2. IPFILE will contain seven words - IP address, session
-		** token, language, locale, ispell dictionary,
-		** timezone, charset.  Validate both.
-		*/
-			|| !(q=strdup(s->c_str()))
-			|| !(p=strtok(q, " "))
-			|| (strcmp(p, ip_addr) && strcmp(p, "none"))
-			|| !(p=strtok(NULL, " "))
-			|| strcmp(p, sqwebmail_sessiontoken.c_str())
-			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_language=p, p=strtok(NULL, " "))
-			|| !(sqwebmail_content_locale=p, p=strtok(NULL, " "))
-			|| !(sqwebmail_content_ispelldict=p, p=strtok(NULL, " "))
-			|| set_timezone(p)
-			|| !(p=strtok(NULL, " "))
-			|| !(sqwebmail_content_charset=p, 1)
-
-		/* 3. Check the timestamp on the TIMESTAMP file.  See if the
-		** session has reached its soft timeout.
-		*/
-
-			|| !read_sqconfig(".", TIMESTAMP, &last_time)
-
-/*			|| last_time > current_time	*/
-
-			|| last_time + timeoutsoft < current_time)
+				}) ||
+		    !validate_request(ip_addr, current_time, timeoutsoft) ||
+		    login_time + timeouthard < current_time)
 		{
 			if (setgid(getgid()) < 0 ||
 			    setuid(getuid()) < 0)	/* Drop root prevs */
@@ -2408,7 +2433,6 @@ static void main2()
 			output_form("expired.html");
 			return;
 		}
-		free(q);
 		cgiformdatatempdir("tmp");
 		cgi_setup();	/* Read CGI environment */
 		if (reset_cookie)

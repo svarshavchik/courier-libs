@@ -45,7 +45,7 @@
         alt="" border="0"@@#]</td>
     </tr>
     <tr bgcolor="#cccccc" class="graybox">
-      <td>&nbsp;</td>
+      <td> </td>
       <td bgcolor="#cccccc" class="graybox" width="100%">
         <table width="100%" border="0" cellspacing="0" cellpadding="0">
           <tbody>
@@ -57,7 +57,7 @@
           </tbody>
         </table>
       </td>
-      <td>&nbsp;</td>
+      <td> </td>
     </tr>
     <tr style="line-height: 0">
       <td align="left" valign="bottom">[#@graybottomleft.png, width="11"
@@ -91,7 +91,7 @@
         <td bgcolor="#99ccff" class="bluebox"></td>
         <td bgcolor="#99ccff" class="bluebox" valign="middle">
           <table border="0" cellpadding="4" cellspacing="0" width="100%"
-          class="mailfilter">
+          class="mailfilter" style="white-space: nowrap">
             <tbody>
               <tr>
                 <td align="center"><font size="+1"
@@ -141,7 +141,7 @@
                   <table border="0">
                     <tbody>
                       <tr>
-                        <td>Rule&nbsp;name:</td>
+                        <td>Rule name:</td>
                         <td><input type="text" size="20" name="rulename"
                           value="[#input:rulename#]" /></td>
                       </tr>
@@ -161,11 +161,11 @@
                                   <table border="0" cellpadding="0">
                                     <tbody>
                                       <tr>
-                                        <td rowspan="2">Header&nbsp;<input
+                                        <td rowspan="2">Header <input
                                           type="text" size="20"
                                           value="[#input:headername#]"
                                           name="headername"
-                                          />,&nbsp;or&nbsp;[#radio:filtertype:body#]&nbsp;Body</td>
+                                          />, or [#radio:filtertype:body#] Body</td>
                                         <td>[#select:headermatchtype#]
                                           [#option:startswith:headermatch:startswith#]
                                           starts with [#endoption#]
@@ -188,7 +188,7 @@
                                       <tr>
                                         <td
                                           align="right">[#checkbox:autoresponse_regexp:autoresponse_regexp#]</td>
-                                        <td>this&nbsp;is&nbsp;a&nbsp;regular&nbsp;expression&nbsp;(a&nbsp;pattern)</td>
+                                        <td>this is a regular expression (a pattern)</td>
                                       </tr>
                                     </tbody>
                                   </table>
@@ -196,7 +196,7 @@
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:anymessage#]</td>
-                                <td>Any&nbsp;message</td>
+                                <td>Any message</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:hasrecipient#]</td>
@@ -205,25 +205,25 @@
                                   Addressed to [#endoption#]
                                   [#option:nothasrecipient:hasrecipienttype:nothasrecipient#]
                                   Not addressed to [#endoption#]
-                                  [#endselect#] &nbsp;<input type="text"
+                                  [#endselect#]  <input type="text"
                                   size="20" name="hasrecipientaddr"
-                                  value="[#input:hasrecipientaddr#]" />(email&nbsp;address)</td>
+                                  value="[#input:hasrecipientaddr#]" />(email address)</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:hastextplain#]</td>
-                                <td>Is&nbsp;a&nbsp;plain&nbsp;text&nbsp;message</td>
+                                <td>Is a plain text message</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:nothastextplain#]</td>
-                                <td>Is&nbsp;not&nbsp;a&nbsp;plain&nbsp;text&nbsp;message&nbsp;(HTML,&nbsp;attachments,&nbsp;...)</td>
+                                <td>Is not a plain text message (HTML, attachments, ...)</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:hasmultipart#]</td>
-                                <td>Is&nbsp;a&nbsp;multipart&nbsp;MIME&nbsp;message</td>
+                                <td>Is a multipart MIME message</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:nothasmultipart#]</td>
-                                <td>Is&nbsp;not&nbsp;a&nbsp;multipart&nbsp;MIME&nbsp;message</td>
+                                <td>Is not a multipart MIME message</td>
                               </tr>
                               <tr>
                                 <td>[#radio:filtertype:hassize#]</td>
@@ -252,24 +252,24 @@
                             <tbody>
                               <tr>
                                 <td>[#radio:action:savefolder#]</td>
-                                <td>Save&nbsp;in:</td>
+                                <td>Save in:</td>
                                 <td>[#MAILFILTERLISTFOLDERS#]</td>
                                 <td
-                                  rowspan="2">[#checkbox:continuefiltering:continuefiltering#]&nbsp;and&nbsp;continue&nbsp;filtering.</td>
+                                  rowspan="2">[#checkbox:continuefiltering:continuefiltering#] and continue filtering.</td>
                               </tr>
                               <tr>
                                 <td>[#radio:action:forwardto#]</td>
-                                <td>Forward&nbsp;to:</td>
+                                <td>Forward to:</td>
                                 <td><input type="text" size="20"
                                   name="forwardaddy"
                                   value="[#input:forwardaddy#]" /></td>
                               </tr>
                               <tr>
-                                <td colspan="4">&nbsp;</td>
+                                <td colspan="4"> </td>
                               </tr>
                               <tr>
                                 <td>[#radio:action:bounce#]</td>
-                                <td>Reject&nbsp;with&nbsp;error:</td>
+                                <td>Reject with error:</td>
                                 <td colspan="2"><input type="text" size="20"
                                   name="bouncemsg"
                                   value="[#input:bouncemsg#]" /></td>
@@ -303,7 +303,7 @@
                               <tr>
                                 <td>[#radio:action:purge#]</td>
                                 <td>Purge</td>
-                                <td colspan="2">&nbsp;</td>
+                                <td colspan="2"> </td>
                               </tr>
                             </tbody>
                           </table>

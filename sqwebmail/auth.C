@@ -181,11 +181,6 @@ int login_changepwd(const char *u, const char *oldpwd, const char *newpwd,
 	return 0;
 }
 
-int prelogin(const char *u)
-{
-	return auth_getuserinfo("webmail", u, doauthlogin, (void *)u);
-}
-
 const char *login_returnaddr()
 {
 	static std::string addrbuf;

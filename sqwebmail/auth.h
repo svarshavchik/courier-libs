@@ -16,7 +16,6 @@ extern "C" {
 }
 #endif
 
-extern int prelogin(const char *);
 extern const char *do_login(const char *, const char *, const char *);
 
 extern const char *login_returnaddr();
