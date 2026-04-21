@@ -795,7 +795,7 @@ int	wait_stat;
 void sendmsg_done()
 {
 	if ( *cgi("pos"))
-		http_redirect_argss("&form=readmsg&pos=%s", cgi("pos"), "");
+		http_redirect_argss("&form=readmsg&pos=@", cgi("pos"), "");
 	else if (*cgi("sendmsg"))
 		http_redirect_argss("&form=folders&foldermsg=sent", "", "");
 	else
@@ -845,8 +845,8 @@ static int dosendmsg(const char *origdraft)
 		}
 		else
 		{
-			http_redirect_argss("&form=newmsg&pos=%s"
-					    "&draft=%s&error=quota",
+			http_redirect_argss("&form=newmsg&pos=@"
+					    "&draft=@&error=quota",
 					    cgi("pos"), draftbase.c_str());
 		}
 		return (1);
@@ -1018,7 +1018,7 @@ static int dosendmsg(const char *origdraft)
 	{
 		auto draftbase=maildir_basename(draftmessage);
 
-		http_redirect_argsss("&form=newmsg&pos=%s&draft=%s&foldermsg=%s",
+		http_redirect_argsss("&form=newmsg&pos=@&draft=@&foldermsg=@",
 			cgi("pos"), draftbase.c_str(), line);
 	}
 	return (1);
@@ -1055,7 +1055,7 @@ const	char *draftmessage=cgi("draftmessage");
 		}
 
 		auto base=maildir_basename(newdraft);
-		http_redirect_argss("&form=attachments&pos=%s&draft=%s",
+		http_redirect_argss("&form=attachments&pos=@&draft=@",
 			cgi("pos"), base.c_str());
 		return;
 	}
@@ -1071,7 +1071,7 @@ const	char *draftmessage=cgi("draftmessage");
 		}
 		else
 		{
-			http_redirect_argss("&form=newmsg&pos=%s&draft=%s&previewmsg=SPELLCHK",
+			http_redirect_argss("&form=newmsg&pos=@&draft=@&previewmsg=SPELLCHK",
 				cgi("pos"), base.c_str());
 		}
 		return;
@@ -1082,7 +1082,7 @@ const	char *draftmessage=cgi("draftmessage");
 		output_form("newmsg.html");
 		return;
 	}
-	http_redirect_argsss("&form=newmsg&pos=%s&draftmessage=%s&error=%s",
+	http_redirect_argsss("&form=newmsg&pos=@&draftmessage=@&error=@",
 		cgi("pos"), draftmessage,
 		cgi("error"));
 }

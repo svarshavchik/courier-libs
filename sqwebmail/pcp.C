@@ -77,7 +77,7 @@ void output_urlencoded(const char *);
 void attachments_head(const char *, const char *, const char *);
 std::string newmsg_createsentmsg(const char *, int *);
 extern std::string sqwebmail_mailboxid;
-char *scriptptrget();
+std::string scriptptrget();
 void attach_delete(const char *);
 int attach_upload(const char *,
 			     const char *,
@@ -940,10 +940,10 @@ void sqpcp_summary()
 
 	if (tmptr)
 	{
-		char *p=scriptptrget();
+		std::string p=scriptptrget();
 
 		std::string q;
-		q.reserve(strlen(p)+200);
+		q.reserve(p.size()+200);
 		q=p;
 		q += "&amp;form=eventdaily&amp;clearcache=1&amp;date=";
 

@@ -1005,13 +1005,13 @@ int	quotaflag=0;
 	if (quotaflag == -2)
         {
                 http_redirect_argss(
-                  "&form=attachments&pos=%s&draft=%s&error=limits",
+                  "&form=attachments&pos=@&draft=@&error=limits",
                   cgi("pos"), draft);
         }
 	else if (quotaflag == -3)
 	{
                 http_redirect_argss(
-                  "&form=attachments&pos=%s&draft=%s&error=makemime",
+                  "&form=attachments&pos=@&draft=@&error=makemime",
                   cgi("pos"), draft);
 	}
         else

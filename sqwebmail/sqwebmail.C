@@ -344,21 +344,19 @@ void output_loginscriptptr_get()
 	}
 }
 
-char *scriptptrget()
+std::string scriptptrget()
 {
-char	*q=0;
-size_t	l=0;
-int	i;
-char	buf[NUMBUFSIZE];
+	std::string q;
+	size_t	l=0;
+	int	i;
+	char	buf[NUMBUFSIZE];
 
-#define	ADD(s) {const char *zz=(s); if (i) strcat(q, zz); l += strlen(zz);}
+#define	ADD(s) {const char *zz=(s); if (i) q += zz; l += strlen(zz);}
 #define ADDE(ue) { char *yy=cgiurlencode(ue); ADD(yy); free(yy); }
 
 	for (i=0; i<2; i++)
 	{
-		if (i && (q=static_cast<char *>(malloc(l+1))) == 0)
-			enomem();
-		if (i)	*q=0;
+		if (i) q.reserve(l);
 		ADD( nonloginscriptptr() );
 		if (sqwebmail_mailboxid.empty())
 		{
@@ -388,10 +386,9 @@ char	buf[NUMBUFSIZE];
 
 void output_scriptptrget()
 {
-char	*p=scriptptrget();
+	std::string p=scriptptrget();
 
-	printf("%s", p);
-	free(p);
+	printf("%s", p.c_str());
 	return;
 }
 
@@ -1690,28 +1687,41 @@ void http_redirect_argss(const char *fmt, const char *arg1, const char *arg2)
 void http_redirect_argsss(const char *fmt, const char *arg1, const char *arg2,
 	const char *arg3)
 {
-	char *base=scriptptrget();
-	char *arg1s=cgiurlencode(arg1);
-	char *arg2s=cgiurlencode(arg2);
-	char *arg3s=cgiurlencode(arg3);
-	char *q;
+	std::string base=scriptptrget();
+
+	char *args[3]={
+		cgiurlencode(arg1),
+		cgiurlencode(arg2),
+		cgiurlencode(arg3)
+	};
 
 	/* We generate a Location: redirected_url header.  The actual
 	** header is generated in cgiredirect, we just build it here */
 
-	q=static_cast<char *>(
-		malloc(strlen(base)+strlen(fmt)+strlen(arg1s)+strlen(arg2s)+
-		       strlen(arg3s)+1)
-	);
-	if (!q)	enomem();
-	strcpy(q, base);
-	sprintf(q+strlen(q), fmt, arg1s, arg2s, arg3s);
-	cgiredirect(q);
-	free(q);
-	free(arg1s);
-	free(arg2s);
-	free(arg3s);
-	free(base);
+	std::string q;
+	q.reserve(base.size()+strlen(fmt)+strlen(args[0])+strlen(args[1])+
+		       strlen(args[2])+1);
+	q=base;
+
+	size_t i=0;
+
+	for (const char *p=fmt; *p; p++)
+	{
+		if (*p == '@')
+		{
+			if (i < 3)
+			{
+				q+=args[i];
+				i++;
+			}
+		}
+		else
+			q+=*p;
+	}
+	cgiredirect(q.c_str());
+	free(args[0]);
+	free(args[1]);
+	free(args[2]);
 }
 
 void output_user_form(const char *formname)

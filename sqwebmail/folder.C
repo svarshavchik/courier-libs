@@ -94,7 +94,7 @@ extern void output_scriptptrget();
 extern void output_scriptptr();
 extern void output_scriptptrpostinfo();
 extern void output_urlencoded(const char *);
-extern char *scriptptrget();
+extern std::string scriptptrget();
 
 extern const char *showsize(unsigned long);
 extern void output_attrencoded(std::string_view);
@@ -327,11 +327,11 @@ void folder_delmsgs(const char *dir, size_t pos)
 	const char *status=do_folder_delmsgs(dir, pos);
 
 	if (*cgi("search"))
-		http_redirect_argsss("&error=%s&form=folder&pos=%s&search=1&"
-				     SEARCHRESFILENAME "=%s", status,
+		http_redirect_argsss("&error=@&form=folder&pos=@&search=1&"
+				     SEARCHRESFILENAME "=@", status,
 				     cgi("pos"), cgi(SEARCHRESFILENAME));
 	else
-		http_redirect_argss("&error=%s&form=folder&pos=%s", status,
+		http_redirect_argss("&error=@&form=folder&pos=@", status,
 				    cgi("pos"));
 }
 
@@ -396,8 +396,8 @@ void folder_search(const char *dir, size_t pos)
 		       sqwebmail_content_charset.c_str(),
 		       pref_flagpagesize);
 
-	http_redirect_argss("&search=1&form=folder&pos=%s&"
-			    SEARCHRESFILENAME "=%s", cgi("pos"),
+	http_redirect_argss("&search=1&form=folder&pos=@&"
+			    SEARCHRESFILENAME "=@", cgi("pos"),
 			    cgi(SEARCHRESFILENAME));
 }
 
@@ -1483,7 +1483,7 @@ char nbuf[MAXLONGSIZE+10];
 
 	if (rc)
 	{
-		http_redirect_argu("&form=readmsg&pos=%s&error=quota",
+		http_redirect_argu("&form=readmsg&pos=@&error=quota",
 			(unsigned long)pos);
 		return;
 	}
@@ -1502,13 +1502,13 @@ char nbuf[MAXLONGSIZE+10];
 
 	if (*cgi("search"))
 	{
-		http_redirect_argss("&form=readmsg&pos=%s&search=1&"
-				    SEARCHRESFILENAME "=%s", nbuf,
+		http_redirect_argss("&form=readmsg&pos=@&search=1&"
+				    SEARCHRESFILENAME "=@", nbuf,
 				    cgi(SEARCHRESFILENAME));
 	}
 	else
 	{
-		http_redirect_argss("&form=readmsg&pos=%s", nbuf, "");
+		http_redirect_argss("&form=readmsg&pos=@", nbuf, "");
 	}
 }
 
@@ -1693,12 +1693,7 @@ static std::string get_textlink(std::string_view s,
 	{
 		b += "<a href=\"";
 
-		{
-			char *p=scriptptrget();
-
-			b += p;
-			free(p);
-		}
+		b += scriptptrget();
 
 		b += "&amp;form=newmsg&amp;to=";
 
@@ -2009,14 +2004,12 @@ static std::string get_url_to_mime_part(const char *mimeid)
 {
 	const char *mimegpgfilename=cgi(MIMEGPGFILENAME);
 	const char *pos;
-	const char *p;
-
-	p=scriptptrget();
+	std::string p=scriptptrget();
 	pos=cgi("pos");
 
 	std::string q;
 	q.reserve(
-		strlen(p)+strlen(pos) +
+		p.size()+strlen(pos) +
 		strlen(mimegpgfilename)+strlen(mimeid)+
 		sizeof("&mimeid=&pos=&form=fetch&mimegpgfilename=")-1
 	);
@@ -2091,7 +2084,7 @@ void folder_showmsg(const char *dir, size_t pos)
 		char nowbuffer[NUMBUFSIZE];
 		time_t now;
 		char *hash;
-		char *scriptnameget=scriptptrget();
+		std::string scriptnameget=scriptptrget();
 		static const char formbuf[]="&form=newmsg&to=";
 
 		info->mimegpgfilename=cgi(MIMEGPGFILENAME);
@@ -2130,10 +2123,9 @@ void folder_showmsg(const char *dir, size_t pos)
 			free(hash);
 
 		std::string washpfixmailto;
-		washpfixmailto.reserve(strlen(scriptnameget)+sizeof(formbuf));
+		washpfixmailto.reserve(scriptnameget.size()+sizeof(formbuf));
 		washpfixmailto=scriptnameget;
 		washpfixmailto+=formbuf;
-		free(scriptnameget);
 
 		info->wash_http_prefix=washpfix;
 		info->wash_mailto_prefix=washpfixmailto;
