@@ -1767,26 +1767,24 @@ char	*p;
 
 	if (strcmp(formname, "print") == 0 && *cgi("setcookie") == '1')
 	{
-	const char *qs=getenv("QUERY_STRING");
-	const char *pi=getenv("PATH_INFO");
-	const char *nl;
-	char	*buf;
+		const char *qs=getenv("QUERY_STRING");
+		const char *pi=getenv("PATH_INFO");
+		const char *nl;
+		std::string buf;
 
 		if (!pi)	pi="";
 		if (!pi)	pi="";
 
 		nl=nonloginscriptptr();
 
-		buf=static_cast<char *>(
-			malloc(strlen(nl) + sizeof("/printmsg/print?")+
-			       strlen(qs))
-		);
-		if (!buf)	enomem();
-		strcat(strcat(strcpy(buf, nl), "/printmsg/print?"), qs);
+		buf.resize(strlen(nl) + sizeof("/printmsg/print?")+
+			       strlen(qs));
+		buf=nl;
+		buf += "/printmsg/print?";
+		buf += qs;
 		cginocache();
 		cgi_setcookie("sqwebmail-pi", pi);
-		printf("Refresh: 0; URL=%s\n", buf);
-		free(buf);
+		printf("Refresh: 0; URL=%s\n", buf.c_str());
 		output_form("printredirect.html");
 		return;
 	}

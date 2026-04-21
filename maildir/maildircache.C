@@ -204,7 +204,7 @@ void maildir_cache_start()
 	*login_time++=0;
 	if ((data=strchr(login_time, ' ')) == 0)
 	{
-		std::cerr << "CRIT: maildircache: Cache create failure" 
+		std::cerr << "CRIT: maildircache: Cache create failure"
 				  " - authentication process crashed.\n";
 		exit(1);
 	}
@@ -232,7 +232,7 @@ void maildir_cache_start()
 		fp.open(f.c_str());
 		if (!fp)
 		{
-			std::cerr << "CRIT: maildircache: Cache create failure" 
+			std::cerr << "CRIT: maildircache: Cache create failure"
 					  " - unable to create file "
 					  << f << "\n";
 			exit(1);
@@ -244,7 +244,7 @@ void maildir_cache_start()
 	{
 		fp.close();
 		unlink(f.c_str());	/* Problems */
-		std::cerr << "CRIT: maildircache: Cache create failure" 
+		std::cerr << "CRIT: maildircache: Cache create failure"
 				  " - write error.\n";
 		exit(1);
 	}
@@ -476,5 +476,7 @@ void maildir_cache_purge(time_t now)
 	{
 		std::filesystem::remove_all(p);
 	}
+	pl.clear();
+	pl.shrink_to_fit();
 	exit(0);
 }

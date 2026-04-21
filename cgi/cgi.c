@@ -251,9 +251,9 @@ static char *nybble(char *p, int *n)
 	return (p);
 }
 
-void cgiurldecode(char *q)
+size_t cgiurldecode(char *q)
 {
-char	*p=q;
+char	*p=q, *orig=q;
 int	c;
 
 	while (*q)
@@ -278,7 +278,8 @@ int	c;
 			/* Ignore CRs we get in TEXTAREAS */
 			*p++=c;
 	}
-	*p++=0;
+	*p=0;
+	return (p - orig);
 }
 
 void cgi_put(const char *cginame, const char *cgivalue)

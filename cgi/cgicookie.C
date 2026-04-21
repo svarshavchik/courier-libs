@@ -12,18 +12,10 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 
-extern void error(const char *);
-
-static void enomem()
+std::string cgi_cookie(std::string_view p)
 {
-	error("Out of memory.");
-}
-
-char	*cgi_cookie(const char *p)
-{
-size_t	pl=strlen(p);
-const char *c=getenv("HTTP_COOKIE");
-char	*buf;
+	const char *c=getenv("HTTP_COOKIE");
+	std::string buf;
 
 	while (c && *c)
 	{
@@ -31,18 +23,15 @@ char	*buf;
 
 		for (i=0; c[i] && c[i] != '='; i++)
 			;
-		if (i == pl && strncmp(p, c, i) == 0)
+		if (i == p.size() && strncmp(p.data(), c, i) == 0)
 		{
 			c += i;
 			if (*c)	++c;	/* skip over = */
 			for (i=0; c[i] && c[i] != ';'; i++)
 				;
 
-			buf=static_cast<char *>(malloc(i+1));
-			if (!buf)	enomem();
-			memcpy(buf, c, i);
-			buf[i]=0;
-			cgiurldecode(buf);
+			buf=std::string{c, i};
+			buf.resize(cgiurldecode(buf.data()));
 			return (buf);
 		}
 		c=strchr(c, ';');
@@ -52,9 +41,6 @@ char	*buf;
 				++c;
 			} while (isspace((int)(unsigned char)*c));
 	}
-	buf=static_cast<char *>(malloc(1));
-	if (!buf)	enomem();
-	*buf=0;
 	return (buf);
 }
 

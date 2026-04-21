@@ -53,6 +53,7 @@ namespace cgi_encode {
 };
 
 std::vector<std::string> cgi_multiple(const char *);
+std::string cgi_cookie(std::string_view);
 
 extern "C" {
 
@@ -71,7 +72,6 @@ void cgi_setup();
 void cgi_cleanup();
 const char *cgi(const char *);
 
-char	*cgi_cookie(const char *);
 void	cgi_setcookie(const char *, const char *);
 
 int	cgi_useragent(const char *);
@@ -85,7 +85,7 @@ struct cgi_arglist {
 
 extern struct cgi_arglist *cgi_arglist;
 
-extern void cgiurldecode(char *);
+extern size_t cgiurldecode(char *);
 extern void cgi_put(const char *, const char *);
 
 extern char *cgiurlencode(const char *);
