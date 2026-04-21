@@ -31,8 +31,6 @@
 #include	<unistd.h>
 #endif
 
-extern const char *sqwebmail_mailboxid;
-
 extern std::string get_msgfilename(const char *, size_t *);
 
 std::string newmsg_newdraft(const char *folder, const char *pos,

@@ -38,7 +38,6 @@
 /* Also in attachments.c */
 
 int newdraftfd;
-extern const char *sqwebmail_mailboxid;
 extern void create_addrheader(std::string_view header,
 			      std::string_view content_utf8);
 

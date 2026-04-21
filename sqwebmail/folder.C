@@ -74,7 +74,6 @@ FILE *open_langform(const char *lang, const char *formname,
 			int print_header);
 
 extern char sqwebmail_folder_rights[];
-extern const char *sqwebmail_mailboxid;
 extern char *get_imageurl();
 extern void print_attrencodedlen(const char *, size_t, int, FILE *);
 

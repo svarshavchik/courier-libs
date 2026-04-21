@@ -76,7 +76,7 @@ void newmsg_preview(const char *);
 void output_urlencoded(const char *);
 void attachments_head(const char *, const char *, const char *);
 std::string newmsg_createsentmsg(const char *, int *);
-extern const char *sqwebmail_mailboxid;
+extern std::string sqwebmail_mailboxid;
 char *scriptptrget();
 void attach_delete(const char *);
 int attach_upload(const char *,
@@ -2087,7 +2087,7 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 		close(pipefd[0]);
 		close(pipefd[1]);
 		execl(SENDITSH, "sendit.sh", returnaddr,
-                                sqwebmail_mailboxid, NULL);
+                                sqwebmail_mailboxid.c_str(), NULL);
 		fprintf(stderr, "CRIT: exec " SENDITSH ": %s\n", strerror(errno));
 		exit(1);
 	}

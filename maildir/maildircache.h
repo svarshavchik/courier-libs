@@ -76,19 +76,12 @@ will be escaped.  See the code for more info.
 
 */
 
-#ifndef	logincache_h
-#define	logincache_h
+#ifndef	maildircache_h
+#define	maildircache_h
 
-#include	<sys/types.h>
 #include	<time.h>
-#include	<pwd.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
+#include	<string>
+#include	<functional>
 
 extern void maildir_cache_init(
 	time_t,
@@ -106,16 +99,11 @@ extern void maildir_cache_save(
 	gid_t);
 extern void maildir_cache_cancel(void);
 
-extern int maildir_cache_search(const char *, time_t,
-				int (*)(uid_t, gid_t, const char *, void *),
-				void *);
+extern bool maildir_cache_search(
+	std::string_view, time_t,
+	const std::function<bool(uid_t, gid_t, const std::string &)> &cb
+);
 
 extern void maildir_cache_purge(time_t now);
 
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 #endif

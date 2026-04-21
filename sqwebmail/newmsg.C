@@ -45,7 +45,7 @@
 #include	<courier-unicode.h>
 
 extern int spell_start(const char *);
-extern const char *sqwebmail_mailboxid;
+extern std::string sqwebmail_mailboxid;
 extern const char *sqwebmail_folder;
 void print_safe_len(const char *, size_t, void (*)(const char *, size_t));
 void call_print_safe_to_stdout(const char *, size_t);
@@ -904,7 +904,7 @@ static int dosendmsg(const char *origdraft)
 		{
 			returnaddr=login_returnaddr();
 			execl(SENDITSH, "sendit.sh", returnaddr,
-				sqwebmail_mailboxid, NULL);
+				sqwebmail_mailboxid.c_str(), NULL);
 		}
 
 		if (fwrite(noexec, 1, sizeof(noexec)-1, stderr))

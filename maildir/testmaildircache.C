@@ -40,15 +40,14 @@ std::string dumpmaildircache()
 	return s;
 }
 
-static int search_cb(uid_t uid, gid_t gid, const char *homedir, void *arg)
+static bool search_cb(uid_t uid, gid_t gid, const std::string &homedir,
+	std::string &s)
 {
 	std::ostringstream o;
 	o << uid << " " << gid << " " << homedir;
 
-	std::string *s=(std::string *)arg;
-	
-	*s=o.str();
-	return 0;
+	s=o.str();
+	return true;
 }
 
 int main(int argc, char **argv)
@@ -80,13 +79,25 @@ int main(int argc, char **argv)
 
 	std::string s;
 
-	maildir_cache_search("nobody1", 20, search_cb, &s);
+	maildir_cache_search("nobody1", 20,
+		[&](uid_t uid, gid_t gid, const std::string &homedir)
+		{
+			return search_cb(uid, gid, homedir, s);
+		});
 	output << s << " " << getenv("AUTHUSER") << "\n";
 
-	maildir_cache_search("nobody2", 50, search_cb, &s);
+	maildir_cache_search("nobody2", 50,
+		[&](uid_t uid, gid_t gid, const std::string &homedir)
+		{
+			return search_cb(uid, gid, homedir, s);
+		});
 	output << s << " " << getenv("AUTHUSER") << "\n";
 
-	maildir_cache_search("nobody3", 150, search_cb, &s);
+	maildir_cache_search("nobody3", 150,
+		[&](uid_t uid, gid_t gid, const std::string &homedir)
+		{
+			return search_cb(uid, gid, homedir, s);
+		});
 	output << s << " " << getenv("AUTHUSER") << "\n";
 
 	output << "---\n";

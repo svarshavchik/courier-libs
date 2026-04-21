@@ -34,7 +34,7 @@ extern int check_sqwebpass(const char *);
 extern void set_sqwebpass(const char *);
 #endif
 extern void output_attrencoded_oknl(const char *);
-extern const char *sqwebmail_mailboxid;
+extern std::string sqwebmail_mailboxid;
 extern void rename_sent_folder(int really);
 
 #if 0
@@ -111,7 +111,7 @@ void pref_setprefs()
 			&& strlen(p) >= MINPASSLEN)
 		{
 			has_syspwd=
-				login_changepwd(sqwebmail_mailboxid,
+				login_changepwd(sqwebmail_mailboxid.c_str(),
 						cgi("oldpass"), p,
 						&status);
 		}

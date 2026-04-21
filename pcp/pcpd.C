@@ -2309,23 +2309,27 @@ struct relogin_struct {
 	const char *userid;
 } ;
 
-static int callback_cache_search(uid_t u, gid_t g, const char *dir, void *vp)
+static bool callback_cache_search(
+	uid_t u,
+	gid_t g,
+	const char *dir,
+	relogin_struct &rs
+)
 {
-	struct relogin_struct *rs=(struct relogin_struct *)vp;
 	time_t login_time, now;
 	int reset_flag;
 	char *token=NULL;
 
-	login_time=rs->when;
+	login_time=rs.when;
 	time(&now);
 
 	reset_flag= login_time <= now - TIMEOUT;
 
 	if (reset_flag)
 	{
-		if (rs->needauthtoken)
+		if (rs.needauthtoken)
 		{
-			token=authtoken_create(rs->userid, now);
+			token=authtoken_create(rs.userid, now);
 			if (!token)
 			{
 				fprintf(stderr,
@@ -2342,22 +2346,22 @@ static int callback_cache_search(uid_t u, gid_t g, const char *dir, void *vp)
 	{
 		maildir_cache_cancel();
 		fprintf(stderr, "NOTICE: chdir(%s) failed: %s\n", dir, strerror(errno));
-		return (-1);
+		return (false);
 	}
 
 	alarm(0);
 	if (reset_flag)
 	{
-		maildir_cache_save(rs->userid, now, dir, u, g);
-		if (rs->needauthtoken)
+		maildir_cache_save(rs.userid, now, dir, u, g);
+		if (rs.needauthtoken)
 		{
 			printf("102 %s logged in.\n", token);
 			free(token);
 		}
 	}
-	else if (rs->needauthtoken)	/* Not a proxy connection */
+	else if (rs.needauthtoken)	/* Not a proxy connection */
 		printf("200 Ok\n");
-	return (0);
+	return (true);
 }
 
 static char *login(int isprivate,
@@ -2463,7 +2467,6 @@ static char *login(int isprivate,
 			{
 				struct relogin_struct rs;
 				time_t now;
-				int rc;
 
 				if (proxy_userid)
 					free(proxy_userid);
@@ -2479,10 +2482,20 @@ static char *login(int isprivate,
 
 				time(&now);
 
-				rc=maildir_cache_search(uinfo.userid, now,
-							callback_cache_search,
-							&rs);
-				if (rc == 0)
+				bool rc=maildir_cache_search(
+					uinfo.userid, now,
+					[&]
+					(uid_t uid, gid_t gid,
+					const std::string &homedir)
+					{
+						return callback_cache_search(
+							uid, gid,
+							homedir.c_str(),
+							rs
+						);
+					}
+				);
+				if (rc)
 				{
 					alarm(0);
 					printf("200 PROXY ok\n");
@@ -2490,10 +2503,20 @@ static char *login(int isprivate,
 				}
 				now -= TIMEOUT;
 
-				rc=maildir_cache_search(uinfo.userid, now,
-							callback_cache_search,
-							&rs);
-				if (rc == 0)
+				rc=maildir_cache_search(
+					uinfo.userid, now,
+					[&]
+					(uid_t uid, gid_t gid,
+					const std::string &homedir)
+					{
+						return callback_cache_search(
+							uid, gid,
+							homedir.c_str(),
+							rs
+						);
+					}
+				);
+				if (rc)
 				{
 					alarm(0);
 					printf("200 PROXY ok\n");
@@ -2521,7 +2544,7 @@ static char *login(int isprivate,
 			if ((p=strtok(NULL, " ")) != 0)
 			{
 				struct relogin_struct rs;
-				int rc;
+				bool rc;
 
 				rs.needauthtoken=1;
 				rs.userid=uinfo.userid;
@@ -2532,10 +2555,20 @@ static char *login(int isprivate,
 					continue;
 				}
 
-				rc=maildir_cache_search(uinfo.userid, rs.when,
-							callback_cache_search,
-							&rs);
-				if (rc == 0)
+				rc=maildir_cache_search(
+					uinfo.userid, rs.when,
+					[&]
+					(uid_t uid, gid_t gid,
+					const std::string &homedir)
+					{
+						return callback_cache_search(
+							uid, gid,
+							homedir.c_str(),
+							rs
+						);
+					}
+				);
+				if (rc)
 					break;
 
 				/*

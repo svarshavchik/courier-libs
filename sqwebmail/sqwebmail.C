@@ -90,7 +90,7 @@ extern void print_safe(const char *);
 
 extern void sent_gpgerrtxt();
 extern void sent_gpgerrresume();
-const char *sqwebmail_mailboxid=0;
+std::string sqwebmail_mailboxid;
 const char *sqwebmail_folder=0;
 
 extern void spell_show();
@@ -315,9 +315,9 @@ void output_scriptptr()
 const	char *p=nonloginscriptptr();
 
 	printf("%s", p);
-	if (sqwebmail_mailboxid)
+	if (!sqwebmail_mailboxid.empty())
 	{
-	char	*q=cgiurlencode(sqwebmail_mailboxid);
+	char	*q=cgiurlencode(sqwebmail_mailboxid.c_str());
 	char	buf[NUMBUFSIZE];
 
 		printf("/login/%s/%s/%s", q,
@@ -331,9 +331,9 @@ const	char *p=nonloginscriptptr();
 void output_loginscriptptr_get()
 {
 	output_loginscriptptr();
-	if (sqwebmail_mailboxid)
+	if (!sqwebmail_mailboxid.empty())
 	{
-	char	*q=cgiurlencode(sqwebmail_mailboxid);
+	char	*q=cgiurlencode(sqwebmail_mailboxid.c_str());
 	char	buf[NUMBUFSIZE];
 
 		printf("/login/%s/%s/%s", q,
@@ -360,14 +360,14 @@ char	buf[NUMBUFSIZE];
 			enomem();
 		if (i)	*q=0;
 		ADD( nonloginscriptptr() );
-		if (!sqwebmail_mailboxid)
+		if (sqwebmail_mailboxid.empty())
 		{
 			ADD("?");
 			continue;
 		}
 
 		ADD("/login/");
-		ADDE(sqwebmail_mailboxid);
+		ADDE(sqwebmail_mailboxid.c_str());
 		ADD("/");
 		ADD(!sqwebmail_sessiontoken.empty() ?
 			sqwebmail_sessiontoken.c_str():" ");
@@ -1979,7 +1979,7 @@ extern void ispell_cleanup();
 void cleanup()
 {
 	sqwebmail_formname = NULL;
-	sqwebmail_mailboxid=0;
+	sqwebmail_mailboxid.clear();
 	sqwebmail_folder=0;
 	sqwebmail_sessiontoken.clear();
 	sqwebmail_content_language.clear();
@@ -2120,17 +2120,13 @@ static void redirect(const char *url)
 {
 	if (valid_redirect())
 	{
-		char *p=strdup(url), *q;
-
-		if (!p)
-			enomem();
-		for (q=p; *q; ++q)
+		std::string p=url;
+		for (size_t i=0; i<p.size(); ++i)
 		{
-			if (*q == '\r' || *q == '\n')
-				*q=' ';
+			if (p[i] == '\r' || p[i] == '\n')
+				p[i]=' ';
 		}
-		printf("Refresh: 0; URL=%s\n", p);
-		free(p);
+		printf("Refresh: 0; URL=%s\n", p.c_str());
 		output_form("redirect.html");
 		return;
 	}
@@ -2206,39 +2202,36 @@ int main(int argc, char **argv)
 	return (0);
 }
 
-static int setuidgid(uid_t u, gid_t g, const char *dir, void *dummy)
+static bool setuidgid(uid_t u, gid_t g, const char *dir)
 {
 	if (setgid(g) < 0 || setuid(u) < 0)
 	{
 		fprintf(stderr,
 			"CRIT: Cache - can't setuid/setgid to %u/%u\n",
 		       (unsigned)u, (unsigned)g);
-		return (-1);
+		return (false);
 	}
 
 	if (chdir(dir))
 	{
 		fprintf(stderr,
 			"CRIT: Cache - can't chdir to %s: %s\n", dir, strerror(errno));
-		return (-1);
+		return (false);
 	}
-	return (0);
+	return (true);
 }
 
 static void main2()
 {
-const char	*ip_addr;
-char	*pi;
-char	*pi_malloced;
-int	reset_cookie=0;
-time_t	timeouthard=get_timeouthard();
+	const char	*ip_addr;
+	std::string	pi;
+	int	reset_cookie=0;
+	time_t	timeouthard=get_timeouthard();
 
 
 #ifdef	GZIP
 	gzip_save_fd= -1;
 #endif
-	ip_addr=pi=NULL;
-
 	ip_addr=getenv("REMOTE_ADDR");
 
 #if 0
@@ -2276,19 +2269,20 @@ time_t	timeouthard=get_timeouthard();
 
 	maildir_cache_init(timeouthard, CACHEDIR, CACHEOWNER, authvars);
 
-	pi=getenv("PATH_INFO");
+	auto pi_env=getenv("PATH_INFO");
 
-	pi_malloced=0;
+	if (pi_env)
+		pi=pi_env;
+
 	sqpcp_init();
 
-	if (pi && strncmp(pi, "/printmsg/", 10) == 0)
+	if (!pi.empty() && std::string_view{pi}.substr(0, 10) == "/printmsg/")
 	{
 		/* See comment in output_user_form */
 
-		pi_malloced=pi=cgi_cookie("sqwebmail-pi");
-		if (*pi_malloced == 0)
+		pi=cgi_cookie("sqwebmail-pi");
+		if (pi.empty())
 		{
-			free(pi_malloced);
 			if (setgid(getgid()) < 0 ||
 			    setuid(getuid()) < 0)
 			{
@@ -2302,32 +2296,38 @@ time_t	timeouthard=get_timeouthard();
 		cgi_setcookie("sqwebmail-pi", "DELETED");
 	}
 
-	if (pi && strncmp(pi, "/login/", 7) == 0)
+	if (!pi.empty() && std::string_view{pi}.substr(0, 7) == "/login/")
 	{
-	const char	*p;
-	time_t	last_time, current_time;
-	char	*q;
-	time_t	timeoutsoft=get_timeoutsoft();
+		const char	*p;
+		time_t	last_time, current_time;
+		char *q;
+		time_t	timeoutsoft=get_timeoutsoft();
 
 		/* Logging into the mailbox */
 
-		pi=strdup(pi);
-		if (pi_malloced)	free(pi_malloced);
-
-		if (!pi)	enomem();
-
-		(void)strtok(pi, "/");	/* Skip login */
-		auto u=strtok(NULL, "/");	/* mailboxid */
-		sqwebmail_sessiontoken=strtok(NULL, "/"); /* sessiontoken */
-		q=strtok(NULL, "/");	/* login time */
+		std::string_view pi_sv{pi};
+		pi_sv.remove_prefix(7);
+		std::string_view u=pi_sv.substr(0, pi_sv.find('/'));
+		pi_sv.remove_prefix(u.size()+1);
+		sqwebmail_sessiontoken=pi_sv.substr(0, pi_sv.find('/'));
+		pi_sv.remove_prefix(sqwebmail_sessiontoken.size()+1);
+		std::string_view login_time_sv=pi_sv.substr(0, pi_sv.find('/'));
 		login_time=0;
-		while (q && *q >= '0' && *q <= '9')
-			login_time=login_time * 10 + (*q++ - '0');
-
-		if (maildir_cache_search(u, login_time, setuidgid, NULL)
-		    && prelogin(u))
+		while (!login_time_sv.empty() && login_time_sv[0] >= '0' && login_time_sv[0] <= '9')
 		{
-			free(pi);
+			login_time=login_time * 10 + (login_time_sv[0] - '0');
+			login_time_sv.remove_prefix(1);
+		}
+
+		if (!maildir_cache_search(
+				u, login_time,
+				[&](uid_t uid, gid_t gid, const std::string &homedir)
+				{
+					return setuidgid(uid, gid, homedir.c_str());
+				}
+			)
+		    && prelogin(std::string{u}.c_str()))
+		{
 			error("Unable to access your mailbox, sqwebmail permissions may be wrong.");
 		}
 
@@ -2389,11 +2389,13 @@ time_t	timeouthard=get_timeouthard();
 			}
 			cgi_setup();
 			init_default_locale();
-			free(pi);
 
-			u=getenv("SQWEBMAIL_SHAREDMUNGENAMES");
+			auto shared_mungenames=
+				getenv("SQWEBMAIL_SHAREDMUNGENAMES");
 
-			maildir_info_munge_complex(u && *u);
+			maildir_info_munge_complex(
+				shared_mungenames && *shared_mungenames
+			);
 
 			if (strcmp(cgi("form"), "logout") == 0)
 				/* Already logged out, and the link
@@ -2422,11 +2424,10 @@ time_t	timeouthard=get_timeouthard();
 		{
 			init_default_locale();
 			output_form("expired.html");
-			free(pi);
 			return;
 		}
 
-		sqwebmail_mailboxid=u;
+		sqwebmail_mailboxid=std::string{u};
 
 		{
 			struct stat stat_buf;
@@ -2434,7 +2435,6 @@ time_t	timeouthard=get_timeouthard();
 			if (stat(".", &stat_buf) < 0)
 			{
 				output_form("expired.html");
-				free(pi);
 				return;
 			}
 
@@ -2485,15 +2485,12 @@ time_t	timeouthard=get_timeouthard();
 		}
 
 		output_user_form(cgi("form"));
-		free(pi);
 	}
 	else
 		/* Must be one of those special forms */
 	{
 	char	*rm;
 	long	n;
-
-		if (pi_malloced)	free(pi_malloced);
 
 		if ((rm=getenv("REQUEST_METHOD")) == 0 ||
 			(strcmp(rm, "POST") == 0 &&
@@ -2542,7 +2539,7 @@ time_t	timeouthard=get_timeouthard();
 				const	char *saveip=ip_addr;
 				char	*tz;
 
-				sqwebmail_mailboxid=mailboxid;
+				sqwebmail_mailboxid=std::string{mailboxid};
 				sqwebmail_folder="INBOX";
 				sqwebmail_sessiontoken=random128();
 

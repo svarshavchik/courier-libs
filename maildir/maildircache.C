@@ -64,44 +64,44 @@ void maildir_cache_init(time_t n, const char *d, const char *o,
 }
 
 
-static std::string create_cache_name(const char *userid, time_t login_time)
+static std::string create_cache_name(
+	std::string_view userid, time_t login_time
+)
 {
 	size_t	l;
 	char	buf[NUMBUFSIZE];
 
 	login_time /= expinterval;
 	l=0;
-	for (const char *p=userid; *p; p++)
+	for (char c:userid)
 	{
 		++l;
-		if ((unsigned char)*p < ' ' ||
-		    *p == ';' || *p == '\'' || *p == ';')
+		if ((unsigned char)c < ' ' ||
+		    c == ';' || c == '\'' || c == ';')
 		{
 			std::cerr << "CRIT: maildircache: invalid chars in"
-					  " userid: " << p << "\n";
+					  " userid: " << userid << "\n";
 			return (NULL);
 		}
-		if (*p == '/' || *p == '+' || (int)(unsigned char)*p >= 127)
+		if (c == '/' || c == '+' || (int)(unsigned char)c >= 127)
 			l += 2;
 	}
 	std::string g;
 	g.reserve(l);
 
-	while (*userid)
+	for (char c:userid)
 	{
-		if (*userid == '/' || *userid == '+'
-			|| (int)(unsigned char)*userid >= 127)
+		if (c == '/' || c == '+'
+			|| (int)(unsigned char)c >= 127)
 		{
 		static char xdigit[]="0123456789ABCDEF";
 
 			g.push_back('+');
-			g.push_back(xdigit[ (*userid >> 4) & 15 ]);
-			g.push_back(xdigit[ (*userid) & 15 ]);
+			g.push_back(xdigit[ (c >> 4) & 15 ]);
+			g.push_back(xdigit[ c & 15 ]);
 		}
 		else
-			g.push_back(*userid);
-
-		++userid;
+			g.push_back(c);
 	}
 
 	l=sizeof("//xx/xxxxxxx") + strlen(cachedir);
@@ -317,26 +317,25 @@ void maildir_cache_cancel()
 	}
 }
 
-int maildir_cache_search(const char *a, time_t b,
-			 int (*callback_func)(uid_t, gid_t, const char *,
-					      void *), void *callback_arg)
+bool maildir_cache_search(
+	std::string_view a, time_t b,
+	const std::function<bool(uid_t, gid_t, const std::string &)> &cb)
 {
 	std::string f=create_cache_name(a, b);
 	std::ifstream fp;
 	uid_t	u;
 	gid_t	g;
-	size_t	n;
 	int	c;
 
 	fp.open(f);
 	if (!fp)
-		return (-1);
+		return (false);
 
 	u=0;
 	while ((c=fp.get()) != ' ')
 	{
 		if (c < '0' || c > '9')
-			return (-1);
+			return (false);
 		u=u*10 + (c-'0');
 	}
 
@@ -344,7 +343,7 @@ int maildir_cache_search(const char *a, time_t b,
 	while ((c=fp.get()) != ' ')
 	{
 		if (c < '0' || c > '9')
-			return (-1);
+			return (false);
 		g=g*10 + (c-'0');
 	}
 
@@ -355,8 +354,8 @@ int maildir_cache_search(const char *a, time_t b,
 		dir.push_back(c);
 	}
 
-	if ((n=(*callback_func)(u, g, dir.c_str(), callback_arg)) != 0)
-		return (n);
+	if (!cb(u, g, dir))
+		return (false);
 
 	if (c != EOF)
 	{
@@ -379,7 +378,7 @@ int maildir_cache_search(const char *a, time_t b,
 			}
 		}
 	}
-	return (0);
+	return (true);
 }
 
 void maildir_cache_purge(time_t now)
