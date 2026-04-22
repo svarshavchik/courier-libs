@@ -86,6 +86,10 @@ extern char *crypt(const char *, const char *);
 
 #include	"logindomainlist.h"
 #include	<fstream>
+#include	<vector>
+#include	<string>
+#include	<string_view>
+
 extern void print_safe(const char *);
 
 extern void sent_gpgerrtxt();
@@ -146,12 +150,7 @@ extern void doattach(const char *, const char *);
 
 static void timezonelist();
 
-struct template_stack {
-	struct template_stack *next;
-	FILE *fp;
-} ;
-
-static struct template_stack *template_stack=NULL;
+static std::vector<FILE *> template_stack;
 
 std::string trim_spaces(const char *s);
 
@@ -280,10 +279,12 @@ void output_attrencoded_nltobr(const char *p)
 
 void output_urlencoded(const char *p)
 {
-char	*q=cgiurlencode(p);
+	std::string q;
 
-	printf("%s", q);
-	free(q);
+	q.reserve(cgi_encode::estimate(p));
+	cgi_encode::encode(std::back_inserter(q), p);
+
+	printf("%s", q.c_str());
 }
 
 void output_loginscriptptr()
@@ -317,14 +318,16 @@ const	char *p=nonloginscriptptr();
 	printf("%s", p);
 	if (!sqwebmail_mailboxid.empty())
 	{
-	char	*q=cgiurlencode(sqwebmail_mailboxid.c_str());
-	char	buf[NUMBUFSIZE];
+		std::string q;
 
-		printf("/login/%s/%s/%s", q,
+		q.reserve(cgi_encode::estimate(sqwebmail_mailboxid));
+		cgi_encode::encode(std::back_inserter(q), sqwebmail_mailboxid);
+		char	buf[NUMBUFSIZE];
+
+		printf("/login/%s/%s/%s", q.c_str(),
 			!sqwebmail_sessiontoken.empty() ?
 				sqwebmail_sessiontoken.c_str():" ",
 			libmail_str_time_t(login_time, buf));
-		free(q);
 	}
 }
 
@@ -333,14 +336,17 @@ void output_loginscriptptr_get()
 	output_loginscriptptr();
 	if (!sqwebmail_mailboxid.empty())
 	{
-	char	*q=cgiurlencode(sqwebmail_mailboxid.c_str());
-	char	buf[NUMBUFSIZE];
+		std::string q;
 
-		printf("/login/%s/%s/%s", q,
+		q.reserve(cgi_encode::estimate(sqwebmail_mailboxid));
+		cgi_encode::encode(std::back_inserter(q), sqwebmail_mailboxid);
+
+		char	buf[NUMBUFSIZE];
+
+		printf("/login/%s/%s/%s", q.c_str(),
 			!sqwebmail_sessiontoken.empty() ?
 				sqwebmail_sessiontoken.c_str():" ",
 			libmail_str_time_t(login_time, buf));
-		free(q);
 	}
 }
 
@@ -352,7 +358,12 @@ std::string scriptptrget()
 	char	buf[NUMBUFSIZE];
 
 #define	ADD(s) {const char *zz=(s); if (i) q += zz; l += strlen(zz);}
-#define ADDE(ue) { char *yy=cgiurlencode(ue); ADD(yy); free(yy); }
+#define ADDE(ue) { \
+	std::string yy; \
+	yy.reserve(cgi_encode::estimate(ue)); \
+	cgi_encode::encode(std::back_inserter(yy), ue); \
+	ADD(yy.c_str()); \
+}
 
 	for (i=0; i<2; i++)
 	{
@@ -471,24 +482,21 @@ extern "C" char *get_imageurl()
 FILE *open_langform(const char *lang, const char *formname,
 		    int print_header)
 {
-	char	*formpath;
+	std::string formpath;
 	FILE	*f;
 	char	*templatedir=get_templatedir();
 
 	/* templatedir/lang/formname */
 
-	if (!(formpath=static_cast<char *>(
-		      malloc(strlen(templatedir)+3+
-			     strlen(lang)+strlen(formname)))
-	    ))
-		error("Out of memory.");
+	formpath.reserve(strlen(templatedir)+2+strlen(lang)+strlen(formname));
 
-	strcat(strcat(strcat(strcat(strcpy(formpath, templatedir), "/"),
-		lang), "/"), formname);
+	formpath += templatedir;
+	formpath += "/";
+	formpath += lang;
+	formpath += "/";
+	formpath += formname;
 
-	f=fopen(formpath, "r");
-
-	free(formpath);
+	f=fopen(formpath.c_str(), "r");
 
 	if (f && print_header)
 		printf("Content-Language: %s\n", lang);
@@ -729,39 +737,26 @@ static int callback_get_timezone(const char *tz, const char *n, void *dummy)
 
 static FILE *do_open_form(const char *formname, int flag)
 {
-	struct template_stack *ts;
 	FILE	*f=NULL;
-
-	if ((ts=(struct template_stack *)malloc(sizeof(struct template_stack)))
-	    == NULL)
-		return (NULL);
 
 	if (!sqwebmail_content_language.empty())
 		f=open_langform(sqwebmail_content_language.c_str(), formname, flag);
 	if (!f)	f=open_langform(HTTP11_DEFAULTLANG, formname, flag);
 
 	if (!f)
-	{
-		free(ts);
 		return (NULL);
-	}
 
-	ts->next=template_stack;
-	template_stack=ts;
-	ts->fp=f;
+	template_stack.push_back(f);
 	return (f);
 }
 
 static void do_close_form()
 {
-	struct template_stack *ts=template_stack;
-
-	if (!ts)
+	if (template_stack.empty())
 		enomem();
 
-	fclose(ts->fp);
-	template_stack=ts->next;
-	free(ts);
+	fclose(template_stack.back());
+	template_stack.pop_back();
 }
 
 static void do_output_form_loop(FILE *);
@@ -1101,18 +1096,11 @@ static void do_output_form_loop(FILE *f)
 			const char *p=cgi("folder");
 			const char *q=strrchr(p, '.');
 
-				if (q)
-				{
-					char	*r=static_cast<char *>(
-						malloc(q-p+1)
-					);
-
-					if (!r)	enomem();
-					memcpy(r, p, q-p);
-					r[q-p]=0;
-					output_urlencoded(r);
-					free(r);
-				}
+			if (q)
+			{
+				std::string r{p, (size_t)(q-p)};
+				output_urlencoded(r.c_str());
+			}
 		}
 		else if (strcmp(kw, "G") == 0)
 		{
@@ -1661,12 +1649,12 @@ static FILE *openinclude(const char *p)
 static void http_redirect_top(const char *app)
 {
 	const	char *p=nonloginscriptptr();
-	char	*buf=static_cast<char *>(malloc(strlen(p)+strlen(app)+2));
 
-	if (!buf)	enomem();
-	strcat(strcpy(buf, p), app);
-	cgiredirect(buf);
-	free(buf);
+	std::string buf;
+	buf.reserve(strlen(p) + strlen(app));
+	buf += p;
+	buf += app;
+	cgiredirect(buf.c_str());
 }
 
 /* HTTP redirects within a given mailbox, various formats */
@@ -1689,18 +1677,21 @@ void http_redirect_argsss(const char *fmt, const char *arg1, const char *arg2,
 {
 	std::string base=scriptptrget();
 
-	char *args[3]={
-		cgiurlencode(arg1),
-		cgiurlencode(arg2),
-		cgiurlencode(arg3)
-	};
+	std::string args[3];
+
+	args[0].reserve(cgi_encode::estimate(arg1));
+	cgi_encode::encode(std::back_inserter(args[0]), arg1);
+	args[1].reserve(cgi_encode::estimate(arg2));
+	cgi_encode::encode(std::back_inserter(args[1]), arg2);
+	args[2].reserve(cgi_encode::estimate(arg3));
+	cgi_encode::encode(std::back_inserter(args[2]), arg3);
 
 	/* We generate a Location: redirected_url header.  The actual
 	** header is generated in cgiredirect, we just build it here */
 
 	std::string q;
-	q.reserve(base.size()+strlen(fmt)+strlen(args[0])+strlen(args[1])+
-		       strlen(args[2])+1);
+	q.reserve(base.size()+strlen(fmt)+args[0].size()+args[1].size()+
+		       args[2].size());
 	q=base;
 
 	size_t i=0;
@@ -1719,31 +1710,26 @@ void http_redirect_argsss(const char *fmt, const char *arg1, const char *arg2,
 			q+=*p;
 	}
 	cgiredirect(q.c_str());
-	free(args[0]);
-	free(args[1]);
-	free(args[2]);
 }
 
-void output_user_form(const char *formname)
+void output_user_form(std::string_view formname)
 {
-char	*p;
-
-	if (!*formname || strchr(formname, '.') || strchr(formname, '/'))
+	if (formname.empty() || formname.find('.') != std::string_view::npos ||
+	    formname.find('/') != std::string_view::npos)
 		error("Invalid request.");
 
-	if ((strcmp(formname, "filter") == 0
-	     || strcmp(formname, "autoresponse") == 0)
-	    && !maildir::filter::has("."))
+	if ((formname == "filter" || formname == "autoresponse") &&
+	    !maildir::filter::has("."))
 		/* Script kiddies... */
 		formname="nofilter";
 
-	if (strcmp(formname, "filter") == 0 && *cgi("do.submitfilter"))
+	if (formname == "filter" && *cgi("do.submitfilter"))
 		mailfilter_submit();
 
-	if (strcmp(formname, "gpg") == 0 && libmail_gpg_has_gpg(GPGDIR))
+	if (formname == "gpg" && libmail_gpg_has_gpg(GPGDIR))
 		error("Invalid request.");
 
-	if (strcmp(formname, "gpgcreate") == 0 && libmail_gpg_has_gpg(GPGDIR))
+	if (formname == "gpgcreate" && libmail_gpg_has_gpg(GPGDIR))
 		error("Invalid request.");
 
 	if (*cgi("ldapsearch"))	/* Special voodoo for LDAP address book stuff */
@@ -1765,7 +1751,7 @@ char	*p;
 	** cookie, and punts after resetting setcookie to 0.
 	*/
 
-	if (strcmp(formname, "print") == 0 && *cgi("setcookie") == '1')
+	if (formname == "print" && *cgi("setcookie") == '1')
 	{
 		const char *qs=getenv("QUERY_STRING");
 		const char *pi=getenv("PATH_INFO");
@@ -1792,44 +1778,44 @@ char	*p;
 	if (strcmp(cgi("fromscreen"), "mailfilter") == 0)
 		maildir::filter::cancel(".");	/* Remove the temp file */
 
-	if (strcmp(formname, "logout") == 0)
+	if (formname == "logout")
 	{
 		unlink(IPFILE);
 		http_redirect_top("");
 		return;
 	}
 
-	if (strcmp(formname, "fetch") == 0)
+	if (formname == "fetch")
 	{
 		folder_download( sqwebmail_folder, atol(cgi("pos")),
 			cgi("mimeid") );
 		return;
 	}
 
-	if (strcmp(formname, "delmsg") == 0)
+	if (formname == "delmsg")
 	{
 		folder_delmsg( atol(cgi("pos")));
 		return;
 	}
 
-	if (strcmp(formname, "donewmsg") == 0)
+	if (formname == "donewmsg")
 	{
 		newmsg_do(sqwebmail_folder);
 		return;
 	}
 
-	if (strcmp(formname, "doattach") == 0)
+	if (formname == "doattach")
 	{
 		doattach(sqwebmail_folder, cgi("draft"));
 		return;
 	}
 
-	if (strcmp(formname, "folderdel") == 0)
+	if (formname == "folderdel")
 	{
 		folder_delmsgs(sqwebmail_folder, atol(cgi("pos")));
 		return;
 	}
-	if (strcmp(formname, "spellchk") == 0)
+	if (formname == "spellchk")
 	{
 #ifdef	ISPELL
 		spell_check_continue();
@@ -1889,7 +1875,7 @@ char	*p;
 		}
 	}
 
-	if (strcmp(formname, "event-edit") == 0)
+	if (formname == "event-edit")
 	{
 		formname="folders";
 		if (sqpcp_loggedin())
@@ -1901,7 +1887,7 @@ char	*p;
 	}
 
 
-	if (strcmp(formname, "open-draft") == 0)
+	if (formname == "open-draft")
 	{
 		formname="newmsg";
 		if (sqpcp_has_calendar())
@@ -1942,12 +1928,12 @@ char	*p;
 		}
 	}
 
-	if (strcmp(formname, "newevent") == 0 ||
-	    strcmp(formname, "eventdaily") == 0 ||
-	    strcmp(formname, "eventweekly") == 0 ||
-	    strcmp(formname, "eventmonthly") == 0 ||
-	    strcmp(formname, "eventshow") == 0 ||
-	    strcmp(formname, "eventacl") == 0)
+	if (formname == "newevent" ||
+	    formname == "eventdaily" ||
+	    formname == "eventweekly" ||
+	    formname == "eventmonthly" ||
+	    formname == "eventshow" ||
+	    formname == "eventacl")
 	{
 		if (!sqpcp_has_calendar() ||
 		    !sqpcp_loggedin())
@@ -1959,12 +1945,9 @@ char	*p;
 		folder_search(sqwebmail_folder, atol(cgi("pos")));
 		return;
 	}
-	p=static_cast<char *>(malloc(strlen(formname)+6));;
-	if (!p)	enomem();
-
-	strcat(strcpy(p, formname),".html");
-	output_form(p);
-	free(p);
+	std::string filename{formname};
+	filename += ".html";
+	output_form(filename.c_str());
 }
 
 #ifdef	ISPELL
@@ -2714,83 +2697,6 @@ static void main2()
 	}
 	return;
 }
-
-#ifdef	malloc
-
-#undef	malloc
-#undef	realloc
-#undef	free
-#undef	strdup
-#undef	calloc
-
-static void *allocp[1000];
-
-extern void *malloc(size_t), *realloc(void *, size_t), free(void *),
-	*calloc(size_t, size_t);
-extern char *strdup(const char *);
-
-char *my_strdup(const char *c)
-{
-size_t	i;
-
-	for (i=0; i<sizeof(allocp)/sizeof(allocp[0]); i++)
-		if (!allocp[i])
-			return (allocp[i]=strdup(c));
-	abort();
-	return (0);
-}
-
-void *my_malloc(size_t n)
-{
-size_t	i;
-
-	for (i=0; i<sizeof(allocp)/sizeof(allocp[0]); i++)
-		if (!allocp[i])
-			return (allocp[i]=malloc(n));
-	abort();
-	return (0);
-}
-
-void *my_calloc(size_t a, size_t b)
-{
-size_t	i;
-
-	for (i=0; i<sizeof(allocp)/sizeof(allocp[0]); i++)
-		if (!allocp[i])
-			return (allocp[i]=calloc(a,b));
-	abort();
-	return (0);
-}
-
-void *my_realloc(void *p, size_t s)
-{
-size_t	i;
-
-	for (i=0; i<sizeof(allocp)/sizeof(allocp[0]); i++)
-		if (p && allocp[i] == p)
-		{
-		void	*q=realloc(p, s);
-
-			if (q)	allocp[i]=q;
-			return (q);
-		}
-	abort();
-}
-
-void my_free(void *p)
-{
-size_t i;
-
-	for (i=0; i<sizeof(allocp)/sizeof(allocp[0]); i++)
-		if (p && allocp[i] == p)
-		{
-			free(p);
-			allocp[i]=0;
-			return;
-		}
-	abort();
-}
-#endif
 
 /* Trim leading and trailing white spaces from string */
 

@@ -5,7 +5,6 @@
 */
 
 #include "msg2html.h"
-#include "buf.h"
 #include <courier-unicode.h>
 #include "numlib/numlib.h"
 #include "gpglib/gpglib.h"

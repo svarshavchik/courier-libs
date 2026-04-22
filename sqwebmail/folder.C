@@ -34,7 +34,6 @@
 #include	"pref.h"
 #include	"token.h"
 #include	"filter.h"
-#include	"buf.h"
 #include	"pref.h"
 #include	"newmsg.h"
 #include	"htmllibdir.h"
@@ -1733,15 +1732,15 @@ static std::string get_textlink(std::string_view s,
 	{
 		char buffer[NUMBUFSIZE];
 		time_t now;
-		char *hash;
 		const char *n;
 
 		time(&now);
 		libmail_str_time_t(now, buffer);
 
-		hash=cgiurlencode(redirect_hash(buffer));
-
+		std::string hash;
 		std::string t;
+
+		cgi_encode::encode(std::back_inserter(hash), redirect_hash(buffer));
 
 		t.reserve(cgi_encode::estimate(s));
 		cgi_encode::encode(std::back_inserter(t), s);
@@ -1756,11 +1755,7 @@ static std::string get_textlink(std::string_view s,
 		b += "&amp;timestamp=";
 		b += buffer;
 		b += "&amp;md5=";
-		if (hash)
-		{
-			b += hash;
-			free(hash);
-		}
+		b += hash;
 		b += "\" target=\"_blank\">"
 			"<span class=\"message-text-plain-http-link\">";
 		buf_cat_esc_amp(b, disp_url);
@@ -2083,7 +2078,6 @@ void folder_showmsg(const char *dir, size_t pos)
 	{
 		char nowbuffer[NUMBUFSIZE];
 		time_t now;
-		char *hash;
 		std::string scriptnameget=scriptptrget();
 		static const char formbuf[]="&form=newmsg&to=";
 
@@ -2103,12 +2097,13 @@ void folder_showmsg(const char *dir, size_t pos)
 		time(&now);
 		libmail_str_time_t(now, nowbuffer);
 
-		hash=cgiurlencode(redirect_hash(nowbuffer));
+		std::string hash;
+		cgi_encode::encode(std::back_inserter(hash), redirect_hash(nowbuffer));
 
 		std::string washpfix;
 		washpfix.reserve(
 			strlen(script_name)
-			+ strlen(hash ? hash:"") + strlen(nowbuffer)
+			+ hash.size() + strlen(nowbuffer)
 			+ 100
 		);
 
@@ -2116,11 +2111,8 @@ void folder_showmsg(const char *dir, size_t pos)
 		washpfix+="?timestamp=";
 		washpfix+=nowbuffer;
 		washpfix+="&md5=";
-		washpfix+=(hash ? hash:"");
+		washpfix+=hash;
 		washpfix+="&redirect=";
-
-		if (hash)
-			free(hash);
 
 		std::string washpfixmailto;
 		washpfixmailto.reserve(scriptnameget.size()+sizeof(formbuf));
@@ -3251,16 +3243,17 @@ static void do_folderlist(const char *inbox_pfix,
 
 	if (strcmp(folderdir, INBOX) == 0 && !maildir_newshared_disabled)
 	{
-		char *sp=cgiurlencode(NEWSHAREDSP);
+		std::string sp;
+		sp.reserve(cgi_encode::estimate(NEWSHAREDSP));
+		cgi_encode::encode(std::back_inserter(sp), NEWSHAREDSP);
 
 		printf("<tr class=\"foldersubdir\"><td align=\"left\">%s&gt;&gt;&gt;&nbsp;<a href=\"", folders_img);
 		output_scriptptrget();
 		printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir="
 		       "%s\">%s</a>"
 		       "</td><td>&nbsp;</td></tr>\n\n",
-		       sp,
+		       sp.c_str(),
 		       getarg("PUBLICFOLDERS"));
-		free(sp);
 	}
 	printf("</table>\n");
 }

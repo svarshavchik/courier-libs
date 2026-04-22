@@ -13,7 +13,6 @@
 #include	"cgi/cgi.h"
 #include	"rfc2045/rfc2045.h"
 #include	"maildir/maildirmisc.h"
-#include	"buf.h"
 #include	"ispell.h"
 #include	"filter.h"
 #include	"newmsg.h"
