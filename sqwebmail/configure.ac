@@ -390,14 +390,6 @@ AC_DEFINE_UNQUOTED(MIMETYPES, "$mimetypes",
 AC_DEFINE_UNQUOTED(MAXLONGSIZE, $MAXLONGSIZE,
 				[ Maximum size of a long ])
 
-AC_ARG_ENABLE(bannerprog,
-	[  --enable-bannerprog=prog   Program which will generate a banner.],
-	[
-		AC_DEFINE_UNQUOTED(BANNERPROG, "$enableval",
-		[ External banner generating program ])
-		 ])
-
-
 CPPFLAGS="$CPPFLAGS -I.. -I$srcdir/.. -I../.. -I$srcdir/../.."
 
 AC_ARG_WITH(maxargsize,

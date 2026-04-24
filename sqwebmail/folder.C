@@ -66,11 +66,16 @@
 #include	<wchar.h>
 #endif
 
+#include	"rfc822/rfc822.h"
 #include	"strftime.h"
 #include	<filesystem>
 
-FILE *open_langform(const char *lang, const char *formname,
-			int print_header);
+void open_langform(
+	rfc822::fdstreambuf &fbuf,
+	std::string_view lang,
+	std::string_view formname,
+	bool print_header
+);
 
 extern char sqwebmail_folder_rights[];
 extern char *get_imageurl();
@@ -1544,56 +1549,74 @@ static void html_warning()
 
 static void init_smileys(struct msg2html_info *info)
 {
-	FILE *fp=open_langform(sqwebmail_content_language.c_str(), "smileys.txt", 0);
-	char buf[1024];
+	rfc822::fdstreambuf fbuf;
+	open_langform(fbuf,
+			sqwebmail_content_language,
+			"smileys.txt",
+			false
+	);
 
-	char imgbuf[3000];
-
-	if (!fp)
+	if (fbuf.error())
 		return;
 
-	while (fgets(buf, sizeof(buf), fp) != NULL)
+	std::string buf, imgbuf;
+
+	std::istream fp{&fbuf};
+	while (std::getline(fp, buf))
 	{
-		char *p=strchr(buf, '#');
-		char *code;
-		char *img;
-		char *attr;
+		size_t pos=buf.find('#');
+		if (pos != std::string::npos)
+			buf.erase(pos);
 
-		if (p) *p=0;
-
-		code=buf;
-
-		for (p=buf; *p && !isspace(*p); p++)
-			;
-
-		if (*p)
-			*p++=0;
-
-		while (*p && isspace(*p))
-			p++;
-		img=p;
-
-		while (*p && !isspace(*p))
-			p++;
-		if (*p)
-			*p++=0;
-
-		while (*p && isspace(*p))
-			p++;
-		attr=p;
-		p=strchr(p, '\n');
-		if (p) *p=0;
-
-		if (!*code || !*img)
+		pos=buf.find_first_not_of(" \t");
+		if (pos == std::string::npos)
 			continue;
 
-		snprintf(imgbuf, sizeof(imgbuf),
-			 "<img src=\"%s/%s\" %s />",
-			 get_imageurl(), img, attr);
+		auto code=std::string_view{buf}.substr(pos);
+
+		pos=code.find_first_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+
+		auto img=code.substr(pos);
+		code=code.substr(0, pos);
+		pos=img.find_first_not_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+		img.remove_prefix(pos);
+		pos=img.find_first_of(" \t");
+
+		if (pos == std::string::npos)
+			continue;
+
+		auto attr=img.substr(pos);
+		img=img.substr(0, pos);
+
+		pos=attr.find_first_not_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+
+		attr.remove_prefix(pos);
+
+		pos=attr.find_first_of(" \t");
+		if (pos == std::string::npos)
+			pos=attr.size();
+
+		attr=attr.substr(0, pos);
+
+		imgbuf.reserve(strlen(get_imageurl())+img.size()+attr.size()+
+				sizeof("<img src=\"/\" />")
+		);
+		imgbuf.append("<img src=\"");
+		imgbuf.append(get_imageurl());
+		imgbuf.append("/");
+		imgbuf.append(img);
+		imgbuf.append("\" ");
+		imgbuf.append(attr);
+		imgbuf.append(" />");
 
 		msg2html_add_smiley(info, code, imgbuf);
 	}
-	fclose(fp);
 }
 
 static void email_address_start(const char *name, const char *addr)

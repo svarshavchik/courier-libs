@@ -85,11 +85,12 @@ extern char *crypt(const char *, const char *);
 #include	"htmllibdir.h"
 
 #include	"logindomainlist.h"
+#include	"rfc822/rfc822.h"
 #include	<fstream>
 #include	<vector>
 #include	<string>
 #include	<string_view>
-
+#include	<memory>
 extern void print_safe(const char *);
 
 extern void sent_gpgerrtxt();
@@ -150,7 +151,7 @@ extern void doattach(const char *, const char *);
 
 static void timezonelist();
 
-static std::vector<FILE *> template_stack;
+static std::vector<std::unique_ptr<rfc822::fdstreambuf>> template_stack;
 
 std::string trim_spaces(const char *s);
 
@@ -478,17 +479,19 @@ extern "C" char *get_imageurl()
 	return imageurl;
 }
 
-
-FILE *open_langform(const char *lang, const char *formname,
-		    int print_header)
+void open_langform(
+	rfc822::fdstreambuf &fbuf,
+	std::string_view lang,
+	std::string_view formname,
+	bool print_header
+)
 {
 	std::string formpath;
-	FILE	*f;
 	char	*templatedir=get_templatedir();
 
 	/* templatedir/lang/formname */
 
-	formpath.reserve(strlen(templatedir)+2+strlen(lang)+strlen(formname));
+	formpath.reserve(strlen(templatedir)+2+lang.size()+formname.size());
 
 	formpath += templatedir;
 	formpath += "/";
@@ -496,13 +499,16 @@ FILE *open_langform(const char *lang, const char *formname,
 	formpath += "/";
 	formpath += formname;
 
-	f=fopen(formpath.c_str(), "r");
+	fbuf=rfc822::fdstreambuf{open(formpath.c_str(), O_RDONLY|O_CLOEXEC)};
 
-	if (f && print_header)
-		printf("Content-Language: %s\n", lang);
-	if (f)
-		fcntl(fileno(f), F_SETFD, FD_CLOEXEC);
-	return (f);
+	if (!fbuf.error() && print_header)
+	{
+		printf("Content-Language: ");
+		fwrite(lang.data(), lang.size(), 1, stdout);
+		printf("\n");
+	}
+	if (!fbuf.error())
+		fcntl(fbuf.fileno(), F_SETFD, FD_CLOEXEC);
 }
 
 int ishttps()
@@ -534,7 +540,7 @@ static void pass_image_through(int c, void *p)
 	putchar(c);
 }
 
-static void output_image( FILE *f,
+static void output_image( std::istream &f,
 			  void (*output_func)(int, void *), void *void_arg)
 {
 	int c;
@@ -557,10 +563,10 @@ static void output_image( FILE *f,
 
 	if (noimages)
 	{
-		while ((c=getc(f)) >= 0
+		while ((c=f.get()) >= 0
 		       && c != '@')
 			;
-		while ((c=getc(f)) >= 0
+		while ((c=f.get()) >= 0
 		       && c != '@')
 			MKIMG(c);
 	}
@@ -582,19 +588,19 @@ static void output_image( FILE *f,
 			MKIMG(*p);
 
 		MKIMG('/');
-		while ((c=getc(f)) >= 0
+		while ((c=f.get()) >= 0
 		       && c != '@' && c != ',')
 			MKIMG(c);
 		MKIMG('"');
 		MKIMG(' ');
 		if (c == ',')
-			c=getc(f);
+			c=f.get();
 		while (c >= 0 && c != '@')
 		{
 			MKIMG(c);
-			c=getc(f);
+			c=f.get();
 		}
-		while ((c=getc(f)) >= 0 && c != '@')
+		while ((c=f.get()) >= 0 && c != '@')
 			;
 		MKIMG(' ');
 		MKIMG('/');
@@ -604,82 +610,76 @@ static void output_image( FILE *f,
 
 /* ---- time zone list ---- */
 
-static int timezonefile( int (*callback_func)(const char *, const char *,
-					      void *), void *callback_arg)
+static bool timezonefile(
+	std::function<bool(std::string_view, std::string_view)> callback_func
+)
 {
-	FILE *f=NULL;
-	char buffer[BUFSIZ];
+	rfc822::fdstreambuf fbuf;
+	std::string buffer;
 
 	if (!sqwebmail_content_language.empty())
-		f=open_langform(sqwebmail_content_language.c_str(), "TIMEZONELIST", 0);
+		open_langform(fbuf,
+				sqwebmail_content_language.c_str(),
+				"TIMEZONELIST", false);
 
-	if (!f)	f=open_langform(HTTP11_DEFAULTLANG, "TIMEZONELIST", 0);
+	if (fbuf.error())
+		open_langform(fbuf,
+				HTTP11_DEFAULTLANG, "TIMEZONELIST", false);
 
-	if (!f)
+	if (fbuf.error())
 		return (0);
 
-	while (fgets(buffer, sizeof(buffer), f) != NULL)
+	std::istream f{&fbuf};
+	while (std::getline(f, buffer))
 	{
-		char *p=strchr(buffer, '\n');
-		char *tz;
-		int rc;
+		size_t n=buffer.find('#');
+		if (n != buffer.npos)
+			buffer.resize(n);
 
-		if (p) *p=0;
-
-		p=strchr(buffer, '#');
-		if (p) *p=0;
-
-		for (p=buffer; *p; p++)
-			if (!isspace((int)(unsigned char)*p))
-				break;
-
-		if (!*p)
+		n=buffer.find_first_not_of(" \t");
+		if (n == buffer.npos)
 			continue;
 
-		tz=p;
-		while (*p)
-		{
-			if (isspace((int)(unsigned char)*p))
-				break;
-			++p;
-		}
-		if (*p) *p++=0;
-		while (*p && isspace((int)(unsigned char)*p))
-			++p;
+		auto p=std::string_view{buffer}.substr(n);
 
-		static char empty_str[]="";
-		if (strcmp(p, "*") == 0)
-			p=empty_str;
-		if (strcmp(tz, "*") == 0)
-			tz=empty_str;
+		size_t e=p.find_first_of(" \t");
+		if (e == p.npos)
+			continue;
 
-		rc= (*callback_func)(tz, p, callback_arg);
+		std::string_view tz{p.data(), e};
 
-		if (rc)
-		{
-			fclose(f);
-			return (rc);
-		}
+		p.remove_prefix(e+1);
+		e=p.find_first_not_of(" \t");
+		if (e == p.npos)
+			continue;
+
+		p.remove_prefix(e);
+
+		e=p.find_last_not_of(" \t");
+
+		if (!callback_func(tz, p.substr(0, ++e)))
+			return (false);
 	}
-	fclose(f);
-	return (0);
+	return (true);
 }
 
-static int callback_timezonelist(const char *, const char *, void *);
+static bool callback_timezonelist(std::string_view tz, std::string_view n);
 
 static void timezonelist()
 {
 	printf("<select name=\"timezonelist\" class=\"timezonelist\">");
-	timezonefile(callback_timezonelist, NULL);
+	timezonefile(callback_timezonelist);
 	printf("</select>\n");
 }
 
-static int callback_timezonelist(const char *tz, const char *n, void *dummy)
+static bool callback_timezonelist(std::string_view tz, std::string_view n)
 {
-	printf("<option value=\"%s\">", tz);
+	printf("<option value=\"");
+	fwrite(tz.data(), tz.size(), 1, stdout);
+	printf("\">");
 	output_attrencoded(n);
 	printf("</option>\n");
-	return (0);
+	return (true);
 }
 
 static void set_timezone(std::string_view p)
@@ -691,63 +691,42 @@ static void set_timezone(std::string_view p)
 	setenv("TZ", sv.c_str(), 1);
 }
 
-static int callback_get_timezone(const char *, const char *, void *);
-
 /* Return TZ selected from login dropdown */
 
-static char *get_timezone()
+static std::string get_timezone()
 {
-	char *langptr=0;
+	std::string langptr;
 
-	timezonefile(callback_get_timezone, &langptr);
-
-	if (!langptr)
-	{
-		langptr=strdup("");
-		if (!langptr)
-			enomem();
-	}
-
-	if (*langptr == 0)
-	{
-		free(langptr);
-		langptr=strdup("*");
-		if (!langptr)
-			enomem();
-	}
+	timezonefile(
+		[&langptr] (
+			std::string_view tz,
+			std::string_view n
+		) -> bool
+		{
+			if (tz == cgi("timezonelist"))
+				langptr=tz;
+			return (true);
+		});
 
 	return(langptr);
 }
 
-static int callback_get_timezone(const char *tz, const char *n, void *dummy)
-{
-	if (strcmp(tz, cgi("timezonelist")) == 0)
-	{
-		char **p=(char **)dummy;
-
-		if (*p)
-			free(*p);
-
-		*p=strdup(tz);
-	}
-	return (0);
-}
-
 /* ------------------------ */
 
-static FILE *do_open_form(const char *formname, int flag)
+static bool do_open_form(std::string_view formname, bool print_header)
 {
-	FILE	*f=NULL;
+	auto f=std::make_unique<rfc822::fdstreambuf>();
 
 	if (!sqwebmail_content_language.empty())
-		f=open_langform(sqwebmail_content_language.c_str(), formname, flag);
-	if (!f)	f=open_langform(HTTP11_DEFAULTLANG, formname, flag);
+		open_langform(*f, sqwebmail_content_language.c_str(), formname, print_header);
+	if (f->error())
+		open_langform(*f, HTTP11_DEFAULTLANG, formname, print_header);
 
-	if (!f)
-		return (NULL);
+	if (f->error())
+		return (false);
 
-	template_stack.push_back(f);
-	return (f);
+	template_stack.push_back(std::move(f));
+	return (true);
 }
 
 static void do_close_form()
@@ -755,16 +734,14 @@ static void do_close_form()
 	if (template_stack.empty())
 		enomem();
 
-	fclose(template_stack.back());
 	template_stack.pop_back();
 }
 
-static void do_output_form_loop(FILE *);
+static void do_output_form_loop(std::istream &);
 
-static void fix_xml_header(FILE *f)
+static void fix_xml_header(std::istream &f)
 {
-	char linebuf[80];
-
+	std::string linebuf;
 	/*
 	** Some templates now have an <?xml > header.  Adjust the
 	** encoding to match the selected default.  Yes, it's a dirty hack,
@@ -772,20 +749,18 @@ static void fix_xml_header(FILE *f)
 	** HTML templates in Amaya.
 	*/
 
-	if (fgets(linebuf, sizeof(linebuf), f) == NULL)
+	if (!std::getline(f, linebuf))
 		return;
 
-	if (strncasecmp(linebuf, "<?xml version=", 14) == 0)
-		sprintf(linebuf, "<?xml version=\"1.0\" encoding=\"%s\"?>\n",
+	if (std::string_view{linebuf}.substr(0, 14) == "<?xml version=")
+		printf("<?xml version=\"1.0\" encoding=\"%s\"?>\n",
 			sqwebmail_content_charset.c_str());
-
-	printf("%s", linebuf);
+	else
+		printf("%s", linebuf.c_str());
 }
 
 void output_form(const char *formname)
 {
-	FILE	*f;
-
 #ifdef	GZIP
 	int	dogzip;
 	int	pipefd[2];
@@ -794,11 +769,10 @@ void output_form(const char *formname)
 
 	noimages= auth_getoptionenvint("wbnoimages");
 
-	f=do_open_form(formname, 1);
+	if (!do_open_form(formname, true))
+		error("Can't open form template.");
 
 	sqwebmail_formname=formname;
-
-	if (!f)	error("Can't open form template.");
 
 	/*
 	** Except for the dummy frame window (and the tiny empty frame),
@@ -880,6 +854,7 @@ void output_form(const char *formname)
 		close(pipefd[0]);
 	}
 #endif
+	std::istream f{&*template_stack.back()};
 	fix_xml_header(f);
 	do_output_form_loop(f);
 	do_close_form();
@@ -902,40 +877,42 @@ void output_form(const char *formname)
 #endif
 }
 
-static FILE *openinclude(const char *);
+static void openinclude(std::string_view p);
 
 
-void insert_include(const char *inc_name)
+void insert_include(std::string_view inc_name)
 {
-	FILE *ff=openinclude(inc_name);
+	openinclude(inc_name);
+
+	std::istream ff{&*template_stack.back()};
 	do_output_form_loop(ff);
 	do_close_form();
 }
 
-static void do_output_form_loop(FILE *f)
+static void do_output_form_loop(std::istream &f)
 {
 	int	c, c2, c3;
 
-	while ((c=getc(f)) >= 0)
+	while ((c=f.get()) >= 0)
 	{
-	char	kw[64];
+	char	kwbuf[64];
 
 		if (c != '[')
 		{
 			putchar(c);
 			continue;
 		}
-		c=getc(f);
+		c=f.get();
 		if (c != '#')
 		{
 			putchar('[');
-			ungetc(c,f);
+			f.unget();
 			continue;
 		}
-		c=getc(f);
+		c=f.get();
 		if (c == '?')
 		{
-			c=getc(f);
+			c=f.get();
 			if (c < '0' || c > '9')
 			{
 				putchar('[');
@@ -959,13 +936,13 @@ static void do_output_form_loop(FILE *f)
 			    (c == '8' && !sqpcp_has_groupware())
 			    )
 			{
-				while ((c=getc(f)) != EOF)
+				while ((c=f.get()) != EOF)
 				{
 					if (c != '[')	continue;
-					if ( getc(f) != '#')	continue;
-					if ( getc(f) != '?')	continue;
-					if ( getc(f) != '#')	continue;
-					if ( getc(f) == ']')	break;
+					if ( f.get() != '#')	continue;
+					if ( f.get() != '?')	continue;
+					if ( f.get() != '#')	continue;
+					if ( f.get() == ']')	break;
 				}
 			}
 			continue;
@@ -978,19 +955,19 @@ static void do_output_form_loop(FILE *f)
 			buf.argp=buf.argbuf;
 			buf.argn=sizeof(buf.argbuf)-1;
 
-			while ((c=getc(f)) >= 0 && c != '\n')
+			while ((c=f.get()) >= 0 && c != '\n')
 			{
 				if (c == '#')
 				{
-					c=getc(f);
+					c=f.get();
 					if (c == ']')	break;
-					ungetc(c, f);
+					f.unget();
 					c='#';
 				}
 
 				if (c == '@')
 				{
-					c=getc(f);
+					c=f.get();
 					if (c == '@')
 					{
 						output_image(f,
@@ -998,7 +975,7 @@ static void do_output_form_loop(FILE *f)
 							     &buf);
 						continue;
 					}
-					ungetc(c, f);
+					f.unget();
 					c='@';
 				}
 				var_put_buf_func(c, &buf);
@@ -1011,15 +988,15 @@ static void do_output_form_loop(FILE *f)
 		if (c == '@')
 		{
 			output_image(f, pass_image_through, NULL);
-			c=getc(f);
+			c=f.get();
 			if (c == '#')
 			{
-				c=getc(f);
+				c=f.get();
 				if (c == ']')
 					continue;
 			}
 			if (c != EOF)
-				ungetc(c, f);
+				f.unget();
 			continue;
 		}
 
@@ -1027,43 +1004,44 @@ static void do_output_form_loop(FILE *f)
 		{
 			putchar('[');
 			putchar('#');
-			ungetc(c, f);
+			putchar(c);
 			continue;
 		}
 		c2=0;
 		while (c != EOF && (isalnum(c) || c == ':' || c == '_'))
 		{
-			if ((size_t)c2 < sizeof(kw)-1)
-				kw[c2++]=c;
-			c=getc(f);
+			if ((size_t)c2 < sizeof(kwbuf)-1)
+				kwbuf[c2++]=c;
+			c=f.get();
 		}
-		kw[c2]=0;
+		kwbuf[c2]=0;
 		c2=c;
 
 		if (c2 != '#')
 		{
 			putchar('[');
 			putchar('#');
-			printf("%s", kw);
-			ungetc(c2, f);
+			printf("%s", kwbuf);
+			f.unget();
 			continue;
 		}
 
-		if ((c3=getc(f)) != ']')
+		if ((c3=f.get()) != ']')
 		{
 			putchar('[');
 			putchar('#');
-			printf("%s", kw);
+			printf("%s", kwbuf);
 			putchar(c2);
-			ungetc(c3, f);
+			f.unget();
 			continue;
 		}
 
-		if (strcmp(kw, "a") == 0)
+		std::string_view kw{kwbuf};
+		if (kw == "a")
 		{
 			addressbook();
 		}
-		else if (strcmp(kw, "d") == 0)
+		else if (kw == "d")
 		{
 			std::string c=folder_fromutf8(cgi("folderdir"));
 			const char *sep="";
@@ -1091,7 +1069,7 @@ static void do_output_form_loop(FILE *f)
 				}
 			}
 		}
-		else if (strcmp(kw, "D") == 0)
+		else if (kw == "D")
 		{
 			const char *p=cgi("folder");
 			const char *q=strrchr(p, '.');
@@ -1102,166 +1080,169 @@ static void do_output_form_loop(FILE *f)
 				output_urlencoded(r.c_str());
 			}
 		}
-		else if (strcmp(kw, "G") == 0)
+		else if (kw == "G")
 		{
 			output_attrencoded(login_returnaddr());
 		}
-		else if (strcmp(kw, "r") == 0)
+		else if (kw == "r")
 		{
 			output_attrencoded(cgi("redirect"));
 		}
-		else if (strcmp(kw, "s") == 0)
+		else if (kw == "s")
 		{
 			output_scriptptrget();
 		}
-		else if (strcmp(kw, "S") == 0)
+		else if (kw == "S")
 		{
 			output_loginscriptptr();
 		}
-		else if (strcmp(kw, "R") == 0)
+		else if (kw == "R")
 		{
 			output_loginscriptptr_get();
 		}
-		else if (strcmp(kw, "p") == 0)
+		else if (kw == "p")
 		{
 			output_scriptptr();
 		}
-		else if (strcmp(kw, "P") == 0)
+		else if (kw == "P")
 		{
 			output_scriptptrpostinfo();
 		}
-		else if (strcmp(kw, "f") == 0)
+		else if (kw == "f")
 		{
 			folder_contents_title();
 		}
-		else if (strcmp(kw, "F") == 0)
+		else if (kw == "F")
 		{
 			folder_contents(sqwebmail_folder, atol(cgi("pos")));
 		}
-		else if (strcmp(kw, "n") == 0)
+		else if (kw == "n")
 		{
 			folder_initnextprev(sqwebmail_folder, atol(cgi("pos")));
 		}
-		else if (strcmp(kw, "N") == 0)
+		else if (kw == "N")
 		{
 			folder_nextprev();
 		}
-		else if (strcmp(kw, "m") == 0)
+		else if (kw == "m")
 		{
 			folder_msgmove();
 		}
-		else if (strcmp(kw, "M") == 0)
+		else if (kw == "M")
 		{
 			folder_showmsg(sqwebmail_folder, atol(cgi("pos")));
 		}
-		else if (strcmp(kw, "T") == 0)
+		else if (kw == "T")
 		{
 			folder_showtransfer();
 		}
-		else if (strcmp(kw, "L") == 0)
+		else if (kw == "L")
 		{
 			folder_list();
 		}
-		else if (strcmp(kw, "l") == 0)
+		else if (kw == "l")
 		{
 			folder_list2();
 		}
-		else if (strcmp(kw, "E") == 0)
+		else if (kw == "E")
 		{
 			folder_rename_list();
 		}
-		else if (strcmp(kw, "W") == 0)
+		else if (kw == "W")
 		{
 			newmsg_init(sqwebmail_folder, cgi("pos"));
 		}
-		else if (strcmp(kw, "z") == 0)
+		else if (kw == "z")
 		{
 			pref_isdisplayfullmsg();
 		}
-		else if (strcmp(kw, "y") == 0)
+		else if (kw == "y")
 		{
 			pref_isoldest1st();
 		}
-		else if (strcmp(kw, "H") == 0)
+		else if (kw == "H")
 		{
 			pref_displayhtml();
 		}
-		else if (strcmp(kw, "FLOWEDTEXT") == 0)
+		else if (kw == "FLOWEDTEXT")
 		{
 			pref_displayflowedtext();
 		}
-		else if (strcmp(kw, "NOARCHIVE") == 0)
+		else if (kw == "NOARCHIVE")
 		{
 			pref_displaynoarchive();
 		}
-		else if (strcmp(kw, "NOAUTORENAMESENT") == 0)
+		else if (kw == "NOAUTORENAMESENT")
 		{
 			pref_displaynoautorenamesent();
 		}
-		else if (strcmp(kw, "x") == 0)
+		else if (kw == "x")
 		{
 			pref_setprefs();
 		}
-		else if (strcmp(kw, "w") == 0)
+		else if (kw == "w")
 		{
 			pref_sortorder();
 		}
-		else if (strcmp(kw, "t") == 0)
+		else if (kw == "t")
 		{
 			pref_signature();
 		}
-		else if (strcmp(kw, "u") == 0)
+		else if (kw == "u")
 		{
 			pref_pagesize();
 		}
-		else if (strcmp(kw, "v") == 0)
+		else if (kw == "v")
 		{
 			pref_displayautopurge();
 		}
-		else if (strcmp(kw, "A") == 0)
+		else if (kw == "A")
 		{
 			attachments_head(sqwebmail_folder, cgi("pos"),
 				cgi("draft"));
 		}
-		else if (strcmp(kw, "ATTACHOPTS") == 0)
+		else if (kw == "ATTACHOPTS")
 		{
 			attachments_opts(cgi("draft"));
 		}
-		else if (strcmp(kw, "GPGERR") == 0)
+		else if (kw == "GPGERR")
 		{
 			sent_gpgerrtxt();
 		}
-		else if (strcmp(kw, "GPGERRRESUME") == 0)
+		else if (kw == "GPGERRRESUME")
 		{
 			sent_gpgerrresume();
 		}
 #ifdef	ISPELL
-		else if (strcmp(kw, "K") == 0)
+		else if (kw == "K")
 		{
 			spell_show();
 		}
 #endif
-#ifdef	BANNERPROG
-		else if (strcmp(kw, "B") == 0)
+		else if (kw == "B")
 		{
 			char banargbuf[31];
-			int	i=0;
+			size_t	i=0;
 			int	wait_stat;
 			pid_t	p, p2;
 
-				if ((c=getc(f)) != '{')
-					ungetc(c, f);
-				else	while ((c=getc(f)), isalnum(c))
-						if (i < sizeof(banargbuf)-1)
-							banargbuf[i++]=c;
-				banargbuf[i]=0;
-				fflush(stdout);
+			if ((c=f.get()) != '{')
+				f.unget();
+			else	while ((c=f.get()), isalnum(c))
+					if (i < sizeof(banargbuf)-1)
+						banargbuf[i++]=c;
+			banargbuf[i]=0;
+			fflush(stdout);
 
+			const char *bannerprog=getenv("SQWEBMAIL_BANNERPROG");
+
+			if (bannerprog && *bannerprog)
+			{
 				if ( (p=fork()) == 0 )
 				{
-					execl(BANNERPROG, BANNERPROG,
-						sqwebmail_formname,
-						banargbuf, (char *)0);
+					execl(bannerprog, bannerprog,
+							sqwebmail_formname,
+							banargbuf, (char *)0);
 					_exit(0);
 				}
 				if (p > 0)
@@ -1270,79 +1251,80 @@ static void do_output_form_loop(FILE *f)
 						p2 != p)
 						;
 				}
+			}
 		}
-#endif
-		else if (strcmp(kw, "h") == 0)
+		else if (kw == "h")
 		{
 			FILE *fp=fopen(LOGINDOMAINLIST, "r");
 
-			if (fp) {
+			if (fp)
+			{
 				/* parse LOGINDOMAINLIST and print proper output */
 				print_logindomainlist(fp);
 				fclose(fp);
 			}
 		}
-		else if (strcmp(kw, "o") == 0)
+		else if (kw == "o")
 		{
 			ldaplist();
 		}
-		else if (strcmp(kw, "O") == 0)
+		else if (kw == "O")
 		{
 			doldapsearch();
 		}
-		else if (strcmp(kw, "IMAGEURL") == 0)
+		else if (kw == "IMAGEURL")
 		{
 			printf("%s", get_imageurl());
 		}
-		else if (strcmp(kw, "LOADMAILFILTER") == 0)
+		else if (kw == "LOADMAILFILTER")
 		{
 			mailfilter_init();
 		}
-		else if (strcmp(kw, "MAILFILTERLIST") == 0)
+		else if (kw == "MAILFILTERLIST")
 		{
 			mailfilter_list();
 		}
-		else if (strcmp(kw, "MAILFILTERLISTFOLDERS") == 0)
+		else if (kw == "MAILFILTERLISTFOLDERS")
 		{
 			mailfilter_listfolders();
 		}
-		else if (strcmp(kw, "QUOTA") == 0)
+		else if (kw == "QUOTA")
 		{
 			folder_showquota();
 		}
-		else if (strcmp(kw, "NICKLIST") == 0)
+		else if (kw == "NICKLIST")
 		{
 		        ab_listselect();
 		}
-		else if (strcmp(kw, "LISTPUB") == 0)
+		else if (kw == "LISTPUB")
 		{
 			gpglistpub();
 		}
-		else if (strcmp(kw, "LISTSEC") == 0)
+		else if (kw == "LISTSEC")
 		{
 			gpglistsec();
 		}
-		else if (strcmp(kw, "KEYIMPORT") == 0)
+		else if (kw == "KEYIMPORT")
 		{
 			folder_keyimport(sqwebmail_folder, atol(cgi("pos")));
 		}
-		else if (strcmp(kw, "GPGCREATE") == 0)
+		else if (kw == "GPGCREATE")
 		{
 			gpgcreate();
 		}
-		else if (strcmp(kw, "DOGPG") == 0)
+		else if (kw == "DOGPG")
 		{
 			gpgdo();
 		}
-		else if (strcmp(kw, "ATTACHPUB") == 0)
+		else if (kw == "ATTACHPUB")
 		{
 			gpgselectpubkey();
 		}
-		else if (strcmp(kw, "ATTACHSEC") == 0)
+		else if (kw == "ATTACHSEC")
 		{
 			gpgselectprivkey();
 		}
-		else if (strcmp(kw, "MAILINGLISTS") == 0)
+		else if (kw == "MAILINGLISTS")
 		{
 			char *p=getmailinglists();
 
@@ -1354,258 +1336,311 @@ static void do_output_form_loop(FILE *f)
 			if (p)
 				free(p);
 		}
-		else if (strcmp(kw, "AUTORESPONSE") == 0)
+		else if (kw == "AUTORESPONSE")
 		{
 			autoresponse();
 		}
-		else if (strcmp(kw, "AUTORESPONSE_LIST") == 0)
+		else if (kw == "AUTORESPONSE_LIST")
 		{
 			autoresponselist();
 		}
-		else if (strcmp(kw, "AUTORESPONSE_PICK") == 0)
+		else if (kw == "AUTORESPONSE_PICK")
 		{
 			autoresponsepick();
 		}
-		else if (strcmp(kw, "AUTORESPONSE_DELETE") == 0)
+		else if (kw == "AUTORESPONSE_DELETE")
 		{
 			autoresponsedelete();
 		}
-		else if (strcmp(kw, "SQWEBMAILCSS") == 0)
+		else if (kw == "SQWEBMAILCSS")
 		{
 			printf("%s/sqwebmail.css", get_imageurl());
 		}
-		else if (strcmp(kw, "timezonelist") == 0)
+		else if (kw == "timezonelist")
 		{
 			timezonelist();
 		}
-		else if (strcmp(kw, "PREFWEEK") == 0)
+		else if (kw == "PREFWEEK")
 		{
 			pref_displayweekstart();
 		}
-		else if (strcmp(kw, "NEWEVENT") == 0)
+		else if (kw == "NEWEVENT")
 		{
 			sqpcp_newevent();
 		}
-		else if (strcmp(kw, "RECURRING") == 0)
+		else if (kw == "RECURRING")
 		{
 			printf("%s", getarg("RECURRING"));
 		}
-		else if (strcmp(kw, "EVENTSTART") == 0)
+		else if (kw == "EVENTSTART")
 		{
 			sqpcp_eventstart();
 		}
-		else if (strcmp(kw, "EVENTEND") == 0)
+		else if (kw == "EVENTEND")
 		{
 			sqpcp_eventend();
 		}
-		else if (strcmp(kw, "EVENTFROM") == 0)
+		else if (kw == "EVENTFROM")
 		{
 			sqpcp_eventfrom();
 		}
-		else if (strcmp(kw, "EVENTTIMES") == 0)
+		else if (kw == "EVENTTIMES")
 		{
 			sqpcp_eventtimes();
 		}
-		else if (strcmp(kw, "EVENTPARTICIPANTS") == 0)
+		else if (kw == "EVENTPARTICIPANTS")
 		{
 			sqpcp_eventparticipants();
 		}
-		else if (strcmp(kw, "EVENTTEXT") == 0)
+		else if (kw == "EVENTTEXT")
 		{
 			sqpcp_eventtext();
 		}
-		else if (strcmp(kw, "EVENTATTACH") == 0)
+		else if (kw == "EVENTATTACH")
 		{
 			sqpcp_eventattach();
 		}
-		else if (strcmp(kw, "EVENTSUMMARY") == 0)
+		else if (kw == "EVENTSUMMARY")
 		{
 			sqpcp_summary();
 		}
-		else if (strcmp(kw, "CALENDARTODAY") == 0)
+		else if (kw == "CALENDARTODAY")
 		{
 			sqpcp_todays_date();
 		}
-		else if (strcmp(kw, "CALENDARWEEKLYLINK") == 0)
+		else if (kw == "CALENDARWEEKLYLINK")
 		{
 			sqpcp_weeklylink();
 		}
-		else if (strcmp(kw, "CALENDARMONTHLYLINK") == 0)
+		else if (kw == "CALENDARMONTHLYLINK")
 		{
 			sqpcp_monthlylink();
 		}
-		else if (strcmp(kw, "CALENDARTODAYV") == 0)
+		else if (kw == "CALENDARTODAYV")
 		{
 			sqpcp_todays_date_verbose();
 		}
-		else if (strcmp(kw, "CALENDARDAYVIEW") == 0)
+		else if (kw == "CALENDARDAYVIEW")
 		{
 			sqpcp_daily_view();
 		}
-		else if (strcmp(kw, "CALENDARPREVDAY") == 0)
+		else if (kw == "CALENDARPREVDAY")
 		{
 			sqpcp_prevday();
 		}
-		else if (strcmp(kw, "CALENDARNEXTDAY") == 0)
+		else if (kw == "CALENDARNEXTDAY")
 		{
 			sqpcp_nextday();
 		}
-		else if (strcmp(kw, "CALENDARWEEK") == 0)
+		else if (kw == "CALENDARWEEK")
 		{
 			sqpcp_show_cal_week();
 		}
-		else if (strcmp(kw, "CALENDARNEXTWEEK") == 0)
+		else if (kw == "CALENDARNEXTWEEK")
 		{
 			sqpcp_show_cal_nextweek();
 		}
-		else if (strcmp(kw, "CALENDARPREVWEEK") == 0)
+		else if (kw == "CALENDARPREVWEEK")
 		{
 			sqpcp_show_cal_prevweek();
 		}
-		else if (strcmp(kw, "CALENDARWEEKVIEW") == 0)
+		else if (kw == "CALENDARWEEKVIEW")
 		{
 			sqpcp_displayweek();
 		}
-		else if (strcmp(kw, "CALENDARMONTH") == 0)
+		else if (kw == "CALENDARMONTH")
 		{
 			sqpcp_show_cal_month();
 		}
-		else if (strcmp(kw, "CALENDARNEXTMONTH") == 0)
+		else if (kw == "CALENDARNEXTMONTH")
 		{
 			sqpcp_show_cal_nextmonth();
 		}
-		else if (strcmp(kw, "CALENDARPREVMONTH") == 0)
+		else if (kw == "CALENDARPREVMONTH")
 		{
 			sqpcp_show_cal_prevmonth();
 		}
-		else if (strcmp(kw, "CALENDARMONTHVIEW") == 0)
+		else if (kw == "CALENDARMONTHVIEW")
 		{
 			sqpcp_displaymonth();
 		}
-		else if (strcmp(kw, "EVENTDISPLAYINIT") == 0)
+		else if (kw == "EVENTDISPLAYINIT")
 		{
 			sqpcp_displayeventinit();
 		}
-		else if (strcmp(kw, "EVENTDELETEINIT") == 0)
+		else if (kw == "EVENTDELETEINIT")
 		{
 			sqpcp_deleteeventinit();
 		}
-		else if (strcmp(kw, "EVENTDISPLAY") == 0)
+		else if (kw == "EVENTDISPLAY")
 		{
 			sqpcp_displayevent();
 		}
-		else if (strcmp(kw, "EVENTBACKLINK") == 0)
+		else if (kw == "EVENTBACKLINK")
 		{
 			sqpcp_eventbacklink();
 		}
-		else if (strcmp(kw, "EVENTEDITLINK") == 0)
+		else if (kw == "EVENTEDITLINK")
 		{
 			sqpcp_eventeditlink();
 		}
-		else if (strcmp(kw, "EVENTCANCELUNCANCELLINK") == 0)
+		else if (kw == "EVENTCANCELUNCANCELLINK")
 		{
 			sqpcp_eventcanceluncancellink();
 		}
-		else if (strcmp(kw, "EVENTCANCELUNCANCELLINK") == 0)
+		else if (kw == "EVENTCANCELUNCANCELLINK")
 		{
 			sqpcp_eventcanceluncancellink();
 		}
-		else if (strcmp(kw, "EVENTCANCELUNCANCELIMAGE") == 0)
+		else if (kw == "EVENTCANCELUNCANCELIMAGE")
 		{
 			sqpcp_eventcanceluncancelimage();
 		}
-		else if (strcmp(kw, "EVENTCANCELUNCANCELTEXT") == 0)
+		else if (kw == "EVENTCANCELUNCANCELTEXT")
 		{
 			sqpcp_eventcanceluncanceltext();
 		}
-		else if (strcmp(kw, "EVENTDELETELINK") == 0)
+		else if (kw == "EVENTDELETELINK")
 		{
 			sqpcp_eventdeletelink();
 		}
-		else if (strcmp(kw, "EVENTACL") == 0)
+		else if (kw == "EVENTACL")
 		{
 			sqpcp_eventacl();
 		}
-		else if (strcmp(kw, "ABOOKNAMELIST") == 0)
+		else if (kw == "ABOOKNAMELIST")
 		{
 			ab_addrselect();
 		}
-		else if (strcmp(kw, "LISTRIGHTS") == 0)
+		else if (kw == "LISTRIGHTS")
 			listrights();
-		else if (strcmp(kw, "GETACL") == 0)
+		else if (kw == "GETACL")
 			getacl();
-		else if (strcmp(kw, "MSGPOS") == 0)
+		else if (kw == "MSGPOS")
 		{
 			printf("%ld", atol(cgi("pos"))+1);
 		}
-		else if (strncmp(kw, "radio:", 6) == 0)
+		else if (kw.substr(0, 6) == "radio:")
 		{
-		const char *name=strtok(kw+6, ":");
-		const char *value=strtok(0, ":");
+			std::string_view name=kw.substr(6);
+			size_t split_pos=name.find(':');
+			std::string_view value=name.substr(split_pos+1);
+			name=name.substr(0, split_pos);
 
-			if (name && value)
+			printf("<input type=\"radio\" name=\"");
+			fwrite(name.data(), name.size(), 1, stdout);
+			printf("\" value=\"");
+			fwrite(value.data(), value.size(), 1, stdout);
+			printf("\"");
+			if ( cgi(std::string{name}.c_str()) == value)
+				printf(" checked=\"checked\"");
+			printf(" />");
+			fflush(stdout);
+		}
+		else if (kw.substr(0, 9) == "checkbox:")
+		{
+			std::string_view name=kw.substr(9);
+			size_t split_pos=name.find(':');
+			std::string_view cgivar=name.substr(split_pos+1);
+			name=name.substr(0, split_pos);
+
+			printf("<input type=\"checkbox\" name=\"");
+			fwrite(name.data(), name.size(), 1, stdout);
+			printf("\"%s \"",
+				*cgi(std::string{cgivar}.c_str())
+				? " checked=\"checked\"":"");
+			printf(" />");
+		}
+		else if (kw.substr(0, 6) == "input:")
+			output_attrencoded(cgi(kwbuf+6));
+		else if (kw.substr(0, 7) == "select:")
+		{
+			std::string_view name=kw.substr(7);
+			std::string_view class_str, size;
+			size_t split_pos1=name.find(':');
+
+			if (split_pos1 != name.npos)
 			{
-				printf("<input type=\"radio\" name=\"%s\""
-					" value=\"%s\"",
-					name, value);
-				if ( strcmp(cgi(name), value) == 0)
-					printf(" checked=\"checked\"");
-				printf(" />");
+				class_str=name.substr(split_pos1+1);
+				size_t split_pos2=class_str.find(':');
+				if (split_pos2 != class_str.npos)
+				{
+					size=class_str.substr(split_pos2+1);
+					class_str=class_str.substr(
+						0,
+						split_pos2
+					);
+				}
+				name=name.substr(0, split_pos1);
 			}
-		}
-		else if (strncmp(kw, "checkbox:", 9) == 0)
-		{
-		const char *name=strtok(kw+9, ":");
-		const char *cgivar=strtok(0, ":");
 
-			if (name && cgivar)
+			printf("<select name=\"");
+			fwrite(name.data(), name.size(), 1, stdout);
+			printf("\"");
+			if (!class_str.empty())
 			{
-				printf("<input type=\"checkbox\" name=\"%s\""
-					"%s />",
-					name,
-					*cgi(cgivar) ? " checked=\"checked\"":"");
+				printf(" class=\"");
+				fwrite(class_str.data(), class_str.size(), 1, stdout);
+				printf("\"");
 			}
-		}
-		else if (strncmp(kw, "input:", 6) == 0)
-		{
-			output_attrencoded(cgi(kw+6));
-		}
-		else if (strncmp(kw, "select:", 7) == 0)
-		{
-		const char *name=strtok(kw+7, ":");
-		const char *class_str=strtok(0, ":");
-		const char *size=strtok(0, ":");
-
-			printf("<select name=\"%s\"", name ? name:"");
-			if (class_str)	printf(" class=\"%s\"", class_str);
-			if (size)	printf(" size=\"%s\"", size);
+			if (!size.empty())
+			{
+				printf(" size=\"");
+				fwrite(size.data(), size.size(), 1, stdout);
+				printf("\"");
+			}
 			printf(">");
 		}
-		else if (strncmp(kw, "option:", 7) == 0)
+		else if (kw.substr(0, 7) == "option:")
 		{
-		const char *name=strtok(kw+7, ":");
-		const char *cgivar=strtok(0, ":");
-		const char *cgival=strtok(0, ":");
+			std::string_view name=kw.substr(7);
+			std::string_view cgivar, cgival;
+			size_t split_pos1=name.find(':');
+			if (split_pos1 != name.npos)
+			{
+				cgivar=name.substr(split_pos1+1);
+				size_t split_pos2=cgivar.find(':');
+				if (split_pos2 != cgivar.npos)
+				{
+					cgival=cgivar.substr(split_pos2+1);
+					cgivar=cgivar.substr(
+						0,
+						split_pos2
+					);
+				}
+				name=name.substr(0, split_pos1);
+			}
 
-			printf("<option value=\"%s\"", name ? name:"");
-			if (cgivar && cgival &&
-				strcmp(cgi(cgivar), cgival) == 0)
+			printf("<option value=\"");
+			fwrite(name.data(), name.size(), 1, stdout);
+			printf("\"");
+			if (!cgivar.empty() && !cgival.empty() &&
+				std::string_view{
+					cgi(std::string{cgivar}.c_str())
+				} == cgival)
+			{
 				printf(" selected='selected'");
+			}
 			printf(">");
 		}
-		else if (strcmp(kw, "endoption") == 0)
+		else if (kw == "endoption")
+		{
 			printf("</option>");
-		else if (strcmp(kw, "endselect") == 0)
+		}
+		else if (kw == "endselect")
+		{
 			printf("</select>");
-		else if (strncmp(kw, "env:", 4) == 0) {
-			const char *val = getenv(kw+4);
+		}
+		else if (kw.substr(0, 4) == "env:")
+		{
+			const char *val = getenv(kwbuf+4);
 			if (val) output_attrencoded(val);
 		}
-		else if (strncmp(kw, "include:", 8) == 0)
+		else if (kw.substr(0, 8) == "include:")
 		{
-			insert_include(kw+8);
+			insert_include(kw.substr(8));
 		}
-		else if (strcmp(kw, "endinclude") == 0)
+		else if (kw == "endinclude")
 		{
 			break;
 		}
@@ -1614,33 +1649,31 @@ static void do_output_form_loop(FILE *f)
 
 /* Include another template file */
 
-static FILE *openinclude(const char *p)
+static void openinclude(std::string_view p)
 {
-	char buffer[BUFSIZ];
-	FILE *f;
+	std::string buffer;
 
-	buffer[0]=0;
-	strncat(buffer, p, 100);
-	strcat(buffer, ".inc.html");
+	buffer.reserve(p.size()+10);
+	buffer.append(p);
+	buffer.append(".inc.html");
 
-	f=do_open_form(buffer, 0);
-
-	if (!f)
+	if (!do_open_form(buffer, false))
 		error("Can't open form template.");
 
-	while (fgets(buffer, sizeof(buffer), f))
-	{
-		const char *p=strchr(buffer, '[');
+	std::istream f{&*template_stack.back()};
 
-		if (!p)
+	while (std::getline(f, buffer))
+	{
+		std::string_view p=buffer;
+
+		size_t i=p.find('[');
+
+		if (i == std::string_view::npos)
 			continue;
 
-		if (strncmp(p, "[#begininclude#]", 16) == 0)
-		{
+		if (p.substr(i, 16) == "[#begininclude#]")
 			break;
-		}
 	}
-	return (f);
 }
 
 
@@ -2552,13 +2585,12 @@ static void main2()
 			{
 				std::string q;
 				const	char *saveip=ip_addr;
-				char	*tz;
 
 				sqwebmail_mailboxid=std::string{mailboxid};
 				sqwebmail_folder="INBOX";
 				sqwebmail_sessiontoken=random128();
 
-				tz=get_timezone();
+				auto tz=get_timezone();
 				if (*cgi("sameip") == 0)
 					saveip="none";
 
@@ -2568,7 +2600,7 @@ static void main2()
 					+sqwebmail_content_language.size()
 					+sqwebmail_content_ispelldict.size()
 					+sqwebmail_content_charset.size()
-					+strlen(tz)
+					+tz.size()
 					+sqwebmail_content_locale.size()+6);
 
 				q.append(saveip);
@@ -2585,7 +2617,6 @@ static void main2()
 				q.append(" ");
 				q.append(sqwebmail_content_charset);
 				write_sqconfig(".", IPFILE, q.c_str());
-				free(tz);
 				time(&login_time);
 				{
 					char buf[1024];

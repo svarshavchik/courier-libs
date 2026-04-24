@@ -64,8 +64,12 @@
 
 #include	"strftime.h"
 
-FILE *open_langform(const char *lang, const char *formname,
-			int print_header);
+void open_langform(
+	rfc822::fdstreambuf &fbuf,
+	std::string_view lang,
+	std::string_view formname,
+	bool print_header
+);
 
 void output_attrencoded_oknl_fp(const char *, FILE *);
 void output_scriptptrget();
@@ -2006,10 +2010,13 @@ static void proxy_notify_email(rfc822::fdstreambuf &f,
 			       NULL, 0);
 }
 
-static void dosendnotice(FILE *, FILE *, rfc822::fdstreambuf &,
-			 const std::unordered_set<std::string> &,
-			 const char *, const struct PCP_event_time *,
-			 unsigned);
+static void dosendnotice(rfc822::fdstreambuf &tofpbuf,
+			 rfc822::fdstreambuf &tmpfpbuf,
+			 rfc822::fdstreambuf &eventfp,
+			 const std::unordered_set<std::string> &idlist,
+			 const std::string &subjectlabel,
+			 const struct PCP_event_time *t,
+			 unsigned tn);
 
 static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 				   const std::unordered_set<std::string> &l,
@@ -2017,13 +2024,12 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 				   const struct PCP_event_time *t,
 				   unsigned tn)
 {
-	FILE *tmpfp;
+	rfc822::fdstreambuf tmpfpbuf;
 	pid_t p, p2;
 	int waitstat;
 	int pipefd[2];
-	FILE *tofp;
 	const char *returnaddr=login_returnaddr();
-	char subjectlabel[100];
+	std::string subjectlabel;
 
 	if (l.empty())
 		return;
@@ -2038,24 +2044,22 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 
 	subjectlabel[0]=0;
 
-	if ((tmpfp=open_langform(sqwebmail_content_language.c_str(),
-				 "eventnotifysubject.txt", 0)) != NULL)
+	open_langform(tmpfpbuf, sqwebmail_content_language,
+				"eventnotifysubject.txt", false);
+
+	if (!tmpfpbuf.error())
 	{
-		if (fgets(subjectlabel, sizeof(subjectlabel), tmpfp) == NULL)
-			subjectlabel[0]=0;
-		else
-		{
-			char *p=strchr(subjectlabel, '\n');
+		std::istream tmpfp(&tmpfpbuf);
 
-			if (p) *p=0;
-		}
-		fclose(tmpfp);
+		std::getline(tmpfp, subjectlabel);
 	}
-	if (subjectlabel[0] == 0)
-		strcpy(subjectlabel, "[calendar]");
 
-	if ((tmpfp=open_langform(sqwebmail_content_language.c_str(), templatestr, 0))
-	    == NULL)
+	if (subjectlabel.empty())
+		subjectlabel="[calendar]";
+
+	open_langform(tmpfpbuf, sqwebmail_content_language, templatestr, false);
+
+	if (tmpfpbuf.error())
 	{
 		fprintf(stderr, "CRIT: %s: %s\n", templatestr, strerror(errno));
 		return;
@@ -2065,7 +2069,6 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 
 	if (pipe(pipefd) < 0)
 	{
-		fclose(tmpfp);
 		fprintf(stderr, "CRIT: pipe: %s\n", strerror(errno));
 		return;
 	}
@@ -2076,7 +2079,6 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 	{
 		close(pipefd[0]);
 		close(pipefd[1]);
-		fclose(tmpfp);
 		fprintf(stderr, "CRIT: fork: %s\n", strerror(errno));
 		return;
 	}
@@ -2092,17 +2094,10 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 		exit(1);
 	}
 	close(pipefd[0]);
-	if ((tofp=fdopen(pipefd[1], "w")) == NULL)
-	{
-		fprintf(stderr, "CRIT: exec " SENDITSH ": %s\n", strerror(errno));
-	}
-	else
-	{
-		dosendnotice(tofp, tmpfp, f, l, subjectlabel, t, tn);
-	}
-	fclose(tofp);
-	close(pipefd[1]);
-	fclose(tmpfp);
+
+	rfc822::fdstreambuf tofpbuf(pipefd[1]);
+
+	dosendnotice(tofpbuf, tmpfpbuf, f, l, subjectlabel, t, tn);
 
 	waitstat=256;
 	while ((p2=wait(&waitstat)) != p && p2 >= 0)
@@ -2116,47 +2111,44 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 ** Ok, the preliminaries are out of the way, now spit it out.
 */
 
-static void dosendnotice(FILE *tofp,	/* Pipe to sendit.sh */
-			 FILE *tmpfp,	/*
+static void dosendnotice(
+	rfc822::fdstreambuf &tofpbuf,	/* Pipe to sendit.sh */
+	rfc822::fdstreambuf &tmpfpbuf,	/*
 					** Template file with MIME headers and
 					** canned verbiage
 					*/
-			 rfc822::fdstreambuf &eventfp,	/* Original event */
-			 const std::unordered_set<std::string> &idlist,
-			 const char *subjectlabel,
-			 const struct PCP_event_time *time_list,
-			 unsigned n_time_list)
+	rfc822::fdstreambuf &eventfpbuf,	/* Original event */
+	const std::unordered_set<std::string> &idlist,
+	const std::string &subjectlabel,
+	const struct PCP_event_time *time_list,
+	unsigned n_time_list)
 {
-	int c;
 	unsigned u;
 
-	rfc2045::entity::line_iter<false>::headers h{eventfp};
+	std::ostream tofp(&tofpbuf);
+
+	rfc2045::entity::line_iter<false>::headers h{eventfpbuf};
 	do
 	{
 		const auto &[header, value] = h.name_content();
 
 		if (header == "from" || header == "date")
 		{
-			fwrite(header.data(), header.size(), 1, tofp);
-			fprintf(tofp, ": ");
-			fwrite(value.data(), value.size(), 1, tofp);
-			fprintf(tofp, "\n");
+			tofp << header << ": " << value << "\n";
 		}
 		else if (header == "subject")
 		{
-			fprintf(tofp, "Subject: %s ", subjectlabel);
-			fwrite(value.data(), value.size(), 1, tofp);
-			fprintf(tofp, "\n");
+			tofp << "Subject: " << subjectlabel << ' ';
+			tofp << value << "\n";
 		}
 	} while (h.next());
 
 	for (const auto &id: idlist)
 	{
-		fprintf(tofp, "To: %s\n", id.c_str());
+		tofp << "To: " << id << "\n";
 	}
 
-	while ((c=getc(tmpfp)) != EOF)
-		putc(c, tofp);
+	tofp << &tmpfpbuf;
 
 	for (u=0; u<n_time_list; u++)
 	{
@@ -2166,9 +2158,10 @@ static void dosendnotice(FILE *tofp,	/* Pipe to sendit.sh */
 				     time_list[u].start,
 				     time_list[u].end) == 0)
 		{
-			fprintf(tofp, "     %s\n", buffer);
+			tofp << "     " << buffer << "\n";
 		}
 	}
+	tofp.flush();
 }
 
 static int dosave(rfc822::fdstreambuf &fp, struct saveinfo &si)

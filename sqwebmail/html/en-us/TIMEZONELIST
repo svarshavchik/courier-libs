@@ -1,5 +1,5 @@
 #
-# Copyright 2001 S. Varshavchik.  See COPYING for
+# Copyright 2001-2026 S. Varshavchik.  See COPYING for
 # distribution information.
 #
 # This file lists the available timezones in the login dropdown list
@@ -14,9 +14,8 @@
 #
 
 *		*
-EST5EDT		US Eastern
-EST		US Eastern/Indiana
-CST6CDT		US Central
-MST7MDT		US Mountain
-MST		US Mountain/Arizona
-PST8PDT		US Pacific
+America/New York	US Eastern
+America/Chicago		US Central
+America/Denver		US Mountain
+America/Phoenix		US Mountain/Arizona
+America/Los_Angeles	US Pacific
