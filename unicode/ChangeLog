@@ -1,3 +1,9 @@
+2.6.0
+
+2026-04-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fedora 44: workaround for the autoconf-archive.gcc 16 issue.
+
 2026-03-28  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* string_converter output iterators.
