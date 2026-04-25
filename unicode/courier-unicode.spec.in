@@ -1,6 +1,6 @@
 Summary: Courier Unicode Library
 
-%define _pkg_extra_cxxflags -std=c++17
+%define _pkg_extra_cxxflags -std=gnu++17
 
 %if 0%{?compat:1}
 Name: courier-unicode@COMPATVERSION@
