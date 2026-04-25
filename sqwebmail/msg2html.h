@@ -131,7 +131,7 @@ struct msg2html_info {
 
 struct msg2html_info *msg2html_alloc(const char *charset);
 void msg2html_add_smiley(struct msg2html_info *i,
-			 const char *txt, const char *imgurl);
+			 std::string_view txt, std::string_view imgurl);
 
 void msg2html_free(struct msg2html_info *);
 

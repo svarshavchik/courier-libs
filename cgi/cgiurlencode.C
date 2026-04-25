@@ -92,18 +92,3 @@ const char cgi_encode::default_encode[]=COMMONENCODE "&=";
 const char cgi_encode::noamp[]=COMMONENCODE "=";
 
 const char cgi_encode::noeq[]=COMMONENCODE "&";
-
-extern "C" char *cgiurlencode(const char *buf)
-{
-	return (cgiurlencode_common(buf, cgi_encode::default_encode));
-}
-
-extern "C" char *cgiurlencode_noamp(const char *buf)
-{
-	return (cgiurlencode_common(buf, cgi_encode::noamp));
-}
-
-extern "C" char *cgiurlencode_noeq(const char *buf)
-{
-	return (cgiurlencode_common(buf, cgi_encode::noeq));
-}

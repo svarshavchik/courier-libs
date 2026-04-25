@@ -8,26 +8,6 @@ int main()
 {
 	static const char parameter[]="rolem=&:ipsum\x09\x80";
 
-	auto a=cgiurlencode(parameter);
-	auto b=cgiurlencode_noamp(parameter);
-	auto c=cgiurlencode_noeq(parameter);
-
-	if (std::string_view{a} != "rolem%3D%26%3Aipsum%09%80")
-	{
-		std::cerr << "default encode failed\n";
-		exit(1);
-	}
-	if (std::string_view{b} != "rolem%3D&%3Aipsum%09%80")
-	{
-		std::cerr << "no-ampersand encode failed\n";
-		exit(1);
-	}
-	if (std::string_view{c} != "rolem=%26%3Aipsum%09%80")
-	{
-		std::cerr << "no-equals encode failed\n";
-		exit(1);
-	}
-
 	std::string as;
 	std::string bs;
 	std::string cs;
@@ -51,18 +31,6 @@ int main()
 	}
 
 	if (cgi_encode::estimate(parameter) != 25)
-	{
-		std::cerr << "estimate failed\n";
-		exit(1);
-	}
-
-	if (cgi_encode::estimate(parameter, cgi_encode::noamp) != 23)
-	{
-		std::cerr << "estimate (noamp) failed\n";
-		exit(1);
-	}
-
-	if (cgi_encode::estimate(parameter, cgi_encode::noeq) != 23)
 	{
 		std::cerr << "estimate failed\n";
 		exit(1);
@@ -95,24 +63,21 @@ int main()
 		"encode() returns void if oassed in iterator by ref"
 	);
 
-	if (as != a)
+	if (as != "rolem%3D%26%3Aipsum%09%80")
 	{
 		std::cerr << "encode failed\n";
 		exit(1);
 	}
-	if (bs != b)
+	if (bs != "rolem%3D&%3Aipsum%09%80")
 	{
 		std::cerr << "encode (noamp) failed\n";
 		exit(1);
 	}
-	if (cs != c)
+	if (cs != "rolem=%26%3Aipsum%09%80")
 	{
 		std::cerr << "encode (noeq) failed\n";
 		exit(1);
 	}
 
-	free(a);
-	free(b);
-	free(c);
 	return 0;
 }

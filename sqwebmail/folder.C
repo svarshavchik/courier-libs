@@ -34,7 +34,6 @@
 #include	"pref.h"
 #include	"token.h"
 #include	"filter.h"
-#include	"buf.h"
 #include	"pref.h"
 #include	"newmsg.h"
 #include	"htmllibdir.h"
@@ -67,11 +66,16 @@
 #include	<wchar.h>
 #endif
 
+#include	"rfc822/rfc822.h"
 #include	"strftime.h"
 #include	<filesystem>
 
-FILE *open_langform(const char *lang, const char *formname,
-			int print_header);
+void open_langform(
+	rfc822::fdstreambuf &fbuf,
+	std::string_view lang,
+	std::string_view formname,
+	bool print_header
+);
 
 extern char sqwebmail_folder_rights[];
 extern char *get_imageurl();
@@ -1545,56 +1549,74 @@ static void html_warning()
 
 static void init_smileys(struct msg2html_info *info)
 {
-	FILE *fp=open_langform(sqwebmail_content_language.c_str(), "smileys.txt", 0);
-	char buf[1024];
+	rfc822::fdstreambuf fbuf;
+	open_langform(fbuf,
+			sqwebmail_content_language,
+			"smileys.txt",
+			false
+	);
 
-	char imgbuf[3000];
-
-	if (!fp)
+	if (fbuf.error())
 		return;
 
-	while (fgets(buf, sizeof(buf), fp) != NULL)
+	std::string buf, imgbuf;
+
+	std::istream fp{&fbuf};
+	while (std::getline(fp, buf))
 	{
-		char *p=strchr(buf, '#');
-		char *code;
-		char *img;
-		char *attr;
+		size_t pos=buf.find('#');
+		if (pos != std::string::npos)
+			buf.erase(pos);
 
-		if (p) *p=0;
-
-		code=buf;
-
-		for (p=buf; *p && !isspace(*p); p++)
-			;
-
-		if (*p)
-			*p++=0;
-
-		while (*p && isspace(*p))
-			p++;
-		img=p;
-
-		while (*p && !isspace(*p))
-			p++;
-		if (*p)
-			*p++=0;
-
-		while (*p && isspace(*p))
-			p++;
-		attr=p;
-		p=strchr(p, '\n');
-		if (p) *p=0;
-
-		if (!*code || !*img)
+		pos=buf.find_first_not_of(" \t");
+		if (pos == std::string::npos)
 			continue;
 
-		snprintf(imgbuf, sizeof(imgbuf),
-			 "<img src=\"%s/%s\" %s />",
-			 get_imageurl(), img, attr);
+		auto code=std::string_view{buf}.substr(pos);
+
+		pos=code.find_first_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+
+		auto img=code.substr(pos);
+		code=code.substr(0, pos);
+		pos=img.find_first_not_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+		img.remove_prefix(pos);
+		pos=img.find_first_of(" \t");
+
+		if (pos == std::string::npos)
+			continue;
+
+		auto attr=img.substr(pos);
+		img=img.substr(0, pos);
+
+		pos=attr.find_first_not_of(" \t");
+		if (pos == std::string::npos)
+			continue;
+
+		attr.remove_prefix(pos);
+
+		pos=attr.find_first_of(" \t");
+		if (pos == std::string::npos)
+			pos=attr.size();
+
+		attr=attr.substr(0, pos);
+
+		imgbuf.reserve(strlen(get_imageurl())+img.size()+attr.size()+
+				sizeof("<img src=\"/\" />")
+		);
+		imgbuf.append("<img src=\"");
+		imgbuf.append(get_imageurl());
+		imgbuf.append("/");
+		imgbuf.append(img);
+		imgbuf.append("\" ");
+		imgbuf.append(attr);
+		imgbuf.append(" />");
 
 		msg2html_add_smiley(info, code, imgbuf);
 	}
-	fclose(fp);
 }
 
 static void email_address_start(const char *name, const char *addr)
@@ -1733,15 +1755,15 @@ static std::string get_textlink(std::string_view s,
 	{
 		char buffer[NUMBUFSIZE];
 		time_t now;
-		char *hash;
 		const char *n;
 
 		time(&now);
 		libmail_str_time_t(now, buffer);
 
-		hash=cgiurlencode(redirect_hash(buffer));
-
+		std::string hash;
 		std::string t;
+
+		cgi_encode::encode(std::back_inserter(hash), redirect_hash(buffer));
 
 		t.reserve(cgi_encode::estimate(s));
 		cgi_encode::encode(std::back_inserter(t), s);
@@ -1756,11 +1778,7 @@ static std::string get_textlink(std::string_view s,
 		b += "&amp;timestamp=";
 		b += buffer;
 		b += "&amp;md5=";
-		if (hash)
-		{
-			b += hash;
-			free(hash);
-		}
+		b += hash;
 		b += "\" target=\"_blank\">"
 			"<span class=\"message-text-plain-http-link\">";
 		buf_cat_esc_amp(b, disp_url);
@@ -2083,7 +2101,6 @@ void folder_showmsg(const char *dir, size_t pos)
 	{
 		char nowbuffer[NUMBUFSIZE];
 		time_t now;
-		char *hash;
 		std::string scriptnameget=scriptptrget();
 		static const char formbuf[]="&form=newmsg&to=";
 
@@ -2103,12 +2120,13 @@ void folder_showmsg(const char *dir, size_t pos)
 		time(&now);
 		libmail_str_time_t(now, nowbuffer);
 
-		hash=cgiurlencode(redirect_hash(nowbuffer));
+		std::string hash;
+		cgi_encode::encode(std::back_inserter(hash), redirect_hash(nowbuffer));
 
 		std::string washpfix;
 		washpfix.reserve(
 			strlen(script_name)
-			+ strlen(hash ? hash:"") + strlen(nowbuffer)
+			+ hash.size() + strlen(nowbuffer)
 			+ 100
 		);
 
@@ -2116,11 +2134,8 @@ void folder_showmsg(const char *dir, size_t pos)
 		washpfix+="?timestamp=";
 		washpfix+=nowbuffer;
 		washpfix+="&md5=";
-		washpfix+=(hash ? hash:"");
+		washpfix+=hash;
 		washpfix+="&redirect=";
-
-		if (hash)
-			free(hash);
 
 		std::string washpfixmailto;
 		washpfixmailto.reserve(scriptnameget.size()+sizeof(formbuf));
@@ -3251,16 +3266,17 @@ static void do_folderlist(const char *inbox_pfix,
 
 	if (strcmp(folderdir, INBOX) == 0 && !maildir_newshared_disabled)
 	{
-		char *sp=cgiurlencode(NEWSHAREDSP);
+		std::string sp;
+		sp.reserve(cgi_encode::estimate(NEWSHAREDSP));
+		cgi_encode::encode(std::back_inserter(sp), NEWSHAREDSP);
 
 		printf("<tr class=\"foldersubdir\"><td align=\"left\">%s&gt;&gt;&gt;&nbsp;<a href=\"", folders_img);
 		output_scriptptrget();
 		printf("&amp;form=folders&amp;folder=INBOX&amp;folderdir="
 		       "%s\">%s</a>"
 		       "</td><td>&nbsp;</td></tr>\n\n",
-		       sp,
+		       sp.c_str(),
 		       getarg("PUBLICFOLDERS"));
-		free(sp);
 	}
 	printf("</table>\n");
 }

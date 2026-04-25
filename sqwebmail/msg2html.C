@@ -5,7 +5,6 @@
 */
 
 #include "msg2html.h"
-#include "buf.h"
 #include <courier-unicode.h>
 #include "numlib/numlib.h"
 #include "gpglib/gpglib.h"
@@ -49,10 +48,11 @@ struct msg2html_info *msg2html_alloc(const char *charset)
 }
 
 void msg2html_add_smiley(struct msg2html_info *i,
-			 const char *txt, const char *imgurl)
+			 std::string_view txt, std::string_view imgurl)
 {
-	i->smiley_index.insert(*txt);
-	i->smileys.emplace_back(txt, imgurl);
+	if (txt.empty()) return;
+	i->smiley_index.insert(*txt.begin());
+	i->smileys.emplace_back(std::string{txt}, std::string{imgurl});
 }
 
 void msg2html_free(struct msg2html_info *p)

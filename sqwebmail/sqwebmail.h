@@ -95,7 +95,6 @@ extern void fake_exit(int);
 
 extern void addarg(const char *);
 extern void freeargs();
-extern void insert_include(const char *);
 extern const char *getarg(const char *);
 extern char *get_templatedir();
 extern char *get_imageurl();
@@ -111,6 +110,7 @@ extern char *get_imageurl();
 #ifdef __cplusplus
 }
 #include <string>
+#include <string_view>
 
 std::string trim_spaces(const char *s);
 
@@ -120,6 +120,7 @@ extern std::string sqwebmail_content_locale;
 extern std::string sqwebmail_content_ispelldict;
 extern std::string sqwebmail_content_charset;
 extern std::string sqwebmail_system_charset;
+extern void insert_include(std::string_view);
 
 #endif
 #endif

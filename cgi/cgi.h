@@ -88,10 +88,6 @@ extern struct cgi_arglist *cgi_arglist;
 extern size_t cgiurldecode(char *);
 extern void cgi_put(const char *, const char *);
 
-extern char *cgiurlencode(const char *);
-extern char *cgiurlencode_noamp(const char *);
-extern char *cgiurlencode_noeq(const char *);
-
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif

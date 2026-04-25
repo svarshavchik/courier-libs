@@ -2,6 +2,12 @@
 
 	* Fedora 44: workaround for the autoconf-archive.gcc 16 issue.
 
+	* Replaces POSIX timezones in the package's TIMEZONELIST file with
+	Olsen timezones.
+
+	* Replace --enable-bannerprog configure option with an environment
+	variable.
+
 2026-04-18  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Tweaks to the mail filter screen.

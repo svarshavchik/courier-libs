@@ -46,13 +46,14 @@ std::string cgi_cookie(std::string_view p)
 
 void cgi_setcookie(const char *name, const char *value)
 {
-char	*p;
-const	char *sn;
+	const	char *sn;
+	std::string p;
 
-	p=cgiurlencode(value);
+	p.reserve(cgi_encode::estimate(value));
+	cgi_encode::encode(std::back_inserter(p), value);
+
 	sn=getenv("SCRIPT_NAME");
 	if (!sn || !*sn)
 		sn="/";
-	printf("Set-Cookie: %s=%s; path=%s\n", name, value, sn);
-	free(p);
+	printf("Set-Cookie: %s=%s; path=%s\n", name, p.c_str(), sn);
 }

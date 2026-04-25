@@ -115,15 +115,15 @@ const char	*sysbook=getarg("SYSBOOK");
 				printf(":%s", p->port);
 			if (*p->suffix)
 			{
-			char	*q;
+				std::string q;
 
 				printf("/");
-				q=cgiurlencode_noeq(p->suffix);
-				if (q)
-				{
-					printf("%s", q);
-					free(q);
-				}
+				q.reserve(cgi_encode::estimate(p->suffix,
+					cgi_encode::noeq));
+				cgi_encode::encode(std::back_inserter(q), p->suffix,
+					cgi_encode::noeq);
+
+				printf("%s", q.c_str());
 			}
 			printf("</font></span>%s</td></tr>",
 				i ? "":sysbook);

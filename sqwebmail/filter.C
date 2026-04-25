@@ -9,7 +9,6 @@
 /*
 */
 #include	"filter.h"
-#include	"buf.h"
 #include	"sqwebmail.h"
 #include	<string.h>
 
