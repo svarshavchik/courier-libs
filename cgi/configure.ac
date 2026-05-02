@@ -36,7 +36,6 @@ fi
 
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_SIZE_T
 
 AC_CACHE_CHECK([for socklen_t],

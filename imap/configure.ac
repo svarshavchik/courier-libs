@@ -125,7 +125,6 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE

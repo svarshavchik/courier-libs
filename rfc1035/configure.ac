@@ -72,7 +72,6 @@ LIBS="$saveLIBS $NETLIBS"
 AC_CHECK_LIB(socket,socket)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 AC_SYS_LARGEFILE

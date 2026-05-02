@@ -24,7 +24,6 @@ dnl Checks for header files.
 AC_CHECK_HEADERS(unistd.h pthread.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 
 dnl Checks for library functions.
 

@@ -74,7 +74,6 @@ AC_CHECK_HEADERS(vector vector.h)
 AC_LANG([C])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T

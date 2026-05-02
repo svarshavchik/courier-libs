@@ -28,7 +28,6 @@ then
 	CXXFLAGS="-Wall $CXXFLAGS"
 fi
 
-AC_C_CONST
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h string.h syslog.h)
 AC_TYPE_UID_T

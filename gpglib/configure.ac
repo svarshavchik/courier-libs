@@ -104,7 +104,6 @@ AC_CHECK_HEADERS_ONCE([sys/time.h])
 CPPFLAGS="$CPPFLAGS -I.. -I$srcdir/.."
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE

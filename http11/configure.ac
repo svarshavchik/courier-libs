@@ -28,7 +28,6 @@ dnl Checks for header files.
 AC_HEADER_DIRENT
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE
 

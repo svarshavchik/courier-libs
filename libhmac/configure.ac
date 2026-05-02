@@ -34,7 +34,6 @@ dnl Checks for libraries.
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_SIZE_T
 
 dnl Checks for library functions.

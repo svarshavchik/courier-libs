@@ -43,7 +43,6 @@ AM_CONDITIONAL(FOUND_GDBM, test "$FOUND_GDBM" = 1)
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_SIZE_T
 AC_SYS_LARGEFILE
 

@@ -94,7 +94,6 @@ UINT32="$int32"
 AC_DEFINE_UNQUOTED(MD5_WORD, $UINT32, [ 32 bit data type ])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_SYS_LARGEFILE
 
 dnl Checks for library functions.

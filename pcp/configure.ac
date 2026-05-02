@@ -91,7 +91,6 @@ AC_HEADER_DIRENT
 AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_UID_T
 AC_TYPE_PID_T
 

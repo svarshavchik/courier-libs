@@ -33,7 +33,6 @@ dnl Checks for header files.
 AC_CHECK_HEADERS(locale.h strings.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
 AC_SYS_LARGEFILE

@@ -158,7 +158,6 @@ UINT64="$int64"
 
 AC_DEFINE_UNQUOTED(SHA512_WORD, $UINT64, [ 64 bit data type ])
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_SYS_LARGEFILE
 
 AC_CONFIG_FILES([Makefile])
