@@ -17,18 +17,6 @@ extern "C" const char *charset;
 
 static int list_msg_rfc822(const rfc2045::entity &, rfc822::fdstreambuf &);
 
-static int tcmp(const void *a, const void *b)
-{
-	struct xretr_time_list *ap=*(struct xretr_time_list **)a;
-	struct xretr_time_list *bp=*(struct xretr_time_list **)b;
-
-	return ( ap->from < bp->from ? -1:
-		 ap->from > bp->from ? 1:
-		 ap->to < bp->to ? -1:
-		 ap->to > bp->to ? 1:0);
-}
-
-
 void dump_rfc822_hdr(const char *ptr, size_t cnt, void *dummy)
 {
 	fwrite(ptr, cnt, 1, stdout);
@@ -37,8 +25,7 @@ void dump_rfc822_hdr(const char *ptr, size_t cnt, void *dummy)
 int do_show_retr(struct PCP_retr *r, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
-	struct xretr_participant_list *p;
-	struct xretr_time_list *t, **tt;
+
 	unsigned cnt, i;
 	int rc;
 
@@ -49,7 +36,7 @@ int do_show_retr(struct PCP_retr *r, void *vp)
 		return (-1);
 	}
 
-	if (xr->time_list == NULL)
+	if (xr->time_list.empty())
 	{
 		fclose(xr->tmpfile);
 		return (0);
@@ -57,39 +44,35 @@ int do_show_retr(struct PCP_retr *r, void *vp)
 
 	printf(gettext("Event: %s\n"), r->event_id);
 
-	for (cnt=0, t=xr->time_list; t; t=t->next)
-		++cnt;
+	auto t=xr->time_list;
 
-	tt=(struct xretr_time_list **)malloc(cnt * sizeof(*t));
-	if (!tt)
-	{
-		fclose(xr->tmpfile);
-		return (-1);
-	}
+	std::sort(t.begin(), t.end(),
+		  [](const xretr_time_list &a,
+		     const xretr_time_list &b) -> bool
+		  {
+			return (a.from < b.from
+				|| (a.from == b.from
+				    && a.to < b.to));
+		  });
 
-	for (cnt=0, t=xr->time_list; t; t=t->next)
-		tt[cnt++]=t;
 
-	qsort(tt, cnt, sizeof(*tt), tcmp);
-
-	for (i=0; i<cnt; i++)
+	for (auto &tl:t)
 	{
 		char fromto[500];
 
 		if (pcp_fmttimerange(fromto, sizeof(fromto),
-				     tt[i]->from, tt[i]->to) < 0)
+				     tl.from, tl.to) < 0)
 			strcpy(fromto, "******");
 		printf(gettext("       %s\n"), fromto);
 	}
-	free(tt);
 
 	if (xr->status & LIST_CANCELLED)
 		printf(gettext("    **** CANCELLED ****\n"));
 	if (xr->status & LIST_BOOKED)
 		printf(gettext("    **** EVENT NOT YET COMMITED ****\n"));
 
-	for (p=xr->participant_list; p; p=p->next)
-		printf(gettext("    Participant: %s\n"), p->participant);
+	for (auto &p:xr->participant_list)
+		printf(gettext("    Participant: %s\n"), p.c_str());
 
 
 	rfc822::fdstreambuf fd{dup(fileno(xr->tmpfile))};

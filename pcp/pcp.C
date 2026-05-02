@@ -907,16 +907,11 @@ static int doretr_status(struct PCP_retr *p, int status, void *vp)
 static int doretr_date(struct PCP_retr *p, time_t from, time_t to, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
-	struct xretr_time_list *t=static_cast<struct xretr_time_list *>(
-	    malloc(sizeof(struct xretr_time_list)));
 
-	if (!t)
-		return (-1);
+	xretr_time_list tl{from, to};
 
-	t->next=xr->time_list;
-	xr->time_list=t;
-	t->from=from;
-	t->to=to;
+	xr->time_list.push_back(tl);
+
 	return (0);
 }
 
@@ -924,21 +919,8 @@ static int doretr_participants(struct PCP_retr *p, const char *n,
 			       const char *id, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
-	char *s=strdup(n);
-	struct xretr_participant_list *pa;
 
-	if (!s)
-		return (-1);
-
-	if ((pa=static_cast<struct xretr_participant_list *>
-	     (malloc(sizeof(struct xretr_participant_list)))) == NULL)
-	{
-		free(s);
-		return (-1);
-	}
-	pa->participant=s;
-	pa->next=xr->participant_list;
-	xr->participant_list=pa;
+	xr->participant_list.push_back(n);
 	return (0);
 }
 
@@ -949,12 +931,10 @@ static void doretr(const char *eventid)
 	struct xretrinfo xr;
 	const char *event_id_array[2];
 	struct xretr_time_list *tl;
-	struct xretr_participant_list *pl;
 
 	pcp=open_calendar();
 
 	memset(&r, 0, sizeof(r));
-	memset(&xr, 0, sizeof(xr));
 
 	r.callback_arg= &xr;
 	r.callback_retr_status=doretr_status;
@@ -989,19 +969,6 @@ static void doretr(const char *eventid)
 	{
 		error(pcp, r.errcode, "pcp_retr");
 		pcp_close(pcp);
-	}
-
-	while ((pl=xr.participant_list) != NULL)
-	{
-		xr.participant_list=pl->next;
-		free(pl->participant);
-		free(pl);
-	}
-
-	while ((tl=xr.time_list) != NULL)
-	{
-		xr.time_list=tl->next;
-		free(tl);
 	}
 }
 

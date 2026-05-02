@@ -11,40 +11,19 @@
 
 #include <stdio.h>
 #include <time.h>
-#if HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
-struct xretrinfo {
-	FILE *tmpfile;
-	int status;
-	struct xretr_participant_list *participant_list;
-	struct xretr_time_list *time_list;
-
-} ;
-
-struct xretr_participant_list {
-	struct xretr_participant_list *next;
-	char *participant;
-} ;
+#include <vector>
+#include <string>
 
 struct xretr_time_list {
-	struct xretr_time_list *next;
 	time_t from;
 	time_t to;
 } ;
 
-#if 0
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
+struct xretrinfo {
+	FILE *tmpfile;
+	int status;
+	std::vector<std::string> participant_list;
+	std::vector<xretr_time_list> time_list;
+} ;
 
 #endif

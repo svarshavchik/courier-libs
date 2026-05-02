@@ -2099,6 +2099,8 @@ static void proxy_notify_email_msg(rfc822::fdstreambuf &f,
 
 	dosendnotice(tofpbuf, tmpfpbuf, f, l, subjectlabel, t, tn);
 
+	tofpbuf = rfc822::fdstreambuf{};
+
 	waitstat=256;
 	while ((p2=wait(&waitstat)) != p && p2 >= 0)
 		;
