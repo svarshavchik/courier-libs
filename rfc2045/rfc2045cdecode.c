@@ -30,8 +30,9 @@ static int tou(char c)
 
 static int do_decode_qp(struct rfc2045 *p)
 {
-char	*a, *b, *c, *end;
+char	*a, *b, *end;
 int	d;
+const char *c;
 
 	end=p->workbuf + p->workbuflen;
 	for (a=b=p->workbuf; a < end; )

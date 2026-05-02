@@ -400,7 +400,6 @@ char *c=p->workbuf;
 size_t	n=cnt-1;	/* Strip \n (we always get at least a \n here) */
 struct rfc2045 *newp;
 struct rfc2045ac *rwp=p->rfc2045acptr;
-unsigned num_levels=0;
 
 size_t	k;
 int	bit8=0;
@@ -425,8 +424,7 @@ int	bit8=0;
 	** in a middle of a form-data section.  */
 
 	for (newp=p; newp->lastpart &&
-			!newp->lastpart->workclosed; newp=newp->lastpart,
-			++num_levels)
+			!newp->lastpart->workclosed; newp=newp->lastpart)
 	{
 		if (ContentBoundary(newp) == 0 || newp->workinheader)
 			continue;
@@ -465,7 +463,6 @@ int	bit8=0;
 		if (cb == 0 || p->workinheader)
 		{
 			p=p->lastpart;
-			++num_levels;
 			continue;
 		}
 
@@ -502,7 +499,6 @@ int	bit8=0;
 			return;
 		}
 		p=p->lastpart;
-		++num_levels;
 	}
 
 	/* Ok, we've found the RFC2045 section that we're working with.

@@ -44,7 +44,7 @@ int base64_decode(struct base64decode *b, const char *p, int l)
 		}
 		else
 		{
-			char *s=strchr(base64tab, *p);
+			const char *s=strchr(base64tab, *p);
 
 			if (s == NULL)
 			{
