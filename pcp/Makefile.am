@@ -25,7 +25,7 @@ libpcp_la_SOURCES=pcp.h pcpacl.c pcpdir.c pcpdir.h pcpgmtime.c pcplocale.c \
 libpcp_la_LIBADD=
 libpcp_la_LDFLAGS=-static
 
-pcp_SOURCES=pcp.c pcpretr.C pcpretr.h
+pcp_SOURCES=pcp.C pcpretr.C pcpretr.h
 pcp_DEPENDENCIES=libpcp.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 	../numlib/libnumlib.la
 pcp_LDADD=$(pcp_DEPENDENCIES) -lcourier-unicode @LIBINTL@ @EFENCE@ @NETLIBS@

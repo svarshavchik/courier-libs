@@ -31,14 +31,7 @@ void msgappends(void (*writefunc)(const char *, size_t),
 	if (!enabled_utf8 &&
 	    std::find_if(s, s+l, [](char c) { return c & 0x80; }) != s+l)
 	{
-		std::string cpy{s, s+l};
-
-		auto q=
-			/* Assume UTF-8, if not, well, GIGO */
-			rfc2047_encode_str(cpy.c_str(), "utf-8",
-					   rfc2047_qp_allow_any);
-		buf=q;
-		free(q);
+		buf=rfc2047::encode(s, s+l, rfc2047_qp_allow_any).first;
 		s=buf.c_str();
 		l=buf.size();
 	}

@@ -29,13 +29,12 @@ static int tcmp(const void *a, const void *b)
 }
 
 
-extern "C" void dump_rfc822_hdr(const char *ptr, size_t cnt,
-				void *dummy)
+void dump_rfc822_hdr(const char *ptr, size_t cnt, void *dummy)
 {
 	fwrite(ptr, cnt, 1, stdout);
 }
 
-extern "C" int do_show_retr(struct PCP_retr *r, void *vp)
+int do_show_retr(struct PCP_retr *r, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
 	struct xretr_participant_list *p;
@@ -193,7 +192,7 @@ static int list_msg_mime(const rfc2045::entity &rfc, rfc822::fdstreambuf &fp)
 
 	{
 		rfc2045::entity::rfc2231_header content_disposition{
-			rfc.content_disposition
+			rfc.content_disposition, true
 		};
 
 		auto iter=content_disposition.parameters.find("name");

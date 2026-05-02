@@ -150,7 +150,7 @@ struct PCP *open_calendar()
 	FILE *fp;
 	char authtoken[1024];
 
-	p=malloc(strlen(pw->pw_dir)+sizeof("/.pcplogin"));
+	p=static_cast<char *>(malloc(strlen(pw->pw_dir)+sizeof("/.pcplogin")));
 	if (!p)
 	{
 		perror("malloc");
@@ -321,8 +321,8 @@ static void add(int argn, int argc, char **argv, int flags, const char *old,
 			for (ptr= &book; *ptr; ptr= &(*ptr)->next)
 				;
 
-			if ((*ptr=malloc(sizeof(struct participant_list)))
-			    == NULL)
+			if ((*ptr=static_cast<struct participant_list *>(malloc(
+			     sizeof(struct participant_list)))) == NULL)
 			{
 				perror("malloc");
 				exit(1);
@@ -403,9 +403,9 @@ static void add(int argn, int argc, char **argv, int flags, const char *old,
 		if (!commit_info.n_event_times)
 			usage();
 
-		if ((commit_info.event_times=q=
-		     calloc(commit_info.n_event_times,
-			    sizeof(*commit_info.event_times))) == NULL)
+		if ((commit_info.event_times=q=static_cast<struct PCP_event_time *>
+		     (calloc(commit_info.n_event_times,
+			    sizeof(*commit_info.event_times)))) == NULL)
 		{
 			perror("malloc");
 			exit(1);
@@ -424,10 +424,9 @@ static void add(int argn, int argc, char **argv, int flags, const char *old,
 			++add_event_info.n_event_participants;
 
 		if (add_event_info.n_event_participants &&
-		    (add_event_info.event_participants=q=
-		     calloc(add_event_info.n_event_participants,
-			    sizeof(*add_event_info.event_participants)))
-		    == NULL)
+		    (add_event_info.event_participants=q=static_cast<struct PCP_event_participant *>
+		     (calloc(add_event_info.n_event_participants,
+			    sizeof(*add_event_info.event_participants)))) == NULL)
 		{
 			perror("malloc");
 			exit(1);
@@ -908,7 +907,8 @@ static int doretr_status(struct PCP_retr *p, int status, void *vp)
 static int doretr_date(struct PCP_retr *p, time_t from, time_t to, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
-	struct xretr_time_list *t=malloc(sizeof(struct xretr_time_list));
+	struct xretr_time_list *t=static_cast<struct xretr_time_list *>(
+	    malloc(sizeof(struct xretr_time_list)));
 
 	if (!t)
 		return (-1);
@@ -930,7 +930,8 @@ static int doretr_participants(struct PCP_retr *p, const char *n,
 	if (!s)
 		return (-1);
 
-	if ((pa=malloc(sizeof(struct xretr_participant_list))) == NULL)
+	if ((pa=static_cast<struct xretr_participant_list *>
+	     (malloc(sizeof(struct xretr_participant_list)))) == NULL)
 	{
 		free(s);
 		return (-1);
