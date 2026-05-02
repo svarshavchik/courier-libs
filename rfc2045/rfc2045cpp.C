@@ -183,7 +183,7 @@ void rfc2045::entity::update_parent_ptr()
 // parses it.
 
 rfc2045::entity::rfc2231_header::rfc2231_header(
-	const std::string_view &s
+	const std::string_view &s, bool do_parse_rfc2231
 )
 {
 	rfc822::tokens tokens{s};
@@ -208,6 +208,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 	// into a single parsed string, representing the value.
 
 	struct rfc2231_parsed_parameters {
+		size_t index=0;
 		std::string charset{"utf-8"};
 		std::string language{"en"};
 		std::map<std::optional<int>, std::string> values;
@@ -216,7 +217,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 	// First, parse the parameters into a temporary structure.
 	std::unordered_map<std::string,
 			   rfc2231_parsed_parameters> parsed_parameters;
-
+	size_t index=0;
 	while (semicolon != te)
 	{
 		if (++semicolon == te)
@@ -259,6 +260,18 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 
 		rfc2045::entity::tolowercase(name);
 
+		if (!do_parse_rfc2231)
+		{
+			parameters.emplace(
+				std::piecewise_construct,
+				std::forward_as_tuple(name),
+				std::forward_as_tuple(
+					index++,
+					"utf-8",
+					"en",
+					value));
+			continue;
+		}
 		// Let's dig into the parameter name, to see if RFC 2231 is used
 		// by checking for a trailing *, first.
 
@@ -306,6 +319,8 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 
 		}
 		auto parameter=parsed_parameters.try_emplace(name).first;
+
+		parameter->second.index=index++;
 
 		// If the key-less, or key=0 ends in a squid, extract the
 		// charset and the language.
@@ -379,6 +394,9 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 		parameter->second.values.emplace(key, value);
 	}
 
+	if (!do_parse_rfc2231)
+		return;
+
 	// Now, assemble the parsed parameters.
 
 	std::string assembled_value;
@@ -414,6 +432,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 			std::piecewise_construct,
 			std::forward_as_tuple(name),
 			std::forward_as_tuple(
+				parsed_parameter_values.index,
 				std::move(parsed_parameter_values.charset),
 				std::move(parsed_parameter_values.language),
 				std::move(assembled_value)));
@@ -645,6 +664,7 @@ const rfc2045::entity *rfc2045::entity_info::content_type_multipart_signed()
 	return nullptr;
 }
 
+
 template<typename T>
 T *rfc2045::entity::find(T *root, std::string_view id)
 {
@@ -733,7 +753,6 @@ const rfc2045::entity *rfc2045::entity::find_content_type(
 	}
 	return  nullptr;
 }
-
 
 template rfc2045::entity *rfc2045::entity::find<rfc2045::entity>(
 	rfc2045::entity *, std::string_view

@@ -19,39 +19,61 @@
 #include <algorithm>
 
 extern void msgenvelope(void (*)(const char *, size_t),
-			FILE *, struct rfc2045 *);
+			rfc822::fdstreambuf &,
+			const rfc2045::entity &);
 
 extern void msgappends(void (*)(const char *, size_t), const char *, size_t);
 
 static void do_param_list(void (*writefunc)(const char *, size_t),
-	struct rfc2045attr *a)
+	const rfc2045::entity::rfc2231_header::parameters_t &parameters)
 {
+	std::vector<rfc2045::entity::rfc2231_header::parameters_t
+		::const_iterator> v;
+
+	v.reserve(parameters.size());
+
+	for (auto i=parameters.begin(); i != parameters.end(); ++i)
+		v.push_back(i);
+
+	// We want to iterate in the original order of appearance.
+	std::sort(v.begin(), v.end(),
+			  []
+			  (rfc2045::entity::rfc2231_header::parameters_t
+			   ::const_iterator a,
+			   rfc2045::entity::rfc2231_header::parameters_t
+			   ::const_iterator b)
+			  {
+				  return a->second.index < b->second.index;
+			  });
 	int	flag;
 	const char	*p;
 
 	flag=0;
 	p="(";
-	for (; a; a=a->next)
+	for (auto &i: v)
 	{
+		auto &a=*i;
+
 		(*writefunc)(p, strlen(p));
 		(*writefunc)("\"", 1);
-		if (a->name)
-			msgappends(writefunc, a->name, strlen(a->name));
+		if (!a.first.empty())
+			msgappends(writefunc, a.first.c_str(), a.first.size());
 		(*writefunc)("\" \"", 3);
-		if (a->value)
+		if (!a.second.value.empty())
 		{
 #if	IMAP_CLIENT_BUGS
 
 			/* NETSCAPE */
 
-			std::string u=a->value;
+			std::string u=a.second.value;
 
 			u.erase(std::remove(u.begin(), u.end(), '\\'),
 				u.end());
 
 			msgappends(writefunc, u.c_str(), u.size());
 #else
-			msgappends(writefunc, a->value, strlen(a->value));
+			msgappends(writefunc, a.second.value.c_str(),
+				a.second.value.size());
 #endif
 		}
 		(*writefunc)("\"", 1);
@@ -64,100 +86,89 @@ static void do_param_list(void (*writefunc)(const char *, size_t),
 		(*writefunc)("NIL", 3);
 }
 
-static void contentstr( void (*writefunc)(const char *, size_t), const char *s)
+static void contentstr( void (*writefunc)(const char *, size_t),
+	const std::string_view s)
 {
-	if (!s || !*s)
+	if (s.empty())
 	{
 		(*writefunc)("NIL", 3);
 		return;
 	}
 
 	(*writefunc)("\"", 1);
-	msgappends(writefunc, s, strlen(s));
+	msgappends(writefunc, s.data(), s.size());
 	(*writefunc)("\"", 1);
 }
 
 
 static void do_disposition(
-	void (*writefunc)(const char *, size_t), const char *disposition_s,
-	struct rfc2045attr *disposition_a)
+	void (*writefunc)(const char *, size_t),
+	std::string_view s)
 {
-	if ( (disposition_s == 0 || *disposition_s == 0) &&
-		disposition_a == 0)
+	rfc2045::entity::rfc2231_header	disposition{s, false};
+
+	if ( disposition.value.empty() && disposition.parameters.empty())
 	{
 		(*writefunc)("NIL", 3);
 		return;
 	}
 	(*writefunc)("(", 1);
 
-	if (disposition_s && *disposition_s)
+	if (!disposition.value.empty())
 	{
 		(*writefunc)("\"", 1);
-		msgappends(writefunc, disposition_s,
-			strlen(disposition_s));
+		msgappends(writefunc, disposition.value.c_str(),
+			disposition.value.size());
 		(*writefunc)("\"", 1);
 	}
 	else
 		(*writefunc)("\"\"", 2);
 
 	(*writefunc)(" ", 1);
-	do_param_list(writefunc, disposition_a);
+	do_param_list(writefunc, disposition.parameters);
 	(*writefunc)(")", 1);
 }
 
 void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
-	FILE *fp, struct rfc2045 *mimep)
+	rfc822::fdstreambuf &fp, const rfc2045::entity &rfcp)
 {
-	const char *content_type_s;
-	const char *content_transfer_encoding_s;
-	const char *charset_s;
-	off_t start_pos, end_pos, start_body;
-	off_t nlines, nbodylines;
-	const char *disposition_s;
-
-	rfc2045_mimeinfo(mimep, &content_type_s, &content_transfer_encoding_s,
-		&charset_s);
-	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-
-	disposition_s=mimep->content_disposition;
-
 	(*writefunc)("(", 1);
 
-	if (mimep->firstpart && mimep->firstpart->isdummy &&
-		mimep->firstpart->next)
+	if (!rfcp.subentities.empty() &&
+		!rfc2045_message_content_type(
+			rfcp.content_type.value.c_str()
+		))
 		/* MULTIPART */
 	{
-		struct rfc2045	*childp;
-
-		for (childp=mimep->firstpart; (childp=childp->next) != 0; )
+		for (auto &childp: rfcp.subentities)
 			msgbodystructure(writefunc, dox, fp, childp);
 
 		(*writefunc)(" \"", 2);
-		auto p=strchr(content_type_s, '/');
-		if (p)
-			msgappends(writefunc, p+1, strlen(p+1));
+		size_t slash=rfcp.content_type.value.find('/');
+		if (slash != std::string::npos)
+			msgappends(writefunc,
+				rfcp.content_type.value.c_str()+slash+1,
+				rfcp.content_type.value.size()-slash-1);
 		(*writefunc)("\"", 1);
 
 		if (dox)
 		{
 			(*writefunc)(" ", 1);
-			do_param_list(writefunc, mimep->content_type_attr);
+			do_param_list(writefunc, rfcp.content_type.parameters);
 
 			(*writefunc)(" ", 1);
-			do_disposition(writefunc, disposition_s,
-				mimep->content_disposition_attr);
+
+			do_disposition(writefunc, rfcp.content_disposition);
 
 			(*writefunc)(" ", 1);
-			contentstr(writefunc, rfc2045_content_language(mimep));
+			contentstr(writefunc, rfcp.content_language);
 		}
 	}
 	else
 	{
 		char	buf[40];
-		const	char *cp;
 
-		std::string mybuf=content_type_s;
+		std::string_view mybuf=rfcp.content_type.value;
 
 		auto q=std::find_if(mybuf.begin(),
 				    mybuf.end(),
@@ -168,7 +179,7 @@ void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
 				    });
 
 		(*writefunc)("\"", 1);
-		msgappends(writefunc, mybuf.c_str(), q-mybuf.begin());
+		msgappends(writefunc, mybuf.data(), q-mybuf.begin());
 		(*writefunc)("\" \"", 3);
 
 		while (q != mybuf.end() && (*q == ' ' || *q == '/'))
@@ -187,64 +198,66 @@ void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
 		msgappends(writefunc, &*p, q-p);
 		(*writefunc)("\" ", 2);
 
-		do_param_list(writefunc, mimep->content_type_attr);
+		do_param_list(writefunc, rfcp.content_type.parameters);
 
 		(*writefunc)(" ", 1);
-		cp=rfc2045_content_id(mimep);
-		if (!cp || !*cp)
-			contentstr(writefunc, cp);
+		if (rfcp.content_id.empty())
+			contentstr(writefunc, rfcp.content_id);
 		else
 		{
 			(*writefunc)("\"<", 2);
-			msgappends(writefunc, cp, strlen(cp));
+			msgappends(writefunc, rfcp.content_id.c_str(),
+				rfcp.content_id.size());
 			(*writefunc)(">\"", 2);
 		}
 		(*writefunc)(" ", 1);
-		contentstr(writefunc, rfc2045_content_description(mimep));
+		contentstr(writefunc, rfcp.content_description);
 
 		(*writefunc)(" \"", 2);
-		msgappends(writefunc, content_transfer_encoding_s,
-			strlen(content_transfer_encoding_s));
+
+		auto cte=rfc2045::to_cte(
+			rfcp.content_transfer_encoding
+		);
+		msgappends(writefunc, cte, strlen(cte));
 		(*writefunc)("\" ", 2);
 
 		sprintf(buf, "%lu", (unsigned long)
-			(end_pos-start_body+nbodylines));
-			/* nbodylines added for CRs */
+			rfcp.rfc822_body_size());
 		(*writefunc)(buf, strlen(buf));
 
-		if (
-		(content_type_s[0] == 't' || content_type_s[0] == 'T') &&
-		(content_type_s[1] == 'e' || content_type_s[1] == 'E') &&
-		(content_type_s[2] == 'x' || content_type_s[2] == 'X') &&
-		(content_type_s[3] == 't' || content_type_s[3] == 'T') &&
-			(content_type_s[4] == '/' ||
-			 content_type_s[4] == 0))
+		mybuf=rfcp.content_type.value;
+
+		mybuf=mybuf.substr(0, 5);
+
+		if (mybuf == "text" || mybuf == "text/")
 		{
 			(*writefunc)(" ", 1);
-			sprintf(buf, "%lu", (unsigned long)nbodylines);
+			sprintf(buf, "%lu",
+				(unsigned long)rfcp.rfc822_bodylines());
 			(*writefunc)(buf, strlen(buf));
 		}
 
-		if (mimep->firstpart && !mimep->firstpart->isdummy)
-			/* message/rfc822 */
+		if (rfc2045_message_content_type(
+			rfcp.content_type.value.c_str()
+		) && !rfcp.subentities.empty())
 		{
 			(*writefunc)(" ", 1);
-			msgenvelope(writefunc, fp, mimep->firstpart);
+			msgenvelope(writefunc, fp, rfcp.subentities[0]);
 			(*writefunc)(" ", 1);
-			msgbodystructure(writefunc, dox, fp, mimep->firstpart);
+			msgbodystructure(writefunc, dox, fp, rfcp.subentities[0]);
 			(*writefunc)(" ", 1);
-			sprintf(buf, "%lu", (unsigned long)nbodylines);
+			sprintf(buf, "%lu",
+				(unsigned long)rfcp.rfc822_bodylines());
 			(*writefunc)(buf, strlen(buf));
 		}
 
 		if (dox)
 		{
 			(*writefunc)(" ", 1);
-			contentstr(writefunc, rfc2045_content_md5(mimep));
+			contentstr(writefunc, rfcp.content_md5);
 
 			(*writefunc)(" ", 1);
-			do_disposition(writefunc, disposition_s,
-				mimep->content_disposition_attr);
+			do_disposition(writefunc, rfcp.content_disposition);
 
 			(*writefunc)(" NIL", 4);
 				/* TODO Content-Language: */

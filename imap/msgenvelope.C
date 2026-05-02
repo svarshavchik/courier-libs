@@ -21,43 +21,6 @@
 
 #define	MAX_HEADER_SIZE	8192
 
-static char *read_header(FILE *fp, off_t *headerpos, off_t *endhp)
-{
-size_t	i=0;
-int	c;
-static char headerbuf[MAX_HEADER_SIZE];
-
-	while (*headerpos < *endhp)
-	{
-		while ((c=getc(fp)) != '\n' && c != EOF)
-		{
-			if (c == '\r')
-				c=' ';	/* Otherwise Outlook croaks */
-
-			if (i < sizeof(headerbuf)-1)
-				headerbuf[i++]=c;
-			if ( ++*headerpos >= *endhp)	break;
-		}
-		if (c == EOF || *headerpos >= *endhp)
-		{
-			*headerpos=*endhp;
-			break;
-		}
-		if (c == '\n' && ++*headerpos >= *endhp)	break;
-		c=getc(fp);
-		if (c != EOF)	ungetc(c, fp);
-		if (c == EOF)
-		{
-			*headerpos=*endhp;
-			break;
-		}
-		if (c != ' ' && c != '\t')	break;
-	}
-	headerbuf[i]=0;
-	if (*headerpos == *endhp && i == 0)	return (0);
-	return (headerbuf);
-}
-
 void msgappends(void (*writefunc)(const char *, size_t),
 		const char *s, size_t l)
 {
@@ -200,56 +163,42 @@ static void doenva(void (*writefunc)(const char *, size_t),
 }
 
 void msgenvelope(void (*writefunc)(const char *, size_t),
-		FILE *fp, struct rfc2045 *mimep)
+		rfc822::fdstreambuf &fp,
+		const rfc2045::entity &rfcp)
 {
-	char *p;
-
 	std::string date, subject, from, sender, replyto, to, cc, bcc,
 		inreplyto, msgid;
 
-	off_t start_pos, end_pos, start_body;
-	off_t nlines, nbodylines;
+	rfc2045::entity::line_iter<false>::headers headers{rfcp, fp};
 
-	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-
-	if (fseek(fp, start_pos, SEEK_SET) < 0)
-	{
-		perror("fseek");
-		exit(0);
-	}
-
-	while ((p=read_header(fp, &start_pos, &start_body)) != 0)
+	do
 	{
 		std::string *hdrp=nullptr;
-		char *q, *r;
 
-		if ((q=strchr(p, ':')) != 0)
-			*q++=0;
-		for (r=p; *r; r++)
-			*r=tolower((int)(unsigned char)*r);
-		if (strcmp(p, "date") == 0)	hdrp= &date;
-		if (strcmp(p, "subject") == 0)	hdrp= &subject;
-		if (strcmp(p, "from") == 0)	hdrp= &from;
-		if (strcmp(p, "sender") == 0)	hdrp= &sender;
-		if (strcmp(p, "reply-to") == 0)	hdrp= &replyto;
-		if (strcmp(p, "to") == 0)	hdrp= &to;
-		if (strcmp(p, "cc") == 0)	hdrp= &cc;
-		if (strcmp(p, "bcc") == 0)	hdrp= &bcc;
-		if (strcmp(p, "in-reply-to") == 0) hdrp= &inreplyto;
-		if (strcmp(p, "message-id") == 0) hdrp= &msgid;
+		const auto &[name, content] = headers.name_content();
+		if (name == "date")	hdrp= &date;
+		else if (name == "subject")	hdrp= &subject;
+		else if (name == "from")	hdrp= &from;
+		else if (name == "sender")	hdrp= &sender;
+		else if (name == "reply-to")	hdrp= &replyto;
+		else if (name == "to")	hdrp= &to;
+		else if (name == "cc")	hdrp= &cc;
+		else if (name == "bcc")	hdrp= &bcc;
+		else if (name == "in-reply-to")	hdrp= &inreplyto;
+		else if (name == "message-id")	hdrp= &msgid;
 		if (!hdrp)	continue;
 
-		if (q)
+		if (!content.empty())
 		{
 			if (!hdrp->empty())
 				*hdrp += ",";
 
-			*hdrp += q;
+			*hdrp += content;
+
 			if (hdrp->size() > MAX_HEADER_SIZE)
 				hdrp->resize(MAX_HEADER_SIZE);
 		}
-	}
+	} while (headers.next());
 
 	if (replyto.empty())
 		replyto=from;

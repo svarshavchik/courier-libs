@@ -31,6 +31,8 @@
 #include	"maildir/maildiraclt.h"
 
 #include	<algorithm>
+#include	<memory>
+#include	<sstream>
 
 #if SMAP
 extern int smapflag;
@@ -46,77 +48,77 @@ unsigned long header_count=0, body_count=0;	/* Total transferred */
 
 extern int current_mailbox_ro;
 extern imapscaninfo current_maildir_info;
-extern char *rfc2045id(struct rfc2045 *);
+extern char *rfc2045id(const rfc2045::entity &);
 
 extern void snapshot_needed();
 
 extern void msgenvelope(void (*)(const char *, size_t),
-			FILE *, struct rfc2045 *);
+			rfc822::fdstreambuf &, const rfc2045::entity &);
 extern void msgbodystructure( void (*)(const char *, size_t), int,
-			      FILE *, struct rfc2045 *);
+			      rfc822::fdstreambuf &, const rfc2045::entity &);
 
 extern int is_trash(const char *);
 extern void get_message_flags(struct imapscanmessageinfo *,
 	char *, struct imapflags *);
 extern void append_flags(std::string &buf, struct imapflags &flags);
 
-static int fetchitem(FILE **, int *, const fetchinfo *,
+static int fetchitem(rfc822::fdstreambuf *&, int *, const fetchinfo *,
 		     imapscaninfo *,  unsigned long,
-		     struct rfc2045 **, int *);
+		     const rfc2045::entity *&, int *);
 
-static void bodystructure(FILE *, const fetchinfo *,
+static void bodystructure(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *,  unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-static void body(FILE *, const fetchinfo *,
+static void body(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *,  unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-static void fetchmsgbody(FILE *, const fetchinfo *,
+static void fetchmsgbody(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *,  unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-static void dofetchmsgbody(FILE *, const fetchinfo *,
+static void dofetchmsgbody(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *,  unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity *);
 
-static void envelope(FILE *, const fetchinfo *,
+static void envelope(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *,  unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-void doflags(FILE *, const fetchinfo *,
-	     imapscaninfo *, unsigned long, struct rfc2045 *);
+void doflags(rfc822::fdstreambuf &, const fetchinfo *,
+	     imapscaninfo *, unsigned long, const rfc2045::entity &);
 
-static void internaldate(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+void doflags(imapscaninfo *, unsigned long);
 
-static void uid(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+static void internaldate(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
 
-static void all(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+static void uid(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
 
-static void fast(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+static void uid(imapscaninfo *, unsigned long);
 
-static void full(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+static void all(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
 
-static void rfc822size(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long, struct rfc2045 *);
+static void fast(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
+
+static void full(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
+
+static void rfc822size(rfc822::fdstreambuf &, const fetchinfo *,
+	imapscaninfo *, unsigned long, const rfc2045::entity &);
 
 #if 0
-static void do_envelope(FILE *, const fetchinfo *,
-	struct imapscanmessageinfo *, struct rfc2045 *);
+static void do_envelope(rfc822::fdstreambuf &, const fetchinfo *,
+	struct imapscanmessageinfo *, const rfc2045::entity &);
 #endif
 
-static void dofetchheadersbuf(FILE *, const fetchinfo *,
+static void dofetchheadersfile(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *, unsigned long,
-	struct rfc2045 *,
-	int (*)(const fetchinfo *fi, const char *));
-static void dofetchheadersfile(FILE *, const fetchinfo *,
-	imapscaninfo *, unsigned long,
-	struct rfc2045 *,
+	const rfc2045::entity &,
 	int (*)(const fetchinfo *fi, const char *));
 
 static void print_bodysection_partial(const fetchinfo *,
@@ -127,20 +129,23 @@ static int dofetchheaderfields(const fetchinfo *, const char *);
 static int dofetchheadernotfields(const fetchinfo *, const char *);
 static int dofetchheadermime(const fetchinfo *, const char *);
 
-static void dorfc822(FILE *, const fetchinfo *,
+static void dorfc822(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *, unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-static void rfc822header(FILE *, const fetchinfo *,
+static void rfc822header(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *, unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-static void rfc822text(FILE *, const fetchinfo *,
+static void rfc822text(rfc822::fdstreambuf &, const fetchinfo *,
 	imapscaninfo *, unsigned long,
-	struct rfc2045 *);
+	const rfc2045::entity &);
 
-struct rfc2045 *fetch_alloc_rfc2045(unsigned long, FILE *);
-FILE *open_cached_fp(unsigned long);
+const rfc2045::entity &fetch_alloc_rfc2045(
+	unsigned long,
+	rfc822::fdstreambuf &
+);
+rfc822::fdstreambuf &open_cached_fp(unsigned long);
 
 void fetchflags(unsigned long);
 
@@ -246,14 +251,14 @@ int reflag_filename(struct imapscanmessageinfo *mi, struct imapflags *flags,
 
 int do_fetch(unsigned long n, int byuid, const std::list<fetchinfo> &filist)
 {
-	FILE	*fp;
-	struct	rfc2045 *rfc2045p;
+	rfc822::fdstreambuf	*fp;
+	const rfc2045::entity	*rfc2045p;
 	int	seen;
 	int	open_err;
 	int	unicode_err=0;
 	int	report_unicode_err=0;
 
-	fp=NULL;
+	fp=nullptr;
 	open_err=0;
 
 	writes("* ");
@@ -278,16 +283,16 @@ int do_fetch(unsigned long n, int byuid, const std::list<fetchinfo> &filist)
 		}
 	}
 	seen=0;
-	rfc2045p=0;
+	rfc2045p=nullptr;
 
 	const char *sep="";
 
 	for (auto &fi:filist)
 	{
 		writes(sep);
-		int rc=fetchitem(&fp, &open_err,
+		int rc=fetchitem(fp, &open_err,
 				 &fi, &current_maildir_info, n-1,
-				 &rfc2045p, &unicode_err);
+				 rfc2045p, &unicode_err);
 
 		if (rc > 0)
 			seen=1;
@@ -320,7 +325,7 @@ int do_fetch(unsigned long n, int byuid, const std::list<fetchinfo> &filist)
 		{
 			flags.seen=true;
 			reflag_filename(&current_maildir_info.msgs[n-1],&flags,
-				fileno(fp));
+				fp->fileno());
 			current_maildir_info.msgs[n-1].changedflags=1;
 
 			report_unicode_err=unicode_err;
@@ -343,14 +348,18 @@ int do_fetch(unsigned long n, int byuid, const std::list<fetchinfo> &filist)
 	return (0);
 }
 
-static int fetchitem(FILE **fp, int *open_err, const fetchinfo *fi,
-		     imapscaninfo *i, unsigned long msgnum,
-		     struct rfc2045 **mimep,
-		     int *unicode_err)
+static int fetchitem(
+	rfc822::fdstreambuf *&fp,
+	int *open_err,
+	const fetchinfo *fi,
+	imapscaninfo *i,
+	unsigned long msgnum,
+	const rfc2045::entity *&mimep,
+	int *unicode_err)
 {
-	void (*fetchfunc)(FILE *, const fetchinfo *,
+	void (*fetchfunc)(rfc822::fdstreambuf &, const fetchinfo *,
 			  imapscaninfo *, unsigned long,
-			  struct rfc2045 *);
+			  const rfc2045::entity &);
 	int	parsemime=0;
 	int	rc=0;
 	int	do_open=1;
@@ -441,10 +450,10 @@ static int fetchitem(FILE **fp, int *open_err, const fetchinfo *fi,
 	}
 	else	return (0);
 
-	if (do_open && *fp == NULL)
+	if (do_open && !fp)
 	{
-		*fp=open_cached_fp(msgnum);
-		if (!*fp)
+		fp=&open_cached_fp(msgnum);
+		if (fp->error())
 		{
 			*open_err=1;
 			return rc;
@@ -454,13 +463,13 @@ static int fetchitem(FILE **fp, int *open_err, const fetchinfo *fi,
 	if (mimecorrectness && !enabled_utf8)
 		parsemime=1;
 
-	if (parsemime && !*mimep)
+	if (parsemime && !mimep)
 	{
-		*mimep=fetch_alloc_rfc2045(msgnum, *fp);
+		mimep=&fetch_alloc_rfc2045(msgnum, *fp);
 	}
 
 	if (mimecorrectness && !enabled_utf8 &&
-	    ((*mimep)->rfcviolation & RFC2045_ERR8BITHEADER))
+	    (mimep->errors.code & RFC2045_ERR8BITHEADER))
 	{
 		*unicode_err=1;
 	}
@@ -469,25 +478,25 @@ static int fetchitem(FILE **fp, int *open_err, const fetchinfo *fi,
 	return (rc);
 }
 
-static void bodystructure(FILE *fp, const fetchinfo *fi,
+static void bodystructure(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	writes("BODYSTRUCTURE ");
 	msgbodystructure(writemem, 1, fp, mimep);
 }
 
-static void body(FILE *fp, const fetchinfo *fi,
+static void body(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	writes("BODY ");
 	msgbodystructure(writemem, 0, fp, mimep);
 }
 
-static void envelope(FILE *fp, const fetchinfo *fi,
+static void envelope(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	writes("ENVELOPE ");
 	msgenvelope( &writemem, fp, mimep);
@@ -509,7 +518,7 @@ void fetchflags(unsigned long n)
 		writes(" FETCH (");
 	}
 
-	doflags(0, 0, &current_maildir_info, n, 0);
+	doflags(&current_maildir_info, n);
 
 #if SMAP
 	if (smapflag)
@@ -526,15 +535,20 @@ void fetchflags_byuid(unsigned long n)
 	writes("* ");
 	writen(n+1);
 	writes(" FETCH (");
-	uid(0, 0, &current_maildir_info, n, 0);
+	uid(&current_maildir_info, n);
 	writes(" ");
-	doflags(0, 0, &current_maildir_info, n, 0);
+	doflags(&current_maildir_info, n);
 	writes(")\r\n");
 }
 
-void doflags(FILE *fp, const fetchinfo *fi,
+void doflags(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	     imapscaninfo *i, unsigned long msgnum,
-	     struct rfc2045 *mimep)
+	     const rfc2045::entity &mimep)
+{
+	doflags(i, msgnum);
+}
+
+void doflags(imapscaninfo *i, unsigned long msgnum)
 {
 	char	buf[256];
 
@@ -572,16 +586,16 @@ void doflags(FILE *fp, const fetchinfo *fi,
 	i->msgs.at(msgnum).changedflags=0;
 }
 
-static void internaldate(FILE *fp, const fetchinfo *fi,
+static void internaldate(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 struct	stat	stat_buf;
 char	buf[256];
 char	*p, *q;
 
 	writes("INTERNALDATE ");
-	if (fstat(fileno(fp), &stat_buf) == 0)
+	if (fstat(fp.fileno(), &stat_buf) == 0)
 	{
 		rfc822_mkdate_buf(stat_buf.st_mtime, buf);
 
@@ -601,32 +615,30 @@ char	*p, *q;
 		writes("NIL");
 }
 
-static void uid(FILE *fp, const fetchinfo *fi,
+static void uid(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
+{
+	uid(i, msgnum);
+}
+
+static void uid(imapscaninfo *i, unsigned long msgnum)
 {
 	writes("UID ");
 	writen(i->msgs.at(msgnum).uid);
 }
 
-static void rfc822size(FILE *fp, const fetchinfo *fi,
+static void rfc822size(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
-off_t start_pos, end_pos, start_body;
-off_t nlines, nbodylines;
-
 	writes("RFC822.SIZE ");
-
-	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-
-	writen(end_pos - start_pos + nlines);
+	writen(mimep.endbody - mimep.startpos + mimep.nlines);
 }
 
-static void all(FILE *fp, const fetchinfo *fi,
+static void all(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	doflags(fp, fi, i, msgnum, mimep);
 	writes(" ");
@@ -637,9 +649,9 @@ static void all(FILE *fp, const fetchinfo *fi,
 	envelope(fp, fi, i, msgnum, mimep);
 }
 
-static void fast(FILE *fp, const fetchinfo *fi,
+static void fast(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	doflags(fp, fi, i, msgnum, mimep);
 	writes(" ");
@@ -648,9 +660,9 @@ static void fast(FILE *fp, const fetchinfo *fi,
 	rfc822size(fp, fi, i, msgnum, mimep);
 }
 
-static void full(FILE *fp, const fetchinfo *fi,
+static void full(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	doflags(fp, fi, i, msgnum, mimep);
 	writes(" ");
@@ -663,14 +675,14 @@ static void full(FILE *fp, const fetchinfo *fi,
 	body(fp, fi, i, msgnum, mimep);
 }
 
-static void fetchmsgbody(FILE *fp, const fetchinfo *fi,
+static void fetchmsgbody(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity &mimep)
 {
 	writes("BODY");
 	print_bodysection_partial(fi, &print_bodysection_output);
 	writes(" ");
-	dofetchmsgbody(fp, fi, i, msgnum, mimep);
+	dofetchmsgbody(fp, fi, i, msgnum, &mimep);
 }
 
 static void print_bodysection_output(const std::string &p)
@@ -710,13 +722,11 @@ static void print_bodysection_partial(const fetchinfo *fi,
 	}
 }
 
-static void dofetchmsgbody(FILE *fp, const fetchinfo *fi,
+static void dofetchmsgbody(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *i, unsigned long msgnum,
-	struct rfc2045 *mimep)
+	const rfc2045::entity *mimep)
 {
 	const char *p=fi->hasbodysection ? fi->bodysection.c_str():nullptr;
-	off_t start_pos, end_pos, start_body;
-	off_t nlines, nbodylines;
 	unsigned long cnt;
 	char	buf[BUFSIZ];
 	char	rbuf[BUFSIZ];
@@ -727,7 +737,7 @@ static void dofetchmsgbody(FILE *fp, const fetchinfo *fi,
 	int	ismsgrfc822=1;
 
 	off_t start_seek_pos;
-	struct rfc2045 *headermimep;
+	const rfc2045::entity *headermimep=mimep;
 
 /*
 ** To optimize consecutive FETCHes, we cache our virtual and physical
@@ -742,8 +752,6 @@ off_t cnt_phys_chars;
 
 off_t cache_virtual_chars;
 off_t cache_phys_chars;
-
-	headermimep=mimep;
 
 	while (p && isdigit((int)(unsigned char)*p))
 	{
@@ -760,46 +768,35 @@ off_t cache_phys_chars;
 		{
 			if (ismsgrfc822)
 			{
-				const char *ct, *dummy;
-
-				if (mimep->firstpart == 0)
+				if (mimep->subentities.empty())
 				{
 					/* Not a multipart, n must be 1 */
 					if (n != 1)
-						mimep=0;
+						mimep=nullptr;
 					if (*p == '.')
 						++p;
 					continue;
 				}
 				ismsgrfc822=0;
 
-				rfc2045_mimeinfo(mimep, &ct,
-						 &dummy,
-						 &dummy);
-
-				if (ct && strcasecmp(ct, "message/rfc822"
-						     ) == 0)
+				if (mimep->content_type.value ==
+					"message/rfc822")
 					ismsgrfc822=1;
 				/* The content is another message/rfc822 */
 			}
 
-			mimep=mimep->firstpart;
-			while (mimep)
-			{
-				if (!mimep->isdummy && --n == 0)
-					break;
-				mimep=mimep->next;
-			}
+			mimep = mimep->subentities.size() < n ? nullptr:
+				&mimep->subentities[n-1];
 			headermimep=mimep;
 
-			if (mimep && mimep->firstpart &&
-				!mimep->firstpart->isdummy)
-				/* This is a message/rfc822 part */
+			if (mimep && rfc2045_message_content_type(
+				mimep->content_type.value.c_str()
+			) && !mimep->subentities.empty())
 			{
 				if (!*p)
 					break;
 
-				mimep=mimep->firstpart;
+				mimep = &mimep->subentities[0];
 				ismsgrfc822=1;
 			}
 		}
@@ -810,67 +807,52 @@ off_t cache_phys_chars;
 	if (p && strcmp(p, "MIME") == 0)
 		mimep=headermimep;
 
-	if (mimep == 0)
+	if (mimep == nullptr)
 	{
 		writes("{0}\r\n");
 		return;
 	}
 
-	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-
-
 	if (p && strcmp(p, "TEXT") == 0)
 	{
-		start_seek_pos=start_body;
-		cnt=end_pos - start_body + nbodylines;
+		start_seek_pos=mimep->startbody;
+		cnt=mimep->endbody - mimep->startbody + mimep->nbodylines;
 	}
 	else if (p && strcmp(p, "HEADER") == 0)
 	{
-		start_seek_pos=start_pos;
-		cnt= start_body - start_pos + (nlines - nbodylines);
+		start_seek_pos=mimep->startpos;
+		cnt= mimep->startbody - mimep->startpos + (mimep->nlines -
+			mimep->nbodylines);
 	}
 	else if (p && strcmp(p, "HEADER.FIELDS") == 0)
 	{
-		if (start_body - start_pos <= BUFSIZ)
-			dofetchheadersbuf(fp, fi, i, msgnum, mimep,
-				&dofetchheaderfields);
-		else
-			dofetchheadersfile(fp, fi, i, msgnum, mimep,
+		dofetchheadersfile(fp, fi, i, msgnum, *mimep,
 				&dofetchheaderfields);
 		return;
 	}
 	else if (p && strcmp(p, "HEADER.FIELDS.NOT") == 0)
 	{
-		if (start_body - start_pos <= BUFSIZ)
-			dofetchheadersbuf(fp, fi, i, msgnum, mimep,
-				&dofetchheadernotfields);
-		else
-			dofetchheadersfile(fp, fi, i, msgnum, mimep,
+		dofetchheadersfile(fp, fi, i, msgnum, *mimep,
 				&dofetchheadernotfields);
 		return;
 	}
 	else if (p && strcmp(p, "MIME") == 0)
 	{
-		if (start_body - start_pos <= BUFSIZ)
-			dofetchheadersbuf(fp, fi, i, msgnum, mimep,
-				&dofetchheadermime);
-		else
-			dofetchheadersfile(fp, fi, i, msgnum, mimep,
+		dofetchheadersfile(fp, fi, i, msgnum, *mimep,
 				&dofetchheadermime);
 		return;
 	}
 	else if (fi->bodysection.empty())
 	{
-		start_seek_pos=start_pos;
+		start_seek_pos=mimep->startpos;
 
-		cnt= end_pos - start_pos + nlines;
+		cnt= mimep->endbody - mimep->startpos + mimep->nlines;
 	}
 	else	/* Last possibility: entire body */
 	{
-		start_seek_pos=start_body;
+		start_seek_pos=mimep->startbody;
 
-		cnt= end_pos - start_body + nbodylines;
+		cnt= mimep->endbody - mimep->startbody + mimep->nbodylines;
 	}
 
 	skipping=0;
@@ -887,7 +869,8 @@ off_t cache_phys_chars;
 			       &cnt_phys_chars) == 0 &&
 	    cnt_virtual_chars <= (off_t)skipping) /* Yeah - cache it, baby! */
 	{
-		if (fseek(fp, start_seek_pos+cnt_phys_chars, SEEK_SET) == -1)
+		if (fp.pubseekpos(start_seek_pos+cnt_phys_chars) !=
+		    start_seek_pos+cnt_phys_chars)
 		{
 			writes("{0}\r\n");
 			fetcherror("fseek", fi, i, msgnum);
@@ -897,7 +880,8 @@ off_t cache_phys_chars;
 	}
 	else
 	{
-		if (fseek(fp, start_seek_pos, SEEK_SET) == -1)
+		if (fp.pubseekpos(start_seek_pos) !=
+		    start_seek_pos)
 		{
 			writes("{0}\r\n");
 			fetcherror("fseek", fi, i, msgnum);
@@ -926,8 +910,7 @@ off_t cache_phys_chars;
 
 		if (!rbufleft)
 		{
-			rbufleft=fread(rbuf, 1, sizeof(rbuf), fp);
-			if (rbufleft < 0)	rbufleft=0;
+			rbufleft=fp.sgetn(rbuf, sizeof(rbuf));
 			rbufptr=rbuf;
 		}
 
@@ -1037,137 +1020,6 @@ static int dofetchheadermime(const fetchinfo *fi, const char *name)
 	return (1);
 }
 
-static void dofetchheadersbuf(FILE *fp, const fetchinfo *fi,
-	imapscaninfo *info, unsigned long msgnum,
-	struct rfc2045 *mimep,
-	int (*headerfunc)(const fetchinfo *fi, const char *))
-{
-off_t start_pos, end_pos, start_body;
-off_t nlines, nbodylines;
-size_t i,j,k,l;
-char	buf[BUFSIZ+2];
-int	goodheader;
-unsigned long skipping;
-unsigned long cnt;
-char	*p;
-int	ii;
-
-	rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-	if (fseek(fp, start_pos, SEEK_SET) == -1)
-	{
-		writes("{0}\r\n");
-		fetcherror("fseek", fi, info, msgnum);
-		return;
-	}
-
-	ii=fread(buf, 1, start_body - start_pos, fp);
-	if (ii < 0 || (i=ii) != (size_t)(start_body - start_pos))
-	{
-		fetcherror("unexpected EOF", fi, info, msgnum);
-		exit(1);
-	}
-	goodheader= (*headerfunc)(fi, "");
-
-	l=0;
-	for (j=0; j<i; )
-	{
-		if (buf[j] != '\n' && buf[j] != '\r' &&
-			!isspace((int)(unsigned char)buf[j]))
-		{
-			goodheader= (*headerfunc)(fi, "");
-
-			for (k=j; k<i; k++)
-			{
-				if (buf[k] == '\n' || buf[k] == ':')
-					break;
-			}
-
-			if (k < i && buf[k] == ':')
-			{
-				buf[k]=0;
-				goodheader=(*headerfunc)(fi, buf+j);
-				buf[k]=':';
-			}
-		}
-		else if (buf[j] == '\n')
-			goodheader=0;
-
-		for (k=j; k<i; k++)
-			if (buf[k] == '\n')
-			{
-				++k;
-				break;
-			}
-
-		if (goodheader)
-		{
-			while (j<k)
-				buf[l++]=buf[j++];
-		}
-		j=k;
-	}
-
-	buf[l++]='\n';	/* Always append a blank line */
-
-	cnt=l;
-	for (i=0; i<l; i++)
-		if (buf[i] == '\n')	++cnt;
-
-	skipping=0;
-	if (fi->ispartial)
-	{
-		skipping=fi->partialstart;
-		if (skipping > cnt)	skipping=cnt;
-		cnt -= skipping;
-		if (fi->ispartial > 1 && cnt > fi->partialend)
-			cnt=fi->partialend;
-	}
-
-	writes("{");
-	writen(cnt);
-	writes("}\r\n");
-	p=buf;
-	while (skipping)
-	{
-		if (*p == '\n')
-		{
-			--skipping;
-			if (skipping == 0)
-			{
-				if (cnt)
-				{
-					writes("\n");
-					--cnt;
-				}
-				break;
-			}
-		}
-		--skipping;
-		++p;
-	}
-
-	while (cnt)
-	{
-		if (*p == '\n')
-		{
-			writes("\r");
-			if (--cnt == 0)	break;
-			writes("\n");
-			--cnt;
-			++p;
-			continue;
-		}
-		for (i=0; i<cnt; i++)
-			if (p[i] == '\n')
-				break;
-		writemem(p, i);
-		p += i;
-		cnt -= i;
-		header_count += i;
-	}
-}
-
 struct fetchheaderinfo {
 	unsigned long skipping;
 	unsigned long cnt;
@@ -1175,15 +1027,66 @@ struct fetchheaderinfo {
 
 static void countheader(struct fetchheaderinfo *, const char *, size_t);
 
+static void dofetchheaders(
+	std::streambuf &fp,
+	off_t header_startpos,
+	off_t header_endpos,
+	const fetchinfo *fi,
+	imapscaninfo *info, unsigned long msgnum,
+	const rfc2045::entity &mimep,
+	int (*headerfunc)(const fetchinfo *fi, const char *));
+
 static void printheader(struct fetchheaderinfo *, const char *, size_t);
 
-static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
+static void dofetchheadersfile(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *info, unsigned long msgnum,
-	struct rfc2045 *mimep,
+	const rfc2045::entity &mimep,
 	int (*headerfunc)(const fetchinfo *fi, const char *))
 {
-	off_t start_pos, end_pos, start_body;
-	off_t nlines, nbodylines;
+	if (mimep.startbody-mimep.startpos > BUFSIZ)
+	{
+		dofetchheaders(fp, mimep.startpos, mimep.startbody,
+			fi, info, msgnum, mimep, headerfunc);
+		return;
+	}
+
+	std::stringstream sbuf;
+
+	size_t n=mimep.startbody-mimep.startpos;
+	{
+		if (static_cast<size_t>(fp.pubseekpos(mimep.startpos))
+		    != mimep.startpos)
+		{
+			writes("{0}\r\n");
+			fetcherror("fseek", fi, info, msgnum);
+			return;
+		}
+
+		char buffer[n];
+		size_t rd=fp.sgetn(buffer, n);
+
+		if (rd != n)
+		{
+			writes("{0}\r\n");
+			fetcherror("sgetn", fi, info, msgnum);
+			return;
+		}
+		sbuf << std::string_view{buffer, n};
+	}
+
+	dofetchheaders(*sbuf.rdbuf(), 0, n, fi, info, msgnum, mimep, headerfunc);		
+}
+
+static void dofetchheaders(
+	std::streambuf &fp,
+	off_t header_startpos,
+	off_t header_endpos,
+	const fetchinfo *fi,
+	imapscaninfo *info, unsigned long msgnum,
+	const rfc2045::entity &mimep,
+	int (*headerfunc)(const fetchinfo *fi, const char *))
+{
+	off_t start_pos, start_body;
 	size_t i, left;
 	int	c, pass;
 	char	buf1[256];
@@ -1196,9 +1099,9 @@ static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
 	void (*func)(struct fetchheaderinfo *, const char *, size_t)=
 			pass ? printheader:countheader;
 
-		rfc2045_mimepos(mimep, &start_pos, &end_pos, &start_body,
-			&nlines, &nbodylines);
-		if (fseek(fp, start_pos, SEEK_SET) == -1)
+		start_pos=header_startpos;
+		start_body=header_endpos;
+		if (fp.pubseekpos(start_pos) !=start_pos)
 		{
 			writes("{0}\r\n");
 			fetcherror("fseek", fi, info, msgnum);
@@ -1229,7 +1132,7 @@ static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
 		{
 			for (i=0; i<sizeof(buf1)-1 && i<left; i++)
 			{
-				c=getc(fp);
+				c=fp.sbumpc();
 				if (c == EOF)
 				{
 					fetcherror("unexpected EOF", fi, info, msgnum);
@@ -1238,7 +1141,7 @@ static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
 
 				if (c == '\n' || c == ':')
 				{
-					ungetc(c, fp);
+					fp.sungetc();
 					break;
 				}
 				buf1[i]=c;
@@ -1246,17 +1149,17 @@ static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
 			buf1[i]=0;
 			left -= i;
 
-			if (buf1[0] != '\n' && buf1[0] != '\r' &&
+			if (buf1[0] && buf1[0] != '\r' &&
 				!isspace((int)(unsigned char)buf1[0]))
 				goodheader= (*headerfunc)(fi, buf1);
-			else if (buf1[0] == '\n')
+			else if (buf1[0] == 0)
 				goodheader=0;
 
 			if (!goodheader)
 			{
 				while (left)
 				{
-					c=getc(fp);
+					c=fp.sbumpc();
 					--left;
 					if (c == EOF)
 					{
@@ -1273,7 +1176,7 @@ static void dofetchheadersfile(FILE *fp, const fetchinfo *fi,
 			i=0;
 			while (left)
 			{
-				c=getc(fp);
+				c=fp.sbumpc();
 				if (c == EOF)
 				{
 					fetcherror("unexpected EOF", fi, info, msgnum);
@@ -1322,16 +1225,16 @@ static void printheader(struct fetchheaderinfo *fi, const char *p, size_t s)
 		fi->skipping=0;
 	}
 	if (s > fi->cnt)	s=fi->cnt;
-	for (i=0; i <= s; i++)
+	for (i=0; i < s; i++)
 		if (p[i] != '\r')
 			++header_count;
 	writemem(p, s);
 	fi->cnt -= s;
 }
 
-static void dorfc822(FILE *fp, const fetchinfo *fi,
+static void dorfc822(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *info, unsigned long msgnum,
-	struct rfc2045 *rfcp)
+	const rfc2045::entity &rfcp)
 {
 unsigned long n=0;
 int	c;
@@ -1340,19 +1243,19 @@ unsigned long i;
 
 	writes("RFC822 ");
 
-	if (fseek(fp, 0L, SEEK_SET) == -1)
+	if (fp.pubseekpos(0) !=0)
 	{
 		fetcherror("fseek", fi, info, msgnum);
 		writes("{0}\r\n");
 		return;
 	}
-	while ((c=getc(fp)) != EOF)
+	while ((c=fp.sbumpc()) != EOF)
 	{
 		++n;
 		if (c == '\n')	++n;
 	}
 
-	if (fseek(fp, 0L, SEEK_SET) == -1)
+	if (fp.pubseekpos(0) !=0)
 	{
 		fetcherror("fseek", fi, info, msgnum);
 		writes("{0}\r\n");
@@ -1365,7 +1268,7 @@ unsigned long i;
 	i=0;
 	while (n)
 	{
-		c=getc(fp);
+		c=fp.sbumpc();
 		if (c == '\n')
 		{
 			if (i >= sizeof(buf))
@@ -1389,9 +1292,9 @@ unsigned long i;
 	writemem(buf, i);
 }
 
-static void rfc822header(FILE *fp, const fetchinfo *fi,
+static void rfc822header(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *info, unsigned long msgnum,
-	struct rfc2045 *rfcp)
+	const rfc2045::entity &rfcp)
 {
 unsigned long n=0;
 int	c;
@@ -1401,7 +1304,7 @@ int	eol;
 
 	writes("RFC822.HEADER ");
 
-	if (fseek(fp, 0L, SEEK_SET) == -1)
+	if (fp.pubseekpos(0) !=0)
 	{
 		fetcherror("fseek", fi, info, msgnum);
 		writes("{0}\r\n");
@@ -1409,7 +1312,7 @@ int	eol;
 	}
 
 	eol=0;
-	while ((c=getc(fp)) != EOF)
+	while ((c=fp.sbumpc()) != EOF)
 	{
 		++n;
 		if (c != '\n')
@@ -1422,7 +1325,7 @@ int	eol;
 		eol=1;
 	}
 
-	if (fseek(fp, 0L, SEEK_SET) == -1)
+	if (fp.pubseekpos(0) !=0)
 	{
 		fetcherror("fseek", fi, info, msgnum);
 		writes("{0}\r\n");
@@ -1435,7 +1338,7 @@ int	eol;
 	i=0;
 	while (n)
 	{
-		c=getc(fp);
+		c=fp.sbumpc();
 		if (c == '\n')
 		{
 			if (i >= sizeof(buf))
@@ -1459,12 +1362,13 @@ int	eol;
 	writemem(buf, i);
 }
 
-static void rfc822text(FILE *fp, const fetchinfo *fi,
+static void rfc822text(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	imapscaninfo *info, unsigned long msgnum,
-	struct rfc2045 *rfcp)
+	const rfc2045::entity &mimep)
 {
-off_t start_pos, end_pos, start_body;
-off_t nlines, nbodylines;
+off_t start_body;
+off_t end_pos;
+off_t nbodylines;
 unsigned long i;
 int	c;
 char	buf[BUFSIZ];
@@ -1472,10 +1376,10 @@ unsigned long l;
 
 	writes("RFC822.TEXT {");
 
-	rfc2045_mimepos(rfcp, &start_pos, &end_pos, &start_body,
-		&nlines, &nbodylines);
-
-	if (fseek(fp, start_body, SEEK_SET) == -1)
+	start_body=mimep.startbody;
+	end_pos=mimep.endbody;
+	nbodylines=mimep.nbodylines;
+	if (fp.pubseekpos(start_body) !=start_body)
 	{
 		fetcherror("fseek", fi, info, msgnum);
 		writes("0}\r\n");
@@ -1490,7 +1394,7 @@ unsigned long l;
 	l=0;
 	while (i)
 	{
-		c=getc(fp);
+		c=fp.sbumpc();
 		if (c == EOF)
 		{
 			fetcherror("unexpected EOF", fi, info, msgnum);
@@ -1525,81 +1429,74 @@ unsigned long l;
 ** To save the time of reparsing the MIME structure, we cache it.
 */
 
-static struct rfc2045 *cached_rfc2045p;
+static rfc2045::entity cached_rfc2045p;
 static std::string cached_filename;
 
 void fetch_free_cached()
 {
-	if (cached_rfc2045p)
-	{
-		rfc2045_free(cached_rfc2045p);
-		cached_rfc2045p=0;
-		cached_filename.clear();
-	}
+	cached_rfc2045p=rfc2045::entity{};
+	cached_filename.clear();
 }
 
-struct rfc2045 *fetch_alloc_rfc2045(unsigned long msgnum, FILE *fp)
+const rfc2045::entity &fetch_alloc_rfc2045(
+	unsigned long msgnum,
+	rfc822::fdstreambuf &sb
+)
 {
-	if (cached_rfc2045p &&
-	    cached_filename == current_maildir_info.msgs.at(msgnum).filename)
+	if (cached_filename == current_maildir_info.msgs.at(msgnum).filename)
 		return (cached_rfc2045p);
 
 	fetch_free_cached();
 
 	cached_filename=current_maildir_info.msgs.at(msgnum).filename;
 
-	if (fseek(fp, 0L, SEEK_SET) == -1)
-	{
+	if (sb.pubseekpos(0) != 0)
 		write_error_exit(0);
-		return (0);
-	}
-	cached_rfc2045p=rfc2045_fromfp(fp);
-	if (!cached_rfc2045p)
-	{
-		cached_filename.clear();
-		write_error_exit(0);
-	}
+
+	std::istreambuf_iterator<char> b{&sb}, e;
+
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+	parser.do_parse_rfc2231=false;
+	cached_rfc2045p.parse(parser);
 	return (cached_rfc2045p);
 }
 
-static FILE *cached_fp=0;
+static rfc822::fdstreambuf cached_fp;
 static std::string cached_fp_filename;
 static off_t cached_base_offset;
 static off_t cached_virtual_offset;
 static off_t cached_phys_offset;
 
-FILE *open_cached_fp(unsigned long msgnum)
+rfc822::fdstreambuf &open_cached_fp(unsigned long msgnum)
 {
 	int	fd;
 
-	if (cached_fp && cached_fp_filename ==
+	if (cached_fp_filename ==
 	    current_maildir_info.msgs.at(msgnum).filename)
 		return (cached_fp);
 
-	if (cached_fp)
-	{
-		fclose(cached_fp);
-		cached_fp_filename.clear();
-		cached_fp=0;
-	}
+	cached_fp=rfc822::fdstreambuf{};
+	cached_fp_filename.clear();
 
 	fd=imapscan_openfile(&current_maildir_info, msgnum);
-	if (fd < 0 || (cached_fp=fdopen(fd, "r")) == 0)
+	if (fd < 0)
 	{
-		if (fd >= 0)	close(fd);
-
-		if (fd <0 && errno == ENOENT && (cached_fp=tmpfile()) != 0)
+		if (errno == ENOENT &&
+			!(cached_fp=rfc822::fdstreambuf::tmpfile()).error())
 		{
-			fprintf(cached_fp, unavailable);
-			if (fseek(cached_fp, 0L, SEEK_SET) < 0 ||
-			    ferror(cached_fp))
+			std::string_view sv{unavailable};
+
+			if (cached_fp.sputn(sv.data(), sv.size())
+			    < (std::streamsize) sv.size() ||
+			    cached_fp.pubseekpos(0) != 0 ||
+			    cached_fp.error())
 			{
-				fclose(cached_fp);
-				cached_fp=0;
+				cached_fp=rfc822::fdstreambuf{};
 			}
 		}
 
-		if (cached_fp == 0)
+		if (cached_fp.error())
 		{
 			fprintf(stderr, "ERR: %s: %s\n",
 				getenv("AUTHENTICATED"),
@@ -1614,6 +1511,10 @@ FILE *open_cached_fp(unsigned long msgnum)
 			_exit(1);
 		}
 	}
+	else
+	{
+		cached_fp=rfc822::fdstreambuf{fd};
+	}
 
 	cached_fp_filename=current_maildir_info.msgs.at(msgnum).filename;
 
@@ -1625,12 +1526,8 @@ FILE *open_cached_fp(unsigned long msgnum)
 
 void fetch_free_cache()
 {
-	if (cached_fp)
-	{
-		fclose(cached_fp);
-		cached_fp=0;
-		cached_fp_filename.clear();
-	}
+	cached_fp=rfc822::fdstreambuf{};
+	cached_fp_filename.clear();
 }
 
 void save_cached_offsets(off_t base, off_t virt, off_t phys)
@@ -1642,7 +1539,7 @@ void save_cached_offsets(off_t base, off_t virt, off_t phys)
 
 int get_cached_offsets(off_t base, off_t *virt, off_t *phys)
 {
-	if (!cached_fp)
+	if (cached_fp.error())
 		return (-1);
 	if (base != cached_base_offset)
 		return (-1);

@@ -159,7 +159,8 @@ void print_info(const rfc2045::entity &entity,
 		  << "\n";
 
 	rfc2045::entity::rfc2231_header content_disposition{
-		entity.content_disposition
+		entity.content_disposition,
+		true
 	};
 
 	if (content_disposition.value.size())
@@ -258,7 +259,7 @@ std::string get_suitable_filename(const rfc2045::entity &message,
 	std::string filename;
 
 	rfc2045::entity::rfc2231_header content_disposition{
-		message.content_disposition
+		message.content_disposition, true
 	};
 
 	auto cd_value=content_disposition.parameters.find("filename");

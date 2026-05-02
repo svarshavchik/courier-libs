@@ -65,6 +65,7 @@ bool rfc2045::entity::autoconvert_check(convert rwmode)
 		{
 			if (content_type.parameters.try_emplace(
 				    "charset",
+				    0,
 				    "utf-8",
 				    "en",
 				    rfc2045_getdefaultcharset()

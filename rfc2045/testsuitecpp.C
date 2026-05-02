@@ -398,29 +398,56 @@ void testrfc2045foldedline_iter()
 #endif
 }
 
+struct full_parameter_value : rfc2045::entity::header_parameter_value {
+	using header_parameter_value::header_parameter_value;
+
+	full_parameter_value(const header_parameter_value &o)
+		: header_parameter_value{o}
+	{
+	}
+
+	bool operator==(const full_parameter_value &o) const
+	{
+		return header_parameter_value::operator==(o) &&
+			index == o.index;
+	}
+};
+
 void testrfc2231headers()
 {
 	static const struct {
 		const std::string_view header;
 		const char *value;
 		std::unordered_map<std::string_view,
-				   std::tuple<const char *, const char *,
+				   std::tuple<size_t,
+					      const char *, const char *,
 					      const char *>> parameters;
+		std::unordered_map<std::string_view,
+				   std::tuple<size_t,
+					      const char *, const char *,
+					      const char *>> no2231parameters;
 	} tests[]={
 		{
 			"TEXT/PLAIN; "
 			"CHARSET=\"iso-8859-1\"",
 			"text/plain",
 			{
-				{"charset", {"utf-8", "en", "iso-8859-1"}}
+				{"charset", {0, "utf-8", "en", "iso-8859-1"}}
+			},
+			{
+				{"charset", {0, "utf-8", "en", "iso-8859-1"}}
 			}
 		},
 		{
 			"text/html;;novalue;quotedvalue=\"quoted\";",
 			"text/html",
 			{
-				{"novalue", {"utf-8", "en", ""}},
-				{"quotedvalue", {"utf-8", "en", "quoted"}}
+				{"novalue", {0, "utf-8", "en", ""}},
+				{"quotedvalue", {1, "utf-8", "en", "quoted"}}
+			},
+			{
+				{"novalue", {0, "utf-8", "en", ""}},
+				{"quotedvalue", {1, "utf-8", "en", "quoted"}}
 			}
 		},
 		{
@@ -430,9 +457,14 @@ void testrfc2231headers()
 			"notrailing=semicolon",
 			"text/plain",
 			{
-				{"nonstandard1", {"utf-8", "en", "nobÒdy"}},
-				{"nonstandard2", {"utf-8", "en", "nobÒdy"}},
-				{"notrailing", {"utf-8", "en", "semicolon"}}
+				{"nonstandard1", {0, "utf-8", "en", "nobÒdy"}},
+				{"nonstandard2", {1, "utf-8", "en", "nobÒdy"}},
+				{"notrailing", {2, "utf-8", "en", "semicolon"}}
+			},
+			{
+				{"nonstandard1", {0, "utf-8", "en", "=?utf-8?q?nob=c3=92dy?="}},
+				{"nonstandard2", {1, "utf-8", "en", "=?utf-8?q?nob=c3=92dy?="}},
+				{"notrailing", {2, "utf-8", "en", "semicolon"}}
 			}
 		},
 		{
@@ -442,7 +474,12 @@ void testrfc2231headers()
 			"bells_and_whistles*2*=%20and%20more%2E;",
 			"text/plain",
 			{
-				{"bells_and_whistles", {"utf-8", "en_us", "All the%bells and more."}}
+				{"bells_and_whistles", {2, "utf-8", "en_us", "All the%bells and more."}}
+			},
+			{
+				{"bells_and_whistles*0*", {0, "utf-8", "en", "UTF-8'EN_US'A%6c%6C%20"}},
+				{"bells_and_whistles*1", {1, "utf-8", "en", "the%bells"}},
+				{"bells_and_whistles*2*", {2, "utf-8", "en", "%20and%20more%2E"}}
 			}
 		}
 	};
@@ -458,15 +495,18 @@ void testrfc2231headers()
 
 	for (auto &t:tests)
 	{
-		rfc2045::entity::rfc2231_header header{t.header};
+		rfc2045::entity::rfc2231_header header{t.header, true};
+		rfc2045::entity::rfc2231_header noheader{t.header, false};
 
-		std::map<std::string,
-			 rfc2045::entity::header_parameter_value
-			 > sorted_parameters{
-			header.parameters.begin(),
-			header.parameters.end()
-		};
+		std::map<std::string, full_parameter_value> sorted_parameters;
 
+		for (auto &[k, v] : header.parameters)
+			sorted_parameters.emplace(k, v);
+
+		std::map<std::string, full_parameter_value> nosorted_parameters;
+
+		for (auto &[k, v] : noheader.parameters)
+			nosorted_parameters.emplace(k, v);
 #if UPDATE_RFC2231TEST
 
 		std::cout << sep << "{\n\t\"";
@@ -491,41 +531,84 @@ void testrfc2231headers()
 		for (auto &[paramname, paramvalue] : sorted_parameters)
 		{
 			std::cout << sep << "\t\t{\""
-				  << paramname << "\", {\""
+				  << paramname << "\", {"
+				  << paramvalue.index << ", \""
+				  << paramvalue.charset << "\", \""
+				  << paramvalue.language << "\", \""
+				  << paramvalue.value << "\"}}";
+			sep=",\n";
+		}
+
+		std::cout << "\n\t},\n\t{";
+		sep="\n";
+
+		for (auto &[paramname, paramvalue] : nosorted_parameters)
+		{
+			std::cout << sep << "\t\t{\""
+				  << paramname << "\", {"
+				  << paramvalue.index << ", \""
 				  << paramvalue.charset << "\", \""
 				  << paramvalue.language << "\", \""
 				  << paramvalue.value << "\"}}";
 			sep=",\n";
 		}
 		std::cout << "\n\t}\n}";
-		sep=",\n";
 #else
-		std::map<std::string,
-			 rfc2045::entity::header_parameter_value
-			 > expected_sorted_parameters;
+		std::map<std::string, full_parameter_value
+			 > expected_sorted_parameters,
+			expected_nosorted_parameters;
 
 		for (auto &[name, value] : t.parameters)
 		{
-			auto &[charset, language, contents] = value;
+			auto &[index, charset, language, contents] = value;
 
 			expected_sorted_parameters.emplace(
 				std::piecewise_construct,
 				std::forward_as_tuple(name),
-				std::forward_as_tuple(charset,
+				std::forward_as_tuple(index,
+						      charset,
+						      language,
+						      contents));
+		}
+
+		for (auto &[name, value] : t.no2231parameters)
+		{
+			auto &[index, charset, language, contents] = value;
+
+			expected_nosorted_parameters.emplace(
+				std::piecewise_construct,
+				std::forward_as_tuple(name),
+				std::forward_as_tuple(index,
+						      charset,
 						      language,
 						      contents));
 		}
 
 		++testnum;
 		if (header.value != t.value ||
-		    sorted_parameters != expected_sorted_parameters)
+		    sorted_parameters != expected_sorted_parameters ||
+		    nosorted_parameters != expected_nosorted_parameters)
 		{
-			std::cout << "rfc2231 test " << testnum << " failed:\n";
+			std::cout << "rfc2231 test " << testnum
+				  << " failed:\n";
 			std::cout << header.value << "\n";
 
 			for (auto &[paramname, paramvalue] : sorted_parameters)
 			{
-				std::cout << paramname << ": "
+				std::cout << "    " << paramname << ": "
+					  << paramvalue.index << ", "
+					  << paramvalue.charset << ", "
+					  << paramvalue.language << ": "
+					  << paramvalue.value << "\n";
+			}
+
+			std::cout << "----------------\n";
+
+			for (auto &[paramname, paramvalue]
+				     : nosorted_parameters)
+			{
+				std::cout << "    " << paramname << ": "
+					  << paramvalue.index << ", "
 					  << paramvalue.charset << ", "
 					  << paramvalue.language << ": "
 					  << paramvalue.value << "\n";

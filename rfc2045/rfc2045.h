@@ -1507,23 +1507,38 @@ public:
 	size_t	nbodylines=0;	/* Number of lines only in the body */
 	bool no_terminating_nl{false}; /* Ditto */
 
-	size_t rfc822_size() const
+	size_t rfc822_size(bool crlf=true) const
 	{
-		size_t s=endbody-startpos+nlines;
+		size_t s=endbody-startpos;
+
+		if (crlf)
+			s += nlines;
+		if (no_terminating_nl && s)
+			--s;
+		return s;
+	}
+
+	size_t rfc822_body_size(bool crlf=true) const
+	{
+		size_t s=endbody-startbody;
+
+		if (crlf)
+			s += nbodylines;
 
 		if (no_terminating_nl && s)
 			--s;
 		return s;
 	}
 
-	size_t text_size() const
+	size_t rfc822_bodylines() const
 	{
-		size_t s=endbody-startbody+nbodylines;
+		size_t s=nbodylines;
 
 		if (no_terminating_nl && s)
 			--s;
 		return s;
 	}
+
 	typedef unsigned errors_t;
 
 	struct parsing_error {
@@ -1561,6 +1576,9 @@ public:
 	// A parameter of a structured MIME header.
 	struct header_parameter_value {
 
+		// Original ordering of parameter values in the header.
+		size_t index;
+
 		// If RFC 2231 was used to encode the character set
 		std::string charset;
 
@@ -1571,10 +1589,12 @@ public:
 		std::string value;
 
 		template<typename C, typename L, typename V>
-		header_parameter_value(C && charset,
+		header_parameter_value(size_t index,
+				       C && charset,
 				       L && language,
 				       V && value)
-			: charset{std::forward<C>(charset)},
+			: index{index},
+			  charset{std::forward<C>(charset)},
 			  language{std::forward<L>(language)},
 			  value{std::forward<V>(value)}
 		{
@@ -1595,11 +1615,12 @@ public:
 	// using RFC 2231
 	struct rfc2231_header {
 		std::string value;
-		std::unordered_map<std::string,
-				   header_parameter_value> parameters;
+		typedef std::unordered_map<std::string,
+					   header_parameter_value> parameters_t;
+		parameters_t parameters;
 
 		// Parses a folded header value.
-		rfc2231_header(const std::string_view &);
+		rfc2231_header(const std::string_view &, bool do_parse_rfc2231);
 
 		void lowercase_value(const char *name);
 
@@ -1624,7 +1645,7 @@ public:
 
 	// We look into Content-Type: so often we might as well store its
 	// parsed contents
-	rfc2231_header content_type{"text/plain"};
+	rfc2231_header content_type{"text/plain", true};
 
 	std::string_view content_type_charset() const;
 	std::string_view content_type_boundary() const;
@@ -1685,6 +1706,9 @@ struct rfc2045::entity_parse_meta {
 
 	// How many entities in total were parsed already.
 	unsigned short nparsed=0;
+
+	// Whether to parse MIME headers using RFC 2231
+	bool do_parse_rfc2231=true;
 
 	// No EOF condition
 	struct eof_no {};
@@ -2758,7 +2782,8 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 		if (name == "content-type")
 		{
-			content_type=rfc2231_header{header};
+			content_type=rfc2231_header{header,
+						    iter.do_parse_rfc2231};
 
 			if (has_content_type_header)
 				duplicate_content=true;
@@ -2873,7 +2898,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	}
 	else if (!mime1)
 	{
-		content_type=rfc2231_header{"text/plain"};
+		content_type=rfc2231_header{"text/plain", true};
 		content_transfer_encoding=cte::sevenbit;
 	}
 	else
@@ -2883,7 +2908,11 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			iter.report_error(RFC2045_ERRDUPLICATECONTENT |
 					  RFC2045_ERRFATAL);
 		}
-		if (rfc2045_message_content_type(content_type.value.c_str()) &&
+
+		bool is_message=
+			rfc2045_message_content_type(content_type.value.c_str())
+			;
+		if (is_message &&
 		    (content_transfer_encoding == cte::sevenbit ||
 		     content_transfer_encoding == cte::eightbit))
 		{
@@ -2891,6 +2920,8 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			return;
 		}
 
+		if (is_message)
+			content_type.value="message/octet-stream";
 		if (multipart())
 		{
 			auto b=content_type_boundary();
