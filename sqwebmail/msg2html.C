@@ -572,7 +572,7 @@ static void showunknown(std::streambuf &fd,
 			struct msg2html_info *info)
 {
 	rfc2045::entity::rfc2231_header content_disposition{
-		message.content_disposition
+		message.content_disposition, true
 	};
 
 	/* Punt for image/ MIMEs */
@@ -2869,7 +2869,7 @@ static void (*get_known_handler(const rfc2045::entity &mime,
 		return ( &showkey );
 
 	rfc2045::entity::rfc2231_header content_disposition{
-		mime.content_disposition
+		mime.content_disposition, true
 	};
 
 	if (content_disposition.value == "attachment")
@@ -2968,7 +2968,7 @@ void msg2html_download(std::streambuf &fd,
 		std::string disposition_filename;
 
 		rfc2045::entity::rfc2231_header content_disposition{
-			part->content_disposition
+			part->content_disposition, true
 		};
 
 		auto disp_fn_attr=

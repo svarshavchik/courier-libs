@@ -180,7 +180,7 @@ const char	*limiterr=getarg("LIMITERR");
 		else
 		{
 			rfc2045::entity::rfc2231_header content_disposition{
-				q.content_disposition
+				q.content_disposition, true
 			};
 
 			auto filename_iter=content_disposition.parameters.find(
