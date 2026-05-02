@@ -93,31 +93,11 @@ static void error(struct PCP *pcp, int n, const char *s)
 		fprintf(stderr, "%s: %s\n", s, pcp_errmsg(pcp));
 }
 
-struct event_time_list {
-	struct event_time_list *next;
-	struct PCP_event_time thetime;
-} ;
-
 static int save_time(time_t start, time_t end, void *vp)
 {
-	struct event_time_list **ptr=(struct event_time_list **)vp;
-	struct event_time_list *etl=
-		(struct event_time_list *)
-		malloc(sizeof(struct event_time_list));
+	std::vector<PCP_event_time> *tl=(std::vector<PCP_event_time> *)vp;
+	tl->push_back({start, end});
 
-	if (!etl)
-	{
-		perror("malloc");
-		exit(1);
-	}
-
-	for (; *ptr; ptr=&(*ptr)->next)
-				;
-	*ptr=etl;
-	etl->next=NULL;
-
-	etl->thetime.start=start;
-	etl->thetime.end=end;
 	return (0);
 }
 
@@ -299,7 +279,7 @@ static int show_conflict(const char *event_id,
 static void add(int argn, int argc, char **argv, int flags, const char *old,
 		struct add_info *add_info)
 {
-	struct event_time_list *list=NULL;
+	std::vector<PCP_event_time> list;
 	struct participant_list *book=NULL;
 
 	const char *subject=NULL;
@@ -394,25 +374,22 @@ static void add(int argn, int argc, char **argv, int flags, const char *old,
 	commit_info.flags=flags;
 
 	{
-		struct event_time_list *p;
-		struct PCP_event_time *q=0;
-
-		for (p=list; p; p=p->next)
-			++commit_info.n_event_times;
+		commit_info.n_event_times=list.size();
 
 		if (!commit_info.n_event_times)
 			usage();
 
-		if ((commit_info.event_times=q=static_cast<struct PCP_event_time *>
+		PCP_event_time *q;
+
+		if (!(commit_info.event_times=q=static_cast<struct PCP_event_time *>
 		     (calloc(commit_info.n_event_times,
-			    sizeof(*commit_info.event_times)))) == NULL)
+			    sizeof(*commit_info.event_times)))))
 		{
 			perror("malloc");
 			exit(1);
 		}
-		commit_info.n_event_times=0;
-		for (p=list; p; p=p->next)
-			q[commit_info.n_event_times++]=p->thetime;
+		for(size_t i=0; i<list.size(); ++i)
+			q[i]=list[i];
 	}
 
 	memset(&add_event_info, 0, sizeof(add_event_info));
