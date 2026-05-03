@@ -30,9 +30,7 @@ extern "C" {
 
 // Internal helper object
 struct maildirwatch_contents_filehandles {
-#if HAVE_INOTIFY_INIT
 	int handles[3];
-#endif
 };
 
 #ifdef __cplusplus
@@ -91,10 +89,7 @@ namespace maildir {
 
 class watch {
 	std::string maildir;
-
-#if HAVE_INOTIFY_INIT
 	int inotify_fd;
-#endif
 	time_t now;
 	time_t timeout;
 
