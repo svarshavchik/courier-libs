@@ -243,7 +243,7 @@ namespace {
 			printf("%s", ptr);
 		};
 
-		bool eof()
+		bool eof() override
 		{
 			return b == e;
 		}
@@ -307,7 +307,7 @@ namespace {
 		{
 		}
 
-		void emit_address()
+		void emit_address() override
 		{
 			std::string disp_address;
 

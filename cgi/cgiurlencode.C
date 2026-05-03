@@ -14,13 +14,6 @@
 #endif
 #include	<string_view>
 
-extern "C" void error(const char *);
-
-static void enomem()
-{
-	error("Out of memory.");
-}
-
 namespace {
 
 	struct sink_counter : cgi_encode::sink {
@@ -71,18 +64,6 @@ size_t cgi_encode::estimate(std::string_view s,  const char *punct)
 	algorithm(counter, s, punct);
 
 	return counter.n;
-}
-
-static char *cgiurlencode_common(std::string_view s, const char *punct)
-{
-	char *buf=static_cast<char *>(malloc(cgi_encode::estimate(s, punct)+1));
-
-	sink_c c{buf};
-
-	cgi_encode::algorithm(c, s, punct);
-
-	*c.ptr=0;
-	return buf;
 }
 
 #define COMMONENCODE "\"?;<>/:%@+#"

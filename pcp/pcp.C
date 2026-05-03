@@ -907,7 +907,6 @@ static void doretr(const char *eventid)
 	struct PCP_retr r;
 	struct xretrinfo xr;
 	const char *event_id_array[2];
-	struct xretr_time_list *tl;
 
 	pcp=open_calendar();
 

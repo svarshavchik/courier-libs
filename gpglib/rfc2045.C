@@ -66,7 +66,7 @@ std::optional<int> rfc2045::entity::is_decoded() const
 		{
 			std::string_view number{iter->second.value};
 
-			int ret;
+			int ret=0;
 
 			if (std::from_chars(
 				    number.data(),

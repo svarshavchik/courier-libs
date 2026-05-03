@@ -76,7 +76,7 @@ John:</para>
     <blockquote>
 	<informalexample>
 	  <programlisting format="linespecific">
-if (/^From: *boss@domain\.com/ \ 
+if (/^From: *boss@domain\.com/ \
     &amp;&amp; /^Subject:.*[:wbreak:]project status[:wbreak:]/)
 {
     cc "!john"
@@ -189,7 +189,7 @@ getaddr($MATCH) =~ /^.*/;
 
 MATCH=tolower($MATCH)
 flock "vacation.lock" {
-        `fgrep -iqx "$MATCH" vacation.lst 2&gt;/dev/null || { \
+        `grep -F -iqx "$MATCH" vacation.lst 2&gt;/dev/null || { \
                   echo "$MATCH" &gt;&gt;vacation.lst ; \
                   exit 1 ; \
               } `
@@ -219,7 +219,7 @@ autoreply header to the sender. The <literal>To:</literal> header in the
 autoreply - which was
 the sender of the original message - is extracted, and the <ulink url="maildropfilter.html#getaddr"><command>getaddr</command></ulink>
 function is used to strip the
-person's name, leaving the address only. The file 
+person's name, leaving the address only. The file
 <filename>vacation.lst</filename> is checked,
 using a lock file to guarantee atomic access and update (overkill, probably).
 Note that the backslashes are required.</para>

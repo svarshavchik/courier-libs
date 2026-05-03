@@ -463,7 +463,7 @@ STORE 1 KEYWORDS=-Label3
 LOGOUT
 EOF
 
-SNAPSHOT=`fgrep '* SNAPSHOT ' testsuite.tmp | cut -c12-`
+SNAPSHOT=`grep -F '* SNAPSHOT ' testsuite.tmp | cut -c12-`
 sed "$SED" <testsuite.tmp
 rm -f testsuite.tmp
 

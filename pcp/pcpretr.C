@@ -26,7 +26,6 @@ int do_show_retr(struct PCP_retr *r, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;
 
-	unsigned cnt, i;
 	int rc;
 
 	if (fseek(xr->tmpfile, 0L, SEEK_SET) < 0
