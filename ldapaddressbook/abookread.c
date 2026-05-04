@@ -189,7 +189,7 @@ static const char hex[]="0123456789ABCDEF";
 
 static int nybble(char c)
 {
-	char	*p=strchr(hex, c);
+	const char *p=strchr(hex, c);
 
 	if (p)	return (p-hex);
 	return (0);
