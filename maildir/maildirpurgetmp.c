@@ -90,7 +90,7 @@ void maildir_purgetmp(const char *maildir)
 void maildir_purge(const char *maildir, unsigned nage)
 {
 	char	*m=malloc(strlen(maildir)+sizeof("/cur"));
-	char	*p;
+	const char *p;
 	int adjustquota;
 	int nfiles;
 	long nbytes;
