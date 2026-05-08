@@ -53,6 +53,7 @@
 
 #include	<vector>
 #include	<algorithm>
+#include	<fstream>
 
 #define POP3DLIST "courierpop3dsizelist"
 #define LISTVERSION 3
@@ -143,20 +144,32 @@ static time_t start_time;
 
 static void calcsize(msglist &m)
 {
-	FILE	*f=fopen(m.filename.c_str(), "r");
-	struct rfc2045 *p=rfc2045_fromfp(f);
+	std::ifstream f{m.filename};
 
-	m.size=p->nlines + p->endpos;
+	m.size=0;
+	m.isutf8=false;
 
-	clearerr(f);
-	if (m.size > 0 && fseek(f, -1, SEEK_SET) == 0 && getc(f) != '\n')
+	if (!f)
+		return;
+
+	auto sbuf=f.rdbuf();
+	std::istreambuf_iterator<char> b{sbuf}, e;
+
+	rfc2045::entity::line_iter<false>::iter parser{b, e};
+
+	rfc2045::entity message;
+
+	message.parse(parser);
+
+	m.size=message.nlines + message.endbody;
+
+	if (m.size > 0 && sbuf->pubseekoff(-1, std::ios::end) > 0 &&
+	    sbuf->sgetc() != '\n')
 		m.size+=2; /* We'll add an extra CRLF ourselves */
 
 	m.isutf8=false;
-	if (p->rfcviolation & RFC2045_ERR8BITHEADER)
+	if (message.all_errors() & RFC2045_ERR8BITHEADER)
 		m.isutf8=true;
-	rfc2045_free(p);
-	fclose(f);
 }
 
 static FILE *

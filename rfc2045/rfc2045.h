@@ -1277,8 +1277,17 @@ auto rfc2231_attr_encode(std::string_view name,
   decoder.decode_body=true;
   decoder.add_eol=false;
   decoder.header_name_lc=true;
+  decoder.header_name_suppress=false;
   decoder.decode_subentities=true;
 
+  decoder.headerfilter=[](std::string_view name, std::string_view content)
+          -> bool
+      {
+          return true;
+      };
+  decoder.headerfilter=[](std::string_view name)
+      {
+      };
   decoder.decode<false>(entity);
 
   These templates are temporarily defined in the rfc822 namespace for technical
@@ -1335,8 +1344,20 @@ auto rfc2231_attr_encode(std::string_view name,
   - header_name_lc (default: true) - convert each header's name to lowercase
   (effetive only when decode_header is set).
 
+  - header_name_suppress (default: false) - used only if decode_header is
+  true. If set to true each header's name is not included in the content
+  passed to the output function, only the header's value.
+
   - decode_subentities: recursively process decode_header and decode_bopdy
   for all MIME subentities
+
+  - headerfilter: an optional header filter. If set, the filter is called for
+  each header, and receives the header's name and value as parameter. Returning
+  true passes the header to the output. Returning false omits the header from
+  the output entirely. If not set all headers get included in the output.
+
+  - headerdone: an optional closure, it's called after outputing each header,
+  and receives the header's name as parameter.
 
   decode()'s template parameter defaults to false and sets the newline sequence
   that the MIME object was parsed with (false, default, is "\n", and true
@@ -3452,10 +3473,14 @@ class rfc822::mime_decoder {
 	bool decode_body=true;
 	bool add_eol=false;
 	bool header_name_lc=true;
+	bool header_name_suppress=false;
 	bool decode_subentities=true;
 
 	bool decoding_error=false;
 	bool report_decoding_error=true;
+
+	std::function<bool(std::string_view, std::string_view)> headerfilter;
+	std::function<void(std::string_view)> headerdone;
 
 	template<bool crlf=false>
 	void decode(const rfc2045::entity &e);
@@ -3543,11 +3568,18 @@ void rfc822::mime_decoder<out_iter, src_type>::decode(
 		{
 			const auto &[name, content]=parser.name_content();
 
-			out(name.data(), name.size());
+			if (headerfilter && !name.empty() &&
+			    !headerfilter(name, content))
+				continue;
 
-			if (!name.empty())
+			if (!header_name_suppress)
 			{
-				out(": ", 2);
+				out(name.data(), name.size());
+
+				if (!name.empty())
+				{
+					out(": ", 2);
+				}
 			}
 
 			header.clear();
@@ -3556,19 +3588,22 @@ void rfc822::mime_decoder<out_iter, src_type>::decode(
 
 			header += eol;
 			out(header.data(), header.size());
-		} while (parser.next());
 
-		if (!e.subentities.empty())
+			if (headerdone && !name.empty())
+				headerdone(name);
+		} while (parser.next());
+	}
+
+	if (!e.subentities.empty())
+	{
+		if (decode_subentities)
 		{
-			if (decode_subentities)
+			for (auto &subentity:e.subentities)
 			{
-				for (auto &subentity:e.subentities)
-				{
-					decode<crlf>(subentity);
-				}
+				decode<crlf>(subentity);
 			}
-			return;
 		}
+		return;
 	}
 
 	if (!decode_body)

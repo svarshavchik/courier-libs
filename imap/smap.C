@@ -202,14 +202,6 @@ static void up(char *p)
 	}
 }
 
-static void up(std::string &p)
-{
-	for (auto &c:p)
-	{
-		UC(c);
-	}
-}
-
 /*
 ** Write a WORD reply.
 */
@@ -2166,6 +2158,10 @@ static searchiter createSearch2(char *w, contentsearch &cs,
 		n=cs.alloc_search();
 		n->type=search_header;
 		n->cs=w;
+		for (auto &c:n->cs)
+		{
+			c += 'a'-'A';
+		}
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "HEADER") == 0)
@@ -2173,7 +2169,10 @@ static searchiter createSearch2(char *w, contentsearch &cs,
 		n=cs.alloc_search();
 		n->type=search_header;
 		n->cs=getword(ptr);
-		up(n->cs);
+		for (auto &c:n->cs)
+		{
+			c += 'a'-'A';
+		}
 		n->as=getword(ptr);
 	}
 	else if (strcmp(w, "BODY") == 0)

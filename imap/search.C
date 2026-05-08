@@ -126,8 +126,6 @@ void contentsearch::search_oneatatime(searchiter si,
 {
 	searchiter p;
 	imapflags	flags;
-	int	fd;
-	FILE	*fp;
 	struct	stat	stat_buf;
 	int	rc;
 
@@ -149,17 +147,12 @@ void contentsearch::search_oneatatime(searchiter si,
 			return;
 		}
 
-		fd=imapscan_openfile(&current_maildir_info, i);
-		if (fd < 0)	return;
+		rfc822::fdstreambuf fp{
+			imapscan_openfile(&current_maildir_info, i)
+		};
 
-		if ((fp=fdopen(fd, "r")) == 0)
-			write_error_exit(0);
-
-		if (fstat(fileno(fp), &stat_buf))
-		{
-			fclose(fp);
+		if (fp.error() || fstat(fp.fileno(), &stat_buf))
 			return;
-		}
 
 		/* First, see if non-content search will be sufficient */
 
@@ -169,20 +162,25 @@ void contentsearch::search_oneatatime(searchiter si,
 		if ((rc=search_evaluate(si)) < 0)
 		{
 			/* No, search the headers then */
-                        /* struct        rfc2045 *rfcp=rfc2045_fromfp(fp); */
-                        struct        rfc2045 *rfcp=rfc2045header_fromfp(fp);
 
-			fill_search_header(charset, rfcp, fp,
+			rfc2045::entity message;
+			{
+				std::istreambuf_iterator<char> b{&fp}, e;
+				rfc2045::entity::line_iter<false>::iter parser{
+					b, e
+				};
+
+				message.parse(parser);
+			}
+
+			fill_search_header(charset, message, fp,
 					   &current_maildir_info.msgs.at(i));
 			rc=search_evaluate(si);
-                        rfc2045_free(rfcp);
 
 			if (rc < 0)
 			{
 				/* Ok, search message contents */
-                                struct        rfc2045 *rfcp=rfc2045_fromfp(fp);
-
-				fill_search_body(rfcp, fp,
+				fill_search_body(message, fp,
 						 &current_maildir_info.msgs.at(i));
 
 				/*
@@ -196,17 +194,13 @@ void contentsearch::search_oneatatime(searchiter si,
 						p->value=0;
 
 				rc=search_evaluate(si);
-                                rfc2045_free(rfcp);
 			}
-                        /* rfc2045_free(rfcp); */
 		}
 
 		if (rc > 0)
 		{
 			callback_func(i);
 		}
-		fclose(fp);
-		close(fd);
 	}
 }
 
@@ -580,17 +574,31 @@ struct fill_search_header_info {
 	std::string utf8buf;
 };
 
-static int headerfilter_func(const char *name, const char *value, void *arg);
-static int fill_search_header_utf8(const char *, size_t, void *);
-static int fill_search_header_done(const char *, void *);
+static bool headerfilter_func(
+	std::string_view name,
+	std::string_view value,
+	fill_search_header_info &info
+);
 
-void contentsearch::fill_search_header(const std::string &charset,
-				       struct rfc2045 *rfcp, FILE *fp,
-				       struct imapscanmessageinfo *mi)
+static int fill_search_header_utf8(
+	const char *buf,
+	size_t len,
+	fill_search_header_info &info
+);
+
+static void fill_search_header_done(
+	std::string_view name,
+	fill_search_header_info &info
+);
+
+void contentsearch::fill_search_header(
+	const std::string &charset,
+	const rfc2045::entity &rfcp,
+	rfc822::fdstreambuf &fp,
+	struct imapscanmessageinfo *mi
+)
 {
 	searchiter sip;
-	struct rfc2045src *src;
-	struct rfc2045_decodemsgtoutf8_cb decodecb;
 	struct fill_search_header_info decodeinfo{*this};
 
 	/* Consider the following dummy nodes as evaluated */
@@ -614,41 +622,43 @@ void contentsearch::fill_search_header(const std::string &charset,
 
 	search_set_charset_conv(charset);
 
-	src=rfc2045src_init_fd(fileno(fp));
+	rfc822::mime_decoder src{
+		[&](const char *buf, size_t len)
+		{
+			return fill_search_header_utf8(buf, len, decodeinfo);
+		},
+		fp,
+		unicode::utf_8
+	};
 
-	if (!src)
-		return;
+	src.decode_body=false;
+	src.headerfilter=[&](std::string_view name, std::string_view value)
+	{
+		return headerfilter_func(name, value, decodeinfo);
+	};
+	src.header_name_suppress=true;
+	src.headerdone=[&](std::string_view name)
+	{
+		fill_search_header_done(name, decodeinfo);
+	};
 
-	memset(&decodecb, 0, sizeof(decodecb));
-
-	decodecb.flags=RFC2045_DECODEMSG_NOBODY
-		| RFC2045_DECODEMSG_NOHEADERNAME;
-	decodecb.headerfilter_func=headerfilter_func;
-	decodecb.output_func=fill_search_header_utf8;
-	decodecb.headerdone_func=fill_search_header_done;
-	decodecb.arg=&decodeinfo;
-
-	rfc2045_decodemsgtoutf8(src, rfcp, &decodecb);
-	rfc2045src_deinit(src);
+	src.decode<false>(rfcp);
 }
 
-static int headerfilter_func(const char *name, const char *value, void *arg)
+static bool headerfilter_func(std::string_view name, std::string_view value,
+			   fill_search_header_info &info)
 {
-	struct fill_search_header_info *decodeinfo=
-		(struct fill_search_header_info *)arg;
 	searchiter sip;
-	const char *p;
-	int isto=rfc822hdr_namecmp(name, "to");
-	int iscc=rfc822hdr_namecmp(name, "cc");
-	int isfrom=rfc822hdr_namecmp(name, "from");
-	int isinreplyto=rfc822hdr_namecmp(name, "in-reply-to");
-	int isdate=rfc822hdr_namecmp(name, "date");
+	bool isto=(name=="to");
+	bool iscc=(name=="cc");
+	bool isfrom=(name=="from");
+	bool isinreplyto=(name=="in-reply-to");
+	bool isdate=(name=="date");
+	bool isreferences=(name=="references");
+	bool ismessageid=(name=="message-id");
 
-	int isreferences=rfc822hdr_namecmp(name, "references");
-	int ismessageid=rfc822hdr_namecmp(name, "message-id");
-
-	for (sip=decodeinfo->cs.searchlist.begin();
-	     sip != decodeinfo->cs.searchlist.end(); ++sip)
+	for (sip=info.cs.searchlist.begin();
+	     sip != info.cs.searchlist.end(); ++sip)
 	{
 		if (sip->type == search_text && sip->value <= 0)
 		{
@@ -659,58 +669,52 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 			sip->sei.reset();
 
-			for (p=name; *p; p++)
+			for (unsigned char c:name)
 			{
-				sip->sei << (char32_t)(unsigned char)*p;
+				sip->sei << (char32_t)c;
 				if (sip->sei)
 					sip->value=1;
 			}
 			sip->sei << ':';
 			sip->sei << ' ';
 
-
 			if (sip->sei)
 				sip->value=1;
 		}
 
-		if ( (sip->type == search_cc && iscc == 0 && sip->as.empty())
-		     ||
-		     (sip->type == search_from && isfrom == 0 && sip->as.empty())
-		     ||
-		     (sip->type == search_to && isto == 0 && sip->as.empty())
-		     ||
-		     (sip->type == search_references1 && isinreplyto == 0
-		      && sip->bs.empty()))
+		if ( (sip->type == search_cc && iscc && sip->as.empty()) ||
+		     (sip->type == search_from && isfrom && sip->as.empty()) ||
+		     (sip->type == search_to && isto && sip->as.empty()) ||
+		     (sip->type == search_references1 &&
+		      isinreplyto && sip->bs.empty()))
 		{
-			struct rfc822t *t;
-			struct rfc822a *a;
-			char *s;
+			rfc822::tokens t{value};
+			rfc822::addresses a{t};
+			std::string s;
 
-			t=rfc822t_alloc_new(value, NULL, NULL);
-			if (!t) write_error_exit(0);
-			a=rfc822a_alloc(t);
-			if (!a) write_error_exit(0);
-			s=a->naddrs > 0 ? rfc822_getaddr(a, 0):strdup("");
-			rfc822a_free(a);
-			rfc822t_free(t);
-			if (!s) write_error_exit(0);
+			if (!a.empty())
+			{
+				a[0].address.display_address(
+					unicode::utf_8,
+					std::back_inserter(s)
+				);
+			}
 
 			if (sip->type == search_references1)
 			{
-				sip->bs.reserve(strlen(s)+2);
+				sip->bs.reserve(s.size()+2);
 				sip->bs="<";
 				sip->bs += s;
 				sip->bs += ">";
 			}
 			else
 				sip->as=s;
-			free(s);
 		}
 
 		switch (sip->type) {
 		case search_orderedsubj:
 
-			if (isdate == 0 && sip->bs.empty())
+			if (isdate && sip->bs.empty())
 			{
 				sip->bs=value;
 			}
@@ -718,12 +722,13 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 
 		case search_date:
 
-			if (isdate == 0 && sip->as.empty())
+			if (isdate && sip->as.empty())
 			{
-				time_t msg_time;
-
-				rfc822_parsedate_chk(value, &msg_time);
-				sip->as=timestamp_for_sorting(msg_time);
+				auto msg_time=rfc822::parse_date(value);
+				if (msg_time)
+					sip->as=timestamp_for_sorting(
+						*msg_time
+					);
 			}
 			break;
 
@@ -734,41 +739,47 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			if (sip->value > 0)
 				break;
 
-			if (isdate == 0)
+			if (isdate)
 			{
 				time_t given_time;
-				time_t msg_time;
 
-				if (!decode_date(sip->as, given_time)
-				    || rfc822_parsedate_chk(value, &msg_time))
+				if (!decode_date(sip->as, given_time))
 					break;
 
+				auto msg_time_opt=rfc822::parse_date(value);
+
+				if (!msg_time_opt)
+					break;
+
+				auto &msg_time=*msg_time_opt;
 				msg_time=timestamp_to_day(msg_time);
 				sip->value=0;
 				if ((sip->type == search_sentbefore &&
 					msg_time < given_time) ||
-					(sip->type == search_sentsince&&
-						msg_time>=given_time)||
-					(sip->type == search_senton &&
-						msg_time == given_time))
+					(sip->type == search_sentsince &&
+						msg_time>=given_time))
+					sip->value=1;
+
+				if (sip->type == search_senton &&
+					msg_time == given_time)
 					sip->value=1;
 			}
 			break;
 
 		case search_references1:
-			if (isreferences == 0 && sip->as.empty())
+			if (isreferences && sip->as.empty())
 			{
 				sip->as=value;
 			}
 			break;
 		case search_references2:
-			if (isdate == 0 && sip->as.empty())
+			if (isdate && sip->as.empty())
 			{
 				sip->as=value;
 			}
 			break;
 		case search_references4:
-			if (ismessageid == 0 && sip->as.empty())
+			if (ismessageid && sip->as.empty())
 			{
 				sip->as=value;
 			}
@@ -777,54 +788,53 @@ static int headerfilter_func(const char *name, const char *value, void *arg)
 			break;
 		}
 	}
-	decodeinfo->utf8buf.clear();
+	info.utf8buf.clear();
 	return 1;
 }
 
-static int fill_search_header_utf8(const char *str, size_t cnt, void *arg)
+static int fill_search_header_utf8(
+	const char *buf,
+	size_t len,
+	fill_search_header_info &info
+)
 {
-	struct fill_search_header_info *decodeinfo=
-		(struct fill_search_header_info *)arg;
-
-	decodeinfo->utf8buf.insert(decodeinfo->utf8buf.end(),
-				   str, str+cnt);
+	info.utf8buf.insert(info.utf8buf.end(), buf, buf+len);
 	return 0;
 }
 
-static int fill_search_header_done(const char *name, void *arg)
+static void fill_search_header_done(
+	std::string_view name,
+	fill_search_header_info &info)
 {
-	struct fill_search_header_info *decodeinfo=
-		(struct fill_search_header_info *)arg;
 	searchiter sip;
-	int issubject=rfc822hdr_namecmp(name, "subject");
+	bool issubject=name == "subject";
 
-	if (!decodeinfo->utf8buf.empty() &&
-	    decodeinfo->utf8buf.back() == '\n')
-		decodeinfo->utf8buf.pop_back();
+	if (!info.utf8buf.empty() &&
+	    info.utf8buf.back() == '\n')
+		info.utf8buf.pop_back();
 
-	for (sip=decodeinfo->cs.searchlist.begin();
-	     sip != decodeinfo->cs.searchlist.end(); ++sip)
+	for (sip=info.cs.searchlist.begin();
+	     sip != info.cs.searchlist.end(); ++sip)
 		switch (sip->type) {
 		case search_references3:
-			if (issubject == 0 && sip->as.empty())
+			if (issubject && sip->as.empty())
 			{
-				sip->as=decodeinfo->utf8buf;
+				sip->as=info.utf8buf;
 			}
 			break;
 		case search_orderedsubj:
 
-			if (issubject == 0 && sip->as.empty())
+			if (issubject && sip->as.empty())
 			{
 				auto [p, flag]=rfc822::coresubj(
-					decodeinfo->utf8buf
+					info.utf8buf
 				);
 				sip->as=std::move(p);
 			}
 			break;
 		case search_header:
 
-			if (sip->cs.empty() ||
-			    rfc822hdr_namecmp(sip->cs.c_str(), name))
+			if (sip->cs.empty() || sip->cs != name)
 				break;
 
 			/* FALLTHRU */
@@ -837,7 +847,7 @@ static int fill_search_header_done(const char *name, void *arg)
 
 			{
 				auto ret=unicode::iconvert::tou::convert(
-					decodeinfo->utf8buf,
+					info.utf8buf,
 					unicode::utf_8
 				);
 
@@ -860,85 +870,55 @@ static int fill_search_header_done(const char *name, void *arg)
 		default:
 			break;
 		}
-
-
-	return 0;
 }
 
-struct fill_search_body_info {
+static int fill_search_body_ucs4(
+	const char *str, size_t n,
+	contentsearch &cs
+);
 
-	contentsearch &cs;
-
-	fill_search_body_info(contentsearch &cs) : cs{cs} {}
-
-	unicode_convert_handle_t toucs4_handle;
-
-};
-
-static int fill_search_body_utf8(const char *str, size_t n, void *arg);
-static int fill_search_body_ucs4(const char *str, size_t n, void *arg);
-
-void contentsearch::fill_search_body(struct rfc2045 *rfcp, FILE *fp,
-				     struct imapscanmessageinfo *mi)
+void contentsearch::fill_search_body(
+	const rfc2045::entity &rfcp,
+	rfc822::fdstreambuf &fp,
+	struct imapscanmessageinfo *mi
+)
 {
-	struct rfc2045src *src;
-	struct rfc2045_decodemsgtoutf8_cb decodecb;
-	struct fill_search_body_info decodeinfo{*this};
+	rfc822::mime_decoder decodersrc{
+		[this]
+		(const char *p, size_t len)
+		{
+			return fill_search_body_ucs4(p, len, *this);
+		},
+		fp,
+		unicode_u_ucs4_native
+	};
+
 	searchiter sip;
 
-	src=rfc2045src_init_fd(fileno(fp));
-
-	if (!src)
-		return;
-
-	memset(&decodecb, 0, sizeof(decodecb));
-
-	decodecb.flags=RFC2045_DECODEMSG_NOHEADERS;
-	decodecb.output_func=fill_search_body_utf8;
-	decodecb.arg=&decodeinfo;
-
-	if ((decodeinfo.toucs4_handle=
-	     unicode_convert_init("utf-8",
-				    unicode_u_ucs4_native,
-				    fill_search_body_ucs4,
-				    &decodeinfo)) == NULL)
-	{
-		write_error_exit("unicode_convert_init");
-	}
+	decodersrc.decode_header=false;
 
 	for (sip=searchlist.begin(); sip != searchlist.end(); ++sip)
 		if ((sip->type == search_text || sip->type == search_body)
 		    && sip->value <= 0)
 		{
-			rfc2045_decodemsgtoutf8(src, rfcp, &decodecb);
+			decodersrc.decode<false>(rfcp);
 			break;
 		}
-
-	unicode_convert_deinit(decodeinfo.toucs4_handle, NULL);
-
-	rfc2045src_deinit(src);
 }
 
-static int fill_search_body_utf8(const char *str, size_t n, void *arg)
+static int fill_search_body_ucs4(
+	const char *str, size_t n,
+	contentsearch &cs
+)
 {
-	struct fill_search_body_info *decodeinfo=
-		(struct fill_search_body_info *)arg;
-
-	return unicode_convert(decodeinfo->toucs4_handle, str, n);
-}
-
-static int fill_search_body_ucs4(const char *str, size_t n, void *arg)
-{
-	struct fill_search_body_info *decodeinfo=
-		(struct fill_search_body_info *)arg;
 	searchiter sip;
-	const char32_t *u=(const char32_t *)str;
+	const char32_t *u=reinterpret_cast<const char32_t *>(str);
 	int notfound=1;
 
-	n /= 4;
+	n /= sizeof(char32_t);
 
-	for (sip=decodeinfo->cs.searchlist.begin();
-	     sip != decodeinfo->cs.searchlist.end(); ++sip)
+	for (sip=cs.searchlist.begin();
+	     sip != cs.searchlist.end(); ++sip)
 		if ((sip->type == search_text || sip->type == search_body)
 		    && sip->value <= 0)
 		{

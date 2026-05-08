@@ -147,6 +147,10 @@ searchiter contentsearch::alloc_search_key()
 		    t->tokentype != IT_QUOTED_STRING)
 			return (searchlist.end());
 		si->cs=t->tokenbuf;
+		for (auto &c:si->cs)
+		{
+			c=unicode_lc(static_cast<unsigned char>(c));
+		}
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&
@@ -169,6 +173,10 @@ searchiter contentsearch::alloc_search_key()
 		si=alloc_search();
 		si->type=search_header;
 		si->cs=keyword;
+		for (auto &c:si->cs)
+		{
+			c += 'a'-'A';
+		}
 		t=nexttoken_okbracket();
 		if (t->tokentype != IT_ATOM &&
 		    t->tokentype != IT_NUMBER &&

@@ -3,6 +3,7 @@
 
 #include "maildir/maildirsearch.h"
 #include	"imapscanclient.h"
+#include	"rfc822/rfc822.h"
 #include	"rfc2045/rfc2045.h"
 #include <stdio.h>
 #include <string>
@@ -148,10 +149,10 @@ private:
 			      search_callback_t callback_func);
 
 	void fill_search_header(const std::string &,
-				struct rfc2045 *, FILE *,
+				const rfc2045::entity &, rfc822::fdstreambuf &,
 				struct imapscanmessageinfo *);
 
-	void fill_search_body(struct rfc2045 *, FILE *,
+	void fill_search_body(const rfc2045::entity &, rfc822::fdstreambuf &,
 			      struct imapscanmessageinfo *);
 
 public:
