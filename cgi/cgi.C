@@ -1,5 +1,5 @@
 /*
-** Copyright 1998 - 2012 S. Varshavchik.
+** Copyright 1998 - 2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -56,7 +56,7 @@ static struct rfc2045 *rfc2045p=0;
 
 #endif
 
-extern void error(const char *);
+extern "C" void error(const char *);
 
 static void enomem()
 {
@@ -131,7 +131,7 @@ struct cgi_arglist *argp;
 		args=getenv("QUERY_STRING");
 		if (!args)	return;
 		if (strlen(args) > cgi_maxarg())	enomem();
-		cgi_args=malloc(strlen(args)+1);	/* Extra insurance */
+		cgi_args=reinterpret_cast<char *>(malloc(strlen(args)+1));	/* Extra insurance */
 		if (!cgi_args)	return;
 		strcpy(cgi_args,args);
 		args=cgi_args;
@@ -174,7 +174,9 @@ struct cgi_arglist *argp;
  			       (long)(cgi_maxarg() / (1024 * 1024)));
 			fake_exit(1);
 		}
-	cgi_args=malloc(cl+1);	/* Extra insurance */
+		cgi_args=reinterpret_cast<char *>(
+			malloc(cl+1) // Extra insurance
+		);
 		if (!cgi_args)	return;
 		q=cgi_args;
 		while (cl)
@@ -197,7 +199,9 @@ struct cgi_arglist *argp;
 	q=args;
 	while (*q)
 	{
-		argp=malloc(sizeof(*cgi_arglist));
+		argp=reinterpret_cast<struct cgi_arglist *>(
+			malloc(sizeof(*cgi_arglist))
+		);
 		if (!argp)	enomem();
 		argp->next=cgi_arglist;
 		cgi_arglist=argp;
@@ -293,7 +297,9 @@ struct cgi_arglist *argp;
 			return;
 		}
 
-	argp=malloc(sizeof(*cgi_arglist));
+	argp=reinterpret_cast<struct cgi_arglist *>(
+		malloc(sizeof(*cgi_arglist))
+	);
 	if (!argp)	enomem();
 	argp->next=cgi_arglist;
 	argp->prev=0;
@@ -357,7 +363,9 @@ off_t	dummy;
 		if (lseek(cgiformfd, start_body, SEEK_SET) == -1)
 			enomem();
 
-		formargbuf=malloc(end_pos - start_body+1);
+		formargbuf=reinterpret_cast<char *>(
+			malloc(end_pos - start_body+1)
+		);
 		if (!formargbuf)	enomem();
 		formargptr=formargbuf;
 
@@ -438,8 +446,10 @@ char	buf[BUFSIZ];
 	do
 	{
 		sprintf(cntbuf, "%lu", (unsigned long)cnt);
-		filename=malloc(strlen(pidbuf)+strlen(timebuf)+strlen(cntbuf)
-				+strlen(cgitempdir)+strlen(buf)+10);
+		filename=reinterpret_cast<char *>(malloc(
+			strlen(pidbuf)+strlen(timebuf)+strlen(cntbuf)
+				+strlen(cgitempdir)+strlen(buf)+10
+		));
 		if (!filename)	enomem();
 		sprintf(filename, "%s/%s.%s_%s.%s", cgitempdir,
 				timebuf, pidbuf, cntbuf, buf);
@@ -608,7 +618,8 @@ int cgi_set_cookie_url(struct cgi_set_cookie_info *cookie_info,
 			++url;
 		}
 
-		if ((cookie_info->domain=malloc(url-p+1)) == NULL)
+		if ((cookie_info->domain=reinterpret_cast<char *>
+		     (malloc(url-p+1))) == NULL)
 			return -1;
 
 		memcpy(cookie_info->domain, p, url-p);
@@ -729,8 +740,9 @@ char *cgi_get_cookie(const char *cookie_name)
 			cookie += cookie_name_len;
 			++cookie;
 
-			if ((buf=malloc(get_cookie_value(cookie, NULL, NULL)))
-			    == NULL)
+			if ((buf=reinterpret_cast<char *>(
+				malloc(get_cookie_value(cookie, NULL, NULL))
+			    )) == NULL)
 			{
 				return NULL;
 			}
