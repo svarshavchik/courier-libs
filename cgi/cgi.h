@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <typeinfo>
 #include <iostream>
 
@@ -55,6 +56,17 @@ namespace cgi_encode {
 std::vector<std::string> cgi_multiple(const char *);
 std::string cgi_cookie(std::string_view);
 
+// Parsed CGI arguments, we store multiple values
+// in case of duplicate names (e.g. <input type=checkbox name=test value=1>
+// <input type=checkbox name=test value=2>). We use an explicit vector because
+// we preserve the order of arguments as they appear in the query string,
+// while std::unordered_multimap does not guarantee any order.
+
+extern std::unordered_map<std::string, std::vector<std::string>> cgi_arglist;
+extern void cgi_put(std::string_view, std::string_view);
+extern void cgi_setup();
+extern void cgi_cleanup();
+
 extern "C" {
 
 #endif
@@ -68,25 +80,13 @@ extern "C" {
 
 extern void fake_exit(int);
 
-void cgi_setup();
-void cgi_cleanup();
 const char *cgi(const char *);
 
 void	cgi_setcookie(const char *, const char *);
 
 int	cgi_useragent(const char *);
 
-struct cgi_arglist {
-	struct cgi_arglist *next;
-	struct cgi_arglist *prev;	/* Used by cgi_multiple */
-	const char *argname;
-	const char *argvalue;
-	} ;
-
-extern struct cgi_arglist *cgi_arglist;
-
 extern size_t cgiurldecode(char *);
-extern void cgi_put(const char *, const char *);
 
 #if	HAVE_UNISTD_H
 #include	<unistd.h>

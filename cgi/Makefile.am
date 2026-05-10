@@ -14,8 +14,9 @@ libcgi_la_SOURCES=cgi.h cgi.C cgiextrapath.c cgiselect.c cgicheckbox.c\
 noinst_PROGRAMS=testsuite
 
 testsuite_SOURCES=testsuite.cpp
-testsuite_LDADD=libcgi.la
-testsuite_DEPENDENCIES=libcgi.la
+testsuite_LDADD=libcgi.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
+	-lcourier-unicode
+testsuite_DEPENDENCIES=libcgi.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la
 
 check-am:
 	./testsuite

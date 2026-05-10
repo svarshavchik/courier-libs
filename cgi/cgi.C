@@ -37,24 +37,23 @@
 #error CGIMAXFORMDATAARG too small
 #endif
 
-#if	CGIFORMDATA
-
 #include	<fcntl.h>
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	"rfc2045/rfc2045.h"
-
-#if HAVE_STRINGS_H
-#include	<strings.h>
-#endif
+#include	<utility>
+#include	<algorithm>
+#include	<string_view>
+#include	<vector>
+#include	<unordered_map>
+#include	<charconv>
+#include	<iostream>
+#include	<tuple>
 
 static void cgi_formdata(unsigned long);
 
-static int cgiformfd;
-static char hascgiformfd=0;
-static struct rfc2045 *rfc2045p=0;
-
-#endif
+static rfc822::fdstreambuf cgiformfd;
+static rfc2045::entity message;
 
 extern "C" void error(const char *);
 
@@ -63,9 +62,7 @@ static void enomem()
 	error("Out of memory.");
 }
 
-static char *cgi_args=0;
-
-struct cgi_arglist *cgi_arglist=0;
+std::unordered_map<std::string, std::vector<std::string>> cgi_arglist;
 
 static size_t cgi_maxarg()
 {
@@ -94,54 +91,26 @@ static size_t cgi_maxformarg()
 }
 
 /*
-**	Set up CGI arguments.  Initializes cgi_arglist link list.
-**
-**	arg1<NUL>value1<NUL>arg2<NUL>value2<NUL> ... argn<NUL>valuen<NUL><NUL>
+**	Set up CGI arguments.  Initializes cgi_arglist.
 */
-
-static void cgi_setup_1();
 
 void cgi_setup()
 {
-struct cgi_arglist *p;
-
-	cgi_setup_1();
-
-	if (cgi_arglist)
-		cgi_arglist->prev=0;
-
-	/* Initialize the prev pointer */
-
-	for (p=cgi_arglist; p; p=p->next)
-		if (p->next)
-			p->next->prev=p;
-}
-
-
-static void cgi_setup_1()
-{
-char	*p=getenv("REQUEST_METHOD"), *q, *r;
-char	*args;
-unsigned long cl;
-int	c;
-struct cgi_arglist *argp;
+	const char	*p=getenv("REQUEST_METHOD");
+	const char	*args;
+	unsigned long cl;
+	std::string cgi_args;
 
 	if (p && strcmp(p, "GET") == 0)	/* This is a GET post */
 	{
 		args=getenv("QUERY_STRING");
 		if (!args)	return;
 		if (strlen(args) > cgi_maxarg())	enomem();
-		cgi_args=reinterpret_cast<char *>(malloc(strlen(args)+1));	/* Extra insurance */
-		if (!cgi_args)	return;
-		strcpy(cgi_args,args);
-		args=cgi_args;
 	}
 	else if (p && strcmp(p, "POST") == 0)
 	{
 		args=getenv("CONTENT_TYPE");
 		if (!args)	return;
-
-#if	CGIFORMDATA
 
 		if (strncasecmp(args,"multipart/form-data;", 20) == 0)
 		{
@@ -159,7 +128,6 @@ struct cgi_arglist *argp;
 			cgi_formdata(cl);
 			return;
 		}
-#endif
 
 		if (strncmp(args, "application/x-www-form-urlencoded", 33))
 			return;
@@ -174,73 +142,56 @@ struct cgi_arglist *argp;
  			       (long)(cgi_maxarg() / (1024 * 1024)));
 			fake_exit(1);
 		}
-		cgi_args=reinterpret_cast<char *>(
-			malloc(cl+1) // Extra insurance
-		);
-		if (!cgi_args)	return;
-		q=cgi_args;
+		cgi_args.reserve(cl);
 		while (cl)
 		{
-			c=getchar();
+			int c=getchar();
 			if (c < 0)
 			{
-				free(cgi_args);
-				cgi_args=0;
+				cgi_args.clear();
 				return;
 			}
-			*q++=c;
+			cgi_args += c;
 			--cl;
 		}
-		*q=0;
-		args=cgi_args;
+		args=cgi_args.c_str();
 	}
 	else	return;
 
-	q=args;
-	while (*q)
+	for (const char *q=args; *q; )
 	{
-		argp=reinterpret_cast<struct cgi_arglist *>(
-			malloc(sizeof(*cgi_arglist))
-		);
-		if (!argp)	enomem();
-		argp->next=cgi_arglist;
-		cgi_arglist=argp;
-		argp->argname=q;
-		argp->argvalue="";
-		p=q;
+		const char *p=q;
 		while (*q && *q != '&')
 			q++;
-		if (*q)	*q++=0;
-		if ((r=strchr(p, '=')) != 0)
+
+		std::string_view name{p, (size_t)(q-p)};
+		std::string value;
+
+		auto r=name.find('=');
+		if (r != std::string_view::npos)
 		{
-			*r++='\0';
-			argp->argvalue=r;
-			cgiurldecode(r);
+			value=std::string{name.substr(r+1)};
+			name=name.substr(0, r);
 		}
-		cgiurldecode(p);
+		value.resize(cgiurldecode(value.data()));
+		cgi_arglist[std::string{name}].push_back(std::string{value});
+		if (*q)	q++;
 	}
 }
 
 void cgi_cleanup()
 {
-#if	CGIFORMDATA
-
-	if (hascgiformfd)
-	{
-		close(cgiformfd);
-		hascgiformfd=0;
-	}
-#endif
-
+	cgiformfd = rfc822::fdstreambuf{};
+	message = rfc2045::entity{};
+	cgi_arglist.clear();
 }
 
 const char *cgi(const char *arg)
 {
-struct cgi_arglist *argp;
+	auto iter=cgi_arglist.find(arg);
 
-	for (argp=cgi_arglist; argp; argp=argp->next)
-		if (strcmp(argp->argname, arg) == 0)
-			return (argp->argvalue);
+	if (iter != cgi_arglist.end())
+		return (iter->second[0].c_str());
 	return ("");
 }
 
@@ -286,120 +237,64 @@ int	c;
 	return (p - orig);
 }
 
-void cgi_put(const char *cginame, const char *cgivalue)
+void cgi_put(std::string_view name_sv, std::string_view value_sv)
 {
-struct cgi_arglist *argp;
-
-	for (argp=cgi_arglist; argp; argp=argp->next)
-		if (strcmp(argp->argname, cginame) == 0)
-		{
-			argp->argvalue=cgivalue;
-			return;
-		}
-
-	argp=reinterpret_cast<struct cgi_arglist *>(
-		malloc(sizeof(*cgi_arglist))
-	);
-	if (!argp)	enomem();
-	argp->next=cgi_arglist;
-	argp->prev=0;
-	if (argp->next)
-		argp->next->prev=argp;
-	cgi_arglist=argp;
-	argp->argname=cginame;
-	argp->argvalue=cgivalue;
+	cgi_arglist[std::string{name_sv}]= {std::string{value_sv}};
 }
-
-#if	CGIFORMDATA
 
 /**************************************************************************/
 
 /* multipart/formdata decoding */
 
-static char *disposition_name=NULL, *disposition_filename=NULL;
-
-static char *formargbuf;
-static char *formargptr;
-
-static int save_formdata(const char *p, size_t l, void *miscptr)
+static std::tuple<std::string, std::string, std::string> parse_disposition(
+	const rfc2045::entity &field)
 {
-	memcpy(formargptr, p, l);
-	formargptr += l;
-	return (0);
+	std::string name, filename;
+
+	rfc2045::entity::rfc2231_header header{
+		field.content_disposition, true
+	};
+
+	auto iter=header.parameters.find("name");
+
+	if (iter != header.parameters.end())
+		name=iter->second.value;
+
+	iter=header.parameters.find("filename");
+
+	if (iter != header.parameters.end())
+		filename=iter->second.value;
+
+	return {header.value, name, filename};
 }
 
-static void cgiformdecode(struct rfc2045 *p, struct rfc2045id *a, void *b)
+static void cgiformdecode(const rfc2045::entity &field,
+	rfc822::fdstreambuf &sb)
 {
-off_t start_pos, end_pos, start_body;
-char	buf[512];
-int	n;
-off_t	dummy;
+	auto &&[disposition, name, filename]=parse_disposition(field);
+	if (disposition != "form-data" || !filename.empty())
+		return;
 
-	a=a;
-	b=b;
+	std::string formargbuf;
 
-	if (disposition_name)
-		free(disposition_name);
-	if (disposition_filename)
-		free(disposition_filename);
+	rfc822::mime_decoder decoder{
+		[&](const char *p, size_t n){
+			formargbuf.append(p, n);
+		},
+		sb
+	};
+	decoder.decode_header=false;
+	decoder.decode(field);
 
-	if (rfc2231_udecodeDisposition(p, "name", NULL, &disposition_name) < 0)
-		disposition_name=NULL;
-
-	if (rfc2231_udecodeDisposition(p, "filename", NULL,
-				       &disposition_filename) < 0)
-		disposition_filename=NULL;
-
-	if (!p->content_disposition
-	    || strcmp(p->content_disposition, "form-data"))	return;
-
-	if (!disposition_name || !*disposition_name)	return;
-
-	if (!disposition_filename || !*disposition_filename)
-	{
-		rfc2045_mimepos(p, &start_pos, &end_pos, &start_body,
-			&dummy, &dummy);
-
-		if (lseek(cgiformfd, start_body, SEEK_SET) == -1)
-			enomem();
-
-		formargbuf=reinterpret_cast<char *>(
-			malloc(end_pos - start_body+1)
-		);
-		if (!formargbuf)	enomem();
-		formargptr=formargbuf;
-
-		rfc2045_cdecode_start(p, &save_formdata, 0);
-		while (start_body < end_pos)
-		{
-			n=sizeof(buf);
-			if (n > end_pos - start_body)
-				n=end_pos-start_body;
-			n=read(cgiformfd, buf, n);
-			if (n <= 0)	enomem();
-			rfc2045_cdecode(p, buf, n);
-			start_body += n;
-		}
-		rfc2045_cdecode_end(p);
-
-		*formargptr=0;
-		{
-			char	*name=strdup(disposition_name);
-			char	*value=strdup(formargbuf);
-			char	*p, *q;
-
-			/* Just like for GET/POSTs, strip CRs. */
-
-			for (p=q=value; *p; p++)
-			{
-				if (*p == '\r')	continue;
-				*q++ = *p;
-			}
-			*q++='\0';
-			cgi_put(name, value);
-		}
-		free(formargbuf);
-	}
+	formargbuf.erase(
+		std::remove(
+			formargbuf.begin(),
+			formargbuf.end(),
+			'\r'),
+		formargbuf.end()
+	);
+	formargbuf.resize(cgiurldecode(formargbuf.data()));
+	cgi_arglist[std::move(name)].push_back(std::move(formargbuf));
 }
 
 static const char *cgitempdir="/tmp";
@@ -409,34 +304,28 @@ void cgiformdatatempdir(const char *p)
 	cgitempdir=p;
 }
 
-static void cgiformfdw(const char *p, size_t n)
-{
-	while (n)
-	{
-	int	k=write(cgiformfd, p, n);
-
-		if (k <= 0)	enomem();
-		p += k;
-		n -= k;
-	}
-}
-
 static void cgi_formdata(unsigned long contentlength)
 {
-char	pidbuf[MAXLONGSIZE];
-char	timebuf[MAXLONGSIZE];
-char	cntbuf[MAXLONGSIZE];
-time_t	t;
-unsigned long cnt;
-int	n;
-char	*filename, *p;
+	char	pidbuf[MAXLONGSIZE+1];
+	char	timebuf[MAXLONGSIZE+1];
+	char	cntbuf[MAXLONGSIZE+1];
+	time_t	t;
+	unsigned long cnt;
+	std::string filename;
+	char	*p;
 
-static const char fakeheader[]="MIME-Version: 1.0\nContent-Type: ";
-char	buf[BUFSIZ];
+	static const char fakeheader[]="MIME-Version: 1.0\r\nContent-Type: ";
+	char	buf[BUFSIZ];
 
-	sprintf(pidbuf, "%lu", (unsigned long)getpid());
+	*std::to_chars(
+		pidbuf,
+		pidbuf+MAXLONGSIZE,
+		getpid()).ptr=0;
 	time(&t);
-	sprintf(timebuf, "%lu", (unsigned long)t);
+	*std::to_chars(
+		timebuf,
+		timebuf+MAXLONGSIZE,
+		t).ptr=0;
 	cnt=0;
 
 	buf[sizeof(buf)-1]=0;
@@ -445,138 +334,105 @@ char	buf[BUFSIZ];
 
 	do
 	{
-		sprintf(cntbuf, "%lu", (unsigned long)cnt);
-		filename=reinterpret_cast<char *>(malloc(
-			strlen(pidbuf)+strlen(timebuf)+strlen(cntbuf)
-				+strlen(cgitempdir)+strlen(buf)+10
-		));
-		if (!filename)	enomem();
-		sprintf(filename, "%s/%s.%s_%s.%s", cgitempdir,
-				timebuf, pidbuf, cntbuf, buf);
-		cgiformfd=open(filename, O_RDWR | O_CREAT | O_EXCL, 0644);
-	} while (cgiformfd < 0);
-	unlink(filename);	/* !!!MUST WORK!!! */
-	hascgiformfd=1;
-	p=getenv("CONTENT_TYPE");
-	free(filename);
-	cgiformfdw(fakeheader, strlen(fakeheader));
-	cgiformfdw(p, strlen(p));
-	cgiformfdw("\n\n", 2);
+		if (cnt > 1000)
+		{
+			perror("cgi_formdata: cannot create tempfile");
+			fake_exit(1);
+		}
 
-	clearerr(stdin);
+		*std::to_chars(
+			cntbuf,
+			cntbuf+MAXLONGSIZE,
+			cnt++).ptr=0;
+		filename.clear();
+		filename.reserve(strlen(pidbuf)+strlen(timebuf)+strlen(cntbuf)
+			+strlen(cgitempdir)+strlen(buf)+10
+		);
+		filename += cgitempdir;
+		filename += "/";
+		filename += timebuf;
+		filename += ".";
+		filename += pidbuf;
+		filename += "_";
+		filename += cntbuf;
+		filename += ".";
+		filename += buf;
+		cgiformfd=rfc822::fdstreambuf{
+			open(filename.c_str(),
+				O_RDWR | O_CREAT | O_EXCL, 0600)
+		};
+	} while (cgiformfd.error());
+	unlink(filename.c_str());	/* !!!MUST WORK!!! */
+	p=getenv("CONTENT_TYPE");
+	cgiformfd.sputn(fakeheader, sizeof(fakeheader)-1);
+	cgiformfd.sputn(p, strlen(p));
+	cgiformfd.sputn("\r\n\r\n", 4);
 
 	while (contentlength)
 	{
-		n=sizeof(buf);
+		size_t n=sizeof(buf);
 		if (n > contentlength)	n=contentlength;
-
-		n=fread(buf, 1, n, stdin);
+		n=read(STDIN_FILENO, buf, n);
 		if (n <= 0)
 			enomem();
-		cgiformfdw(buf, n);
+		cgiformfd.sputn(buf, n);
 		contentlength -= n;
 	}
 
-	rfc2045p=rfc2045_alloc();
-	lseek(cgiformfd, 0L, SEEK_SET);
-	while ((n=read(cgiformfd, buf, sizeof(buf))) > 0)
-		rfc2045_parse(rfc2045p, buf, n);
-	rfc2045_parse_partial(rfc2045p);
-	rfc2045_decode(rfc2045p, &cgiformdecode, 0);
-
-}
-
-struct cgigetfileinfo {
-	int (*start_file)(const char *, const char *, void *);
-	int (*file)(const char *, size_t, void *);
-	void (*end_file)(void *);
-	size_t filenum;
-	void *voidarg;
-	} ;
-
-
-static void cgifiledecode(struct rfc2045 *p, struct rfc2045id *a, void *b)
-{
-off_t start_pos, end_pos, start_body;
-char	buf[512];
-int	n;
-struct cgigetfileinfo *c;
-off_t	dummy;
-
-	a=a;
-	c=(struct cgigetfileinfo *)b;
-
-	if (c->filenum == 0)	return;	/* Already retrieved this one. */
-
-	if (disposition_name)
-		free(disposition_name);
-	if (disposition_filename)
-		free(disposition_filename);
-
-	if (rfc2231_udecodeDisposition(p, "name", NULL, &disposition_name) < 0
-	    ||
-	    rfc2231_udecodeDisposition(p, "filename", NULL,
-				       &disposition_filename) < 0)
-	{
-		disposition_name=disposition_filename=NULL;
-		enomem();
-	}
-
-	if (!p->content_disposition
-	    || strcmp(p->content_disposition, "form-data"))	return;
-
-	if (!*disposition_name)	return;
-
-	if (!*disposition_filename)	return;
-
-	rfc2045_mimepos(p, &start_pos, &end_pos, &start_body,
-			&dummy, &dummy);
-
-	if (start_body == end_pos)	/* NULL FILE */
-			return;
-
-	if ( --c->filenum )	return;	/* Not this one */
-
-	if ( (*c->start_file)(disposition_name, disposition_filename,
-			      c->voidarg) )
-		return;
-
-	if (lseek(cgiformfd, start_body, SEEK_SET) == -1)
+	if (cgiformfd.pubseekpos(0) != 0)
 		enomem();
 
-	rfc2045_cdecode_start(p, c->file, c->voidarg);
-	while (start_body < end_pos)
 	{
-		n=sizeof(buf);
-		if (n > end_pos - start_body)
-			n=end_pos-start_body;
-		n=read(cgiformfd, buf, n);
-		if (n <= 0)	enomem();
-		rfc2045_cdecode(p, buf, n);
-		start_body += n;
+		std::istreambuf_iterator<char> b{&cgiformfd}, e;
+		rfc2045::entity::line_iter<true>::iter parser{b, e};
+
+		message.parse(parser);
 	}
-	rfc2045_cdecode_end(p);
-	(*c->end_file)(c->voidarg);
+
+	for (auto &e:message.subentities)
+		cgiformdecode(e, cgiformfd);
 }
 
 int cgi_getfiles( int (*start_file)(const char *, const char *, void *),
 		int (*file)(const char *, size_t, void *),
 		void (*end_file)(void *), size_t filenum, void *voidarg)
 {
-	struct cgigetfileinfo gfi;
+	size_t n=0;
 
-	gfi.start_file=start_file;
-	gfi.file=file;
-	gfi.end_file=end_file;
-	gfi.filenum=filenum;
-	gfi.voidarg=voidarg;
+	for (auto &e:message.subentities)
+	{
+		const auto &[disposition, name, filename]=parse_disposition(e);
+		if (disposition != "form-data" || filename.empty())
+			continue;
 
-	if (rfc2045p) rfc2045_decode(rfc2045p, &cgifiledecode, &gfi);
-	if (gfi.filenum)	return (-1);
-	return (0);
+		if (n++ != filenum)
+			continue;
+
+		if ((*start_file)(name.c_str(), filename.c_str(), voidarg))
+			continue;
+
+		bool error=false;
+
+		rfc822::mime_decoder decoder{
+			[&](const char *p, size_t n){
+				if (error)
+					return;
+				if ((*file)(p, n, voidarg))
+					error=true;
+			},
+			cgiformfd
+		};
+
+		decoder.decode_header=false;
+		decoder.decode(e);
+
+		(*end_file)(voidarg);
+
+		return 0;
+	}
+
+	return -1;
 }
-
-#endif
 
 /* cookies */
 

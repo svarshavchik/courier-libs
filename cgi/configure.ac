@@ -69,11 +69,6 @@ AC_CHECK_FUNCS(strdup strncasecmp)
 
 dnl Other checks
 
-AC_ARG_WITH(formdata,
-	[  --with-formdata                Compile support for multipart/formdata],
-	AC_DEFINE_UNQUOTED(CGIFORMDATA, 1,
-		[ Whether to generate code to handle multipart/formdata ]))
-
 AC_ARG_WITH(maxargsize,
 	[  --with-maxargsize=nbytes       Limit maximum size of CGI args],
 	CFLAGS="$CFLAGS -DCGIMAXARG=$withval")

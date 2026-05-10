@@ -69,6 +69,7 @@
 #include	"rfc822/rfc822.h"
 #include	"strftime.h"
 #include	<filesystem>
+#include	<charconv>
 
 void open_langform(
 	rfc822::fdstreambuf &fbuf,
@@ -209,35 +210,54 @@ bool in_utf8;
 static int group_movedel(const char *folder,
 			int (*func)(const char *, const char *, size_t))
 {
-struct cgi_arglist *arg;
-
 	if (*cgi("SELECTALL"))	/* Everything is selected */
 	{
-		for (arg=cgi_arglist; arg; arg=arg->next)
+		for (auto &[key, values] : cgi_arglist)
 		{
-		const	char *f;
+			if (std::string_view{key}.substr(0, 9) != "MOVEFILE-")
+				continue;
 
-			if (strncmp(arg->argname, "MOVEFILE-", 9)) continue;
-			f=cgi(arg->argname);
+			if (values.empty()) continue;
+
+			auto f=values.front().c_str();
 			CHECKFILENAME(f);
-			if ((*func)(folder, f, atol(arg->argname+9)))
+			size_t n;
+
+			if (std::from_chars(
+				key.data()+9,
+				key.data()+key.size(),
+				n
+			).ec != std::errc{})
+				continue;
+			if ((*func)(folder, f, n))
 				return (-1);
 		}
 		return (0);
 	}
 
-	for (arg=cgi_arglist; arg; arg=arg->next)
+	for (auto &[key, values] : cgi_arglist)
 	{
-	unsigned long l;
-	char	movedel[MAXLONGSIZE+10];
-	const	char *f;
+		if (std::string_view{key}.substr(0, 5) != "MOVE-")
+			continue;
 
-		if (strncmp(arg->argname, "MOVE-", 5))	continue;
-		l=atol(arg->argname+5);
-		sprintf(movedel, "MOVEFILE-%lu", l);
-		f=cgi(movedel);
+		size_t n;
+
+		if (std::from_chars(
+			key.data()+5,
+			key.data()+key.size(),
+			n
+		).ec != std::errc{})
+			continue;
+
+		std::string movefile;
+
+		movefile.reserve(key.size()+4);
+		movefile="MOVEFILE-";
+		movefile += key.c_str()+5;
+
+		auto f=cgi(movefile.c_str());
 		CHECKFILENAME(f);
-		if ((*func)(folder, f, l))
+		if ((*func)(folder, f, n))
 			return (-1);
 	}
 	return (0);
