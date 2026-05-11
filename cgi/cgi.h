@@ -67,6 +67,32 @@ extern void cgi_put(std::string_view, std::string_view);
 extern void cgi_setup();
 extern void cgi_cleanup();
 
+struct cgi_set_cookie_info {
+	std::string name;
+	std::string value;
+	std::string domain;
+	std::string path;
+	int age{-1};
+	bool secure{false};
+
+	void session(std::string name, std::string value)
+	{
+		this->name=std::move(name);
+		this->value=std::move(value);
+	}
+
+	void expired(std::string name)
+	{
+		this->name=std::move(name);
+		this->value.clear();
+		this->age=0;
+	}
+
+	void set_from_url(std::string_view);
+};
+
+extern void cgi_set_cookies(const std::vector<cgi_set_cookie_info> &);
+
 extern "C" {
 
 #endif
@@ -108,35 +134,6 @@ extern void cginocache();
 extern void cgiredirect(const char *);
 extern void cgiversion(unsigned *, unsigned *);
 extern int cgihasversion(unsigned, unsigned);
-
-struct cgi_set_cookie_info {
-	const char *name;
-	const char *value;
-
-	char *domain;
-	char *path;
-	int age;
-	int secure;
-};
-
-#define cgi_set_cookie_info_init(i) (memset((i), 0, sizeof(*(i))), (i)->age=-1)
-#define cgi_set_cookie_info_free(i) do { if ((i)->path) \
-			free((i)->path);		\
-		if ((i)->domain)			\
-			free((i)->domain);		\
-	} while(0)
-
-#define cgi_set_cookie_session(c,n,v) ( ((c)->name=(n)), ((c)->value)=(v))
-#define cgi_set_cookie_expired(c,n) ( ((c)->name=(n)), ((c)->value)="",\
-				      (c)->age=0)
-
-extern int cgi_set_cookie_url(struct cgi_set_cookie_info *i,
-			      const char *url);
-
-#define cgi_set_cookie_secure(c) ((c)->secure=1)
-
-extern void cgi_set_cookies(struct cgi_set_cookie_info *cookies,
-			    size_t n_cookies);
 
 extern char *cgi_get_cookie(const char *cookie_name);
 

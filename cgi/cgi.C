@@ -436,78 +436,66 @@ int cgi_getfiles( int (*start_file)(const char *, const char *, void *),
 
 /* cookies */
 
-int cgi_set_cookie_url(struct cgi_set_cookie_info *cookie_info,
-		       const char *url)
+void cgi_set_cookie_info::set_from_url(std::string_view url)
 {
-	const char *p;
+	domain.clear();
+	path.clear();
+	secure=false;
 
-	if (cookie_info->domain)
-		free(cookie_info->domain);
-	if (cookie_info->path)
-		free(cookie_info->path);
+	if (url.substr(0, 8) == "https://")
+		secure=true;
 
-	cookie_info->secure=0;
-
-	if (strncmp(url, "https://", 8) == 0)
-		cookie_info->secure=1;
-
-	for (p=url; *p; p++)
+	for (const char &c:url)
 	{
-		if (*p == ':')
+		if (c == ':')
 		{
-			url= ++p;
+			url.remove_prefix(&c-url.data()+1);
 			break;
 		}
 
-		if (*p == '/')
+		if (c == '/')
 			break;
 	}
 
-	if (strncmp(url, "//", 2) == 0)
+	if (url.substr(0, 2) == "//")
 	{
-		p= url += 2;
+		url.remove_prefix(2);
 
-		while (*url)
+		auto slash=url.find('/');
+
+		if (slash != url.npos)
 		{
-			if (*url == '/')
-				break;
-			++url;
+			domain=static_cast<std::string>(
+				url.substr(1, slash-1)
+			);
+
+			url.remove_prefix(slash);
 		}
-
-		if ((cookie_info->domain=reinterpret_cast<char *>
-		     (malloc(url-p+1))) == NULL)
-			return -1;
-
-		memcpy(cookie_info->domain, p, url-p);
-		cookie_info->domain[url-p]=0;
 	}
 
-	if ((cookie_info->path=strdup(url)) == NULL)
-		return -1;
-	return 0;
+	path=static_cast<std::string>(url);
 }
 
-void cgi_set_cookies(struct cgi_set_cookie_info *cookies,
-		     size_t n_cookies)
+void cgi_set_cookies(const std::vector<cgi_set_cookie_info> &cookies)
 {
-	size_t i;
 	const char *sep="";
 
 	printf("Set-Cookie: ");
 
-	for (i=0; i<n_cookies; i++, cookies++)
+	for (auto &cookie:cookies)
 	{
-		printf("%s%s=\"%s\"; ", sep, cookies->name, cookies->value);
+		printf("%s%s=\"%s\"; ", sep, cookie.name.c_str(),
+		       cookie.value.c_str());
 		sep="; ";
 
-		if (cookies->path)
-			printf("Path=\"%s\"; ", cookies->path);
+		if (!cookie.path.empty())
+			printf("Path=\"%s\"; ", cookie.path.c_str());
 
-		if (cookies->secure)
+		if (cookie.secure)
 			printf("Secure; ");
 
-		if (cookies->age >= 0)
-			printf("Max-Age=%d; ", cookies->age);
+		if (cookie.age >= 0)
+			printf("Max-Age=%d; ", cookie.age);
 		printf("Version=1");
 	}
 
