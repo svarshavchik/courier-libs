@@ -1,0 +1,89 @@
+#! /bin/bash
+
+set -evx
+
+VALGRIND="`which valgrind 2>/dev/null`"
+
+if test "$VALGRIND" != ""
+then
+    VALGRIND="$VALGRIND --tool=memcheck --leak-check=yes --error-exitcode=1 --child-silent-after-fork=yes"
+fi
+
+rm -rf testgpg.dir
+mkdir testgpg.dir
+chmod 700 testgpg.dir
+$VALGRIND ./testgpg testgpg.dir gen
+
+cat >testgpg.msg <<EOF
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=abc;
+Subject: Hello world
+
+
+--abc
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Hëllo
+
+--abc
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello
+
+--abc--
+EOF
+
+$VALGRIND ./testgpg testgpg.dir encrypt -r john@example.com <testgpg.msg >testgpg.msg2
+
+grep -q 'Content-Type: multipart/encrypted' <testgpg.msg2
+
+$VALGRIND ./testgpg testgpg.dir decrypt <testgpg.msg2 >testgpg.msg
+
+grep -q 'xpgpstatus=0' <testgpg.msg
+test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg | wc -l` = "1";
+test `grep 'Content-Transfer-Encoding: 8bit' <testgpg.msg | wc -l` = "2";
+
+cat >testgpg.msg <<EOF
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=abc;
+Subject: Hello world
+
+
+--abc
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Hëllo
+
+--abc
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello
+
+--abc--
+EOF
+$VALGRIND ./testgpg testgpg.dir sign <testgpg.msg >testgpg.msg2
+grep -q 'Content-Transfer-Encoding: quoted-printable' <testgpg.msg2
+grep -q 'H=C3=ABllo' <testgpg.msg2
+test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg2 | wc -l` = "2";
+
+$VALGRIND ./testgpg testgpg.dir checksign <testgpg.msg2 >testgpg.msg
+grep -q 'xpgpstatus=0' <testgpg.msg
+
+cat >testgpg.msg <<EOF
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello
+EOF
+$VALGRIND ./testgpg testgpg.dir sign <testgpg.msg >testgpg.msg2
+test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg2 | wc -l` = "2";
+$VALGRIND ./testgpg testgpg.dir checksign <testgpg.msg2 >testgpg.msg
+grep -q 'xpgpstatus=0' <testgpg.msg
+test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg | wc -l` = "1";
+test `grep 'Content-Transfer-Encoding: 8bit' <testgpg.msg | wc -l` = "1";
+rm -rf testgpg.dir testgpg.msg testgpg.msg2

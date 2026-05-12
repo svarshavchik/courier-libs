@@ -1,5 +1,5 @@
 /*
-** Copyright 2002-2006 S. Varshavchik.  See COPYING for
+** Copyright 2002-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -15,15 +15,33 @@
 #include	<stdlib.h>
 #include	<string.h>
 
-static int dump_stdout(const char *p, size_t l, void *dummy)
+static void write_stdout(const char *p, size_t l, void *dummy)
 {
 	if (l == 0)
-		return 0;
+		return;
 
 	if (fwrite(p, l, 1, stdout) != 1)
 		exit(1);
 	fflush(stdout);
+}
+
+static int dump_stdout(const char *p, size_t l, void *dummy)
+{
+	write_stdout(p, l, dummy);
 	return (0);
+}
+
+static int read_stdin(char *p, size_t l, void *dummy)
+{
+	if (l == 0)
+		return 0;
+
+	return fgets(p, l, stdin) ? 0:-1;
+}
+
+void dump_error(const char *errmsg, void *dummy)
+{
+	fprintf(stderr, "%s\n", errmsg);
 }
 
 static int poll_wait(void *dummy)
@@ -38,7 +56,7 @@ static void genkey(const char *d)
 	libmail_gpg_genkey(d, "utf-8",
 		   "John Smith",
 		   "john@example.com",
-		   "Dummy UTF-8 Tëëst key",
+		   "Dummy UTF-8 TÃ«Ã«st key",
 		   1024,
 		   2048,
 		   12,
@@ -85,7 +103,71 @@ static int signkey(const char *d, const char *signthis, const char *signwith)
 	return (libmail_gpg_signkey(d, signthis, signwith, -1, dump_stdout, NULL));
 }
 
-static int checksign(const char *d, const char *stuff, const char *sig)
+static int encrypt(const char *d, char **argv, int argc)
+{
+	struct libmail_gpg_info info;
+
+	memset(&info, 0, sizeof(info));
+
+	info.gnupghome=d;
+	info.input_func=read_stdin;
+	info.output_func=write_stdout;
+	info.errhandler_func=dump_error;
+	info.argv=argv;
+	info.argc=argc;
+
+	return (libmail_gpg_signencode(0, LIBMAIL_GPG_ENCAPSULATE, &info));
+}
+
+static int decrypt(const char *d, char **argv, int argc)
+{
+	struct libmail_gpg_info info;
+
+	memset(&info, 0, sizeof(info));
+
+	info.gnupghome=d;
+	info.input_func=read_stdin;
+	info.output_func=write_stdout;
+	info.errhandler_func=dump_error;
+	info.argv=argv;
+	info.argc=argc;
+
+	return (libmail_gpg_decode(LIBMAIL_GPG_UNENCRYPT, &info));
+}
+
+static int checksign(const char *d, char **argv, int argc)
+{
+	struct libmail_gpg_info info;
+
+	memset(&info, 0, sizeof(info));
+
+	info.gnupghome=d;
+	info.input_func=read_stdin;
+	info.output_func=write_stdout;
+	info.errhandler_func=dump_error;
+	info.argv=argv;
+	info.argc=argc;
+
+	return (libmail_gpg_decode(LIBMAIL_GPG_CHECKSIGN, &info));
+}
+
+static int sign(const char *d, char **argv, int argc)
+{
+	struct libmail_gpg_info info;
+
+	memset(&info, 0, sizeof(info));
+
+	info.gnupghome=d;
+	info.input_func=read_stdin;
+	info.output_func=write_stdout;
+	info.errhandler_func=dump_error;
+	info.argv=argv;
+	info.argc=argc;
+
+	return (libmail_gpg_signencode(1, 0, &info));
+}
+
+static int checksignkey(const char *d, const char *stuff, const char *sig)
 {
 	return (libmail_gpg_checksign(d, stuff, sig, dump_stdout, NULL));
 }
@@ -165,15 +247,39 @@ int main(int argc, char **argv)
 		return (0);
 	}
 
-	if (strcmp(argv[2], "sign") == 0 && argc >= 5)
+	if (strcmp(argv[2], "signkey") == 0 && argc >= 5)
 	{
 		exit(signkey(argv[1], argv[3], argv[4]));
 		return (0);
 	}
 
-	if (strcmp(argv[2], "checksign") == 0 && argc >= 5)
+	if (strcmp(argv[2], "encrypt") == 0 && argc > 3)
 	{
-		exit(checksign(argv[1], argv[3], argv[4]));
+		exit(encrypt(argv[1], argv+3, argc-3));
+		return (0);
+	}
+
+	if (strcmp(argv[2], "decrypt") == 0)
+	{
+		exit(decrypt(argv[1], argv+3, argc-3));
+		return (0);
+	}
+
+	if (strcmp(argv[2], "sign") == 0)
+	{
+		exit(sign(argv[1], argv+3, argc-3));
+		return (0);
+	}
+
+	if (strcmp(argv[2], "checksign") == 0)
+	{
+		exit(checksign(argv[1], argv+3, argc-3));
+		return (0);
+	}
+
+	if (strcmp(argv[2], "checksignkey") == 0 && argc >= 5)
+	{
+		exit(checksignkey(argv[1], argv[3], argv[4]));
 		return (0);
 	}
 

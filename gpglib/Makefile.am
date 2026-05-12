@@ -17,9 +17,11 @@ libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.C gpglib.h\
 	sign.c tempname.c tempname.h
 
 testgpg_SOURCES=testgpg.c
-testgpg_DEPENDENCIES=libgpg.la ../numlib/libnumlib.la
+testgpg_DEPENDENCIES=libgpg.la ../numlib/libnumlib.la ../rfc822/librfc822.la \
+	../rfc2045/librfc2045.la ../rfc2045/libencode.la
 testgpg_LDADD=$(testgpg_DEPENDENCIES) -lcourier-unicode
 testgpg_LDFLAGS=-static
+nodist_EXTRA_testgpg_SOURCES=testgpg_linkcpp.cpp
 
 mimegpg_SOURCES=mimegpg.c
 mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
@@ -27,8 +29,9 @@ mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 		-lcourier-unicode
 mimegpg_DEPENDENCIES=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la\
 		../rfc2045/libencode.la ../numlib/libnumlib.la
+nodist_EXTRA_mimegpg_SOURCES=mimegpg_linkcpp.cpp
 BUILT_SOURCES=gpg.h mimegpg.html mimegpg.1
-EXTRA_DIST=mimegpg.html mimegpg.1 README.html
+EXTRA_DIST=mimegpg.html mimegpg.1 README.html testsuite
 
 if HAVE_SGML
 
@@ -42,3 +45,6 @@ endif
 
 gpg.h: config.status
 	echo '#define GPG "@GPG@"' >gpg.h
+
+check-am:
+	$(srcdir)/testsuite

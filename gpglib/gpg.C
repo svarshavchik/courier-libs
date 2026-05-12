@@ -1565,7 +1565,7 @@ static void open_result_multipart(void (*output_func)(const char *,
 
 	C("\"\n"
 	  "\nThis is a MIME GnuPG-processed message.  If you see this text, it means\n"
-	  "that your E-mail or Usenetsoftware does not support MIME-formatted messages.\n\n"
+	  "that your E-mail or Usenet software does not support MIME-formatted messages.\n\n"
 	  "--");
 
 	S(new_boundary);
@@ -1984,11 +1984,27 @@ static void libmail_gpg_errfunc(const char *errmsg, void *vp)
 	}
 }
 
-static int input_func_from_fp(char *buf, size_t cnt, void *vp)
+static int input_func_from_fdstreambuf(char *buf, size_t cnt, void *vp)
 {
-	if (fgets(buf, cnt, (FILE *)vp) == NULL)
+	auto sbuf=reinterpret_cast<rfc822::fdstreambuf *>(vp);
+
+	if (cnt == 0)
 		return (-1);
-	return (0);
+
+	int didread=-1;
+
+	while (--cnt)
+	{
+		auto c=sbuf->sbumpc();
+		if (c == EOF)
+			break;
+		didread=0;
+		*buf++=c;
+		if (c == '\n')
+			break;
+	}
+	*buf=0;
+	return (didread);
 }
 
 /*
@@ -2011,13 +2027,7 @@ static int dosignencode(int dosign, int doencode, int dodecode,
 			int argc, char **argv,
 			int *status)
 {
-	char temp_decode_name[TEMPNAMEBUFSIZE];
-	int fdin;
-	int fdout;
-	FILE *fdin_fp;
 	char buffer[8192];
-	struct rfc2045src *src;
-	struct rfc2045 *rfcp;
 	int rc;
 
 	if (!dosign || doencode)
@@ -2034,121 +2044,95 @@ static int dosignencode(int dosign, int doencode, int dodecode,
 
 	/* Save the message into a temp file, first */
 
-	fdin=libmail_tempfile(temp_decode_name);
+	auto fdin_fp=rfc822::fdstreambuf::tmpfile();
 
-	if (fdin < 0 ||
-	    (fdin_fp=fdopen(fdin, "w+")) == NULL)
+	if (fdin_fp.error())
 	{
-		if (fdin >= 0)
-			close(fdin);
-
 		(*errhandler_func)("Cannot create temporary file",
 				   errhandler_arg);
 		return (-1);
 	}
 
-	unlink(temp_decode_name);
-
-	if (!(rfcp=rfc2045_alloc_ac()))
-	{
-		(*errhandler_func)(strerror(errno), errhandler_arg);
-		fclose(fdin_fp);
-		return (-1);
-	}
+	rfc2045::entity_parser<false> parser;
 
 	while ( (*input_func)(buffer, sizeof(buffer), input_func_arg) == 0)
 	{
 		size_t l=strlen(buffer);
 
-		if (fwrite(buffer, l, 1, fdin_fp) != 1)
+		if ((size_t)fdin_fp.sputn(buffer, l) != l)
 		{
 			(*errhandler_func)(strerror(errno), errhandler_arg);
-			fclose(fdin_fp);
-			rfc2045_free(rfcp);
 			return (-1);
 		}
 
 		/* Parse the message at the same time it's being saved */
 
-		rfc2045_parse(rfcp, buffer, l);
+		parser.parse(buffer, buffer+l);
 	}
 
-	if (fseek(fdin_fp, 0L, SEEK_SET) < 0)
+	auto entity=parser.parsed_entity();
+
+	if (fdin_fp.pubseekpos(0) != 0)
 	{
 		(*errhandler_func)(strerror(errno), errhandler_arg);
-		fclose(fdin_fp);
-		rfc2045_free(rfcp);
 		return (-1);
 	}
 
-	if (!rfc2045_ac_check(rfcp, RFC2045_RW_7BIT))
+	if (!entity.autoconvert_check(rfc2045::convert::sevenbit))
 	{
-		rfc2045_free(rfcp);
-
 		/* No need to rewrite, just do this */
 
 		rc=dosignencode2(dosign, doencode, dodecode,
 				     gpghome,
 				     passphrase_fd,
-				     input_func_from_fp,
-				     fdin_fp,
+				     input_func_from_fdstreambuf,
+				     &fdin_fp,
 				     output_func,
 				     output_func_arg,
 				     errhandler_func,
 				     errhandler_arg,
 				     argc, argv, status);
-
-		fclose(fdin_fp);
-
 		return rc;
 	}
 
 	/* Rewrite the message into another temp file */
 
-	fdout=libmail_tempfile(temp_decode_name);
+	rfc2045::entity::autoconvert_meta metadata;
 
-	src=rfc2045src_init_fd(fileno(fdin_fp));
+	metadata.appid="mimegpg";
 
-	if (fdout < 0 || src == NULL ||
-	    rfc2045_rewrite(rfcp, src, fdout, "mimegpg") < 0 ||
-	    lseek(fdout, 0L, SEEK_SET) < 0)
+	auto fdout=rfc822::fdstreambuf::tmpfile();
+
+	if (fdout.error() || (
+		    rfc2045::entity::line_iter<false>::autoconvert(
+			    entity,
+			    [&]
+			    (const char *ptr, size_t l)
+			    {
+				    fdout.sputn(ptr, l);
+			    },
+			    fdin_fp,
+			    metadata
+		    ),
+		    fdout.error()
+	    ) || fdout.pubseekpos(0) != 0)
 	{
-		if (fdout >= 0)
-			close(fdout);
-		if (src)
-			rfc2045src_deinit(src);
-
 		(*errhandler_func)(strerror(errno), errhandler_arg);
-		rfc2045_free(rfcp);
-		fclose(fdin_fp);
 		return (-1);
 	}
-	fclose(fdin_fp);
-	rfc2045_free(rfcp);
-	rfc2045src_deinit(src);
 
-	/* Now, read the converted message, from the temp file */
-
-	if ((fdin_fp=fdopen(fdout, "w+")) == NULL)
-	{
-		close(fdout);
-
-		(*errhandler_func)("Cannot create temporary file",
-				   errhandler_arg);
-		return (-1);
-	}
+	fdin_fp=std::move(fdout);
 
 	rc=dosignencode2(dosign, doencode, dodecode,
 			 gpghome,
 			 passphrase_fd,
-			 input_func_from_fp,
-			 fdin_fp,
+			 input_func_from_fdstreambuf,
+			 &fdin_fp,
 			 output_func,
 			 output_func_arg,
 			 errhandler_func,
 			 errhandler_arg,
 			 argc, argv, status);
-	fclose(fdin_fp);
 	return rc;
 }
 
