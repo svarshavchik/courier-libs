@@ -514,39 +514,42 @@ void cgi_set_cookies(const std::vector<cgi_set_cookie_info> &cookies)
 ** out_value, if not NULL receives the cookie's value, excluding any quotes.
 */
 
-static size_t get_cookie_value(const char *ptr, const char **out_ptr,
-			       char *out_value)
+static size_t get_cookie_value_len(std::string_view cookie,
+	size_t *size_ret, std::string *ret)
 {
-	int in_quote=0;
-	size_t cnt=1;
+	bool in_quote=false;
+	size_t cnt=0;
+	size_t dummy=0;
 
-	while (*ptr)
+	if (!size_ret)
+		size_ret=&dummy;
+
+	for (size_t i=0; i<cookie.size(); ++i)
 	{
+		const char c=cookie[i];
+
 		if (!in_quote)
 		{
-			if (*ptr == ';' || *ptr == ',' ||
-			    isspace((int)(unsigned char)*ptr))
-				break;
+			switch (c)
+			{
+				case ' ': case '\t': case '\n': case '\r':
+				case ';': case ',':
+					*size_ret=i;
+					return cnt;
+			}
 		}
 
-		if (*ptr == '"')
+		if (c == '"')
+			in_quote= !in_quote;
+		else
 		{
-			in_quote= ~in_quote;
-			++ptr;
-			continue;
+			if (ret)
+				ret->push_back(c);
+			++cnt;
 		}
-
-		if (out_value)
-			*out_value++ = *ptr;
-		++cnt;
-		++ptr;
 	}
 
-	if (out_value)
-		*out_value=0;
-
-	if (out_ptr)
-		*out_ptr=ptr;
+	*size_ret=cookie.size();
 	return cnt;
 }
 
@@ -559,53 +562,49 @@ static size_t get_cookie_value(const char *ptr, const char **out_ptr,
 ** malloc fails).
 */
 
-char *cgi_get_cookie(const char *cookie_name)
+std::string cgi_get_cookie(std::string_view cookie_name)
 {
-	size_t cookie_name_len=strlen(cookie_name);
-	const char *cookie=getenv("HTTP_COOKIE");
+	size_t cookie_name_len=cookie_name.size();
+	const char *cookie_cstr=getenv("HTTP_COOKIE");
 
-	if (!cookie)
-		cookie="";
+	if (!cookie_cstr)
+		return "";
 
-	while (*cookie)
+	std::string_view cookie{cookie_cstr};
+
+	while (!cookie.empty())
 	{
-		if (isspace((int)(unsigned char)*cookie) ||
-		    *cookie == ';' || *cookie == ',')
+		switch (cookie.front())
 		{
-			++cookie;
-			continue;
+			case ' ': case '\t': case '\n': case '\r':
+			case ';': case ',':
+				cookie.remove_prefix(1);
+				continue;
 		}
 
-		if (strncmp(cookie, cookie_name, cookie_name_len) == 0 &&
+		if (cookie.size() > cookie_name_len &&
+		    cookie.substr(0, cookie_name_len) == cookie_name &&
 		    cookie[cookie_name_len] == '=')
 		{
-			char *buf;
+			cookie.remove_prefix(cookie_name_len + 1);
 
-			cookie += cookie_name_len;
-			++cookie;
+			std::string value;
 
-			if ((buf=reinterpret_cast<char *>(
-				malloc(get_cookie_value(cookie, NULL, NULL))
-			    )) == NULL)
-			{
-				return NULL;
-			}
+			value.reserve(get_cookie_value_len(
+				cookie,
+				nullptr,
+				nullptr
+			));
 
-			get_cookie_value(cookie, NULL, buf);
-
-			if (*buf == 0) /* Pretend not found */
-			{
-				free(buf);
-				errno=ENOENT;
-				return NULL;
-			}
-
-			return buf;
+			get_cookie_value_len(cookie, nullptr, &value);
+			return value;
 		}
 
-		get_cookie_value(cookie, &cookie, NULL);
+		size_t skip=0;
+
+		get_cookie_value_len(cookie, &skip, nullptr);
+		cookie.remove_prefix(skip);
 	}
 
-	errno=ENOENT;
-	return NULL;
+	return "";
 }

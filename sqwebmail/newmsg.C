@@ -840,7 +840,7 @@ static int dosendmsg(const char *origdraft)
 
 		if (isgpgerr)
 		{
-			cgi_put("draftmessage", draftbase.c_str());
+			cgi_put("draftmessage", draftbase);
 			output_form("gpgerr.html");
 		}
 		else
@@ -1066,7 +1066,7 @@ const	char *draftmessage=cgi("draftmessage");
 		auto base=maildir_basename(newdraft);
 		if (spell_start(base.c_str()) == 0)
 		{
-			cgi_put("draftmessage", base.c_str());
+			cgi_put("draftmessage", base);
 			output_form("spellchk.html");
 		}
 		else

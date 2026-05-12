@@ -278,6 +278,25 @@ int main()
 		std::cerr << "cgi_getfiles(1) contents invalid\n";
 		exit(1);
 	}
+
+	setenv("HTTP_COOKIE", "cookie1=value1; cookie2=\"value2\";"
+		" cookie3=value3", 1);
+
+	if (cgi_get_cookie("cookie1") != "value1")
+	{
+		std::cerr << "cgi_get_cookie(1) failed\n";
+		exit(1);
+	}
+	if (cgi_get_cookie("cookie2") != "value2")
+	{
+		std::cerr << "cgi_get_cookie(2) failed\n";
+		exit(1);
+	}
+	if (cgi_get_cookie("cookie3") != "value3")
+	{
+		std::cerr << "cgi_get_cookie(3) failed\n";
+		exit(1);
+	}
 	return 0;
 }
 

@@ -92,6 +92,7 @@ struct cgi_set_cookie_info {
 };
 
 extern void cgi_set_cookies(const std::vector<cgi_set_cookie_info> &);
+extern std::string cgi_get_cookie(std::string_view cookie_name);
 
 extern "C" {
 
@@ -134,8 +135,6 @@ extern void cginocache();
 extern void cgiredirect(const char *);
 extern void cgiversion(unsigned *, unsigned *);
 extern int cgihasversion(unsigned, unsigned);
-
-extern char *cgi_get_cookie(const char *cookie_name);
 
 extern char *cgi_select(const char *name,
 			const char *optvalues,

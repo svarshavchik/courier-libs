@@ -235,7 +235,7 @@ static bool search_spell(const char *filename, unsigned parnum, unsigned pos)
 		if (globignore.size())
 			globignore += ":";
 		globignore += ignoreword;
-		cgi_put("globignore", globignore.c_str());
+		cgi_put("globignore", globignore);
 	}
 
 	if (replacefrom.size())
@@ -255,7 +255,7 @@ static bool search_spell(const char *filename, unsigned parnum, unsigned pos)
 		globreplace += replacefrom;
 		globreplace += ":";
 		globreplace += replaceto;
-		cgi_put("globreplace", globreplace.c_str());
+		cgi_put("globreplace", globreplace);
 	}
 
 	return has_misspelling;

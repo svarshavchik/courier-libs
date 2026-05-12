@@ -197,7 +197,7 @@ void mailfilter_init()
 			sqwebmail_content_charset
 		);
 
-		cgi_put("rulename", namebuf.c_str());
+		cgi_put("rulename", namebuf);
 
 		p=r.fieldname_utf8;
 		if (r.type != startswith &&
@@ -211,7 +211,7 @@ void mailfilter_init()
 			sqwebmail_content_charset
 		);
 
-		cgi_put("headername", headernamebuf.c_str());
+		cgi_put("headername", headernamebuf);
 
 		p=r.fieldvalue_utf8;
 		if (r.type != startswith &&
@@ -285,7 +285,7 @@ void mailfilter_init()
 			autoresp_name_buf=mfai.name;
 
 			cgi_put("action", "autoresponse");
-			cgi_put("autoresponse_choose", autoresp_name_buf.c_str());
+			cgi_put("autoresponse_choose", autoresp_name_buf);
 			cgi_put("autoresponse_dsn",
 				mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_DSN
 				? "1":"");
@@ -298,7 +298,7 @@ void mailfilter_init()
 				days_buf:"");
 
 			fromhdr=r.fromhdr;
-			cgi_put("autoresponse_from", fromhdr.c_str());
+			cgi_put("autoresponse_from", fromhdr);
 
 			if (mfai.mode == MAILDIR_FILTER_AUTORESP_MODE_NOQUOTE)
 			{

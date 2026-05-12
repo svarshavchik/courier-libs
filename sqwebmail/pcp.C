@@ -748,7 +748,7 @@ void sqpcp_eventstart()
 				sqwebmail_content_charset,
 				std::back_inserter(from_buf)
 			);
-			cgi_put("from", from_buf.c_str());
+			cgi_put("from", from_buf);
 		}
 		else if (header == "subject" && !value.empty())
 		{
@@ -760,7 +760,7 @@ void sqpcp_eventstart()
 				sqwebmail_content_charset,
 				std::back_inserter(subj_buf)
 			);
-			cgi_put("headersubject", subj_buf.c_str());
+			cgi_put("headersubject", subj_buf);
 		}
 	} while (h.next());
 
@@ -1437,7 +1437,7 @@ void sqpcp_newevent()
 		maildir_writemsgstr(newdraftfd, "X-Event: 1\n");
 
 		draftmessage_buf=draftfilename;
-		cgi_put("draftmessage", draftmessage_buf.c_str());
+		cgi_put("draftmessage", draftmessage_buf);
 	}
 
 	if (do_newevent || do_delevent || do_newparticipant
@@ -1707,7 +1707,7 @@ static void previewdraft(const char *msg, void (*func)(const char *))
 
 	auto msg2p=msg2.substr(p);
 
-	cgi_put("draftmessage", msg2p.c_str());
+	cgi_put("draftmessage", msg2p);
 	if (func)
 		(*func)(msg2p.c_str());
 	output_form("newevent.html");
@@ -1975,7 +1975,7 @@ static void saveerror(struct PCP *pcp, const int *xerror)
 
 	p=pcp_errmsg(pcp);
 	errmsgbuf=p ? p:"";
-	cgi_put("pcperror", errmsgbuf.c_str());
+	cgi_put("pcperror", errmsgbuf);
 }
 
 struct proxy_update_list {
@@ -2873,7 +2873,7 @@ int sqpcp_eventedit()
 		static std::string filenamebuf;
 
 		filenamebuf=draftfilename;
-		cgi_put("draftmessage", filenamebuf.c_str());
+		cgi_put("draftmessage", filenamebuf);
 		return (0);
 	}
 	return (-1);
