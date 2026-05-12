@@ -76,7 +76,7 @@ int libmail_gpg_inputfunc_readfp(char *buf, size_t cnt, void *vp)
 	return 0;
 }
 
-void libmail_gpg_noexec(int fd)
+extern "C" void libmail_gpg_noexec(int fd)
 {
 #ifdef FD_CLOEXEC
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -841,7 +841,9 @@ static int dosignencode2(int dosign, int doencode, int dodecode,
 			{
 				/* Punt */
 
-				char *buf=malloc(strlen(hct->header)+100);
+				char *buf=reinterpret_cast<char *>(
+					malloc(strlen(hct->header)+100)
+				);
 				const char *p;
 
 				if (!buf)

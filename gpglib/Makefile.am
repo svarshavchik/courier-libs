@@ -11,7 +11,7 @@ noinst_SCRIPTS=webgpg
 noinst_LTLIBRARIES=libgpg.la
 noinst_PROGRAMS=testgpg mimegpg
 
-libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.c gpglib.h\
+libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.C gpglib.h\
 	import.c libgpg.c list.c mimegpgfork.c mimegpgfork.h mimegpgheader.c \
 	mimegpgheader.h mimegpgstack.c mimegpgstack.h options.c rfc2045.C \
 	sign.c tempname.c tempname.h
