@@ -352,3 +352,38 @@ then
 	exit 1
 fi
 rm -f testmd
+
+set -evx
+
+cat >testsuite.msg <<EOF
+From: nobody@example.com
+
+test
+EOF
+
+cat >testsuite.result <<EOF
+Subject: extra_header
+From: nobody@example.com
+
+test
+
+EOF
+
+cat >testsuite1.filter <<EOF
+EXITCODE=1
+
+if (/^Subject:/ && /^From/)
+{
+	EXITCODE=0
+}
+cc "./testmd"
+exit
+EOF
+
+>testmd
+chmod 600 testsuite1.filter testmd
+
+run_maildrop -A 'Subject: extra_header' ./testsuite1.filter <testsuite.msg
+sed '1d' <testmd | diff -U 3 testsuite.result -
+
+rm -f testmd testsuite.msg testsuite.result testsuite1.filter

@@ -46,7 +46,6 @@ Message::~Message()
 {
 	mio.fd(-1);	// Either way, it's not our file
 	if (buffer)	delete[] buffer;
-	if (extra_headers) delete[] extra_headers;
 	if (rfc2045p)
 		rfc2045_free(rfc2045p);
 }
@@ -58,11 +57,7 @@ void Message::Init()
 		delete[] buffer;
 		buffer=0;
 	}
-	if (extra_headers)
-	{
-		delete[] extra_headers;
-		extra_headers=0;
-	}
+	extra_headers.clear();
 	if (rfc2045p)
 		rfc2045_free(rfc2045p);
 	extra_headersptr=0;
@@ -196,25 +191,21 @@ void Message::ExtraHeaders(const std::string &buf)
 {
 	rfc2045_parse(rfc2045p, buf.c_str(), buf.size());
 
-	if ( extra_headers )
-	{
-		delete[] extra_headers;
-		extra_headers=0;
-	}
-	extra_headersptr=0;
+	extra_headers.clear();
+	extra_headersptr=nullptr;;
 	if (!buf.size())	return;
 
-	extra_headers=new char[buf.size()+1];
-	if (!extra_headers)	outofmem();
-	memcpy(extra_headers, buf.c_str(), buf.size());
-	extra_headers[buf.size()]=0;
-	extra_headersptr=extra_headers;
-	if (!*extra_headersptr)	extra_headersptr=0;
+	extra_headers.reserve(buf.size());
+	extra_headers.insert(extra_headers.end(),
+			     buf.begin(), buf.end());
+	extra_headersptr=extra_headers.data();
+	if (extra_headers.empty())
+		extra_headersptr=nullptr;
 }
 
 void Message::RewindIgnore()
 {
-	extra_headersptr=0;
+	extra_headersptr=nullptr;
 	if (mio.fd() >= 0)
 	{
 		if (mio.Rewind() < 0)	seekerr();
@@ -227,9 +218,9 @@ void Message::Rewind()
 {
 	RewindIgnore();
 
-	extra_headersptr=extra_headers;
-	if (extra_headersptr && !*extra_headersptr)
-		extra_headersptr=0;
+	extra_headersptr=extra_headers.data();
+	if (extra_headers.empty())
+		extra_headersptr=nullptr;
 }
 
 void Message::readerr()

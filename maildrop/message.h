@@ -45,12 +45,14 @@
 
 #endif
 
+#include	<vector>
+
 class Message {
 	Mio mio;
 	TempFile tempfile;
 	char	*buffer;
 	char	*bufptr;
-	char	*extra_headers;
+	std::vector<char> extra_headers;
 	char	*extra_headersptr;
 	off_t	msgsize;
 	off_t	msglines;
@@ -112,7 +114,9 @@ int	c;
 	if (extra_headersptr)
 	{
 		c= (unsigned char) *extra_headersptr++;
-		if (!*extra_headersptr)	extra_headersptr=0;
+		if (extra_headersptr >=
+		    extra_headers.data()+extra_headers.size())
+			extra_headersptr=nullptr;
 		return (c);
 	}
 
@@ -142,26 +146,26 @@ off_t	pos;
 	}
 
 	if (extra_headersptr)
-		pos += extra_headersptr-extra_headers;
+		pos += extra_headersptr-extra_headers.data();
 	else
 	{
-		if (extra_headers)	pos += strlen(extra_headers);
+		pos += extra_headers.size();
 	}
 	return (pos);
 }
 
 inline off_t Message::pubseekpos(off_t n)
 {
-int	l=0;
+	size_t	l=0;
 
-	if (extra_headers && n < (l=strlen(extra_headers)))
+	if ((size_t)n < (l=extra_headers.size()))
 	{
-		extra_headersptr= extra_headers + n;
+		extra_headersptr= extra_headers.data() + n;
 		n=0;
 	}
 	else
 	{
-		extra_headersptr=0;
+		extra_headersptr=nullptr;
 		n -= l;
 	}
 	if (mio.fd() >= 0)
@@ -180,8 +184,7 @@ int	l=0;
 inline off_t Message::MessageSize()
 {
 	off_t s=msgsize;
-	if (extra_headers)
-		s += strlen(extra_headers);
+	s += extra_headers.size();
 
 	return (s);
 }
