@@ -51,47 +51,6 @@ if test "$maildrop_cv_handle_exceptions" = yes ; then
    CXXFLAGS=`echo "$CXXFLAGS" | sed 's/-O2//'`
 fi
 
-AC_CACHE_CHECK([ability to handle both const and non-const exceptions],
-		maildrop_cv_const_exceptions,
-
-AC_LANG([C++])
-
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-
-extern void foo();
-extern void bar(const char *);
-
-]], [[
-
-       try
-       {
-             foo();
-       }
-       catch (const char *p)
-       {
-             bar(p);
-       }
-       catch (char *p)
-       {
-             bar(p);
-       }
-       catch (...)
-       {
-             bar(0);
-       }
-
-
-]])],[maildrop_cv_const_exceptions="yes"],[maildrop_cv_const_exceptions="no"])
-)
-
-if test "$maildrop_cv_const_exceptions" = "yes"
-then
-	AC_DEFINE_UNQUOTED(NEED_NONCONST_EXCEPTIONS,1,
-	[ Define this if we need both catch(const foo) and catch(foo) ])
-fi
-
-AC_LANG([C])
-
 dnl Checks for libraries.
 
 AC_CHECK_LIB(sun,getpwnam)
@@ -635,20 +594,6 @@ AC_ARG_ENABLE(global-timeout, [  --enable-global-timeout=300  global watchdog ti
     [GLOBAL_TIMEOUT=$enableval], [GLOBAL_TIMEOUT=300])
 AC_MSG_RESULT($GLOBAL_TIMEOUT)
 AC_SUBST(GLOBAL_TIMEOUT)
-
-AC_MSG_CHECKING(for CRLF_TERM)
-AC_ARG_ENABLE(crlf-term, [  --enable-crlf-term=0         enable <CR><LF> line termination],
-    [CRLF_TERM=$enableval], [CRLF_TERM=0])
-case "$CRLF_TERM" in
-1*|y*|Y*)
-	CRLF_TERM=1
-	;;
-*)
-	CRLF_TERM=0
-	;;
-esac
-AC_MSG_RESULT($CRLF_TERM)
-AC_SUBST(CRLF_TERM)
 
 AC_MSG_CHECKING(for RESTRICT_TRUSTED)
 AC_ARG_ENABLE(restrict-trusted, [  --enable-restrict-trusted=1  restrict -d for trusted users only],

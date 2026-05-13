@@ -2,7 +2,7 @@
 #define	lexer_h
 
 
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"buffer.h"
 #include	"token.h"
 
@@ -14,7 +14,7 @@
 //
 // The scanning algorythm is quite involved.  We may read ahead in the file,
 // then back up.  An 'undo' buffer is maintained.  The actual file is
-// referred to indirectly via the Mio class.
+// referred to indirectly via the rfc822::fdstreambuf class.
 //
 // The concept of the 'current line number' and 'filename' is also recorded
 // by the Lexer object.  An error message function is provided - given an
@@ -25,7 +25,7 @@
 
 class	Lexer {
 
-	Mio file;
+	rfc822::fdstreambuf file;
 	int linenum;
 	std::string filename;
 	Token::tokentype lasttokentype;

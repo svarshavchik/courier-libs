@@ -13,6 +13,7 @@
 #include	<sstream>
 #include	<unistd.h>
 #include	<string_view>
+#include	<filesystem>
 
 auto tokenize(const char *p)
 {
@@ -1013,5 +1014,31 @@ int main()
 
 	testparsedt();
 	testwrapunicode();
+
+	std::error_code ec;
+	std::filesystem::remove_all(".tmp", ec);
+	std::filesystem::create_directory(".tmp", ec);
+
+	{
+		auto tmpfile=rfc822::fdstreambuf::tmpfile(".tmp");
+
+		if (tmpfile.error())
+		{
+			std::cerr << "tmpfile error\n";
+			exit(1);
+		}
+		std::ostream{&tmpfile} << "Hello world!\n";
+		tmpfile.pubseekpos(0);
+
+		std::string s;
+		std::getline(std::istream{&tmpfile}, s);
+
+		if (s != "Hello world!")
+		{
+			std::cerr << "tmpfile usage error\n";
+			exit(1);
+		}
+	}
+	std::filesystem::remove_all(".tmp", ec);
 	return 0;
 }

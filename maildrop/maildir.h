@@ -8,10 +8,9 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
+#include	"rfc822/rfc822.h"
 #include	"buffer.h"
 #include	<sys/types.h>
-
-class	Mio;
 
 class Maildir {
 	int	is_open;
@@ -25,9 +24,8 @@ public:
 	virtual ~Maildir();
 
 static	int	IsMaildir(const char *);	// Is this a Maildir directory?
-	int	MaildirOpen(const char *, Mio &, off_t);
+	int	MaildirOpen(const char *, rfc822::fdstreambuf &, off_t);
 	void	MaildirSave();
 	void	MaildirAbort();
 } ;
 #endif
-

@@ -1,16 +1,12 @@
 #include	"log.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"formatmbox.h"
 #include	"xconfig.h"
 #include	"maildrop.h"
 #include	"mytime.h"
+#include	<iostream>
 
-
-#if	CRLF_TERM
-	#define EOL "\r\n"
-#else
-	#define	EOL "\n"
-#endif
+#define	EOL "\n"
 
 void log(const char *mailbox, int status, class FormatMbox &msg)
 {
@@ -18,7 +14,7 @@ time_t	t;
 std::string	tbuf;
 std::string	szbuf;
 
-	if (maildrop.logfile.fd() < 0)	return;	// Logfile not open
+	if (maildrop.logfile.fileno() < 0)	return;	// Logfile not open
 
 	time(&t);
 	tbuf=ctime(&t);
@@ -28,9 +24,9 @@ std::string	szbuf;
 		msg.hdrfrom.resize(72);
 	if (msg.hdrsubject.size() > 72)
 		msg.hdrsubject.resize(72);
-	maildrop.logfile << "Date: " << tbuf << EOL;
-	maildrop.logfile << "From: " << msg.hdrfrom << EOL;
-	maildrop.logfile << "Subj: " << msg.hdrsubject << EOL;
+	std::ostream{&maildrop.logfile} << "Date: " << tbuf
+					<< "\nFrom: " << msg.hdrfrom
+					<< "\nSubj: " << msg.hdrsubject << "\n";
 
 	szbuf="(";
 	add_integer(szbuf, msg.msgsize);
@@ -45,13 +41,14 @@ size_t	l= 72 - szbuf.size();
 	tbuf.push_back(' ');
 	tbuf += szbuf;
 
-	maildrop.logfile << (status ? "!Err: ":"File: ") << tbuf << EOL << EOL;
-	maildrop.logfile.flush();
+	std::ostream{&maildrop.logfile}
+		<< (status ? "!Err: ":"File: ") << tbuf << "\n\n";
+	maildrop.logfile.pubsync();
 }
 
 void log_line(const std::string &buf)
 {
-	if (maildrop.logfile.fd() < 0)	return;	// Logfile not open
-	maildrop.logfile << buf;
-	maildrop.logfile.flush();
+	if (maildrop.logfile.fileno() < 0)	return;	// Logfile not open
+	maildrop.logfile.sputn(buf.data(), buf.size());
+	maildrop.logfile.pubsync();
 }

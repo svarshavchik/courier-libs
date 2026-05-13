@@ -12,6 +12,7 @@
 #if SYSLOG_LOGGING
 #include	<syslog.h>
 #endif
+#include	<iostream>
 
 extern void killprocgroup();
 
@@ -28,6 +29,22 @@ static void sig_chld(int)
 {
 	if (write(maildrop.sigchildfd[1], "", 1) < 0)
 		;
+}
+
+Maildrop::Maildrop() : m1{*this}, m2{*this}
+{
+	verbose_level=0;
+	isdelivery=0;
+	sigfpe=0;
+	includelevel=0;
+	embedded_mode=0;
+	msgptr= &m1;
+	savemsgptr= &m2;
+#if AUTHLIB_TEMPREJECT
+	authlib_essential=1;
+#else
+	authlib_essential=0;
+#endif
 }
 
 void Maildrop::cleanup()
@@ -79,24 +96,24 @@ int	n;
 	}
 	catch (const char *p)
 	{
-		merr << argv[0] << ": " << p << "\n";
+		std::cerr << argv[0] << ": " << p << "\n"
+			  << std::flush;
 #if SYSLOG_LOGGING
 		syslog(LOG_INFO, "%s", p);
 #endif
 		cleanup();
 		return (EX_TEMPFAIL);
 	}
-#if NEED_NONCONST_EXCEPTIONS
 	catch (char *p)
 	{
-		merr << argv[0] << ": " << p << "\n";
+		std::cerr << argv[0] << ": " << p << "\n"
+			  << std::flush;
 #if SYSLOG_LOGGING
 		syslog(LOG_INFO, "%s", p);
 #endif
 		cleanup();
 		return (EX_TEMPFAIL);
 	}
-#endif
 	catch (int n)
 	{
 		cleanup();
@@ -104,7 +121,8 @@ int	n;
 	}
 	catch (...)
 	{
-		merr << argv[0] << ": Internal error.\n";
+		std::cerr << argv[0] << ": Internal error.\n"
+			  << std::flush;
 #if SYSLOG_LOGGING
 		syslog(LOG_INFO, "Internal error.");
 #endif

@@ -1746,6 +1746,7 @@ public:
 	~fdstreambuf();
 
 	static fdstreambuf tmpfile();
+	static fdstreambuf tmpfile(const char *directory);
 
 	int fileno() const { return fd; }
 

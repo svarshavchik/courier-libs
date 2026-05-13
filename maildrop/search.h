@@ -76,7 +76,6 @@ private:
 			     foreach_t *);
 	std::string search_expr;
 	foreach_t *foreachp_arg;
-	static int search_cb(const char *ptr, size_t cnt, void *arg);
 	int search_cb(const char *ptr, size_t cnt);
 } ;
 #endif

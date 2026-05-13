@@ -387,3 +387,25 @@ run_maildrop -A 'Subject: extra_header' ./testsuite1.filter <testsuite.msg
 sed '1d' <testmd | diff -U 3 testsuite.result -
 
 rm -f testmd testsuite.msg testsuite.result testsuite1.filter
+
+cat >testsuite.filter <<EOF
+logfile 'testsuite.log'
+log 'Delivery'
+to "./testsuite.mbox"
+EOF
+
+cat >testsuite.msg <<EOF
+Subject: some message
+From: somebody@example.com
+
+message
+EOF
+
+chmod 600 testsuite.filter
+
+run_maildrop ./testsuite.filter <testsuite.msg
+
+grep '^Delivery' <testsuite.log
+grep -q 'From: somebody@example.com' <testsuite.log
+grep -q 'Subj: some message' <testsuite.log
+rm -f testsuite.filter testsuite.log testsuite.mbox testsuite.msg

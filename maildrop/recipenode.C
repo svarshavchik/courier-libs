@@ -8,7 +8,7 @@
 #include	"varlist.h"
 #include	"message.h"
 #include	"funcs.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"search.h"
 #include	"dotlock.h"
 #include	"maildrop.h"
@@ -23,7 +23,7 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<sysexits.h>
-
+#include	<iostream>
 
 extern int xfilter(const char *, int);
 
@@ -582,8 +582,8 @@ RecipeNode	*c;
 			throw "Internal error in xfilter statement.";
 		firstChild->Evaluate(r,b);
 		if (VerboseLevel() > 0)
-			merr << "maildrop: Filtering through xfilter " <<
-				b.c_str() << "\n";
+			std::cerr << "maildrop: Filtering through xfilter " <<
+				b.c_str() << "\n" << std::flush;
 		if (filter(b.c_str()) < 0)
 			throw "Unable to filter message.";
 		b = "0";
@@ -593,8 +593,8 @@ RecipeNode	*c;
 			throw "Internal error in system statement.";
 		firstChild->Evaluate(r,b);
 		if (VerboseLevel() > 0)
-			merr << "maildrop: Executing system command " <<
-				b.c_str() << "\n";
+			std::cerr << "maildrop: Executing system command " <<
+				b.c_str() << "\n" << std::flush;
 		executesystem(b.c_str());
 		b = "0";
 		break;
@@ -631,7 +631,6 @@ RecipeNode	*c;
 				r.errmsg(*this, buf.c_str());
 			}
 		}
-#if NEED_NONCONST_EXCEPTIONS
 		catch (char *p)
 		{
 			if (VerboseLevel() > 3)
@@ -643,7 +642,6 @@ RecipeNode	*c;
 			}
 			b=p;
 		}
-#endif
 		catch (int rc)
 		{
 			if (rc == 0)
@@ -667,7 +665,7 @@ RecipeNode	*c;
 		std::string	s;
 
 			parse_backslash(b, s);
-			mout << s;
+			std::cout << s << std::flush;
 		}
 		break;
 	case dotlock:
@@ -725,10 +723,11 @@ RecipeNode	*c;
 			s += b;
 			r.errmsg(*this, s.c_str());
 		}
-		maildrop.logfile.Close();
-		if (maildrop.logfile.Open(b.c_str(),
-					  O_CREAT | O_WRONLY | O_APPEND,
-			0600) < 0)
+		maildrop.logfile=rfc822::fdstreambuf{};
+		if ((maildrop.logfile=
+		     rfc822::fdstreambuf{open(b.c_str(),
+					      O_CREAT | O_WRONLY | O_APPEND,
+					      0600)}).error())
 			throw "Unable to create log file.";
 		break;
 	case log:
@@ -1156,8 +1155,8 @@ std::string	buf;
 	case btstring:
 		buf=str;
 		if (VerboseLevel() > 0)
-			merr << "maildrop: Filtering through `" <<
-				buf.c_str() << "`\n";
+			std::cerr << "maildrop: Filtering through `" <<
+				buf.c_str() << "`\n" << std::flush;
 		try
 		{
 			int	rc=::xfilter(buf.c_str(), 1);
@@ -1168,7 +1167,7 @@ std::string	buf;
 				maildrop.savemsgptr->Init();
 				break;
 			}
-			maildrop.savemsgptr->RewindIgnore();
+			maildrop.savemsgptr->Rewind();
 
 			// Strip leading/trailing spaces.  Newlines are
 			// replaced by spaces.
@@ -1388,9 +1387,6 @@ static void parse_backslash(const std::string &in, std::string &s)
 	}
 	if (append_newline)
 	{
-#if	CRLF_TERM
-		s.push_back('\r');
-#endif
 		s.push_back('\n');
 	}
 }
@@ -1425,8 +1421,8 @@ int RecipeNode::rfc822hasaddr(std::string &buf)
 		lower_addr.push_back(tolower(*p++));
 
 	if (VerboseLevel() > 5)
-		merr << "maildrop: hasaddr('" <<
-			lower_addr.c_str() << "')\n";
+		std::cerr << "maildrop: hasaddr('" <<
+			lower_addr.c_str() << "')\n" << std::flush;
 
 	maildrop.msgptr->Rewind();
 	if (maildrop.msgptr->appendline(next_line))	return (0);
@@ -1477,8 +1473,8 @@ int RecipeNode::rfc822hasaddr(const char *addr, std::string &header)
 {
 
 	if (VerboseLevel() > 5)
-		merr << "maildrop: hasaddr: rfc822 parsing: "
-			<< header.c_str() << "\n";
+		std::cerr << "maildrop: hasaddr: rfc822 parsing: "
+			  << header.c_str() << "\n" << std::flush;;
 
 	rfc822::tokens tokens{header, [](size_t){}};
 
@@ -1511,9 +1507,9 @@ std::string	real_opts;
 
 	if (strchr (opts.c_str(), 'D'))	real_opts.push_back('D');	// Only allow this opt
 
-Mio	fp;
+	rfc822::fdstreambuf	fp{open(filename.c_str(), O_RDONLY)};
 
-	if (fp.Open(filename.c_str(), O_RDONLY) < 0)
+	if (fp.error())
 	{
 		errbuf="Unable to open ";
 		errbuf += filename.c_str();

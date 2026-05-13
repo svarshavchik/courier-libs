@@ -326,6 +326,8 @@ Tokenized ;
 Tokenized eof
 Matching /Header: (.*)/ against Header: one
 Matching /Header: (.*)/ against Header: two
+Matching /Header: (.*)/ against 
+Not matched.
 ./testsuite.recipe(1): Search of Header: (.*) = 2
 Matched: Header: one (one)
 Matched: Header: two (two)

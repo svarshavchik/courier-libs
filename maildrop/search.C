@@ -9,6 +9,7 @@
 #include	<ctype.h>
 #include	<stdlib.h>
 #include	<algorithm>
+#include	<iostream>
 
 void Search::cleanup()
 {
@@ -73,7 +74,7 @@ int	Search::init(const char *expr, const char *opts)
 		b += ": ";
 		b += (char *)buffer;
 		b += "\n";
-		merr.write(b.c_str());
+		std::cerr << b << std::flush;
 		return -1;
 	}
 
@@ -88,7 +89,7 @@ int	Search::init(const char *expr, const char *opts)
 		b="Failed to create match data for: ";
 		b += expr;
 		b += "\n";
-		merr.write(b.c_str());
+		std::cerr << b << std::flush;
 		cleanup();
 		return -1;
 	}
@@ -139,7 +140,7 @@ int Search::find(const char *str, const char *expr, const char *opts,
 		msg += "/ against ";
 		msg += str;
 		msg += "\n";
-		merr.write(msg.c_str());
+		std::cerr << msg << std::flush;
 	}
 
 	int startoffset=0;
@@ -191,32 +192,31 @@ int Search::find(const char *str, const char *expr, const char *opts,
 
 int Search::findinline(Message &msg, const char *expr, foreach_t *foreachp)
 {
-	struct rfc2045_decodemsgtoutf8_cb decode_cb;
+	rfc822::mime_decoder decoder{
+		[this]
+		(const char *ptr, size_t n)
+		{
+			search_cb(ptr, n);
+		},
+		msg,
+		unicode::utf_8
+	};
 
-	memset(&decode_cb, 0, sizeof(decode_cb));
-
+	decoder.header_name_lc=false;
 	if (!match_top_header && !match_other_headers)
-		decode_cb.flags |= RFC2045_DECODEMSG_NOHEADERS;
+		decoder.decode_header=false;
 	else if (match_top_header && !match_other_headers)
-		decode_cb.flags |= RFC2045_DECODEMSG_NOATTACHHEADERS;
+		decoder.decode_subentities=false;
 
 	if (!match_body)
-		decode_cb.flags |= RFC2045_DECODEMSG_NOBODY;
+		decoder.decode_body=false;
 
 	current_line.clear();
-	decode_cb.output_func=&Search::search_cb;
-	decode_cb.arg=this;
 	foreachp_arg=foreachp;
-	rfc2045_decodemsgtoutf8(&msg.rfc2045src_parser,
-				msg.rfc2045p, &decode_cb);
+	decoder.decode<false>(msg.rfc2045p);
 	if (current_line.size() >= 1)
 		search_cb("\n", 1);
 	return 0;
-}
-
-int Search::search_cb(const char *ptr, size_t cnt, void *arg)
-{
-	return ((Search *)arg)->search_cb(ptr, cnt);
 }
 
 int Search::search_cb(const char *ptr, size_t cnt)
@@ -239,7 +239,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 				msg += "/ against ";
 				msg += current_line.c_str();
 				msg += "\n";
-				merr.write(msg.c_str());
+				std::cerr << msg << std::flush;
 			}
 
 			const char *orig_str=current_line.c_str();
@@ -276,7 +276,7 @@ int Search::search_cb(const char *ptr, size_t cnt)
 				}
 			}
 			else	if (VerboseLevel() > 2)
-				merr.write("Not matched.\n");
+				std::cerr << "Not matched.\n" << std::flush;
 
 			current_line.clear();
 

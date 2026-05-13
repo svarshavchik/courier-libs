@@ -24,7 +24,7 @@ noinst_LTLIBRARIES = libmdcommon.la
 libmdcommon_la_SOURCES=alarm.C alarm.h alarmsleep.C alarmsleep.h alarmtimer.C \
 	alarmtimer.h buffer.C buffer.h dotlock.C dotlock.h \
 	dotlockrefresh.C dotlockrefresh.h exittrap.C exittrap.h funcs.C \
-	funcs.h maildrop.C maildrop.h mio.C mio.h setgroupid.c setgroupid.h \
+	funcs.h maildrop.C maildrop.h setgroupid.c setgroupid.h \
 	tempfile.C tempfile.h
 libmdcommon_la_LIBADD=../maildir/libmaildir.la \
 	../rfc2045/librfc2045.la \
@@ -45,7 +45,6 @@ maildrop_SOURCES=deliver.C deliverdotlock.C deliverdotlock.h \
 	token.h varlist.C varlist.h dovecotauth.c dovecotauth.h
 
 maildrop_DEPENDENCIES = libmdcommon.la
-
 maildrop_LDADD = libmdcommon.la @AUTHLDADD@
 maildrop_LDFLAGS= `pcre2-config --libs8`
 
@@ -53,7 +52,7 @@ reformail_SOURCES=reformail.C
 reformail_LDADD = libmdcommon.la
 reformail_DEPENDENCIES = $(reformail_LDADD)
 
-noinst_PROGRAMS=maildrop reformail mailbot testtimer
+noinst_PROGRAMS=maildrop reformail mailbot testtimer testsuite3
 
 mailbot_SOURCES=mailbot.C
 mailbot_DEPENDENCIES=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
@@ -64,8 +63,13 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode -lpthread
 mailbot_LDFLAGS = -static
 
-testtimer_SOURCES=testtimer.C
+testtimer_SOURCES=testtimer.C message.C message.H
 testtimer_LDADD=libmdcommon.la
+
+testsuite3_SOURCES=testsuite3.C message.C message.H
+testsuite3_DEPENDENCIES = libmdcommon.la
+testsuite3_LDADD = libmdcommon.la @AUTHLDADD@
+testsuite3_LDFLAGS= `pcre2-config --libs8`
 
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\
 	testsuite.mailbot testsuite.mailbot.txt testsuite.txt.idn testsuite2
@@ -74,6 +78,7 @@ check-am: testsuite testsuite.mailbot
 	$(MAKE) run-testsuite
 	$(MAKE) run-testsuite2
 	$(MAKE) run-testsuite-mailbot
+	$(MAKE) run-testsuite3
 
 run-testsuite: testsuite
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
@@ -95,6 +100,15 @@ run-testsuite-mailbot: testsuite.mailbot
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
 	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
 	rm -f mailbot.tst testsuite.diff
+
+run-testsuite3:
+	./testsuite3
+	VALGRIND="`which valgrind 2>/dev/null`"; \
+		test -n "$$VALGRIND" || exit 0;\
+		$$VALGRIND --tool=memcheck --error-exitcode=1 \
+			--leak-check=yes \
+			--child-silent-after-fork=yes \
+			./testsuite3
 
 noinst_DATA=maildrop.html maildrop.1 maildropfilter.html maildropfilter.7 \
 	maildropgdbm.html maildropgdbm.7

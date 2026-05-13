@@ -33,6 +33,7 @@
 #include	<pwd.h>
 #include	<grp.h>
 #include	"../dbobj.h"
+#include	<iostream>
 
 /*
 ** This switch can later be moved to config.h file with appropriate
@@ -60,7 +61,6 @@ void rfc2045_error(const char *p)
 
 extern void setprocgroup();
 
-static Message m1, m2;
 extern char **environ;
 static int errexit=EX_TEMPFAIL;
 int quota_warn_percent = -1;
@@ -86,26 +86,10 @@ static void alarm_handler(int)
 
 Maildrop maildrop;
 
-Maildrop::Maildrop()
-{
-	verbose_level=0;
-	isdelivery=0;
-	sigfpe=0;
-	includelevel=0;
-	embedded_mode=0;
-	msgptr= &m1;
-	savemsgptr= &m2;
-#if AUTHLIB_TEMPREJECT
-	authlib_essential=1;
-#else
-	authlib_essential=0;
-#endif
-}
-
 static void help()
 {
-	mout << "Usage: maildrop [options] [-d user] [arg] [arg] ...\n";
-	mout << "       maildrop [options] [filterfile [arg] [arg] ...\n";
+	std::cout << "Usage: maildrop [options] [-d user] [arg] [arg] ...\n";
+	std::cout << "       maildrop [options] [filterfile [arg] [arg] ...\n";
 }
 
 static void bad()
@@ -116,7 +100,7 @@ static void bad()
 
 static void nouser()
 {
-	merr << "Invalid user specified.\n";
+	std::cerr << "Invalid user specified.\n" << std::flush;
 	exit(EX_NOUSER);
 }
 
@@ -184,72 +168,33 @@ static void copyright()
 {
 static const char msg[]="maildrop " VERSION " Copyright 1998-2023 S. Varshavchik."
 
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 #if HAVE_COURIER
 	"Courier-specific maildrop build. This version of maildrop should only be used"
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 	"with Courier, and not any other mail server."
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 #endif
 #ifdef DbObj
 	"GDBM/DB extensions enabled."
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 #endif
 #if DOVECOTAUTH
 	"Dovecot Authentication extension enabled."
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 #endif
 #if AUTHLIB
 	"Courier Authentication Library extension enabled."
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 #endif
 	"Maildir quota extension are now always enabled."
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
 	"This program is distributed under the terms of the GNU General Public"
-#if CRLF_TERM
-	"\r\n"
-#else
 	"\n"
-#endif
         "License. See COPYING for additional information."
-#if CRLF_TERM
-	"\r\n"
-#else
-	"\n"
-#endif
+	"\n";
 
-		;
-
-	mout << msg;
-	mout.flush();
+	std::cout << msg << std::flush;
 }
 
 void Maildrop::reset_vars()
@@ -303,8 +248,8 @@ static int callback_authlib(struct authinfo *auth,
 
 		add_integer(b, auth->sysgroupid);
 
-		merr << "maildrop: authlib: groupid="
-		     << b << "\n";
+		std::cerr << "maildrop: authlib: groupid="
+		     << b << "\n" << std::flush;
 	}
 
 	if (setgroupid(auth->sysgroupid) < 0)
@@ -320,9 +265,9 @@ static int callback_authlib(struct authinfo *auth,
 
 		if (q == NULL)
 		{
-			merr << "Cannot find system user "
+			std::cerr << "Cannot find system user "
 			     << auth->sysusername
-			     << "\n";
+			     << "\n" << std::flush;
 
 			nochangeuidgid();
 		}
@@ -338,8 +283,8 @@ static int callback_authlib(struct authinfo *auth,
 
 		add_integer(b, u);
 
-		merr << "maildrop: authlib: userid="
-		     << b << "\n";
+		std::cerr << "maildrop: authlib: userid="
+		     << b << "\n" << std::flush;
 	}
 
 	if (setuid(u) < 0 ||
@@ -348,13 +293,13 @@ static int callback_authlib(struct authinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		merr << "maildrop: authlib: logname="
+		std::cerr << "maildrop: authlib: logname="
 		     << auth->address
 		     << ", home="
 		     << auth->homedir
 		     << ", mail="
 		     << (auth->maildir ? auth->maildir:"(default)")
-		     << "\n";
+		     << "\n" << std::flush;
 	}
 
 	maildrop.init_home=auth->homedir;
@@ -406,8 +351,8 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 	{
 		std::string b = std::to_string(auth->sysgroupid);
 
-		merr << "maildrop: dovecotauth: groupid="
-		     << b << "\n";
+		std::cerr << "maildrop: dovecotauth: groupid="
+		     << b << "\n" << std::flush;
 	}
 
 	setgroupid(auth->sysgroupid);
@@ -419,9 +364,9 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 		if (q == NULL)
 		{
-			merr << "Cannot find system user "
+			std::cerr << "Cannot find system user "
 			     << auth->sysusername
-			     << "\n";
+			     << "\n" << std::flush;
 
 			nochangeuidgid();
 		}
@@ -435,8 +380,8 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 	{
 		std::string b = std::to_string(u);
 
-		merr << "maildrop: dovecotauth: userid="
-		     << b << "\n";
+		std::cerr << "maildrop: dovecotauth: userid="
+		     << b << "\n" << std::flush;
 	}
 
 	setuid(u);
@@ -446,13 +391,13 @@ static int callback_dovecotauth(struct dovecotauthinfo *auth,
 
 	if (VerboseLevel() > 1)
 	{
-		merr << "maildrop: dovecotauth: logname="
+		std::cerr << "maildrop: dovecotauth: logname="
 		     << auth->address
 		     << ", home="
 		     << auth->homedir
 		     << ", mail="
 		     << (auth->maildir ? auth->maildir:"(default)")
-		     << "\n";
+		     << "\n" << std::flush;
 	}
 
 	maildrop.init_home=auth->homedir;
@@ -599,7 +544,7 @@ const	char *dovecotauth_addr=0;
 			if (!*optarg && argn < argc)	optarg=argv[argn++];
 			if (!*optarg)
 			{
-				mout << "You didn't specify the location of Dovecot auth socket.\n";
+				std::cout << "You didn't specify the location of Dovecot auth socket.\n";
 				return (EX_TEMPFAIL);
 			}
 			else
@@ -870,7 +815,8 @@ std::string	value;
 		const char *h=b.c_str();
 
 		if (VerboseLevel() > 1)
-			merr << "maildrop: Changing to " << h << "\n";
+			std::cerr << "maildrop: Changing to " << h << "\n"
+				  << std::flush;
 
 		if (chdir(h) < 0)
 		{
@@ -967,7 +913,7 @@ std::string	msg;
 		if (maildrop.msginfo.fromname.size() > 0)
 			msg += maildrop.msginfo.fromname;
 		msg += "\n";
-		merr.write(msg.c_str());
+		std::cerr << msg << std::flush;
 	}
 
 	name="HOSTNAME";
@@ -1024,14 +970,16 @@ int	firstdefault=1;
 			msg=".mailfilters/";
 			msg += recipe;
 			if (VerboseLevel() > 1)
-				merr << "maildrop: Attempting " << msg << "\n";
+				std::cerr << "maildrop: Attempting " << msg
+					  << "\n" << std::flush;
 			fd=in.Open(msg.c_str());
 		}
 		else
 		{
 			msg=recipe;
 			if (VerboseLevel() > 1)
-				merr << "maildrop: Attempting " << msg << "\n";
+				std::cerr << "maildrop: Attempting " << msg
+					  << "\n" << std::flush;
 			fd=in.Open(msg.c_str());
 			break;
 		}
@@ -1068,7 +1016,8 @@ int	firstdefault=1;
 			msg=".mailfilters/";
 			msg += DEFAULTEXT+1;
 			if (VerboseLevel() > 1)
-				merr << "maildrop: Attempting " << msg << "\n";
+				std::cerr << "maildrop: Attempting " << msg
+					  << "\n" << std::flush;
 			fd=in.Open(msg.c_str());
 			break;
 		}
@@ -1141,7 +1090,6 @@ int main(int argc, char **argv)
 #if HAVE_SETLOCALE
 	setlocale(LC_ALL, "C");
 #endif
-
 	_exit(Maildrop::trap(run, argc, argv));
 }
 

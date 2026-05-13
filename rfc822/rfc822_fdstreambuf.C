@@ -7,6 +7,7 @@
 #include	<unistd.h>
 #include	<cstring>
 #include	<cstdio>
+#include	<fcntl.h>
 
 #ifndef BUFSIZ
 #define BUFSIZ 8192
@@ -31,8 +32,16 @@ rfc822::fdstreambuf rfc822::fdstreambuf::tmpfile()
 	return tmpfilebuf;
 }
 
+rfc822::fdstreambuf rfc822::fdstreambuf::tmpfile(const char *tmpdir)
+{
+	return rfc822::fdstreambuf{
+		open(tmpdir, O_TMPFILE|O_RDWR|O_EXCL, 0600)
+	};
+}
+
 rfc822::fdstreambuf &rfc822::fdstreambuf::operator=(fdstreambuf &&o) noexcept
 {
+	sync();
 	std::swap(fd, o.fd);
 	std::swap(defaultbuf, o.defaultbuf);
 
@@ -310,6 +319,11 @@ std::streamsize rfc822::fdstreambuf::xsgetn(char* s, std::streamsize count )
 		if (ret >= 0)
 		{
 			c += ret;
+		}
+		else
+		{
+			close(fd);
+			fd= -1;
 		}
 	}
 

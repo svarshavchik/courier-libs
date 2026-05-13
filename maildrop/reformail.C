@@ -1125,7 +1125,7 @@ void	(*function)(int, char *[], int)=0;
 
 	if (!function)	function=copy;
 	(*function)(argc, argv, argn);
-	std::cout.flush();
+	std::cout << std::flush;
 	if (std::cout.fail())
 	{
 		std::cerr << "reformail: error writing output." << std::endl;

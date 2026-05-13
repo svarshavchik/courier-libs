@@ -24,7 +24,7 @@ public:
 
 	int	NextChar() override;
 	int	CurrentChar() override;
-	off_t GetCurrentPos() override;
-	void	SetCurrentPos(off_t) override;
+	std::streampos GetCurrentPos() override;
+	void	SetCurrentPos(std::streampos) override;
 } ;
 #endif

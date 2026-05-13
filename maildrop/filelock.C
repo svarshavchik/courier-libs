@@ -1,5 +1,5 @@
 #include	"filelock.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #if HAVE_FCNTL_H
 #include	<fcntl.h>
 #endif
@@ -41,7 +41,7 @@ void FileLock::Lock(const char *filename)
 {
 	UnLock();
 
-	if ((fd=mopen(filename, O_CREAT | O_WRONLY, 0600)) < 0)
+	if ((fd=open(filename, O_CREAT | O_WRONLY, 0600)) < 0)
 		throw "Unable to create flock file.";
 
 	do_filelock(fd);
@@ -76,7 +76,7 @@ void FileLock::UnLock()
 {
 	if (fd >= 0)
 	{
-		mclose(fd);
+		close(fd);
 		fd= -1;
 	}
 }

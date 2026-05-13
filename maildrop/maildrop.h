@@ -1,19 +1,20 @@
+#ifndef	maildrop_h
+#define	maildrop_h
 #include	"config.h"
 #include	"message.h"
 #include	"messageinfo.h"
-
-#ifndef	maildrop_h
-#define	maildrop_h
-
 
 ////////////////////////////////////////////////////////////////////////////
 //
 // Maildrop global variables
 
 #include	"buffer.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 
 class Maildrop {
+
+	Message m1, m2;
+
 public:
 	int verbose_level;	// Current verbose level
 	int isdelivery;		// Running in delivery mode
@@ -39,7 +40,7 @@ static	int sigfpe;		// Floating point exception trapped.
 	std::string	init_default;	// Initial DEFAULT
 	std::string	init_quota;	// Initial MAILDIRQUOTA
 
-	Mio	logfile;	// Log file.
+	rfc822::fdstreambuf	logfile;	// Log file.
 	Maildrop();
 
 	static void cleanup();

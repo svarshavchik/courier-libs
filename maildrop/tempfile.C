@@ -1,7 +1,7 @@
 #include "config.h"
 #include	"tempfile.h"
 #include	"funcs.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 
 
 TempFile::TempFile() :
@@ -29,7 +29,7 @@ int TempFile::Open(const char *fname, int flags, mode_t mode)
 	Close();
 	name(fname);
 
-	fd=mopen(fname, flags, mode);
+	fd=open(fname, flags, mode);
 	if ( fd < 0 )
 		name(0);
 	else

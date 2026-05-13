@@ -4,14 +4,14 @@
 
 #include	"config.h"
 #include	"buffer.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 
 //////////////////////////////////////////////////////////////////////////////
 //
 // FormatMbox class returns consecutive lines from the current message,
 // formatted for delivery into a mailbox.  That means the lines are
-// terminate with either <LF> or <CRLF> (defined at compilation time).
-// Furthermore, the message can be optionally preceded by the From line.
+// terminated with <LF> and the message can be optionally preceded by the
+// From line.
 //
 // Mandatory calling sequence:
 //
@@ -57,6 +57,6 @@ public:
 			return ( (this->*next_func)() );
 		}
 
-	int	DeliverTo(class Mio &);
+	int	DeliverTo(rfc822::fdstreambuf &);
 } ;
 #endif

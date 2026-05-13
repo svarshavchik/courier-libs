@@ -4,6 +4,8 @@
 
 #include	"config.h"
 #include	<sys/types.h>
+#include	<streambuf>
+
 // #include	<unistd.h>
 
 ////////////////////////////////////////////////////////////////////////////
@@ -27,7 +29,7 @@ public:
 
 	virtual int NextChar()=0;
 	virtual int CurrentChar()=0;
-	virtual off_t GetCurrentPos()=0;
-	virtual void SetCurrentPos(off_t)=0;
+	virtual std::streampos GetCurrentPos()=0;
+	virtual void SetCurrentPos(std::streampos)=0;
 } ;
 #endif

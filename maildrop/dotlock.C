@@ -6,7 +6,7 @@
 #include	"dotlock.h"
 #include	"funcs.h"
 #include	"xconfig.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"buffer.h"
 #include	"alarmsleep.h"
 #include	"alarmtimer.h"
@@ -36,11 +36,11 @@ void	DotLock::Unlock()
 
 int DotLock::attemptlock(const char *templock, const char *finallock)
 {
-Mio	mio;
-std::string	b;
-static std::string   errbuf;
+	rfc822::fdstreambuf	mio{open(templock, O_CREAT | O_WRONLY, 0644)};
+	std::string	b;
+	static std::string   errbuf;
 
-	if (mio.Open(templock, O_CREAT | O_WRONLY, 0644) < 0)
+	if (mio.error())
 	{
                 errbuf="Unable to create a dot-lock at ";
                 errbuf += templock;
@@ -51,14 +51,16 @@ static std::string   errbuf;
 
 	add_integer(b, getpid() );
 	b += "\n";
-	if (mio.write(b.c_str(), b.size()) < 0 || mio.flush() < 0)
+	if ((size_t)mio.sputn(b.c_str(), b.size()) != b.size() ||
+	    mio.pubsync() < 0)
 	{
-		mio.Close();
+		mio=rfc822::fdstreambuf{};
 		unlink(templock);
 		throw "Unable to write to a dot-lock.";
 	}
-	mio.Close();
-	if (mio.errflag())
+	bool error=mio.error();
+	mio=rfc822::fdstreambuf{};
+	if (error)
 	{
 		unlink(templock);
 		throw "Unable to close a dot-lock.";

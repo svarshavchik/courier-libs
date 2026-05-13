@@ -9,6 +9,19 @@
 
 std::unordered_map<std::string, std::string> varlist;
 
+void Message::setmsgsize()
+{
+	std::string	n,v;
+
+	n="SIZE";
+	add_integer(v, rfc2045p.endbody);
+	SetVar(n,v);
+	n="LINES";
+	v.clear();
+	add_integer(v, rfc2045p.nbodylines);
+	SetVar(n,v);
+}
+
 void UnsetVar(const std::string &var)
 {
 	varlist.erase(var);

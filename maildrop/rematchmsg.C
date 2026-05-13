@@ -8,7 +8,7 @@ ReMatchMsg::ReMatchMsg(Message *m, int flag, int flag2)
 	: msg(m), header_only(flag), mergelines(flag2), eof(0),
 	lastc(0), end_headers(0)
 {
-	start=msg->tell();
+	start=msg->tellg();
 }
 
 ReMatchMsg::~ReMatchMsg()
@@ -51,7 +51,7 @@ int	c;
 			if (nextc == '\r' || nextc == '\n')
 			{
 				if (mergelines)
-					end_headers=msg->tell();
+					end_headers=msg->tellg();
 				mergelines=0;
 				if (header_only)	eof=1;
 				return (c);
@@ -63,14 +63,14 @@ int	c;
 	}
 }
 
-off_t ReMatchMsg::GetCurrentPos()
+std::streampos ReMatchMsg::GetCurrentPos()
 {
-	return (msg->tell());
+	return (msg->tellg());
 }
 
-void ReMatchMsg::SetCurrentPos(off_t p)
+void ReMatchMsg::SetCurrentPos(std::streampos p)
 {
-	if (p < msg->tell())	eof=0;
+	if (p < msg->tellg())	eof=0;
 	if ( p < start || p == 0)
 	{
 		msg->pubseekpos(start);
@@ -78,7 +78,7 @@ void ReMatchMsg::SetCurrentPos(off_t p)
 	}
 	else
 	{
-		msg->pubseekpos(p-1);
+		msg->pubseekpos(p-std::streamoff{1});
 		lastc=msg->sbumpc();
 	}
 	if (p < end_headers)	mergelines=1;

@@ -7,7 +7,7 @@
 #include	"message.h"
 #include	"messageinfo.h"
 #include	"alarm.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"pipefds.h"
 #include	"formatmbox.h"
 #include	"xconfig.h"
@@ -25,7 +25,7 @@
 #if	HAVE_STRINGS_H
 #include	<strings.h>
 #endif
-
+#include	<iostream>
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -103,7 +103,6 @@ pid_t	pid=fork();
 				; /* ignore */
 			_exit(100);
 		}
-#if NEED_NONCONST_EXCEPTIONS
 		catch (char *p)
 		{
 			if (write(2, p, strlen(p)) < 0 ||
@@ -111,7 +110,6 @@ pid_t	pid=fork();
 				; /* ignore */
 			_exit(100);
 		}
-#endif
 		catch (...)
 		{
 			_exit(101);
@@ -147,6 +145,9 @@ int	maxfd=pipe1.fds[0];
 
 	fcntl(pipe1.fds[0], F_SETFL, O_NDELAY);
 	fcntl(pipe0.fds[1], F_SETFL, O_NDELAY);
+
+	rfc2045::entity_parser<false> parser;
+	Message::init_partial partial{*maildrop.savemsgptr, parser};
 
 	for (;;)
 	{
@@ -200,7 +201,8 @@ int	maxfd=pipe1.fds[0];
 					writebuflen=0;
 					if (!ignorewerr)
 					{
-						merr << "maildrop: error writing to filter.\n";
+						std::cerr << "maildrop: error writing to filter.\n"
+							  << std::flush;
 						errflag=1;
 						break;
 					}
@@ -228,7 +230,8 @@ int	maxfd=pipe1.fds[0];
 #endif
 				    )
 				{
-					merr << "maildrop: error reading from filter.\n";
+					std::cerr << "maildrop: error reading from filter.\n"
+						  << std::flush;
 					errflag=1;
 					break;
 				}
@@ -238,19 +241,21 @@ int	maxfd=pipe1.fds[0];
 			{
 				if ( (pipe0.fds[1] >= 0) && (!ignorewerr) )
 				{
-					merr << "maildrop: filter terminated prematurely.\n";
+					std::cerr << "maildrop: filter terminated prematurely.\n"
+						  << std::flush;
 					errflag=1;	// Not everything
 					break;		// was written, though.
 				}
 				break;
 			}
 
-			maildrop.savemsgptr->Init(buffer, readbuflen);
+			partial(buffer, readbuflen);
 		}
 	}
 
 	pipe0.close1();
 	pipe1.close0();
+	partial.done();
 
 	int	wait_stat;
 
@@ -303,7 +308,6 @@ void executesystem(const char *cmd)
 				; /* ignore */
 			_exit(100);
 		}
-#if NEED_NONCONST_EXCEPTIONS
 		catch (char *p)
 		{
 			if (write(2, p, strlen(p)) < 0 ||
@@ -311,7 +315,6 @@ void executesystem(const char *cmd)
 				; /* ignore */
 			_exit(100);
 		}
-#endif
 		catch (...)
 		{
 			_exit(101);

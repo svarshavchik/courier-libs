@@ -6,7 +6,7 @@
 #include	"config.h"
 #include	"funcs.h"
 #include	"deliverdotlock.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"formatmbox.h"
 #include	"xconfig.h"
 #include	"varlist.h"
@@ -34,7 +34,7 @@
 #include	<unistd.h>
 #endif
 #include	<errno.h>
-
+#include	<iostream>
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -71,8 +71,8 @@ FormatMbox	format_mbox;
 
 
 		if (VerboseLevel() > 0)
-			merr << "maildrop: Delivering to |" <<
-				cmdbuf.c_str() << "\n";
+			std::cerr << "maildrop: Delivering to |" <<
+				cmdbuf.c_str() << "\n" << std::flush;
 
 	PipeFds	pipe;
 
@@ -101,7 +101,6 @@ FormatMbox	format_mbox;
 					; /* ignored */
 				_exit(100);
 			}
-#if NEED_NONCONST_EXCEPTIONS
 			catch (char *p)
 			{
 				if (write(2, p, strlen(p)) < 0 ||
@@ -109,17 +108,16 @@ FormatMbox	format_mbox;
 					; /* ignored */
 				_exit(100);
 			}
-#endif
 			catch (...)
 			{
 				_exit(100);
 			}
 		}
 
-	Mio	pipemio;
+	rfc822::fdstreambuf	pipemio;
 
 		pipe.close0();
-		pipemio.fd(pipe.fds[1]);
+		pipemio=rfc822::fdstreambuf{pipe.fds[1]};
 		pipe.fds[1]= -1;
 		format_mbox.Init(0);
 
@@ -152,10 +150,11 @@ FormatMbox	format_mbox;
 	{
 		block_sigalarm pause;
 		Maildir	deliver_maildir;
-		Mio	deliver_file;
+		rfc822::fdstreambuf	deliver_file;
 
-		if ( deliver_maildir.MaildirOpen(mailbox, deliver_file,
-			maildrop.msgptr->MessageSize()) < 0)
+		if ( deliver_maildir.MaildirOpen(
+			     mailbox, deliver_file,
+			     maildrop.msgptr->rfc2045p.endbody) < 0)
 		{
 			throw 75;
 		}
@@ -175,14 +174,15 @@ FormatMbox	format_mbox;
 		DeliverDotLock	dotlock;
 
 		if (VerboseLevel() > 0)
-			merr << "maildrop: Delivering to " << mailbox << "\n";
+			std::cerr << "maildrop: Delivering to "
+				  << mailbox << "\n" << std::flush;
 
 #if	USE_DOTLOCK
 		dotlock.LockMailbox(mailbox);
 #endif
 
 		struct	stat	stat_buf;
-		Mio	mio;
+		rfc822::fdstreambuf	mio;
 		std::string name_buf;
 
 		std::string um=GetVar("UMASK");
@@ -192,45 +192,43 @@ FormatMbox	format_mbox;
 
 		umask_val=umask(umask_val);
 
-		if (mio.Open(mailbox, O_CREAT | O_WRONLY, 0666) < 0)
+		if ((mio=rfc822::fdstreambuf{
+					open(mailbox, O_CREAT | O_WRONLY, 0666)
+				}).error())
 		{
 			umask_val=umask(umask_val);
 			throw "Unable to open mailbox.";
 		}
 		umask_val=umask(umask_val);
 
-		if (fstat(mio.fd(), &stat_buf) < 0)
+		if (fstat(mio.fileno(), &stat_buf) < 0)
 			throw "Unable to open mailbox.";
 
 #if	USE_FLOCK
 
 		if (VerboseLevel() > 4)
-			merr << "maildrop: Flock()ing " << mailbox << ".\n";
+			std::cerr << "maildrop: Flock()ing " << mailbox
+				  << ".\n" << std::flush;
 
-		FileLock::do_filelock(mio.fd());
+		FileLock::do_filelock(mio.fileno());
 #endif
 		if (S_ISREG(stat_buf.st_mode))
 		{
-			if (mio.seek(0L, SEEK_END) == (off_t)-1)
+			if (mio.pubseekoff(0, std::ios::end) == (off_t)-1)
 				throw "Seek error on mailbox.";
-			dotlock.trap_truncate(mio.fd(), stat_buf.st_size);
+			dotlock.trap_truncate(mio.fileno(), stat_buf.st_size);
 		}
 
 		if (VerboseLevel() > 4)
-			merr << "maildrop: Appending to " << mailbox << ".\n";
+			std::cerr << "maildrop: Appending to "
+				  << mailbox << ".\n" << std::flush;
 
 		try
 		{
 			format_mbox.Init(1);
 
 			if ((stat_buf.st_size > 0 &&
-			     mio.write(
-#if	CRLF_TERM
-				       "\r\n", 2
-#else
-				       "\n", 1
-#endif
-				       ) < 0) ||
+			     mio.sputn("\n", 1) != 1) ||
 			    format_mbox.DeliverTo(mio))
 			{
 				dotlock.truncate();
@@ -248,7 +246,7 @@ FormatMbox	format_mbox;
 	}
 
 	if (VerboseLevel() > 4)
-		merr << "maildrop: Delivery complete.\n";
+		std::cerr << "maildrop: Delivery complete.\n" << std::flush;
 
 	return (0);
 }

@@ -18,13 +18,11 @@ int Recipe::ParseRecipe(Lexer &l)
 		l.errmsg(p);
 		return (-1);
 	}
-#if NEED_NONCONST_EXCEPTIONS
 	catch (char *p)
 	{
 		l.errmsg(p);
 		return (-1);
 	}
-#endif
 	if (cur_tok.Type() != cur_tok.eof)
 	{
 		l.errmsg("Syntax error.");

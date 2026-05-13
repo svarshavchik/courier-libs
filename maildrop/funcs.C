@@ -45,15 +45,17 @@ const char *TempName(const char *dir, unsigned l)
 {
 static std::string buf;
 static unsigned counter=0;
-char	hostname[256];
+char	hostname[1024];
 
 	hostname[0]=0;
-	gethostname(hostname, 256);
+	gethostname(hostname, sizeof(hostname));
 	hostname[sizeof(hostname)-1]=0;
 
 	buf=dir;
 	if (l > 0 && l < buf.size())	buf.resize(l);
 	add_integer(buf, getpid() );
+	buf += ".";
+	add_integer(buf, time(NULL));
 	buf += ".";
 	add_integer(buf, counter++ );
 	buf += ".";

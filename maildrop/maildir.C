@@ -5,7 +5,7 @@
 
 #include	"config.h"
 #include	"maildir.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"alarmtimer.h"
 #include	"alarmsleep.h"
 #include	"config.h"
@@ -22,6 +22,7 @@
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
+#include	<iostream>
 #include	"../maildir/maildirquota.h"
 #include	"../maildir/maildircreate.h"
 #include	"../maildir/maildirmisc.h"
@@ -73,7 +74,7 @@ struct	stat stat_buf;
 	return (1);	// If it looks like a duck, walks like a duck...
 }
 
-int	Maildir::MaildirOpen(const char *dir, Mio &file, off_t s)
+int	Maildir::MaildirOpen(const char *dir, rfc822::fdstreambuf &file, off_t s)
 {
 	std::string	buf;
 	struct maildirsize quotainfo;
@@ -156,20 +157,21 @@ static long	counter=0;
 
 			maildir_tmpcreate_free(&createInfo);
 
-			file.fd(f);
+			file=rfc822::fdstreambuf{f};
 			is_open=1;
 			maildirRoot=dir;
 
 			if (maildir_quota_add_start(dir, &quotainfo, s,
 						    1, quotap))
 			{
-				file.fd(-1);
+				file=rfc822::fdstreambuf{};
 				unlink( tmpname.c_str() );
 				is_open=0;
 				maildir_deliver_quota_warning(dir,
 							      quota_warn_percent,
 							      quota_warn_message);
-				merr << "maildrop: maildir over quota.\n";
+				std::cerr << "maildrop: maildir over quota.\n"
+					  << std::flush;
 				return (-1);
 			}
 
@@ -179,15 +181,18 @@ static long	counter=0;
 
 		if (errno != EAGAIN)
 		{
-			merr << "maildrop: " << dir << ": " << strerror(errno)
-			     << "\n";
+			std::cerr << "maildrop: " << dir << ": "
+				  << strerror(errno)
+				  << "\n"
+				  << std::flush;
 			return -1;
 		}
 
 		AlarmSleep	try_again(2);
 	}
 
-	merr << "maildrop: time out on maildir directory.\n";
+	std::cerr << "maildrop: time out on maildir directory.\n"
+		  << std::flush;
 	return (-1);
 }
 

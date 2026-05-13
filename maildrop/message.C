@@ -5,81 +5,41 @@
 #include	"funcs.h"
 #include	"varlist.h"
 
-static int rfc2045_seek_func(off_t pos, void *arg)
+Message::Message(Maildrop &maildrop) : maildrop{maildrop}
 {
-	Message *p=reinterpret_cast<Message *>(arg);
-
-	p->pubseekpos(pos);
-	return 0;
 }
 
-static ssize_t rfc2045_read_func(char *buf, size_t cnt, void *arg)
-{
-	Message *p=reinterpret_cast<Message *>(arg);
-
-	ssize_t n=0;
-
-	while (cnt)
-	{
-		int c=p->sbumpc();
-
-		if (c < 0)
-			return -1;
-		*buf++=c;
-		--cnt;
-		++n;
-	}
-	return n;
-}
-
-Message::Message() : buffer(0), bufptr(0),
-		     extra_headers(0), extra_headersptr(0), msgsize(0),
-		     rfc2045src_parser(rfc2045src()),
-		     rfc2045p(0)
-{
-	rfc2045src_parser.seek_func=rfc2045_seek_func;
-	rfc2045src_parser.read_func=rfc2045_read_func;
-	rfc2045src_parser.arg=reinterpret_cast<void *>(this);
-}
-
-Message::~Message()
-{
-	mio.fd(-1);	// Either way, it's not our file
-	if (buffer)	delete[] buffer;
-	if (rfc2045p)
-		rfc2045_free(rfc2045p);
-}
+Message::~Message() = default;
 
 void Message::Init()
 {
-	if (buffer)
-	{
-		delete[] buffer;
-		buffer=0;
-	}
+	buffer.clear();
 	extra_headers.clear();
-	if (rfc2045p)
-		rfc2045_free(rfc2045p);
-	extra_headersptr=0;
-	msgsize=0;
-	msglines=0;
-	tempfile.Close();
-	mio.fd(-1);
-	rfc2045p=rfc2045_alloc();
+	mio=rfc822::fdstreambuf{};
+	rfc2045p=rfc2045::entity{};
+	setg(nullptr, nullptr, nullptr);
 }
 
 void Message::Init(int fd, const std::string &extra_headers)
 {
 	Init();
-	ExtraHeaders(extra_headers);
+	rfc2045::entity_parser<false> parser;
+	init_partial partial{*this, parser};
+
+	ExtraHeaders(partial, extra_headers);
 
 	// If the file descriptor is seekable, and the message is big
 	// keep message in the file.
-	if ( mseek(fd, 0, SEEK_END) >= 0 &&
-		(msgsize=mseek(fd, 0, SEEK_CUR)) >= 0 && msgsize > SMALLMSG)
-	{
 
-	// BUGFIX 0.55 - mio takes ownership of the file descriptor. When
+	off_t msgsize;
+
+	if ( lseek(fd, 0, SEEK_END) >= 0 &&
+		(msgsize=lseek(fd, 0, SEEK_CUR)) >= 0 && msgsize > SMALLMSG)
+	{
+		if (lseek(fd, 0, SEEK_SET) < 0)
+			seekerr();
+
+	// BUGFIX 0.55 - we take ownership of the file descriptor. When
 	// ::Init() is called, it will call fd(-1) which will CLOSE this
 	// descriptor we have now.
 	//
@@ -89,138 +49,148 @@ void Message::Init(int fd, const std::string &extra_headers)
 		fd=dup(fd);
 		if (fd < 0)	throw "dup() failed.";
 
-		mio.fd(fd);
-		mio.rfc2045p=rfc2045p;
-		if (mio.Rewind() < 0)	seekerr();
+		mio=rfc822::fdstreambuf{fd};
 
-	int	c;
+		char buffer[BUFSIZ];
 
-		while ((c=mio.sbumpc()) >= 0)
-			if (c == '\n')	msglines++;
-		mio.rfc2045p=0;
+		int n;
+
+		while ((n=mio.sgetn(buffer, sizeof(buffer))) > 0)
+		{
+			parser.parse(buffer, buffer+n);
+		}
+
+		partial.done();
+		pubseekpos(0);
 		return;
 	}
 	// Well, just read the message, and let Init() figure out what to
 	// do.
 
-	mseek(fd, 0, SEEK_SET);	// Just in case
-	msgsize=0;
+	lseek(fd, 0, SEEK_SET);	// Just in case
 
 #ifdef	BUFSIZ
-char	buf[BUFSIZ];
+	char	buf[BUFSIZ];
 #else
-char	buf[8192];
+	char	buf[8192];
 #endif
-int	n;
+	int	n;
 
 	while ((n=read(fd, buf, sizeof(buf))) > 0)
 	{
-		Init(buf, n);
+		partial(buf, n);
 	}
 	if (n < 0)
 		throw "Error - read() failed reading message.";
-#if CRLF_TERM
-	msgsize += msglines;
-#endif
+	partial.done();
+	pubseekpos(0);
 }
 
-void Message::Init(const void *data, unsigned cnt)
+void Message::init_partial::operator()(const char *data, size_t cnt)
 {
-	rfc2045_parse(rfc2045p, (const char *)data, cnt);
-	{
-	const char *p=(const char*)data;
-	unsigned n=cnt;
+	parser.parse(data, data+cnt);
 
-		while (n)
-		{
-			if (*p++ == '\n')	++msglines;
-			--n;
-		}
-	}
-
-	if (mio.fd() < 0)	// Still trying to save to buffer
+	if (message.mio.fileno() < 0)	// Still trying to save to buffer
 	{
-		if (!buffer)
+		if (message.buffer.empty())
 		{
-			buffer=new char[SMALLMSG];
-			bufptr=buffer;
-			msgsize=0;
-			if (!buffer)	outofmem();
+			message.buffer.reserve(SMALLMSG);
 		}
 
-		if (SMALLMSG - msgsize >= (off_t)cnt)	// Can still do it
+		if (SMALLMSG - message.buffer.size() >= cnt) // Can still do it
 		{
-			memcpy(bufptr, data, cnt);
-			bufptr += cnt;
-			msgsize += cnt;
+			message.buffer.insert(
+				message.buffer.end(),
+				data,
+				data+cnt);
 			return;
 		}
 
-	int	fd;
-
 #if	SHARED_TEMPDIR
 
-		fd=tempfile.Open();
-
-		if (fd < 0)
-			throw "Unable to create temporary file.";
+		message.mio=rfc822::fdstreambuf::tmpfile();
 #else
-		while ( (fd=tempfile.Open( TempName(),
-			O_RDWR | O_CREAT | O_EXCL, 0600)) < 0 &&
-			errno == EEXIST)
-			;
-		if (fd < 0)
-			throw "Unable to create temporary file - check permissions on $HOME/" TEMPDIR;
+		message.mio=rfc822::fdstreambuf::tmpfile(
+			message.maildrop.tempdir.c_str()
+		);
 #endif
 
-		mio.fd(fd);
+		if (message.mio.error())
+			throw "Unable to create temporary file.";
 
-		if ((off_t)mio.write(buffer, msgsize) != msgsize)
+		if ((size_t)message.mio.sputn(message.buffer.data(),
+					      message.buffer.size())
+		    != message.buffer.size())
 			throw "Unable to write to temporary file - possibly out of disk space.";
 
-		delete[] buffer;
-		buffer=0;
+		message.buffer.clear();
 	}
 
-	if ((unsigned)mio.write(data, cnt) != cnt)
+	if ((size_t)message.mio.sputn(data, cnt) != cnt)
 		throw "Unable to write to temporary file - possibly out of disk space.";
-	msgsize += cnt;
 }
 
-void Message::ExtraHeaders(const std::string &buf)
+void Message::init_partial::done()
 {
-	rfc2045_parse(rfc2045p, buf.c_str(), buf.size());
-
-	extra_headers.clear();
-	extra_headersptr=nullptr;;
-	if (!buf.size())	return;
-
-	extra_headers.reserve(buf.size());
-	extra_headers.insert(extra_headers.end(),
-			     buf.begin(), buf.end());
-	extra_headersptr=extra_headers.data();
-	if (extra_headers.empty())
-		extra_headersptr=nullptr;
+	message.rfc2045p=parser.parsed_entity();
 }
 
-void Message::RewindIgnore()
+void Message::ExtraHeaders(init_partial &partial, const std::string &buf)
 {
-	extra_headersptr=nullptr;
-	if (mio.fd() >= 0)
-	{
-		if (mio.Rewind() < 0)	seekerr();
-		return;
-	}
-	bufptr=buffer;
+	partial.parser.parse(buf.data(), buf.data()+buf.size());
+	extra_headers=buf;
 }
 
 void Message::Rewind()
 {
-	RewindIgnore();
+	pubseekpos(0);
+}
 
-	extra_headersptr=extra_headers.data();
-	if (extra_headers.empty())
-		extra_headersptr=nullptr;
+Message::int_type Message::underflow()
+{
+	if (mio.fileno() < 0)
+	{
+		if (eback() && eback() == extra_headers.data())
+		{
+			setg(buffer.data(), buffer.data(),
+			     buffer.data() + buffer.size());
+			if (buffer.size() == 0)
+				return -1;
+			return (unsigned char)*gptr();
+		}
+
+		// Must've already been at buffer
+		return -1;
+	}
+
+	buffer.clear();
+	buffer.reserve(BUFSIZ);
+
+	if (mio.in_avail() == 0 && mio.sgetc() == -1)
+		return -1;
+
+	size_t n=mio.in_avail();
+	if (n == 0)
+	{
+		auto c=mio.sbumpc();
+
+		if (c < 0)
+			return -1;
+		buffer.push_back(c);
+	}
+	else
+	{
+		char stackbuf[n];
+
+		n=mio.sgetn(stackbuf, n);
+
+		if (n == 0)
+			return -1;
+
+		buffer.insert(buffer.end(), stackbuf, stackbuf+n);
+	}
+	setg(buffer.data(), buffer.data(), buffer.data()+buffer.size());
+	return (unsigned char)*buffer.data();
 }
 
 void Message::readerr()
@@ -235,65 +205,19 @@ void Message::seekerr()
 
 int Message::appendline(std::string &buf, int stripcr)
 {
-	if (mio.fd() >= 0 || extra_headersptr)
-	{
 	int	c;
-	int	eof= 1;
+	bool	eof=true;
 	int	lastc=0;
 
-		while ((c=sbumpc()) > 0 && c != '\n')
-		{
-			eof=0;
-			buf.push_back(c);
-			lastc=c;
-		}
-		if (c < 0 && eof)	return (-1);
-		if (stripcr && lastc == '\r')	buf.pop_back();
-						// Drop trailing CRs
-		buf += "\n";
-		return (0);
-	}
-
-	if (bufptr >= buffer + msgsize)
+	while ((c=sbumpc()) >= 0 && c != '\n')
 	{
-		return (-1);
+		eof=false;
+		buf.push_back(c);
+		lastc=c;
 	}
-
-unsigned cnt=buffer + msgsize - bufptr;
-unsigned i;
-
-	for (i=0; i<cnt; i++)
-		if (bufptr[i] == '\n')
-		{
-			if (i > 0 && stripcr && bufptr[i-1] == '\r')
-				buf.append(bufptr, bufptr+i-1);
-				// Drop trailing CRs
-			else
-				buf.append(bufptr, bufptr+i);
-			buf += "\n";
-			bufptr += ++i;
-			return (0);
-		}
-
-	if (stripcr && bufptr[i-1] == '\r')
-		buf.append(bufptr, bufptr+cnt-1);
-				// Drop trailing CRs
-	else
-		buf.append(bufptr, bufptr+cnt);
-	bufptr += cnt;
+	if (c < 0 && eof)	return (-1);
+	if (stripcr && lastc == '\r')	buf.pop_back();
+						// Drop trailing CRs
 	buf += "\n";
 	return (0);
-}
-
-void Message::setmsgsize()
-{
-std::string	n,v;
-
-	n="SIZE";
-	add_integer(v, MessageSize());
-	SetVar(n,v);
-	n="LINES";
-	v.clear();
-	add_integer(v, MessageLines());
-	SetVar(n,v);
 }

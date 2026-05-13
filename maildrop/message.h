@@ -2,6 +2,7 @@
 #define	message_h
 
 #include "rfc2045/rfc2045.h"
+#include "rfc822/rfc822.h"
 #include <string>
 
 //////////////////////////////////////////////////////////////////////////////
@@ -13,9 +14,12 @@
 //
 // A Message object can be initiated in two ways.  It can be initiated from
 // a file.  The Message object will check if the file is seekable.  If so,
-// the Message object will simply use the Mio class to access the file.
+// the Message object will simply use the rfc822::fdstreambuf class to access
+// the file.
+//
 // If the file is not seekable, the message will be saved in a temporary
-// file, and the Mio class will be used to access the temporary file.
+// file, and the rfc822::fdstreambuf class will be used to access the
+// temporary file.
 //
 // However, if the message size turns out to be smaller the SMALLMSG bytes,
 // the message is saved in a memory buffer, and accessed from there, for
@@ -29,7 +33,6 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include	"config.h"
-#include	"mio.h"
 #include	"tempfile.h"
 #include	<sys/types.h>
 #include	<errno.h>
@@ -47,146 +50,143 @@
 
 #include	<vector>
 
-class Message {
-	Mio mio;
-	TempFile tempfile;
-	char	*buffer;
-	char	*bufptr;
-	std::vector<char> extra_headers;
-	char	*extra_headersptr;
-	off_t	msgsize;
-	off_t	msglines;
+class Maildrop;
 
-	static void readerr();
-	static void seekerr();
+class Message : public std::streambuf {
 public:
-	Message();
+	Maildrop &maildrop;
+private:
+	rfc822::fdstreambuf mio;
+	std::vector<char> buffer;
+	std::string extra_headers;
+
+	[[noreturn]] static void readerr();
+	[[noreturn]] static void seekerr();
+public:
+	Message(Maildrop &maildrop);
 	~Message();
 	void Init(int, const std::string &extra_headers);
 	// Initialize from file descriptor
 
 	void Init();		// Begin initializing externally
-	void Init(const void *, unsigned);	// From existing contents.
-	void ExtraHeaders(const std::string &);
+
+	// Incremental initialization
+
+	struct init_partial {
+		Message &message;
+		rfc2045::entity_parser<false> &parser;
+		void operator()(const char *, size_t);
+
+		void done();
+	};
+private:
+	void ExtraHeaders(init_partial &, const std::string &);
+public:
 	void Rewind();		// Start reading the message
-	void RewindIgnore();	// Rewind, ignore msginfo
 	int appendline(std::string &, int=1);	// Read newline-terminated line.
-	off_t pubseekpos(off_t);
-	off_t tell();
-	int sbumpc();
-	int sgetc();
-	off_t MessageSize();
-	off_t MessageLines() { return (msglines); }
+	std::streampos seekpos(std::streampos,
+			       std::ios_base::openmode=
+			       std::ios_base::in | std::ios_base::out) override;
+	std::streampos seekoff(std::streamoff,
+			       std::ios_base::seekdir,
+			       std::ios_base::openmode=
+			       std::ios_base::in | std::ios_base::out) override;
+	std::streampos tellg();
+
+	int_type underflow() override;
 	void setmsgsize();
 
 	// API translator for rfc2045 functions
 
-	struct rfc2045src rfc2045src_parser;
-	struct rfc2045 *rfc2045p;
+	rfc2045::entity rfc2045p;
 } ;
 
 #include	"funcs.h"
 #include	"maildrop.h"
 
-inline int Message::sgetc()		// Current character.
+
+inline std::streampos Message::tellg()
 {
-	if (extra_headersptr)
-		return ( (unsigned char) *extra_headersptr );
+	std::streampos	pos;
 
-	if (mio.fd() >= 0)
+	if (eback() && eback() == extra_headers.data())
+		return gptr()-eback();
+	if (mio.error()) // Cached in memry
 	{
-		errno=0;
-
-	int	c=mio.sgetc();
-
-		if (c < 0 && errno)	readerr();
-		return (c);
+		if (!eback())
+			pos=0;
+		else
+			pos=gptr()-eback();
 	}
-
-	if (bufptr >= buffer + msgsize)	return (-1);
-	return ( (int)(unsigned char)*bufptr );
-}
-
-inline int Message::sbumpc()		// Get character.
-{
-int	c;
-
-	if (extra_headersptr)
-	{
-		c= (unsigned char) *extra_headersptr++;
-		if (extra_headersptr >=
-		    extra_headers.data()+extra_headers.size())
-			extra_headersptr=nullptr;
-		return (c);
-	}
-
-	if (mio.fd() >= 0)
-	{
-		errno=0;
-
-		c=mio.sbumpc();
-		if (c < 0 && errno)	readerr();
-		return (c);
-	}
-
-	if (bufptr >= buffer + msgsize)	return (-1);
-	return ( (int)(unsigned char)*bufptr++ );
-}
-
-inline off_t Message::tell()
-{
-off_t	pos;
-
-	if ( mio.fd() < 0)
-		pos=bufptr - buffer;
 	else
 	{
 		pos=mio.tell();
-		if (pos == -1)	seekerr();
+
+		if (eback())
+			pos -= egptr()-gptr();
 	}
 
-	if (extra_headersptr)
-		pos += extra_headersptr-extra_headers.data();
-	else
-	{
-		pos += extra_headers.size();
-	}
-	return (pos);
+	pos += extra_headers.size();
+	return pos;
 }
 
-inline off_t Message::pubseekpos(off_t n)
+inline std::streampos Message::seekoff(std::streamoff off,
+				       std::ios_base::seekdir d,
+				       std::ios_base::openmode mode)
+{
+	switch (d) {
+	case std::ios_base::beg:
+		if (off >= 0)
+			return seekpos(off);
+		break;
+	case std::ios_base::end:
+		return seekoff( rfc2045p.endbody + off,
+			       std::ios_base::beg);
+	case std::ios_base::cur:
+		return seekoff(tellg()+off, std::ios_base::beg);
+	}
+	seekerr();
+}
+
+inline std::streampos Message::seekpos(std::streampos n,
+				       std::ios_base::openmode)
 {
 	size_t	l=0;
 
 	if ((size_t)n < (l=extra_headers.size()))
 	{
-		extra_headersptr= extra_headers.data() + n;
-		n=0;
+		setg(extra_headers.data(),
+		     extra_headers.data()+n,
+		     extra_headers.data()+l);
+
+		if (mio.fileno() < 0)
+			return n;
+
+		if (mio.pubseekpos(0) == (std::streampos)-1)	seekerr();
+
+		return n;
 	}
-	else
+
+	size_t p=n;
+
+	p -= extra_headers.size();
+
+	if (mio.fileno() < 0)
 	{
-		extra_headersptr=nullptr;
-		n -= l;
+		if (p > buffer.size())
+			p=buffer.size();
+
+		setg(buffer.data(), buffer.data()+p,
+		     buffer.data()+buffer.size());
+		return n;
 	}
-	if (mio.fd() >= 0)
-	{
-		if (mio.pubseekpos(n) == (off_t)-1)	seekerr();
-	}
-	else
-	{
-		if (n > msgsize)	n=msgsize;
-		bufptr=buffer+n;
-	}
+
+	setg(nullptr, nullptr, nullptr);
+	l=extra_headers.size();
+
+	if (mio.pubseekpos(p) == (std::streampos)-1)	seekerr();
 
 	return n;
-}
-
-inline off_t Message::MessageSize()
-{
-	off_t s=msgsize;
-	s += extra_headers.size();
-
-	return (s);
 }
 
 #endif

@@ -3,16 +3,18 @@
 #include	"funcs.h"
 #include	"varlist.h"
 #include	<ctype.h>
-
+#include	<iostream>
 
 int	Lexer::Open(const char *filename_arg)
 {
 	linenum=1;
 	lasttokentype=Token::semicolon;
 
-int	fd;
+	int	fd=open(filename_arg, O_RDONLY);
 
-	if ((fd=file.Open(filename_arg, O_RDONLY)) < 0)
+	file=rfc822::fdstreambuf{fd};
+
+	if (fd < 0)
 		return (-1);
 	filename=filename_arg;
 	return (fd);
@@ -20,18 +22,18 @@ int	fd;
 
 void	Lexer::error(const char *errmsg)
 {
-	merr.write(errmsg);
+	std::cerr << errmsg << std::flush;
 }
 
 void	Lexer::token(Token &t)
 {
-	if ( file.fd() < 0)
+	if ( file.fileno() < 0)
 		t.Type( Token::eof);
 	else
 	{
 		token2(t);
 		if (t.Type() == Token::eof)
-			file.Close();
+			file=rfc822::fdstreambuf{};
 	}
 
 	lasttokentype=t.Type();
@@ -516,5 +518,5 @@ std::string	errbuf;
 	errbuf += "): ";
 	errbuf += emsg;
 	errbuf += "\n";
-	merr << errbuf;
+	std::cerr << errbuf << std::flush;
 }

@@ -17,12 +17,12 @@ int ReMatchStr::CurrentChar()
 	return (*pos == 0 ? -1: (int)(unsigned char)*pos);
 }
 
-off_t ReMatchStr::GetCurrentPos()
+std::streampos ReMatchStr::GetCurrentPos()
 {
 	return (pos-str);
 }
 
-void	ReMatchStr::SetCurrentPos(off_t p)
+void	ReMatchStr::SetCurrentPos(std::streampos p)
 {
 	pos=str+p;
 }

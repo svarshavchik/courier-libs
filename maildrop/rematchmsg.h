@@ -39,15 +39,15 @@ class ReMatchMsg : public ReMatch {
 	int eof;
 	int lastc;
 
-	off_t end_headers;
-	off_t start;
+	std::streampos end_headers;
+	std::streampos start;
 public:
 	ReMatchMsg(Message *m, int flag, int flag2);
 	virtual ~ReMatchMsg();
 
 	int NextChar() override;
 	int CurrentChar() override;
-	off_t GetCurrentPos() override;
-	void SetCurrentPos(off_t) override;
+	std::streampos GetCurrentPos() override;
+	void SetCurrentPos(std::streampos) override;
 } ;
 #endif

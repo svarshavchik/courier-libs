@@ -1,7 +1,7 @@
 #include	"formatmbox.h"
 #include	"message.h"
 #include	"messageinfo.h"
-#include	"mio.h"
+#include	"rfc822/rfc822.h"
 #include	"maildrop.h"
 #include	"xconfig.h"
 #include	"config.h"
@@ -10,7 +10,7 @@
 #endif
 #include	"mytime.h"
 #include	<ctype.h>
-
+#include	<iostream>
 
 int	FormatMbox::HasMsg()
 {
@@ -51,9 +51,6 @@ const char *p=ctime(&tm);
 		tempbuf.push_back(*p);
 		++p;
 	}
-#if	CRLF_TERM
-	tempbuf.push('\r');
-#endif
 	tempbuf += "\n";
 	next_func= &FormatMbox::GetLineBuffer;
 	return (&tempbuf);
@@ -111,11 +108,6 @@ std::string	*FormatMbox::GetLineBuffer(void)
 		}
 	}
 
-#if	CRLF_TERM
-	msglinebuf.pop();	// Drop terminating \n
-	msglinebuf.push('\r');
-	msglinebuf += "\n";
-#endif
 	next_func= &FormatMbox::GetNextLineBuffer;
 	msgsize += msglinebuf.size();
 	return (&msglinebuf);
@@ -129,45 +121,42 @@ std::string	*FormatMbox::GetNextLineBuffer(void)
 	return (0);	// END OF FILE
 }
 
-int	FormatMbox::DeliverTo(class Mio &mio)
+int	FormatMbox::DeliverTo(rfc822::fdstreambuf &mio)
 {
 std::string	*bufptr;
 
 	while ((bufptr=NextLine()) != NULL)
 	{
-		if (mio.write(bufptr->c_str(), bufptr->size()) < 0)
+		if ((size_t)mio.sputn(bufptr->c_str(), bufptr->size())
+		    != bufptr->size())
 		{
 write_error:
-			merr << "maildrop: error writing to mailbox.\n";
-			mio.Close();
+			std::cerr << "maildrop: error writing to mailbox.\n"
+				  << std::flush;
+			mio=rfc822::fdstreambuf{};
 			return (-1);
 		}
 	}
 
-	if (do_escape && mio.write(
-#if	CRLF_TERM
-			"\r\n", 2
-#else
-			"\n", 1
-#endif
-			) < 0)
-			goto write_error;
-
-	if (mio.flush() < 0)
+	if (do_escape && mio.sputn("\n", 1) != 1)
 		goto write_error;
 
-	if (fsync(mio.fd()) < 0)
+	if (mio.pubsync() < 0)
+		goto write_error;
+
+	if (fsync(mio.fileno()) < 0)
 	{
 	struct	stat	stat_buf;
 
 		// fsync() failure on a regular file means trouble.
 
-		if (fstat(mio.fd(), &stat_buf) == 0 &&
+		if (fstat(mio.fileno(), &stat_buf) == 0 &&
 			S_ISREG(stat_buf.st_mode))
 			goto write_error;
 	}
 
-	mio.Close();
-	if (mio.errflag())	return (-1);
+	bool error=mio.error();
+	mio=rfc822::fdstreambuf{};
+	if (error)	return (-1);
 	return (0);
 }
