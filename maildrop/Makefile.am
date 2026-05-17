@@ -63,10 +63,10 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 	../numlib/libnumlib.la $(DBLIB) -lcourier-unicode -lpthread
 mailbot_LDFLAGS = -static
 
-testtimer_SOURCES=testtimer.C message.C message.H
+testtimer_SOURCES=testtimer.C message.C message.h
 testtimer_LDADD=libmdcommon.la
 
-testsuite3_SOURCES=testsuite3.C message.C message.H
+testsuite3_SOURCES=testsuite3.C message.C message.h
 testsuite3_DEPENDENCIES = libmdcommon.la
 testsuite3_LDADD = libmdcommon.la @AUTHLDADD@
 testsuite3_LDFLAGS= `pcre2-config --libs8`
