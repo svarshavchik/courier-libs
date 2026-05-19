@@ -2,17 +2,26 @@
 
 set -evx
 
-VALGRIND="`which valgrind 2>/dev/null`"
+VALGRIND="`which valgrind 2>/dev/null || :`"
 
 if test "$VALGRIND" != ""
 then
     VALGRIND="$VALGRIND --tool=memcheck --leak-check=yes --error-exitcode=1 --child-silent-after-fork=yes"
 fi
 
-rm -rf testgpg.dir
-mkdir testgpg.dir
-chmod 700 testgpg.dir
-$VALGRIND ./testgpg testgpg.dir gen
+TMPGPGDIR="`mktemp -d`"
+trap 'rm -rf $TMPGPGDIR; exit 1' 1 2 3 13 14 15
+
+echo 'keyserver-options no-honor-keyserver-url' >>$TMPGPGDIR/gpg.conf
+echo 'no-auto-key-locate' >>$TMPGPGDIR/gpg.conf
+
+echo 'no-crl-check' >>$TMPGPGDIR/dirmngr.conf
+echo 'disable-ldap' >>$TMPGPGDIR/dirmngr.conf
+echo 'disable-http' >>$TMPGPGDIR/dirmngr.conf
+echo 'disable-ipv6' >>$TMPGPGDIR/dirmngr.conf
+export GPG_TTY=/dev/null
+
+$VALGRIND ./testgpg $TMPGPGDIR gen
 
 cat >testgpg.msg <<EOF
 Mime-Version: 1.0
@@ -35,11 +44,11 @@ Hello
 --abc--
 EOF
 
-$VALGRIND ./testgpg testgpg.dir encrypt -r john@example.com <testgpg.msg >testgpg.msg2
+$VALGRIND ./testgpg $TMPGPGDIR encrypt -r john@example.com <testgpg.msg >testgpg.msg2
 
 grep -q 'Content-Type: multipart/encrypted' <testgpg.msg2
 
-$VALGRIND ./testgpg testgpg.dir decrypt <testgpg.msg2 >testgpg.msg
+$VALGRIND ./testgpg $TMPGPGDIR decrypt <testgpg.msg2 >testgpg.msg
 
 grep -q 'xpgpstatus=0' <testgpg.msg
 test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg | wc -l` = "1";
@@ -65,12 +74,12 @@ Hello
 
 --abc--
 EOF
-$VALGRIND ./testgpg testgpg.dir sign <testgpg.msg >testgpg.msg2
+$VALGRIND ./testgpg $TMPGPGDIR sign <testgpg.msg >testgpg.msg2
 grep -q 'Content-Transfer-Encoding: quoted-printable' <testgpg.msg2
 grep -q 'H=C3=ABllo' <testgpg.msg2
 test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg2 | wc -l` = "2";
 
-$VALGRIND ./testgpg testgpg.dir checksign <testgpg.msg2 >testgpg.msg
+$VALGRIND ./testgpg $TMPGPGDIR checksign <testgpg.msg2 >testgpg.msg
 grep -q 'xpgpstatus=0' <testgpg.msg
 
 cat >testgpg.msg <<EOF
@@ -80,10 +89,10 @@ Content-Transfer-Encoding: 7bit
 
 Hello
 EOF
-$VALGRIND ./testgpg testgpg.dir sign <testgpg.msg >testgpg.msg2
+$VALGRIND ./testgpg $TMPGPGDIR sign <testgpg.msg >testgpg.msg2
 test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg2 | wc -l` = "2";
-$VALGRIND ./testgpg testgpg.dir checksign <testgpg.msg2 >testgpg.msg
+$VALGRIND ./testgpg $TMPGPGDIR checksign <testgpg.msg2 >testgpg.msg
 grep -q 'xpgpstatus=0' <testgpg.msg
 test `grep 'Content-Transfer-Encoding: 7bit' <testgpg.msg | wc -l` = "1";
 test `grep 'Content-Transfer-Encoding: 8bit' <testgpg.msg | wc -l` = "1";
-rm -rf testgpg.dir testgpg.msg testgpg.msg2
+rm -rf $TMPGPGDIR testgpg.msg testgpg.msg2

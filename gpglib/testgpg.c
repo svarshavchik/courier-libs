@@ -51,9 +51,9 @@ static int poll_wait(void *dummy)
 	return (0);
 }
 
-static void genkey(const char *d)
+static int genkey(const char *d)
 {
-	libmail_gpg_genkey(d, "utf-8",
+	return libmail_gpg_genkey(d, "utf-8",
 		   "John Smith",
 		   "john@example.com",
 		   "Dummy UTF-8 Tëëst key",
@@ -207,8 +207,7 @@ int main(int argc, char **argv)
 
 	if (strcmp(argv[2], "gen") == 0)
 	{
-		genkey(argv[1]);
-		return (0);
+		exit(genkey(argv[1]));
 	}
 
 	if (strcmp(argv[2], "listpub") == 0)

@@ -45,7 +45,8 @@ COMMONDEPENDENCIES=$(LIBOBJS) ../pcp/libpcp.la ../maildir/libmaildir.la \
 	../random128/librandom128.la ../md5/libmd5.la \
 	../numlib/libnumlib.la \
 	@dblibrary@
-COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` -lcourier-unicode
+COMMONLDADD=$(COMMONDEPENDENCIES) `cat ../pcp/pcp.libs` \
+	-lcourier-unicode -lpthread
 
 noinst_LTLIBRARIES=libwebmail.la
 

@@ -19,14 +19,14 @@ libgpg_la_SOURCES=checksign.c delete.c export.c fork.c genkey.c gpg.C gpglib.h\
 testgpg_SOURCES=testgpg.c
 testgpg_DEPENDENCIES=libgpg.la ../numlib/libnumlib.la ../rfc822/librfc822.la \
 	../rfc2045/librfc2045.la ../rfc2045/libencode.la
-testgpg_LDADD=$(testgpg_DEPENDENCIES) -lcourier-unicode
+testgpg_LDADD=$(testgpg_DEPENDENCIES) -lcourier-unicode -lpthread
 testgpg_LDFLAGS=-static
 nodist_EXTRA_testgpg_SOURCES=testgpg_linkcpp.cpp
 
 mimegpg_SOURCES=mimegpg.c
 mimegpg_LDADD=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la \
 		../rfc2045/libencode.la ../numlib/libnumlib.la \
-		-lcourier-unicode
+		-lcourier-unicode -lpthread
 mimegpg_DEPENDENCIES=libgpg.la ../rfc2045/librfc2045.la ../rfc822/librfc822.la\
 		../rfc2045/libencode.la ../numlib/libnumlib.la
 nodist_EXTRA_mimegpg_SOURCES=mimegpg_linkcpp.cpp

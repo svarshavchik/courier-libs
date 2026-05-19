@@ -45,7 +45,7 @@ maildrop_SOURCES=deliver.C deliverdotlock.C deliverdotlock.h \
 	token.h varlist.C varlist.h dovecotauth.c dovecotauth.h
 
 maildrop_DEPENDENCIES = libmdcommon.la
-maildrop_LDADD = libmdcommon.la @AUTHLDADD@
+maildrop_LDADD = libmdcommon.la @AUTHLDADD@ -lpthread
 maildrop_LDFLAGS= `pcre2-config --libs8`
 
 reformail_SOURCES=reformail.C
@@ -64,11 +64,11 @@ mailbot_LDADD=../rfc2045/librfc2045.la ../maildir/libmaildir.la \
 mailbot_LDFLAGS = -static
 
 testtimer_SOURCES=testtimer.C message.C message.h
-testtimer_LDADD=libmdcommon.la
+testtimer_LDADD=libmdcommon.la -lpthread
 
 testsuite3_SOURCES=testsuite3.C message.C message.h
 testsuite3_DEPENDENCIES = libmdcommon.la
-testsuite3_LDADD = libmdcommon.la @AUTHLDADD@
+testsuite3_LDADD = libmdcommon.la @AUTHLDADD@ -lpthread
 testsuite3_LDFLAGS= `pcre2-config --libs8`
 
 EXTRA_DIST = maildroptips.html $(BUILT_SOURCES)\

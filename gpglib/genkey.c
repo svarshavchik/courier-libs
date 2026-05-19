@@ -53,7 +53,7 @@ int libmail_gpg_genkey(const char *gpgdir,
 		       void *voidarg)
 {
 	char *name_u, *addr_u, *comment_u;
-	char *argvec[4];
+	char *argvec[6];
 	int rc;
 
 	name_u=unicode_convert_toutf8(name, charset, NULL);
@@ -76,7 +76,9 @@ int libmail_gpg_genkey(const char *gpgdir,
 	argvec[0]="gpg";
 	argvec[1]="--gen-key";
 	argvec[2]="--batch";
-	argvec[3]=NULL;
+	argvec[3]="--pinentry-mode";
+	argvec[4]="loopback";
+	argvec[5]=NULL;
 
 	if (libmail_gpg_fork(&libmail_gpg_stdin, &libmail_gpg_stdout, NULL,
 			     gpgdir, argvec) < 0)
