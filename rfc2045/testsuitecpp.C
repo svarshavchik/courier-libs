@@ -3085,16 +3085,15 @@ static void testappendurl()
 
 	for (const auto &t:tests)
 	{
-		char *p=rfc2045_append_url(t.base, t.location);
+		std::string p=rfc2045::append_url(t.base, t.location);
 
-		if (!p || std::string_view{t.result} != p)
+		if (p != t.result)
 		{
 			std::cerr << "rfc2045_append_url failed:\n"
 				  << "expected: " << t.result << "\n"
-				  << "  result: " << (p ? p:"NULL") << "\n";
+				  << "  result: " << p << "\n";
 			exit(1);
 		}
-		free(p);
 	}
 }
 

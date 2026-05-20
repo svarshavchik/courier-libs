@@ -52,13 +52,6 @@
 extern "C" int gethostname(const char *, size_t);
 #endif
 
-void rfc2045_error(const char *p)
-{
-	fprintf(stderr, "%s\n", p);
-	fflush(stderr);
-	exit(1);
-}
-
 extern void setprocgroup();
 
 extern char **environ;

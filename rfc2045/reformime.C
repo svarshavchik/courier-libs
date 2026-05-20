@@ -52,16 +52,7 @@
 int gethostname(const char *, size_t);
 #endif
 
-extern int rfc2045_in_reformime;
-
 static const char *defchset;
-
-
-void rfc2045_error(const char *errmsg)
-{
-	fprintf(stderr, "reformime: %s\n", errmsg);
-	exit(1);
-}
 
 void usage()
 {
@@ -131,12 +122,6 @@ void read_message()
 		dup2(fileno(tempfp), 0);
 		fclose(tempfp);
 	}
-}
-
-static void notfound(const char *p)
-{
-	fprintf(stderr, "reformime: MIME section %s not found.\n", p);
-	exit(1);
 }
 
 void print_info(const rfc2045::entity &entity,
@@ -553,40 +538,6 @@ static void for_mime_section(
 	}
 }
 
-static void extract_section(struct rfc2045 *top_rfcp, const char *mimesection,
-	const char *extract_filename, int argc, char **argv,
-	void	(*extract_func)(struct rfc2045 *, const char *,
-		int, char **))
-{
-	if (mimesection)
-	{
-		top_rfcp=rfc2045_find(top_rfcp, mimesection);
-		if (!top_rfcp)
-			notfound(mimesection);
-		if (top_rfcp->firstpart)
-		{
-			fprintf(stderr, "reformime: MIME section %s is a compound section.\n", mimesection);
-			exit(1);
-		}
-		(*extract_func)(top_rfcp, extract_filename, argc, argv);
-		return;
-	}
-
-	/* Recursive */
-
-	if (top_rfcp->firstpart)
-	{
-		for (top_rfcp=top_rfcp->firstpart; top_rfcp;
-			top_rfcp=top_rfcp->next)
-			extract_section(top_rfcp, mimesection,
-				extract_filename, argc, argv, extract_func);
-		return;
-	}
-
-	if (!top_rfcp->isdummy)
-		(*extract_func)(top_rfcp, extract_filename, argc, argv);
-}
-
 static void mimedigest1(int, char **);
 
 static void mimedigest(int argc, char **argv)
@@ -738,9 +689,6 @@ static int main2(const char *mimecharset, int argc, char **argv)
 
 	std::string_view extract_filename;
 	int rc=0;
-
-
-	rfc2045_in_reformime=1;
 
 	for (argn=1; argn<argc; )
 	{

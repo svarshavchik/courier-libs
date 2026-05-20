@@ -195,15 +195,6 @@ void authexit(int n)
 	fake_exit(n);
 }
 
-/* enomem() used to be just an out-of-memory handler.  Now, I use it as a
-** generic failure type of a deal.
-*/
-
-extern "C" void rfc2045_error(const char *p)
-{
-	error(p);
-}
-
 void print_attrencodedlen(const char *p, size_t len, int oknl, FILE *fp)
 {
 	for (; len; p++, --len)

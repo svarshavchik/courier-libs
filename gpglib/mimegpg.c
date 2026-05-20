@@ -13,12 +13,6 @@
 
 extern void libmail_gpg_noexec(int fd);
 
-void rfc2045_error(const char *p)
-{
-	fprintf(stderr, "%s\n", p);
-	exit(1);
-}
-
 static void usage()
 {
 	fprintf(stderr, "Usage: mimegpg [-s] [-e] [-c] [-d] -- [gpg options]\n");

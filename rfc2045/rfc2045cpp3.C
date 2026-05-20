@@ -5,88 +5,22 @@
 */
 
 #include "rfc2045/rfc2045.h"
-#include <idn2.h>
 
 static std::string_view dsnaddr(std::string &addr)
 {
-	auto e=addr.end();
+	auto str=rfc6533::decode(addr);
 
-	auto b=std::find_if(addr.begin(), e,
-			    [](unsigned char c) { return !isspace(c); });
+	bool conv_error{false};
+	auto c=unicode::iconvert::convert(
+		str,
+		unicode::utf_8,
+		rfc2045_getdefaultcharset(),
+		conv_error
+	);
 
-	auto sep=std::find(b, e, ';');
+	addr=c;
 
-	if (sep != e) ++sep;
-
-	rfc2045::entity::tolowercase(b, sep);
-	std::string_view format{&*b, static_cast<size_t>(sep-b)};
-
-	while (sep != e && isspace((unsigned char)*sep))
-		++sep;
-
-	while (sep != e && isspace((unsigned char)e[-1]))
-		--e;
-
-	if (format == "utf-8;")
-	{
-		size_t ntrim=sep-addr.begin();
-		addr.resize(e-addr.begin());
-		addr.erase(0, ntrim);
-
-		bool conv_error{false};
-		addr=unicode::iconvert::convert(
-			addr,
-			unicode::utf_8,
-			rfc2045_getdefaultcharset(),
-			conv_error
-		);
-
-		return addr;
-	}
-
-	if (format != "rfc822;")
-	{
-		return {};
-	}
-
-	size_t ntrim=sep-addr.begin();
-	addr.resize(e-addr.begin());
-	addr.erase(0, ntrim);
-
-	size_t p=addr.rfind('@');
-
-	if (p < addr.size())
-	{
-		char *utf8;
-
-		++p;
-		if (idn2_to_unicode_8z8z(addr.c_str()+p, &utf8, 0) !=
-		    IDNA_SUCCESS)
-		{
-			utf8=0;
-		}
-
-		if (utf8)
-		{
-			std::string s{utf8};
-
-			free(utf8);
-
-			bool conv_error{false};
-
-			s=unicode::iconvert::convert(
-				s,
-				unicode::utf_8,
-				rfc2045_getdefaultcharset(),
-				conv_error
-			);
-
-			if (!conv_error)
-				addr.replace(p, addr.size()-p, s);
-		}
-	}
-
-	return {addr.data(), addr.size()};
+	return addr;
 }
 
 static void print_dsn_recip(std::string origrecip,
@@ -106,6 +40,7 @@ static void print_dsn_recip(std::string origrecip,
 
 	if (ab == ae)
 		return;
+
 
 	cb({
 			{&*ab, static_cast<size_t>(ae-ab)},
@@ -151,7 +86,7 @@ const rfc2045::entity *rfc2045::entity::dsn_handler::report(
 	if (entity.content_type.value != "multipart/report" ||
 	    report_type_value != "delivery-status" ||
 	    delivery_status == entity.subentities.end())
-		return nullptr;;
+		return nullptr;
 
 	return &*delivery_status;
 }

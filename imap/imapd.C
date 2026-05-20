@@ -140,13 +140,6 @@ ino_t homedir_ino;
 
 int enabled_utf8=0;
 
-void rfc2045_error(const char *p)
-{
-	if (write(2, p, strlen(p)) < 0)
-		_exit(1);
-	_exit(0);
-}
-
 void writemailbox(const std::string &mailbox)
 {
 	if (mailbox.empty())
@@ -765,7 +758,7 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	const mail::keywords::list &keywords,
 	time_t	timestamp,
 	imaptoken curtoken,
-	int *utf8_error)
+	bool &utf8_error)
 {
 	unsigned long nbytes=curtoken->tokennum;
 	std::string tmpname, newname;
@@ -777,7 +770,6 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	int	lastnl;
 	int     rb;
 	int	errflag;
-	struct rfc2045 *rfc2045_parser;
 	const char *errmsg=nowrite;
 
 	fp=maildir_mkfilename(mailbox, flags, 0, tmpname, newname);
@@ -793,7 +785,7 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	writeflush();
 	lastnl=0;
 
-	rfc2045_parser=rfc2045_alloc();
+	rfc2045::entity_parser<false> parser;
 
 	while (nbytes)
 	{
@@ -811,13 +803,13 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 			}
 			else if (e)
 			{
-				rfc2045_parse(rfc2045_parser, p, e-p);
 				rb = fwrite(p, 1, e-p, fp);
+				parser.parse(p, p+rb);
 			}
 			else
 			{
-				rfc2045_parse(rfc2045_parser, p, n);
 				rb = fwrite(p, 1, n, fp);
+				parser.parse(p, p+rb);
 			}
 			n -= rb;
 			p += rb;
@@ -826,7 +818,9 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 	if (!lastnl)
 	{
 		putc('\n', fp);
-		rfc2045_parse(rfc2045_parser, "\n", 1);
+
+		char ch='\n';
+		parser.parse(&ch, &ch+1);
 	}
 
 	errflag=0;
@@ -839,14 +833,14 @@ static std::optional<std::tuple<unsigned long, unsigned long>> store_mailbox(
 		errflag=1;
 	}
 
-	if ((rfc2045_parser->rfcviolation & RFC2045_ERR8BITHEADER) &&
+	auto parsed=parser.parsed_entity();
+
+	if ((parsed.all_errors() & RFC2045_ERR8BITHEADER) &&
 	    curtoken->tokentype != IT_LITERAL8_STRING_START)
 	{
 		/* in order to [ALERT] the client */
-		*utf8_error=1;
+		utf8_error=true;
 	}
-
-	rfc2045_free(rfc2045_parser);
 
 	if (errflag)
 	{
@@ -3113,7 +3107,7 @@ static int append(const char *tag, const std::string &mailbox,
 	time_t	timestamp=0;
 	imaptoken curtoken;
 	int need_rparen;
-	int utf8_error=0;
+	bool utf8_error=false;
 
 	if (access(path.c_str(), 0))
 	{
@@ -3199,7 +3193,7 @@ static int append(const char *tag, const std::string &mailbox,
 			       !(access_rights >> flags)
 			       ? mail::keywords::list{}:keywords,
 			       timestamp,
-			       curtoken, &utf8_error);
+			       curtoken, utf8_error);
 
 	if (!ret)
 	{

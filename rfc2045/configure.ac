@@ -5,7 +5,7 @@ AC_INIT([rfc2045lib],[0.20],[courier-maildrop@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
-AC_CONFIG_SRCDIR(rfc2045.c)
+AC_CONFIG_SRCDIR(rfc2045cpp.C)
 AC_CONFIG_AUX_DIR(../..)
 AM_INIT_AUTOMAKE([foreign no-define])
 AC_CONFIG_HEADERS(rfc2045_config.h)

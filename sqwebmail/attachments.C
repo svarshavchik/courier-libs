@@ -69,10 +69,6 @@ extern void newmsg_copy_nonmime_headers(const rfc2045::entity &message,
 extern bool multipart_boundary_checkf(std::string, std::streambuf &);
 extern void sendmsg_done();
 
-#define HASTEXTPLAIN(q) (rfc2045_searchcontenttype((q), "text/plain") != NULL)
-/* Also in newmsg_create.c */
-
-
 static off_t max_attach()
 {
 	off_t n=0;

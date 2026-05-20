@@ -156,55 +156,6 @@ Content-Transfer-Encoding: 8bit
 --bbb--
 
 --
-Header: from
-Value: nobody
-Header: to
-Value: nobody
-Header: subject
-Value: this is a test
---
-Header: from
-Value: nobody
-Header: to
-Value: nobody
-Header: subject
-Value: this is
-   a test
---
-Header: From
-Value: nobody
-Header: To
-Value: nobody
-Header: Subject
-Value: this is a test
----
-Header: from
-Value: nobody@example.com
-Header: to
-Value: nobody@example.com
-Header: message-id
-Value: <a@b>
-Header: subject
-Value: Example subject
---
-Header: from
-Value: nobody@example.com
-Header: to
-Value: nobody@example.com
-Header: message-id
-Value: <a@b>
-Header: subject
-Value: Example
-   subject
---
-Header: From
-Value: nobody@example.com
-Header: To
-Value: nobody@example.com
-Header: Message-ID
-Value: <a@b>
-Header: Subject
-Value: Example subject
 1
 1.1
 1.2
@@ -372,7 +323,7 @@ failed test2@испытание.net
 failed test3@tèst.example.com
 failed test12@испытание.net
 failed test13@tèst.example.com
-failed test2@xn--80akhbyknj4f.net
+failed test2@<D0><B8><D1><81><D0><BF><D1><8B><D1><82><D0><B0><D0><BD><D0><B8><D0><B5>.net
 failed test3@t�st.example.com
 failed test12@<D0><B8><D1><81><D0><BF><D1><8B><D1><82><D0><B0><D0><BD><D0><B8><D0><B5>.net
 failed test13@t�st.example.com

@@ -3,7 +3,7 @@
 # distribution information.
 
 noinst_LTLIBRARIES=librfc2045.la libencode.la
-noinst_PROGRAMS=reformime makemime headercheck testrfc3676parser \
+noinst_PROGRAMS=reformime makemime testrfc3676parser \
 	testsuitecpp testsuitecpp2 \
 	testrfc6533parser
 
@@ -18,26 +18,17 @@ EXTRA_DIST=$(BUILT_SOURCES) testsuite testsuite.txt.idn \
 
 noinst_DATA=$(BUILT_SOURCES)
 
-librfc2045_la_SOURCES=rfc2045.c rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
+librfc2045_la_SOURCES=rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc2045reply.h rfc2045replycpp.C \
 		     rfc2045_encode.h \
 		     rfc2045cpp3.C \
 		     rfc2045defcharset.c \
-		     rfc2045defs.c rfc2045src.h \
-		     rfc2045acchk.c rfc2045acchkcpp.C rfc2045acprep.c \
-		     rfc2045appendurl.C rfc2045cdecode.c rfc2045decode.c \
-		     rfc2045enomem.c \
+		     rfc2045defs.c \
+		     rfc2045acchkcpp.C \
+		     rfc2045appendurl.C \
 		     rfc2045new_boundary.C \
-		     rfc2045_fromfd.c \
-                     rfc2045find.c rfc2045mkboundary.c rfc2045rewrite.c \
-                     rfc2045tryboundary.c rfc2045xdump.c \
-		     rfc2045searchcontenttype.c rfc2045decodemimesection.c \
-		     rfc2045decodemimesectionu.c rfc2045header.c \
-		     rfc2045reply.c \
-		     rfc2045decodemsgtoutf8.c \
-		     rfc2231.c rfc2231encode.C \
 		     rfc3676parser.h rfc3676parser.c rfc3676parsercpp.C \
-                     rfc6533.c \
+                     rfc6533.C \
 		     base64.c base64.h
 librfc2045_la_LIBADD = $(LIBIDN_LIBS)
 
@@ -55,16 +46,11 @@ makemime_LDADD = $(makemime_DEPENDENCIES) -lcourier-unicode
 makemime_LDFLAGS=-static
 nodist_EXTRA_makemime_SOURCES=forcecpp.cc
 
-headercheck_SOURCES=headercheck.c
-headercheck_DEPENDENCIES=librfc2045.la ../rfc822/librfc822.la ../numlib/libnumlib.la
-headercheck_LDADD=$(headercheck_DEPENDENCIES) -lcourier-unicode
-headercheck_LDFLAGS=-static
-
 testrfc3676parser_SOURCES=testrfc3676parser.c
 testrfc3676parser_DEPENDENCIES=librfc2045.la
 testrfc3676parser_LDADD=$(testrfc3676parser_DEPENDENCIES) -lcourier-unicode
 
-testrfc6533parser_SOURCES=testrfc6533parser.c
+testrfc6533parser_SOURCES=testrfc6533parser.C
 testrfc6533parser_DEPENDENCIES=librfc2045.la
 testrfc6533parser_LDADD=$(testrfc6533parser_DEPENDENCIES) -lcourier-unicode
 

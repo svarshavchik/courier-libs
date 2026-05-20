@@ -61,13 +61,6 @@ extern time_t start_time;
 static const char *imapd;
 static const char *defaultmaildir;
 
-extern "C" void rfc2045_error(const char *p)
-{
-	if (write(2, p, strlen(p)) < 0)
-		_exit(1);
-	_exit(0);
-}
-
 void cmdfail(const char *, const char *);
 void cmdsuccess(const char *, const char *);
 

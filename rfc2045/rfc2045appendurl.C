@@ -91,15 +91,3 @@ std::string rfc2045::append_url(std::string_view base,
 
 	return (buf);
 }
-
-extern "C" char *rfc2045_append_url(const char *b, const char *l)
-{
-	auto res=rfc2045::append_url(b, l);
-
-	return strdup(res.c_str());
-}
-
-char *rfc2045_content_base(struct rfc2045 *p)
-{
-	return (rfc2045_append_url(p->content_base, p->content_location));
-}
