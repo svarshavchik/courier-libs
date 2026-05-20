@@ -571,7 +571,7 @@ static void showunknown(std::streambuf &fd,
 			std::string &id,
 			struct msg2html_info *info)
 {
-	rfc2045::entity::rfc2231_header content_disposition{
+	rfc2231::header content_disposition{
 		message.content_disposition, true
 	};
 
@@ -1066,7 +1066,7 @@ static void showtexthtml(std::streambuf &fd,
 
 		htmlfilter_set_mailto_prefix(hf_info, info->wash_mailto_prefix);
 
-		rfc822::mime_unicode_decoder decoder(
+		rfc2045::mime_unicode_decoder decoder(
 			[&]
 			(const char32_t *ptr, size_t n)
 			{
@@ -2816,7 +2816,7 @@ static void showtextplain(std::streambuf &fd,
 	if (!tinfo)
 		return;
 
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[&]
 		(const char *ptr, size_t n)
 		{
@@ -2868,7 +2868,7 @@ static void (*get_known_handler(const rfc2045::entity &mime,
 	    && info->gpgdir && libmail_gpg_has_gpg(info->gpgdir) == 0)
 		return ( &showkey );
 
-	rfc2045::entity::rfc2231_header content_disposition{
+	rfc2231::header content_disposition{
 		mime.content_disposition, true
 	};
 
@@ -2876,16 +2876,16 @@ static void (*get_known_handler(const rfc2045::entity &mime,
 		return nullptr;
 
 	if (mime.content_type.value == "text/plain" ||
-	    rfc2045_message_headers_content_type(
-		    mime.content_type.value.c_str()) ||
+	    rfc2045::message_headers_content_type(
+		    mime.content_type.value) ||
 	    mime.content_type.value == "text/x-gpg-output")
 		return ( &showtextplain );
-	if (rfc2045_delivery_status_content_type(
-		    mime.content_type.value.c_str()))
+	if (rfc2045::delivery_status_content_type(
+		    mime.content_type.value))
 		return ( &showdsn);
 	if (info->showhtml && mime.content_type.value == "text/html")
 		return ( &showtexthtml );
-	if (rfc2045_message_content_type(mime.content_type.value.c_str()))
+	if (rfc2045::message_content_type(mime.content_type.value))
 		return ( &showmsgrfc822);
 
 	return nullptr;
@@ -2967,7 +2967,7 @@ void msg2html_download(std::streambuf &fd,
 	{
 		std::string disposition_filename;
 
-		rfc2045::entity::rfc2231_header content_disposition{
+		rfc2231::header content_disposition{
 			part->content_disposition, true
 		};
 

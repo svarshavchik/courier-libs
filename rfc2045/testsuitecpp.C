@@ -398,7 +398,7 @@ void testrfc2045foldedline_iter()
 #endif
 }
 
-struct full_parameter_value : rfc2045::entity::header_parameter_value {
+struct full_parameter_value : rfc2231::header_parameter_value {
 	using header_parameter_value::header_parameter_value;
 
 	full_parameter_value(const header_parameter_value &o)
@@ -495,8 +495,8 @@ void testrfc2231headers()
 
 	for (auto &t:tests)
 	{
-		rfc2045::entity::rfc2231_header header{t.header, true};
-		rfc2045::entity::rfc2231_header noheader{t.header, false};
+		rfc2231::header header{t.header, true};
+		rfc2231::header noheader{t.header, false};
 
 		std::map<std::string, full_parameter_value> sorted_parameters;
 
@@ -3120,7 +3120,7 @@ void testdecodingerror()
 
 	std::ostringstream o;
 
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[&]
 		(const char *ptr, size_t n)
 		{
@@ -3328,7 +3328,7 @@ static void testboundary_detector()
 }
 int main()
 {
-	rfc2045_setdefaultcharset("iso-8859-1");
+	rfc2045::default_charset="iso-8859-1";
 	testrfc2045line_iter();
 	testrfc2045foldedline_iter();
 	testrfc2045foldedline_iter2();

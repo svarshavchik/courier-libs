@@ -505,7 +505,7 @@ void test5()
 	std::string decoded;
 
 	{
-		rfc822::mime_decoder<
+		rfc2045::mime_decoder<
 			std::function<void (const char *, size_t)>,
 			std::streambuf> decoder{
 			[&]
@@ -864,7 +864,7 @@ void test7()
 	std::u32string us;
 
 	{
-		rfc822::mime_unicode_decoder decoder{
+		rfc2045::mime_unicode_decoder decoder{
 			[&]
 			(const char32_t *ptr, size_t cnt)
 			{
@@ -886,7 +886,7 @@ void test7()
 				us.insert(us.end(), ptr, ptr+cnt);
 			};
 
-		rfc822::mime_unicode_decoder decoder{
+		rfc2045::mime_unicode_decoder decoder{
 			closure,
 			*ss.rdbuf()
 		};
@@ -1093,7 +1093,7 @@ void test8()
 int main()
 {
 	alarm(60);
-	rfc2045_setdefaultcharset("iso-8859-1");
+	rfc2045::default_charset="iso-8859-1";
 #if UPDATE_TESTSUITECPP
 	// test1<false>();
 	// test1<true>();

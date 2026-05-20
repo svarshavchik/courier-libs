@@ -251,9 +251,7 @@ static std::tuple<std::string, std::string, std::string> parse_disposition(
 {
 	std::string name, filename;
 
-	rfc2045::entity::rfc2231_header header{
-		field.content_disposition, true
-	};
+	rfc2231::header header{field.content_disposition, true};
 
 	auto iter=header.parameters.find("name");
 
@@ -277,7 +275,7 @@ static void cgiformdecode(const rfc2045::entity &field,
 
 	std::string formargbuf;
 
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[&](const char *p, size_t n){
 			formargbuf.append(p, n);
 		},
@@ -413,7 +411,7 @@ int cgi_getfiles( int (*start_file)(const char *, const char *, void *),
 
 		bool error=false;
 
-		rfc822::mime_decoder decoder{
+		rfc2045::mime_decoder decoder{
 			[&](const char *p, size_t n){
 				if (error)
 					return;

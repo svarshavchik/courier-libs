@@ -413,7 +413,7 @@ void newmsg_showfp(rfc822::fdstreambuf &fp, int *attachcnt)
 
 		show_textarea_init(&info, 1);
 
-		rfc822::mime_decoder decoder{
+		rfc2045::mime_decoder decoder{
 			[&]
 			(const char *ptr, size_t n)
 			{

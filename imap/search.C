@@ -622,7 +622,7 @@ void contentsearch::fill_search_header(
 
 	search_set_charset_conv(charset);
 
-	rfc822::mime_decoder src{
+	rfc2045::mime_decoder src{
 		[&](const char *buf, size_t len)
 		{
 			return fill_search_header_utf8(buf, len, decodeinfo);
@@ -883,7 +883,7 @@ void contentsearch::fill_search_body(
 	struct imapscanmessageinfo *mi
 )
 {
-	rfc822::mime_decoder decodersrc{
+	rfc2045::mime_decoder decodersrc{
 		[this]
 		(const char *p, size_t len)
 		{

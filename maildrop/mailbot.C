@@ -989,7 +989,7 @@ int main(int argc, char **argv)
 
 		rfc2045::entity::line_iter<false>::headers h{reply_contentf};
 
-		rfc2045::entity::rfc2231_header content_type{"text/plain", true};
+		rfc2231::header content_type{"text/plain", true};
 
 		do
 		{
@@ -998,8 +998,7 @@ int main(int argc, char **argv)
 			if (name != "content-type")
 				continue;
 
-			content_type=rfc2045::entity::rfc2231_header{header,
-								     true};
+			content_type=rfc2231::header{header, true};
 		} while (h.next());
 
 		if (reply_contentf.pubseekpos(0) != 0)

@@ -48,26 +48,6 @@
 #define RFC2045_MIME_MESSAGE_HEADERS "text/rfc822-headers"
 #define RFC2045_MIME_MESSAGE_GLOBAL_HEADERS "message/global-headers"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if 0
-}
-#endif
-
-int rfc2045_message_content_type(const char *);
-int rfc2045_delivery_status_content_type(const char *);
-int rfc2045_message_headers_content_type(const char *);
-
-#if 0
-{
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
 #define	RFC2045_ISMIME1(p)	((p) && atoi(p) == 1)
 #define	RFC2045_ISMIME1DEF(p)	(!(p) || atoi(p) == 1)
 
@@ -79,8 +59,10 @@ int rfc2045_message_headers_content_type(const char *);
 #define	RFC2045_ERR2COMPLEX	4	/* Too many nested contents */
 #define RFC2045_ERRBADBOUNDARY	8	/* Overlapping MIME boundaries */
 
-struct rfc2045 {
-#ifdef __cplusplus
+namespace rfc2045 {
+
+	extern std::string default_charset;
+
 	class entity;
 	class entity_info;
 	class entity_parse_meta;
@@ -96,7 +78,7 @@ struct rfc2045 {
 
 	// Look at the two characters of Content-Transfer-Encoding
 
-	static cte to_cte(char ch1, char ch2)
+	inline cte to_cte(char ch1, char ch2)
 	{
 		switch (ch1) {
 		case '7':
@@ -120,7 +102,8 @@ struct rfc2045 {
 		return cte::error;
 	}
 
-	static const char *to_cte(cte c)
+	// Content-Transfer-Encoding name
+	inline const char *to_cte(cte c)
 	{
 		switch (c) {
 		case cte::error:
@@ -161,18 +144,12 @@ struct rfc2045 {
 		eightbit_always='A'
 	};
 
-	static std::string append_url(std::string_view, std::string_view);
+	std::string append_url(std::string_view, std::string_view);
 
-#endif
+	bool message_content_type(std::string_view);
+	bool delivery_status_content_type(std::string_view);
+	bool message_headers_content_type(std::string_view);
 } ;
-
-struct rfc2045attr {
-	struct rfc2045attr *next;
-	char *name;
-	char *value;
-	} ;
-
-#ifdef __cplusplus
 
 namespace rfc822 {
 
@@ -224,24 +201,6 @@ namespace rfc6533 {
 	std::string decode(std::string_view address);
 }
 
-extern "C" {
-#endif
-#if 0
-}
-#endif
-
-/************************/
-
-const char *rfc2045_getdefaultcharset();
-void rfc2045_setdefaultcharset(const char *);
-
-#if 0
-{
-#endif
-
-#ifdef  __cplusplus
-}
-
 /*
   Build an RFC 2231-encoded name*=value.
 
@@ -265,15 +224,19 @@ void rfc2045_setdefaultcharset(const char *);
   as is. Otherwise RFC 2231 encoding is used and the callback gets invoked
   one or more times.
 
-  rfc2231_attr_encode returns the value returned from the callback (possibly
+  rfc2231::attr_encode returns the value returned from the callback (possibly
   void). Additionally, if the callback returns an integral value: a non-zero
   return from the callback aborts encoding (if RFC 2231 encoding is in use)
   and returns the non-0 returned value, and a 0 value is returned if all
   calls to the callback returned 0.
 */
 
+namespace rfc2231 {
+#if 0
+}
+#endif
 
-inline bool rfc2231_do_encode(char c)
+inline bool do_encode(char c)
 {
 	switch (c) {
 	case '(':
@@ -294,11 +257,11 @@ inline bool rfc2231_do_encode(char c)
 template<typename C, bool integral_return=std::is_integral_v<decltype(
 	std::declval<C &&>()(std::declval<const char *>(),
 			     std::declval<const char *>()))>>
-auto rfc2231_attr_encode(std::string_view name,
-			 std::string_view value,
-			 std::string_view charset,
-			 std::string_view language,
-			 C &&callback)
+auto attr_encode(std::string_view name,
+		 std::string_view value,
+		 std::string_view charset,
+		 std::string_view language,
+		 C &&callback)
 {
 	if (name.size() > 60 ||
 	    charset.size() > 60 ||
@@ -320,7 +283,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
 	if (name.size() + value.size() <= 75 &&
 	    language.empty() &&
-	    std::find_if(value.begin(), value.end(), rfc2231_do_encode) ==
+	    std::find_if(value.begin(), value.end(), do_encode) ==
 	    value.end())
 	{
 		if (charset.size() < 20)
@@ -419,7 +382,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
 		while (b < e && vb < ve)
 		{
-			if (rfc2231_do_encode(*vb))
+			if (do_encode(*vb))
 			{
 				*b++='%';
 				*b++="0123456789ABCDEF"[ (*vb >> 4) & 15];
@@ -449,6 +412,82 @@ auto rfc2231_attr_encode(std::string_view name,
 	{
 		return 0;
 	}
+}
+
+
+// A parameter of a structured MIME header.
+struct header_parameter_value {
+
+	// Original ordering of parameter values in the header.
+	size_t index;
+
+	// If RFC 2231 was used to encode the character set
+	std::string charset;
+
+	// If RFC 2231 was used to encode the language
+	std::string language;
+
+	// Finally, the value.
+	std::string value;
+
+	template<typename C, typename L, typename V>
+	header_parameter_value(size_t index,
+			       C && charset,
+			       L && language,
+			       V && value)
+		: index{index},
+		  charset{std::forward<C>(charset)},
+		  language{std::forward<L>(language)},
+		  value{std::forward<V>(value)}
+	{
+	}
+
+	std::string value_in_charset() const;
+	std::string value_in_charset(std::string_view) const;
+
+	bool operator==(const header_parameter_value &o) const
+	{
+		return charset == o.charset &&
+			language == o.language &&
+			value == o.value;
+	}
+};
+
+// A structured MIME header, a value, and parameters, optionally encoded
+// using RFC 2231
+struct header {
+	std::string value;
+	typedef std::unordered_map<std::string,
+				   header_parameter_value> parameters_t;
+	parameters_t parameters;
+
+	// Parses a folded header value.
+	header(const std::string_view &, bool do_parse_rfc2231);
+
+	void lowercase_value(const char *name);
+
+	bool format_flowed() const
+	{
+		auto iter=parameters.find("format");
+
+		return iter != parameters.end() &&
+			iter->second.value == "flowed";
+	}
+
+	bool delsp_yes() const
+	{
+		auto iter=parameters.find("delsp");
+
+		return iter != parameters.end() &&
+			std::string_view{iter->second.value}.substr(
+				0, 1
+			) == "y";
+	}
+};
+
+#if 0
+{
+#endif
 }
 
 /*
@@ -656,11 +695,9 @@ auto rfc2231_attr_encode(std::string_view name,
   DECODING MIME ENTITIES
   ======================
 
-  rfc822::mime_decoder{out, input_stream,
-			  "utf-8"
-  };
+  rfc2045::mime_decoder{out, input_stream, "utf-8"};
 
-  rfc822::mime_unicode_decoder{out, input_stream};
+  rfc2045::mime_unicode_decoder{out, input_stream};
 
   decoder.decode_header=true;
   decoder.decode_body=true;
@@ -678,9 +715,6 @@ auto rfc2231_attr_encode(std::string_view name,
       {
       };
   decoder.decode<false>(entity);
-
-  These templates are temporarily defined in the rfc822 namespace for technical
-  reasons.
 
   The decoder classes are actually templates, whose template parameters should
   get deduced from the constructor's parameters. The second parameter is
@@ -983,79 +1017,9 @@ public:
 	// Either long physical line, or a long quoted-printable line
 	bool haslongline{false};
 
-	// A parameter of a structured MIME header.
-	struct header_parameter_value {
-
-		// Original ordering of parameter values in the header.
-		size_t index;
-
-		// If RFC 2231 was used to encode the character set
-		std::string charset;
-
-		// If RFC 2231 was used to encode the language
-		std::string language;
-
-		// Finally, the value.
-		std::string value;
-
-		template<typename C, typename L, typename V>
-		header_parameter_value(size_t index,
-				       C && charset,
-				       L && language,
-				       V && value)
-			: index{index},
-			  charset{std::forward<C>(charset)},
-			  language{std::forward<L>(language)},
-			  value{std::forward<V>(value)}
-		{
-		}
-
-		std::string value_in_charset() const;
-		std::string value_in_charset(std::string_view) const;
-
-		bool operator==(const header_parameter_value &o) const
-		{
-			return charset == o.charset &&
-				language == o.language &&
-				value == o.value;
-		}
-	};
-
-	// A structured MIME header, a value, and parameters, optionally encoded
-	// using RFC 2231
-	struct rfc2231_header {
-		std::string value;
-		typedef std::unordered_map<std::string,
-					   header_parameter_value> parameters_t;
-		parameters_t parameters;
-
-		// Parses a folded header value.
-		rfc2231_header(const std::string_view &, bool do_parse_rfc2231);
-
-		void lowercase_value(const char *name);
-
-		bool format_flowed() const
-		{
-			auto iter=parameters.find("format");
-
-			return iter != parameters.end() &&
-				iter->second.value == "flowed";
-		}
-
-		bool delsp_yes() const
-		{
-			auto iter=parameters.find("delsp");
-
-			return iter != parameters.end() &&
-				std::string_view{iter->second.value}.substr(
-					0, 1
-				) == "y";
-		}
-	};
-
 	// We look into Content-Type: so often we might as well store its
 	// parsed contents
-	rfc2231_header content_type{"text/plain", true};
+	rfc2231::header content_type{"text/plain", true};
 
 	std::string_view content_type_charset() const;
 	std::string_view content_type_boundary() const;
@@ -1165,7 +1129,7 @@ struct rfc2045::entity_parse_meta {
 	static constexpr size_t longunfoldedheadersize=(1024 * 10);
 };
 
-namespace rfc822 {
+namespace rfc2045 {
 
 	template<typename out_iter,
 		 typename src_type> class mime_decoder;
@@ -1485,7 +1449,7 @@ public:
 		if (!report)
 			return false;
 
-		rfc822::mime_decoder decoder{
+		rfc2045::mime_decoder decoder{
 			handler,
 			src
 		};
@@ -2194,7 +2158,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 		if (name == "content-type")
 		{
-			content_type=rfc2231_header{header,
+			content_type=rfc2231::header{header,
 						    iter.do_parse_rfc2231};
 
 			if (has_content_type_header)
@@ -2310,7 +2274,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	}
 	else if (!mime1)
 	{
-		content_type=rfc2231_header{"text/plain", true};
+		content_type=rfc2231::header{"text/plain", true};
 		content_transfer_encoding=cte::sevenbit;
 	}
 	else
@@ -2322,8 +2286,8 @@ void rfc2045::entity::parse(line_iter_type &iter)
 		}
 
 		bool is_message=
-			rfc2045_message_content_type(content_type.value.c_str())
-			;
+			rfc2045::message_content_type(content_type.value);
+
 		if (is_message &&
 		    (content_transfer_encoding == cte::sevenbit ||
 		     content_transfer_encoding == cte::eightbit))
@@ -2844,7 +2808,7 @@ private:
 
 template<typename out_iter,
 	 typename src_type>
-class rfc822::mime_decoder {
+class rfc2045::mime_decoder {
 
 	src_type &src;
 
@@ -2878,7 +2842,7 @@ class rfc822::mime_decoder {
 	~mime_decoder()=default;
 };
 
-template<typename out_iter> class rfc822::mime_unicode_decoder_helper {
+template<typename out_iter> class rfc2045::mime_unicode_decoder_helper {
 
 	out_iter out;
 
@@ -2896,7 +2860,7 @@ public:
 	}
 };
 
-namespace rfc822 {
+namespace rfc2045 {
 	template<typename out_iter,
 		 typename src_type>
 	mime_decoder(out_iter &, src_type &, std::string_view="")
@@ -2909,7 +2873,7 @@ namespace rfc822 {
 }
 
 template<typename out_iter,
-	 typename src_type> class rfc822::mime_unicode_decoder
+	 typename src_type> class rfc2045::mime_unicode_decoder
 	: public mime_unicode_decoder_helper<out_iter>,
 	  public mime_decoder<mime_unicode_decoder_helper<out_iter> &,
 				      src_type> {
@@ -2926,7 +2890,7 @@ public:
 	}
 };
 
-namespace rfc822 {
+namespace rfc2045 {
 	template<typename out_iter,
 		 typename src_type>
 	mime_unicode_decoder(out_iter &, src_type &, std::string="")
@@ -2980,7 +2944,7 @@ namespace rfc822 {
 template<typename out_iter,
 	 typename src_type>
 template<bool crlf>
-void rfc822::mime_decoder<out_iter, src_type>::decode(
+void rfc2045::mime_decoder<out_iter, src_type>::decode(
 	const rfc2045::entity &e
 )
 {
@@ -3191,7 +3155,7 @@ bool rfc2045::entity::line_iter<crlf>::try_boundary(
 
 	boundary_detector detector{boundary};
 
-	rfc822::mime_decoder do_decoder{
+	rfc2045::mime_decoder do_decoder{
 		[&]
 		(const char *ptr, size_t n)
 		{
@@ -3389,7 +3353,5 @@ void rfc2045::entity::line_iter<crlf>::autoconvert(
 
 #define rfc2045_rfc2045_h_included 1
 #include "rfc2045/rfc2045_encode.h"
-
-#endif
 
 #endif

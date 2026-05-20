@@ -23,7 +23,7 @@ librfc2045_la_SOURCES=rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc2045_encode.h \
 		     rfc2045cpp3.C \
 		     rfc2045defcharset.c \
-		     rfc2045defs.c \
+		     rfc2045defs.C \
 		     rfc2045acchkcpp.C \
 		     rfc2045appendurl.C \
 		     rfc2045new_boundary.C \

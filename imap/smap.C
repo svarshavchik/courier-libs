@@ -1218,9 +1218,10 @@ static void writemimeid(const rfc2045::entity &rfcp)
 		writes(".");
 
 		n=&rfcp - p->subentities.data();
-		if (!rfc2045_message_content_type(
-			p->content_type.value.c_str())
-			)
+		if (!rfc2045::message_content_type(
+			p->content_type.value
+		    )
+		)
 			n++;
 	}
 	writen(n);
@@ -1417,8 +1418,8 @@ static const rfc2045::entity *findmimeid(
 				return nullptr;
 			rfcp=rfcp->subentities.data() + n-1;
 			returnrfcp=rfcp;
-			if (rfc2045_message_content_type(
-				rfcp->content_type.value.c_str()
+			if (rfc2045::message_content_type(
+				rfcp->content_type.value
 			) && !rfcp->subentities.empty())
 			{
 				message_rfc822_mime_id=0;
@@ -1498,7 +1499,7 @@ static int dump_decoded(rfc822::fdstreambuf &fp, unsigned long msgNum,
 		size=size/4*3;
 
 	decodebuf buf(msgNum, size);
-	rfc822::mime_decoder decoder(buf, fp);
+	rfc2045::mime_decoder decoder(buf, fp);
 
 	decoder.decode_header=false;
 	decoder.decode_subentities=false;

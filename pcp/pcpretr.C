@@ -147,8 +147,8 @@ static int (*mime_handler(const rfc2045::entity &rfc))(const rfc2045::entity &, 
 	    == "multipart/")
 		return ( &list_msg_mime_multipart);
 
-        if (rfc2045_message_headers_content_type(
-		    rfc.content_type.value.c_str()
+        if (rfc2045::message_headers_content_type(
+		    rfc.content_type.value
 	    ))
 		return ( &list_msg_rfc822_part );
 
@@ -173,7 +173,7 @@ static int list_msg_mime(const rfc2045::entity &rfc, rfc822::fdstreambuf &fp)
 	std::string disposition_name, disposition_filename;
 
 	{
-		rfc2045::entity::rfc2231_header content_disposition{
+		rfc2231::header content_disposition{
 			rfc.content_disposition, true
 		};
 
@@ -263,7 +263,7 @@ static int list_msg_textplain(const rfc2045::entity &rfc, rfc822::fdstreambuf &f
 		       std::string{cs.begin(), cs.end()}.c_str());
 	}
 
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[]
 		(const char *ptr, size_t n)
 		{

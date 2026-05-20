@@ -52,8 +52,6 @@
 int gethostname(const char *, size_t);
 #endif
 
-static const char *defchset;
-
 void usage()
 {
 	std::cerr <<
@@ -143,7 +141,7 @@ void print_info(const rfc2045::entity &entity,
 	std::cout << "charset: " << entity.content_type_charset()
 		  << "\n";
 
-	rfc2045::entity::rfc2231_header content_disposition{
+	rfc2231::header content_disposition{
 		entity.content_disposition,
 		true
 	};
@@ -172,7 +170,7 @@ void print_info(const rfc2045::entity &entity,
 		rfc822::display_header(
 			"content-description",
 			entity.content_description,
-			rfc2045_getdefaultcharset(),
+			rfc2045::default_charset,
 			std::ostreambuf_iterator<char>{std::cout});
 		std::cout << "\n";
 	}
@@ -188,7 +186,7 @@ void do_print_section(const rfc2045::entity &e,
 		      std::streambuf &src,
 		      std::streambuf &out)
 {
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[&]
 		(const char *p, size_t n)
 		{
@@ -243,7 +241,7 @@ std::string get_suitable_filename(const rfc2045::entity &message,
 {
 	std::string filename;
 
-	rfc2045::entity::rfc2231_header content_disposition{
+	rfc2231::header content_disposition{
 		message.content_disposition, true
 	};
 
@@ -803,9 +801,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		}
 	}
 
-	defchset=mimecharset;
-
-	rfc2045_setdefaultcharset(defchset);
+	rfc2045::default_charset=mimecharset;
 
 	if (domimedigest)
 	{
@@ -1020,7 +1016,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	}
 	else if (convtoutf8)
 	{
-		rfc822::mime_decoder decoder{
+		rfc2045::mime_decoder decoder{
 			[]
 			(const char *p, size_t n)
 			{

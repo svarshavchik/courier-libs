@@ -2027,7 +2027,7 @@ static int do_maildir_search(const char *filename,
 	rfc2045::entity::line_iter<false>::iter parser{b, e};
 	message.parse(parser);
 
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[&sr]
 		(const char *p, size_t n)
 		{

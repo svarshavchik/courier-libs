@@ -25,9 +25,9 @@ extern void msgenvelope(void (*)(const char *, size_t),
 extern void msgappends(void (*)(const char *, size_t), const char *, size_t);
 
 static void do_param_list(void (*writefunc)(const char *, size_t),
-	const rfc2045::entity::rfc2231_header::parameters_t &parameters)
+	const rfc2231::header::parameters_t &parameters)
 {
-	std::vector<rfc2045::entity::rfc2231_header::parameters_t
+	std::vector<rfc2231::header::parameters_t
 		::const_iterator> v;
 
 	v.reserve(parameters.size());
@@ -37,14 +37,12 @@ static void do_param_list(void (*writefunc)(const char *, size_t),
 
 	// We want to iterate in the original order of appearance.
 	std::sort(v.begin(), v.end(),
-			  []
-			  (rfc2045::entity::rfc2231_header::parameters_t
-			   ::const_iterator a,
-			   rfc2045::entity::rfc2231_header::parameters_t
-			   ::const_iterator b)
-			  {
-				  return a->second.index < b->second.index;
-			  });
+		  []
+		  (rfc2231::header::parameters_t::const_iterator a,
+		   rfc2231::header::parameters_t::const_iterator b)
+		  {
+			  return a->second.index < b->second.index;
+		  });
 	int	flag;
 	const char	*p;
 
@@ -105,7 +103,7 @@ static void do_disposition(
 	void (*writefunc)(const char *, size_t),
 	std::string_view s)
 {
-	rfc2045::entity::rfc2231_header	disposition{s, false};
+	rfc2231::header	disposition{s, false};
 
 	if ( disposition.value.empty() && disposition.parameters.empty())
 	{
@@ -135,9 +133,10 @@ void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
 	(*writefunc)("(", 1);
 
 	if (!rfcp.subentities.empty() &&
-		!rfc2045_message_content_type(
-			rfcp.content_type.value.c_str()
-		))
+	    !rfc2045::message_content_type(
+			rfcp.content_type.value
+	    )
+	)
 		/* MULTIPART */
 	{
 		for (auto &childp: rfcp.subentities)
@@ -237,8 +236,8 @@ void msgbodystructure( void (*writefunc)(const char *, size_t), int dox,
 			(*writefunc)(buf, strlen(buf));
 		}
 
-		if (rfc2045_message_content_type(
-			rfcp.content_type.value.c_str()
+		if (rfc2045::message_content_type(
+			rfcp.content_type.value
 		) && !rfcp.subentities.empty())
 		{
 			(*writefunc)(" ", 1);

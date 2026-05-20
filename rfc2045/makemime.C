@@ -742,7 +742,7 @@ void mimestruct::createsimplemime()
 
 	if (contentname && *contentname)
 	{
-		rfc2231_attr_encode(
+		rfc2231::attr_encode(
 			"name",
 			contentname,
 			unicode_default_chset(),

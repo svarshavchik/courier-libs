@@ -789,8 +789,8 @@ off_t cache_phys_chars;
 				&mimep->subentities[n-1];
 			headermimep=mimep;
 
-			if (mimep && rfc2045_message_content_type(
-				mimep->content_type.value.c_str()
+			if (mimep && rfc2045::message_content_type(
+				mimep->content_type.value
 			) && !mimep->subentities.empty())
 			{
 				if (!*p)
@@ -1074,7 +1074,7 @@ static void dofetchheadersfile(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 		sbuf << std::string_view{buffer, n};
 	}
 
-	dofetchheaders(*sbuf.rdbuf(), 0, n, fi, info, msgnum, mimep, headerfunc);		
+	dofetchheaders(*sbuf.rdbuf(), 0, n, fi, info, msgnum, mimep, headerfunc);
 }
 
 static void dofetchheaders(

@@ -371,7 +371,7 @@ static void end_upload(void *vp)
 	** multipart/alternative content.
 	*/
 
-	if (rfc2045_message_content_type(mimetype.c_str()))
+	if (rfc2045::message_content_type(mimetype))
 	{
 		/* Magic */
 

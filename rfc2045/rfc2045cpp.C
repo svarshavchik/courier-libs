@@ -109,12 +109,12 @@ void rfc2045::entity_parse_meta::consumed_body_line(size_t c)
 	}
 }
 
-std::string rfc2045::entity::header_parameter_value::value_in_charset() const
+std::string rfc2231::header_parameter_value::value_in_charset() const
 {
-	return value_in_charset(rfc2045_getdefaultcharset());
+	return value_in_charset(rfc2045::default_charset);
 }
 
-std::string rfc2045::entity::header_parameter_value::value_in_charset(
+std::string rfc2231::header_parameter_value::value_in_charset(
 	std::string_view dest_charset
 ) const
 {
@@ -144,7 +144,7 @@ std::string_view rfc2045::entity_info::content_type_charset() const
 	auto p=content_type.parameters.find("charset");
 
 	return p == content_type.parameters.end()
-		? std::string_view{rfc2045_getdefaultcharset()}
+		? std::string_view{rfc2045::default_charset}
 		: std::string_view{p->second.value};
 }
 
@@ -182,7 +182,7 @@ void rfc2045::entity::update_parent_ptr()
 // The constructor takes the entire header value as a parameter and fully
 // parses it.
 
-rfc2045::entity::rfc2231_header::rfc2231_header(
+rfc2231::header::header(
 	const std::string_view &s, bool do_parse_rfc2231
 )
 {
@@ -439,7 +439,7 @@ rfc2045::entity::rfc2231_header::rfc2231_header(
 	}
 }
 
-void rfc2045::entity::rfc2231_header::lowercase_value(const char *n)
+void rfc2231::header::lowercase_value(const char *n)
 {
 	auto v=parameters.find(n);
 	if (v != parameters.end())
@@ -465,8 +465,8 @@ rfc2045::entity_parse_meta::scope::~scope()
 	if (last->has8bitbody)
 	{
 		if (last->multipart() ||
-		    rfc2045_message_content_type(
-			    last->content_type.value.c_str()
+		    rfc2045::message_content_type(
+			    last->content_type.value
 		    )
 		)
 		{

@@ -175,7 +175,7 @@ const char	*limiterr=getarg("LIMITERR");
 		}
 		else
 		{
-			rfc2045::entity::rfc2231_header content_disposition{
+			rfc2231::header content_disposition{
 				q.content_disposition, true
 			};
 
@@ -762,7 +762,7 @@ int attach_upload(
 		else
 			cp=cgi_attachfilename;
 
-		rfc2231_attr_encode(
+		rfc2231::attr_encode(
 			"filename",
 			cp,
 			sqwebmail_content_charset,

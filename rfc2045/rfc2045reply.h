@@ -536,7 +536,7 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 		// Use mime_decoder to decode the text/plain content,
 		// and pass it to the mail::textplainparser.
 
-		rfc822::mime_decoder decoder{
+		mime_decoder decoder{
 			[&]
 			(const char *ptr, size_t n)
 			{

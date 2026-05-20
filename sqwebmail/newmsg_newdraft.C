@@ -96,8 +96,8 @@ std::string newmsg_newdraft(const char *folder, const char *pos,
 	{
 		rfc2045partp=message.find(mimeidptr);
 
-		if (!rfc2045partp || !rfc2045_message_content_type(
-			    rfc2045partp->content_type.value.c_str()
+		if (!rfc2045partp || !rfc2045::message_content_type(
+			    rfc2045partp->content_type.value
 		    ) || rfc2045partp->subentities.empty())
 		{
 			rfc2045partp=nullptr;

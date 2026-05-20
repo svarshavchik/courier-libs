@@ -14,7 +14,7 @@ static std::string_view dsnaddr(std::string &addr)
 	auto c=unicode::iconvert::convert(
 		str,
 		unicode::utf_8,
-		rfc2045_getdefaultcharset(),
+		rfc2045::default_charset,
 		conv_error
 	);
 
@@ -78,8 +78,8 @@ const rfc2045::entity *rfc2045::entity::dsn_handler::report(
 		[]
 		(auto &se)
 		{
-			return rfc2045_delivery_status_content_type(
-				se.content_type.value.c_str()
+			return rfc2045::delivery_status_content_type(
+				se.content_type.value
 			);
 		});
 

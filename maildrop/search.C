@@ -192,7 +192,7 @@ int Search::find(const char *str, const char *expr, const char *opts,
 
 int Search::findinline(Message &msg, const char *expr, foreach_t *foreachp)
 {
-	rfc822::mime_decoder decoder{
+	rfc2045::mime_decoder decoder{
 		[this]
 		(const char *ptr, size_t n)
 		{
