@@ -5723,7 +5723,7 @@ auto final_value=fromuconverter.iter();</programlisting>
 
 	    <para>
 	      The <varname>errflag</varname> <classname>bool</classname>
-	      indicates whether a conversion error occured during iteration
+	      indicates whether a conversion error occurred during iteration
 	      (an iterated-over string could not be converted).
 	    </para>
 	  </refsect2>
