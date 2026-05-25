@@ -203,21 +203,8 @@ rfc2231::header::header(
 
 	rfc2045::entity::tolowercase(value);
 
-	// Value of a structured header parameter, parsed according to RFC 2231.
-	// This is preliminary parsing, once it's parsed this'll get reassembled
-	// into a single parsed string, representing the value.
+	parameter_parser parser;
 
-	struct rfc2231_parsed_parameters {
-		size_t index=0;
-		std::string charset{"utf-8"};
-		std::string language{"en"};
-		std::map<std::optional<int>, std::string> values;
-	};
-
-	// First, parse the parameters into a temporary structure.
-	std::unordered_map<std::string,
-			   rfc2231_parsed_parameters> parsed_parameters;
-	size_t index=0;
 	while (semicolon != te)
 	{
 		if (++semicolon == te)
@@ -258,145 +245,158 @@ rfc2231::header::header(
 						std::back_inserter(value));
 		}
 
-		rfc2045::entity::tolowercase(name);
-
 		if (!do_parse_rfc2231)
 		{
+			rfc2045::entity::tolowercase(name);
 			parameters.emplace(
 				std::piecewise_construct,
 				std::forward_as_tuple(name),
 				std::forward_as_tuple(
-					index++,
+					parser.index++,
 					"utf-8",
 					"en",
 					value));
 			continue;
 		}
-		// Let's dig into the parameter name, to see if RFC 2231 is used
-		// by checking for a trailing *, first.
 
-		bool trailing_squid=false;
-		std::optional<int> key;
-
-		if (!name.empty() && name[name.size()-1] == '*')
-		{
-			trailing_squid=true;
-			name.pop_back(); // Get rid of the trailing squid
-		}
-
-		// If there's a * in the name, we have a piece of the parameter
-
-		auto delim=name.rfind('*');
-		if (delim < name.size())
-		{
-			key=0;
-			for (auto b=name.begin()+delim,
-				     e=name.end(); ++b != e; )
-			{
-				if (*b >= '0' && *b <= '9')
-					key= (*key)*10 + (*b-'0');
-			}
-			name.resize(delim);
-		}
-		else if (!trailing_squid)
-		{
-			// Non-standard: handle RFC2047-quoted content in
-			// parameter values, but only for non-RFC2231
-			// parameters.
-
-			std::string buffer;
-
-			rfc2047::decode(
-				value.begin(), value.end(),
-				[&]
-				(const auto &charset, const auto &language,
-				 auto &&callback)
-				{
-					auto striter=std::back_inserter(buffer);
-					callback(striter);
-				});
-			value=std::move(buffer);
-
-		}
-		auto parameter=parsed_parameters.try_emplace(name).first;
-
-		parameter->second.index=index++;
-
-		// If the key-less, or key=0 ends in a squid, extract the
-		// charset and the language.
-
-		if ((!key || *key == 0) && trailing_squid)
-		{
-			auto p=std::find(value.begin(), value.end(), '\'');
-			auto q=p;
-			if (q != value.end())
-				++q;
-
-			auto r=std::find(q, value.end(), '\'');
-			auto s=r;
-			if (s != value.end())
-			{
-				++s;
-
-				rfc2045::entity::tolowercase(value.begin(), r);
-
-				parameter->second.charset.assign(
-					value.begin(), p
-				);
-				parameter->second.language.assign(q, r);
-
-				value.erase(value.begin(), s);
-			}
-		}
-
-		if (trailing_squid)
-		{
-			auto p=value.begin(), q=value.end(), r=p;
-			while (p != q)
-			{
-				if (*p != '%')
-				{
-					*r++=*p++;
-					continue;
-				}
-
-				// Poor man's hex decoder.
-
-				if (++p != q)
-				{
-					unsigned char c=*p++;
-
-					if (c > '9')
-					{
-						c += 10-('a' & 15);
-					}
-					c &= 15;
-
-					if (p != q)
-					{
-						unsigned char d=*p++;
-
-						if (d > '9')
-						{
-							d += 10-('a' & 15);
-						}
-						d &= 15;
-
-						*r++ = static_cast<char>(
-							(c << 4) | d
-						);
-					}
-				}
-			}
-			value.erase(r, value.end());
-		}
-
-		parameter->second.values.emplace(key, value);
+		parser(std::move(name), std::move(value));
 	}
 
 	if (!do_parse_rfc2231)
 		return;
 
+	parser >> parameters;
+}
+
+void rfc2231::parameter_parser::operator()(std::string name,
+					   std::string value)
+{
+	rfc2045::entity::tolowercase(name);
+	// Let's dig into the parameter name, to see if RFC 2231 is used
+	// by checking for a trailing *, first.
+
+	bool trailing_squid=false;
+	std::optional<int> key;
+
+	if (!name.empty() && name[name.size()-1] == '*')
+	{
+		trailing_squid=true;
+		name=name.substr(0, name.size()-1);
+		// Get rid of the trailing squid
+	}
+
+	// If there's a * in the name, we have a piece of the parameter
+
+	auto delim=name.rfind('*');
+	if (delim < name.size())
+	{
+		key=0;
+		for (auto b=name.begin()+delim,
+			     e=name.end(); ++b != e; )
+		{
+			if (*b >= '0' && *b <= '9')
+				key= (*key)*10 + (*b-'0');
+		}
+		name.resize(delim);
+	}
+	else if (!trailing_squid)
+	{
+		// Non-standard: handle RFC2047-quoted content in
+		// parameter values, but only for non-RFC2231
+		// parameters.
+
+		std::string buffer;
+
+		rfc2047::decode(
+			value.begin(), value.end(),
+			[&]
+			(const auto &charset, const auto &language,
+			 auto &&callback)
+			{
+				auto striter=std::back_inserter(buffer);
+				callback(striter);
+			});
+		value=std::move(buffer);
+
+	}
+	auto parameter=parsed_parameters.try_emplace(name).first;
+
+	parameter->second.index=index++;
+
+	// If the key-less, or key=0 ends in a squid, extract the
+	// charset and the language.
+
+	if ((!key || *key == 0) && trailing_squid)
+	{
+		auto p=std::find(value.begin(), value.end(), '\'');
+		auto q=p;
+		if (q != value.end())
+			++q;
+
+		auto r=std::find(q, value.end(), '\'');
+		auto s=r;
+		if (s != value.end())
+		{
+			++s;
+
+			rfc2045::entity::tolowercase(value.begin(), r);
+
+			parameter->second.charset.assign(
+				value.begin(), p
+			);
+			parameter->second.language.assign(q, r);
+
+			value.erase(value.begin(), s);
+		}
+	}
+
+	if (trailing_squid)
+	{
+		auto p=value.begin(), q=value.end(), r=p;
+		while (p != q)
+		{
+			if (*p != '%')
+			{
+				*r++=*p++;
+				continue;
+			}
+
+			// Poor man's hex decoder.
+
+			if (++p != q)
+			{
+				unsigned char c=*p++;
+
+				if (c > '9')
+				{
+					c += 10-('a' & 15);
+				}
+				c &= 15;
+
+				if (p != q)
+				{
+					unsigned char d=*p++;
+
+					if (d > '9')
+					{
+						d += 10-('a' & 15);
+					}
+					d &= 15;
+
+					*r++ = static_cast<char>(
+						(c << 4) | d
+					);
+				}
+			}
+		}
+		value.erase(r, value.end());
+	}
+
+	parameter->second.values.emplace(key, value);
+}
+
+void rfc2231::parameter_parser::operator>>(header::parameters_t &parameters)
+{
 	// Now, assemble the parsed parameters.
 
 	std::string assembled_value;

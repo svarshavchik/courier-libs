@@ -14,7 +14,6 @@
 #include	<string.h>
 #include	<stdio.h>
 
-#ifdef  __cplusplus
 #include <vector>
 #include <string>
 #include <string_view>
@@ -36,7 +35,7 @@
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc2045charset.h"
-#endif
+#include "rfc2045/rfc2045.h"
 
 #define RFC2045_MIME_MESSAGE_RFC822 "message/rfc822"
 #define RFC2045_MIME_MESSAGE_GLOBAL "message/global"
@@ -419,16 +418,22 @@ auto attr_encode(std::string_view name,
 struct header_parameter_value {
 
 	// Original ordering of parameter values in the header.
-	size_t index;
+	size_t index{0};
 
 	// If RFC 2231 was used to encode the character set
-	std::string charset;
+	std::string charset{unicode::utf_8};
 
 	// If RFC 2231 was used to encode the language
-	std::string language;
+	std::string language{"en"};
 
 	// Finally, the value.
 	std::string value;
+
+	template<typename V>
+	header_parameter_value(V && v)
+		: value{std::forward<V>(v)}
+	{
+	}
 
 	template<typename C, typename L, typename V>
 	header_parameter_value(size_t index,
@@ -483,6 +488,33 @@ struct header {
 				0, 1
 			) == "y";
 	}
+};
+
+// Helper for parsing parameters. Handles RFC 2231 decoding. Instantiate,
+// call (name, value) for each parsed name+value tuple, then >> into
+// the final parameters_t.
+
+struct parameter_parser {
+
+	size_t index=0;
+
+	// Value of a structured header parameter, parsed according to RFC 2231.
+	// This is preliminary parsing, once it's parsed this'll get reassembled
+	// into a single parsed string, representing the value.
+
+	struct rfc2231_parsed_parameters {
+		size_t index=0;
+		std::string charset{"utf-8"};
+		std::string language{"en"};
+		std::map<std::optional<int>, std::string> values;
+	};
+
+	// First, parse the parameters into a temporary structure.
+	std::unordered_map<std::string,
+			   rfc2231_parsed_parameters> parsed_parameters;
+
+	void operator()(std::string name, std::string value);
+	void operator>>(header::parameters_t &);
 };
 
 #if 0
