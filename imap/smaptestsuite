@@ -718,3 +718,42 @@ FETCH 1 CONTENTS=BODY FLAGS KEYWORDS
 EOF
 cat confsendmail.out
 rm -rf confsendmail confsendmail.out confmdtest
+
+../maildir/maildirmake confmdtest || exit 1
+$PERL -e 'printf("%04d\n", $_+1234) for (1..4096);' >testfile
+../rfc2045/makemime -c 'application/octet-stream' \
+		    -e base64 -o confmdtest/new/test \
+		    -a 'Mime-Version: 1.0' testfile
+env AUTHENTICATED=user1 IMAP_BROKENUIDV=1 IMAP_KEYWORDS=1 MOVE_EXPUNGE_TO_TRASH=1 MAILDIR=confmdtest PROTOCOL=SMAP1 SENDMAIL=`pwd`/confsendmail $IMAPINVOKE <<EOF | sed "$SED" >testfile.out
+OPEN INBOX
+FETCH 1 CONTENTS=BODY.DECODED[1]
+LOGOUT
+EOF
+
+$PERL -e '
+use strict;
+use warnings;
+my $chunk=0;
+
+while (<STDIN>)
+{
+    chomp;
+    if (/^\{(\d+)\//)
+    {
+        $chunk=$1;
+        last;
+    }
+}
+
+while ($chunk)
+{
+	my $buffer;
+	my $bytes_read = read(STDIN, $buffer, $chunk);
+	print $buffer;
+	last unless defined ($_=<STDIN>);
+	last unless /(\d+)/;
+	$chunk = $1;
+}' <testfile.out >testfile.decoded
+set -vx
+diff -U 3 testfile testfile.decoded || exit 1
+rm -rf confmdtest filefile testfile testfile.decoded testfile.msg testfile.out

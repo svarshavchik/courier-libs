@@ -1460,6 +1460,7 @@ namespace {
 				memcpy(buf+i, p, chunk);
 				i += chunk;
 				n -= chunk;
+				p += chunk;
 			}
 		}
 

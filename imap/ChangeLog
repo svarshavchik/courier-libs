@@ -1,3 +1,7 @@
+2026-05-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* smap.C: Fix decoding bug.
+
 2026-04-24  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fedora 44: workaround for the autoconf-archive/gcc 16 issue.
