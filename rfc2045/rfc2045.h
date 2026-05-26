@@ -32,6 +32,7 @@
 #include <optional>
 #include <condition_variable>
 #include <tuple>
+#include <courier-unicode.h>
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc2045charset.h"
@@ -253,6 +254,13 @@ inline bool do_encode(char c)
 	return c <= ' ' || c >= 127;
 }
 
+template<typename C>
+auto attr_encode_simple(const char *name,
+			std::string_view value,
+			C && callback)
+	-> decltype(std::declval<C &&>()(std::declval<const char *>(),
+					 std::declval<const char *>()));
+
 template<typename C, bool integral_return=std::is_integral_v<decltype(
 	std::declval<C &&>()(std::declval<const char *>(),
 			     std::declval<const char *>()))>>
@@ -280,6 +288,34 @@ auto attr_encode(std::string_view name,
 		}
 	}
 
+	char name_buf[name.size()+1];
+
+	// header::parameters_t already have lowercase keys, this is for the
+	// benefit of callers who call this directly.
+	*std::transform(name.begin(),
+			name.end(),
+			name_buf,
+			[]
+			(char c)
+			{
+				if (c >= 'A' && c <= 'Z')
+				{
+					c += 'a'-'A';
+				}
+				return c;
+			})=0;
+
+	std::string_view name_buf_s{name_buf};
+
+	// boundary delimiter strings can be long, make sure we don't go
+	// off the reservation.
+	if (name_buf_s == "charset" || name_buf_s == "boundary")
+		return attr_encode_simple(
+			name_buf,
+			value,
+			std::forward<C>(callback)
+		);
+
 	if (name.size() + value.size() <= 75 &&
 	    language.empty() &&
 	    std::find_if(value.begin(), value.end(), do_encode) ==
@@ -305,43 +341,14 @@ auto attr_encode(std::string_view name,
 			std::string_view sbuf{buf};
 
 			if (sbuf.empty() ||
-			    sbuf == "utf-8" ||
+			    sbuf == unicode::utf_8 ||
 			    sbuf == "us-ascii")
 			{
-				char name_buf[name.size()+1];
-				char value_buf[value.size()+3];
-
-				*std::copy(name.data(), name.data()+
-					   name.size(), name_buf)=0;
-
-				bool quotes_needed=std::find_if(
-					value.begin(),
-					value.end(),
-					[]
-					(char c)
-					{
-						static const char specials[]=
-							RFC822_SPECIALS;
-
-						return std::find(
-							std::begin(specials),
-							std::end(specials),
-							c) !=
-							std::end(specials);
-					}) != value.end();
-
-				char *p=value_buf;
-
-				if (quotes_needed)
-					*p++='"';
-				p=std::copy(value.data(), value.data()+
-					    value.size(), p);
-
-				if (quotes_needed)
-					*p++='"';
-				*p=0;
-
-				return callback(name_buf, value_buf);
+				return attr_encode_simple(
+					name_buf,
+					value,
+					std::forward<C>(callback)
+				);
 			}
 		}
 	}
@@ -413,6 +420,44 @@ auto attr_encode(std::string_view name,
 	}
 }
 
+template<typename C>
+auto attr_encode_simple(const char *name,
+			std::string_view value,
+			C && callback)
+	-> decltype(std::declval<C &&>()(std::declval<const char *>(),
+					 std::declval<const char *>()))
+{
+	char value_buf[value.size()+3];
+
+	bool quotes_needed=std::find_if(
+		value.begin(),
+		value.end(),
+		[]
+		(char c)
+		{
+			static const char specials[]=
+				RFC822_SPECIALS;
+
+			return std::find(
+				std::begin(specials),
+				std::end(specials),
+				c) !=
+				std::end(specials);
+		}) != value.end();
+
+	char *p=value_buf;
+
+	if (quotes_needed)
+		*p++='"';
+	p=std::copy(value.data(), value.data()+
+		    value.size(), p);
+
+	if (quotes_needed)
+		*p++='"';
+	*p=0;
+
+	return callback(name, value_buf);
+}
 
 // A parameter of a structured MIME header.
 struct header_parameter_value {
@@ -424,7 +469,7 @@ struct header_parameter_value {
 	std::string charset{unicode::utf_8};
 
 	// If RFC 2231 was used to encode the language
-	std::string language{"en"};
+	std::string language;
 
 	// Finally, the value.
 	std::string value;
@@ -504,8 +549,8 @@ struct parameter_parser {
 
 	struct rfc2231_parsed_parameters {
 		size_t index=0;
-		std::string charset{"utf-8"};
-		std::string language{"en"};
+		std::string charset{unicode::utf_8};
+		std::string language;
 		std::map<std::optional<int>, std::string> values;
 	};
 

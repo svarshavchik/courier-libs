@@ -253,8 +253,8 @@ rfc2231::header::header(
 				std::forward_as_tuple(name),
 				std::forward_as_tuple(
 					parser.index++,
-					"utf-8",
-					"en",
+					unicode::utf_8,
+					"",
 					value));
 			continue;
 		}

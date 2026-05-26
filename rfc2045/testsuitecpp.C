@@ -432,22 +432,22 @@ void testrfc2231headers()
 			"CHARSET=\"iso-8859-1\"",
 			"text/plain",
 			{
-				{"charset", {0, "utf-8", "en", "iso-8859-1"}}
+				{"charset", {0, "utf-8", "", "iso-8859-1"}}
 			},
 			{
-				{"charset", {0, "utf-8", "en", "iso-8859-1"}}
+				{"charset", {0, "utf-8", "", "iso-8859-1"}}
 			}
 		},
 		{
 			"text/html;;novalue;quotedvalue=\"quoted\";",
 			"text/html",
 			{
-				{"novalue", {0, "utf-8", "en", ""}},
-				{"quotedvalue", {1, "utf-8", "en", "quoted"}}
+				{"novalue", {0, "utf-8", "", ""}},
+				{"quotedvalue", {1, "utf-8", "", "quoted"}}
 			},
 			{
-				{"novalue", {0, "utf-8", "en", ""}},
-				{"quotedvalue", {1, "utf-8", "en", "quoted"}}
+				{"novalue", {0, "utf-8", "", ""}},
+				{"quotedvalue", {1, "utf-8", "", "quoted"}}
 			}
 		},
 		{
@@ -457,14 +457,14 @@ void testrfc2231headers()
 			"notrailing=semicolon",
 			"text/plain",
 			{
-				{"nonstandard1", {0, "utf-8", "en", "nobÒdy"}},
-				{"nonstandard2", {1, "utf-8", "en", "nobÒdy"}},
-				{"notrailing", {2, "utf-8", "en", "semicolon"}}
+				{"nonstandard1", {0, "utf-8", "", "nobÒdy"}},
+				{"nonstandard2", {1, "utf-8", "", "nobÒdy"}},
+				{"notrailing", {2, "utf-8", "", "semicolon"}}
 			},
 			{
-				{"nonstandard1", {0, "utf-8", "en", "=?utf-8?q?nob=c3=92dy?="}},
-				{"nonstandard2", {1, "utf-8", "en", "=?utf-8?q?nob=c3=92dy?="}},
-				{"notrailing", {2, "utf-8", "en", "semicolon"}}
+				{"nonstandard1", {0, "utf-8", "", "=?utf-8?q?nob=c3=92dy?="}},
+				{"nonstandard2", {1, "utf-8", "", "=?utf-8?q?nob=c3=92dy?="}},
+				{"notrailing", {2, "utf-8", "", "semicolon"}}
 			}
 		},
 		{
@@ -477,14 +477,14 @@ void testrfc2231headers()
 				{"bells_and_whistles", {2, "utf-8", "en_us", "All the%bells and more."}}
 			},
 			{
-				{"bells_and_whistles*0*", {0, "utf-8", "en", "UTF-8'EN_US'A%6c%6C%20"}},
-				{"bells_and_whistles*1", {1, "utf-8", "en", "the%bells"}},
-				{"bells_and_whistles*2*", {2, "utf-8", "en", "%20and%20more%2E"}}
+				{"bells_and_whistles*0*", {0, "utf-8", "", "UTF-8'EN_US'A%6c%6C%20"}},
+				{"bells_and_whistles*1", {1, "utf-8", "", "the%bells"}},
+				{"bells_and_whistles*2*", {2, "utf-8", "", "%20and%20more%2E"}}
 			}
 		}
 	};
 
-#if 1
+#if 2
 
 	size_t testnum=0;
 #else
