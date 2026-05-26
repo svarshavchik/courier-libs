@@ -79,12 +79,12 @@ imapd_SOURCES=fetch.C fetchinfo.C fetchinfo.h imapd.C imapd.h \
 
 imapd_DEPENDENCIES=libimapd.la @dblibrary@
 nodist_EXTRA_imapd_SOURCES=forcecpp1.C
-imapd_LDADD=libimapd.la	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth
+imapd_LDADD=libimapd.la	@dblibrary@ @DEBUGLIB@ @LDAUTH@ -lcourierauth -lpthread
 
 imapd_testmockpurge_SOURCES=$(imapd_SOURCES) mockmaildirpurge.c
 imapd_testmockpurge_DEPENDENCIES=$(imapd_DEPENDENCIES)
 nodist_EXTRA_imapd_testmockpurge_SOURCES=forcecpp2.C
-imapd_testmockpurge_LDADD=$(imapd_LDADD)
+imapd_testmockpurge_LDADD=$(imapd_LDADD) -lpthread
 
 pop3login_SOURCES=pop3login.C pop3dcapa.C proxy.C proxy.h
 pop3login_DEPENDENCIES=../tcpd/libspipe.la ../tcpd/libspipe.la libpop3d.la
@@ -100,12 +100,12 @@ libpop3d_la_LDFLAGS=-static
 
 pop3d_SOURCES=pop3dserver.C pop3dcapa.C
 pop3d_DEPENDENCIES=libpop3d.la
-pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
+pop3d_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode -lpthread
 nodist_EXTRA_pop3d_SOURCES=dummy.C
 
 pop3d_testmock_SOURCES=testpop3dserver.C pop3dcapa.C
 pop3d_testmock_DEPENDENCIES=libpop3d.la
-pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode
+pop3d_testmock_LDADD=libpop3d.la @LDAUTH@ -lcourierauth -lcourier-unicode -lpthread
 nodist_EXTRA_pop3d_testmock_SOURCES=dummy.C
 
 clean-local:
