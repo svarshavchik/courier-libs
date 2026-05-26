@@ -112,7 +112,7 @@ static void encode_rfc6533(std::u32string_view address,
 	{
 		size_t i;
 
-		for (i=0; address[i]; ++i)
+		for (i=0; i < address.size(); ++i)
 		{
 			if (address[i] <= ' ')
 				break;
@@ -306,7 +306,7 @@ std::string rfc6533::decode(std::string_view address)
 
 	size_t i;
 	for (i=address.size(); i > 0; --i)
-		if (!unicode_isspace((unsigned char)address[i]))
+		if (!unicode_isspace((unsigned char)address[i-1]))
 			break;
 
 	address=address.substr(0, i);
