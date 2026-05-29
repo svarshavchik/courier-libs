@@ -772,7 +772,7 @@ struct parameter_parser {
   DECODING MIME ENTITIES
   ======================
 
-  rfc2045::mime_decoder{out, input_stream, "utf-8"};
+  rfc2045::mime_decoder decoder{out, input_stream, "utf-8"};
 
   rfc2045::mime_unicode_decoder{out, input_stream};
 
@@ -788,7 +788,7 @@ struct parameter_parser {
       {
           return true;
       };
-  decoder.headerfilter=[](std::string_view name)
+  decoder.headerdone=[](std::string_view name)
       {
       };
   decoder.decode<false>(entity);
@@ -902,7 +902,7 @@ struct parameter_parser {
       {
          // ...
       },
-      input_stream,
+      input_streambuf,
       metadata);
 
   autoconvert() proceeds and rewrites the MIME entity, accordingly. The
