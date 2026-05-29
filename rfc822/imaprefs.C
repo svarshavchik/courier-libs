@@ -39,7 +39,8 @@ struct imap_refmsgtable *rfc822_threadalloc()
 {
 struct imap_refmsgtable *p;
 
-	p=(struct imap_refmsgtable *)malloc(sizeof(struct imap_refmsgtable));
+	p=reinterpret_cast<struct imap_refmsgtable *>(
+		malloc(sizeof(struct imap_refmsgtable)));
 	if (p)
 		memset(p, 0, sizeof(*p));
 	return (p);
@@ -47,19 +48,18 @@ struct imap_refmsgtable *p;
 
 void rfc822_threadfree(struct imap_refmsgtable *p)
 {
-int i;
 struct imap_refmsghash *h;
 struct imap_subjlookup *s;
 struct imap_refmsg *m;
 
-	for (i=0; i<sizeof(p->hashtable)/sizeof(p->hashtable[0]); i++)
+	for (size_t i=0; i<sizeof(p->hashtable)/sizeof(p->hashtable[0]); i++)
 		while ((h=p->hashtable[i]) != 0)
 		{
 			p->hashtable[i]=h->nexthash;
 			free(h);
 		}
 
-	for (i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
+	for (size_t i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
 		while ((s=p->subjtable[i]) != 0)
 		{
 			p->subjtable[i]=s->nextsubj;
@@ -101,15 +101,16 @@ struct imap_refmsg *rfc822_threadallocmsg(struct imap_refmsgtable *mt,
 					  const char *msgid)
 {
 int n=hashmsgid(msgid);
-struct imap_refmsg *msgp= (struct imap_refmsg *)
-	malloc(sizeof(struct imap_refmsg)+1+strlen(msgid));
+auto msgp{reinterpret_cast<struct imap_refmsg *>(
+	malloc(sizeof(struct imap_refmsg)+1+strlen(msgid)))};
 struct imap_refmsghash *h, **hp;
 
 	if (!msgp)	return (0);
 	memset(msgp, 0, sizeof(*msgp));
 	strcpy ((msgp->msgid=(char *)(msgp+1)), msgid);
 
-	h=(struct imap_refmsghash *)malloc(sizeof(struct imap_refmsghash));
+	h=reinterpret_cast<struct imap_refmsghash *>(
+		malloc(sizeof(struct imap_refmsghash)));
 	if (!h)
 	{
 		free(msgp);
@@ -185,7 +186,8 @@ static int findsubj(struct imap_refmsgtable *mt, const char *s, int *isrefwd,
 		return (0);
 	}
 
-	newsubj=malloc(sizeof(struct imap_subjlookup));
+	newsubj=reinterpret_cast<struct imap_subjlookup *>(
+		malloc(sizeof(struct imap_subjlookup)));
 	if (!newsubj)
 	{
 		free(ss);
@@ -438,10 +440,12 @@ struct imap_refmsg *rfc822_threadmsgrefs(struct imap_refmsgtable *mt,
 	for (n=0; msgidList[n]; n++)
 		;
 
-	if ((tArray=malloc((n+1) * sizeof(*tArray))) == NULL)
+	if ((tArray=reinterpret_cast<struct rfc822token *>(
+		malloc((n+1) * sizeof(*tArray)))) == NULL)
 		return NULL;
 
-	if ((aArray=malloc((n+1) * sizeof(*aArray))) == NULL)
+	if ((aArray=reinterpret_cast<struct rfc822addr *>(
+		malloc((n+1) * sizeof(*aArray)))) == NULL)
 	{
 		free(tArray);
 		return NULL;
@@ -653,7 +657,8 @@ int rfc822_threadsortsubj(struct imap_refmsg *root)
 		++cnt;
 	}
 
-	if ((sortarray=malloc(sizeof(struct imap_refmsg *)*(cnt+1))) == 0)
+	if ((sortarray=reinterpret_cast<struct imap_refmsg **>(
+		malloc(sizeof(struct imap_refmsg *)*(cnt+1)))) == 0)
 		return (-1);
 
 	for (cnt=0; (toproot=root->firstchild) != NULL; ++cnt)
@@ -1013,11 +1018,11 @@ static int dothreadsort(struct imap_threadsortinfo *itsi,
 
 	if (n > itsi->sort_table_cnt)
 	{
-		struct imap_refmsg **new_array=(struct imap_refmsg **)
-			(itsi->sort_table ?
+		auto new_array{reinterpret_cast<struct imap_refmsg **>(
+			itsi->sort_table ?
 			 realloc(itsi->sort_table,
 				 sizeof(struct imap_refmsg *)*n)
-			 :malloc(sizeof(struct imap_refmsg *)*n));
+			 :malloc(sizeof(struct imap_refmsg *)*n))};
 
 		if (!new_array)
 			return (-1);

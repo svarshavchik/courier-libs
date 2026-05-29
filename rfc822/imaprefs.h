@@ -12,10 +12,6 @@
 #include	"rfc822/config.h"
 #endif
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
 /*
 ** Implement REFERENCES threading.
 */
@@ -100,10 +96,5 @@ int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
 int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
 			   struct imap_refmsg *root);
 int rfc822_threadsortbydate(struct imap_refmsgtable *mt);
-
-
-#ifdef  __cplusplus
-}
-#endif
 
 #endif

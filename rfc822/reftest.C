@@ -171,9 +171,8 @@ static void test5()
 static void prsubj(struct imap_refmsgtable *p)
 {
 	struct imap_subjlookup *s;
-	int i;
 
-	for (i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
+	for (size_t i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
 		for (s=p->subjtable[i]; s; s=s->nextsubj)
 			printf("subject(%s)=<%s>\n", s->subj,
 			       s->msg->msgid ? s->msg->msgid:"");
