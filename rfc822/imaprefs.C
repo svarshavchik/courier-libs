@@ -35,46 +35,36 @@ static void swapmsgdata(struct imap_refmsg *a, struct imap_refmsg *b)
 #undef	swap
 }
 
-struct imap_refmsgtable *rfc822_threadalloc()
+imap_refmsgtable::imap_refmsgtable()=default;
+
+imap_refmsgtable::~imap_refmsgtable()
 {
-struct imap_refmsgtable *p;
+	imap_refmsghash *h;
+	imap_subjlookup *s;
+	imap_refmsg *m;
 
-	p=reinterpret_cast<struct imap_refmsgtable *>(
-		malloc(sizeof(struct imap_refmsgtable)));
-	if (p)
-		memset(p, 0, sizeof(*p));
-	return (p);
-}
-
-void rfc822_threadfree(struct imap_refmsgtable *p)
-{
-struct imap_refmsghash *h;
-struct imap_subjlookup *s;
-struct imap_refmsg *m;
-
-	for (size_t i=0; i<sizeof(p->hashtable)/sizeof(p->hashtable[0]); i++)
-		while ((h=p->hashtable[i]) != 0)
+	for (size_t i=0; i<sizeof(hashtable)/sizeof(hashtable[0]); i++)
+		while ((h=hashtable[i]) != 0)
 		{
-			p->hashtable[i]=h->nexthash;
+			hashtable[i]=h->nexthash;
 			free(h);
 		}
 
-	for (size_t i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
-		while ((s=p->subjtable[i]) != 0)
+	for (size_t i=0; i<sizeof(subjtable)/sizeof(subjtable[0]); i++)
+		while ((s=subjtable[i]) != 0)
 		{
-			p->subjtable[i]=s->nextsubj;
+			subjtable[i]=s->nextsubj;
 			free(s->subj);
 			free(s);
 		}
 
-	while ((m=p->firstmsg) != 0)
+	while ((m=firstmsg) != 0)
 	{
-		p->firstmsg=m->next;
+		firstmsg=m->next;
 		if (m->subj)
 			free(m->subj);
 		free(m);
 	}
-	free(p);
 }
 
 static int hashmsgid(const char *msgid)

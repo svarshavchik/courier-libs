@@ -32,22 +32,23 @@ struct imap_refmsg {
 	char *subj;			/* dynalloced subject of this msg */
 	time_t timestamp;		/* Timestamp */
 	unsigned long seqnum;		/* Sequence number */
-} ;
+};
 
 struct imap_refmsgtable {
-        struct imap_refmsg *firstmsg, *lastmsg; /* Link list of all msgs */
 
+	imap_refmsgtable();
+	~imap_refmsgtable();
+
+        struct imap_refmsg *firstmsg{nullptr};
+        struct imap_refmsg *lastmsg{nullptr};
         /* hash table message id lookup */
+        struct imap_refmsghash *hashtable[512]{};
 
-        struct imap_refmsghash *hashtable[512];
+        struct imap_subjlookup *subjtable[512]{};
 
-        struct imap_subjlookup *subjtable[512];
+        struct imap_refmsg *rootptr{nullptr};            /* The root */
+};
 
-        struct imap_refmsg *rootptr;            /* The root */
-} ;
-
-struct imap_refmsgtable *rfc822_threadalloc(void);
-void rfc822_threadfree(struct imap_refmsgtable *);
 struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
 				     const char *msgidhdr,
 				     const char *refhdr,

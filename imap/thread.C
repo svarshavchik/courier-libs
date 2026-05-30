@@ -163,26 +163,19 @@ void contentsearch::dothreadreferences(searchiter si,
 				       const std::string &charset,
 				       bool isuid)
 {
-	struct imap_refmsgtable *reftable;
+	imap_refmsgtable reftable;
 	struct imap_refmsg *root;
-
-	if (!(reftable=rfc822_threadalloc()))
-	{
-		write_error_exit(0);
-		return;
-	}
 
 	search_internal(
 		si, charset,
 		[&]
 		(unsigned long i)
 		{
-			thread_ref_callback(*this, isuid, i, reftable);
+			thread_ref_callback(*this, isuid, i, &reftable);
 		});
 
-	root=rfc822_thread(reftable);
+	root=rfc822_thread(&reftable);
 	printthread(root, isuid);
-	rfc822_threadfree(reftable);
 }
 
 static void thread_ref_callback(contentsearch &cs,
