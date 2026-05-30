@@ -16,7 +16,7 @@
 #include	"rfc822.h"
 #include	"imaprefs.h"
 
-static void swapmsgdata(struct imap_refmsg *a, struct imap_refmsg *b)
+static void swapmsgdata(imap_refmsg *a, imap_refmsg *b)
 {
 	char *cp;
 	char c;
@@ -75,7 +75,7 @@ unsigned long hashno=0;
 	{
 	unsigned long n= (hashno << 1);
 
-#define	HMIDS	(((struct imap_refmsgtable *)0)->hashtable)
+#define	HMIDS	(((imap_refmsgtable *)0)->hashtable)
 #define	HHMIDSS	( sizeof(HMIDS) / sizeof( HMIDS[0] ))
 
 		if (hashno & HHMIDSS )
@@ -87,27 +87,26 @@ unsigned long hashno=0;
 	return (hashno % HHMIDSS);
 }
 
-struct imap_refmsg *rfc822_threadallocmsg(struct imap_refmsgtable *mt,
-					  const char *msgid)
+imap_refmsg *imap_refmsgtable::threadallocmsg(const char *msgid)
 {
 int n=hashmsgid(msgid);
-auto msgp{reinterpret_cast<struct imap_refmsg *>(
-	malloc(sizeof(struct imap_refmsg)+1+strlen(msgid)))};
-struct imap_refmsghash *h, **hp;
+auto msgp{reinterpret_cast<imap_refmsg *>(
+	malloc(sizeof(imap_refmsg)+1+strlen(msgid)))};
+imap_refmsghash *h, **hp;
 
 	if (!msgp)	return (0);
 	memset(msgp, 0, sizeof(*msgp));
 	strcpy ((msgp->msgid=(char *)(msgp+1)), msgid);
 
-	h=reinterpret_cast<struct imap_refmsghash *>(
-		malloc(sizeof(struct imap_refmsghash)));
+	h=reinterpret_cast<imap_refmsghash *>(
+		malloc(sizeof(imap_refmsghash)));
 	if (!h)
 	{
 		free(msgp);
 		return (0);
 	}
 
-	for (hp= &mt->hashtable[n]; *hp; hp= & (*hp)->nexthash)
+	for (hp= &hashtable[n]; *hp; hp= & (*hp)->nexthash)
 	{
 		if (strcmp( (*hp)->msg->msgid, msgp->msgid) > 0)
 			break;
@@ -117,24 +116,23 @@ struct imap_refmsghash *h, **hp;
 	*hp=h;
 	h->msg=msgp;
 
-	msgp->last=mt->lastmsg;
+	msgp->last=lastmsg;
 
-	if (mt->lastmsg)
-		mt->lastmsg->next=msgp;
+	if (lastmsg)
+		lastmsg->next=msgp;
 	else
-		mt->firstmsg=msgp;
+		firstmsg=msgp;
 
-	mt->lastmsg=msgp;
+	lastmsg=msgp;
 	return (msgp);
 }
 
-struct imap_refmsg *rfc822_threadsearchmsg(struct imap_refmsgtable *mt,
-					   const char *msgid)
+imap_refmsg *imap_refmsgtable::threadsearchmsg(const char *msgid)
 {
 int n=hashmsgid(msgid);
-struct imap_refmsghash *h;
+imap_refmsghash *h;
 
-	for (h= mt->hashtable[n]; h; h= h->nexthash)
+	for (h= hashtable[n]; h; h= h->nexthash)
 	{
 	int	rc=strcmp(h->msg->msgid, msgid);
 
@@ -145,18 +143,22 @@ struct imap_refmsghash *h;
 	return (0);
 }
 
-static int findsubj(struct imap_refmsgtable *mt, const char *s, int *isrefwd,
-		    int create, struct imap_subjlookup **ptr)
+int imap_refmsgtable::findsubj(
+	const char *s,
+	int *isrefwd,
+	int create,
+	imap_subjlookup **ptr
+)
 {
 	char *ss=rfc822_coresubj(s, isrefwd);
 	int n;
-	struct imap_subjlookup **h;
-	struct imap_subjlookup *newsubj;
+	imap_subjlookup **h;
+	imap_subjlookup *newsubj;
 
 	if (!ss)	return (-1);
 	n=hashmsgid(ss);
 
-	for (h= &mt->subjtable[n]; *h; h= &(*h)->nextsubj)
+	for (h= &subjtable[n]; *h; h= &(*h)->nextsubj)
 	{
 	int	rc=strcmp((*h)->subj, ss);
 
@@ -176,8 +178,8 @@ static int findsubj(struct imap_refmsgtable *mt, const char *s, int *isrefwd,
 		return (0);
 	}
 
-	newsubj=reinterpret_cast<struct imap_subjlookup *>(
-		malloc(sizeof(struct imap_subjlookup)));
+	newsubj=reinterpret_cast<imap_subjlookup *>(
+		malloc(sizeof(imap_subjlookup)));
 	if (!newsubj)
 	{
 		free(ss);
@@ -192,7 +194,7 @@ static int findsubj(struct imap_refmsgtable *mt, const char *s, int *isrefwd,
 	return (0);
 }
 
-static void linkparent(struct imap_refmsg *msg, struct imap_refmsg *lastmsg)
+static void linkparent(imap_refmsg *msg, imap_refmsg *lastmsg)
 {
 	msg->parent=lastmsg;
 	msg->prevsib=lastmsg->lastchild;
@@ -206,7 +208,7 @@ static void linkparent(struct imap_refmsg *msg, struct imap_refmsg *lastmsg)
 }
 
 
-static void breakparent(struct imap_refmsg *m)
+static void breakparent(imap_refmsg *m)
 {
 	if (!m->parent)	return;
 
@@ -218,14 +220,13 @@ static void breakparent(struct imap_refmsg *m)
 	m->parent=0;
 }
 
-static struct imap_refmsg *dorefcreate(struct imap_refmsgtable *mt,
-				       const char *newmsgid,
-				       struct rfc822a *a)
-     /* a - references header */
+/* Create a new message node and thread it into the tree.
+   a - references header */
+imap_refmsg *imap_refmsgtable::dorefcreate(const char *newmsgid, rfc822a *a)
 {
-struct imap_refmsg *lastmsg=0, *m;
-struct imap_refmsg *msg;
-int n;
+	imap_refmsg *lastmsg=0, *m;
+	imap_refmsg *msg;
+	int n;
 
 /*
             (A) Using the Message-IDs in the message's references, link
@@ -245,10 +246,10 @@ int n;
 	{
 		char *msgid=a->addrs[n].tokens ? rfc822_getaddr(a, n):NULL;
 
-		msg=msgid ? rfc822_threadsearchmsg(mt, msgid):0;
+		msg=msgid ? threadsearchmsg(msgid):0;
 		if (!msg)
 		{
-			msg=rfc822_threadallocmsg(mt, msgid ? msgid:"");
+			msg=threadallocmsg(msgid ? msgid:"");
 			if (!msg)
 			{
 				if (msgid)
@@ -308,7 +309,7 @@ int n;
 
 */
 
-	msg=*newmsgid ? rfc822_threadsearchmsg(mt, newmsgid):0;
+	msg=*newmsgid ? threadsearchmsg(newmsgid):0;
 
 	/*
 	       If a message does not contain a Message-ID header line,
@@ -349,7 +350,7 @@ int n;
 
 		}
 #endif
-		msg=rfc822_threadallocmsg(mt, newmsgid);
+		msg=threadallocmsg(newmsgid);
 		if (!msg)	return (0);
 	}
 
@@ -364,22 +365,13 @@ int n;
 	return (msg);
 }
 
-static struct imap_refmsg *threadmsg_common(struct imap_refmsg *m,
+static imap_refmsg *threadmsg_common(imap_refmsg *m,
 					    const char *subjheader,
 					    const char *dateheader,
 					    time_t dateheader_tm,
 					    unsigned long seqnum);
 
-static struct imap_refmsg *rfc822_threadmsgaref(struct imap_refmsgtable *mt,
-					       const char *msgidhdr,
-					       struct rfc822a *refhdr,
-					       const char *subjheader,
-					       const char *dateheader,
-					       time_t dateheader_tm,
-					       unsigned long seqnum);
-
-struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
-				     const char *msgidhdr,
+imap_refmsg *imap_refmsgtable::threadmsg(const char *msgidhdr,
 				     const char *refhdr,
 				     const char *subjheader,
 				     const char *dateheader,
@@ -388,7 +380,7 @@ struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
 {
 	struct rfc822t *t;
 	struct rfc822a *a;
-	struct imap_refmsg *m;
+	imap_refmsg *m;
 
 	t=rfc822t_alloc_new(refhdr ? refhdr:"", NULL, NULL);
 	if (!t)
@@ -403,7 +395,7 @@ struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
 		return (0);
 	}
 
-	m=rfc822_threadmsgaref(mt, msgidhdr, a, subjheader, dateheader,
+	m=threadmsgaref(msgidhdr, a, subjheader, dateheader,
 			       dateheader_tm, seqnum);
 
 	rfc822a_free(a);
@@ -412,15 +404,14 @@ struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
 }
 
 
-struct imap_refmsg *rfc822_threadmsgrefs(struct imap_refmsgtable *mt,
-					 const char *msgid_s,
+imap_refmsg *imap_refmsgtable::threadmsgrefs(const char *msgid_s,
 					 const char * const * msgidList,
 					 const char *subjheader,
 					 const char *dateheader,
 					 time_t dateheader_tm,
 					 unsigned long seqnum)
 {
-	struct imap_refmsg *m;
+	imap_refmsg *m;
 	struct rfc822token *tArray;
 	struct rfc822addr *aArray;
 
@@ -455,7 +446,7 @@ struct imap_refmsg *rfc822_threadmsgrefs(struct imap_refmsgtable *mt,
 	a.naddrs=n;
 	a.addrs=aArray;
 
-	m=rfc822_threadmsgaref(mt, msgid_s, &a, subjheader, dateheader,
+	m=threadmsgaref(msgid_s, &a, subjheader, dateheader,
 			       dateheader_tm, seqnum);
 
 	free(tArray);
@@ -463,17 +454,19 @@ struct imap_refmsg *rfc822_threadmsgrefs(struct imap_refmsgtable *mt,
 	return m;
 }
 
-static struct imap_refmsg *rfc822_threadmsgaref(struct imap_refmsgtable *mt,
-						const char *msgidhdr,
-						struct rfc822a *refhdr,
-						const char *subjheader,
-						const char *dateheader,
-						time_t dateheader_tm,
-						unsigned long seqnum)
+
+imap_refmsg *imap_refmsgtable::threadmsgaref(
+	const char *msgidhdr,
+	rfc822a *refhdr,
+	const char *subjheader,
+	const char *dateheader,
+	time_t dateheader_tm,
+	unsigned long seqnum
+)
 {
 	struct rfc822t *t;
 	struct rfc822a *a;
-	struct imap_refmsg *m;
+	imap_refmsg *m;
 
 	char *msgid_s;
 
@@ -495,7 +488,7 @@ static struct imap_refmsg *rfc822_threadmsgaref(struct imap_refmsgtable *mt,
 	if (!msgid_s)
 		return (0);
 
-	m=dorefcreate(mt, msgid_s, refhdr);
+	m=dorefcreate(msgid_s, refhdr);
 
 	free(msgid_s);
 
@@ -507,7 +500,7 @@ static struct imap_refmsg *rfc822_threadmsgaref(struct imap_refmsgtable *mt,
 				dateheader_tm, seqnum);
 }
 
-static struct imap_refmsg *threadmsg_common(struct imap_refmsg *m,
+static imap_refmsg *threadmsg_common(imap_refmsg *m,
 					    const char *subjheader,
 					    const char *dateheader,
 					    time_t dateheader_tm,
@@ -536,21 +529,21 @@ static struct imap_refmsg *threadmsg_common(struct imap_refmsg *m,
 
 */
 
-struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt)
+imap_refmsg *imap_refmsgtable::threadgetroot()
 {
-	struct imap_refmsg *root, *m;
+	imap_refmsg *root, *m;
 
-	if (mt->rootptr)
-		return (mt->rootptr);
+	if (rootptr)
+		return (rootptr);
 
-	root=rfc822_threadallocmsg(mt, "(root)");
+	root=threadallocmsg("(root)");
 
 	if (!root)	return (0);
 
 	root->parent=root;	/* Temporary */
 	root->isdummy=1;
 
-	for (m=mt->firstmsg; m; m=m->next)
+	for (m=firstmsg; m; m=m->next)
 		if (!m->parent)
 		{
 			if (m->isdummy && m->firstchild == 0)
@@ -559,7 +552,7 @@ struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt)
 			linkparent(m, root);
 		}
 	root->parent=NULL;
-	return (mt->rootptr=root);
+	return (rootptr=root);
 }
 
 /*
@@ -568,13 +561,13 @@ struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt)
 **        thread under the root, and for each message:
 */
 
-void rfc822_threadprune(struct imap_refmsgtable *mt)
+void imap_refmsgtable::threadprune()
 {
-	struct imap_refmsg *msg;
+	imap_refmsg *msg;
 
-	for (msg=mt->firstmsg; msg; msg=msg->next)
+	for (msg=firstmsg; msg; msg=msg->next)
 	{
-		struct imap_refmsg *saveparent, *m;
+		imap_refmsg *saveparent, *m;
 
 		if (!msg->parent)
 			continue;	/* The root, need it later. */
@@ -623,9 +616,9 @@ void rfc822_threadprune(struct imap_refmsgtable *mt)
 
 static int cmp_msgs(const void *, const void *);
 
-int rfc822_threadsortsubj(struct imap_refmsg *root)
+int imap_refmsgtable::threadsortsubj(imap_refmsg *root)
 {
-	struct imap_refmsg *toproot;
+	imap_refmsg *toproot;
 
 /*
 ** (4) Sort the messages under the root (top-level siblings only)
@@ -637,18 +630,18 @@ int rfc822_threadsortsubj(struct imap_refmsg *root)
 ** and then use the first child for the top-level sort.
 */
 	size_t cnt, i;
-	struct imap_refmsg **sortarray;
+	imap_refmsg **sortarray;
 
 	for (cnt=0, toproot=root->firstchild; toproot;
 	     toproot=toproot->nextsib)
 	{
 		if (toproot->isdummy)
-			rfc822_threadsortsubj(toproot);
+			threadsortsubj(toproot);
 		++cnt;
 	}
 
-	if ((sortarray=reinterpret_cast<struct imap_refmsg **>(
-		malloc(sizeof(struct imap_refmsg *)*(cnt+1)))) == 0)
+	if ((sortarray=reinterpret_cast<imap_refmsg **>(
+		malloc(sizeof(imap_refmsg *)*(cnt+1)))) == 0)
 		return (-1);
 
 	for (cnt=0; (toproot=root->firstchild) != NULL; ++cnt)
@@ -665,10 +658,9 @@ int rfc822_threadsortsubj(struct imap_refmsg *root)
 	return (0);
 }
 
-int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
-			    struct imap_refmsg *root)
+int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 {
-	struct imap_refmsg *toproot, *p;
+	imap_refmsg *toproot, *p;
 
 /*
 ** (5) Gather together messages under the root that have the same
@@ -684,7 +676,7 @@ int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
 	for (toproot=root->firstchild; toproot; toproot=toproot->nextsib)
 	{
 		const char *subj;
-		struct imap_subjlookup *subjtop;
+		imap_subjlookup *subjtop;
 		int isrefwd;
 
 		/*
@@ -713,7 +705,7 @@ int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
 		** subject in the table.
 		*/
 
-		if (findsubj(mt, subj, &isrefwd, 1, &subjtop))
+		if (findsubj(subj, &isrefwd, 1, &subjtop))
 			return (-1);
 
 		/*
@@ -772,16 +764,15 @@ int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
 ** under the root:
 */
 
-int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
-			   struct imap_refmsg *root)
+int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 {
-	struct imap_refmsg *toproot, *p, *q, *nextroot;
+	imap_refmsg *toproot, *p, *q, *nextroot;
 	char *str;
 
 	for (toproot=root->firstchild; toproot; toproot=nextroot)
 	{
 		const char *subj;
-		struct imap_subjlookup *subjtop;
+		imap_subjlookup *subjtop;
 		int isrefwd;
 
 		nextroot=toproot->nextsib;
@@ -810,7 +801,7 @@ int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
 		** subject in the table.
 		*/
 
-		if (findsubj(mt, subj, &isrefwd, 0, &subjtop) || subjtop == 0)
+		if (findsubj(subj, &isrefwd, 0, &subjtop) || subjtop == 0)
 			return (-1);
 
 		/*
@@ -903,7 +894,7 @@ int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
 		** of subjtop->msg, and mark subjtop->msg as a dummy msg.
 		*/
 
-		q=rfc822_threadallocmsg(mt, "(dummy)");
+		q=threadallocmsg("(dummy)");
 		if (!q)
 			return (-1);
 
@@ -940,8 +931,8 @@ int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
 
 static int cmp_msgs(const void *a, const void *b)
 {
-	struct imap_refmsg *ma=*(struct imap_refmsg **)a;
-	struct imap_refmsg *mb=*(struct imap_refmsg **)b;
+	imap_refmsg *ma=*(imap_refmsg **)a;
+	imap_refmsg *mb=*(imap_refmsg **)b;
 	time_t ta, tb;
 	unsigned long na, nb;
 
@@ -969,24 +960,24 @@ static int cmp_msgs(const void *a, const void *b)
 }
 
 struct imap_threadsortinfo {
-	struct imap_refmsgtable *mt;
-	struct imap_refmsg **sort_table;
+	imap_refmsgtable *mt;
+	imap_refmsg **sort_table;
 	size_t sort_table_cnt;
 } ;
 
 static int dothreadsort(struct imap_threadsortinfo *,
-			struct imap_refmsg *);
+			imap_refmsg *);
 
-int rfc822_threadsortbydate(struct imap_refmsgtable *mt)
+int imap_refmsgtable::threadsortbydate()
 {
 	struct imap_threadsortinfo itsi;
 	int rc;
 
-	itsi.mt=mt;
+	itsi.mt=this;
 	itsi.sort_table=0;
 	itsi.sort_table_cnt=0;
 
-	rc=dothreadsort(&itsi, mt->rootptr);
+	rc=dothreadsort(&itsi, rootptr);
 
 	if (itsi.sort_table)
 		free(itsi.sort_table);
@@ -994,9 +985,9 @@ int rfc822_threadsortbydate(struct imap_refmsgtable *mt)
 }
 
 static int dothreadsort(struct imap_threadsortinfo *itsi,
-			struct imap_refmsg *p)
+			imap_refmsg *p)
 {
-	struct imap_refmsg *q;
+	imap_refmsg *q;
 	size_t i, n;
 
 	for (q=p->firstchild; q; q=q->nextsib)
@@ -1008,11 +999,11 @@ static int dothreadsort(struct imap_threadsortinfo *itsi,
 
 	if (n > itsi->sort_table_cnt)
 	{
-		auto new_array{reinterpret_cast<struct imap_refmsg **>(
+		auto new_array{reinterpret_cast<imap_refmsg **>(
 			itsi->sort_table ?
 			 realloc(itsi->sort_table,
-				 sizeof(struct imap_refmsg *)*n)
-			 :malloc(sizeof(struct imap_refmsg *)*n))};
+				 sizeof(imap_refmsg *)*n)
+			 :malloc(sizeof(imap_refmsg *)*n))};
 
 		if (!new_array)
 			return (-1);
@@ -1028,29 +1019,29 @@ static int dothreadsort(struct imap_threadsortinfo *itsi,
 		itsi->sort_table[n++]=q;
 	}
 
-	qsort(itsi->sort_table, n, sizeof(struct imap_refmsg *), cmp_msgs);
+	qsort(itsi->sort_table, n, sizeof(imap_refmsg *), cmp_msgs);
 
 	for (i=0; i<n; i++)
 		linkparent(itsi->sort_table[i], p);
 	return (0);
 }
 
-struct imap_refmsg *rfc822_thread(struct imap_refmsgtable *mt)
+imap_refmsg *imap_refmsgtable::thread()
 {
-	if (!mt->rootptr)
+	if (!rootptr)
 	{
-		rfc822_threadprune(mt);
-		if ((mt->rootptr=rfc822_threadgetroot(mt)) == 0)
+		threadprune();
+		if ((rootptr=threadgetroot()) == 0)
 			return (0);
-		if (rfc822_threadsortsubj(mt->rootptr) ||
-		    rfc822_threadgathersubj(mt, mt->rootptr) ||
-		    rfc822_threadmergesubj(mt, mt->rootptr) ||
-		    rfc822_threadsortbydate(mt))
+		if (threadsortsubj(rootptr) ||
+		    threadgathersubj(rootptr) ||
+		    threadmergesubj(rootptr) ||
+		    threadsortbydate())
 		{
-			mt->rootptr=0;
+			rootptr=0;
 			return (0);
 		}
 	}
 
-	return (mt->rootptr);
+	return (rootptr);
 }

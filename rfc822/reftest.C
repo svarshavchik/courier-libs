@@ -22,7 +22,9 @@
 #endif
 
 #include	"rfc822.h"
+#define private public
 #include	"imaprefs.h"
+#undef private
 
 
 static void test1()
@@ -31,19 +33,19 @@ static void test1()
 	char buf[20];
 
         strcpy(buf, "a@b");
-        rfc822_threadallocmsg(&mt, buf);
+        mt.threadallocmsg(buf);
         strcpy(buf, "c@d");
-        rfc822_threadallocmsg(&mt, buf);
+        mt.threadallocmsg(buf);
 
-	printf("%s\n", (rfc822_threadsearchmsg(&mt, "a@b")
+	printf("%s\n", (mt.threadsearchmsg("a@b")
 			? "found":"not found"));
-	printf("%s\n", (rfc822_threadsearchmsg(&mt, "c@d")
+	printf("%s\n", (mt.threadsearchmsg("c@d")
 			? "found":"not found"));
-	printf("%s\n", (rfc822_threadsearchmsg(&mt, "e@f")
+	printf("%s\n", (mt.threadsearchmsg("e@f")
 			? "found":"not found"));
 }
 
-static void prtree(struct imap_refmsg *m)
+static void prtree(imap_refmsg *m)
 {
 	printf("<%s>", m->msgid ? m->msgid:"");
 
@@ -64,9 +66,9 @@ static void prtree(struct imap_refmsg *m)
 		prtree(m);
 }
 
-static void prpc(struct imap_refmsgtable *mt)
+static void prpc(imap_refmsgtable *mt)
 {
-	struct imap_refmsg *root=rfc822_threadgetroot(mt), *m;
+	imap_refmsg *root=mt->threadgetroot(), *m;
 
 	if (!root)
 		return;
@@ -81,16 +83,16 @@ static void test2()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<1>", NULL,
+	mt.threadmsg("<1>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<2>",
+	mt.threadmsg("<2>",
 			 "<1>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<4>",
+	mt.threadmsg("<4>",
 			 "<1> <2> <3>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
@@ -102,22 +104,22 @@ static void test3()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<4>",
+	mt.threadmsg("<4>",
 			 "<2> <1> <3>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<3>",
+	mt.threadmsg("<3>",
 			 "<1> <2>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<2>",
+	mt.threadmsg("<2>",
 			 "<1>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<1>", NULL,
+	mt.threadmsg("<1>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
@@ -128,20 +130,20 @@ static void test4()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<1>", NULL,
+	mt.threadmsg("<1>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<2>", "<1>",
+	mt.threadmsg("<2>", "<1>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<4>", "<1> <2> <3>",
+	mt.threadmsg("<4>", "<1> <2> <3>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
 	prpc(&mt);
-	rfc822_threadprune(&mt);
+	mt.threadprune();
 	prpc(&mt);
 }
 
@@ -149,16 +151,16 @@ static void test5()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<4>", "<1> <2> <3>",
+	mt.threadmsg("<4>", "<1> <2> <3>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<3>", NULL,
+	mt.threadmsg("<3>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
 	prpc(&mt);
-	rfc822_threadprune(&mt);
+	mt.threadprune();
 	prpc(&mt);
 }
 
@@ -177,37 +179,37 @@ static void test6()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<message1>", NULL,
+	mt.threadmsg("<message1>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message10>", NULL,
+	mt.threadmsg("<message10>", NULL,
 			 "subject 2",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 2);
 
-	rfc822_threadmsg(&mt, "<message3>", "<message2>",
+	mt.threadmsg("<message3>", "<message2>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 3);
 
-	rfc822_threadmsg(&mt, "<message11>", NULL,
+	mt.threadmsg("<message11>", NULL,
 			 "Re: subject 4",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 4);
 
-	rfc822_threadmsg(&mt, "<message12>", NULL,
+	mt.threadmsg("<message12>", NULL,
 			 "subject 4",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 5);
 
-	rfc822_threadmsg(&mt, "<message13>", NULL,
+	mt.threadmsg("<message13>", NULL,
 			 "subject 5",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 6);
 
-	rfc822_threadmsg(&mt, "<message14>", NULL,
+	mt.threadmsg("<message14>", NULL,
 			 "re: subject 5",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 7);
 
-	rfc822_threadprune(&mt);
-	rfc822_threadsortsubj(rfc822_threadgetroot(&mt));
-	rfc822_threadgathersubj(&mt, rfc822_threadgetroot(&mt));
+	mt.threadprune();
+	mt.threadsortsubj(mt.threadgetroot());
+	mt.threadgathersubj(mt.threadgetroot());
 	prpc(&mt);
 	prsubj(&mt);
 }
@@ -216,19 +218,19 @@ static void test7()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<message1>", "<message1-dummy>",
+	mt.threadmsg("<message1>", "<message1-dummy>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message2>", "<message2-dummy>",
+	mt.threadmsg("<message2>", "<message2-dummy>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:58 -0700", 0, 1);
-	rfc822_threadprune(&mt);
-	rfc822_threadsortsubj(rfc822_threadgetroot(&mt));
-	rfc822_threadgathersubj(&mt, rfc822_threadgetroot(&mt));
+	mt.threadprune();
+	mt.threadsortsubj(mt.threadgetroot());
+	mt.threadgathersubj(mt.threadgetroot());
 	prpc(&mt);
 	prsubj(&mt);
-	rfc822_threadmergesubj(&mt, rfc822_threadgetroot(&mt));
+	mt.threadmergesubj(mt.threadgetroot());
 	prpc(&mt);
 }
 
@@ -236,36 +238,36 @@ static void test8()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<message4>", NULL,
+	mt.threadmsg("<message4>", NULL,
 			 "subject 2",
 			 "Thu, 29 Jun 2000 14:41:51 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message2>", NULL,
+	mt.threadmsg("<message2>", NULL,
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:52 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message1>", "<message1-dummy>",
+	mt.threadmsg("<message1>", "<message1-dummy>",
 			 "subject 1",
 			 "Thu, 29 Jun 2000 14:41:53 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message3>", NULL,
+	mt.threadmsg("<message3>", NULL,
 			 "Re: subject 2",
 			 "Thu, 29 Jun 2000 14:41:54 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message10>", NULL,
+	mt.threadmsg("<message10>", NULL,
 			 "subject 10",
 			 "Thu, 29 Jun 2000 14:41:55 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message11>", NULL,
+	mt.threadmsg("<message11>", NULL,
 			 "subject 10",
 			 "Thu, 29 Jun 2000 14:41:56 -0700", 0, 1);
 
-	rfc822_threadprune(&mt);
-	rfc822_threadsortsubj(rfc822_threadgetroot(&mt));
-	rfc822_threadgathersubj(&mt, rfc822_threadgetroot(&mt));
+	mt.threadprune();
+	mt.threadsortsubj(mt.threadgetroot());
+	mt.threadgathersubj(mt.threadgetroot());
 	prpc(&mt);
 	prsubj(&mt);
-	rfc822_threadmergesubj(&mt, rfc822_threadgetroot(&mt));
+	mt.threadmergesubj(mt.threadgetroot());
 	prpc(&mt);
 }
 
@@ -273,36 +275,36 @@ static void test9()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<message1>", NULL,
+	mt.threadmsg("<message1>", NULL,
 			 "subject 1",
 			 "Thu, 20 Jun 2000 14:41:55 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message2>", NULL,
+	mt.threadmsg("<message2>", NULL,
 			 "subject 1",
 			 "Thu, 19 Jun 2000 14:41:51 -0700", 0, 2);
 
-	rfc822_threadmsg(&mt, "<message3>", NULL,
+	mt.threadmsg("<message3>", NULL,
 			 "subject 1",
 			 "Thu, 21 Jun 2000 14:41:56 -0700", 0, 3);
 
-	rfc822_threadmsg(&mt, "<message4>", "<message2>",
+	mt.threadmsg("<message4>", "<message2>",
 			 "subject 2",
 			 "Thu, 21 Jun 2000 14:41:54 -0700", 0, 6);
 
-	rfc822_threadmsg(&mt, "<message5>", "<message2>",
+	mt.threadmsg("<message5>", "<message2>",
 			 "subject 2",
 			 "Thu, 21 Jun 2000 14:41:53 -0700", 0, 5);
 
-	rfc822_threadmsg(&mt, "<message6>", "<message2>",
+	mt.threadmsg("<message6>", "<message2>",
 			 "subject 2",
 			 "Thu, 20 Jun 2000 14:41:52 -0700", 0, 4);
 
 
-	rfc822_threadprune(&mt);
-	rfc822_threadsortsubj(rfc822_threadgetroot(&mt));
-	rfc822_threadgathersubj(&mt, rfc822_threadgetroot(&mt));
-	rfc822_threadmergesubj(&mt, rfc822_threadgetroot(&mt));
-	rfc822_threadsortbydate(&mt);
+	mt.threadprune();
+	mt.threadsortsubj(mt.threadgetroot());
+	mt.threadgathersubj(mt.threadgetroot());
+	mt.threadmergesubj(mt.threadgetroot());
+	mt.threadsortbydate();
 	prpc(&mt);
 }
 
@@ -310,27 +312,27 @@ static void test10()
 {
 	imap_refmsgtable mt;
 
-	rfc822_threadmsg(&mt, "<message1>", NULL,
+	mt.threadmsg("<message1>", NULL,
 			 "subject 1",
 			 "Thu, 20 Jun 2000 14:41:58 -0700", 0, 1);
 
-	rfc822_threadmsg(&mt, "<message4>", "<message1>",
+	mt.threadmsg("<message4>", "<message1>",
 			 "subject 2",
 			 "Thu, 21 Jun 2000 14:41:58 -0700", 0, 6);
 
-	rfc822_threadmsg(&mt, "<message1>", NULL,
+	mt.threadmsg("<message1>", NULL,
 			 "subject 2",
 			 "Thu, 21 Jun 2000 14:41:58 -0700", 0, 5);
 
-	rfc822_threadmsg(&mt, "<message4>", "<message1>",
+	mt.threadmsg("<message4>", "<message1>",
 			 "subject 2",
 			 "Thu, 21 Jun 2000 14:41:58 -0700", 0, 6);
 
-	rfc822_threadprune(&mt);
-	rfc822_threadsortsubj(rfc822_threadgetroot(&mt));
-	rfc822_threadgathersubj(&mt, rfc822_threadgetroot(&mt));
-	rfc822_threadmergesubj(&mt, rfc822_threadgetroot(&mt));
-	rfc822_threadsortbydate(&mt);
+	mt.threadprune();
+	mt.threadsortsubj(mt.threadgetroot());
+	mt.threadgathersubj(mt.threadgetroot());
+	mt.threadmergesubj(mt.threadgetroot());
+	mt.threadsortbydate();
 	prpc(&mt);
 }
 

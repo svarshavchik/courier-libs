@@ -19,10 +19,10 @@
 /* The data structures */
 
 struct imap_refmsg {
-	struct imap_refmsg *next, *last;	/* Link list of all msgs */
-	struct imap_refmsg *parent;		/* my parent */
-	struct imap_refmsg *firstchild, *lastchild; /* Children link list */
-	struct imap_refmsg *prevsib, *nextsib;	/* Link list of siblings */
+	imap_refmsg *next, *last;	/* Link list of all msgs */
+	imap_refmsg *parent;		/* my parent */
+	imap_refmsg *firstchild, *lastchild; /* Children link list */
+	imap_refmsg *prevsib, *nextsib;	/* Link list of siblings */
 
 	char isdummy;			/* this is a dummy node (for now) */
 	char flag2;			/* Additional flag */
@@ -34,68 +34,84 @@ struct imap_refmsg {
 	unsigned long seqnum;		/* Sequence number */
 };
 
-struct imap_refmsgtable {
+struct imap_refmsghash {
+	imap_refmsghash *nexthash;
+	imap_refmsg *msg;
+} ;
 
+class imap_refmsgtable {
+public:
 	imap_refmsgtable();
 	~imap_refmsgtable();
 
-        struct imap_refmsg *firstmsg{nullptr};
-        struct imap_refmsg *lastmsg{nullptr};
+	imap_refmsg *threadmsg(
+		const char *msgidhdr,
+		const char *refhdr,
+		const char *subjheader,
+
+		const char *dateheader,
+		time_t dateheader_tm,
+
+		unsigned long seqnum
+	);
+
+	imap_refmsg *threadmsgrefs(
+		const char *msgid_s,
+		const char * const * msgidList,
+		const char *subjheader,
+		const char *dateheader,
+		time_t dateheader_tm,
+		unsigned long seqnum
+	);
+
+	imap_refmsg *thread();
+
+        imap_refmsg *firstmsg{nullptr};
+        imap_refmsg *lastmsg{nullptr};
         /* hash table message id lookup */
-        struct imap_refmsghash *hashtable[512]{};
+        imap_refmsghash *hashtable[512]{};
 
         struct imap_subjlookup *subjtable[512]{};
 
-        struct imap_refmsg *rootptr{nullptr};            /* The root */
+        imap_refmsg *rootptr{nullptr};            /* The root */
+
+private:
+        imap_refmsg *dorefcreate(const char *newmsgid, rfc822a *a);
+
+	imap_refmsg *threadmsgaref(
+		const char *msgidhdr,
+		rfc822a *refhdr,
+		const char *subjheader,
+		const char *dateheader,
+		time_t dateheader_tm,
+		unsigned long seqnum
+	);
+
+	int findsubj(
+		const char *s,
+		int *isrefwd,
+		int create,
+		struct imap_subjlookup **ptr
+	);
+
+	imap_refmsg *threadallocmsg(const char *msgid);
+	void threadprune();
+	imap_refmsg *threadgetroot();
+	imap_refmsg *threadsearchmsg(const char *msgid);
+	int threadsortsubj(imap_refmsg *root);
+	int threadgathersubj(imap_refmsg *root);
+	int threadmergesubj(imap_refmsg *root);
+	int threadsortbydate();
 };
-
-struct imap_refmsg *rfc822_threadmsg(struct imap_refmsgtable *mt,
-				     const char *msgidhdr,
-				     const char *refhdr,
-				     const char *subjheader,
-
-				     const char *dateheader,
-				     time_t dateheader_tm,
-				     /* Set one or other */
-
-				     unsigned long seqnum);
-
-struct imap_refmsg *rfc822_threadmsgrefs(struct imap_refmsgtable *mt,
-					 const char *msgid_s,
-					 const char * const * msgidList,
-					 const char *subjheader,
-					 const char *dateheader,
-					 time_t dateheader_tm,
-					 unsigned long seqnum);
-
-struct imap_refmsg *rfc822_thread(struct imap_refmsgtable *mt);
 
 	/* INTERNAL FUNCTIONS FOLLOW */
 
 
-struct imap_refmsghash {
-	struct imap_refmsghash *nexthash;
-	struct imap_refmsg *msg;
-} ;
-
 struct imap_subjlookup {
 	struct imap_subjlookup *nextsubj;
 	char *subj;
-	struct imap_refmsg *msg;
+	imap_refmsg *msg;
 	int msgisrefwd;
 } ;
-
-struct imap_refmsg *rfc822_threadallocmsg(struct imap_refmsgtable *mt,
-					  const char *msgid);
-void rfc822_threadprune(struct imap_refmsgtable *mt);
-struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt);
-struct imap_refmsg *rfc822_threadsearchmsg(struct imap_refmsgtable *mt,
-					   const char *msgid);
-int rfc822_threadsortsubj(struct imap_refmsg *root);
-int rfc822_threadgathersubj(struct imap_refmsgtable *mt,
-			  struct imap_refmsg *root);
-int rfc822_threadmergesubj(struct imap_refmsgtable *mt,
-			   struct imap_refmsg *root);
-int rfc822_threadsortbydate(struct imap_refmsgtable *mt);
 
 #endif

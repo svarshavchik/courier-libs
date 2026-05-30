@@ -157,14 +157,14 @@ static void thread_os_callback(contentsearch &cs,
 	}
 }
 
-static void printthread(struct imap_refmsg *, int);
+static void printthread(imap_refmsg *, int);
 
 void contentsearch::dothreadreferences(searchiter si,
 				       const std::string &charset,
 				       bool isuid)
 {
 	imap_refmsgtable reftable;
-	struct imap_refmsg *root;
+	imap_refmsg *root;
 
 	search_internal(
 		si, charset,
@@ -174,7 +174,7 @@ void contentsearch::dothreadreferences(searchiter si,
 			thread_ref_callback(*this, isuid, i, &reftable);
 		});
 
-	root=rfc822_thread(&reftable);
+	root=reftable.thread();
 	printthread(root, isuid);
 }
 
@@ -210,15 +210,14 @@ static void thread_ref_callback(contentsearch &cs,
 			msgid ? msgid:"");
 #endif
 
-		if (!rfc822_threadmsg( reftable,
-				       msgid.c_str(),
+		if (!reftable->threadmsg(msgid.c_str(),
 				       (!ref.empty() ? ref:inreplyto).c_str(),
 				       subject.c_str(), date.c_str(), 0, i))
 			write_error_exit(0);
 	}
 }
 
-static void printthread(struct imap_refmsg *msg, int isuid)
+static void printthread(imap_refmsg *msg, int isuid)
 {
 	const char *pfix="";
 
@@ -240,7 +239,7 @@ static void printthread(struct imap_refmsg *msg, int isuid)
 			writes(pfix);
 			for (msg=msg->firstchild; msg; msg=msg->nextsib)
 			{
-				struct imap_refmsg *msg2;
+				imap_refmsg *msg2;
 
 				msg2=msg;
 
