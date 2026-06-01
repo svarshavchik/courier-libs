@@ -59,6 +59,7 @@ check-am:
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -vx; \
 		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite >/dev/null || exit 1; \
 		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuitecpp >/dev/null || exit 1; \
-		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite2
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testsuite2 >/dev/null || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./reftest >/dev/null || exit 1;
 clean-local:
 	rm -rf $(DEPDIR)

@@ -21,11 +21,11 @@
 #include	<locale.h>
 #endif
 
-#include	"rfc822.h"
 #define private public
 #include	"imaprefs.h"
 #undef private
-
+#include <set>
+#include <string_view>
 
 static void test1()
 {
@@ -166,12 +166,18 @@ static void test5()
 
 static void prsubj(imap_refmsgtable *p)
 {
-	struct imap_subjlookup *s;
+	std::set<std::string_view> names;
 
-	for (size_t i=0; i<sizeof(p->subjtable)/sizeof(p->subjtable[0]); i++)
-		for (s=p->subjtable[i]; s; s=s->nextsubj)
-			printf("subject(%s)=<%s>\n", s->subj,
-			       s->msg->msgid ? s->msg->msgid:"");
+	for (auto &[name, info] : p->subjtable)
+		names.insert(name);
+
+	for (auto &name:names)
+	{
+		auto info=p->subjtable.find(name);
+		auto &[isrefwd, msg] = info->second;
+		printf("subject(%s)=<%s>\n", name.data(),
+		       msg ? msg->msgid:"");
+	}
 	printf("\n\n");
 }
 

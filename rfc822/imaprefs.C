@@ -1,5 +1,5 @@
 /*
-** Copyright 2000-2003 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -13,50 +13,24 @@
 #include	<string.h>
 #include	<time.h>
 
-#include	"rfc822.h"
+#include	"rfc822/rfc822.h"
 #include	"imaprefs.h"
 
 static void swapmsgdata(imap_refmsg *a, imap_refmsg *b)
 {
-	char *cp;
-	char c;
-	time_t t;
-	unsigned long ul;
+	std::swap(a->msgid, b->msgid);
+	std::swap(a->isdummy, b->isdummy);
+	std::swap(a->flag2, b->flag2);
 
-#define swap(a,b,tmp) (tmp)=(a); (a)=(b); (b)=(tmp);
-
-	swap(a->msgid, b->msgid, cp);
-	swap(a->isdummy, b->isdummy, c);
-	swap(a->flag2, b->flag2, c);
-
-	swap(a->timestamp, b->timestamp, t);
-	swap(a->seqnum, b->seqnum, ul);
-
-#undef	swap
+	std::swap(a->timestamp, b->timestamp);
+	std::swap(a->seqnum, b->seqnum);
 }
 
 imap_refmsgtable::imap_refmsgtable()=default;
 
 imap_refmsgtable::~imap_refmsgtable()
 {
-	imap_refmsghash *h;
-	imap_subjlookup *s;
 	imap_refmsg *m;
-
-	for (size_t i=0; i<sizeof(hashtable)/sizeof(hashtable[0]); i++)
-		while ((h=hashtable[i]) != 0)
-		{
-			hashtable[i]=h->nexthash;
-			free(h);
-		}
-
-	for (size_t i=0; i<sizeof(subjtable)/sizeof(subjtable[0]); i++)
-		while ((s=subjtable[i]) != 0)
-		{
-			subjtable[i]=s->nextsubj;
-			free(s->subj);
-			free(s);
-		}
 
 	while ((m=firstmsg) != 0)
 	{
@@ -67,54 +41,19 @@ imap_refmsgtable::~imap_refmsgtable()
 	}
 }
 
-static int hashmsgid(const char *msgid)
-{
-unsigned long hashno=0;
-
-	while (*msgid)
-	{
-	unsigned long n= (hashno << 1);
-
-#define	HMIDS	(((imap_refmsgtable *)0)->hashtable)
-#define	HHMIDSS	( sizeof(HMIDS) / sizeof( HMIDS[0] ))
-
-		if (hashno & HHMIDSS )
-			n ^= 1;
-
-		hashno= n ^ (unsigned char)*msgid++;
-	}
-
-	return (hashno % HHMIDSS);
-}
-
 imap_refmsg *imap_refmsgtable::threadallocmsg(const char *msgid)
 {
-int n=hashmsgid(msgid);
-auto msgp{reinterpret_cast<imap_refmsg *>(
-	malloc(sizeof(imap_refmsg)+1+strlen(msgid)))};
-imap_refmsghash *h, **hp;
+	auto n=msgids.emplace(msgid).first;
+
+	auto msgp{reinterpret_cast<imap_refmsg *>(
+		malloc(sizeof(imap_refmsg)))};
 
 	if (!msgp)	return (0);
 	memset(msgp, 0, sizeof(*msgp));
-	strcpy ((msgp->msgid=(char *)(msgp+1)), msgid);
 
-	h=reinterpret_cast<imap_refmsghash *>(
-		malloc(sizeof(imap_refmsghash)));
-	if (!h)
-	{
-		free(msgp);
-		return (0);
-	}
+	msgp->msgid=n->c_str();
 
-	for (hp= &hashtable[n]; *hp; hp= & (*hp)->nexthash)
-	{
-		if (strcmp( (*hp)->msg->msgid, msgp->msgid) > 0)
-			break;
-	}
-
-	h->nexthash= *hp;
-	*hp=h;
-	h->msg=msgp;
+	hashtable.emplace(*n, msgp);
 
 	msgp->last=lastmsg;
 
@@ -127,70 +66,51 @@ imap_refmsghash *h, **hp;
 	return (msgp);
 }
 
-imap_refmsg *imap_refmsgtable::threadsearchmsg(const char *msgid)
+imap_refmsg *imap_refmsgtable::threadsearchmsg(std::string_view msgid)
 {
-int n=hashmsgid(msgid);
-imap_refmsghash *h;
-
-	for (h= hashtable[n]; h; h= h->nexthash)
-	{
-	int	rc=strcmp(h->msg->msgid, msgid);
-
-		if (rc == 0)	return (h->msg);
-		if (rc > 0)
-			break;
-	}
-	return (0);
+	auto n=hashtable.find(msgid);
+	if (n != hashtable.end())
+		return (n->second);
+	return nullptr;
 }
 
 int imap_refmsgtable::findsubj(
 	const char *s,
 	int *isrefwd,
 	int create,
-	imap_subjlookup **ptr
+	subjtableval_t *&val
 )
 {
 	char *ss=rfc822_coresubj(s, isrefwd);
-	int n;
-	imap_subjlookup **h;
-	imap_subjlookup *newsubj;
 
 	if (!ss)	return (-1);
-	n=hashmsgid(ss);
 
-	for (h= &subjtable[n]; *h; h= &(*h)->nextsubj)
-	{
-	int	rc=strcmp((*h)->subj, ss);
-
-		if (rc == 0)
-		{
-			free(ss);
-			*ptr= *h;
-			return (0);
-		}
-		if (rc > 0)
-			break;
-	}
 	if (!create)
 	{
+		auto n=subjects.find(ss);
+
+		if (n != subjects.end())
+		{
+			auto iter=subjtable.find(*n);
+			if (iter != subjtable.end())
+			{
+				val = &iter->second;
+				free(ss);
+				return (0);
+			}
+		}
+
 		free(ss);
-		*ptr=0;
+		val=nullptr;
 		return (0);
 	}
 
-	newsubj=reinterpret_cast<imap_subjlookup *>(
-		malloc(sizeof(imap_subjlookup)));
-	if (!newsubj)
-	{
-		free(ss);
-		return (-1);
-	}
-	memset(newsubj, 0, sizeof(*newsubj));
-	newsubj->subj=ss;
-	newsubj->nextsubj= *h;
-	newsubj->msgisrefwd= *isrefwd;
-	*h=newsubj;
-	*ptr=newsubj;
+	auto n=subjects.insert(ss).first;
+	free(ss);
+
+	auto iter=subjtable.emplace(*n, subjtableval_t{!!*isrefwd, nullptr});
+
+	val = &iter.first->second;
 	return (0);
 }
 
@@ -222,11 +142,12 @@ static void breakparent(imap_refmsg *m)
 
 /* Create a new message node and thread it into the tree.
    a - references header */
-imap_refmsg *imap_refmsgtable::dorefcreate(const char *newmsgid, rfc822a *a)
+imap_refmsg *imap_refmsgtable::dorefcreate(
+	const char *newmsgid, const rfc822::addresses &a
+)
 {
 	imap_refmsg *lastmsg=0, *m;
 	imap_refmsg *msg;
-	int n;
 
 /*
             (A) Using the Message-IDs in the message's references, link
@@ -242,26 +163,29 @@ imap_refmsg *imap_refmsgtable::dorefcreate(const char *newmsgid, rfc822a *a)
                ID.
 */
 
-	for (n=0; n<a->naddrs; n++)
+	for (auto &addr : a)
 	{
-		char *msgid=a->addrs[n].tokens ? rfc822_getaddr(a, n):NULL;
+		std::string msgid;
 
-		msg=msgid ? threadsearchmsg(msgid):0;
+		msgid.reserve(addr.address.print(
+			rfc822::length_counter{}
+		));
+
+		addr.address.print(
+			std::back_inserter(msgid)
+		);
+
+		if (msgid.empty())
+			continue;
+
+		msg=threadsearchmsg(msgid);
 		if (!msg)
 		{
-			msg=threadallocmsg(msgid ? msgid:"");
+			msg=threadallocmsg(msgid.c_str());
 			if (!msg)
-			{
-				if (msgid)
-					free(msgid);
-
 				return (0);
-			}
 			msg->isdummy=1;
 		}
-
-		if (msgid)
-			free(msgid);
 
 /*
                If a reference message already has a parent, don't change
@@ -309,7 +233,7 @@ imap_refmsg *imap_refmsgtable::dorefcreate(const char *newmsgid, rfc822a *a)
 
 */
 
-	msg=*newmsgid ? threadsearchmsg(newmsgid):0;
+	msg=newmsgid && *newmsgid ? threadsearchmsg(newmsgid):nullptr;
 
 	/*
 	       If a message does not contain a Message-ID header line,
@@ -378,123 +302,71 @@ imap_refmsg *imap_refmsgtable::threadmsg(const char *msgidhdr,
 				     time_t dateheader_tm,
 				     unsigned long seqnum)
 {
-	struct rfc822t *t;
-	struct rfc822a *a;
-	imap_refmsg *m;
+	rfc822::tokens t{refhdr ? refhdr:""};
+	rfc822::addresses a{t};
 
-	t=rfc822t_alloc_new(refhdr ? refhdr:"", NULL, NULL);
-	if (!t)
-	{
-		return (0);
-	}
-
-	a=rfc822a_alloc(t);
-	if (!a)
-	{
-		rfc822t_free(t);
-		return (0);
-	}
-
-	m=threadmsgaref(msgidhdr, a, subjheader, dateheader,
+	return threadmsgaref(msgidhdr, a, subjheader, dateheader,
 			       dateheader_tm, seqnum);
-
-	rfc822a_free(a);
-	rfc822t_free(t);
-	return m;
 }
 
 
 imap_refmsg *imap_refmsgtable::threadmsgrefs(const char *msgid_s,
-					 const char * const * msgidList,
+					 const std::vector<std::string_view> &msgidList,
 					 const char *subjheader,
 					 const char *dateheader,
 					 time_t dateheader_tm,
 					 unsigned long seqnum)
 {
-	imap_refmsg *m;
-	struct rfc822token *tArray;
-	struct rfc822addr *aArray;
+	size_t n=0;
 
-	struct rfc822a a;
-	size_t n, i;
+	for (auto &msgid : msgidList)
+		n += msgid.size() + 3;
 
-	for (n=0; msgidList[n]; n++)
-		;
+	std::string msg;
+	msg.reserve(n);
 
-	if ((tArray=reinterpret_cast<struct rfc822token *>(
-		malloc((n+1) * sizeof(*tArray)))) == NULL)
-		return NULL;
-
-	if ((aArray=reinterpret_cast<struct rfc822addr *>(
-		malloc((n+1) * sizeof(*aArray)))) == NULL)
+	for (auto &msgid : msgidList)
 	{
-		free(tArray);
-		return NULL;
+		msg += "<";
+		msg += msgid;
+		msg += "> ";
 	}
 
-	for (i=0; i<n; i++)
-	{
-		tArray[i].next=NULL;
-		tArray[i].token=0;
-		tArray[i].ptr=msgidList[i];
-		tArray[i].len=strlen(msgidList[i]);
+	rfc822::tokens t{msg};
+	rfc822::addresses a{t};
 
-		aArray[i].name=NULL;
-		aArray[i].tokens=&tArray[i];
-	}
-
-	a.naddrs=n;
-	a.addrs=aArray;
-
-	m=threadmsgaref(msgid_s, &a, subjheader, dateheader,
+	return threadmsgaref(msgid_s, a, subjheader, dateheader,
 			       dateheader_tm, seqnum);
-
-	free(tArray);
-	free(aArray);
-	return m;
 }
 
 
 imap_refmsg *imap_refmsgtable::threadmsgaref(
 	const char *msgidhdr,
-	rfc822a *refhdr,
+	const rfc822::addresses &refhdr,
 	const char *subjheader,
 	const char *dateheader,
 	time_t dateheader_tm,
 	unsigned long seqnum
 )
 {
-	struct rfc822t *t;
-	struct rfc822a *a;
-	imap_refmsg *m;
-
-	char *msgid_s;
-
-	t=rfc822t_alloc_new(msgidhdr ? msgidhdr:"", NULL, NULL);
-	if (!t)
-		return (0);
-	a=rfc822a_alloc(t);
-	if (!a)
+	std::string parsed_msgid;
 	{
-		rfc822t_free(t);
-		return (0);
+		rfc822::tokens t{msgidhdr};
+		rfc822::addresses a{t};
+
+		if (a.size() == 1)
+		{
+			parsed_msgid.reserve(a.front().address.print(
+				rfc822::length_counter{}
+			));
+
+			a.front().address.print(
+				std::back_inserter(parsed_msgid)
+			);
+		}
 	}
 
-	msgid_s=a->naddrs > 0 ? rfc822_getaddr(a, 0):strdup("");
-
-	rfc822a_free(a);
-	rfc822t_free(t);
-
-	if (!msgid_s)
-		return (0);
-
-	m=dorefcreate(msgid_s, refhdr);
-
-	free(msgid_s);
-
-	if (!m)
-		return (0);
-
+	auto m=dorefcreate(parsed_msgid.c_str(), refhdr);
 
 	return threadmsg_common(m, subjheader, dateheader,
 				dateheader_tm, seqnum);
@@ -676,8 +548,8 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 	for (toproot=root->firstchild; toproot; toproot=toproot->nextsib)
 	{
 		const char *subj;
-		imap_subjlookup *subjtop;
 		int isrefwd;
+		subjtableval_t *subjtop;
 
 		/*
 		** (i) Find the subject of this thread by extracting the
@@ -705,7 +577,7 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 		** subject in the table.
 		*/
 
-		if (findsubj(subj, &isrefwd, 1, &subjtop))
+		if (findsubj(subj, &isrefwd, 1, subjtop))
 			return (-1);
 
 		/*
@@ -714,11 +586,11 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 		** subject, add the current message and the extracted
 		** subject to the subject table.
 		*/
-
-		if (subjtop->msg == 0)
+		auto &[refwd, msg]=*subjtop;
+		if (msg == 0)
 		{
-			subjtop->msg=toproot;
-			subjtop->msgisrefwd=isrefwd;
+			msg=toproot;
+			refwd=!!isrefwd;
 			continue;
 		}
 
@@ -728,7 +600,7 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 		** dummy AND either of the following criteria are true:
 		*/
 
-		if (!subjtop->msg->isdummy)
+		if (!msg->isdummy)
 		{
 			/*
 			** The current message is a dummy
@@ -737,8 +609,8 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 
 			if (toproot->isdummy)
 			{
-				subjtop->msg=toproot;
-				subjtop->msgisrefwd=isrefwd;
+				msg=toproot;
+				refwd=!!isrefwd;
 				continue;
 			}
 
@@ -749,10 +621,10 @@ int imap_refmsgtable::threadgathersubj(imap_refmsg *root)
 			not.
 			*/
 
-			if (subjtop->msgisrefwd && !isrefwd)
+			if (refwd && !isrefwd)
 			{
-				subjtop->msg=toproot;
-				subjtop->msgisrefwd=isrefwd;
+				msg=toproot;
+				refwd=!!isrefwd;
 			}
 		}
 	}
@@ -772,7 +644,7 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 	for (toproot=root->firstchild; toproot; toproot=nextroot)
 	{
 		const char *subj;
-		imap_subjlookup *subjtop;
+		subjtableval_t *subjtop;
 		int isrefwd;
 
 		nextroot=toproot->nextsib;
@@ -801,8 +673,10 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 		** subject in the table.
 		*/
 
-		if (findsubj(subj, &isrefwd, 0, &subjtop) || subjtop == 0)
+		if (findsubj(subj, &isrefwd, 0, subjtop) || subjtop == 0)
 			return (-1);
+
+		auto &[refwd, msg]=*subjtop;
 
 		/*
 		** (iv) If the message in the table is the current message,
@@ -811,13 +685,13 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 
 		/* NOTE - ptr comparison IS NOT LEGAL */
 
-		subjtop->msg->flag2=1;
+		msg->flag2=1;
 		if (toproot->flag2)
 		{
 			toproot->flag2=0;
 			continue;
 		}
-		subjtop->msg->flag2=0;
+		msg->flag2=0;
 
 		/*
 		** Otherwise, merge the current message with the one in the
@@ -829,12 +703,12 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 		** siblings), and then delete the current message.
 		*/
 
-		if (subjtop->msg->isdummy && toproot->isdummy)
+		if (msg->isdummy && toproot->isdummy)
 		{
 			while ((p=toproot->firstchild) != 0)
 			{
 				breakparent(p);
-				linkparent(p, subjtop->msg);
+				linkparent(p, msg);
 			}
 			breakparent(toproot);
 			continue;
@@ -846,10 +720,10 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 		** the message in the table (a sibling of it's children).
 		*/
 
-		if (subjtop->msg->isdummy)
+		if (msg->isdummy)
 		{
 			breakparent(toproot);
-			linkparent(toproot, subjtop->msg);
+			linkparent(toproot, msg);
 			continue;
 		}
 
@@ -862,7 +736,7 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 
 		if (isrefwd)
 		{
-			p=subjtop->msg;
+			p=msg;
 			if (p->isdummy)
 				p=p->firstchild;
 
@@ -877,7 +751,7 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 			if (!isrefwd)
 			{
 				breakparent(toproot);
-				linkparent(toproot, subjtop->msg);
+				linkparent(toproot, msg);
 				continue;
 			}
 		}
@@ -900,17 +774,17 @@ int imap_refmsgtable::threadmergesubj(imap_refmsg *root)
 
 		q->isdummy=1;
 
-		swapmsgdata(q, subjtop->msg);
+		swapmsgdata(q, msg);
 
-		while ((p=subjtop->msg->firstchild) != 0)
+		while ((p=msg->firstchild) != 0)
 		{
 			breakparent(p);
 			linkparent(p, q);
 		}
-		linkparent(q, subjtop->msg);
+		linkparent(q, msg);
 
 		breakparent(toproot);
-		linkparent(toproot, subjtop->msg);
+		linkparent(toproot, msg);
 	}
 	return (0);
 }

@@ -46,8 +46,8 @@ not found
 
 subject(SUBJECT 1)=<message2>
 subject(SUBJECT 2)=<message10>
-subject(SUBJECT 5)=<message13>
 subject(SUBJECT 4)=<message12>
+subject(SUBJECT 5)=<message13>
 
 
 <message1-dummy> (dummy).parent=<(root)>
@@ -73,8 +73,8 @@ subject(SUBJECT 1)=<message1-dummy>
 <message11>.parent=<(root)>
 
 
-subject(SUBJECT 10)=<message10>
 subject(SUBJECT 1)=<message1-dummy>
+subject(SUBJECT 10)=<message10>
 subject(SUBJECT 2)=<message4>
 
 

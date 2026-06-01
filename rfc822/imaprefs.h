@@ -1,16 +1,21 @@
-/*
-*/
 #ifndef	imaprefs_h
 #define	imaprefs_h
 
 /*
-** Copyright 2000-2003 S. Varshavchik.
+** Copyright 2000-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
 #if	HAVE_CONFIG_H
 #include	"rfc822/config.h"
 #endif
+#include	<string>
+#include	<string_view>
+#include	<set>
+#include	<unordered_map>
+#include	<tuple>
+#include	<vector>
+#include	"rfc822/rfc822.h"
 
 /*
 ** Implement REFERENCES threading.
@@ -27,17 +32,12 @@ struct imap_refmsg {
 	char isdummy;			/* this is a dummy node (for now) */
 	char flag2;			/* Additional flag */
 
-	char *msgid;			/* msgid of this message */
+	const char *msgid;		/* msgid of this message */
 
 	char *subj;			/* dynalloced subject of this msg */
 	time_t timestamp;		/* Timestamp */
 	unsigned long seqnum;		/* Sequence number */
 };
-
-struct imap_refmsghash {
-	imap_refmsghash *nexthash;
-	imap_refmsg *msg;
-} ;
 
 class imap_refmsgtable {
 public:
@@ -57,7 +57,7 @@ public:
 
 	imap_refmsg *threadmsgrefs(
 		const char *msgid_s,
-		const char * const * msgidList,
+		const std::vector<std::string_view> &msgidList,
 		const char *subjheader,
 		const char *dateheader,
 		time_t dateheader_tm,
@@ -68,19 +68,36 @@ public:
 
         imap_refmsg *firstmsg{nullptr};
         imap_refmsg *lastmsg{nullptr};
-        /* hash table message id lookup */
-        imap_refmsghash *hashtable[512]{};
 
-        struct imap_subjlookup *subjtable[512]{};
+	// All message IDs are stored here, and referenced by string_views.
+	std::set<std::string> msgids;
+
+	// All subjects are stored here, and referenced by string_views.
+	std::set<std::string> subjects;
+
+	// Look up message by message ID. We should not see messages with
+	// duplicate messageids, but if we are fed them we'll know about the
+	// first one.
+
+	std::unordered_map<std::string_view, imap_refmsg *> hashtable;
+
+	// Maps all core subjects to all messages that have that core subject,
+	// and a boolean if the subject has "re" or "fwd" prefixes.
+	typedef std::tuple<bool, imap_refmsg *> subjtableval_t;
+
+	std::unordered_map<std::string_view, subjtableval_t> subjtable;
 
         imap_refmsg *rootptr{nullptr};            /* The root */
 
 private:
-        imap_refmsg *dorefcreate(const char *newmsgid, rfc822a *a);
+        imap_refmsg *dorefcreate(
+		const char *newmsgid,
+		const rfc822::addresses &a
+	);
 
 	imap_refmsg *threadmsgaref(
 		const char *msgidhdr,
-		rfc822a *refhdr,
+		const rfc822::addresses &a,
 		const char *subjheader,
 		const char *dateheader,
 		time_t dateheader_tm,
@@ -91,27 +108,17 @@ private:
 		const char *s,
 		int *isrefwd,
 		int create,
-		struct imap_subjlookup **ptr
+		subjtableval_t *&val
 	);
 
 	imap_refmsg *threadallocmsg(const char *msgid);
 	void threadprune();
 	imap_refmsg *threadgetroot();
-	imap_refmsg *threadsearchmsg(const char *msgid);
+	imap_refmsg *threadsearchmsg(std::string_view msgid);
 	int threadsortsubj(imap_refmsg *root);
 	int threadgathersubj(imap_refmsg *root);
 	int threadmergesubj(imap_refmsg *root);
 	int threadsortbydate();
 };
-
-	/* INTERNAL FUNCTIONS FOLLOW */
-
-
-struct imap_subjlookup {
-	struct imap_subjlookup *nextsubj;
-	char *subj;
-	imap_refmsg *msg;
-	int msgisrefwd;
-} ;
 
 #endif
