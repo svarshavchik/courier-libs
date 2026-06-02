@@ -29,7 +29,7 @@
 
 static void test1()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 	char buf[20];
 
         strcpy(buf, "a@b");
@@ -45,7 +45,7 @@ static void test1()
 			? "found":"not found"));
 }
 
-static void prtree(imap_refmsg *m)
+static void prtree(rfc822::refmsgtable::refmsg *m)
 {
 	printf("<%s>", m->msgid ? m->msgid:"");
 
@@ -66,9 +66,9 @@ static void prtree(imap_refmsg *m)
 		prtree(m);
 }
 
-static void prpc(imap_refmsgtable *mt)
+static void prpc(rfc822::refmsgtable *mt)
 {
-	imap_refmsg *root=mt->threadgetroot(), *m;
+	rfc822::refmsgtable::refmsg *root=mt->threadgetroot(), *m;
 
 	if (!root)
 		return;
@@ -81,7 +81,7 @@ static void prpc(imap_refmsgtable *mt)
 
 static void test2()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<1>", NULL,
 			 "subject 1",
@@ -102,7 +102,7 @@ static void test2()
 
 static void test3()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<4>",
 			 "<2> <1> <3>",
@@ -128,7 +128,7 @@ static void test3()
 
 static void test4()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<1>", NULL,
 			 "subject 1",
@@ -149,7 +149,7 @@ static void test4()
 
 static void test5()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<4>", "<1> <2> <3>",
 			 "subject 1",
@@ -164,7 +164,7 @@ static void test5()
 	prpc(&mt);
 }
 
-static void prsubj(imap_refmsgtable *p)
+static void prsubj(rfc822::refmsgtable *p)
 {
 	std::set<std::string_view> names;
 
@@ -183,7 +183,7 @@ static void prsubj(imap_refmsgtable *p)
 
 static void test6()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<message1>", NULL,
 			 "subject 1",
@@ -222,7 +222,7 @@ static void test6()
 
 static void test7()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<message1>", "<message1-dummy>",
 			 "subject 1",
@@ -242,7 +242,7 @@ static void test7()
 
 static void test8()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<message4>", NULL,
 			 "subject 2",
@@ -279,7 +279,7 @@ static void test8()
 
 static void test9()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<message1>", NULL,
 			 "subject 1",
@@ -316,7 +316,7 @@ static void test9()
 
 static void test10()
 {
-	imap_refmsgtable mt;
+	rfc822::refmsgtable mt;
 
 	mt.threadmsg("<message1>", NULL,
 			 "subject 1",

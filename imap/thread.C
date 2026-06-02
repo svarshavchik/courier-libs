@@ -29,7 +29,7 @@ static void thread_os_callback(contentsearch &cs,
 
 static void thread_ref_callback(contentsearch &cs,
 				bool isuid, unsigned long i,
-				imap_refmsgtable *reftable);
+				rfc822::refmsgtable *reftable);
 
 extern imapscaninfo current_maildir_info;
 
@@ -157,14 +157,14 @@ static void thread_os_callback(contentsearch &cs,
 	}
 }
 
-static void printthread(imap_refmsg *, int);
+static void printthread(rfc822::refmsgtable::refmsg *, int);
 
 void contentsearch::dothreadreferences(searchiter si,
 				       const std::string &charset,
 				       bool isuid)
 {
-	imap_refmsgtable reftable;
-	imap_refmsg *root;
+	rfc822::refmsgtable reftable;
+	rfc822::refmsgtable::refmsg *root;
 
 	search_internal(
 		si, charset,
@@ -180,7 +180,7 @@ void contentsearch::dothreadreferences(searchiter si,
 
 static void thread_ref_callback(contentsearch &cs,
 				bool isuid, unsigned long i,
-				imap_refmsgtable *reftable)
+				rfc822::refmsgtable *reftable)
 {
 	auto &first=cs.searchlist.front();
 
@@ -217,7 +217,7 @@ static void thread_ref_callback(contentsearch &cs,
 	}
 }
 
-static void printthread(imap_refmsg *msg, int isuid)
+static void printthread(rfc822::refmsgtable::refmsg *msg, int isuid)
 {
 	const char *pfix="";
 
@@ -239,7 +239,7 @@ static void printthread(imap_refmsg *msg, int isuid)
 			writes(pfix);
 			for (msg=msg->firstchild; msg; msg=msg->nextsib)
 			{
-				imap_refmsg *msg2;
+				rfc822::refmsgtable::refmsg *msg2;
 
 				msg2=msg;
 

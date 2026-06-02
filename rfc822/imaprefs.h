@@ -15,36 +15,43 @@
 #include	<unordered_map>
 #include	<tuple>
 #include	<vector>
+#include	<list>
 #include	"rfc822/rfc822.h"
 
 /*
-** Implement REFERENCES threading.
+** Implement REFERENCES threading, as used in IMAP.
 */
 
-/* The data structures */
+namespace rfc822 {
+	class refmsgtable;
+}
 
-struct imap_refmsg {
-	imap_refmsg *next, *last;	/* Link list of all msgs */
-	imap_refmsg *parent;		/* my parent */
-	imap_refmsg *firstchild, *lastchild; /* Children link list */
-	imap_refmsg *prevsib, *nextsib;	/* Link list of siblings */
-
-	char isdummy;			/* this is a dummy node (for now) */
-	char flag2;			/* Additional flag */
-
-	const char *msgid;		/* msgid of this message */
-
-	char *subj;			/* dynalloced subject of this msg */
-	time_t timestamp;		/* Timestamp */
-	unsigned long seqnum;		/* Sequence number */
-};
-
-class imap_refmsgtable {
+class rfc822::refmsgtable {
 public:
-	imap_refmsgtable();
-	~imap_refmsgtable();
+	refmsgtable();
+	~refmsgtable();
 
-	imap_refmsg *threadmsg(
+	struct refmsg {
+		// Tree parent/children
+		refmsg *parent{nullptr};
+		refmsg *firstchild{nullptr};
+		refmsg *lastchild{nullptr};
+
+		// Sibling list
+		refmsg *prevsib{nullptr};
+		refmsg *nextsib{nullptr};
+
+		bool isdummy{false};		/* this is a dummy node (for now) */
+		char flag2{0};			/* Additional flag */
+
+		const char *msgid{nullptr};	/* msgid of this message */
+
+		std::string subj;
+		time_t timestamp{0};		/* Timestamp */
+		unsigned long seqnum{0};	/* Sequence number */
+	};
+
+	refmsg *threadmsg(
 		const char *msgidhdr,
 		const char *refhdr,
 		const char *subjheader,
@@ -55,7 +62,7 @@ public:
 		unsigned long seqnum
 	);
 
-	imap_refmsg *threadmsgrefs(
+	refmsg *threadmsgrefs(
 		const char *msgid_s,
 		const std::vector<std::string_view> &msgidList,
 		const char *subjheader,
@@ -64,10 +71,11 @@ public:
 		unsigned long seqnum
 	);
 
-	imap_refmsg *thread();
+	refmsg *thread();
 
-        imap_refmsg *firstmsg{nullptr};
-        imap_refmsg *lastmsg{nullptr};
+private:
+	// All messages are stored here.
+	std::list<refmsg> msglist;
 
 	// All message IDs are stored here, and referenced by string_views.
 	std::set<std::string> msgids;
@@ -79,23 +87,22 @@ public:
 	// duplicate messageids, but if we are fed them we'll know about the
 	// first one.
 
-	std::unordered_map<std::string_view, imap_refmsg *> hashtable;
+	std::unordered_map<std::string_view, refmsg *> hashtable;
 
 	// Maps all core subjects to all messages that have that core subject,
 	// and a boolean if the subject has "re" or "fwd" prefixes.
-	typedef std::tuple<bool, imap_refmsg *> subjtableval_t;
+	typedef std::tuple<bool, refmsg *> subjtableval_t;
 
 	std::unordered_map<std::string_view, subjtableval_t> subjtable;
 
-        imap_refmsg *rootptr{nullptr};            /* The root */
+        refmsg *rootptr{nullptr};            /* The root */
 
-private:
-        imap_refmsg *dorefcreate(
+        refmsg *dorefcreate(
 		const char *newmsgid,
 		const rfc822::addresses &a
 	);
 
-	imap_refmsg *threadmsgaref(
+	refmsg *threadmsgaref(
 		const char *msgidhdr,
 		const rfc822::addresses &a,
 		const char *subjheader,
@@ -105,19 +112,19 @@ private:
 	);
 
 	int findsubj(
-		const char *s,
+		std::string_view s,
 		int *isrefwd,
 		int create,
 		subjtableval_t *&val
 	);
 
-	imap_refmsg *threadallocmsg(const char *msgid);
+	refmsg *threadallocmsg(const char *msgid);
 	void threadprune();
-	imap_refmsg *threadgetroot();
-	imap_refmsg *threadsearchmsg(std::string_view msgid);
-	int threadsortsubj(imap_refmsg *root);
-	int threadgathersubj(imap_refmsg *root);
-	int threadmergesubj(imap_refmsg *root);
+	refmsg *threadgetroot();
+	refmsg *threadsearchmsg(std::string_view msgid);
+	int threadsortsubj(refmsg *root);
+	int threadgathersubj(refmsg *root);
+	int threadmergesubj(refmsg *root);
 	int threadsortbydate();
 };
 
