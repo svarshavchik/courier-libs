@@ -855,18 +855,14 @@ static int main2(const char *mimecharset, int argc, char **argv)
 	}
 	if (doencodemimehdr)
 	{
-		struct rfc822t *t=rfc822t_alloc_new(decode_header, NULL, NULL);
-		struct rfc822a *a=t ? rfc822a_alloc(t):NULL;
-		char *s;
+		rfc822::tokens t{decode_header};
+		rfc822::addresses a{t};
 
-		if (a && (s=rfc2047_encode_header_addr(a, mimecharset)) != NULL)
-		{
-			printf("%s\n", s);
-			free(s);
-		}
+		std::string s;
 
-		if (a) rfc822a_free(a);
-		if (t) rfc822t_free(t);
+		a.encode(std::back_inserter(s), mimecharset);
+
+		printf("%s\n", s.c_str());
 		return (0);
 	}
 

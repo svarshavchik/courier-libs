@@ -20,12 +20,7 @@ AM_CFLAGS = $(LIBIDN_CFLAGS)
 BUILT_SOURCES=rfc822.3 rfc822.html
 noinst_DATA=$(BUILT_SOURCES)
 
-noinst_PROGRAMS=testsuite testsuitecpp testsuite2 reftest
-nodist_EXTRA_testsuite_SOURCES=cpplink.C
-testsuite_SOURCES=testsuite.c
-testsuite_DEPENDENCIES=librfc822.la
-testsuite_LDADD=librfc822.la -lcourier-unicode
-testsuite_LDFLAGS=-static
+noinst_PROGRAMS=testsuitecpp testsuite2 reftest
 
 testsuitecpp_SOURCES=testsuitecpp.C
 testsuitecpp_DEPENDENCIES=librfc822.la
@@ -52,7 +47,6 @@ rfc822.3: rfc822.sgml ../docbook/sgml2html
 endif
 
 check-am:
-	./testsuite | diff -U 5 $(srcdir)/testsuite.txt -
 	./testsuitecpp | diff -U 5 $(srcdir)/testsuite.txt -
 	./testsuite2
 	./reftest | diff -U 3  $(srcdir)/reftest.txt -

@@ -1323,17 +1323,10 @@ static char *read_subject()
 	return (p);
 }
 
-static char *mimeify(const char *subject, const char *charset)
+static std::string mimeify(const char *subject, const char *charset)
 {
-	char *p=rfc2047_encode_str(subject, charset,
-				   rfc2047_qp_allow_any);
-
-	if (!p)
-	{
-		perror("rfc2047_encode_str");
-		exit(1);
-	}
-	return (p);
+	return rfc2047::encode(subject, charset,
+			       rfc2047_qp_allow_any).first;
 }
 
 int main(int argc, char **argv)
@@ -1473,15 +1466,18 @@ int main(int argc, char **argv)
 
 			memset(&info, 0, sizeof(info));
 
+			std::string subject_s;
+
 			if (ismime)
 				info.add_func=add_read_stdin;
 			else
 			{
 				info.add_func=add_read_subject;
 				info.add_charset=charset;
+
 				if (subject)
-					info.add_subject=mimeify(subject,
-								 charset);
+					subject_s=mimeify(subject,
+							  charset);
 				else
 				{
 					char *p;
@@ -1495,9 +1491,10 @@ int main(int argc, char **argv)
 
 					p=read_subject();
 
-					info.add_subject=mimeify(p, charset);
+					subject_s=mimeify(p, charset);
 					free(p);
 				}
+				info.add_subject=subject_s.data();
 			}
 			add(optind, argc, argv, flags, oldeventid, &info);
 			exit (0);
