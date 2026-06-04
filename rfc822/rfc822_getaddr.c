@@ -34,11 +34,6 @@ static void saveaddr(const char *c, size_t n, void *p)
 	}
 }
 
-char *rfc822_getaddr(const struct rfc822a *rfc, int n)
-{
-	return rfc822_display_addr_tobuf(rfc, n, NULL);
-}
-
 char *rfc822_gettok(const struct rfc822token *t)
 {
 size_t	addrbuflen=0;

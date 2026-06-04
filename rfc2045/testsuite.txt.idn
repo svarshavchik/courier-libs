@@ -226,7 +226,7 @@ body-line-count: 1
 Hóla! test <test1@example.com>
 "Hóla\" test" <test1@example.com>
 =?UTF-8?B?SMOzbGE=?= <user@xn--hla-gna.example.com>,
-  =?UTF-8?B?SMOzbGE=?= <user@example.com>,
+  user@example.com (=?UTF-8?B?SMOzbGE=?=),
   John Smith <user@example.com>,
   user2@example.com,
   "John Smith (Accounting)" <user3@example.com>,

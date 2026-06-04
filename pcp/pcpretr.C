@@ -17,11 +17,6 @@ extern "C" const char *charset;
 
 static int list_msg_rfc822(const rfc2045::entity &, rfc822::fdstreambuf &);
 
-void dump_rfc822_hdr(const char *ptr, size_t cnt, void *dummy)
-{
-	fwrite(ptr, cnt, 1, stdout);
-}
-
 int do_show_retr(struct PCP_retr *r, void *vp)
 {
 	struct xretrinfo *xr=(struct xretrinfo *)vp;

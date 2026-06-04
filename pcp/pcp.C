@@ -551,9 +551,6 @@ static int save_retr_headers(struct PCP_retr *, const char *,
 			     const char *, void *);
 static int save_retr_status(struct PCP_retr *, int, void *);
 
-extern void dump_rfc822_hdr(const char *ptr, size_t cnt,
-			    void *dummy);
-
 static void list(int argn, int argc, char **argv, int flags)
 {
 	struct listinfo listinfo;
@@ -751,18 +748,15 @@ static void list(int argn, int argc, char **argv, int flags)
 			       ary[i]->status & LIST_BOOKED
 			       ? gettext("(event not yet commited) "):"");
 
-			if (rfc822_display_hdrvalue("subject",
-						    ary[i]->subject
-						    ? ary[i]->subject:"",
-						    charset,
-						    dump_rfc822_hdr,
-						    NULL, NULL) < 0)
-			{
-				printf("%s",
-				       ary[i]->subject
-				       ? ary[i]->subject:"");
-			}
-			printf("\n");
+			std::string subject;
+
+			rfc822::display_header(
+				"subject",
+				ary[i]->subject ? ary[i]->subject:"",
+				charset,
+				std::back_inserter(subject));
+
+			printf("%s\n", subject.c_str());
 
 			if (flags & FLAG_LIST_EVENT_ID)
 				printf("%-*s(%s)\n", (int)maxl, "",

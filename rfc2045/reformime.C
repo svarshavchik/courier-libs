@@ -13,7 +13,6 @@
 #include	<errno.h>
 #include	<string.h>
 #include	<langinfo.h>
-#include	<sstream>
 
 #if	HAVE_STRINGS_H
 #include	<strings.h>
@@ -860,7 +859,21 @@ static int main2(const char *mimecharset, int argc, char **argv)
 
 		std::string s;
 
-		a.encode(std::back_inserter(s), mimecharset);
+		a.encode(std::back_inserter(s), mimecharset,
+			 [&]
+			 (const char *sep)
+			 {
+				 while (*sep)
+				 {
+					 if (*sep == ' ')
+					 {
+						 s += "\n ";
+					 }
+					 s.push_back(*sep);
+					 ++sep;
+				 }
+			 }
+		);
 
 		printf("%s\n", s.c_str());
 		return (0);
