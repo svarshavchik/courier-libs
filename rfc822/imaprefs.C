@@ -372,7 +372,7 @@ static rfc822::refmsgtable::refmsg *threadmsg_common(
 		m->subj=subjheader;
 
 	if (dateheader)
-		rfc822_parsedate_chk(dateheader, &dateheader_tm);
+		dateheader_tm=rfc822::parse_date(dateheader).value_or(0);
 
 	m->timestamp=dateheader_tm;
 

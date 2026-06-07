@@ -484,12 +484,13 @@ static void showmsgrfc822_body(std::streambuf &fd,
 
 	if (!save_date.empty())
 	{
-		time_t	t;
 		struct tm *tmp=0;
 		char	date_buf[256];
 
-		if (rfc822_parsedate_chk(save_date.c_str(), &t) == 0)
-			tmp=localtime(&t);
+		auto parsed_date=rfc822::parse_date(save_date);
+
+		if (parsed_date)
+			tmp=localtime(&*parsed_date);
 
 		if (tmp)
 		{

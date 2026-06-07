@@ -148,7 +148,8 @@ static void thread_os_callback(contentsearch &cs,
 		/* SHOULD BE ALWAYS TRUE */
 		time_t t=0;
 
-		rfc822_parsedate_chk(cs.searchlist.front().bs.c_str(), &t);
+		if (auto parsed_t = rfc822::parse_date(cs.searchlist.front().bs))
+			t = *parsed_t;
 
 		os_add(os,
 		       isuid ? current_maildir_info.msgs[i].uid:i+1,

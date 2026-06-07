@@ -22,8 +22,9 @@ static std::string mksalutation_datefmt(std::string_view fmt,
 
 	std::string date_s{date.begin(), date.end()};
 
-	if (rfc822_parsedate_chk(date_s.c_str(), &t) == 0)
+	if (auto parsed_t = rfc822::parse_date(date_s))
 	{
+		t = *parsed_t;
 		struct tm tmbuf;
 
 		if (localtime_r(&t, &tmbuf))

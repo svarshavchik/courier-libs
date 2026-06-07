@@ -272,7 +272,7 @@ void rfc822::address::do_print::output()
 
 		for (auto &t:a.address)
 		{
-			bool is_atom=rfc822_is_atom(t.type);
+			bool is_atom=t.is_atom();
 
 			if (is_atom && prev_is_atom)
 			{
@@ -644,12 +644,4 @@ std::string rfc822::encode_domain(std::string_view address,
 		s += "(error)";
 	}
 	return s;
-}
-
-extern "C" char *rfc822_encode_domain(const char *address,
-				      const char *charset)
-{
-	auto s=rfc822::encode_domain(address, charset);
-
-	return strdup(s.c_str());
 }

@@ -10,7 +10,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
-#include <signal.h>
 #include <unistd.h>
 #include <langinfo.h>
 #if HAVE_TERMIOS_H
@@ -634,7 +633,7 @@ static void list(int argn, int argc, char **argv, int flags)
 
 	if ((listinfo.list_from || listinfo.list_to)
 	    && listinfo.list_event_id)
-	usage();
+		usage();
 
 	if (listinfo.list_event_id)
 	{

@@ -143,15 +143,6 @@ static int parsetime(std::string_view &t)
 	return (h * 60 * 60 + m * 60 + s);
 }
 
-int rfc822_parsedate_chk(const char *rfcdt, time_t *tret)
-{
-	auto ret=rfc822::parse_date(rfcdt);
-	if (!ret)
-		return (-1);
-	*tret=*ret;
-	return (0);
-}
-
 std::optional<time_t> rfc822::parse_date(std::string_view rfcdt)
 {
 	unsigned day=0, mon=0, year;

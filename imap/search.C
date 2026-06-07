@@ -273,7 +273,12 @@ static bool decode_date(const std::string &p, time_t &tret)
 			s[i]=' ';
 	}
 
-	return rfc822_parsedate_chk(s.c_str(), &tret) == 0;
+	if (auto parsed_t = rfc822::parse_date(s))
+	{
+		tret = *parsed_t;
+		return true;
+	}
+	return false;
 }
 
 /* Given a time_t that falls on, say, 3-Aug-1999 9:50:43 local time,
@@ -293,7 +298,8 @@ char	buf1[60], buf2[80];
 	strcat(buf2, strtok(0, " "));
 	strcat(buf2, " 00:00:00");
 
-	rfc822_parsedate_chk(buf2, &t);
+	if (auto parsed_t = rfc822::parse_date(buf2))
+		t = *parsed_t;
 
 	return t;
 }

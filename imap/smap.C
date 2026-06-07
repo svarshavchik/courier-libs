@@ -2721,10 +2721,11 @@ void smap()
 
 				if (strcmp(p, "INTERNALDATE") == 0 && q)
 				{
-					if (rfc822_parsedate_chk(q,
-								 &add_internaldate)
-					    == 0)
+					if (auto parsed_t = rfc822::parse_date(q))
+					{
+						add_internaldate = *parsed_t;
 						okmsg="INTERNALDATE set";
+					}
 				}
 
 				if (p[0] == '{')
@@ -3595,22 +3596,21 @@ void smap()
 				}
 				else if (strncmp(p, "INTERNALDATE=", 13) == 0)
 				{
-					time_t t;
-
 					up(p);
 
-					if (rfc822_parsedate_chk(p+13, &t)
-					    == 0 &&
-					    (dummy=applymsgset(
+					if (auto parsed_t = rfc822::parse_date(p+13))
+					{
+					    if ((dummy=applymsgset(
 						    msgset,
 						    [&]
 						    (unsigned long n)
 						    {
-							    setdate(n, t);
+							    setdate(n, *parsed_t);
 							    return 0;
 						    }))
-					    != 0)
+					        != 0)
 						break;
+					}
 				}
 
 				p=getword(&ptr);

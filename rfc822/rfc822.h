@@ -22,59 +22,6 @@ extern "C" {
 
 #define RFC822_SPECIALS			"()<>[]:;@\\,.\""
 #define RFC822_SPECIAL_INNAMES		"()<>[]@\\,.\""
-/*
-** The text string we want to parse is first tokenized into an array of
-** struct rfc822token records.  'ptr' points into the original text
-** string, and 'len' has how many characters from 'ptr' belongs to this
-** token.
-*/
-
-struct rfc822token {
-	struct rfc822token *next;	/* Unused by librfc822, for use by
-					** clients */
-	int token;
-/*
-  Values for token:
-
-  '(' - comment
-  '"' - quoted string
-  '<', '>', '@', ',', ';', ':', '.', '[', ']', '%', '!', '=', '?', '/' - RFC atoms.
-  0   - atom
-*/
-
-#define	rfc822_is_atom(p)	( (p) == 0 || (p) == '"' || (p) == '(' )
-
-	const char *ptr;	/* Pointer to value for the token. */
-	size_t len;		/* Length of token value */
-} ;
-
-/*
-** After the struct rfc822token array is built, it is used to create
-** the rfc822addr array, which is the array of addresses (plus
-** syntactical fluff) extracted from those text strings.  Each rfc822addr
-** record has several possible interpretation:
-**
-** tokens is NULL - syntactical fluff, look in name/nname for tokens
-**                  representing the syntactical fluff ( which is semicolons
-**                  and  list name:
-**
-** tokens is not NULL - actual address.  The tokens representing the actual
-**                  address is in tokens/ntokens.  If there are comments in
-**                  the address that are possible "real name" for the address
-**                  they are saved in name/nname (name may be null if there
-**                  is none).
-**                  If nname is 1, and name points to a comment token,
-**                  the address was specified in old-style format.  Otherwise
-**                  the address was specified in new-style route-addr format.
-**
-** The tokens and name pointers are set to point to the original rfc822token
-** array.
-*/
-
-struct rfc822addr {
-	struct rfc822token *tokens;
-	struct rfc822token *name;
-} ;
 
 /***************************************************************************
 **
@@ -82,84 +29,12 @@ struct rfc822addr {
 **
 ***************************************************************************/
 
-struct rfc822t {
-	struct rfc822token *tokens;
-	int	ntokens;
-} ;
-
-/* The passed-in string must exist unti rfc822t_free() is called */
-
-struct rfc822t *rfc822t_alloc_new(const char *p,
-	void (*err_func)(const char *, size_t, void *), void *);
-	/* Parse addresses */
-
-void rfc822t_free(struct rfc822t *);		/* Free rfc822 structure */
-
-void rfc822tok_print(const struct rfc822token *,
-		     void (*)(const char *, size_t, void *), void *);
-/* Print the tokens */
-
-/***************************************************************************
-**
-** rfc822 addresses
-**
-***************************************************************************/
-
-struct rfc822a {
-	struct rfc822addr *addrs;
-	int	naddrs;
-} ;
-
-/* The passed_in rfc822t object must exist until rfc822a_free() is called */
-struct rfc822a *rfc822a_alloc(struct rfc822t *);
-void rfc822a_free(struct rfc822a *);		/* Free rfc822 structure */
-
-void rfc822_deladdr(struct rfc822a *, int);
-
-/* rfc822_print "unparses" the rfc822 structure.  Each rfc822addr is "printed"
-   (via the attached function).  NOTE: instead of separating addresses by
-   commas, the print_separator function is called.
-*/
-
-int rfc822_print(const struct rfc822a *a,
-		 void (*print_func)(const char *, size_t, void *),
-		 void (*print_separator)(const char *, void *), void *);
-
-/* rfc822_print_common is an internal function */
-
-int rfc822_print_common(const struct rfc822a *a,
-			char *(*decode_func)(const char *, const char *, int),
-			const char *chset,
-			void (*print_func)(const char *, size_t, void *),
-			void (*print_separator)(const char *, void *), void *);
-
-/* Extra functions */
-
-char *rfc822_gettok(const struct rfc822token *);
-char *rfc822_getaddr(const struct rfc822a *, int);
-char *rfc822_getaddrs(const struct rfc822a *);
-char *rfc822_getaddrs_wrap(const struct rfc822a *, int);
 
 void rfc822_mkdate_buf(time_t, char *);
 const char *rfc822_mkdate(time_t);
 
-int rfc822_parsedate_chk(const char *, time_t *);
-
 #define CORESUBJ_RE 1
 #define CORESUBJ_FWD 2
-
-char *rfc822_coresubj(const char *, int *);
-char *rfc822_coresubj_nouc(const char *, int *);
-char *rfc822_coresubj_keepblobs(const char *s);
-
-/*
-** address is a hostname, which is IDN-encoded. 'address' may contain an
-** optional 'user@', which is preserved. Returns a malloc-ed buffer, the
-** caller is responsible for freeing it.
-*/
-char *rfc822_encode_domain(const char *address,
-			   const char *charset);
-
 
 /* Internal functions */
 void rfc822_tokenize(const char *p,
@@ -184,7 +59,6 @@ void rfc822print_token(int token_token,
 		       size_t token_len,
 		       void (*print_func)(const char *, size_t, void *),
 		       void *ptr);
-
 #if 0
 {
 #endif
@@ -207,7 +81,13 @@ namespace rfc822 {
 
 std::optional<time_t> parse_date(std::string_view);
 
-std::string encode_domain(std::string_view,
+/*
+** address is a hostname, which is IDN-encoded. 'address' may contain an
+** optional 'user@', which is preserved.
+** caller is responsible for freeing it.
+*/
+
+std::string encode_domain(std::string_view address,
 			  const char *charset=unicode::utf_8);
 
 struct length_counter {
@@ -230,11 +110,16 @@ struct length_counter {
 	operator size_t () const { return l; }
 };
 
-// C++ version of rfc822token C struct.
+// An RFC 822 token.
 
 struct token {
 	int type=0; // rfc822token.token value
 	std::string_view str;
+
+	bool is_atom() const
+	{
+		return type == 0 || type == '"' || type == '(';
+	}
 };
 
 // C++ version of rfc822t
@@ -271,7 +156,7 @@ struct tokens : std::vector<token> {
 
 		void operator()(const token &t)
 		{
-			bool isatom=rfc822_is_atom(t.type);
+			bool isatom=t.is_atom();
 
 			if (prev_is_atom && isatom)
 			{
@@ -299,7 +184,8 @@ struct tokens : std::vector<token> {
 		}
 	};
 
-	// Print a token sequence, C++ version of rfc822tok_print.
+	// Print a token sequence.
+	//
 	// The token sequence gets printed to an output iterator.
 	//
 	// If the output iterator is an lvalue reference it gets updated
@@ -349,7 +235,7 @@ struct tokens : std::vector<token> {
 		{
 			auto &t=*b++;
 
-			bool isatom=rfc822_is_atom(t.type);
+			bool isatom=t.is_atom();
 
 			if (prev_is_atom && isatom)
 			{
@@ -395,7 +281,7 @@ struct tokens : std::vector<token> {
 			       std::forward<out_iter_type>(iter));
 	}
 
-	// Equivalent to rfc822tok_print, writes to an output iterator.
+	// Print these tokens to an output iterator.
 	//
 	// If the output iterator is an lvalue reference it gets updated
 	// in place and the return type is void.

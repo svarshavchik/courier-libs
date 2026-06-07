@@ -488,7 +488,12 @@ static int decode_date_time(std::string &str, time_t *tret)
 			c=' ';
 	}
 
-	return (rfc822_parsedate_chk(str.c_str(), tret));
+	if (auto parsed_t = rfc822::parse_date(str))
+	{
+		*tret = *parsed_t;
+		return 0;
+	}
+	return -1;
 }
 
 bool get_flagname(std::string s, struct imapflags *flags)
