@@ -16,7 +16,7 @@
 #include	<unistd.h>
 #endif
 
-static const char * const months[]={
+static const char months[][4]={
 	"Jan",
 	"Feb",
 	"Mar",
@@ -30,7 +30,7 @@ static const char * const months[]={
 	"Nov",
 	"Dec"};
 
-static const char * const wdays[]={
+static const char wdays[][4]={
 	"Sun",
 	"Mon",
 	"Tue",
@@ -39,10 +39,11 @@ static const char * const wdays[]={
 	"Fri",
 	"Sat"};
 
-void rfc822_mkdate_buf(time_t t, char *buf)
+std::string rfc822::mkdate(time_t t)
 {
-struct	tm *p;
-int	offset;
+	char buf[50];
+	struct	tm *p;
+	int	offset;
 
 #if	USE_TIME_ALTZONE
 
@@ -101,12 +102,6 @@ int	offset;
 		p->tm_min,
 		p->tm_sec,
 		offset);
-}
 
-const char *rfc822_mkdate(time_t t)
-{
-static char buf[50];
-
-	rfc822_mkdate_buf(t, buf);
-	return (buf);
+	return buf;
 }

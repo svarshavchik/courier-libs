@@ -23,16 +23,6 @@ extern "C" {
 #define RFC822_SPECIALS			"()<>[]:;@\\,.\""
 #define RFC822_SPECIAL_INNAMES		"()<>[]@\\,.\""
 
-/***************************************************************************
-**
-** rfc822 tokens
-**
-***************************************************************************/
-
-
-void rfc822_mkdate_buf(time_t, char *);
-const char *rfc822_mkdate(time_t);
-
 #define CORESUBJ_RE 1
 #define CORESUBJ_FWD 2
 
@@ -65,6 +55,7 @@ void rfc822print_token(int token_token,
 #ifdef  __cplusplus
 }
 
+#include <string>
 #include <string_view>
 #include <vector>
 #include <functional>
@@ -80,6 +71,7 @@ namespace rfc822 {
 #endif
 
 std::optional<time_t> parse_date(std::string_view);
+std::string mkdate(time_t);
 
 /*
 ** address is a hostname, which is IDN-encoded. 'address' may contain an

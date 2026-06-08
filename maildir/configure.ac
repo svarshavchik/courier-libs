@@ -7,7 +7,7 @@ AC_INIT([maildir],[0.11],[courier-maildrop@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
-AC_CONFIG_SRCDIR(maildirquota.c)
+AC_CONFIG_SRCDIR(maildirquota.C)
 AC_CONFIG_AUX_DIR(../..)
 LPATH="$PATH:/usr/local/bin"
 AC_CANONICAL_TARGET
@@ -54,7 +54,7 @@ if test $ac_cv_header_sys_time_h = yes; then
 fi
 # End of obsolete code.
 
-AC_CHECK_HEADERS(sys/stat.h sys/wait.h fcntl.h unistd.h sysexits.h utime.h)
+AC_CHECK_HEADERS(sys/stat.h sys/wait.h sysexits.h utime.h)
 
 AC_CHECK_PROG(PCRE2, pcre2-config, yes, no)
 

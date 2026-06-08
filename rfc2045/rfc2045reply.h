@@ -1496,7 +1496,7 @@ void rfc2045::reply::dsn_arrival_date(out_closure_t &&out_closure)
 
 	time(&now);
 
-	out_closure(rfc822_mkdate(now));
+	out_closure(rfc822::mkdate(now));
 	out_closure("\n");
 }
 

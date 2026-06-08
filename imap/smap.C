@@ -1701,11 +1701,10 @@ static void do_attrfetch(unsigned long n, int items)
 
 		if (fp.fileno() >= 0 && fstat(fp.fileno(), &stat_buf) == 0)
 		{
-			char buf[256];
+			auto buf=rfc822::mkdate(stat_buf.st_mtime);
 
-			rfc822_mkdate_buf(stat_buf.st_mtime, buf);
 			writes(" \"INTERNALDATE=");
-			smapword_s(buf);
+			smapword_s(buf.c_str());
 			writes("\"");
 		}
 	}

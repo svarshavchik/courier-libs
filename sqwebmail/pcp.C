@@ -2827,7 +2827,7 @@ void sqpcp_dodelete()
 		time(&t);
 
 		std::ostream o{&tmpfp};
-		o << "Date: " << rfc822_mkdate(t) << "\n\n";
+		o << "Date: " << rfc822::mkdate(t) << "\n\n";
 	}
 
 	del.proxy_callback=&proxy_update_list_save;

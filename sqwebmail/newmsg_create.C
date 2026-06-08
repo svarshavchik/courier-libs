@@ -643,7 +643,7 @@ std::string newmsg_createdraft_do(const char *curdraft, const char *newmsg,
 		create_draftheader("Subject: ", cgi("headersubject"), 0, false);
 
 		time(&t);
-		create_draftheader("Date: ", rfc822_mkdate(t), 0, false);
+		create_draftheader("Date: ", rfc822::mkdate(t).c_str(), 0, false);
 	}
 
 	/* If the message has attachments, calculate multipart boundary */

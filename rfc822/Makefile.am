@@ -7,9 +7,8 @@ noinst_LTLIBRARIES=librfc822.la
 
 librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdrcpp.C rfc822hdr.h \
 		  rfc822_2047.h rfc822cpp.C \
-		  rfc822_getaddr.c rfc822_getaddrs.c \
 		  rfc822_fdstreambuf.C \
-                  rfc822_mkdate.c rfc822_parsedt.C \
+                  rfc822_mkdate.C rfc822_parsedt.C \
                   rfc2047.C rfc2047.h imapsubj.C imaprefs.h imaprefs.C
 librfc822_la_LIBADD = $(LIBIDN_LIBS)
 

@@ -287,16 +287,22 @@ static bool decode_date(const std::string &p, time_t &tret)
 
 static time_t timestamp_to_day(time_t t)
 {
-char	buf1[60], buf2[80];
+	std::string buf1=rfc822::mkdate(t);	/* Converts to local time */
 
-	rfc822_mkdate_buf(t, buf1);	/* Converts to local time */
-	(void)strtok(buf1, " ");	/* Skip weekday */
-	strcpy(buf2, strtok(0, " "));
-	strcat(buf2, " ");
-	strcat(buf2, strtok(0, " "));
-	strcat(buf2, " ");
-	strcat(buf2, strtok(0, " "));
-	strcat(buf2, " 00:00:00");
+	size_t first_space=buf1.find(' ');
+	++first_space;
+
+	size_t second_space=buf1.find(' ', first_space);
+	++second_space;
+
+	size_t third_space=buf1.find(' ', second_space);
+	++third_space;
+
+	size_t fourth_space=buf1.find(' ', third_space);
+	++fourth_space;
+
+	std::string buf2=buf1.substr(first_space, fourth_space-first_space);
+	buf2 += " 00:00:00";
 
 	if (auto parsed_t = rfc822::parse_date(buf2))
 		t = *parsed_t;

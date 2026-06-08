@@ -38,12 +38,8 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<errno.h>
-#if	HAVE_FCNTL_H
 #include	<fcntl.h>
-#endif
-#if	HAVE_UNISTD_H
 #include	<unistd.h>
-#endif
 #include	<time.h>
 #include	<ctype.h>
 #include	<numlib/numlib.h>
@@ -74,41 +70,38 @@ static int maildir_openquotafile_init(struct maildirsize *info,
 {
 	int rc;
 
-	char	*buf=(char *)malloc(strlen(maildir)+sizeof("/maildirfolder"));
+	std::string buf;
+	buf.reserve(strlen(maildir)+sizeof("/maildirfolder")-1);
 
 	memset(info, 0, sizeof(*info));
 
 	info->fd= -1;
 
-	if (!buf)
-		return (-1);
-
-	strcat(strcpy(buf, maildir), "/maildirfolder");
-	if (stat(buf, &info->statbuf) == 0)	/* Go to parent */
+	buf=maildir;
+	buf += "/maildirfolder";
+	if (stat(buf.c_str(), &info->statbuf) == 0)	/* Go to parent */
 	{
-		strcat(strcpy(buf, maildir), "/..");
+		buf=maildir;
+		buf += "/..";
 
-		rc=maildir_openquotafile_init(info, buf, newquota);
-		free(buf);
+		rc=maildir_openquotafile_init(info, buf.c_str(), newquota);
 		return rc;
 	}
 
 	info->maildir=strdup(maildir);
 
 	if (!info->maildir)
-	{
-		free(buf);
 		return (-1);
-	}
 
-	strcat(strcpy(info->maildirsizefile=buf, maildir), "/maildirsize");
+	buf=maildir;
+	buf += "/maildirsize";
+	info->maildirsizefile=strdup(buf.c_str());
 
-	rc=do_maildir_openquotafile(info, buf, newquota);
+	rc=do_maildir_openquotafile(info, buf.c_str(), newquota);
 
 	if (rc == 0)
 		return (0);
 
-	free(buf);
 	free(info->maildir);
 	return (rc);
 }
@@ -369,7 +362,7 @@ static int checkOneQuota(int64_t size, int64_t quota, int *percentage)
 	return 0;
 }
 
-static char *makenewmaildirsizename(const char *, int *);
+static std::string makenewmaildirsizename(const char *, int *);
 static int countcurnew(const char *, time_t *, int64_t *, unsigned *);
 static int countsubdir(const char *, const char *,
 		time_t *, int64_t *, unsigned *);
@@ -404,7 +397,6 @@ static int docheckquota(struct maildirsize *info,
 			int xtra_cnt,
 			int *percentage)
 {
-	char	*newmaildirsizename;
 	int	maildirsize_fd;
 	int64_t	maildirsize_size;
 	unsigned maildirsize_cnt;
@@ -479,33 +471,25 @@ static int docheckquota(struct maildirsize *info,
 #endif
 	}
 
-	newmaildirsizename=makenewmaildirsizename(info->maildir,
-						  &maildirsize_fd);
-	if (!newmaildirsizename)
-	{
-		errno=EIO;
-		return (-1);
-	}
+	auto newmaildirsizename=
+		makenewmaildirsizename(info->maildir, &maildirsize_fd);
 
 	if (doaddquota(info, maildirsize_fd, maildirsize_size,
 		maildirsize_cnt, 1))
 	{
-		unlink(newmaildirsizename);
-		free(newmaildirsizename);
+		unlink(newmaildirsizename.c_str());
 		close(maildirsize_fd);
 		errno=EIO;
 		return (-1);
 	}
 
-	if (rename(newmaildirsizename, info->maildirsizefile))
+	if (rename(newmaildirsizename.c_str(), info->maildirsizefile))
 	{
-		unlink(newmaildirsizename);
-		free(newmaildirsizename);
+		unlink(newmaildirsizename.c_str());
 		close(maildirsize_fd);
 		errno=EIO;
 		return (-1);
 	}
-	free(newmaildirsizename);
 
 	info->recalculation_needed=0;
 	info->size.nbytes=maildirsize_size;
@@ -643,32 +627,34 @@ static int doaddquota(struct maildirsize *info, int maildirsize_fd,
 
 /* New maildirsize is built in the tmp subdirectory */
 
-static char *makenewmaildirsizename(const char *dir, int *fd)
+static std::string makenewmaildirsizename(const char *dir, int *fd)
 {
 char	hostname[256];
 struct	stat stat_buf;
 time_t	t;
-char	*p;
+std::string p;
 
 	hostname[0]=0;
 	hostname[sizeof(hostname)-1]=0;
 	gethostname(hostname, sizeof(hostname)-1);
-	p=(char *)malloc(strlen(dir)+strlen(hostname)+130);
-	if (!p)	return (0);
+	p.reserve(strlen(dir)+strlen(hostname)+130);
 
 	for (;;)
 	{
-	char	tbuf[NUMBUFSIZE];
-	char	pbuf[NUMBUFSIZE];
+		char	tbuf[NUMBUFSIZE];
+		char	pbuf[NUMBUFSIZE];
 
 		time(&t);
-		strcat(strcpy(p, dir), "/tmp/");
-		sprintf(p+strlen(p), "%s.%s_NeWmAiLdIrSiZe.%s",
-			libmail_str_time_t(t, tbuf),
-			libmail_str_pid_t(getpid(), pbuf), hostname);
+		p=dir;
+		p += "/tmp/";
+		p += libmail_str_time_t(t, tbuf);
+		p += ".";
+		p += libmail_str_pid_t(getpid(), pbuf);
+		p += "_NeWmAiLdIrSiZe.";
+		p += hostname;
 
-		if (stat( (const char *)p, &stat_buf) < 0 &&
-			(*fd=maildir_safeopen(p,
+		if (stat(p.c_str(), &stat_buf) < 0 &&
+			(*fd=maildir_safeopen(p.c_str(),
 				O_CREAT|O_RDWR|O_APPEND, 0644)) >= 0)
 			break;
 		sleep(3);
@@ -992,8 +978,7 @@ static void do_deliver_warning(const char *msgfile, const char *dir)
 	int	fdin, fd, ret;
 	FILE *fpout;
 	time_t	t;
-	size_t	l, msg_len;
-	char	*qname = 0;
+	size_t	msg_len;
 	struct stat	sb;
 	char	hostname[256];
 	char	buf[4096];
@@ -1015,28 +1000,23 @@ static void do_deliver_warning(const char *msgfile, const char *dir)
 	if (fdin < 0)
 		return;
 
-	l = strlen(dir)+sizeof("/quotawarn");
+	std::string qname;
+
+	qname.reserve(strlen(dir)+sizeof("/quotawarn")-1);
+	qname += dir;
+	qname += "/quotawarn";
 
 	/* Send only one warning every 24 hours */
-	if ((qname = malloc(l)) == 0)
-	{
-		close(fdin);
-		return;
-	}
-
-	strcat(strcpy(qname, dir), "/quotawarn");
 	time(&t);
-	ret = stat(qname, &sb);
+	ret = stat(qname.c_str(), &sb);
 	if ((ret == -1 && errno != ENOENT) ||
 	    (ret == 0 && (sb.st_mtime + 86400) > t))
 	{
-		free(qname);
 		close(fdin);
 		return;
 	}
 
-	fd = open(qname, O_WRONLY|O_CREAT|O_TRUNC, 0644);
-	free(qname);
+	fd = open(qname.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	if (fd == -1)
 	{
 		close(fdin);
@@ -1048,7 +1028,7 @@ static void do_deliver_warning(const char *msgfile, const char *dir)
 	close(fd);
 
 	strcpy(buf, "Date: ");
-	rfc822_mkdate_buf(t, buf+strlen(buf));
+	strcat(buf, rfc822::mkdate(t).c_str());
 	strcat(buf, "\n");
 
 	hostname[0]=0;
@@ -1124,28 +1104,25 @@ static void do_deliver_warning(const char *msgfile, const char *dir)
 void maildir_deliver_quota_warning(const char *dir, const int percent,
 				   const char *msgquotafile)
 {
-	size_t l;
-	char *p;
+	std::string p;
 	struct stat	sb;
 
 	/* If we delivered to a folder, dump the warning message into INBOX */
 
-	l = strlen(dir)+sizeof("/maildirfolder");
-	if ((p = malloc(l)) == 0)
-		return;
-
-	strcat(strcpy(p, dir), "/maildirfolder");
+	p.reserve(strlen(dir)+sizeof("/maildirfolder")-1);
+	p += dir;
+	p += "/maildirfolder";
 
 	/* If delivering to a folder, find quotawarn in its parent directory */
 
-	if (stat(p, &sb) == 0)
+	if (stat(p.c_str(), &sb) == 0)
 	{
-		strcat(strcpy(p, dir), "/..");
-		maildir_deliver_quota_warning(p, percent, msgquotafile);
-		free(p);
+		p.reserve(strlen(dir)+sizeof("/..")-1);
+		p += dir;
+		p += "/..";
+		maildir_deliver_quota_warning(p.c_str(), percent, msgquotafile);
 		return;
 	}
-	free(p);
 
 	if (percent >= 0)
 	{

@@ -19,9 +19,7 @@
 #if HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-#if	HAVE_FCNTL_H
 #include	<fcntl.h>
-#endif
 #include	<time.h>
 #if	HAVE_SYSEXITS_H
 #include	<sysexits.h>

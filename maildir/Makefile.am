@@ -47,7 +47,7 @@ libmaildir_la_SOURCES=autoresponse.C autoresponse.h \
 	maildirrename.c \
 	maildirsearch.c maildirsearchC.cpp maildirsearch.h \
 	maildirshared.C maildirshared2.C \
-	maildirquota.c maildirquota.h maildirrequota.c maildirrequota.h \
+	maildirquota.C maildirquota.h maildirrequota.c maildirrequota.h \
 	maildirwatch.C maildirwatch.h loginexec.c loginexec.h
 
 noinst_PROGRAMS=deliverquota maildirmake testmaildirfilter maildirkwtest \

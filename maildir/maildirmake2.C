@@ -4,9 +4,7 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<stdlib.h>
-#if	HAVE_FCNTL_H
 #include	<fcntl.h>
-#endif
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif

@@ -591,19 +591,18 @@ static void internaldate(rfc822::fdstreambuf &fp, const fetchinfo *fi,
 	const rfc2045::entity &mimep)
 {
 struct	stat	stat_buf;
-char	buf[256];
 char	*p, *q;
 
 	writes("INTERNALDATE ");
 	if (fstat(fp.fileno(), &stat_buf) == 0)
 	{
-		rfc822_mkdate_buf(stat_buf.st_mtime, buf);
+		std::string buf=rfc822::mkdate(stat_buf.st_mtime);
 
 		/* Convert RFC822 date to imap date */
 
-		p=strchr(buf, ',');
+		p=strchr(buf.data(), ',');
 		if (p)	++p;
-		else	p=buf;
+		else	p=buf.data();
 		while (*p == ' ')	++p;
 		if ((q=strchr(p, ' ')) != 0)	*q++='-';
 		if ((q=strchr(p, ' ')) != 0)	*q++='-';
