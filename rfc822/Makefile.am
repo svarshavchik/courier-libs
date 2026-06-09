@@ -5,7 +5,7 @@
 
 noinst_LTLIBRARIES=librfc822.la
 
-librfc822_la_SOURCES=rfc822.c rfc822.h rfc822hdr.c rfc822hdrcpp.C rfc822hdr.h \
+librfc822_la_SOURCES=rfc822.C rfc822.h rfc822hdrcpp.C \
 		  rfc822_2047.h rfc822cpp.C \
 		  rfc822_fdstreambuf.C \
                   rfc822_mkdate.C rfc822_parsedt.C \

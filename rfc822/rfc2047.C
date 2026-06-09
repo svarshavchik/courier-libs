@@ -11,12 +11,12 @@
 #include	<errno.h>
 #include	<courier-unicode.h>
 
-#include	"rfc822hdr.h"
 #include	"rfc2047.h"
 #include <idn2.h>
 
-
+#ifndef RFC2047_ENCODE_FOLDLENGTH
 #define	RFC2047_ENCODE_FOLDLENGTH	76
+#endif
 
 const char rfc2047_xdigit[]="0123456789ABCDEFabcdef";
 

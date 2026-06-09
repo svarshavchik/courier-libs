@@ -21,7 +21,7 @@ void rfc822_tokenize(const char *p,
 		     void *voidp_err_func)
 {
 	const char *addr=p;
-	size_t	i=0, j;
+	size_t	i=0;
 	int	inbracket=0;
 
 	char	tokp_token;
@@ -128,9 +128,9 @@ void rfc822_tokenize(const char *p,
 
 			if (plen > 1 && p[1] == '?')
 			{
-				int j;
+				size_t j;
 
-			/* exception: =? ... ?= */
+				/* exception: =? ... ?= */
 
 				for (j=2; j < plen; j++)
 				{
@@ -217,7 +217,7 @@ void rfc822_tokenize(const char *p,
 			tokp_ptr=p;
 			tokp_len=0;
 
-			j=i;
+			size_t j=i;
 
 			while (plen &&
 			       !isspace((int)(unsigned char)*p) &&
@@ -300,7 +300,7 @@ void rfc822_parseaddr(size_t ntokens,
 
 	while (ntokens)
 	{
-	int	i;
+		size_t	i;
 
 		/* atoms (token=0) or quoted strings, followed by a : token
 		is a list name. */
@@ -353,7 +353,7 @@ void rfc822_parseaddr(size_t ntokens,
 
 		if (i < ntokens && c == '<')
 		{
-			int	j;
+			size_t	j;
 
 			/* Ok -- what to do with the stuff before '>'???
 			If it consists exclusively of atoms, leave them alone.

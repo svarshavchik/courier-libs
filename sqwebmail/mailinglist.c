@@ -5,7 +5,6 @@
 
 #include	"sqwebmail.h"
 #include	"mailinglist.h"
-#include	"rfc822/rfc822.h"
 #include	<stdio.h>
 #include	<string.h>
 #include	<ctype.h>
@@ -62,7 +61,7 @@ void savemailinglists(const char *p)
 		putc(*p, fp);
 		lastc=*p;
 	}
-	
+
 	fprintf(fp, "%s", p);
 	fflush(fp);
 	if (ferror(fp))
@@ -74,4 +73,3 @@ void savemailinglists(const char *p)
 	fclose(fp);
 	rename (MAILINGLISTSTMP, MAILINGLISTS);
 }
-

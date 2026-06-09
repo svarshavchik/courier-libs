@@ -596,13 +596,13 @@ char	*p, *q;
 	writes("INTERNALDATE ");
 	if (fstat(fp.fileno(), &stat_buf) == 0)
 	{
-		std::string buf=rfc822::mkdate(stat_buf.st_mtime);
+		auto buf=rfc822::mkdate(stat_buf.st_mtime);
 
 		/* Convert RFC822 date to imap date */
 
-		p=strchr(buf.data(), ',');
+		p=strchr(&buf[0], ',');
 		if (p)	++p;
-		else	p=buf.data();
+		else	p=&buf[0];
 		while (*p == ' ')	++p;
 		if ((q=strchr(p, ' ')) != 0)	*q++='-';
 		if ((q=strchr(p, ' ')) != 0)	*q++='-';

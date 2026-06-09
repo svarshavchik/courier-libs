@@ -24,7 +24,6 @@
 #if	HAVE_SYSEXITS_H
 #include	<sysexits.h>
 #endif
-#include	"rfc822/rfc822.h"
 #ifndef	BUFSIZE
 #define	BUFSIZE	8192
 #endif

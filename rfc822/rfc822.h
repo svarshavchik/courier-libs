@@ -1442,6 +1442,10 @@ struct addresses : std::vector<address> {
 	}
 };
 
+// US-ASCII case-insensitive comparison
+
+bool headercmp(std::string_view, std::string_view);
+
 // Return true if header_name is To, Cc, Bcc, or other headers that contain
 // a list of addresses.
 
