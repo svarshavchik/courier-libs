@@ -10,15 +10,17 @@
 #include	"rfc822/config.h"
 #endif
 
+#include	<string>
+#include	<string_view>
+#include	<vector>
+#include	<functional>
+#include	<iterator>
+#include	<type_traits>
+#include	<optional>
+#include	<streambuf>
+#include	<tuple>
 #include	<time.h>
 #include	<courier-unicode.h>
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-#if 0
-}
-#endif
 
 #define RFC822_SPECIALS			"()<>[]:;@\\,.\""
 #define RFC822_SPECIAL_INNAMES		"()<>[]@\\,.\""
@@ -27,14 +29,6 @@ extern "C" {
 #define CORESUBJ_FWD 2
 
 /* Internal functions */
-void rfc822_tokenize(const char *p,
-		     size_t plen,
-		     void (*parsed_func)(char token,
-					 const char *ptr, size_t len,
-					 void *voidp),
-		     void *voidp_parsed_func,
-		     void (*err_func)(const char *, size_t, void *),
-		     void *voidp_err_func);
 
 void rfc822_parseaddr(size_t ntokens,
 		      char (*get_nth_token)(size_t, void *),
@@ -43,27 +37,6 @@ void rfc822_parseaddr(size_t ntokens,
 		      void (*define_addr_name)(size_t, int, void *),
 		      void (*define_addr_tokens)(size_t, int, void *),
 		      void *voidp);
-
-void rfc822print_token(int token_token,
-		       const char *token_ptr,
-		       size_t token_len,
-		       void (*print_func)(const char *, size_t, void *),
-		       void *ptr);
-#if 0
-{
-#endif
-#ifdef  __cplusplus
-}
-
-#include <string>
-#include <string_view>
-#include <vector>
-#include <functional>
-#include <iterator>
-#include <type_traits>
-#include <optional>
-#include <streambuf>
-#include <tuple>
 
 namespace rfc822 {
 #if 0
@@ -112,6 +85,10 @@ struct token {
 	{
 		return type == 0 || type == '"' || type == '(';
 	}
+
+	void print(
+		std::function<void (const char *, size_t)> print_func
+	) const;
 };
 
 // C++ version of rfc822t
@@ -122,8 +99,9 @@ struct tokens : std::vector<token> {
 	//
 	// The passed-in string must exist until this object is destroyed.
 
-	tokens(std::string_view str,
-	       std::function<void (size_t)> err_func=[](size_t){});
+	tokens(std::string_view str);
+
+	tokens(std::string_view str, const std::function<void (size_t)> &err);
 
 	using std::vector<token>::vector;
 
@@ -133,7 +111,7 @@ struct tokens : std::vector<token> {
 	//
 	// Takes a reference to an output iterator over chars. The ()
 	// operator is called with one token after another, and
-	// rfc822print_token() gets invoked for it, to write the token
+	// print() gets invoked for it, to write the token
 	// to the output iterator. A space is automatically provided between
 	// two consecutive atoms.
 
@@ -155,23 +133,17 @@ struct tokens : std::vector<token> {
 				*iter++=' ';
 			}
 
-			rfc822print_token(
-				t.type, t.str.data(), t.str.size(),
-				[](const char *s, size_t l, void *voidp)
+			t.print(
+				[this](const char *s, size_t l)
 				{
-					auto iterp=static_cast<
-						std::remove_cv_t<
-							std::remove_reference_t<
-								out_iter_type
-								>> *>(voidp);
-
 					while (l)
 					{
-						*(*iterp)++=*s;
+						*iter++=*s;
 						++s;
 						--l;
 					}
-				}, &iter);
+				}
+			);
 			prev_is_atom=isatom;
 		}
 	};
@@ -1530,9 +1502,6 @@ protected:
 {
 #endif
 }
-
-
-#endif
 
 #include "rfc822/rfc822_2047.h"
 

@@ -1,5 +1,5 @@
 /*
-** Copyright 2025 S. Varshavchik.
+** Copyright 2025-2026 S. Varshavchik.
 ** See COPYING for distribution information.
 */
 
@@ -7,204 +7,691 @@
 #include	"rfc2047.h"
 #include	<idn2.h>
 #include	<vector>
-
-rfc822::tokens::tokens(std::string_view str,
-		       std::function<void (size_t)> err_func)
-{
-	size_t ntokens=0;
-
-	rfc822_tokenize(str.data(), str.size(),
-			[]
-			(char c, const char *, size_t, void *voidp)
-			{
-				++*static_cast<size_t *>(voidp);
-			}, &ntokens,
-
-			[]
-			(const char *ptr, size_t p, void *voidp)
-			{
-			}, nullptr);
-
-	this->reserve(ntokens);
-
-	rfc822_tokenize(str.data(), str.size(),
-			[]
-			(char c, const char *ptr, size_t n, void *voidp)
-			{
-				static_cast<tokens *>(voidp)->push_back(
-					{
-						c,
-						{ ptr, n}
-					}
-				);
-			}, this,
-			[]
-			(const char *ptr, size_t p, void *voidp)
-			{
-				auto f=static_cast<std::function<void (size_t)
-								 > *>(voidp);
-
-				(*f)(p);
-			}, &err_func);
-}
+#include	<functional>
 
 namespace {
-
-	struct rfc822a_info {
-		rfc822::tokens &t;
-		rfc822::addresses &addrs;
-
-		size_t pos=0;
-
-		size_t naddrs=0;
-
-		rfc822::tokens addr_name;
-	};
-};
-
-static char get_nth_token(size_t n, void *voidp)
-{
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
-
-	return info->t.at(info->pos+n).type;
+#if 0
 }
+#endif
 
-static void consume_n_tokens(size_t n, void *voidp)
+void tokenize(const char *p,
+	      size_t plen,
+	      std::function<void (char c, const char *, size_t)> parsed_func,
+	      const std::function<void (size_t)> &err_func
+)
 {
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
+	size_t	i=0;
+	bool	inbracket=false;
 
-	info->pos += n;
-}
+	char	tokp_token;
+	const char *tokp_ptr;
+	size_t  tokp_len;
 
-static void make_quoted_token(size_t n, void *voidp)
-{
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
-
-	auto &first_token=info->t.at(info->pos);
-	first_token = {
-		// quoted string
-		'"',
+	while (plen)
+	{
+		if (isspace((int)(unsigned char)*p))
 		{
-			first_token.str.data(),
-
-			// We know that all the ptrs point
-			// to parts of the same string.
-
-			static_cast<size_t>(
-				info->t.at(info->pos+n-1).str.data() +
-				info->t.at(info->pos+n-1).str.size()
-				- first_token.str.data()
-			),
+			++p; --plen;
+			i++;
+			continue;
 		}
-	};
-}
 
-static void make_quoted_token_ignore(size_t n, void *voidp)
-{
-}
+#define SPECIALS "<>@,;:.[]()%!\"\\?=/"
 
-static void define_addr_name_ignore(size_t n, int convert_quotes, void *voidp)
-{
-}
+		switch (*p)	{
+		int	level;
 
-static void define_addr_tokens_ignore(size_t n, int name_from_comment,
-				      void *voidp)
-{
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
-	++info->naddrs;
-}
+		case '(':
 
-static void define_addr_name(size_t n, int convert_quotes, void *voidp)
-{
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
+			tokp_token='(';
+			tokp_ptr=p;
+			tokp_len=0;
 
-	if (n == 0)
-		info->addr_name.clear();
-	else
-		info->addr_name=rfc822::tokens{
-			info->t.begin()+info->pos,
-			info->t.begin()+info->pos+n
-		};
-
-	if (convert_quotes)
-	{
-		/* Any comments in the name part are changed to quotes */
-
-		for (auto &t:info->addr_name)
-			if (t.type == '(')
-				t.type='"';
-	}
-}
-
-static void define_addr_tokens(size_t n, int name_from_comment, void *voidp)
-{
-	rfc822a_info *info=reinterpret_cast<rfc822a_info *>(voidp);
-
-	if (name_from_comment)
-	{
-		rfc822::token save_token;
-
-		define_addr_name(0, 0, voidp);
-
-		/*
-		** Ok, now get rid of embedded comments in the address.
-		** Consider the last comment to be the real name
-		*/
-
-		auto b=info->t.begin()+info->pos,
-			e=info->t.begin()+info->pos+n,
-			p=b;
-
-		for (; b != e; ++b)
-		{
-			if (b->type == '(')
+			level=0;
+			for (;;)
 			{
-				save_token=*b;
+				if (plen == 0)
+				{
+					err_func(i);
+					tokp_token='"';
+					parsed_func(tokp_token,
+						    tokp_ptr, tokp_len);
+					return;
+				}
+				if (*p == '(')
+					++level;
+				if (*p == ')' && --level == 0)
+				{
+					++p; --plen;
+					i++;
+					tokp_len++;
+					break;
+				}
+				if (*p == '\\' && plen > 1)
+				{
+					++p; --plen;
+					i++;
+					tokp_len++;
+				}
+
+				i++;
+				tokp_len++;
+				++p; --plen;
+			}
+			parsed_func(tokp_token, tokp_ptr, tokp_len);
+			continue;
+
+		case '"':
+			++p; --plen;
+			i++;
+
+			tokp_token='"';
+			tokp_ptr=p;
+			tokp_len=0;
+
+			while (*p != '"')
+			{
+				if (plen == 0)
+				{
+					err_func(i);
+					parsed_func(tokp_token,
+						    tokp_ptr, tokp_len);
+					return;
+				}
+				if (*p == '\\' && plen > 1)
+				{
+					tokp_len++;
+					++p; --plen;
+					i++;
+				}
+				tokp_len++;
+				++p; --plen;
+				i++;
+			}
+			parsed_func(tokp_token, tokp_ptr, tokp_len);
+			++p; --plen;
+			i++;
+			continue;
+		case '\\':
+		case ')':
+			err_func(i);
+			++p; --plen;
+			++i;
+			continue;
+
+		case '=':
+
+			if (plen > 1 && p[1] == '?')
+			{
+				size_t j;
+
+				/* exception: =? ... ?= */
+
+				for (j=2; j < plen; j++)
+				{
+					if (p[j] == '?' && j+1 < plen &&
+					    p[j+1] == '=')
+						break;
+
+					if (p[j] == '?' || p[j] == '=')
+						continue;
+
+					if (strchr(RFC822_SPECIALS, p[j]) ||
+					    isspace(p[j]))
+						break;
+				}
+
+				if (j+1 < plen && p[j] == '?' && p[j+1] == '=')
+				{
+					j += 2;
+
+					tokp_token=0;
+					tokp_ptr=p;
+					tokp_len=j;
+					parsed_func(tokp_token,
+						    tokp_ptr, tokp_len);
+
+					p += j; plen -= j;
+					i += j;
+					continue;
+				}
+			}
+			/* FALLTHROUGH */
+
+		case '<':
+		case '>':
+		case '@':
+		case ',':
+		case ';':
+		case ':':
+		case '.':
+		case '[':
+		case ']':
+		case '%':
+		case '!':
+		case '?':
+		case '/':
+
+			if ( (*p == '<' && inbracket) ||
+				(*p == '>' && !inbracket))
+			{
+				err_func(i);
+				++p; --plen;
+				++i;
 				continue;
 			}
 
-			*p++=*b;
-		}
+			if (*p == '<')
+				inbracket=true;
 
-		if (save_token.str.size())
-		{
-			info->addr_name=rfc822::tokens{
-				&save_token, &save_token+1
-			};
-		}
+			if (*p == '>')
+				inbracket=false;
 
-		n=p-(info->t.begin()+info->pos);
+			tokp_token= *p;
+			tokp_ptr=p;
+			tokp_len=1;
+			parsed_func(tokp_token, tokp_ptr, tokp_len);
+
+			if (*p == '<' && plen > 1 && p[1] == '>')
+					/* Fake a null address */
+			{
+				tokp_token=0;
+				tokp_ptr=p+1;
+				tokp_len=0;
+				parsed_func(tokp_token, tokp_ptr, tokp_len);
+			}
+			++p; --plen;
+			++i;
+			continue;
+		default:
+
+			tokp_token=0;
+			tokp_ptr=p;
+			tokp_len=0;
+
+			size_t j=i;
+
+			while (plen &&
+			       !isspace((int)(unsigned char)*p) &&
+			       strchr(SPECIALS, *p) == 0)
+			{
+				++tokp_len;
+				++p; --plen;
+				++i;
+			}
+			if (i == j)	/* Idiot check */
+			{
+				err_func(i);
+
+				tokp_token='"';
+				tokp_ptr=p;
+				tokp_len=1;
+				parsed_func(tokp_token,
+					    tokp_ptr, tokp_len);
+				++p; --plen;
+				++i;
+				continue;
+			}
+			parsed_func(tokp_token,
+				    tokp_ptr, tokp_len);
+		}
+	}
+}
+
+#if 0
+{
+#endif
+}
+
+void rfc822::token::print(std::function<void (const char *, size_t)> print_func)
+	const
+{
+	char c;
+	const char *token_ptr=str.data();
+	size_t token_len=str.size();
+
+	if (type == 0 || type == '(')
+	{
+		print_func(token_ptr, token_len);
+		return;
 	}
 
-	info->addrs.push_back(
+	if (type != '"')
+	{
+		c= (char)type;
+		print_func(&c, 1);
+		return;
+	}
+
+	c='"';
+
+	print_func(&c, 1);
+
+	while (token_len)
+	{
+		size_t i;
+
+		for (i=0; i<token_len; ++i)
 		{
-			std::move(info->addr_name),
-			rfc822::tokens{
-				info->t.begin()+info->pos,
-				info->t.begin()+info->pos+n
+			if (token_ptr[i] == '"')
+				break;
+
+			if (token_ptr[i] == '\\')
+			{
+				if (i+1 == token_len)
+					break;
+				++i;
 			}
-		});
+		}
+
+		if (i)
+		{
+			print_func(token_ptr, i);
+			token_ptr += i;
+			token_len -= i;
+			continue;
+		}
+
+		c='\\';
+		print_func(&c, 1);
+		print_func(token_ptr, 1);
+		++token_ptr;
+		--token_len;
+	}
+	c='"';
+
+	print_func(&c, 1);
 }
+
+rfc822::tokens::tokens(std::string_view str)
+	: tokens{str, [](size_t){}}
+{
+}
+
+rfc822::tokens::tokens(std::string_view str,
+		       const std::function<void (size_t)> &err_func)
+{
+	size_t ntokens=0;
+
+	tokenize(str.data(), str.size(),
+		 [&]
+		 (char c, const char *, size_t)
+		 {
+			 ++ntokens;
+		 }, [](size_t){}
+	);
+
+	this->reserve(ntokens);
+
+	tokenize(str.data(), str.size(),
+		 [this]
+		 (char c, const char *ptr, size_t n)
+		 {
+			 push_back(
+				 {
+					 c,
+					 { ptr, n}
+				 }
+			 );
+		 },
+		 err_func
+	);
+}
+
+namespace {
+#if 0
+}
+#endif
+
+struct addr_parser {
+	rfc822::tokens &t;
+	rfc822::addresses &addrs;
+
+	size_t pos=0;
+
+	size_t naddrs=0;
+
+	rfc822::tokens addr_name;
+
+	char get_nth_token(size_t n)
+	{
+		return t.at(pos+n).type;
+	}
+
+	void consume_n_tokens(size_t n)
+	{
+		pos += n;
+	}
+
+	void make_quoted_token(size_t n)
+	{
+		auto &first_token=t.at(pos);
+
+		first_token = {
+			// quoted string
+			'"',
+			{
+				first_token.str.data(),
+
+				// We know that all the ptrs point
+				// to parts of the same string.
+
+				static_cast<size_t>(
+					t.at(pos+n-1).str.data() +
+					t.at(pos+n-1).str.size()
+					- first_token.str.data()
+				),
+			}
+		};
+	}
+
+	void make_quoted_token_ignore(size_t n)
+	{
+	}
+
+	void define_addr_name_ignore(size_t n, int convert_quotes)
+	{
+	}
+
+	void define_addr_tokens_ignore(size_t n, int name_from_comment)
+	{
+		++naddrs;
+	}
+
+	void define_addr_name(size_t n, int convert_quotes)
+	{
+		if (n == 0)
+			addr_name.clear();
+		else
+			addr_name=rfc822::tokens{
+				t.begin()+pos,
+				t.begin()+pos+n
+			};
+
+		if (convert_quotes)
+		{
+			/* Any comments in the name part are changed
+			   to quotes */
+
+			for (auto &t:addr_name)
+				if (t.type == '(')
+					t.type='"';
+		}
+	}
+
+	void define_addr_tokens(size_t n, int name_from_comment)
+	{
+		if (name_from_comment)
+		{
+			rfc822::token save_token;
+
+			define_addr_name(0, 0);
+
+			/*
+			** Ok, now get rid of embedded comments in the
+			** address.
+			**
+			** Consider the last comment to be the real
+			** name.
+			*/
+
+			auto b=t.begin()+pos,
+				e=t.begin()+pos+n,
+				p=b;
+
+			for (; b != e; ++b)
+			{
+				if (b->type == '(')
+				{
+					save_token=*b;
+					continue;
+				}
+
+				*p++=*b;
+			}
+
+			if (save_token.str.size())
+			{
+				addr_name=rfc822::tokens{
+					&save_token, &save_token+1
+				};
+			}
+
+			n=p-(t.begin()+pos);
+		}
+
+		addrs.push_back(
+			{
+				std::move(addr_name),
+				rfc822::tokens{
+					t.begin()+pos,
+					t.begin()+pos+n
+				}
+			});
+	}
+	void parseaddr(
+		size_t ntokens,
+		char (addr_parser::*get_nth_token)(size_t),
+		void (addr_parser::*consume_n_tokens)(size_t),
+		void (addr_parser::*make_quoted_token)(size_t),
+		void (addr_parser::*define_addr_name)(size_t, int),
+		void (addr_parser::*define_addr_tokens)(size_t, int)
+	);
+};
+/*
+** Parse rfc822 tokens into discrete addresses.
+**
+** - ntokens: number of tokens
+**
+** - get_nth_token: retrieve nth token, the parameter goes from 0 to ntokens-1
+**
+** - consume_n_token: mark the first n token as being processed, subsequent
+**   calls to get_nth_token are 0-based from the remaining unprocessed
+**   tokens.
+**
+** - make_quoted_token: take the first n tokens, and replace them with a single
+**   quote token, '"'.
+**
+** - define_addr_name, define_addr_tokens - specify the next address's
+**   recipient name, and the address itself
+**
+** define_addr_name and define_addr_tokens get called to define the next
+** address's recipient name, if there is one, and the address itself.
+**
+** define_addr_name is always called before define_addr_tokens, except if
+** name_from_comment is set to true, the second parameter to define_addr_tokens.
+** Both define_addr_name and define_attr_tokens' first parameter is the
+** number of tokens that comprise the recipient name, or the recipient address.
+** They are interleaved with consume_n_token calls that end up discarding
+** all tokens that do not comprise the name or the address portion.
+**
+** The second parameter to define_addr_name is convert_quotes, if set any
+** '(' tokens in the name portion should be replaced with '"', this is to
+** adjust invalid formatting.
+**
+** define_addr_tokens' second parameter, name_from_comment, is set when it is
+** called to set the address's tokens, but any '(' from the number of tokens
+** specified by the first parameter should be removed and set to the address's
+** name (and define_addr_name is not called, beforehand, in this case). The
+** current implementation only grabs the last '(' token (there should only
+** be one).
+*/
+
+void addr_parser::parseaddr(
+	size_t ntokens,
+	char (addr_parser::*get_nth_token)(size_t),
+	void (addr_parser::*consume_n_tokens)(size_t),
+	void (addr_parser::*make_quoted_token)(size_t),
+	void (addr_parser::*define_addr_name)(size_t, int),
+	void (addr_parser::*define_addr_tokens)(size_t, int)
+)
+{
+	int	flag;
+	char c;
+
+	while (ntokens)
+	{
+		size_t	i;
+
+		/* atoms (token=0) or quoted strings, followed by a : token
+		is a list name. */
+
+		for (i=0; i<ntokens; i++)
+		{
+			c=(this->*get_nth_token)(i);
+
+			if (c && c != '"')
+				break;
+		}
+
+		if (i < ntokens && c == ':')
+		{
+			++i;
+
+			(this->*define_addr_name)(i, 0);
+			(this->*define_addr_tokens)(0, 0);
+			ntokens -= i;
+			(this->*consume_n_tokens)(i);
+			continue;  /* Group=phrase ":" */
+		}
+
+		/* Spurious commas are skipped, ;s are recorded */
+
+		c=(this->*get_nth_token)(0);
+
+		if (c == ',' || c == ';')
+		{
+			if (c == ';')
+			{
+				(this->*define_addr_name)(1, 0);
+				(this->*define_addr_tokens)(0, 0);
+			}
+			--ntokens;
+			(this->*consume_n_tokens)(1);
+			continue;
+		}
+
+		/* If we can find a '<' before the next comma or semicolon,
+		we have new style RFC path address */
+
+		for (i=0; i<ntokens; i++)
+		{
+			c=(this->*get_nth_token)(i);
+
+			if (c == ';' || c == ',' || c == '<')
+				break;
+		}
+
+		if (i < ntokens && c == '<')
+		{
+			size_t	j;
+
+			/* Ok -- what to do with the stuff before '>'???
+			If it consists exclusively of atoms, leave them alone.
+			Else, make them all a quoted string. */
+
+			for (j=0; j<i; j++)
+			{
+				c=(this->*get_nth_token)(j);
+
+				if (! (c == 0 || c == '('))
+					break;
+			}
+
+			if (j == i)
+			{
+				(this->*define_addr_name)(i, 1);
+			}
+			else	/* Intentionally corrupt the original toks */
+			{
+				(this->*make_quoted_token)(i);
+				(this->*define_addr_name)(1, 1);
+			}
+
+			/* Now that's done and over with, see what can
+			be done with the <...> part. */
+
+			++i;
+			ntokens -= i;
+			(this->*consume_n_tokens)(i);
+			for (i=0; i<ntokens && (this->*get_nth_token)(i) != '>'; i++)
+				;
+
+			(this->*define_addr_tokens)(i, 0);
+			ntokens -= i;
+			(this->*consume_n_tokens)(i);
+			if (ntokens)	/* Skip the '>' token */
+			{
+				--ntokens;
+				(this->*consume_n_tokens)(1);
+			}
+			continue;
+		}
+
+		/* Ok - old style address.  Assume the worst */
+
+		/* Try to figure out where the address ends.  It ends upon:
+		a comma, semicolon, or two consecutive atoms. */
+
+		flag=0;
+		for (i=0; i<ntokens; i++)
+		{
+			c=(this->*get_nth_token)(i);
+
+			if (c == ',' || c == ';')
+				break;
+
+			if (c == '(')	continue;
+					/* Ignore comments */
+			if (c == 0 || c == '"')
+				/* Atom */
+			{
+				if (flag)	break;
+				flag=1;
+			}
+			else	flag=0;
+		}
+		if (i == 0)	/* Must be spurious comma, or something */
+		{
+			--ntokens;
+			(this->*consume_n_tokens)(1);
+			continue;
+		}
+
+		(this->*define_addr_tokens)(i, 1);
+		ntokens -= i;
+		(this->*consume_n_tokens)(i);
+	}
+}
+#if 0
+{
+#endif
+};
 
 rfc822::addresses::addresses(tokens &addrvec)
 {
-	rfc822a_info info{addrvec, *this};
+	addr_parser info{addrvec, *this};
 
-	rfc822_parseaddr(addrvec.size(),
-			 get_nth_token, consume_n_tokens,
-			 make_quoted_token_ignore,
-			 define_addr_name_ignore, define_addr_tokens_ignore,
-
-			 &info);
+	info.parseaddr(
+		addrvec.size(),
+		&addr_parser::get_nth_token,
+		&addr_parser::consume_n_tokens,
+		&addr_parser::make_quoted_token_ignore,
+		&addr_parser::define_addr_name_ignore,
+		&addr_parser::define_addr_tokens_ignore
+	);
 
 	this->reserve(info.naddrs);
 	info.pos=0;
 
-	rfc822_parseaddr(addrvec.size(),
-			 get_nth_token, consume_n_tokens,
-			 make_quoted_token,
-			 define_addr_name, define_addr_tokens,
-			 &info);
+	info.parseaddr(
+		addrvec.size(),
+		&addr_parser::get_nth_token,
+		&addr_parser::consume_n_tokens,
+		&addr_parser::make_quoted_token,
+		&addr_parser::define_addr_name,
+		&addr_parser::define_addr_tokens
+	);
 }
 
 std::u32string rfc822::idn2unicode(std::string &idn)
