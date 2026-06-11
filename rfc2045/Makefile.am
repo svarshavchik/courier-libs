@@ -46,7 +46,7 @@ makemime_LDADD = $(makemime_DEPENDENCIES) -lcourier-unicode
 makemime_LDFLAGS=-static
 nodist_EXTRA_makemime_SOURCES=forcecpp.cc
 
-testrfc3676parser_SOURCES=testrfc3676parser.c
+testrfc3676parser_SOURCES=testrfc3676parser.C
 testrfc3676parser_DEPENDENCIES=librfc2045.la
 testrfc3676parser_LDADD=$(testrfc3676parser_DEPENDENCIES) -lcourier-unicode
 

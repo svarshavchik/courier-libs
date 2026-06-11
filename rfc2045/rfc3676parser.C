@@ -26,12 +26,12 @@
 
 struct rfc3676_parser_struct {
 
-	struct rfc3676_parser_info info;
-	unicode_convert_handle_t uhandle;
+	struct rfc3676_parser_info info{};
+	unicode_convert_handle_t uhandle=nullptr;
 
-	int errflag;
+	int errflag{0};
 
-	bool unknown_charset;
+	bool unknown_charset{false};
 
 	/* Receive raw text stream, converted to unicode */
 	size_t (rfc3676_parser_struct::*line_handler)(
@@ -48,21 +48,21 @@ struct rfc3676_parser_struct {
 		size_t cnt
 	);
 
-	size_t quote_level;
-	size_t sig_block_index;
+	size_t quote_level{0};
+	size_t sig_block_index{0};
 
 	/*
 	** Flag: previous line ended in a flowed space, and the previous
 	** line's quoting level was this.
 	*/
-	int has_previous_quote_level;
-	size_t previous_quote_level;
+	int has_previous_quote_level{0};
+	size_t previous_quote_level{0};
 
 	/*
 	** Flag: current line was flowed into from a previous line with the
 	** same quoting level.
 	*/
-	int was_previous_quote_level;
+	int was_previous_quote_level{0};
 
 	/* A line has begun */
 	void (rfc3676_parser_struct::*line_begin_handler)();
@@ -82,7 +82,7 @@ struct rfc3676_parser_struct {
 	** of the unicode_lbc_info API.
 	*/
 
-	unicode_lbc_info_t lb;
+	unicode_lbc_info_t lb=nullptr;
 
 	struct unicode_buf nonflowed_line;
 	/* Collect unflowed line until it reaches the given size */
@@ -90,12 +90,12 @@ struct rfc3676_parser_struct {
 	struct unicode_buf nonflowed_next_word;
 	/* Collects unicode stream until a linebreaking opportunity */
 
-	size_t nonflowed_line_target_width;
+	size_t nonflowed_line_target_width{0};
 	/* Targeted width of nonflowed lines */
 
-	size_t nonflowed_line_width; /* Width of nonflowed_line */
+	size_t nonflowed_line_width{0}; /* Width of nonflowed_line */
 
-	size_t nonflowed_next_word_width; /* Width of nonflowed_next_word */
+	size_t nonflowed_next_word_width{0}; /* Width of nonflowed_next_word */
 
 	/* Current handle of non-flowd content. */
 	void (rfc3676_parser_struct::*nonflowed_line_process)(
@@ -182,9 +182,7 @@ static int parse_unicode(const char *, size_t, void *);
 
 rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
 {
-	rfc3676_parser_t handle=
-		(rfc3676_parser_t)calloc(1,
-					 sizeof(struct rfc3676_parser_struct));
+	rfc3676_parser_t handle=new rfc3676_parser_struct;
 
 	if (!handle)
 		return NULL;
@@ -204,7 +202,7 @@ rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
 			     handle
 		     )) == NULL)
 		{
-			free(handle);
+			delete handle;
 			return NULL;
 		}
 	}
@@ -330,7 +328,7 @@ int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
 	unicode_buf_deinit(&handle->nonflowed_line);
 	unicode_buf_deinit(&handle->nonflowed_next_word);
 
-	free(handle);
+	delete handle;
 	return rc;
 }
 
