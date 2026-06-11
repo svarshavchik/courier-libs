@@ -9,6 +9,10 @@
 #include	<stdio.h>
 
 class TPP: public mail::textplainparser {
+public:
+	using mail::textplainparser::textplainparser;
+	using mail::textplainparser::operator<<;
+private:
 	void line_begin(size_t quote_level) override;
 	void line_contents(const char32_t *txt, size_t txt_size) override;
 	void line_flowed_notify() override;
@@ -41,13 +45,10 @@ int main(int argc, char **argv)
 {
 	int n=0;
 	char buf[BUFSIZ];
-	TPP parser;
-
 	if (argc > 1)
 		n=atoi(argv[1]);
 
-	parser.begin("utf-8", n != 0, n == 2);
-
+	TPP parser("utf-8", n != 0, n == 2);
 	while (fgets(buf, sizeof(buf), stdin))
 		parser << buf;
 

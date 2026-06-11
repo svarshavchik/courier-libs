@@ -293,17 +293,22 @@ private:
 
 		out_closure_t &out_closure;
 
-		reformat_info(out_closure_t &out_closure)
-			: out_closure{out_closure}
+		reformat_info(const std::string &charset,
+			      bool isflowed,
+			      bool isdelsp,
+			      out_closure_t &out_closure)
+			: mail::textplainparser{
+				charset,
+				isflowed,
+				isdelsp
+			},
+			out_closure{out_closure},
+			isflowed{isflowed},
+			isdelsp{isdelsp}
 		{
-		}
+			if (!this->begun())
+				return;
 
-		// Begin reformatting. Initialize the unicode::iconvert
-		// and mail::textplainparser superclasses. Returns false if
-		// there was a conversion error.
-
-		bool begin(const std::string &charset)
-		{
 			// We'll convert the Unicode-formatted parsed text/plain
 			// content into the output character set.
 
@@ -312,11 +317,9 @@ private:
 				    charset
 			    ))
 			{
-				return false;
+				bool ignore;
+				end(ignore);
 			}
-
-			return mail::textplainparser::begin(charset, isflowed,
-							    isdelsp);
 		}
 
 		void end(bool &unicode_errflag)
@@ -501,37 +504,16 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 			      src_type &src,
 			      size_t quote_adjust_level)
 {
-	reformat_info info{out_closure};
+	// Set isflowed and delsp parameters.
+
+	bool isflowed=message.content_type.format_flowed();
+	bool isdelsp=isflowed && message.content_type.delsp_yes();
+
+	reformat_info info{charset, isflowed, isdelsp, out_closure};
 
 	info.quote_level_adjust=quote_adjust_level;
 
-	// Set isflowed and delsp parameters.
-
-	auto content_type_param=message.content_type.parameters.find("flowed");
-
-	if (content_type_param != message.content_type.parameters.end())
-	{
-		auto param_value=content_type_param->second.value;
-
-		rfc2045::entity::tolowercase(param_value);
-
-		if (param_value == "flowed")
-			info.isflowed=true;
-	}
-
-	content_type_param=message.content_type.parameters.find("delsp");
-
-	if (content_type_param != message.content_type.parameters.end())
-	{
-		auto param_value=content_type_param->second.value;
-
-		rfc2045::entity::tolowercase(param_value);
-
-		if (param_value == "yes")
-			info.isdelsp=true;
-	}
-
-	if (info.begin(charset))
+	if (info.begun())
 	{
 		// Use mime_decoder to decode the text/plain content,
 		// and pass it to the mail::textplainparser.

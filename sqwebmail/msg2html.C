@@ -1319,12 +1319,24 @@ public:
 	std::function<std::string (std::string_view url,
 				   std::string_view disp_url)
 		> get_textlink;
-	msg2html_textplain_info(const char *output_character_set,
-				void (*output_func)(const char *p,
+
+	msg2html_textplain_info(
+		const char *message_charset,
+		bool isflowed,
+		bool isdelsp,
+		const char *output_character_set,
+		void (*output_func)(const char *p,
 						    size_t n, void *arg),
-				void *arg
-	) : info{output_character_set, output_func, arg}
+		void *arg
+	) : mail::textplainparser{
+			message_charset,
+			isflowed,
+			isdelsp
+		},
+		info{output_character_set, output_func, arg}
 	{
+		if (!begun())
+			conv_err=1;
 	}
 };
 
@@ -2686,6 +2698,9 @@ msg2html_textplain_start(const char *message_charset,
 			 void *arg)
 {
 	msg2html_textplain_info *tinfo=new msg2html_textplain_info{
+		message_charset,
+		isflowed,
+		isdelsp,
 		output_character_set,
 		output_func,
 		arg
@@ -2698,10 +2713,6 @@ msg2html_textplain_start(const char *message_charset,
 	tinfo->wikifmt=wikifmt;
 
 	tinfo->text_url_handler=text_contents_notalpha;
-
-	tinfo->conv_err=0;
-	if (!tinfo->begin(message_charset, isflowed, isdelsp))
-		tinfo->conv_err=1;
 
 	if (!wikifmt)
 	{

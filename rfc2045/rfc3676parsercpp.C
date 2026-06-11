@@ -40,26 +40,18 @@ extern "C" {
 	}
 }
 
-mail::textplainparser::textplainparser() : handle(NULL)
+mail::textplainparser::textplainparser(
+	const std::string &charset,
+	bool isflowed,
+	bool isdelsp
+)
+	: handle(NULL)
 {
-}
-
-mail::textplainparser::~textplainparser()
-{
-	end();
-}
-
-bool mail::textplainparser::begin(const std::string &charset,
-				  bool flowed,
-				  bool delsp)
-{
-	end();
-
 	struct rfc3676_parser_info info=rfc3676_parser_info();
 
 	info.charset=charset.c_str();
-	info.isflowed=flowed == true;
-	info.isdelsp=delsp == true;
+	info.isflowed=isflowed;
+	info.isdelsp=isdelsp;
 
 	info.line_begin=&tpp_trampoline_line_begin;
 	info.line_contents=&tpp_trampoline_line_contents;
@@ -68,10 +60,12 @@ bool mail::textplainparser::begin(const std::string &charset,
 
 	info.arg=reinterpret_cast<void *>(this);
 
-	if ((handle=rfc3676parser_init(&info)) == NULL)
-		return false;
+	handle=rfc3676parser_init(&info);
+}
 
-	return true;
+mail::textplainparser::~textplainparser()
+{
+	end();
 }
 
 void mail::textplainparser::end(bool &unicode_errflag)

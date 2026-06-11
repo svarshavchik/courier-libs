@@ -729,3 +729,17 @@ Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: quoted-printable
 
 --
+Precedence: junk
+Auto-Submitted: auto-replied
+Subject: 
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+@ writes:
+
+> This is a flowed message. This is a flowed message. This is a flowed message.  
+> This is a flowed message. This is a flowed message. This is a flowed message.  
+> This is a flowed message. This is a flowed message.
+
+

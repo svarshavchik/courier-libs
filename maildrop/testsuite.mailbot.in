@@ -31,7 +31,7 @@ function run() {
     LANG=en_US.utf-8 TZ=America/New_York $VALGRIND ./mailbot.tst -X 60 "$@"
 }
 
-set -evx
+set -e
 
 cat >testmailbot.1 <<EOF
 From: =?iso-8859-1?Q?H=F3la!?= <test@example.com>
@@ -497,3 +497,16 @@ sed 's/boundary=.*//;s/^--.*/--/' <testmailbot.msgout
 
 rm -rf testmailbot.msg*
 rm -f testmailbot.1
+
+cat >testmailbot.msg <<EOF
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes
+
+EOF
+
+echo 'This is a flowed message. This is a flowed message. This is a flowed message.  ' >>testmailbot.msg
+echo 'This is a flowed message. This is a flowed message. This is a flowed message.  ' >>testmailbot.msg
+echo 'This is a flowed message. This is a flowed message.' >>testmailbot.msg
+
+run -T reply cat <testmailbot.msg
+rm -f testmailbot.msg
