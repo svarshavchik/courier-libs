@@ -157,7 +157,7 @@ namespace mail {
 
 	public:
 		textplainparser();
-		~textplainparser();
+		virtual ~textplainparser();
 
 		/*
 		** Begin parsing. Returns FALSE if the parsing could

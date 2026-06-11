@@ -1190,12 +1190,21 @@ const char *skip_text_url(const char *r, const char *end)
 ** The following structure maintains state of the HTML formatter.
 */
 
-struct msg2html_textplain_info {
+struct msg2html_textplain_info : mail::textplainparser {
 
-	/*
-	** RFC 3676 parser of the raw text/plain content.
-	*/
-	rfc3676_parser_t parser;
+private:
+	void line_begin(size_t) override;
+
+	void line_contents(const char32_t *,
+				   size_t) override;
+
+	void line_flowed_notify() override;
+
+	void line_end() override;
+
+public:
+
+	using mail::textplainparser::operator<<;
 
 	/*
 	** This layer also needs to know whether the raw format is flowed
@@ -1522,56 +1531,50 @@ static void process_text(const char32_t *txt,
 
 static int do_text_line_contents(const char32_t *txt,
 				 size_t txt_size,
-				 void *arg);
+				 msg2html_textplain_info *info);
 
 /*
 ** Start of a new logical line.
 */
-static int text_line_begin(size_t quote_level,
-			   void *arg)
+void msg2html_textplain_info::line_begin(size_t quote_level)
 {
-	struct msg2html_textplain_info *info=
-		(struct msg2html_textplain_info *)arg;
-
 	/*
 	** Process the logical line's quoting level.
 	*/
-	text_set_quote_level(info, quote_level);
+	text_set_quote_level(this, quote_level);
 
 	/*
 	** Initialize the lookahead mid-layer.
 	*/
-	info->lookahead_saved=0;
-	info->start_of_line=1;
+	lookahead_saved=0;
+	start_of_line=1;
 
 	/* Initialize the decoration layer */
 
-	info->ttline=0;
-	text_process_decor_begin(info);
+	ttline=0;
+	text_process_decor_begin(this);
 
 	/*
 	** Initialize URL collection layer.
 	*/
-	info->text_url_handler=text_contents_notalpha;
-	return 0;
+	text_url_handler=text_contents_notalpha;
 }
 
 /*
 ** Process the contents of a logical line.
 */
 
-static int text_line_contents(const char32_t *txt,
-			      size_t txt_size,
-			      void *arg)
+void msg2html_textplain_info::line_contents(const char32_t *txt,
+						      size_t txt_size)
 {
 #if 1
-	return do_text_line_contents(txt, txt_size, arg);
+	do_text_line_contents(txt, txt_size, this);
 #else
 	/* For debugging purposes */
 
 	while (txt_size)
 	{
-		do_text_line_contents(txt, 1, arg);
+		do_text_line_contents(txt, 1, this);
 		++txt;
 		--txt_size;
 	}
@@ -1580,10 +1583,8 @@ static int text_line_contents(const char32_t *txt,
 
 static int do_text_line_contents(const char32_t *txt,
 				 size_t txt_size,
-				 void *arg)
+				 msg2html_textplain_info *info)
 {
-	struct msg2html_textplain_info *info=
-		(struct msg2html_textplain_info *)arg;
 	char32_t lookahead_cpy_buf[sizeof(info->lookahead_buf)
 				       /sizeof(info->lookahead_buf[0])];
 	size_t n;
@@ -1782,60 +1783,53 @@ static void text_line_contents_with_lookahead(const char32_t *txt,
 ** Don't want to generate long HTML without line breaks. It's OK to
 ** have a linebreak here.
 */
-static int text_line_flowed_notify(void *arg)
+void msg2html_textplain_info::line_flowed_notify()
 {
 	char32_t nl='\n';
-	struct msg2html_textplain_info *info=
-		(struct msg2html_textplain_info *)arg;
-	info->info(&nl, 1);
-	return 0;
+	info(&nl, 1);
 }
 
 /*
 ** End of the line. Wrap up all the layers.
 */
-static int text_line_end(void *arg)
+void msg2html_textplain_info::line_end()
 {
-	struct msg2html_textplain_info *info=
-		(struct msg2html_textplain_info *)arg;
-
 	/*
 	** Wrap up the lookahead mid-layer.
 	*/
-	if (info->lookahead_saved)
-		process_text(info->lookahead_buf,
-			     info->lookahead_saved, info);
+	if (lookahead_saved)
+		process_text(lookahead_buf, lookahead_saved, this);
 
 	/*
 	** Wrap up the URL collection layer.
 	*/
-	(*info->text_url_handler)(info, NULL, 0);
+	text_url_handler(this, NULL, 0);
 
 	/*
 	** Wrap up the text decoration layer
 	*/
-	text_process_decor_end(info);
+	text_process_decor_end(this);
 
-	if (info->flowed)
+	if (flowed)
 	{
 		char32_t uc='\n';
 
-		if (info->start_of_line)
+		if (start_of_line)
 		{
 			/*
 			** This was an empty line.
 			*/
 
-			if (info->paragraph_open)
+			if (paragraph_open)
 			{
 				/*
 				** A paragraph was open, so this empty line
 				** marks the end of the paragraph.
 				*/
-				text_close_paragraph(info);
-				info->info(&uc, 1);
+				text_close_paragraph(this);
+				info(&uc, 1);
 			}
-			else if (!info->quote_level_has_changed)
+			else if (!quote_level_has_changed)
 			{
 				/*
 				** In all other cases, an empty line generates
@@ -1844,8 +1838,8 @@ static int text_line_end(void *arg)
 				** forthcoming <p> tag is going to advance
 				** vertical white space.
 				*/
-				text_emit_passthru(info, "<br/>");
-				info->info(&uc, 1);
+				text_emit_passthru(this, "<br/>");
+				info(&uc, 1);
 			}
 		}
 		else
@@ -1853,23 +1847,20 @@ static int text_line_end(void *arg)
 			/*
 			** Close the open <tt> tag.
 			*/
-			if (info->ttline)
+			if (ttline)
 			{
-				text_emit_passthru(info, "</tt>");
+				text_emit_passthru(this, "</tt>");
 			}
 
-			info->info(&uc, 1);
+			info(&uc, 1);
 		}
-		return 0;
+		return;
 	}
-
-
 	{
 		char32_t uc='\n';
 
-		info->info(&uc, 1);
+		info(&uc, 1);
 	}
-	return 0;
 }
 
 static void process_text_wiki(char *paragraph_open,
@@ -2709,24 +2700,7 @@ msg2html_textplain_start(const char *message_charset,
 	tinfo->text_url_handler=text_contents_notalpha;
 
 	tinfo->conv_err=0;
-	{
-		struct rfc3676_parser_info pinfo;
-
-		memset(&pinfo, 0, sizeof(pinfo));
-
-		pinfo.charset=message_charset;
-		pinfo.isflowed=isflowed ? 1:0;
-		pinfo.isdelsp=isdelsp ? 1:0;
-		pinfo.line_begin=text_line_begin;
-		pinfo.line_contents=text_line_contents;
-		pinfo.line_flowed_notify=text_line_flowed_notify;
-		pinfo.line_end=text_line_end;
-		pinfo.arg=tinfo;
-
-		tinfo->parser=rfc3676parser_init(&pinfo);
-	}
-
-	if (tinfo->parser == NULL)
+	if (!tinfo->begin(message_charset, isflowed, isdelsp))
 		tinfo->conv_err=1;
 
 	if (!wikifmt)
@@ -2744,21 +2718,17 @@ void msg2html_textplain(struct msg2html_textplain_info *info,
 			const char *ptr,
 			size_t cnt)
 {
-	if (info->parser)
-		rfc3676parser(info->parser, ptr, cnt);
+	(*info) << std::string_view{ptr, cnt};
 }
 
 int msg2html_textplain_end(struct msg2html_textplain_info *tinfo)
 {
-	int errptr;
+	bool errflag=false;
 
-	if (tinfo->parser)
-	{
-		rfc3676parser_deinit(tinfo->parser, &errptr);
+	tinfo->end(errflag);
 
-		if (errptr)
-			tinfo->conv_err=1;
-	}
+	if (errflag)
+		tinfo->conv_err=1;
 
 	text_set_quote_level(tinfo, 0);
 	text_set_list_level(tinfo, "", 0);
@@ -2775,7 +2745,7 @@ int msg2html_textplain_end(struct msg2html_textplain_info *tinfo)
 	if (tinfo->info.conversion_error)
 		tinfo->conv_err=1;
 
-	errptr=tinfo->conv_err;
+	auto errptr=tinfo->conv_err;
 
 	delete tinfo;
 	return errptr;

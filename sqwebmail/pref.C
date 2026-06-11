@@ -68,7 +68,8 @@ void pref_setprefs()
 	if (*cgi("do.changeprefs"))
 	{
 		pref_flagsortorder=*cgi("sortorder");
-		pref_flagpagesize=*cgi("pagesize");
+		std::string_view sv=cgi("pagesize");
+		std::from_chars(sv.data(), sv.data()+sv.size(), pref_flagpagesize);
 		pref_autopurge=*cgi("autopurge");
 		pref_noflowedtext=*cgi(FLOWEDTEXT_PREF) ? 1:0;
 		pref_noarchive=*cgi(NOARCHIVE_PREF) ? 1:0;

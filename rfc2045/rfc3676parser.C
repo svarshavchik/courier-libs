@@ -31,6 +31,8 @@ struct rfc3676_parser_struct {
 
 	int errflag;
 
+	bool unknown_charset;
+
 	/* Receive raw text stream, converted to unicode */
 	size_t (rfc3676_parser_struct::*line_handler)(
 		const char32_t *ptr,
@@ -193,8 +195,18 @@ rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
 						    parse_unicode,
 						    handle)) == NULL)
 	{
-		free(handle);
-		return NULL;
+		handle->unknown_charset=true;
+
+		if ((handle->uhandle=unicode_convert_init(
+			     unicode::iso_8859_1,
+			     unicode_u_ucs4_native,
+			     parse_unicode,
+			     handle
+		     )) == NULL)
+		{
+			free(handle);
+			return NULL;
+		}
 	}
 
 	if (!handle->info.isflowed)
@@ -294,6 +306,9 @@ int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
 	/* Finish unicode conversion */
 
 	int rc=unicode_convert_deinit(handle->uhandle, errptr);
+
+	if (handle->unknown_charset)
+		*errptr=1;
 
 	if (rc == 0)
 		rc=handle->errflag;
