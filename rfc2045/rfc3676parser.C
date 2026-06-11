@@ -12,39 +12,16 @@
 
 #define NONFLOWED_THRESHOLD_EXCEEDED	30
 
-
-static void emit_line_begin(rfc3676_parser_t handle);
-
-static void emit_line_contents(rfc3676_parser_t handle,
-			       const char32_t *uc,
-			       size_t cnt);
-
-static void emit_line_flowed_wrap(rfc3676_parser_t handle);
-
-static void emit_line_end(rfc3676_parser_t handle);
-
-
-static void nonflowed_line_begin(rfc3676_parser_t handle);
-
-static void nonflowed_line_contents(rfc3676_parser_t handle,
-				    const char32_t *uc,
-				    size_t cnt);
-
-static void nonflowed_line_end(rfc3676_parser_t handle);
-
-static int nonflowed_line_process(int linebreak_opportunity,
-				  char32_t ch, void *dummy);
-
-#define EMIT_LINE_BEGIN(h) do {			\
-		(*(h)->line_begin_handler)(h);	\
+#define EMIT_LINE_BEGIN() do {			\
+		(this->*line_begin_handler)();	\
 	} while (0)
 
-#define EMIT_LINE_CONTENTS(h, uc, cnt) do {			\
-		(*(h)->line_content_handler)((h),(uc),(cnt));	\
+#define EMIT_LINE_CONTENTS(uc, cnt) do {			\
+		(this->*line_content_handler)(uc, cnt);	\
 	} while (0)
 
-#define EMIT_LINE_END(h) do {			\
-		(*(h)->line_end_handler)(h);	\
+#define EMIT_LINE_END() do {			\
+		(this->*line_end_handler)();	\
 	} while (0)
 
 struct rfc3676_parser_struct {
@@ -55,15 +32,19 @@ struct rfc3676_parser_struct {
 	int errflag;
 
 	/* Receive raw text stream, converted to unicode */
-	size_t (*line_handler)(rfc3676_parser_t,
-			       const char32_t *ptr, size_t cnt);
+	size_t (rfc3676_parser_struct::*line_handler)(
+		const char32_t *ptr,
+		size_t cnt
+	);
 
 	/*
 	** Receive mostly raw text stream: CRs that precede an LF
 	** are removed from the stream received by content_handler.
 	*/
-	size_t (*content_handler)(rfc3676_parser_t,
-				  const char32_t *ptr, size_t cnt);
+	size_t (rfc3676_parser_struct::*content_handler)(
+		const char32_t *ptr,
+		size_t cnt
+	);
 
 	size_t quote_level;
 	size_t sig_block_index;
@@ -82,15 +63,16 @@ struct rfc3676_parser_struct {
 	int was_previous_quote_level;
 
 	/* A line has begun */
-	void (*line_begin_handler)(rfc3676_parser_t handle);
+	void (rfc3676_parser_struct::*line_begin_handler)();
 
 	/* Content of this line */
-	void (*line_content_handler)(rfc3676_parser_t handle,
-				     const char32_t *uc,
-				     size_t cnt);
+	void (rfc3676_parser_struct::*line_content_handler)(
+		const char32_t *uc,
+		size_t cnt
+	);
 
 	/* End of this line */
-	void (*line_end_handler)(rfc3676_parser_t handle);
+	void (rfc3676_parser_struct::*line_end_handler)();
 
 
 	/*
@@ -114,48 +96,82 @@ struct rfc3676_parser_struct {
 	size_t nonflowed_next_word_width; /* Width of nonflowed_next_word */
 
 	/* Current handle of non-flowd content. */
-	void (*nonflowed_line_process)(struct rfc3676_parser_struct *handle,
-				       int linebreak_opportunity,
-				       char32_t ch,
-				       size_t ch_width);
+	void (rfc3676_parser_struct::*nonflowed_line_process)(
+		int linebreak_opportunity,
+		char32_t ch,
+		size_t ch_width
+	);
 
-	void (*nonflowed_line_end)(struct rfc3676_parser_struct *handle);
+	void (rfc3676_parser_struct::*nonflowed_line_end)();
+
+
+
+	void emit_line_begin();
+
+	void emit_line_contents(const char32_t *uc, size_t cnt);
+
+	void emit_line_flowed_wrap();
+
+	void emit_line_end();
+
+	void nonflowed_line_begin();
+
+	void nonflowed_line_contents(const char32_t *uc, size_t cnt);
+
+	void nonflowed_line_end_default();
+
+	static int nonflowed_line_process_trampoline(
+		int linebreak_opportunity,
+		char32_t ch,
+		void *dummy
+	);
+
+	size_t scan_crlf(const char32_t *ptr, size_t cnt);
+
+	size_t scan_crlf_seen_cr(const char32_t *ptr, size_t cnt);
+
+	size_t start_of_line(const char32_t *ptr, size_t cnt);
+
+	size_t count_quote_level(const char32_t *ptr, size_t cnt);
+
+	size_t counted_quote_level(const char32_t *ptr, size_t cnt);
+
+	size_t check_signature_block(const char32_t *ptr, size_t cnt);
+
+	size_t start_content_line(const char32_t *ptr, size_t cnt);
+
+	size_t scan_content_line(const char32_t *ptr, size_t cnt);
+
+	size_t seen_sig_block(const char32_t *ptr, size_t cnt);
+
+	size_t seen_notsig_block(const char32_t *ptr, size_t cnt);
+
+	size_t seen_content_sp(const char32_t *ptr, size_t cnt);
+
+	void initial_nonflowed_line(
+		int linebreak_opportunity,
+		char32_t ch,
+		size_t ch_width
+	);
+
+	void initial_nonflowed_end();
+
+	void begin_forced_rewrap();
+
+	void forced_rewrap_line(
+		int linebreak_opportunity,
+		char32_t ch,
+		size_t ch_width
+	);
+
+	void forced_rewrap_end();
+
+	void check_abnormal_line();
+
+	void emit_rewrapped_line();
 };
 
 static int parse_unicode(const char *, size_t, void *);
-
-static size_t scan_crlf(rfc3676_parser_t handle,
-			const char32_t *ptr, size_t cnt);
-
-static size_t scan_crlf_seen_cr(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt);
-
-static size_t start_of_line(rfc3676_parser_t handle,
-			    const char32_t *ptr, size_t cnt);
-
-static size_t count_quote_level(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt);
-
-static size_t counted_quote_level(rfc3676_parser_t handle,
-				  const char32_t *ptr, size_t cnt);
-
-static size_t check_signature_block(rfc3676_parser_t handle,
-				    const char32_t *ptr, size_t cnt);
-
-static size_t start_content_line(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt);
-
-static size_t scan_content_line(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt);
-
-static size_t seen_sig_block(rfc3676_parser_t handle,
-			     const char32_t *ptr, size_t cnt);
-
-static size_t seen_notsig_block(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt);
-
-static size_t seen_content_sp(rfc3676_parser_t handle,
-			      const char32_t *ptr, size_t cnt);
 
 
 /*
@@ -184,23 +200,23 @@ rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
 	if (!handle->info.isflowed)
 		handle->info.isdelsp=0; /* Sanity check */
 
-	handle->line_handler=scan_crlf;
-	handle->content_handler=start_of_line;
+	handle->line_handler=&rfc3676_parser_struct::scan_crlf;
+	handle->content_handler=&rfc3676_parser_struct::start_of_line;
 	handle->has_previous_quote_level=0;
 	handle->previous_quote_level=0;
 
-	handle->line_begin_handler=emit_line_begin;
-	handle->line_content_handler=emit_line_contents;
-	handle->line_end_handler=emit_line_end;
+	handle->line_begin_handler=&rfc3676_parser_struct::emit_line_begin;
+	handle->line_content_handler=&rfc3676_parser_struct::emit_line_contents;
+	handle->line_end_handler=&rfc3676_parser_struct::emit_line_end;
 
 	unicode_buf_init(&handle->nonflowed_line, (size_t)-1);
 	unicode_buf_init(&handle->nonflowed_next_word, (size_t)-1);
 
 	if (!handle->info.isflowed)
 	{
-		handle->line_begin_handler=nonflowed_line_begin;
-		handle->line_content_handler=nonflowed_line_contents;
-		handle->line_end_handler=nonflowed_line_end;
+		handle->line_begin_handler=&rfc3676_parser_struct::nonflowed_line_begin;
+		handle->line_content_handler=&rfc3676_parser_struct::nonflowed_line_contents;
+		handle->line_end_handler=&rfc3676_parser_struct::nonflowed_line_end_default;
 	}
 	return handle;
 }
@@ -261,7 +277,7 @@ int rfc3676parser_unicode(rfc3676_parser_t handle,
 {
 	while (handle->errflag == 0 && cnt)
 	{
-		size_t n=(*handle->line_handler)(handle, p, cnt);
+		size_t n=(handle->*(handle->line_handler))(p, cnt);
 
 		if (handle->errflag == 0)
 		{
@@ -284,7 +300,7 @@ int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
 
 	if (rc == 0)
 	{
-		(*handle->line_handler)(handle, NULL, 0);
+		(handle->*(handle->line_handler))(NULL, 0);
 		rc=handle->errflag;
 	}
 
@@ -307,15 +323,14 @@ int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
 ** Look for a CR that might precede an LF.
 */
 
-static size_t scan_crlf(rfc3676_parser_t handle,
-			const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::scan_crlf(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
 	if (ptr == NULL)
 	{
-		if (handle->errflag == 0)
-			(*handle->content_handler)(handle, NULL, 0);
+		if (errflag == 0)
+			(this->*content_handler)(NULL, 0);
 		return 0;
 	}
 
@@ -329,9 +344,9 @@ static size_t scan_crlf(rfc3676_parser_t handle,
 	{
 		size_t consumed=0;
 
-		while (i && handle->errflag == 0)
+		while (i && errflag == 0)
 		{
-			size_t n=(*handle->content_handler)(handle, ptr, i);
+			size_t n=(this->*content_handler)(ptr, i);
 
 			ptr += n;
 			consumed += n;
@@ -342,7 +357,7 @@ static size_t scan_crlf(rfc3676_parser_t handle,
 
 	/* Consume the first character, the CR */
 
-	handle->line_handler=scan_crlf_seen_cr;
+	line_handler=&rfc3676_parser_struct::scan_crlf_seen_cr;
 	return 1;
 }
 
@@ -350,12 +365,11 @@ static size_t scan_crlf(rfc3676_parser_t handle,
 ** Check the first character after a CR.
 */
 
-static size_t scan_crlf_seen_cr(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 {
 	char32_t cr='\r';
 
-	handle->line_handler=scan_crlf;
+	line_handler=&rfc3676_parser_struct::scan_crlf;
 
 	if (ptr == NULL || *ptr != '\n')
 	{
@@ -364,12 +378,12 @@ static size_t scan_crlf_seen_cr(rfc3676_parser_t handle,
 		** Restore it in the char stream.
 		*/
 
-		while (handle->errflag == 0)
-			if ((*handle->content_handler)(handle, &cr, 1))
+		while (errflag == 0)
+			if ((this->*content_handler)(&cr, 1))
 				break;
 	}
 
-	return scan_crlf(handle, ptr, cnt);
+	return scan_crlf(ptr, cnt);
 }
 
 /*
@@ -382,48 +396,48 @@ static size_t scan_crlf_seen_cr(rfc3676_parser_t handle,
 ** Check for an EOF indication at the start of the line.
 */
 
-static size_t start_of_line(rfc3676_parser_t handle,
-			    const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::start_of_line(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL)
 	{
-		if (handle->has_previous_quote_level)
-			EMIT_LINE_END(handle); /* Last line was flowed */
+		if (has_previous_quote_level)
+			EMIT_LINE_END(); /* Last line was flowed */
 
 		return cnt; /* EOF */
 	}
 
 	/* Begin counting the quote level */
 
-	handle->content_handler=count_quote_level;
-	handle->quote_level=0;
-	return count_quote_level(handle, ptr, cnt);
+	content_handler=&rfc3676_parser_struct::count_quote_level;
+	quote_level=0;
+	return count_quote_level(ptr, cnt);
 }
 
 /*
 ** Count leading > in flowed content.
 */
 
-static size_t count_quote_level(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::count_quote_level(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
 	if (ptr == NULL) /* EOF, pretend that the quote level was counted */
-		return (handle->content_handler=counted_quote_level)
-			(handle, ptr, cnt);
+	{
+		content_handler=&rfc3676_parser_struct::counted_quote_level;
+		return counted_quote_level(ptr, cnt);
+	}
 
 	for (i=0; i<cnt; ++i)
 	{
-		if (ptr[i] != '>' || !handle->info.isflowed)
+		if (ptr[i] != '>' || !info.isflowed)
 		{
-			handle->content_handler=counted_quote_level;
+			content_handler=&rfc3676_parser_struct::counted_quote_level;
 
 			if (i == 0)
-				return counted_quote_level(handle, ptr, cnt);
+				return counted_quote_level(ptr, cnt);
 			break;
 		}
-		++handle->quote_level;
+		++quote_level;
 	}
 
 	return i;
@@ -433,21 +447,20 @@ static size_t count_quote_level(rfc3676_parser_t handle,
 ** This line's quote level has now been counted.
 */
 
-static size_t counted_quote_level(rfc3676_parser_t handle,
-				  const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::counted_quote_level(const char32_t *ptr, size_t cnt)
 {
-	handle->was_previous_quote_level=0;
+	was_previous_quote_level=0;
 
 	/*
 	** If the previous line was flowed and this line has the same
 	** quote level, make the flow official.
 	*/
 
-	if (handle->has_previous_quote_level &&
-	    handle->quote_level == handle->previous_quote_level)
+	if (has_previous_quote_level &&
+	    quote_level == previous_quote_level)
 	{
 		/* Remember that this line was flowed into */
-		handle->was_previous_quote_level=1;
+		was_previous_quote_level=1;
 	}
 	else
 	{
@@ -456,33 +469,33 @@ static size_t counted_quote_level(rfc3676_parser_t handle,
 		** a different quote level, force-terminate the previous
 		** line, before beginning this line.
 		*/
-		if (handle->has_previous_quote_level)
-			EMIT_LINE_END(handle);
+		if (has_previous_quote_level)
+			EMIT_LINE_END();
 
-		EMIT_LINE_BEGIN(handle);
+		EMIT_LINE_BEGIN();
 	}
 
-	handle->has_previous_quote_level=0;
+	has_previous_quote_level=0;
 	/* Assume this line won't be flowed, until shown otherwise */
 
 
-	if (!handle->info.isflowed)
+	if (!info.isflowed)
 	{
 		/*
 		** No space-stuffing, or sig block checking, if this is not
 		** flowed content.
 		*/
-		handle->content_handler=scan_content_line;
-		return scan_content_line(handle, ptr, cnt);
+		content_handler=&rfc3676_parser_struct::scan_content_line;
+		return scan_content_line(ptr, cnt);
 	}
 
 
-	handle->content_handler=start_content_line;
+	content_handler=&rfc3676_parser_struct::start_content_line;
 
 	if (ptr != NULL && *ptr == ' ')
 		return 1; /* Remove stuffed space */
 
-	return start_content_line(handle, ptr, cnt);
+	return start_content_line(ptr, cnt);
 }
 
 /*
@@ -500,24 +513,23 @@ static size_t counted_quote_level(rfc3676_parser_t handle,
 ** resulting in no paragraph breaks.
 */
 
-static size_t start_content_line(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::start_content_line(const char32_t *ptr, size_t cnt)
 {
 	/*
 	** We'll start scanning for the signature block, as soon as
 	** this check is done.
 	*/
-	handle->content_handler=check_signature_block;
-	handle->sig_block_index=0;
+	content_handler=&rfc3676_parser_struct::check_signature_block;
+	sig_block_index=0;
 
-	if (ptr && *ptr == '\n' && handle->was_previous_quote_level)
+	if (ptr && *ptr == '\n' && was_previous_quote_level)
 	{
-		EMIT_LINE_END(handle);
-		EMIT_LINE_BEGIN(handle);
-		handle->was_previous_quote_level=0;
+		EMIT_LINE_END();
+		EMIT_LINE_BEGIN();
+		was_previous_quote_level=0;
 	}
 
-	return check_signature_block(handle, ptr, cnt);
+	return check_signature_block(ptr, cnt);
 }
 
 
@@ -525,24 +537,22 @@ static const char32_t sig_block[]={'-', '-', ' '};
 
 /* Checking for a magical sig block */
 
-static size_t check_signature_block(rfc3676_parser_t handle,
-				    const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::check_signature_block(const char32_t *ptr, size_t cnt)
 {
-	if (ptr && *ptr == sig_block[handle->sig_block_index])
+	if (ptr && *ptr == sig_block[sig_block_index])
 	{
-		if (++handle->sig_block_index == sizeof(sig_block)
+		if (++sig_block_index == sizeof(sig_block)
 		    /sizeof(sig_block[0]))
 
 			/* Well, it's there, but does a NL follow? */
-			handle->content_handler=seen_sig_block;
+			content_handler=&rfc3676_parser_struct::seen_sig_block;
 		return 1;
 	}
 
-	return seen_notsig_block(handle, ptr, cnt);
+	return seen_notsig_block(ptr, cnt);
 }
 
-static size_t seen_sig_block(rfc3676_parser_t handle,
-			     const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::seen_sig_block(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL || *ptr == '\n')
 	{
@@ -552,51 +562,50 @@ static size_t seen_sig_block(rfc3676_parser_t handle,
 		** the previous line before emitting the sig block.
 		*/
 
-		if (handle->was_previous_quote_level)
+		if (was_previous_quote_level)
 		{
-			EMIT_LINE_END(handle);
-			EMIT_LINE_BEGIN(handle);
-			handle->was_previous_quote_level=0;
+			EMIT_LINE_END();
+			EMIT_LINE_BEGIN();
+			was_previous_quote_level=0;
 		}
 
 		/* Pass through the sig block */
 
-		handle->content_handler=start_of_line;
+		content_handler=&rfc3676_parser_struct::start_of_line;
 
-		EMIT_LINE_CONTENTS(handle, sig_block,
+		EMIT_LINE_CONTENTS(sig_block,
 				   sizeof(sig_block)/sizeof(sig_block[0]));
-		EMIT_LINE_END(handle);
+		EMIT_LINE_END();
 		return ptr ? 1:0;
 	}
 
-	return seen_notsig_block(handle, ptr, cnt);
+	return seen_notsig_block(ptr, cnt);
 }
 
 /* This is not a sig block line */
 
-static size_t seen_notsig_block(rfc3676_parser_t handle,
-				 const char32_t *newptr, size_t newcnt)
+size_t rfc3676_parser_struct::seen_notsig_block(const char32_t *newptr, size_t newcnt)
 {
 	const char32_t *ptr;
 	size_t i;
 
-	if (handle->was_previous_quote_level)
-		emit_line_flowed_wrap(handle);
+	if (was_previous_quote_level)
+		emit_line_flowed_wrap();
 
-	handle->content_handler=scan_content_line;
+	content_handler=&rfc3676_parser_struct::scan_content_line;
 
 	ptr=sig_block;
-	i=handle->sig_block_index;
+	i=sig_block_index;
 
-	while (i && handle->errflag == 0)
+	while (i && errflag == 0)
 	{
-		size_t n=(*handle->content_handler)(handle, ptr, i);
+		size_t n=(this->*content_handler)(ptr, i);
 
 		ptr += n;
 		i -= n;
 	}
 
-	return (*handle->content_handler)(handle, newptr, newcnt);
+	return (this->*content_handler)(newptr, newcnt);
 }
 
 /*
@@ -604,43 +613,43 @@ static size_t seen_notsig_block(rfc3676_parser_t handle,
 ** content.
 */
 
-static size_t scan_content_line(rfc3676_parser_t handle,
-				const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::scan_content_line(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
 	for (i=0; ptr && i<cnt && ptr[i] != '\n' &&
-		     (ptr[i] != ' ' || !handle->info.isflowed); ++i)
+	     (ptr[i] != ' ' || !info.isflowed); ++i)
+	{
 		;
+	}
 
 	/* Pass through anything before the NL or potentially flowable SP */
 
  	if (i)
-		EMIT_LINE_CONTENTS(handle, ptr, i);
+		EMIT_LINE_CONTENTS(ptr, i);
 
 	if (i)
 		return i;
 
 	if (ptr && ptr[i] == ' ')
 	{
-		handle->content_handler=seen_content_sp;
+		content_handler=&rfc3676_parser_struct::seen_content_sp;
 		return 1;
 	}
 
 	/* NL. This line does not flow */
-	EMIT_LINE_END(handle);
+	EMIT_LINE_END();
 
-	handle->content_handler=start_of_line;
+	content_handler=&rfc3676_parser_struct::start_of_line;
 
 	return ptr ? 1:0;
 }
 
-static size_t seen_content_sp(rfc3676_parser_t handle,
-			      const char32_t *ptr, size_t cnt)
+size_t rfc3676_parser_struct::seen_content_sp(const char32_t *ptr, size_t cnt)
 {
 	char32_t sp=' ';
 
-	handle->content_handler=scan_content_line;
+	content_handler=&rfc3676_parser_struct::scan_content_line;
 
 	if (ptr == NULL || *ptr != '\n')
 	{
@@ -648,18 +657,18 @@ static size_t seen_content_sp(rfc3676_parser_t handle,
 		** SP was not followed by the NL. Pass through the space,
 		** then resume scanning.
 		*/
-		EMIT_LINE_CONTENTS(handle, &sp, 1);
-		return scan_content_line(handle, ptr, cnt);
+		EMIT_LINE_CONTENTS(&sp, 1);
+		return (this->*content_handler)(ptr, cnt);
 	}
 
 	/* NL after a SP -- flowed line */
 
-	if (!handle->info.isdelsp)
-		EMIT_LINE_CONTENTS(handle, &sp, 1);
+	if (!info.isdelsp)
+		EMIT_LINE_CONTENTS(&sp, 1);
 
-	handle->has_previous_quote_level=1;
-	handle->previous_quote_level=handle->quote_level;
-	handle->content_handler=start_of_line;
+	has_previous_quote_level=1;
+	previous_quote_level=quote_level;
+	content_handler=&rfc3676_parser_struct::start_of_line;
 	return ptr ? 1:0;
 }
 
@@ -684,33 +693,28 @@ static size_t seen_content_sp(rfc3676_parser_t handle,
 ** simply invoke the corresponding user callback.
 */
 
-static void emit_line_begin(rfc3676_parser_t handle)
+void rfc3676_parser_struct::emit_line_begin()
 {
-	if (handle->errflag == 0)
-		handle->errflag=(*handle->info.line_begin)(handle->quote_level,
-							   handle->info.arg);
+	if (errflag == 0)
+		errflag=(*info.line_begin)(quote_level, info.arg);
 }
 
-static void emit_line_flowed_wrap(rfc3676_parser_t handle)
+void rfc3676_parser_struct::emit_line_flowed_wrap()
 {
-	if (handle->errflag == 0 && handle->info.line_flowed_notify)
-		handle->errflag=(*handle->info.line_flowed_notify)
-			(handle->info.arg);
+	if (errflag == 0 && info.line_flowed_notify)
+		errflag=(*info.line_flowed_notify)(info.arg);
 }
 
-static void emit_line_contents(rfc3676_parser_t handle,
-			       const char32_t *uc,
-			       size_t cnt)
+void rfc3676_parser_struct::emit_line_contents(const char32_t *uc, size_t cnt)
 {
-	if (handle->errflag == 0 && cnt > 0)
-		handle->errflag=(*handle->info.line_contents)
-			(uc, cnt, handle->info.arg);
+	if (errflag == 0 && cnt > 0)
+		errflag=(*info.line_contents)(uc, cnt, info.arg);
 }
 
-static void emit_line_end(rfc3676_parser_t handle)
+void rfc3676_parser_struct::emit_line_end()
 {
-	if (handle->errflag == 0)
-		handle->errflag=(*handle->info.line_end)(handle->info.arg);
+	if (errflag == 0)
+		errflag=(*info.line_end)(info.arg);
 }
 
 /*
@@ -724,54 +728,46 @@ static void emit_line_end(rfc3676_parser_t handle)
 ** the linebreak API.
 */
 
-static void initial_nonflowed_line(rfc3676_parser_t handle,
-				   int linebreak_opportunity,
-				   char32_t ch,
-				   size_t ch_width);
-
-static void initial_nonflowed_end(rfc3676_parser_t handle);
-
-static void begin_forced_rewrap(rfc3676_parser_t handle);
-
 /*
 ** A non-flowed line begins. Initialize the linebreaking module.
 */
-static void nonflowed_line_begin(rfc3676_parser_t handle)
+void rfc3676_parser_struct::nonflowed_line_begin()
 {
-	if (handle->lb)
+	if (lb)
 	{
 		/* Just in case */
 
-		int rc=unicode_lbc_end(handle->lb);
+		int rc=unicode_lbc_end(lb);
 
-		if (rc && handle->errflag == 0)
-			handle->errflag=rc;
+		if (rc && errflag == 0)
+			errflag=rc;
 	}
 
-	if ((handle->lb=unicode_lbc_init(nonflowed_line_process, handle))
-	    == NULL)
+	if ((lb=unicode_lbc_init(
+		&rfc3676_parser_struct::nonflowed_line_process_trampoline,
+		this)) == NULL)
 	{
-		if (handle->errflag == 0)
-			handle->errflag=-1;
+		if (errflag == 0)
+			errflag=-1;
 	}
 
-	if (handle->lb)
-		unicode_lbc_set_opts(handle->lb,
+	if (lb)
+		unicode_lbc_set_opts(lb,
 				     UNICODE_LB_OPT_PRBREAK);
 
-	unicode_buf_clear(&handle->nonflowed_line);
-	unicode_buf_clear(&handle->nonflowed_next_word);
+	unicode_buf_clear(&nonflowed_line);
+	unicode_buf_clear(&nonflowed_next_word);
 
-	handle->nonflowed_line_width=0;
-	handle->nonflowed_next_word_width=0;
+	nonflowed_line_width=0;
+	nonflowed_next_word_width=0;
 
-	handle->nonflowed_line_process=initial_nonflowed_line;
-	handle->nonflowed_line_end=initial_nonflowed_end;
-	emit_line_begin(handle); /* Fallthru - user callback */
+	nonflowed_line_process=&rfc3676_parser_struct::initial_nonflowed_line;
+	nonflowed_line_end=&rfc3676_parser_struct::initial_nonflowed_end;
+	emit_line_begin(); /* Fallthru - user callback */
 
-	handle->nonflowed_line_target_width=
-		handle->quote_level < NONFLOWED_WRAP_REDUCE - 20 ?
-		NONFLOWED_WRAP_REDUCE - handle->quote_level:20;
+	nonflowed_line_target_width=
+		quote_level < NONFLOWED_WRAP_REDUCE - 20 ?
+		NONFLOWED_WRAP_REDUCE - quote_level:20;
 }
 
 /*
@@ -779,17 +775,18 @@ static void nonflowed_line_begin(rfc3676_parser_t handle)
 ** linebreaking API.
 */
 
-static void nonflowed_line_contents(rfc3676_parser_t handle,
-				    const char32_t *uc,
-				    size_t cnt)
+void rfc3676_parser_struct::nonflowed_line_contents(
+	const char32_t *uc,
+	size_t cnt
+)
 {
-	if (!handle->lb)
+	if (!lb)
 		return;
 
 	while (cnt)
 	{
-		if (handle->errflag == 0)
-			handle->errflag=unicode_lbc_next(handle->lb, *uc);
+		if (errflag == 0)
+			errflag=unicode_lbc_next(lb, *uc);
 
 		++uc;
 		--cnt;
@@ -800,20 +797,20 @@ static void nonflowed_line_contents(rfc3676_parser_t handle,
 ** End of non-flowed content. Terminate the linebreaking API, then invoke
 ** the current end-of-line handler.
 */
-static void nonflowed_line_end(rfc3676_parser_t handle)
+void rfc3676_parser_struct::nonflowed_line_end_default()
 {
-	if (handle->lb)
+	if (lb)
 	{
-		int rc=unicode_lbc_end(handle->lb);
+		int rc=unicode_lbc_end(lb);
 
-		if (rc && handle->errflag == 0)
-			handle->errflag=rc;
+		if (rc && errflag == 0)
+			errflag=rc;
 
-		handle->lb=NULL;
+		lb=NULL;
 	}
 
-	(*handle->nonflowed_line_end)(handle);
-	emit_line_end(handle); /* FALLTHRU */
+	(this->*nonflowed_line_end)();
+	emit_line_end(); /* FALLTHRU */
 }
 
 /*
@@ -821,13 +818,19 @@ static void nonflowed_line_end(rfc3676_parser_t handle)
 ** and its linebreak property. Look up the unicode character's width, then
 ** invoke the current handler.
 */
-static int nonflowed_line_process(int linebreak_opportunity,
-				  char32_t ch, void *dummy)
+int rfc3676_parser_struct::nonflowed_line_process_trampoline(
+	int linebreak_opportunity,
+	char32_t ch,
+	void *dummy
+)
 {
 	rfc3676_parser_t handle=(rfc3676_parser_t)dummy;
 
-	(*handle->nonflowed_line_process)(handle, linebreak_opportunity, ch,
-					  unicode_wcwidth(ch));
+	(handle->*(handle->nonflowed_line_process))(
+		linebreak_opportunity,
+		ch,
+		unicode_wcwidth(ch)
+	);
 
 	return 0;
 }
@@ -836,26 +839,27 @@ static int nonflowed_line_process(int linebreak_opportunity,
 ** Collecting initial nonflowed line.
 */
 
-static void initial_nonflowed_line(rfc3676_parser_t handle,
-				   int linebreak_opportunity,
-				   char32_t ch,
-				   size_t ch_width)
+void rfc3676_parser_struct::initial_nonflowed_line(
+	int linebreak_opportunity,
+	char32_t ch,
+	size_t ch_width
+)
 {
 	/*
 	** Collect words into nonflowed_line as long as it fits within the
 	** targeted width.
 	*/
 	if (linebreak_opportunity != UNICODE_LB_NONE &&
-	    handle->nonflowed_line_width + handle->nonflowed_next_word_width
-	    <= handle->nonflowed_line_target_width)
+	    nonflowed_line_width +
+	    nonflowed_next_word_width <= nonflowed_line_target_width)
 	{
-		unicode_buf_append_buf(&handle->nonflowed_line,
-				       &handle->nonflowed_next_word);
-		handle->nonflowed_line_width +=
-			handle->nonflowed_next_word_width;
+		unicode_buf_append_buf(&nonflowed_line,
+				       &nonflowed_next_word);
+		nonflowed_line_width +=
+			nonflowed_next_word_width;
 
-		unicode_buf_clear(&handle->nonflowed_next_word);
-		handle->nonflowed_next_word_width=0;
+		unicode_buf_clear(&nonflowed_next_word);
+		nonflowed_next_word_width=0;
 	}
 
 	/*
@@ -865,27 +869,29 @@ static void initial_nonflowed_line(rfc3676_parser_t handle,
 	** we've had enough!
 	*/
 
-	unicode_buf_append(&handle->nonflowed_next_word, &ch, 1);
-	handle->nonflowed_next_word_width += ch_width;
+	unicode_buf_append(&nonflowed_next_word, &ch, 1);
+	nonflowed_next_word_width += ch_width;
 
-	if (handle->nonflowed_line_width + handle->nonflowed_next_word_width
-	    > handle->nonflowed_line_target_width
+	if (nonflowed_line_width + nonflowed_next_word_width
+	    > nonflowed_line_target_width
 	    + NONFLOWED_THRESHOLD_EXCEEDED)
-		begin_forced_rewrap(handle);
+		begin_forced_rewrap();
 }
 
 /*
 ** End of line handler. The line did not reach its threshold, so output it.
 */
-static void initial_nonflowed_end(rfc3676_parser_t handle)
+void rfc3676_parser_struct::initial_nonflowed_end()
 {
-	emit_line_contents(handle,
-			   unicode_buf_ptr(&handle->nonflowed_line),
-			   unicode_buf_len(&handle->nonflowed_line));
+	emit_line_contents(
+			   unicode_buf_ptr(&nonflowed_line),
+			   unicode_buf_len(&nonflowed_line)
+			);
 
-	emit_line_contents(handle,
-			   unicode_buf_ptr(&handle->nonflowed_next_word),
-			   unicode_buf_len(&handle->nonflowed_next_word));
+	emit_line_contents(
+			   unicode_buf_ptr(&nonflowed_next_word),
+			   unicode_buf_len(&nonflowed_next_word)
+			);
 }
 
 /*
@@ -894,18 +900,18 @@ static void initial_nonflowed_end(rfc3676_parser_t handle)
 ** opportunity.
 */
 
-static void check_abnormal_line(rfc3676_parser_t handle)
+void rfc3676_parser_struct::check_abnormal_line()
 {
 	size_t n, i;
 	const char32_t *p;
 
-	if (unicode_buf_len(&handle->nonflowed_line) > 0)
+	if (unicode_buf_len(&nonflowed_line) > 0)
 		return;
 
 	/* Extreme times call for extreme measures */
 
-	n=unicode_buf_len(&handle->nonflowed_next_word);
-	p=unicode_buf_ptr(&handle->nonflowed_next_word);
+	n=unicode_buf_len(&nonflowed_next_word);
+	p=unicode_buf_ptr(&nonflowed_next_word);
 
 	for (i=n; i>0; --i)
 	{
@@ -916,18 +922,18 @@ static void check_abnormal_line(rfc3676_parser_t handle)
 		}
 	}
 
-	unicode_buf_append(&handle->nonflowed_line, p, n);
-	unicode_buf_remove(&handle->nonflowed_next_word, 0, n);
+	unicode_buf_append(&nonflowed_line, p, n);
+	unicode_buf_remove(&nonflowed_next_word, 0, n);
 
 	/*
 	** Recalculate the width of the growing word, now.
 	*/
 
-	handle->nonflowed_next_word_width=0;
-	p=unicode_buf_ptr(&handle->nonflowed_next_word);
+	nonflowed_next_word_width=0;
+	p=unicode_buf_ptr(&nonflowed_next_word);
 
-	for (i=0; i<unicode_buf_len(&handle->nonflowed_next_word); ++i)
-		handle->nonflowed_next_word_width +=
+	for (i=0; i<unicode_buf_len(&nonflowed_next_word); ++i)
+		nonflowed_next_word_width +=
 			unicode_wcwidth(p[i]);
 }
 
@@ -935,37 +941,32 @@ static void check_abnormal_line(rfc3676_parser_t handle)
 ** We've decided that the line is too long, so begin rewrapping it.
 */
 
-static void forced_rewrap_line(rfc3676_parser_t handle,
-			       int linebreak_opportunity,
-			       char32_t ch,
-			       size_t ch_width);
-
-static void forced_rewrap_end(rfc3676_parser_t handle);
-
 /*
 ** Emit nonflowed_line as the rewrapped line. Clear the buffer.
 */
-static void emit_rewrapped_line(rfc3676_parser_t handle)
+void rfc3676_parser_struct::emit_rewrapped_line()
 {
-	check_abnormal_line(handle);
-	emit_line_contents(handle, unicode_buf_ptr(&handle->nonflowed_line),
-			   unicode_buf_len(&handle->nonflowed_line));
+	check_abnormal_line();
+	emit_line_contents(
+			unicode_buf_ptr(&nonflowed_line),
+			unicode_buf_len(&nonflowed_line)
+		);
 
-	emit_line_flowed_wrap(handle);
+	emit_line_flowed_wrap();
 
 	/* nonflowed_line is now empty */
-	unicode_buf_clear(&handle->nonflowed_line);
-	handle->nonflowed_line_width=0;
+	unicode_buf_clear(&nonflowed_line);
+	nonflowed_line_width=0;
 }
 
-static void begin_forced_rewrap(rfc3676_parser_t handle)
+void rfc3676_parser_struct::begin_forced_rewrap()
 {
-	handle->nonflowed_line_process=forced_rewrap_line;
-	handle->nonflowed_line_end=forced_rewrap_end;
-	emit_rewrapped_line(handle);
+	nonflowed_line_process=&rfc3676_parser_struct::forced_rewrap_line;
+	nonflowed_line_end=&rfc3676_parser_struct::forced_rewrap_end;
+	emit_rewrapped_line();
 }
 
-static void forced_rewrap_line(rfc3676_parser_t handle,
+void rfc3676_parser_struct::forced_rewrap_line(
 			       int linebreak_opportunity,
 			       char32_t ch,
 			       size_t ch_width)
@@ -974,39 +975,39 @@ static void forced_rewrap_line(rfc3676_parser_t handle,
 	{
 		/* Found a linebreaking opportunity */
 
-		if (handle->nonflowed_line_width
-		    + handle->nonflowed_next_word_width
-		    > handle->nonflowed_line_target_width)
+		if (nonflowed_line_width
+		    + nonflowed_next_word_width
+		    > nonflowed_line_target_width)
 		{
 			/* Accumulated word is too long */
-			emit_rewrapped_line(handle);
+			emit_rewrapped_line();
 		}
 
-		unicode_buf_append_buf(&handle->nonflowed_line,
-				       &handle->nonflowed_next_word);
+		unicode_buf_append_buf(&nonflowed_line,
+				       &nonflowed_next_word);
 
-		handle->nonflowed_line_width +=
-			handle->nonflowed_next_word_width;
-		unicode_buf_clear(&handle->nonflowed_next_word);
-		handle->nonflowed_next_word_width=0;
+		nonflowed_line_width +=
+			nonflowed_next_word_width;
+		unicode_buf_clear(&nonflowed_next_word);
+		nonflowed_next_word_width=0;
 	}
 
 	/*
 	** Check for another excessively long line.
 	*/
 
-	if (handle->nonflowed_line_width == 0 &&
-	    handle->nonflowed_next_word_width + ch_width
-	    > handle->nonflowed_line_target_width)
+	if (nonflowed_line_width == 0 &&
+	    nonflowed_next_word_width + ch_width
+	    > nonflowed_line_target_width)
 	{
-		emit_rewrapped_line(handle);
+		emit_rewrapped_line();
 	}
 
-	unicode_buf_append(&handle->nonflowed_next_word, &ch, 1);
-	handle->nonflowed_next_word_width += ch_width;
+	unicode_buf_append(&nonflowed_next_word, &ch, 1);
+	nonflowed_next_word_width += ch_width;
 }
 
-static void forced_rewrap_end(rfc3676_parser_t handle)
+void rfc3676_parser_struct::forced_rewrap_end()
 {
-	initial_nonflowed_end(handle); /* Same logic, for now */
+	initial_nonflowed_end(); /* Same logic, for now */
 }
