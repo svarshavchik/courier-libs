@@ -45,22 +45,15 @@ mail::textplainparser::textplainparser(
 	bool isflowed,
 	bool isdelsp
 )
-	: handle(NULL)
+	: handle{{charset.c_str(),
+		isflowed,
+		isdelsp,
+		&tpp_trampoline_line_begin,
+		&tpp_trampoline_line_contents,
+		&tpp_trampoline_line_flowed_notify,
+		&tpp_trampoline_line_end,
+		this}}
 {
-	struct rfc3676_parser_info info=rfc3676_parser_info();
-
-	info.charset=charset.c_str();
-	info.isflowed=isflowed;
-	info.isdelsp=isdelsp;
-
-	info.line_begin=&tpp_trampoline_line_begin;
-	info.line_contents=&tpp_trampoline_line_contents;
-	info.line_flowed_notify=&tpp_trampoline_line_flowed_notify;
-	info.line_end=&tpp_trampoline_line_end;
-
-	info.arg=reinterpret_cast<void *>(this);
-
-	handle=rfc3676parser_init(&info);
 }
 
 mail::textplainparser::~textplainparser()
@@ -72,11 +65,7 @@ void mail::textplainparser::end(bool &unicode_errflag)
 {
 	int rc=0;
 
-	if (handle)
-	{
-		rfc3676parser_deinit(handle, &rc);
-		handle=NULL;
-	}
+	handle.end(&rc);
 
 	unicode_errflag=rc != 0;
 }

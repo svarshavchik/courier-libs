@@ -6,14 +6,12 @@
 
 #include "msg2html.h"
 #include <courier-unicode.h>
-#include "numlib/numlib.h"
 #include "gpglib/gpglib.h"
 #include <charconv>
 #include "cgi/cgi.h"
 #include "rfc822/rfc822.h"
 #include "rfc822/rfc2047.h"
 #include "rfc2045/rfc3676parser.h"
-#include "md5/md5.h"
 #include "filter.h"
 #include "html.h"
 #include <unordered_map>

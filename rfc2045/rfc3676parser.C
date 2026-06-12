@@ -26,60 +26,78 @@
 
 static int parse_unicode(const char *, size_t, void *);
 
+rfc3676_parser_info::rfc3676_parser_info(
+	const char *charset,
+	bool isflowed,
+	bool isdelsp,
+	int (*line_begin)(size_t, void *),
+	int (*line_contents)(const char32_t *, size_t, void *),
+	int (*line_flowed_notify)(void *),
+	int (*line_end)(void *),
+	void *arg
+) : charset{charset},
+    isflowed{isflowed},
+    isdelsp{isdelsp},
+    line_begin{line_begin},
+    line_contents{line_contents},
+    line_flowed_notify{line_flowed_notify},
+    line_end{line_end},
+    arg{arg}
+{
+}
 
 /*
 ** The top layer initializes the conversion to unicode.
 */
 
-rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info)
+rfc3676_parser_struct::rfc3676_parser_struct(const rfc3676_parser_info &info)
+	: info{info}
 {
-	rfc3676_parser_t handle=new rfc3676_parser_struct;
-
-	if (!handle)
-		return NULL;
-
-	handle->info=*info;
-	if ((handle->uhandle=unicode_convert_init(info->charset,
-						    unicode_u_ucs4_native,
-						    parse_unicode,
-						    handle)) == NULL)
+	if ((uhandle=unicode_convert_init(info.charset,
+						unicode_u_ucs4_native,
+						parse_unicode,
+						this)) == NULL)
 	{
-		handle->unknown_charset=true;
+		unknown_charset=true;
 
-		if ((handle->uhandle=unicode_convert_init(
+		if ((uhandle=unicode_convert_init(
 			     unicode::iso_8859_1,
 			     unicode_u_ucs4_native,
 			     parse_unicode,
-			     handle
+			     this
 		     )) == NULL)
 		{
-			delete handle;
-			return NULL;
+			return;
 		}
 	}
 
-	if (!handle->info.isflowed)
-		handle->info.isdelsp=0; /* Sanity check */
+	if (!info.isflowed)
+		this->info.isdelsp=false; /* Sanity check */
 
-	handle->line_handler=&rfc3676_parser_struct::scan_crlf;
-	handle->content_handler=&rfc3676_parser_struct::start_of_line;
-	handle->has_previous_quote_level=0;
-	handle->previous_quote_level=0;
+	line_handler=&rfc3676_parser_struct::scan_crlf;
+	content_handler=&rfc3676_parser_struct::start_of_line;
+	has_previous_quote_level=false;
+	previous_quote_level=0;
 
-	handle->line_begin_handler=&rfc3676_parser_struct::emit_line_begin;
-	handle->line_content_handler=&rfc3676_parser_struct::emit_line_contents;
-	handle->line_end_handler=&rfc3676_parser_struct::emit_line_end;
+	line_begin_handler=&rfc3676_parser_struct::emit_line_begin;
+	line_content_handler=&rfc3676_parser_struct::emit_line_contents;
+	line_end_handler=&rfc3676_parser_struct::emit_line_end;
 
-	unicode_buf_init(&handle->nonflowed_line, (size_t)-1);
-	unicode_buf_init(&handle->nonflowed_next_word, (size_t)-1);
+	unicode_buf_init(&nonflowed_line, (size_t)-1);
+	unicode_buf_init(&nonflowed_next_word, (size_t)-1);
 
-	if (!handle->info.isflowed)
+	if (!info.isflowed)
 	{
-		handle->line_begin_handler=&rfc3676_parser_struct::nonflowed_line_begin;
-		handle->line_content_handler=&rfc3676_parser_struct::nonflowed_line_contents;
-		handle->line_end_handler=&rfc3676_parser_struct::nonflowed_line_end_default;
+		line_begin_handler=&rfc3676_parser_struct::nonflowed_line_begin;
+		line_content_handler=&rfc3676_parser_struct::nonflowed_line_contents;
+		line_end_handler=&rfc3676_parser_struct::nonflowed_line_end_default;
 	}
-	return handle;
+}
+
+rfc3676_parser_struct::~rfc3676_parser_struct()
+{
+	int rc=0;
+	end(&rc);
 }
 
 int rfc3676parser(rfc3676_parser_t handle,
@@ -150,37 +168,37 @@ int rfc3676parser_unicode(rfc3676_parser_t handle,
 	return handle->errflag;
 }
 
-int rfc3676parser_deinit(rfc3676_parser_t handle, int *errptr)
+void rfc3676_parser_struct::end(int *errptr)
 {
+	if (!uhandle)
+		return;
+
 	/* Finish unicode conversion */
 
-	int rc=unicode_convert_deinit(handle->uhandle, errptr);
-
-	if (handle->unknown_charset)
-		*errptr=1;
+	int rc=unicode_convert_deinit(uhandle, errptr);
 
 	if (rc == 0)
-		rc=handle->errflag;
+		rc=errflag;
 
 	if (rc == 0)
 	{
-		(handle->*(handle->line_handler))(NULL, 0);
-		rc=handle->errflag;
+		(this->*line_handler)(NULL, 0);
+		rc=errflag;
 	}
 
-	if (handle->lb)
+	if (lb)
 	{
-		int rc2=unicode_lbc_end(handle->lb);
+		int rc2=unicode_lbc_end(lb);
 
 		if (rc2 && rc == 0)
 			rc=rc2;
 	}
 
-	unicode_buf_deinit(&handle->nonflowed_line);
-	unicode_buf_deinit(&handle->nonflowed_next_word);
+	unicode_buf_deinit(&nonflowed_line);
+	unicode_buf_deinit(&nonflowed_next_word);
 
-	delete handle;
-	return rc;
+	uhandle=nullptr;
+	*errptr=rc;
 }
 
 /*

@@ -28,6 +28,14 @@ typedef struct rfc3676_parser_struct *rfc3676_parser_t;
 */
 
 struct rfc3676_parser_info {
+	rfc3676_parser_info(const char *charset,
+			   bool isflowed,
+			   bool isdelsp,
+			   int (*line_begin)(size_t, void *),
+			   int (*line_contents)(const char32_t *, size_t, void *),
+			   int (*line_flowed_notify)(void *),
+			   int (*line_end)(void *),
+			   void *arg);
 
 	const char *charset;
 	/*
@@ -89,8 +97,30 @@ struct rfc3676_parser_info {
 
 struct rfc3676_parser_struct {
 
-	struct rfc3676_parser_info info{};
-	unicode_convert_handle_t uhandle=nullptr;
+	rfc3676_parser_struct(const rfc3676_parser_info &info);
+
+	~rfc3676_parser_struct();
+
+	/*
+	** End parsing.
+	**
+	** The handle gets destroyed, and the parsing finishes.
+	**
+	** NOTE: end() WILL LIKELY invoke some leftover callback methods!!!
+	**
+	** Returns non-0 value returned by any callback method, or 0 if all
+	** invoked callback methods returned 0.
+	*/
+
+	void end(
+		/*
+		** Optional, if not NULL, set to indicate unicode
+		** error.
+		*/
+		int *errptr);
+
+	rfc3676_parser_info info;
+	unicode_convert_handle_t uhandle{nullptr};
 
 	int errflag{0};
 
@@ -237,13 +267,6 @@ struct rfc3676_parser_struct {
 };
 
 /*
-** Begin parsing.
-**
-** Returns an opaque parsing handle.
-*/
-rfc3676_parser_t rfc3676parser_init(const struct rfc3676_parser_info *info);
-
-/*
 ** Parse next part of rfc3676-encoded message.
 **
 ** Returns non-0 value returned by any callback method, or 0 if all
@@ -302,7 +325,7 @@ namespace mail {
 	*/
 	class textplainparser {
 
-		rfc3676_parser_t handle;
+		rfc3676_parser_struct handle;
 
 	public:
 		textplainparser(
@@ -320,7 +343,7 @@ namespace mail {
 
 		bool begun() const
 		{
-			return handle != NULL;
+			return handle.uhandle != NULL;
 		}
 
 		void end(
@@ -339,9 +362,12 @@ namespace mail {
 		/* Feed raw contents to be parsed */
 		void operator<<(const std::string_view &text)
 		{
-			if (handle)
-				rfc3676parser(handle, text.begin(),
-					      text.size());
+			if (handle.uhandle)
+				rfc3676parser(
+					&handle,
+					text.data(),
+					text.size()
+				);
 		}
 
 
