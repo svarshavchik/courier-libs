@@ -561,7 +561,7 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 		}
 	}
 
-	out_closure("\n[ A character set conversion error has occured]\n");
+	out_closure("\n[ A character set conversion error has occurred]\n");
 }
 
 // forward/forwardatt autoreplies
