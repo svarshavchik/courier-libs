@@ -681,7 +681,7 @@ static bool attempt_load(
 		    rename(tmpname.c_str(),
 			   (keyworddir + "/:list").c_str()) < 0)
 			throw std::runtime_error(
-				"An error occured while sving keywords");
+				"An error occurred while sving keywords");
 	}
 
 	cleanup(d, statuses, t, tn);
