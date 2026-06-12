@@ -21,85 +21,47 @@ extern "C" {
 }
 #endif
 
-typedef struct rfc3676_parser_struct *rfc3676_parser_t;
+struct rfc3676_parser_struct {
 
-/*
-** Structure passed to rfc3676_parser_init().
-*/
+	rfc3676_parser_struct(
+		const char *charset,
+		bool isflowed,
+		bool isdelsp
+	);
 
-struct rfc3676_parser_info {
-	rfc3676_parser_info(const char *charset,
-			   bool isflowed,
-			   bool isdelsp,
-			   int (*line_begin)(size_t, void *),
-			   int (*line_contents)(const char32_t *, size_t, void *),
-			   int (*line_flowed_notify)(void *),
-			   int (*line_end)(void *),
-			   void *arg);
-
-	const char *charset;
-	/*
-	** MIME charset parameter. String not used after rfc3676_parser_init()
-	** returns.
-	*/
+	virtual ~rfc3676_parser_struct();
 
 	/* MIME format flowed flag set */
-	int isflowed;
+	bool isflowed;
 
 	/* MIME delsp=yes flag is set */
-	int isdelsp;
+	bool isdelsp;
 
 	/*
 	** Callback - start of a line.
-	**
-	** If this callback returns 0, normal parsing continues. If this
-	** callback returns a non-0 value, parsing stops and
-	** rfc3676_parse() or rfc3676_deinit() returns the non-0 value.
 	*/
 
-	int (*line_begin)(size_t quote_level, /* Line's quote level */
-			  void *arg);
+	virtual void line_begin(size_t);
 
 	/*
 	** Callback - contents of the line, converted to unicode.
 	** May be invoked multiple times, consecutively.
-	**
-	** If this callback returns 0, normal parsing continues. If this
-	** callback returns a non-0 value, parsing stops and
-	** rfc3676_parse() or rfc3676_deinit() returns the non-0 value.
 	*/
 
-	int (*line_contents)(const char32_t *txt, /* Contents */
-			     size_t txt_size,
-			     /* Count of unicode chars in txt */
-			     void *arg);
+	virtual void line_contents(const char32_t *,
+					size_t);
+
 	/*
-	** Optional callback. If not NULL, it gets invoked when
-	** a line is logically flowed into the next physical line.
+	** Callback. Invoked when a line is flowed into the next physical line.
 	*/
 
-	int (*line_flowed_notify)(void *);
+	virtual void line_flowed_notify();
 
 	/*
 	** End of the line's contents.
-	**
-	** If this callback returns 0, normal parsing continues. If this
-	** callback returns a non-0 value, parsing stops and
-	** rfc3676_parse() or rfc3676_deinit() returns the non-0 value.
 	*/
 
-	int (*line_end)(void *arg);
-
-	/* Argument passed through to the above callback methods */
-
-	void *arg;
-};
-
-struct rfc3676_parser_struct {
-
-	rfc3676_parser_struct(const rfc3676_parser_info &info);
-
-	~rfc3676_parser_struct();
+	virtual void line_end();
 
 	/*
 	** End parsing.
@@ -119,7 +81,6 @@ struct rfc3676_parser_struct {
 		*/
 		int *errptr);
 
-	rfc3676_parser_info info;
 	unicode_convert_handle_t uhandle{nullptr};
 
 	int errflag{0};
@@ -276,31 +237,13 @@ struct rfc3676_parser_struct {
 ** to parse the rfc3676-encoded message.
 */
 
-int rfc3676parser(rfc3676_parser_t handle,
+int rfc3676parser(rfc3676_parser_struct *handle,
 		  const char *txt,
 		  size_t txt_cnt);
 
-int rfc3676parser_unicode(rfc3676_parser_t handle,
+int rfc3676parser_unicode(rfc3676_parser_struct *handle,
 			  const char32_t *txt,
 			  size_t txt_cnt);
-/*
-** End parsing.
-**
-** The handle gets destroyed, and the parsing finishes.
-**
-** NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover callback methods.
-**
-** Returns non-0 value returned by any callback method, or 0 if all
-** invoked callback methods returned 0.
-*/
-
-int rfc3676parser_deinit(rfc3676_parser_t handle,
-
-			 /*
-			 ** Optional, if not NULL, set to indicate unicode
-			 ** error.
-			 */
-			 int *errptr);
 
 #if 0
 {
@@ -311,21 +254,10 @@ int rfc3676parser_deinit(rfc3676_parser_t handle,
 
 namespace mail {
 
-	extern "C" int tpp_trampoline_line_begin(size_t, void *);
-
-	extern "C" int tpp_trampoline_line_contents(const char32_t *,
-						    size_t, void *);
-
-	extern "C" int tpp_trampoline_line_flowed_notify(void *);
-
-	extern "C" int tpp_trampoline_line_end(void *);
-
 	/*
 	** C++ binding for the parser logic
 	*/
-	class textplainparser {
-
-		rfc3676_parser_struct handle;
+	class textplainparser : rfc3676_parser_struct {
 
 	public:
 		textplainparser(
@@ -337,14 +269,25 @@ namespace mail {
 		virtual ~textplainparser();
 
 		/*
-		** Begin parsing. Returns FALSE if the parsing could
+		** Parsing started. Returns FALSE if the parsing could
 		** not be initialized (probably unknown charset).
 		*/
 
 		bool begun() const
 		{
-			return handle.uhandle != NULL;
+			return uhandle != NULL;
 		}
+
+		/*
+		** End parsing.
+		**
+		** The handle gets destroyed, and the parsing finishes.
+		**
+		** NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover callback methods.
+		**
+		** Returns non-0 value returned by any callback method, or 0 if all
+		** invoked callback methods returned 0.
+		*/
 
 		void end(
 			 /*
@@ -362,23 +305,22 @@ namespace mail {
 		/* Feed raw contents to be parsed */
 		void operator<<(const std::string_view &text)
 		{
-			if (handle.uhandle)
+			if (uhandle)
 				rfc3676parser(
-					&handle,
+					this,
 					text.data(),
 					text.size()
 				);
 		}
 
 
-		virtual void line_begin(size_t);
+		virtual void line_begin(size_t) override;
 
-		virtual void line_contents(const char32_t *,
-					   size_t);
+		virtual void line_contents(const char32_t *,size_t) override;
 
-		virtual void line_flowed_notify();
+		virtual void line_flowed_notify() override;
 
-		virtual void line_end();
+		virtual void line_end() override;
 	};
 }
 #endif

@@ -6,53 +6,15 @@
 
 #include	"rfc3676parser.h"
 
-extern "C" {
-
-	int mail::tpp_trampoline_line_begin(size_t quote_level, void *arg)
-	{
-		reinterpret_cast<mail::textplainparser *>(arg)
-			->line_begin(quote_level);
-
-		return 0;
-	}
-
-	int mail::tpp_trampoline_line_contents(const char32_t *ptr,
-					       size_t cnt, void *arg)
-	{
-		reinterpret_cast<mail::textplainparser *>(arg)
-			->line_contents(ptr, cnt);
-		return 0;
-	}
-
-	int mail::tpp_trampoline_line_flowed_notify(void *arg)
-	{
-		reinterpret_cast<mail::textplainparser *>(arg)
-			->line_flowed_notify();
-
-		return 0;
-	}
-
-	int mail::tpp_trampoline_line_end(void *arg)
-	{
-		reinterpret_cast<mail::textplainparser *>(arg)
-			->line_end();
-		return 0;
-	}
-}
-
 mail::textplainparser::textplainparser(
 	const std::string &charset,
 	bool isflowed,
 	bool isdelsp
 )
-	: handle{{charset.c_str(),
+	: rfc3676_parser_struct(
+		charset.c_str(),
 		isflowed,
-		isdelsp,
-		&tpp_trampoline_line_begin,
-		&tpp_trampoline_line_contents,
-		&tpp_trampoline_line_flowed_notify,
-		&tpp_trampoline_line_end,
-		this}}
+		isdelsp)
 {
 }
 
@@ -65,7 +27,7 @@ void mail::textplainparser::end(bool &unicode_errflag)
 {
 	int rc=0;
 
-	handle.end(&rc);
+	rfc3676_parser_struct::end(&rc);
 
 	unicode_errflag=rc != 0;
 }
