@@ -26,19 +26,15 @@
 
 static int parse_unicode(const char *, size_t, void *);
 
-/*
-** The top layer initializes the conversion to unicode.
-*/
-
-rfc3676_parser_struct::rfc3676_parser_struct(
-	const char *charset,
+mail::textplainparser::textplainparser(
+	const std::string &charset,
 	bool isflowed,
 	bool isdelsp
-) : isflowed{isflowed},
-    isdelsp{isdelsp}
+): isflowed{isflowed},
+   isdelsp{isdelsp}
 {
 	if ((uhandle=unicode_convert_init(
-			charset,
+			charset.c_str(),
 			unicode_u_ucs4_native,
 			parse_unicode,
 			this
@@ -60,59 +56,58 @@ rfc3676_parser_struct::rfc3676_parser_struct(
 	if (!isflowed)
 		isdelsp=false; /* Sanity check */
 
-	line_handler=&rfc3676_parser_struct::scan_crlf;
-	content_handler=&rfc3676_parser_struct::start_of_line;
+	line_handler=&textplainparser::scan_crlf;
+	content_handler=&textplainparser::start_of_line;
 	has_previous_quote_level=false;
 	previous_quote_level=0;
 
-	line_begin_handler=&rfc3676_parser_struct::emit_line_begin;
-	line_content_handler=&rfc3676_parser_struct::emit_line_contents;
-	line_end_handler=&rfc3676_parser_struct::emit_line_end;
+	line_begin_handler=&textplainparser::emit_line_begin;
+	line_content_handler=&textplainparser::emit_line_contents;
+	line_end_handler=&textplainparser::emit_line_end;
 
 	unicode_buf_init(&nonflowed_line, (size_t)-1);
 	unicode_buf_init(&nonflowed_next_word, (size_t)-1);
 
 	if (!isflowed)
 	{
-		line_begin_handler=&rfc3676_parser_struct::nonflowed_line_begin;
-		line_content_handler=&rfc3676_parser_struct::nonflowed_line_contents;
-		line_end_handler=&rfc3676_parser_struct::nonflowed_line_end_default;
+		line_begin_handler=&textplainparser::nonflowed_line_begin;
+		line_content_handler=&textplainparser::nonflowed_line_contents;
+		line_end_handler=&textplainparser::nonflowed_line_end_default;
 	}
 }
 
-rfc3676_parser_struct::~rfc3676_parser_struct()
+mail::textplainparser::~textplainparser()
 {
-	int rc=0;
-	end(&rc);
+	end();
 }
 
-void rfc3676_parser_struct::line_begin(size_t)
+void mail::textplainparser::line_begin(size_t quote_level)
+{
+	if (quote_level)
+	{
+		std::vector<char32_t> vec;
+
+		vec.reserve(quote_level+1);
+		vec.insert(vec.end(), quote_level, '>');
+		vec.push_back(' ');
+		line_contents(&vec[0], vec.size());
+	}
+}
+
+void mail::textplainparser::line_contents(const char32_t *data,
+					  size_t cnt)
 {
 }
 
-void rfc3676_parser_struct::line_contents(const char32_t *,
-					size_t)
+void mail::textplainparser::line_flowed_notify()
 {
 }
 
-void rfc3676_parser_struct::line_flowed_notify()
+void mail::textplainparser::line_end()
 {
-}
+	char32_t nl='\n';
 
-void rfc3676_parser_struct::line_end()
-{
-}
-
-int rfc3676parser(rfc3676_parser_struct *handle,
-		  const char *txt,
-		  size_t txt_cnt)
-{
-	if (handle->errflag)
-		return handle->errflag; /* Error occurred previously */
-
-	/* Convert to unicode and invoke parse_unicode() */
-
-	return unicode_convert(handle->uhandle, txt, txt_cnt);
+	line_contents(&nl, 1);
 }
 
 /*
@@ -122,7 +117,7 @@ int rfc3676parser(rfc3676_parser_struct *handle,
 
 static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 {
-	rfc3676_parser_struct *handle=(rfc3676_parser_struct *)arg;
+	mail::textplainparser *handle=(mail::textplainparser *)arg;
 	char32_t ucs4buf[128];
 	const char32_t *p;
 
@@ -147,47 +142,42 @@ static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 
 		/* Keep feeding it to the current handler */
 
-		rfc3676parser_unicode(handle, p, cnt);
-	}
-
-	return handle->errflag;
-}
-
-int rfc3676parser_unicode(rfc3676_parser_struct *handle,
-			  const char32_t *p,
-			  size_t cnt)
-{
-	while (handle->errflag == 0 && cnt)
-	{
-		size_t n=(handle->*(handle->line_handler))(p, cnt);
-
-		if (handle->errflag == 0)
+		while (handle->errflag == 0 && cnt)
 		{
-			cnt -= n;
-			p += n;
+			size_t n=(handle->*(handle->line_handler))(p, cnt);
+
+			if (handle->errflag == 0)
+			{
+				cnt -= n;
+				p += n;
+			}
 		}
 	}
 
 	return handle->errflag;
 }
 
-void rfc3676_parser_struct::end(int *errptr)
+void mail::textplainparser::end(bool &unicode_errflag)
 {
-	if (!uhandle)
-		return;
+	int rc=0;
 
-	/* Finish unicode conversion */
-
-	int rc=unicode_convert_deinit(uhandle, errptr);
-
-	if (rc == 0)
-		rc=errflag;
-
-	if (rc == 0)
+	bool cleanup=false;
+	if (uhandle)
 	{
-		(this->*line_handler)(NULL, 0);
-		rc=errflag;
+		/* Finish unicode conversion */
+		int rc2=unicode_convert_deinit(uhandle, &rc);
+
+		if (rc2 && rc == 0)
+			rc=rc2;
+
+		if (rc == 0)
+		{
+			(this->*line_handler)(nullptr, 0);
+			rc=errflag;
+		}
+		cleanup=true;
 	}
+	uhandle=nullptr;
 
 	if (lb)
 	{
@@ -195,20 +185,23 @@ void rfc3676_parser_struct::end(int *errptr)
 
 		if (rc2 && rc == 0)
 			rc=rc2;
+		lb=nullptr;
 	}
 
-	unicode_buf_deinit(&nonflowed_line);
-	unicode_buf_deinit(&nonflowed_next_word);
+	if (cleanup)
+	{
+		unicode_buf_deinit(&nonflowed_line);
+		unicode_buf_deinit(&nonflowed_next_word);
+	}
 
-	uhandle=nullptr;
-	*errptr=rc;
+	unicode_errflag=rc != 0;
 }
 
 /*
 ** Look for a CR that might precede an LF.
 */
 
-size_t rfc3676_parser_struct::scan_crlf(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
@@ -242,7 +235,7 @@ size_t rfc3676_parser_struct::scan_crlf(const char32_t *ptr, size_t cnt)
 
 	/* Consume the first character, the CR */
 
-	line_handler=&rfc3676_parser_struct::scan_crlf_seen_cr;
+	line_handler=&mail::textplainparser::scan_crlf_seen_cr;
 	return 1;
 }
 
@@ -250,11 +243,11 @@ size_t rfc3676_parser_struct::scan_crlf(const char32_t *ptr, size_t cnt)
 ** Check the first character after a CR.
 */
 
-size_t rfc3676_parser_struct::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 {
 	char32_t cr='\r';
 
-	line_handler=&rfc3676_parser_struct::scan_crlf;
+	line_handler=&mail::textplainparser::scan_crlf;
 
 	if (ptr == NULL || *ptr != '\n')
 	{
@@ -281,7 +274,7 @@ size_t rfc3676_parser_struct::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 ** Check for an EOF indication at the start of the line.
 */
 
-size_t rfc3676_parser_struct::start_of_line(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::start_of_line(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL)
 	{
@@ -293,7 +286,7 @@ size_t rfc3676_parser_struct::start_of_line(const char32_t *ptr, size_t cnt)
 
 	/* Begin counting the quote level */
 
-	content_handler=&rfc3676_parser_struct::count_quote_level;
+	content_handler=&mail::textplainparser::count_quote_level;
 	quote_level=0;
 	return count_quote_level(ptr, cnt);
 }
@@ -302,13 +295,13 @@ size_t rfc3676_parser_struct::start_of_line(const char32_t *ptr, size_t cnt)
 ** Count leading > in flowed content.
 */
 
-size_t rfc3676_parser_struct::count_quote_level(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::count_quote_level(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
 	if (ptr == NULL) /* EOF, pretend that the quote level was counted */
 	{
-		content_handler=&rfc3676_parser_struct::counted_quote_level;
+		content_handler=&mail::textplainparser::counted_quote_level;
 		return counted_quote_level(ptr, cnt);
 	}
 
@@ -316,7 +309,7 @@ size_t rfc3676_parser_struct::count_quote_level(const char32_t *ptr, size_t cnt)
 	{
 		if (ptr[i] != '>' || !isflowed)
 		{
-			content_handler=&rfc3676_parser_struct::counted_quote_level;
+			content_handler=&mail::textplainparser::counted_quote_level;
 
 			if (i == 0)
 				return counted_quote_level(ptr, cnt);
@@ -332,7 +325,7 @@ size_t rfc3676_parser_struct::count_quote_level(const char32_t *ptr, size_t cnt)
 ** This line's quote level has now been counted.
 */
 
-size_t rfc3676_parser_struct::counted_quote_level(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::counted_quote_level(const char32_t *ptr, size_t cnt)
 {
 	was_previous_quote_level=0;
 
@@ -370,12 +363,12 @@ size_t rfc3676_parser_struct::counted_quote_level(const char32_t *ptr, size_t cn
 		** No space-stuffing, or sig block checking, if this is not
 		** flowed content.
 		*/
-		content_handler=&rfc3676_parser_struct::scan_content_line;
+		content_handler=&mail::textplainparser::scan_content_line;
 		return scan_content_line(ptr, cnt);
 	}
 
 
-	content_handler=&rfc3676_parser_struct::start_content_line;
+	content_handler=&mail::textplainparser::start_content_line;
 
 	if (ptr != NULL && *ptr == ' ')
 		return 1; /* Remove stuffed space */
@@ -398,13 +391,13 @@ size_t rfc3676_parser_struct::counted_quote_level(const char32_t *ptr, size_t cn
 ** resulting in no paragraph breaks.
 */
 
-size_t rfc3676_parser_struct::start_content_line(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::start_content_line(const char32_t *ptr, size_t cnt)
 {
 	/*
 	** We'll start scanning for the signature block, as soon as
 	** this check is done.
 	*/
-	content_handler=&rfc3676_parser_struct::check_signature_block;
+	content_handler=&mail::textplainparser::check_signature_block;
 	sig_block_index=0;
 
 	if (ptr && *ptr == '\n' && was_previous_quote_level)
@@ -422,7 +415,7 @@ static const char32_t sig_block[]={'-', '-', ' '};
 
 /* Checking for a magical sig block */
 
-size_t rfc3676_parser_struct::check_signature_block(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::check_signature_block(const char32_t *ptr, size_t cnt)
 {
 	if (ptr && *ptr == sig_block[sig_block_index])
 	{
@@ -430,14 +423,14 @@ size_t rfc3676_parser_struct::check_signature_block(const char32_t *ptr, size_t 
 		    /sizeof(sig_block[0]))
 
 			/* Well, it's there, but does a NL follow? */
-			content_handler=&rfc3676_parser_struct::seen_sig_block;
+			content_handler=&mail::textplainparser::seen_sig_block;
 		return 1;
 	}
 
 	return seen_notsig_block(ptr, cnt);
 }
 
-size_t rfc3676_parser_struct::seen_sig_block(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::seen_sig_block(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL || *ptr == '\n')
 	{
@@ -456,7 +449,7 @@ size_t rfc3676_parser_struct::seen_sig_block(const char32_t *ptr, size_t cnt)
 
 		/* Pass through the sig block */
 
-		content_handler=&rfc3676_parser_struct::start_of_line;
+		content_handler=&mail::textplainparser::start_of_line;
 
 		EMIT_LINE_CONTENTS(sig_block,
 				   sizeof(sig_block)/sizeof(sig_block[0]));
@@ -469,7 +462,7 @@ size_t rfc3676_parser_struct::seen_sig_block(const char32_t *ptr, size_t cnt)
 
 /* This is not a sig block line */
 
-size_t rfc3676_parser_struct::seen_notsig_block(const char32_t *newptr, size_t newcnt)
+size_t mail::textplainparser::seen_notsig_block(const char32_t *newptr, size_t newcnt)
 {
 	const char32_t *ptr;
 	size_t i;
@@ -477,7 +470,7 @@ size_t rfc3676_parser_struct::seen_notsig_block(const char32_t *newptr, size_t n
 	if (was_previous_quote_level)
 		emit_line_flowed_wrap();
 
-	content_handler=&rfc3676_parser_struct::scan_content_line;
+	content_handler=&mail::textplainparser::scan_content_line;
 
 	ptr=sig_block;
 	i=sig_block_index;
@@ -498,7 +491,7 @@ size_t rfc3676_parser_struct::seen_notsig_block(const char32_t *newptr, size_t n
 ** content.
 */
 
-size_t rfc3676_parser_struct::scan_content_line(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::scan_content_line(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
@@ -518,23 +511,23 @@ size_t rfc3676_parser_struct::scan_content_line(const char32_t *ptr, size_t cnt)
 
 	if (ptr && ptr[i] == ' ')
 	{
-		content_handler=&rfc3676_parser_struct::seen_content_sp;
+		content_handler=&mail::textplainparser::seen_content_sp;
 		return 1;
 	}
 
 	/* NL. This line does not flow */
 	EMIT_LINE_END();
 
-	content_handler=&rfc3676_parser_struct::start_of_line;
+	content_handler=&mail::textplainparser::start_of_line;
 
 	return ptr ? 1:0;
 }
 
-size_t rfc3676_parser_struct::seen_content_sp(const char32_t *ptr, size_t cnt)
+size_t mail::textplainparser::seen_content_sp(const char32_t *ptr, size_t cnt)
 {
 	char32_t sp=' ';
 
-	content_handler=&rfc3676_parser_struct::scan_content_line;
+	content_handler=&mail::textplainparser::scan_content_line;
 
 	if (ptr == NULL || *ptr != '\n')
 	{
@@ -553,7 +546,7 @@ size_t rfc3676_parser_struct::seen_content_sp(const char32_t *ptr, size_t cnt)
 
 	has_previous_quote_level=1;
 	previous_quote_level=quote_level;
-	content_handler=&rfc3676_parser_struct::start_of_line;
+	content_handler=&mail::textplainparser::start_of_line;
 	return ptr ? 1:0;
 }
 
@@ -578,28 +571,41 @@ size_t rfc3676_parser_struct::seen_content_sp(const char32_t *ptr, size_t cnt)
 ** simply invoke the corresponding user callback.
 */
 
-void rfc3676_parser_struct::emit_line_begin()
+void mail::textplainparser::emit_line_begin()
 {
 	if (errflag == 0)
 		line_begin(quote_level);
 }
 
-void rfc3676_parser_struct::emit_line_flowed_wrap()
+void mail::textplainparser::emit_line_flowed_wrap()
 {
 	if (errflag == 0)
 		line_flowed_notify();
 }
 
-void rfc3676_parser_struct::emit_line_contents(const char32_t *uc, size_t cnt)
+void mail::textplainparser::emit_line_contents(const char32_t *uc, size_t cnt)
 {
 	if (errflag == 0)
 		line_contents(uc, cnt);
 }
 
-void rfc3676_parser_struct::emit_line_end()
+void mail::textplainparser::emit_line_end()
 {
 	if (errflag == 0)
 		line_end();
+}
+
+void mail::textplainparser::operator<<(const std::string_view &text)
+{
+	/* Convert to unicode and invoke parse_unicode() */
+
+	if (uhandle)
+	{
+		int rc=unicode_convert(uhandle, text.data(), text.size());
+
+		if (rc && errflag == 0)
+			errflag=rc;
+	}
 }
 
 /*
@@ -616,7 +622,7 @@ void rfc3676_parser_struct::emit_line_end()
 /*
 ** A non-flowed line begins. Initialize the linebreaking module.
 */
-void rfc3676_parser_struct::nonflowed_line_begin()
+void mail::textplainparser::nonflowed_line_begin()
 {
 	if (lb)
 	{
@@ -629,7 +635,7 @@ void rfc3676_parser_struct::nonflowed_line_begin()
 	}
 
 	if ((lb=unicode_lbc_init(
-		&rfc3676_parser_struct::nonflowed_line_process_trampoline,
+		&mail::textplainparser::nonflowed_line_process_trampoline,
 		this)) == NULL)
 	{
 		if (errflag == 0)
@@ -646,8 +652,8 @@ void rfc3676_parser_struct::nonflowed_line_begin()
 	nonflowed_line_width=0;
 	nonflowed_next_word_width=0;
 
-	nonflowed_line_process=&rfc3676_parser_struct::initial_nonflowed_line;
-	nonflowed_line_end=&rfc3676_parser_struct::initial_nonflowed_end;
+	nonflowed_line_process=&mail::textplainparser::initial_nonflowed_line;
+	nonflowed_line_end=&mail::textplainparser::initial_nonflowed_end;
 	emit_line_begin(); /* Fallthru - user callback */
 
 	nonflowed_line_target_width=
@@ -660,7 +666,7 @@ void rfc3676_parser_struct::nonflowed_line_begin()
 ** linebreaking API.
 */
 
-void rfc3676_parser_struct::nonflowed_line_contents(
+void mail::textplainparser::nonflowed_line_contents(
 	const char32_t *uc,
 	size_t cnt
 )
@@ -682,7 +688,7 @@ void rfc3676_parser_struct::nonflowed_line_contents(
 ** End of non-flowed content. Terminate the linebreaking API, then invoke
 ** the current end-of-line handler.
 */
-void rfc3676_parser_struct::nonflowed_line_end_default()
+void mail::textplainparser::nonflowed_line_end_default()
 {
 	if (lb)
 	{
@@ -703,13 +709,13 @@ void rfc3676_parser_struct::nonflowed_line_end_default()
 ** and its linebreak property. Look up the unicode character's width, then
 ** invoke the current handler.
 */
-int rfc3676_parser_struct::nonflowed_line_process_trampoline(
+int mail::textplainparser::nonflowed_line_process_trampoline(
 	int linebreak_opportunity,
 	char32_t ch,
 	void *dummy
 )
 {
-	auto me = reinterpret_cast<rfc3676_parser_struct*>(dummy);
+	auto me = reinterpret_cast<mail::textplainparser*>(dummy);
 
 	(me->*me->nonflowed_line_process)(
 		linebreak_opportunity,
@@ -724,7 +730,7 @@ int rfc3676_parser_struct::nonflowed_line_process_trampoline(
 ** Collecting initial nonflowed line.
 */
 
-void rfc3676_parser_struct::initial_nonflowed_line(
+void mail::textplainparser::initial_nonflowed_line(
 	int linebreak_opportunity,
 	char32_t ch,
 	size_t ch_width
@@ -766,7 +772,7 @@ void rfc3676_parser_struct::initial_nonflowed_line(
 /*
 ** End of line handler. The line did not reach its threshold, so output it.
 */
-void rfc3676_parser_struct::initial_nonflowed_end()
+void mail::textplainparser::initial_nonflowed_end()
 {
 	emit_line_contents(
 			   unicode_buf_ptr(&nonflowed_line),
@@ -785,7 +791,7 @@ void rfc3676_parser_struct::initial_nonflowed_end()
 ** opportunity.
 */
 
-void rfc3676_parser_struct::check_abnormal_line()
+void mail::textplainparser::check_abnormal_line()
 {
 	size_t n, i;
 	const char32_t *p;
@@ -829,7 +835,7 @@ void rfc3676_parser_struct::check_abnormal_line()
 /*
 ** Emit nonflowed_line as the rewrapped line. Clear the buffer.
 */
-void rfc3676_parser_struct::emit_rewrapped_line()
+void mail::textplainparser::emit_rewrapped_line()
 {
 	check_abnormal_line();
 	emit_line_contents(
@@ -844,14 +850,14 @@ void rfc3676_parser_struct::emit_rewrapped_line()
 	nonflowed_line_width=0;
 }
 
-void rfc3676_parser_struct::begin_forced_rewrap()
+void mail::textplainparser::begin_forced_rewrap()
 {
-	nonflowed_line_process=&rfc3676_parser_struct::forced_rewrap_line;
-	nonflowed_line_end=&rfc3676_parser_struct::forced_rewrap_end;
+	nonflowed_line_process=&mail::textplainparser::forced_rewrap_line;
+	nonflowed_line_end=&mail::textplainparser::forced_rewrap_end;
 	emit_rewrapped_line();
 }
 
-void rfc3676_parser_struct::forced_rewrap_line(
+void mail::textplainparser::forced_rewrap_line(
 			       int linebreak_opportunity,
 			       char32_t ch,
 			       size_t ch_width)
@@ -892,7 +898,7 @@ void rfc3676_parser_struct::forced_rewrap_line(
 	nonflowed_next_word_width += ch_width;
 }
 
-void rfc3676_parser_struct::forced_rewrap_end()
+void mail::textplainparser::forced_rewrap_end()
 {
 	initial_nonflowed_end(); /* Same logic, for now */
 }

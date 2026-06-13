@@ -27,7 +27,7 @@ librfc2045_la_SOURCES=rfc2045.h rfc2045cpp.C rfc2045cpp2.C \
 		     rfc2045acchkcpp.C \
 		     rfc2045appendurl.C \
 		     rfc2045new_boundary.C \
-		     rfc3676parser.h rfc3676parser.C rfc3676parsercpp.C \
+		     rfc3676parser.h rfc3676parser.C \
                      rfc6533.C \
 		     base64.c base64.h
 librfc2045_la_LIBADD = $(LIBIDN_LIBS)
