@@ -1090,7 +1090,7 @@ auto rfc2231_attr_encode(std::string_view name,
 
   The iterators must be passed by reference. parse() updates them, and normally
   the beginning iterator gets advanced to the ending iterator, unless a fatal
-  parsing error occured.
+  parsing error occurred.
 
   The iter class is a template, and the template parameters should get deduced
   from the constructor's parameters. Older C++17 compilers may not fully
