@@ -5,6 +5,7 @@
 
 #include "rfc2045_config.h"
 #include	"rfc3676parser.h"
+#include <courier-unicode.h>
 #include	<stdlib.h>
 #include	<string.h>
 
@@ -24,8 +25,6 @@
 		(this->*line_end_handler)();	\
 	} while (0)
 
-static int parse_unicode(const char *, size_t, void *);
-
 mail::textplainparser::textplainparser(
 	const std::string &charset,
 	bool isflowed,
@@ -33,24 +32,16 @@ mail::textplainparser::textplainparser(
 ): isflowed{isflowed},
    isdelsp{isdelsp}
 {
-	if ((uhandle=unicode_convert_init(
-			charset.c_str(),
-			unicode_u_ucs4_native,
-			parse_unicode,
-			this
-		)) == NULL)
+	if (begin(charset))
+		begun=true;
+	else
 	{
 		unknown_charset=true;
 
-		if ((uhandle=unicode_convert_init(
-				unicode::iso_8859_1,
-				unicode_u_ucs4_native,
-				parse_unicode,
-				this
-		)) == NULL)
-		{
+		if (begin(unicode::iso_8859_1))
+			begun=true;
+		else
 			return;
-		}
 	}
 
 	if (!isflowed)
@@ -110,88 +101,39 @@ void mail::textplainparser::line_end()
 	line_contents(&nl, 1);
 }
 
-// Convert char stream from iconv into char32_ts, then pass them to the
-// current handler, until all converted char32_ts are consumed.
-
-static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
+int mail::textplainparser::converted(const char32_t *p, size_t nbytes)
 {
-	mail::textplainparser *handle=(mail::textplainparser *)arg;
-	char32_t ucs4buf[128];
-	const char32_t *p;
-
 	// Keep going until there's an error, or everything is consumed.
 
-	while (!handle->errflag && nbytes)
+	// Keep feeding it to the current handler
+
+	while (!errflag && nbytes)
 	{
-		// Do it in pieces, using the temporary char32_t buffer
+		size_t n=(this->*line_handler)(p, nbytes);
 
-		size_t cnt=nbytes;
-
-		if (cnt > sizeof(ucs4buf))
-			cnt=sizeof(ucs4buf);
-
-		memcpy(ucs4buf, ucs4, cnt);
-
-		ucs4 += cnt;
-		nbytes -= cnt;
-
-		cnt /= sizeof(char32_t);
-		p=ucs4buf;
-
-		// Keep feeding it to the current handler
-
-		while (!handle->errflag && cnt)
+		if (!errflag)
 		{
-			size_t n=(handle->*(handle->line_handler))(p, cnt);
-
-			if (!handle->errflag)
-			{
-				cnt -= n;
-				p += n;
-			}
+			nbytes -= n;
+			p += n;
 		}
 	}
 
-	return handle->errflag;
+	return errflag ? -1:0;
 }
 
 void mail::textplainparser::end(bool &unicode_errflag)
 {
 	bool rc=false;
 
-	bool cleanup=false;
-	if (uhandle)
-	{
-		int rc3=0;
-		// Finish unicode conversion
-		int rc2=unicode_convert_deinit(uhandle, &rc3);
+	if (!unicode::iconvert::tou::end(rc) || rc)
+		errflag=true;
 
-		if (rc3)
-			rc=true;
-		else if (rc2)
-			rc=true;
+	linebreakc_callback_base::finish();
 
-		(this->*line_handler)(nullptr, 0);
-		if (errflag)
-			rc=true;
-		errflag=rc;
-		cleanup=true;
-	}
-	uhandle=nullptr;
-
-	if (lb)
-	{
-		int rc2=unicode_lbc_end(lb);
-
-		if (rc2)
-			errflag=true;
-		lb=nullptr;
-	}
+	(this->*line_handler)(nullptr, 0);
 
 	unicode_errflag=errflag;
 }
-
-// Look for a CR that might precede an LF.
 
 size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 {
@@ -231,8 +173,6 @@ size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 	return 1;
 }
 
-// Check the first character after a CR.
-
 size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 {
 	char32_t cr='\r';
@@ -255,8 +195,6 @@ size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 // From this point on, CRLF are collapsed into NLs, so don't need to worry
 // about them.
 
-// Check for an EOF indication at the start of the line.
-
 size_t mail::textplainparser::start_of_line(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL)
@@ -273,8 +211,6 @@ size_t mail::textplainparser::start_of_line(const char32_t *ptr, size_t cnt)
 	quote_level=0;
 	return count_quote_level(ptr, cnt);
 }
-
-// Count leading > in flowed content.
 
 size_t mail::textplainparser::count_quote_level(const char32_t *ptr, size_t cnt)
 {
@@ -384,8 +320,6 @@ size_t mail::textplainparser::start_content_line(const char32_t *ptr, size_t cnt
 
 
 static const char32_t sig_block[]={'-', '-', ' '};
-
-// Checking for a magical sig block
 
 size_t mail::textplainparser::check_signature_block(const char32_t *ptr, size_t cnt)
 {
@@ -561,15 +495,11 @@ void mail::textplainparser::emit_line_end()
 
 void mail::textplainparser::operator<<(const std::string_view &text)
 {
-	// Convert to unicode and invoke parse_unicode()
+	if (!begun)
+		return;
 
-	if (uhandle)
-	{
-		int rc=unicode_convert(uhandle, text.data(), text.size());
-
-		if (rc)
-			errflag=true;
-	}
+	if (!unicode::iconvert::tou::operator()(text.data(), text.size()))
+		errflag=true;
 }
 
 // When processing a non-flowed text, handle broken mail formatters (I'm
@@ -583,26 +513,8 @@ void mail::textplainparser::operator<<(const std::string_view &text)
 // A non-flowed line begins. Initialize the linebreaking module.
 void mail::textplainparser::nonflowed_line_begin()
 {
-	if (lb)
-	{
-		// Just in case
-
-		int rc=unicode_lbc_end(lb);
-
-		if (rc)
-			errflag=true;
-	}
-
-	if ((lb=unicode_lbc_init(
-		&mail::textplainparser::nonflowed_line_process_trampoline,
-		this)) == NULL)
-	{
-		errflag=true;
-	}
-
-	if (lb)
-		unicode_lbc_set_opts(lb,
-				     UNICODE_LB_OPT_PRBREAK);
+	unicode::linebreakc_callback_base::finish();
+	unicode::linebreakc_callback_base::set_opts(UNICODE_LB_OPT_PRBREAK);
 
 	nonflowed_line.clear();
 	nonflowed_next_word.clear();
@@ -627,17 +539,7 @@ void mail::textplainparser::nonflowed_line_contents(
 	size_t cnt
 )
 {
-	if (!lb)
-		return;
-
-	while (cnt)
-	{
-		if (!errflag)
-			errflag=unicode_lbc_next(lb, *uc) != 0;
-
-		++uc;
-		--cnt;
-	}
+	linebreakc_callback_base::operator()(uc, uc+cnt);
 }
 
 // End of non-flowed content. Terminate the linebreaking API, then invoke
@@ -645,16 +547,7 @@ void mail::textplainparser::nonflowed_line_contents(
 
 void mail::textplainparser::nonflowed_line_end_default()
 {
-	if (lb)
-	{
-		int rc=unicode_lbc_end(lb);
-
-		if (rc)
-			errflag=true;
-
-		lb=NULL;
-	}
-
+	unicode::linebreakc_callback_base::finish();
 	(this->*nonflowed_line_end)();
 	emit_line_end(); // FALLTHRU
 }
@@ -662,25 +555,17 @@ void mail::textplainparser::nonflowed_line_end_default()
 // Callback from the linebreaking API, gives us the next unicode character
 // and its linebreak property. Look up the unicode character's width, then
 // invoke the current handler.
-
-int mail::textplainparser::nonflowed_line_process_trampoline(
-	int linebreak_opportunity,
-	char32_t ch,
-	void *dummy
-)
+int mail::textplainparser::callback(int opportunity, char32_t ch)
 {
-	auto me = reinterpret_cast<mail::textplainparser*>(dummy);
-
-	(me->*me->nonflowed_line_process)(
-		linebreak_opportunity,
+	// Forward the request to the current handler.
+	(this->*nonflowed_line_process)(
+		opportunity,
 		ch,
 		unicode_wcwidth(ch)
 	);
 
 	return 0;
 }
-
-// Collecting initial nonflowed line.
 
 void mail::textplainparser::initial_nonflowed_line(
 	int linebreak_opportunity,
@@ -716,8 +601,6 @@ void mail::textplainparser::initial_nonflowed_line(
 		begin_forced_rewrap();
 }
 
-// End of line handler. The line did not reach its threshold, so output it.
-
 void mail::textplainparser::initial_nonflowed_end()
 {
 	emit_line_contents(nonflowed_line.data(), nonflowed_line.size());
@@ -726,10 +609,6 @@ void mail::textplainparser::initial_nonflowed_end()
 		nonflowed_next_word.size()
 	);
 }
-
-// Check for the abnormal situation where we're ready to wrap something but
-// nonflowed_line is empty because all this text did not have a linebreaking
-// opportunity.
 
 void mail::textplainparser::check_abnormal_line()
 {
@@ -766,10 +645,6 @@ void mail::textplainparser::check_abnormal_line()
 			unicode_wcwidth(p[i]);
 }
 
-// We've decided that the line is too long, so begin rewrapping it.
-
-// Emit nonflowed_line as the rewrapped line. Clear the buffer.
-
 void mail::textplainparser::emit_rewrapped_line()
 {
 	check_abnormal_line();
@@ -789,9 +664,10 @@ void mail::textplainparser::begin_forced_rewrap()
 }
 
 void mail::textplainparser::forced_rewrap_line(
-			       int linebreak_opportunity,
-			       char32_t ch,
-			       size_t ch_width)
+	int linebreak_opportunity,
+	char32_t ch,
+	size_t ch_width
+)
 {
 	if (linebreak_opportunity != UNICODE_LB_NONE)
 	{

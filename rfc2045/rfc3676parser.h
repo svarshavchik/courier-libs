@@ -17,7 +17,11 @@ namespace mail {
 
 	// Parse a text/plain message into logical text lines.
 
-	class textplainparser {
+	class textplainparser : private unicode::iconvert::tou,
+		public unicode::linebreakc_callback_base {
+
+		// Callback from the underlying unicode::iconvert::tou class.
+		int converted(const char32_t *, size_t) override;
 
 	public:
 		// Constructor. Pass in the character set used in the message
@@ -36,18 +40,16 @@ namespace mail {
 		// MIME delsp=yes flag is set
 		const bool isdelsp;
 
-		// Parsing started. Returns FALSE if the parsing could
-		// not be initialized (probably unknown charset).
-		bool begun() const
-		{
-			return uhandle != NULL;
-		}
+		// Parsing started. Set to FALSE if parsing could not be
+		// initialized for some reason. This should not happen normally.
+		bool begun=false;
 
 		// End parsing.
 		//
 		// The handle gets destroyed, and the parsing finishes.
 		//
-		// NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover callback methods.
+		// NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover
+		// callback methods.
 		//
 		// Returns non-0 value returned by any callback method, or 0 if all
 		// invoked callback methods returned 0.
@@ -65,32 +67,32 @@ namespace mail {
 			return end(dummy);
 		}
 
-		/* Feed raw contents to be parsed */
+		// Feed raw contents to be parsed
 		void operator<<(const std::string_view &text);
 
+	private:
 		// Initial parsing of flowed text format.
 		//
 		// Start of a logical line.
+		// Invoked at the start of a logical line.
 		virtual void line_begin(size_t);
 
-		// Content of a logical line.
+		// Invoked with the contents of a logical line.
 		virtual void line_contents(const char32_t *,size_t);
 
-		// A physical line flowed into the next physical line. 
+		// Notified when a physical line flowed into the next
+		// physical line.
 		virtual void line_flowed_notify();
 
-		// End of the contents of a logical line.
+		// Invoked at the end of the contents of a logical line.
 		virtual void line_end();
 
-		// Interpreting flowed logical lines
-
-		unicode_convert_handle_t uhandle{nullptr};
-
-		// The current error status of the parser
+		// Current error status of the parser
 		bool errflag{false};
 
 		// Set to true if the character set passed to the constructor
-		// was unknown to the unicode conversion library.
+		// was unknown to the unicode conversion library. We should
+		// have defaulted to iso-8859-1 instead.
 		bool unknown_charset{false};
 
 		// Receive raw text stream, converted to unicode
@@ -130,10 +132,6 @@ namespace mail {
 		// End of this line
 		void (textplainparser::*line_end_handler)();
 
-		// When non-flowed text is getting rewrapped, we utilize the services
-		// of the unicode_lbc_info API.
-		unicode_lbc_info_t lb=nullptr;
-
 		std::u32string nonflowed_line;
 		// Collect unflowed line until it reaches the given size
 
@@ -149,6 +147,9 @@ namespace mail {
 		size_t nonflowed_next_word_width{0};
 		// Width of nonflowed_next_word
 
+		// Callback invoked by the unicode linebreak analysis.
+		int callback(int opportunity, char32_t ch) override;
+
 		// Current handle of non-flowd content.
 		void (textplainparser::*nonflowed_line_process)(
 			int linebreak_opportunity,
@@ -158,8 +159,17 @@ namespace mail {
 
 		void (textplainparser::*nonflowed_line_end)();
 
+		// API: begin logical line, contents, flowed, end.
 		void emit_line_begin();
 
+		// Emit contents of the current logical line as is.  Flowed
+		// content should not contain any whitespace at the end of the
+		// line, and should not contain any leading whitespace either.
+		// Delsp=yes content is expected to have the leading whitespace
+		// removed already by scan_content_line().
+		//
+		// This function will emit the contents of the current logical
+		// line as is.
 		void emit_line_contents(const char32_t *uc, size_t cnt);
 
 		void emit_line_flowed_wrap();
@@ -178,34 +188,53 @@ namespace mail {
 			void *dummy
 		);
 
+		// Look for a CR that might precede an LF.
 		size_t scan_crlf(const char32_t *ptr, size_t cnt);
 
+		// Check the first character after a CR.
 		size_t scan_crlf_seen_cr(const char32_t *ptr, size_t cnt);
 
+		// Check for an EOF indication at the start of the line.
 		size_t start_of_line(const char32_t *ptr, size_t cnt);
 
+		// Count leading > in flowed content.
 		size_t count_quote_level(const char32_t *ptr, size_t cnt);
 
+		// This line's quote level has now been counted.
 		size_t counted_quote_level(const char32_t *ptr, size_t cnt);
 
+		// Check for a magical sig block
 		size_t check_signature_block(const char32_t *ptr, size_t cnt);
 
+		// Minor deviation from RFC3676, but this fixes a lot of broken
+		// text.  If the previous line was flowed, but this is an empty
+		// line (optionally space-stuffed), unflow the last line (make
+		// it fixed), and this becomes a fixed line too.
 		size_t start_content_line(const char32_t *ptr, size_t cnt);
 
+		// Pass through the line, until encountering an NL, or a space
+		// in flowable content.
 		size_t scan_content_line(const char32_t *ptr, size_t cnt);
 
+		// Checking for a magical signature block.
 		size_t seen_sig_block(const char32_t *ptr, size_t cnt);
 
+		// This is not a sig block line.
 		size_t seen_notsig_block(const char32_t *ptr, size_t cnt);
 
+		// Pass through the line, until encountering an NL, or a space
+		// in flowable content.
 		size_t seen_content_sp(const char32_t *ptr, size_t cnt);
 
+		// Collecting initial nonflowed line.
 		void initial_nonflowed_line(
 			int linebreak_opportunity,
 			char32_t ch,
 			size_t ch_width
 		);
 
+		// End of line handler. The line did not reach its threshold, so
+		// output it.
 		void initial_nonflowed_end();
 
 		void begin_forced_rewrap();
@@ -218,8 +247,12 @@ namespace mail {
 
 		void forced_rewrap_end();
 
+		// Check for the abnormal situation where we're ready to wrap
+		// something but nonflowed_line is empty because all this text did
+		// not have a linebreaking opportunity.
 		void check_abnormal_line();
 
+		// We've decided that the line is too long, so begin rewrapping it.
 		void emit_rewrapped_line();
 
 	};

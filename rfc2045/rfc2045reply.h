@@ -272,54 +272,91 @@ private:
 	std::string mkreferences(std::string_view oldref,
 				 std::string_view oldmsgid);
 
+	// Helper class for reformat_info. reformat_info uses
+	// unicode::iconvert::fromu() to convert from unicode to the
+	// output character set. It also inherits from textplainparser
+	// which uses unicode::iconvert::tou in order to convert the original
+	// text/plain message to unicode. This results in a multiple inheritance
+	// of unicode::iconvert, and this intermediate class implements
+	// the conflicting callbacks, effectively renaming them in order to
+	// avoid name collisions.
+
+	struct reformat_info_from_unicode : unicode::iconvert::fromu {
+
+		// wrapper around unicode::iconvert::fromu::begin()
+		bool begin_fromu(const std::string &chset)
+		{
+			return begin(chset);
+		}
+
+		// wrapper around unicode::iconvert::fromu::operator()
+		bool convert_fromu(const char32_t *ptr, size_t cnt)
+		{
+			return operator()(ptr, cnt);
+		}
+
+		// wrapper around unicode::iconvert::fromu::converted()
+		int converted(const char *ptr, size_t cnt) override
+		{
+			converted_fromu(ptr, cnt);
+			return 0;
+		}
+
+		// textplainparser implements this callback as a trampoline
+		// to handle multiple inheritance name collisions.
+		virtual void converted_fromu(const char *ptr, size_t cnt)
+		{
+		}
+
+		// wrapper around unicode::iconvert::fromu::end()
+		bool end_fromu(bool &errflag)
+		{
+			return end(errflag);
+		}
+	};
+
 	// Helper class that processes the contents of the text/plain
 	// autoreply.
 	//
-	// begin() gets called, passing in the input/output character set.
-	//
-	// reformat_info inherits from unicode::iconvert and
-	// mail::textplainparser. After begin(), the overloaded << operator
-	// that's inherited from rfc3676parser gets called to parse the
-	// text/plain message.
+	// reformat_info inherits from unicode::iconvert::fromu and
+	// mail::textplainparser.
 	//
 	// Implements the callbacks from mail::textplainparser that take
 	// the parsed flowed text format, format it back into a plain text
-	// message, and use unicode::iconvert() to convert it from unicode
-	// to the charset. Implements converted() to write it out to
-	// the output closure.
+	// message, and use unicode::iconvert::fromu to convert it from
+	// unicode to the charset.
+	//
+	// The template parameter out_closure_t is the output closure
+	// that will be used to write the formatted text/plain message
+	// to. In most cases it can be deduced from the type of the
+	// out_closure parameter passed to the constructor.
 
 	template<typename out_closure_t>
-	struct reformat_info : unicode::iconvert, mail::textplainparser {
+	struct reformat_info : reformat_info_from_unicode,
+			       mail::textplainparser {
 
 		out_closure_t &out_closure;
 
-		reformat_info(const std::string &charset,
+		reformat_info(const std::string &message_charset,
+			      const std::string &charset,
 			      bool isflowed,
 			      bool isdelsp,
 			      out_closure_t &out_closure)
 			: mail::textplainparser{
-				charset,
+				message_charset,
 				isflowed,
 				isdelsp
 			},
-			out_closure{out_closure},
-			isflowed{isflowed},
-			isdelsp{isdelsp}
+			out_closure{out_closure}
 		{
-			if (!this->begun())
+			if (!this->begun)
 				return;
 
 			// We'll convert the Unicode-formatted parsed text/plain
 			// content into the output character set.
 
-			if (!unicode::iconvert::begin(
-				    unicode_u_ucs4_native,
-				    charset
-			    ))
-			{
-				bool ignore;
-				end(ignore);
-			}
+			if (!begin_fromu(charset))
+				begun=false;
 		}
 
 		void end(bool &unicode_errflag)
@@ -328,14 +365,13 @@ private:
 			mail::textplainparser::end(unicode_errflag);
 
 			// unicode::iconvert only sets it to true on an error
-			unicode::iconvert::end(unicode_errflag);
+			end_fromu(unicode_errflag);
 		}
 
 		// Converted unicode autoreply, in the output character set.
-		int converted(const char *p, size_t n) override
+		void converted_fromu(const char *ptr, size_t cnt) override
 		{
-			out_closure(std::string_view{p, n});
-			return 0;
+			out_closure(std::string_view{ptr, cnt});
 		}
 
 		// Whether to add (1) or leave the quoting level of each
@@ -345,11 +381,6 @@ private:
 		// content.
 
 		size_t quote_level_adjust=0;
-
-		// Whether the text/plain content has format=flowed and
-		// delsp=yes set.
-		bool isflowed=false;
-		bool isdelsp=false;
 
 	private:
 		// line_begin(): actual quoting level of the current line
@@ -365,10 +396,20 @@ private:
 		// spaces.
 		size_t trailing_spaces=0;
 
-		// textplainparser
+		// Implementations of textplainparser virtual methods
+		// that format the original message, and write it out as
+		// a reply:
+
+		// Writes out the quoting indentation.
 		void line_begin(size_t) override;
+
+		// Writes out the contents of the line.
 		void line_contents(const char32_t *, size_t) override;
+
+		// Notified when a flowed line is wrapped to the next line.
 		void line_flowed_notify() override;
+
+		// Called at the end of a line.
 		void line_end() override;
 	};
 };
@@ -396,7 +437,7 @@ void rfc2045::reply::reformat_info<out_closure_t>::line_begin(
 
 	for (size_t i=0; i<quote_level; i++)
 	{
-		(*this)(U">", 1);
+		reformat_info_from_unicode::operator()(U">", 1);
 	}
 }
 
@@ -427,12 +468,12 @@ void rfc2045::reply::reformat_info<out_closure_t>::line_contents(
 			*/
 
 			if ((quote_level > 0 && *txt != '>') || *txt == ' ')
-				(*this)(U" ", 1);
+				reformat_info_from_unicode::operator()(U" ", 1);
 		}
 		else
 		{
 			if (quote_level > 0 || *txt == ' ' || *txt == '>')
-				(*this)(U" ", 1);
+				reformat_info_from_unicode::operator()(U" ", 1);
 		}
 		start_line=false;
 	}
@@ -456,10 +497,10 @@ void rfc2045::reply::reformat_info<out_closure_t>::line_contents(
 	{
 		while (trailing_spaces)
 		{
-			(*this)(U" ", 1);
+			reformat_info_from_unicode::operator()(U" ", 1);
 			--trailing_spaces;
 		}
-		(*this)(txt, nonspc_cnt);
+		reformat_info_from_unicode::operator()(txt, nonspc_cnt);
 	}
 
 	trailing_spaces += txt_size - nonspc_cnt;
@@ -477,11 +518,11 @@ void rfc2045::reply::reformat_info<out_closure_t>::line_flowed_notify()
 
 	while (trailing_spaces)
 	{
-		(*this)(U" ", 1);
+		reformat_info_from_unicode::operator()(U" ", 1);
 		--trailing_spaces;
 	}
 
-	(*this)(U" ", 1);
+	reformat_info_from_unicode::operator()(U" ", 1);
 	line_end();
 	line_begin(quote_level-quote_level_adjust);
 	/* Undo the adjustment in line_begin() */
@@ -490,7 +531,7 @@ void rfc2045::reply::reformat_info<out_closure_t>::line_flowed_notify()
 template<typename out_closure_t>
 void rfc2045::reply::reformat_info<out_closure_t>::line_end()
 {
-	(*this)(U"\n", 1);
+	reformat_info_from_unicode::operator()(U"\n", 1);
 }
 
 // C++ equivalent of reformat()
@@ -509,11 +550,19 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 	bool isflowed=message.content_type.format_flowed();
 	bool isdelsp=isflowed && message.content_type.delsp_yes();
 
-	reformat_info info{charset, isflowed, isdelsp, out_closure};
+	std::string message_charset=
+	    std::string{message.content_type_charset()};
+	reformat_info info{
+		message_charset,
+		charset,
+		isflowed,
+		isdelsp,
+		out_closure
+	};
 
 	info.quote_level_adjust=quote_adjust_level;
 
-	if (info.begun())
+	if (info.begun)
 	{
 		// Use mime_decoder to decode the text/plain content,
 		// and pass it to the mail::textplainparser.
@@ -534,13 +583,7 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 		info.end(unicode_errflag);
 
 		if (!unicode_errflag)
-		{
-			if (info.unicode::iconvert::end(unicode_errflag))
-			{
-				if (!unicode_errflag)
-					return;
-			}
-		}
+			return;
 	}
 
 	out_closure("\n[ A character set conversion error has occured]\n");

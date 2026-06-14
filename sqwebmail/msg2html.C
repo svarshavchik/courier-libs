@@ -1333,7 +1333,7 @@ public:
 		},
 		info{output_character_set, output_func, arg}
 	{
-		if (!begun())
+		if (!begun)
 			conv_err=1;
 	}
 };
