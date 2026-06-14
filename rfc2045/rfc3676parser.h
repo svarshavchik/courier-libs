@@ -134,10 +134,10 @@ namespace mail {
 		// of the unicode_lbc_info API.
 		unicode_lbc_info_t lb=nullptr;
 
-		struct unicode_buf nonflowed_line;
+		std::u32string nonflowed_line;
 		// Collect unflowed line until it reaches the given size
 
-		struct unicode_buf nonflowed_next_word;
+		std::u32string nonflowed_next_word;
 		// Collects unicode stream until a linebreaking opportunity
 
 		size_t nonflowed_line_target_width{0};

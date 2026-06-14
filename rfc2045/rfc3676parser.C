@@ -65,8 +65,8 @@ mail::textplainparser::textplainparser(
 	line_content_handler=&textplainparser::emit_line_contents;
 	line_end_handler=&textplainparser::emit_line_end;
 
-	unicode_buf_init(&nonflowed_line, (size_t)-1);
-	unicode_buf_init(&nonflowed_next_word, (size_t)-1);
+	nonflowed_line.clear();
+	nonflowed_next_word.clear();
 
 	if (!isflowed)
 	{
@@ -186,12 +186,6 @@ void mail::textplainparser::end(bool &unicode_errflag)
 		if (rc2)
 			errflag=true;
 		lb=nullptr;
-	}
-
-	if (cleanup)
-	{
-		unicode_buf_deinit(&nonflowed_line);
-		unicode_buf_deinit(&nonflowed_next_word);
 	}
 
 	unicode_errflag=errflag;
@@ -610,8 +604,8 @@ void mail::textplainparser::nonflowed_line_begin()
 		unicode_lbc_set_opts(lb,
 				     UNICODE_LB_OPT_PRBREAK);
 
-	unicode_buf_clear(&nonflowed_line);
-	unicode_buf_clear(&nonflowed_next_word);
+	nonflowed_line.clear();
+	nonflowed_next_word.clear();
 
 	nonflowed_line_width=0;
 	nonflowed_next_word_width=0;
@@ -701,12 +695,11 @@ void mail::textplainparser::initial_nonflowed_line(
 	    nonflowed_line_width +
 	    nonflowed_next_word_width <= nonflowed_line_target_width)
 	{
-		unicode_buf_append_buf(&nonflowed_line,
-				       &nonflowed_next_word);
+		nonflowed_line.append(nonflowed_next_word);
 		nonflowed_line_width +=
 			nonflowed_next_word_width;
 
-		unicode_buf_clear(&nonflowed_next_word);
+		nonflowed_next_word.clear();
 		nonflowed_next_word_width=0;
 	}
 
@@ -714,7 +707,7 @@ void mail::textplainparser::initial_nonflowed_line(
 	// If the line's size now exceeds the target width by quite a bit,
 	// we've had enough!
 
-	unicode_buf_append(&nonflowed_next_word, &ch, 1);
+	nonflowed_next_word.push_back(ch);
 	nonflowed_next_word_width += ch_width;
 
 	if (nonflowed_line_width + nonflowed_next_word_width
@@ -727,15 +720,11 @@ void mail::textplainparser::initial_nonflowed_line(
 
 void mail::textplainparser::initial_nonflowed_end()
 {
+	emit_line_contents(nonflowed_line.data(), nonflowed_line.size());
 	emit_line_contents(
-			   unicode_buf_ptr(&nonflowed_line),
-			   unicode_buf_len(&nonflowed_line)
-			);
-
-	emit_line_contents(
-			   unicode_buf_ptr(&nonflowed_next_word),
-			   unicode_buf_len(&nonflowed_next_word)
-			);
+		nonflowed_next_word.data(),
+		nonflowed_next_word.size()
+	);
 }
 
 // Check for the abnormal situation where we're ready to wrap something but
@@ -747,13 +736,13 @@ void mail::textplainparser::check_abnormal_line()
 	size_t n, i;
 	const char32_t *p;
 
-	if (unicode_buf_len(&nonflowed_line) > 0)
+	if (nonflowed_line.size() > 0)
 		return;
 
 	// Extreme times call for extreme measures
 
-	n=unicode_buf_len(&nonflowed_next_word);
-	p=unicode_buf_ptr(&nonflowed_next_word);
+	n=nonflowed_next_word.size();
+	p=nonflowed_next_word.data();
 
 	for (i=n; i>0; --i)
 	{
@@ -764,15 +753,15 @@ void mail::textplainparser::check_abnormal_line()
 		}
 	}
 
-	unicode_buf_append(&nonflowed_line, p, n);
-	unicode_buf_remove(&nonflowed_next_word, 0, n);
+	nonflowed_line.append(p, n);
+	nonflowed_next_word.erase(0, n);
 
 	// Recalculate the width of the growing word, now.
 
 	nonflowed_next_word_width=0;
-	p=unicode_buf_ptr(&nonflowed_next_word);
+	p=nonflowed_next_word.data();
 
-	for (i=0; i<unicode_buf_len(&nonflowed_next_word); ++i)
+	for (i=0; i<nonflowed_next_word.size(); ++i)
 		nonflowed_next_word_width +=
 			unicode_wcwidth(p[i]);
 }
@@ -784,15 +773,11 @@ void mail::textplainparser::check_abnormal_line()
 void mail::textplainparser::emit_rewrapped_line()
 {
 	check_abnormal_line();
-	emit_line_contents(
-			unicode_buf_ptr(&nonflowed_line),
-			unicode_buf_len(&nonflowed_line)
-		);
-
+	emit_line_contents(nonflowed_line.data(), nonflowed_line.size());
 	emit_line_flowed_wrap();
 
 	// nonflowed_line is now empty
-	unicode_buf_clear(&nonflowed_line);
+	nonflowed_line.clear();
 	nonflowed_line_width=0;
 }
 
@@ -820,12 +805,10 @@ void mail::textplainparser::forced_rewrap_line(
 			emit_rewrapped_line();
 		}
 
-		unicode_buf_append_buf(&nonflowed_line,
-				       &nonflowed_next_word);
-
+		nonflowed_line.append(nonflowed_next_word);
 		nonflowed_line_width +=
 			nonflowed_next_word_width;
-		unicode_buf_clear(&nonflowed_next_word);
+		nonflowed_next_word.clear();
 		nonflowed_next_word_width=0;
 	}
 
@@ -838,7 +821,7 @@ void mail::textplainparser::forced_rewrap_line(
 		emit_rewrapped_line();
 	}
 
-	unicode_buf_append(&nonflowed_next_word, &ch, 1);
+	nonflowed_next_word.push_back(ch);
 	nonflowed_next_word_width += ch_width;
 }
 
