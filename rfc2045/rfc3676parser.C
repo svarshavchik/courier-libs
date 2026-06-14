@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 S. Varshavchik.  See COPYING for
+** Copyright 2011-2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
@@ -54,7 +54,7 @@ mail::textplainparser::textplainparser(
 	}
 
 	if (!isflowed)
-		isdelsp=false; /* Sanity check */
+		isdelsp=false; // Sanity check
 
 	line_handler=&textplainparser::scan_crlf;
 	content_handler=&textplainparser::start_of_line;
@@ -110,10 +110,8 @@ void mail::textplainparser::line_end()
 	line_contents(&nl, 1);
 }
 
-/*
-** Convert char stream from iconv into char32_ts, then pass them to the
-** current handler, until all converted char32_ts are consumed.
-*/
+// Convert char stream from iconv into char32_ts, then pass them to the
+// current handler, until all converted char32_ts are consumed.
 
 static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 {
@@ -121,11 +119,11 @@ static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 	char32_t ucs4buf[128];
 	const char32_t *p;
 
-	/* Keep going until there's an error, or everything is consumed. */
+	// Keep going until there's an error, or everything is consumed.
 
-	while (handle->errflag == 0 && nbytes)
+	while (!handle->errflag && nbytes)
 	{
-		/* Do it in pieces, using the temporary char32_t buffer */
+		// Do it in pieces, using the temporary char32_t buffer
 
 		size_t cnt=nbytes;
 
@@ -140,13 +138,13 @@ static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 		cnt /= sizeof(char32_t);
 		p=ucs4buf;
 
-		/* Keep feeding it to the current handler */
+		// Keep feeding it to the current handler
 
-		while (handle->errflag == 0 && cnt)
+		while (!handle->errflag && cnt)
 		{
 			size_t n=(handle->*(handle->line_handler))(p, cnt);
 
-			if (handle->errflag == 0)
+			if (!handle->errflag)
 			{
 				cnt -= n;
 				p += n;
@@ -159,22 +157,24 @@ static int parse_unicode(const char *ucs4, size_t nbytes, void *arg)
 
 void mail::textplainparser::end(bool &unicode_errflag)
 {
-	int rc=0;
+	bool rc=false;
 
 	bool cleanup=false;
 	if (uhandle)
 	{
-		/* Finish unicode conversion */
-		int rc2=unicode_convert_deinit(uhandle, &rc);
+		int rc3=0;
+		// Finish unicode conversion
+		int rc2=unicode_convert_deinit(uhandle, &rc3);
 
-		if (rc2 && rc == 0)
-			rc=rc2;
+		if (rc3)
+			rc=true;
+		else if (rc2)
+			rc=true;
 
-		if (rc == 0)
-		{
-			(this->*line_handler)(nullptr, 0);
-			rc=errflag;
-		}
+		(this->*line_handler)(nullptr, 0);
+		if (errflag)
+			rc=true;
+		errflag=rc;
 		cleanup=true;
 	}
 	uhandle=nullptr;
@@ -183,8 +183,8 @@ void mail::textplainparser::end(bool &unicode_errflag)
 	{
 		int rc2=unicode_lbc_end(lb);
 
-		if (rc2 && rc == 0)
-			rc=rc2;
+		if (rc2)
+			errflag=true;
 		lb=nullptr;
 	}
 
@@ -194,12 +194,10 @@ void mail::textplainparser::end(bool &unicode_errflag)
 		unicode_buf_deinit(&nonflowed_next_word);
 	}
 
-	unicode_errflag=rc != 0;
+	unicode_errflag=errflag;
 }
 
-/*
-** Look for a CR that might precede an LF.
-*/
+// Look for a CR that might precede an LF.
 
 size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 {
@@ -207,7 +205,7 @@ size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 
 	if (ptr == NULL)
 	{
-		if (errflag == 0)
+		if (!errflag)
 			(this->*content_handler)(NULL, 0);
 		return 0;
 	}
@@ -222,7 +220,7 @@ size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 	{
 		size_t consumed=0;
 
-		while (i && errflag == 0)
+		while (i && !errflag)
 		{
 			size_t n=(this->*content_handler)(ptr, i);
 
@@ -233,15 +231,13 @@ size_t mail::textplainparser::scan_crlf(const char32_t *ptr, size_t cnt)
 		return consumed;
 	}
 
-	/* Consume the first character, the CR */
+	// Consume the first character, the CR
 
 	line_handler=&mail::textplainparser::scan_crlf_seen_cr;
 	return 1;
 }
 
-/*
-** Check the first character after a CR.
-*/
+// Check the first character after a CR.
 
 size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 {
@@ -251,12 +247,10 @@ size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 
 	if (ptr == NULL || *ptr != '\n')
 	{
-		/*
-		** CR was not followed by a NL.
-		** Restore it in the char stream.
-		*/
+		// CR was not followed by a NL.
+		// Restore it in the char stream.
 
-		while (errflag == 0)
+		while (!errflag)
 			if ((this->*content_handler)(&cr, 1))
 				break;
 	}
@@ -264,42 +258,35 @@ size_t mail::textplainparser::scan_crlf_seen_cr(const char32_t *ptr, size_t cnt)
 	return scan_crlf(ptr, cnt);
 }
 
-/*
-** From this point on, CRLF are collapsed into NLs, so don't need to worry
-** about them.
-*/
+// From this point on, CRLF are collapsed into NLs, so don't need to worry
+// about them.
 
-
-/*
-** Check for an EOF indication at the start of the line.
-*/
+// Check for an EOF indication at the start of the line.
 
 size_t mail::textplainparser::start_of_line(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL)
 	{
 		if (has_previous_quote_level)
-			EMIT_LINE_END(); /* Last line was flowed */
+			EMIT_LINE_END(); // Last line was flowed
 
-		return cnt; /* EOF */
+		return cnt; // EOF
 	}
 
-	/* Begin counting the quote level */
+	// Begin counting the quote level
 
 	content_handler=&mail::textplainparser::count_quote_level;
 	quote_level=0;
 	return count_quote_level(ptr, cnt);
 }
 
-/*
-** Count leading > in flowed content.
-*/
+// Count leading > in flowed content.
 
 size_t mail::textplainparser::count_quote_level(const char32_t *ptr, size_t cnt)
 {
 	size_t i;
 
-	if (ptr == NULL) /* EOF, pretend that the quote level was counted */
+	if (ptr == NULL) // EOF, pretend that the quote level was counted
 	{
 		content_handler=&mail::textplainparser::counted_quote_level;
 		return counted_quote_level(ptr, cnt);
@@ -321,32 +308,27 @@ size_t mail::textplainparser::count_quote_level(const char32_t *ptr, size_t cnt)
 	return i;
 }
 
-/*
-** This line's quote level has now been counted.
-*/
+// This line's quote level has now been counted.
 
 size_t mail::textplainparser::counted_quote_level(const char32_t *ptr, size_t cnt)
 {
 	was_previous_quote_level=0;
 
-	/*
-	** If the previous line was flowed and this line has the same
-	** quote level, make the flow official.
-	*/
+	// If the previous line was flowed and this line has the same
+	// quote level, make the flow official.
 
 	if (has_previous_quote_level &&
 	    quote_level == previous_quote_level)
 	{
-		/* Remember that this line was flowed into */
+		// Remember that this line was flowed into
 		was_previous_quote_level=1;
 	}
 	else
 	{
-		/*
-		** If the previous line was flowed, but this line carries
-		** a different quote level, force-terminate the previous
-		** line, before beginning this line.
-		*/
+		// If the previous line was flowed, but this line carries
+		// a different quote level, force-terminate the previous
+		// line, before beginning this line.
+
 		if (has_previous_quote_level)
 			EMIT_LINE_END();
 
@@ -354,15 +336,14 @@ size_t mail::textplainparser::counted_quote_level(const char32_t *ptr, size_t cn
 	}
 
 	has_previous_quote_level=0;
-	/* Assume this line won't be flowed, until shown otherwise */
+	// Assume this line won't be flowed, until shown otherwise
 
 
 	if (!isflowed)
 	{
-		/*
-		** No space-stuffing, or sig block checking, if this is not
-		** flowed content.
-		*/
+		// No space-stuffing, or sig block checking, if this is not
+		// flowed content.
+
 		content_handler=&mail::textplainparser::scan_content_line;
 		return scan_content_line(ptr, cnt);
 	}
@@ -371,32 +352,29 @@ size_t mail::textplainparser::counted_quote_level(const char32_t *ptr, size_t cn
 	content_handler=&mail::textplainparser::start_content_line;
 
 	if (ptr != NULL && *ptr == ' ')
-		return 1; /* Remove stuffed space */
+		return 1; // Remove stuffed space
 
 	return start_content_line(ptr, cnt);
 }
 
-/*
-** Minor deviation from RFC3676, but this fixes a lot of broken text.
-**
-** If the previous line was flowed, but this is an empty line (optionally
-** space-stuffed), unflow the last line (make it fixed), and this becomes
-** a fixed line too. Example:
-**
-** this is the last end of a paragraph[SPACE]
-** [SPACE]
-** This is the first line of the next paragraph.
-**
-** Strict RFC3676 rules will parse this as a flowed line, then a fixed line,
-** resulting in no paragraph breaks.
-*/
+// Minor deviation from RFC3676, but this fixes a lot of broken text.
+//
+// If the previous line was flowed, but this is an empty line (optionally
+// space-stuffed), unflow the last line (make it fixed), and this becomes
+// a fixed line too. Example:
+//
+// this is the last end of a paragraph[SPACE]
+// [SPACE]
+// This is the first line of the next paragraph.
+//
+// Strict RFC3676 rules will parse this as a flowed line, then a fixed line,
+// resulting in no paragraph breaks.
 
 size_t mail::textplainparser::start_content_line(const char32_t *ptr, size_t cnt)
 {
-	/*
-	** We'll start scanning for the signature block, as soon as
-	** this check is done.
-	*/
+	// We'll start scanning for the signature block, as soon as
+	// this check is done.
+
 	content_handler=&mail::textplainparser::check_signature_block;
 	sig_block_index=0;
 
@@ -413,7 +391,7 @@ size_t mail::textplainparser::start_content_line(const char32_t *ptr, size_t cnt
 
 static const char32_t sig_block[]={'-', '-', ' '};
 
-/* Checking for a magical sig block */
+// Checking for a magical sig block
 
 size_t mail::textplainparser::check_signature_block(const char32_t *ptr, size_t cnt)
 {
@@ -422,7 +400,7 @@ size_t mail::textplainparser::check_signature_block(const char32_t *ptr, size_t 
 		if (++sig_block_index == sizeof(sig_block)
 		    /sizeof(sig_block[0]))
 
-			/* Well, it's there, but does a NL follow? */
+			// Well, it's there, but does a NL follow?
 			content_handler=&mail::textplainparser::seen_sig_block;
 		return 1;
 	}
@@ -434,11 +412,9 @@ size_t mail::textplainparser::seen_sig_block(const char32_t *ptr, size_t cnt)
 {
 	if (ptr == NULL || *ptr == '\n')
 	{
-		/*
-		** If the previous line was flowed, the sig block is not
-		** considered to be flowable-into content, so terminate
-		** the previous line before emitting the sig block.
-		*/
+		// If the previous line was flowed, the sig block is not
+		// considered to be flowable-into content, so terminate
+		// the previous line before emitting the sig block.
 
 		if (was_previous_quote_level)
 		{
@@ -447,7 +423,7 @@ size_t mail::textplainparser::seen_sig_block(const char32_t *ptr, size_t cnt)
 			was_previous_quote_level=0;
 		}
 
-		/* Pass through the sig block */
+		// Pass through the sig block
 
 		content_handler=&mail::textplainparser::start_of_line;
 
@@ -460,7 +436,7 @@ size_t mail::textplainparser::seen_sig_block(const char32_t *ptr, size_t cnt)
 	return seen_notsig_block(ptr, cnt);
 }
 
-/* This is not a sig block line */
+// This is not a sig block line
 
 size_t mail::textplainparser::seen_notsig_block(const char32_t *newptr, size_t newcnt)
 {
@@ -475,7 +451,7 @@ size_t mail::textplainparser::seen_notsig_block(const char32_t *newptr, size_t n
 	ptr=sig_block;
 	i=sig_block_index;
 
-	while (i && errflag == 0)
+	while (i && !errflag)
 	{
 		size_t n=(this->*content_handler)(ptr, i);
 
@@ -486,10 +462,8 @@ size_t mail::textplainparser::seen_notsig_block(const char32_t *newptr, size_t n
 	return (this->*content_handler)(newptr, newcnt);
 }
 
-/*
-** Pass through the line, until encountering an NL, or a space in flowable
-** content.
-*/
+// Pass through the line, until encountering an NL, or a space in flowable
+// content.
 
 size_t mail::textplainparser::scan_content_line(const char32_t *ptr, size_t cnt)
 {
@@ -501,7 +475,7 @@ size_t mail::textplainparser::scan_content_line(const char32_t *ptr, size_t cnt)
 		;
 	}
 
-	/* Pass through anything before the NL or potentially flowable SP */
+	// Pass through anything before the NL or potentially flowable SP
 
  	if (i)
 		EMIT_LINE_CONTENTS(ptr, i);
@@ -515,7 +489,8 @@ size_t mail::textplainparser::scan_content_line(const char32_t *ptr, size_t cnt)
 		return 1;
 	}
 
-	/* NL. This line does not flow */
+	// NL. This line does not flow
+
 	EMIT_LINE_END();
 
 	content_handler=&mail::textplainparser::start_of_line;
@@ -531,15 +506,13 @@ size_t mail::textplainparser::seen_content_sp(const char32_t *ptr, size_t cnt)
 
 	if (ptr == NULL || *ptr != '\n')
 	{
-		/*
-		** SP was not followed by the NL. Pass through the space,
-		** then resume scanning.
-		*/
+		// SP was not followed by the NL. Pass through the space,
+		// then resume scanning.
 		EMIT_LINE_CONTENTS(&sp, 1);
 		return (this->*content_handler)(ptr, cnt);
 	}
 
-	/* NL after a SP -- flowed line */
+	// NL after a SP -- flowed line
 
 	if (!isdelsp)
 		EMIT_LINE_CONTENTS(&sp, 1);
@@ -550,96 +523,87 @@ size_t mail::textplainparser::seen_content_sp(const char32_t *ptr, size_t cnt)
 	return ptr ? 1:0;
 }
 
-/**************************************************************************/
-
-/*
-** At this point, the processing has reduced to the following API:
-**
-** + begin logical line
-**
-** + contents of the logical line (multiple consecutive invocations)
-**
-** + the logical line has flowed onto the next physical line
-**
-** + end of logical line
-**
-** The third one, logical line flowed, is normally used for flowed text,
-** by definition. But, it may also be get used if non-flowed text gets
-** rewrapped when broken formatting is detected.
-**
-** Provide default implementations of the other three API calls that
-** simply invoke the corresponding user callback.
-*/
+// -----------------------------------------------------------------------------
+// At this point, the processing has reduced to the following API:
+//
+// + begin logical line
+//
+// + contents of the logical line (multiple consecutive invocations)
+//
+// + the logical line has flowed onto the next physical line
+//
+// + end of logical line
+//
+// The third one, logical line flowed, is normally used for flowed text,
+// by definition. But, it may also be get used if non-flowed text gets
+// rewrapped when broken formatting is detected.
+//
+// Provide default implementations of the other three API calls that
+// simply invoke the corresponding user callback.
 
 void mail::textplainparser::emit_line_begin()
 {
-	if (errflag == 0)
+	if (!errflag)
 		line_begin(quote_level);
 }
 
 void mail::textplainparser::emit_line_flowed_wrap()
 {
-	if (errflag == 0)
+	if (!errflag)
 		line_flowed_notify();
 }
 
 void mail::textplainparser::emit_line_contents(const char32_t *uc, size_t cnt)
 {
-	if (errflag == 0)
+	if (!errflag)
 		line_contents(uc, cnt);
 }
 
 void mail::textplainparser::emit_line_end()
 {
-	if (errflag == 0)
+	if (!errflag)
 		line_end();
 }
 
 void mail::textplainparser::operator<<(const std::string_view &text)
 {
-	/* Convert to unicode and invoke parse_unicode() */
+	// Convert to unicode and invoke parse_unicode()
 
 	if (uhandle)
 	{
 		int rc=unicode_convert(uhandle, text.data(), text.size());
 
-		if (rc && errflag == 0)
-			errflag=rc;
+		if (rc)
+			errflag=true;
 	}
 }
 
-/*
-** When processing a non-flowed text, handle broken mail formatters (I'm
-** looking at you, Apple Mail) that spew out quoted-printable content with
-** each decoded line forming a single paragraph. This is heuristically
-** detected by looking for lines that exceed a wrapping threshold, then
-** rewrapping them.
-**
-** Redefine the three line API calls to launder the logical line via
-** the linebreak API.
-*/
+// When processing a non-flowed text, handle broken mail formatters (I'm
+// looking at you, Apple Mail) that spew out quoted-printable content with
+// each decoded line forming a single paragraph. This is heuristically
+// detected by looking for lines that exceed a wrapping threshold, then
+// rewrapping them.
+// Redefine the three line API calls to launder the logical line via
+// the linebreak API.
 
-/*
-** A non-flowed line begins. Initialize the linebreaking module.
-*/
+// A non-flowed line begins. Initialize the linebreaking module.
 void mail::textplainparser::nonflowed_line_begin()
 {
 	if (lb)
 	{
-		/* Just in case */
+		// Just in case
 
 		int rc=unicode_lbc_end(lb);
 
-		if (rc && errflag == 0)
-			errflag=rc;
+		if (rc)
+			errflag=true;
 	}
 
 	if ((lb=unicode_lbc_init(
 		&mail::textplainparser::nonflowed_line_process_trampoline,
 		this)) == NULL)
 	{
-		if (errflag == 0)
-			errflag=-1;
+		errflag=true;
 	}
 
 	if (lb)
@@ -654,17 +618,15 @@ void mail::textplainparser::nonflowed_line_begin()
 
 	nonflowed_line_process=&mail::textplainparser::initial_nonflowed_line;
 	nonflowed_line_end=&mail::textplainparser::initial_nonflowed_end;
-	emit_line_begin(); /* Fallthru - user callback */
+	emit_line_begin(); // Fallthru - user callback
 
 	nonflowed_line_target_width=
 		quote_level < NONFLOWED_WRAP_REDUCE - 20 ?
 		NONFLOWED_WRAP_REDUCE - quote_level:20;
 }
 
-/*
-** Process contents of non-flowed lines. The contents are submitted to the
-** linebreaking API.
-*/
+// Process contents of non-flowed lines. The contents are submitted to the
+// linebreaking API.
 
 void mail::textplainparser::nonflowed_line_contents(
 	const char32_t *uc,
@@ -676,39 +638,37 @@ void mail::textplainparser::nonflowed_line_contents(
 
 	while (cnt)
 	{
-		if (errflag == 0)
-			errflag=unicode_lbc_next(lb, *uc);
+		if (!errflag)
+			errflag=unicode_lbc_next(lb, *uc) != 0;
 
 		++uc;
 		--cnt;
 	}
 }
 
-/*
-** End of non-flowed content. Terminate the linebreaking API, then invoke
-** the current end-of-line handler.
-*/
+// End of non-flowed content. Terminate the linebreaking API, then invoke
+// the current end-of-line handler.
+
 void mail::textplainparser::nonflowed_line_end_default()
 {
 	if (lb)
 	{
 		int rc=unicode_lbc_end(lb);
 
-		if (rc && errflag == 0)
-			errflag=rc;
+		if (rc)
+			errflag=true;
 
 		lb=NULL;
 	}
 
 	(this->*nonflowed_line_end)();
-	emit_line_end(); /* FALLTHRU */
+	emit_line_end(); // FALLTHRU
 }
 
-/*
-** Callback from the linebreaking API, gives us the next unicode character
-** and its linebreak property. Look up the unicode character's width, then
-** invoke the current handler.
-*/
+// Callback from the linebreaking API, gives us the next unicode character
+// and its linebreak property. Look up the unicode character's width, then
+// invoke the current handler.
+
 int mail::textplainparser::nonflowed_line_process_trampoline(
 	int linebreak_opportunity,
 	char32_t ch,
@@ -726,9 +686,7 @@ int mail::textplainparser::nonflowed_line_process_trampoline(
 	return 0;
 }
 
-/*
-** Collecting initial nonflowed line.
-*/
+// Collecting initial nonflowed line.
 
 void mail::textplainparser::initial_nonflowed_line(
 	int linebreak_opportunity,
@@ -736,10 +694,9 @@ void mail::textplainparser::initial_nonflowed_line(
 	size_t ch_width
 )
 {
-	/*
-	** Collect words into nonflowed_line as long as it fits within the
-	** targeted width.
-	*/
+	// Collect words into nonflowed_line as long as it fits within the
+	// targeted width.
+
 	if (linebreak_opportunity != UNICODE_LB_NONE &&
 	    nonflowed_line_width +
 	    nonflowed_next_word_width <= nonflowed_line_target_width)
@@ -753,12 +710,9 @@ void mail::textplainparser::initial_nonflowed_line(
 		nonflowed_next_word_width=0;
 	}
 
-	/*
-	** Add the character to the growing word.
-	**
-	** If the line's size now exceeds the target width by quite a bit,
-	** we've had enough!
-	*/
+	// Add the character to the growing word.
+	// If the line's size now exceeds the target width by quite a bit,
+	// we've had enough!
 
 	unicode_buf_append(&nonflowed_next_word, &ch, 1);
 	nonflowed_next_word_width += ch_width;
@@ -769,9 +723,8 @@ void mail::textplainparser::initial_nonflowed_line(
 		begin_forced_rewrap();
 }
 
-/*
-** End of line handler. The line did not reach its threshold, so output it.
-*/
+// End of line handler. The line did not reach its threshold, so output it.
+
 void mail::textplainparser::initial_nonflowed_end()
 {
 	emit_line_contents(
@@ -785,11 +738,9 @@ void mail::textplainparser::initial_nonflowed_end()
 			);
 }
 
-/*
-** Check for the abnormal situation where we're ready to wrap something but
-** nonflowed_line is empty because all this text did not have a linebreaking
-** opportunity.
-*/
+// Check for the abnormal situation where we're ready to wrap something but
+// nonflowed_line is empty because all this text did not have a linebreaking
+// opportunity.
 
 void mail::textplainparser::check_abnormal_line()
 {
@@ -799,7 +750,7 @@ void mail::textplainparser::check_abnormal_line()
 	if (unicode_buf_len(&nonflowed_line) > 0)
 		return;
 
-	/* Extreme times call for extreme measures */
+	// Extreme times call for extreme measures
 
 	n=unicode_buf_len(&nonflowed_next_word);
 	p=unicode_buf_ptr(&nonflowed_next_word);
@@ -816,9 +767,7 @@ void mail::textplainparser::check_abnormal_line()
 	unicode_buf_append(&nonflowed_line, p, n);
 	unicode_buf_remove(&nonflowed_next_word, 0, n);
 
-	/*
-	** Recalculate the width of the growing word, now.
-	*/
+	// Recalculate the width of the growing word, now.
 
 	nonflowed_next_word_width=0;
 	p=unicode_buf_ptr(&nonflowed_next_word);
@@ -828,13 +777,10 @@ void mail::textplainparser::check_abnormal_line()
 			unicode_wcwidth(p[i]);
 }
 
-/*
-** We've decided that the line is too long, so begin rewrapping it.
-*/
+// We've decided that the line is too long, so begin rewrapping it.
 
-/*
-** Emit nonflowed_line as the rewrapped line. Clear the buffer.
-*/
+// Emit nonflowed_line as the rewrapped line. Clear the buffer.
+
 void mail::textplainparser::emit_rewrapped_line()
 {
 	check_abnormal_line();
@@ -845,7 +791,7 @@ void mail::textplainparser::emit_rewrapped_line()
 
 	emit_line_flowed_wrap();
 
-	/* nonflowed_line is now empty */
+	// nonflowed_line is now empty
 	unicode_buf_clear(&nonflowed_line);
 	nonflowed_line_width=0;
 }
@@ -864,13 +810,13 @@ void mail::textplainparser::forced_rewrap_line(
 {
 	if (linebreak_opportunity != UNICODE_LB_NONE)
 	{
-		/* Found a linebreaking opportunity */
+		// Found a linebreaking opportunity
 
 		if (nonflowed_line_width
 		    + nonflowed_next_word_width
 		    > nonflowed_line_target_width)
 		{
-			/* Accumulated word is too long */
+			// Accumulated word is too long
 			emit_rewrapped_line();
 		}
 
@@ -883,9 +829,7 @@ void mail::textplainparser::forced_rewrap_line(
 		nonflowed_next_word_width=0;
 	}
 
-	/*
-	** Check for another excessively long line.
-	*/
+	// Check for another excessively long line.
 
 	if (nonflowed_line_width == 0 &&
 	    nonflowed_next_word_width + ch_width
@@ -900,5 +844,5 @@ void mail::textplainparser::forced_rewrap_line(
 
 void mail::textplainparser::forced_rewrap_end()
 {
-	initial_nonflowed_end(); /* Same logic, for now */
+	initial_nonflowed_end(); // Same logic, for now
 }

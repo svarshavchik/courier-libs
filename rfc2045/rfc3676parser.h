@@ -20,6 +20,8 @@ namespace mail {
 	class textplainparser {
 
 	public:
+		// Constructor. Pass in the character set used in the message
+		// and whether the message is flowed and/or delsp.
 		textplainparser(
 			const std::string &charset,
 			bool isflowed,
@@ -28,63 +30,40 @@ namespace mail {
 
 		virtual ~textplainparser();
 
-		/* MIME format flowed flag set */
-		bool isflowed;
+		// MIME format flowed flag set 
+		const bool isflowed;
 
-		/* MIME delsp=yes flag is set */
-		bool isdelsp;
+		// MIME delsp=yes flag is set
+		const bool isdelsp;
 
-		/*
-		** Parsing started. Returns FALSE if the parsing could
-		** not be initialized (probably unknown charset).
-		*/
-
+		// Parsing started. Returns FALSE if the parsing could
+		// not be initialized (probably unknown charset).
 		bool begun() const
 		{
 			return uhandle != NULL;
 		}
 
-		/*
-		** End parsing.
-		**
-		** The handle gets destroyed, and the parsing finishes.
-		**
-		** NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover callback methods.
-		**
-		** Returns non-0 value returned by any callback method, or 0 if all
-		** invoked callback methods returned 0.
-		*/
+		// End parsing.
+		//
+		// The handle gets destroyed, and the parsing finishes.
+		//
+		// NOTE: rfc3676_deinit() WILL LIKELY invoke some leftover callback methods.
+		//
+		// Returns non-0 value returned by any callback method, or 0 if all
+		// invoked callback methods returned 0.
 
 		void end(
-			 /*
-			 ** Set to true if a unicode conversion error occurred.
-			 */
-			 bool &unicode_errflag);
+			// Set to true if a unicode conversion error occurred.
+			bool &unicode_errflag
+		);
 
+		// A convenience version of end()
 		void end()
 		{
 			bool dummy;
 
 			return end(dummy);
 		}
-
-		/*
-		** Parse next part of rfc3676-encoded message.
-		**
-		** Returns non-0 value returned by any callback method, or 0 if all
-		** invoked callback methods returned 0.
-		**
-		** Either rfc3676parser() or rfc3676parser_unicode() must be used exclusively
-		** to parse the rfc3676-encoded message.
-		*/
-
-		static int rfc3676parser(textplainparser *handle,
-				const char *txt,
-				size_t txt_cnt);
-
-		static int rfc3676parser_unicode(textplainparser *handle,
-					const char32_t *txt,
-					size_t txt_cnt);
 
 		/* Feed raw contents to be parsed */
 		void operator<<(const std::string_view &text);
@@ -107,20 +86,21 @@ namespace mail {
 
 		unicode_convert_handle_t uhandle{nullptr};
 
-		int errflag{0};
+		// The current error status of the parser
+		bool errflag{false};
 
+		// Set to true if the character set passed to the constructor
+		// was unknown to the unicode conversion library.
 		bool unknown_charset{false};
 
-		/* Receive raw text stream, converted to unicode */
+		// Receive raw text stream, converted to unicode
 		size_t (textplainparser::*line_handler)(
 			const char32_t *ptr,
 			size_t cnt
 		);
 
-		/*
-		** Receive mostly raw text stream: CRs that precede an LF
-		** are removed from the stream received by content_handler.
-		*/
+		// Receive mostly raw text stream: CRs that precede an LF
+		// are removed from the stream received by content_handler.
 		size_t (textplainparser::*content_handler)(
 			const char32_t *ptr,
 			size_t cnt
@@ -129,53 +109,47 @@ namespace mail {
 		size_t quote_level{0};
 		size_t sig_block_index{0};
 
-		/*
-		** Flag: previous line ended in a flowed space, and the previous
-		** line's quoting level was this.
-		*/
+		// Flag: previous line ended in a flowed space, and the previous
+		// line's quoting level was this.
 		int has_previous_quote_level{0};
 		size_t previous_quote_level{0};
 
-		/*
-		** Flag: current line was flowed into from a previous line with the
-		** same quoting level.
-		*/
+		// Flag: current line was flowed into from a previous line with the
+		// same quoting level.
 		int was_previous_quote_level{0};
 
-		/* A line has begun */
+		// A line has begun
 		void (textplainparser::*line_begin_handler)();
 
-		/* Content of this line */
+		// Content of this line
 		void (textplainparser::*line_content_handler)(
 			const char32_t *uc,
 			size_t cnt
 		);
 
-		/* End of this line */
+		// End of this line
 		void (textplainparser::*line_end_handler)();
 
-
-		/*
-		** When non-flowed text is getting rewrapped, we utilize the services
-		** of the unicode_lbc_info API.
-		*/
-
+		// When non-flowed text is getting rewrapped, we utilize the services
+		// of the unicode_lbc_info API.
 		unicode_lbc_info_t lb=nullptr;
 
 		struct unicode_buf nonflowed_line;
-		/* Collect unflowed line until it reaches the given size */
+		// Collect unflowed line until it reaches the given size
 
 		struct unicode_buf nonflowed_next_word;
-		/* Collects unicode stream until a linebreaking opportunity */
+		// Collects unicode stream until a linebreaking opportunity
 
 		size_t nonflowed_line_target_width{0};
-		/* Targeted width of nonflowed lines */
+		// Targeted width of nonflowed lines
 
-		size_t nonflowed_line_width{0}; /* Width of nonflowed_line */
+		size_t nonflowed_line_width{0};
+		// Width of nonflowed_line
 
-		size_t nonflowed_next_word_width{0}; /* Width of nonflowed_next_word */
+		size_t nonflowed_next_word_width{0};
+		// Width of nonflowed_next_word
 
-		/* Current handle of non-flowd content. */
+		// Current handle of non-flowd content.
 		void (textplainparser::*nonflowed_line_process)(
 			int linebreak_opportunity,
 			char32_t ch,
