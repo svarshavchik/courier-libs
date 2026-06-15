@@ -95,7 +95,7 @@ struct aclt_list : std::vector<aclt_node> {
 	**
 	** The closure should return >0 if identifier refers to the entity
 	** whose access rights are to be computed; 0 if it does not, <0 if
-	** an error occured.
+	** an error occurred.
 	**
 	** As a special case,compute() handles "anonymous" and "anyone"
 	** identifiers on its own.
