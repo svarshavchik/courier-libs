@@ -16,6 +16,8 @@
 #include	"rfc822/rfc822.h"
 #include	"imaprefs.h"
 
+#include	<algorithm>
+
 static void swapmsgdata(
 	rfc822::refmsgtable::refmsg *a,
 	rfc822::refmsgtable::refmsg *b
