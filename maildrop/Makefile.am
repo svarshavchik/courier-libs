@@ -95,8 +95,6 @@ run-testsuite-mailbot: testsuite.mailbot
 	VALGRIND="`which valgrind 2>/dev/null`"; export VALGRIND; \
 		VALGRIND_EXTRA_OPTS="--leak-check=full"; \
 		export VALGRIND_EXTRA_OPTS; \
-		rm -f ./mailbot.tst; \
-		ln -s mailbot mailbot.tst; \
 		@SHELL@ $(srcdir)/testsuite.mailbot >testsuite.diff
 	diff -U 3 $(srcdir)/testsuite.mailbot.txt testsuite.diff
 	rm -f mailbot.tst testsuite.diff

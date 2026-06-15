@@ -90,11 +90,13 @@ namespace mail {
 		// Current error status of the parser
 		bool errflag{false};
 
+	public:
 		// Set to true if the character set passed to the constructor
 		// was unknown to the unicode conversion library. We should
 		// have defaulted to iso-8859-1 instead.
 		bool unknown_charset{false};
 
+	private:
 		// Receive raw text stream, converted to unicode
 		size_t (textplainparser::*line_handler)(
 			const char32_t *ptr,

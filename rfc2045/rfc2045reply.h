@@ -572,7 +572,7 @@ void rfc2045::reply::reformat(out_closure_t &&out_closure,
 			(const char *ptr, size_t n)
 			{
 				info << std::string_view{ptr, n};
-			}, src, charset
+			}, src, message_charset
 		};
 
 		decoder.decode_header=false;

@@ -1,6 +1,7 @@
 #ifndef	rfc2047_h
 #define	rfc2047_h
 
+// IWYU pragma: always_keep
 #include	<stdlib.h>
 #include	<string.h>
 #include	<courier-unicode.h>

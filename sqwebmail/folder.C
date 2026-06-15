@@ -24,8 +24,6 @@
 #include	"maildir.h"
 #include	"mailfilter.h"
 #include	"maildir/maildirquota.h"
-#include	"maildir/maildirgetquota.h"
-#include	"maildir/maildirinfo.h"
 #include	"numlib/numlib.h"
 #include	"courierauth.h"
 #include	"folder.h"
@@ -33,9 +31,7 @@
 #include	"cgi/cgi.h"
 #include	"pref.h"
 #include	"token.h"
-#include	"filter.h"
 #include	"pref.h"
-#include	"newmsg.h"
 #include	"htmllibdir.h"
 #include	"gpg.h"
 #include	"acl.h"
@@ -57,7 +53,6 @@
 #if	HAVE_SYS_STAT_H
 #include	<sys/stat.h>
 #endif
-#include	<errno.h>
 
 #include	<courier-unicode.h>
 
@@ -1545,7 +1540,7 @@ static int is_preview_mode()
 
 static void dokeyimport(rfc822::fdstreambuf &, const rfc2045::entity *, bool);
 
-static void charset_warning(std::string_view mime_charset, void *arg)
+static void charset_warning(const char *message, std::string_view mime_charset)
 {
 	std::string charset{mime_charset.begin(), mime_charset.end()};
 	std::string content_charset{sqwebmail_content_charset};
@@ -1559,8 +1554,19 @@ static void charset_warning(std::string_view mime_charset, void *arg)
 		    c == '<' || c == '>' || c == '&')
 			c=' ';
 
-	printf(getarg("CHSET"), charset.c_str(), content_charset.c_str());
+	printf(message, charset.c_str(), content_charset.c_str());
 }
+
+static void charset_warning(std::string_view mime_charset, void *arg)
+{
+	charset_warning(getarg("CHSET"), mime_charset);
+}
+
+static void unknown_charset_warning(std::string_view mime_charset, void *arg)
+{
+	charset_warning(getarg("UNKNOWN_CHSET"), mime_charset);
+}
+
 
 static void html_warning()
 {
@@ -2134,6 +2140,7 @@ void folder_showmsg(const char *dir, size_t pos)
 		info->showhtml=pref_showhtml;
 
 		info->charset_warning=charset_warning;
+		info->unknown_charset_warning=unknown_charset_warning;
 		info->html_content_follows=html_warning;
 		info->get_url_to_mime_part=get_url_to_mime_part;
 
@@ -3280,7 +3287,7 @@ static void do_folderlist(const char *inbox_pfix,
 			       static_cast<unsigned>(nnew + nother));
 		}
 		else
-		printf("&nbsp;\n");
+			printf("&nbsp;\n");
 		printf("</td></tr>\n\n");
 	}
 

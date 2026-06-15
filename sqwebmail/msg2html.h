@@ -21,68 +21,67 @@ typedef std::unordered_set<char> smiley_index_t;
 
 struct msg2html_info {
 	const char *output_character_set=nullptr;
-	/* Required - generate output in this character set */
+	// Required - generate output in this character set
 
-	void *arg=nullptr; /* Passthrough parameter to callback functions */
+	void *arg=nullptr;
+	// Passthrough parameter to callback functions
 
 	const char *mimegpgfilename=nullptr;
-	/*
-	** If not NULL, msg2html() receives GPG-decoded message read from
-	** mimegpgfilename.  The contents of mimegpgfilename are blindly
-	** appended to href links to multipart/related content.
-	*/
+	// If not NULL, msg2html() receives GPG-decoded message read from
+	// mimegpgfilename.  The contents of mimegpgfilename are blindly
+	// appended to href links to multipart/related content.
 
 	const char *gpgdir=nullptr;
-	/*
-	** If not NULL -- points to the .gpg configuration directory.
-	*/
+	// If not NULL -- points to the .gpg configuration directory.
 
-	int fullheaders=0; /* Flag: show all headers */
+	int fullheaders=0;
+	// Flag: show all headers
 
-	int noflowedtext=0; /* Flag: do not show flowed text */
+	int noflowedtext=0;
+	// Flag: do not show flowed text
 
-	int showhtml=0; /* Flag: show HTML content */
+	int showhtml=0;
+	// Flag: show HTML content
 
 	int is_gpg_enabled=0;
-	/* True: check for decrypted content, and format it accordingly */
+	// True: check for decrypted content, and format it accordingly
 
 	int is_preview_mode=0;
-	/* True: sqwebmail is showing a draft message in preview mode */
+	// True: sqwebmail is showing a draft message in preview mode
 
 	std::function<std::string (const char *mimeid)> get_url_to_mime_part;
-	/*
-	** Return a malloced buffer with a URL that would point to the
-	** message's indicated MIME part.
-	*/
+	// Return a malloced buffer with a URL that would point to the
+	// message's indicated MIME part.
 
 	void (*charset_warning)(std::string_view, void *)=nullptr;
-	/* If not NULL - content in this character set could not be converted */
+	// If not NULL - content in this character set could not be converted
+
+	void (*unknown_charset_warning)(std::string_view, void *)=nullptr;
+	// If not NULL - content in an unknown character set.
 
 	void (*html_content_follows)()=nullptr;
-	/* If not NULL - HTML content follows */
+	// If not NULL - HTML content follows
 
 	std::string wash_http_prefix;
-	/* Prepended to http: URLs, which get encoded */
+	// Prepended to http: URLs, which get encoded
 
 	std::string wash_mailto_prefix;
-	/* Prepended to mailto: URLs */
+	// Prepended to mailto: URLs
 
 	void (*message_rfc822_action)(std::string_view idptr)=nullptr;
-	/*
-	** idpart references a message/rfc822 attachment.  Emit HTML
-	** for the usual actions (reply, forward, etc...)
-	*/
+	// idpart references a message/rfc822 attachment.  Emit HTML
+	// for the usual actions (reply, forward, etc...)
 
 	void (*inline_image_action)(std::string_view idptr,
 				    std::string_view content_type,
 				    void *arg)=nullptr;
-	/* Inline image attachment */
+	// Inline image attachment
 
 	void (*application_pgp_keys_action)(
 		std::string_view idptr,
 		std::string_view content_description
 	)=nullptr;
-	/* Attached PGP keys */
+	// Attached PGP keys
 
 	void (*unknown_attachment_action)(std::string_view idptr,
 					  std::string_view content_type,
@@ -91,36 +90,28 @@ struct msg2html_info {
 					  void *arg)=nullptr;
 
 	void (*gpg_message_action)()=nullptr;
-	/*
-	** This message contains MIME/PGP content.  Post the appropriate
-	** notice.
-	*/
+	// This message contains MIME/PGP content.  Post the appropriate
+	// notice.
 
-	/* Mark the beginning and end of an E-mail address in mail headers: */
+	// Mark the beginning and end of an E-mail address in mail headers:
 	void (*email_address_start)(const char *name, const char *addr)=nullptr;
 	void (*email_address_end)()=nullptr;
 
-	/*
-	** Format a mail header. (*format_header) should invoke
-	** (*cb_func) with a pointer to whatever should be displayed, which
-	** may be just hdrname (which is the default behavior.
-	*/
+	// Format a mail header. (*format_header) should invoke
+	// (*cb_func) with a pointer to whatever should be displayed, which
+	// may be just hdrname (which is the default behavior.
 
 	void (*email_header)(std::string_view,
 			     void (*cb_func)(std::string_view))=nullptr;
 
-	/*
-	** Return strftime() format string for dates. 'def' is the
-	** proposed default.  The default implementation simply returns
-	** the default string.
-	*/
+	// Return strftime() format string for dates. 'def' is the
+	// proposed default.  The default implementation simply returns
+	// the default string.
 
 	const char *(*email_header_date_fmt)(const char *def)=nullptr;
 
-	/*
-	** Return HTML code for rendering a URL, if the URL scheme is
-	** recognized.  The HTML code is returned in an malloc-ed buffer:
-	*/
+	// Return HTML code for rendering a URL, if the URL scheme is
+	// recognized.
 
 	std::function<std::string (std::string_view url,
 				   std::string_view disp_url)> get_textlink;
@@ -144,9 +135,7 @@ void msg2html_download(std::streambuf &fd,
 
 void msg2html_showmimeid(std::string_view idptr, const char *p);
 
-/*
-** INTERNAL
-*/
+// INTERNAL
 
 struct msg2html_textplain_info;
 

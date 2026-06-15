@@ -1,3 +1,8 @@
+2026-06-14  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Implement a warning about text/plain content in an unknown
+	character set.
+
 2026-06-11  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Handle garbled emails that specify "unknown-8bit" or some other

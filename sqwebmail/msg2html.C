@@ -2796,6 +2796,9 @@ static void showtextplain(std::streambuf &fd,
 	if (!tinfo)
 		return;
 
+	if (tinfo->unknown_charset && info->unknown_charset_warning)
+		(*info->unknown_charset_warning)(mime_charset, info->arg);
+
 	rfc2045::mime_decoder decoder{
 		[&]
 		(const char *ptr, size_t n)

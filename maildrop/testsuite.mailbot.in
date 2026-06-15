@@ -28,7 +28,7 @@ fi
 
 function run() {
 
-    LANG=en_US.utf-8 TZ=America/New_York $VALGRIND ./mailbot.tst -X 60 "$@"
+    LANG=en_US.utf-8 TZ=America/New_York $VALGRIND ./mailbot -X 60 "$@"
 }
 
 set -e
