@@ -184,7 +184,7 @@ static void create_draftheader_do(const char *hdrname, const char *p,
 	}
 
 	auto s=rfc2047::encode(p, sqwebmail_content_charset,
-			     rfc2047_qp_allow_any).first;
+			     rfc2047::qp_allow_any).first;
 
 	header_wrap(hdrname, s.c_str(), NULL, &l);
 

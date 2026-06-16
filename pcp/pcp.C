@@ -1319,7 +1319,7 @@ static char *read_subject()
 static std::string mimeify(const char *subject, const char *charset)
 {
 	return rfc2047::encode(subject, charset,
-			       rfc2047_qp_allow_any).first;
+			       rfc2047::qp_allow_any).first;
 }
 
 int main(int argc, char **argv)

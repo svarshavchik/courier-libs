@@ -143,7 +143,8 @@ static void printaddress_test()
 	rfc822::tokens t{
 		std::string_view{
 			"Nobody1 <test1@example.com>, test2@example.com, "
-			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= <test3@xn--80akhbyknj4f.net>"
+			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= <test3@xn--80akhbyknj4f.net>, "
+			"tést@example.com"
 		}
 	};
 
@@ -195,6 +196,19 @@ static void printaddress_test()
 			"=?iso-8859-1?q?No?= =?iso-8859-1?q?b=D2dy?= <test3@xn--80akhbyknj4f.net>",
 			"NobÒdy <test3@испытание.net>",
 			U"NobÒdy <test3@испытание.net>"
+		},
+		{
+			"/"
+			"tést@example.com/"
+			"/"
+			"tést@example.com",
+
+			U"/"
+			U"tést@example.com",
+
+			"tést@example.com",
+			"tést@example.com",
+			U"tést@example.com"
 		},
 	};
 
@@ -833,16 +847,16 @@ int main()
 #define FIVEMAX FIVETIMES16 FIVETIMES4 FIVETIMES4
 
 	std::cout << rfc2047::encode(FIVEMAX, "utf-8",
-				     rfc2047_qp_allow_any).first << "\n";
+				     rfc2047::qp_allow_any).first << "\n";
 
 	std::cout << rfc2047::encode(FIVEMAX FIVEUTF8, "utf-8",
-				     rfc2047_qp_allow_any).first << "\n";
+				     rfc2047::qp_allow_any).first << "\n";
 
 	std::cout << rfc2047::encode(FIVEMAX "\xcc\x80", "utf-8",
-				     rfc2047_qp_allow_any).first << "\n";
+				     rfc2047::qp_allow_any).first << "\n";
 
 	std::cout << rfc2047::encode("\"John Q Public\"", "utf-8",
-				     rfc2047_qp_allow_word).first << "\n";
+				     rfc2047::qp_allow_word).first << "\n";
 
 	rfc2047decode_test();
 	printaddress_test();

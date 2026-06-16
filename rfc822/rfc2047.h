@@ -17,53 +17,6 @@ extern "C" {
 }
 #endif
 
-struct unicode_info;
-extern const char rfc2047_xdigit[];
-extern const unsigned char rfc2047_decode64tab[];
-
-/*
-** Raw RFC 2047 parser.
-**
-** rfc2047_decoder() repeatedly invokes the callback function, passing it
-** the decoded RFC 2047 string that's given as an argument.
-*/
-
-int rfc2047_decoder(const char *text,
-		    void (*callback)(const char *chset,
-				     const char *lang,
-				     const char *content,
-				     size_t cnt,
-				     void *dummy),
-		    void *ptr);
-
-/*
-** rfc2047_print_unicodeaddr is like rfc822_print, except that it converts
-** RFC 2047 MIME encoding to 8 bit text.
-*/
-
-struct rfc822a;
-
-int rfc2047_print_unicodeaddr(const struct rfc822a *a,
-			      const char *charset,
-			      void (*print_func)(char, void *),
-			      void (*print_separator)(const char *, void *),
-			      void *ptr);
-
-/* Potential arguments for qp_allow */
-
-int rfc2047_qp_allow_any(char); /* Any character */
-int rfc2047_qp_allow_comment(char); /* Any character except () */
-int rfc2047_qp_allow_word(char); /* See RFC2047, bottom of page 7 */
-
-
-/* Internal functions */
-int rfc2047_encode_callback(const char32_t *uc,
-			    size_t ucsize,
-			    const char *charset,
-			    int (*qp_allow)(char),
-			    int (*func)(const char *, size_t, void *),
-			    void *arg);
-
 #if 0
 {
 #endif
@@ -71,6 +24,7 @@ int rfc2047_encode_callback(const char32_t *uc,
 }
 
 #include <string>
+#include <string_view>
 #include <utility>
 #include <iterator>
 #include <type_traits>
@@ -80,7 +34,45 @@ namespace rfc2047 {
 }
 #endif
 
-// C++ version of rfc2047_encode_str
+extern const char xdigit[];
+
+struct encoder {
+
+	virtual void encoded(std::string_view)=0;
+
+	bool operator()(std::u32string_view str,
+			const std::string &charset,
+			bool (*qp_allow)(char)
+	);
+};
+
+// Potential arguments for a qp_allow parameter */
+
+bool qp_allow_any(char); /* Any character */
+bool qp_allow_comment(char); /* Any character except () */
+bool qp_allow_word(char); /* See RFC2047, bottom of page 7 */
+
+struct encode_estimate : public encoder {
+	size_t length=0;
+
+	void encoded(std::string_view str) override
+	{
+		length += str.size();
+	}
+};
+
+struct encode_apply : public encoder {
+	std::string &out;
+
+	void encoded(std::string_view str) override
+	{
+		out.append(str);
+	}
+
+	encode_apply(std::string &out) : out{out} {}
+};
+
+// Encode a string using RFC 2047.
 //
 // The string is defined by a sequence specified by a beginning and an
 // ending iterator.
@@ -91,7 +83,7 @@ namespace rfc2047 {
 template<typename iterb, typename itere>
 std::pair<std::string, bool> encode(iterb &&b, itere &&e,
 				    const std::string &charset,
-				    int (*qp_allow)(char))
+				    bool (*qp_allow)(char))
 {
 	std::pair<std::string, bool> ret;
 
@@ -109,53 +101,30 @@ std::pair<std::string, bool> encode(iterb &&b, itere &&e,
 	if (ret.second)
 		return ret;
 
-	size_t length=0;
+	encode_estimate est;
 
-	if (rfc2047_encode_callback(
-		    ustr.c_str(), ustr.size(), charset.c_str(),
-		    qp_allow,
-		    []
-		    (const char *, size_t n, void *voidp) -> int
-		    {
-			    *static_cast<size_t *>(voidp) += n;
-			    return 0;
-		    },
-		    &length))
-	{
-		ret.second=true;
-		return ret;
-	}
+	est(ustr, charset, qp_allow);
 
-	ret.first.reserve(length);
+	ret.first.reserve(est.length);
 
-	rfc2047_encode_callback(
-		ustr.c_str(), ustr.size(), charset.c_str(),
-		qp_allow,
-		[]
-		(const char *p, size_t n, void *voidp) -> int
-		{
-			auto ret=static_cast<std::string *>(voidp);
-
-			ret->insert(ret->end(), p, p+n);
-			return 0;
-		},
-		&ret.first);
+	encode_apply apply{ret.first};
+	ret.second=apply(ustr, charset, qp_allow);
 
 	return ret;
 }
 
 inline std::pair<std::string, bool> encode(const std::string &s,
 					   const std::string &charset,
-					   int (*qp_allow)(char))
+					   bool (*qp_allow)(char))
 {
 	return encode(s.begin(), s.end(), charset, qp_allow);
 }
 
-// Helper object used by decode_rfc2047()
+// Helper object used by rfc2047::decode()
 //
 // Keeps track of the begin/end iterator for the input sequence.
 //
-// Implements an undo buffer. decode_rfc2047() needs the ability to
+// Implements an undo buffer. rfc2047::decode() needs the ability to
 // undo the read sequence.
 
 template<typename in_iterb, typename in_itere> struct iter {

@@ -14,6 +14,25 @@ namespace {
 }
 #endif
 
+static const unsigned char rfc2047_decode64tab[]={
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62,  0,  0,  0, 63,
+	52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0, 99,  0,  0,
+	 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0,
+	 0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+};
+
 void tokenize(const char *p,
 	      size_t plen,
 	      std::function<void (char c, const char *, size_t)> parsed_func,
@@ -888,14 +907,14 @@ size_t rfc2047::qpdecoder_base::do_prev_equal(const char *p, size_t n)
 		return 1;
 	}
 
-	auto found=strchr(rfc2047_xdigit, *p);
+	auto found=strchr(rfc2047::xdigit, *p);
 	if (!found)
 	{
 		report_error();
 		return 1;
 	}
 
-	int h=found-rfc2047_xdigit;
+	int h=found-rfc2047::xdigit;
 
 	if (h > 15) h-=6;
 
@@ -918,14 +937,14 @@ size_t rfc2047::qpdecoder_base::do_prev_equal_h1(const char *p, size_t n)
 {
 	handler=&qpdecoder_base::do_char;
 
-	auto found=strchr(rfc2047_xdigit, *p);
+	auto found=strchr(rfc2047::xdigit, *p);
 	if (!found)
 	{
 		report_error();
 		return 1;
 	}
 
-	int l=found-rfc2047_xdigit;
+	int l=found-rfc2047::xdigit;
 
 	if (l > 15) l-=6;
 

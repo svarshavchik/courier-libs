@@ -36,7 +36,6 @@ bool rfc822::header_is_addr(std::string_view header_name,
 		headercmp(header_name, "to") ||
 		headercmp(header_name, "cc") ||
 		headercmp(header_name, "bcc") ||
-		headercmp(header_name, "in-reply-to") ||
 		headercmp(header_name, "resent-from") ||
 		headercmp(header_name, "resent-to") ||
 		headercmp(header_name, "resent-cc") ||

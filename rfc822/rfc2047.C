@@ -1,79 +1,53 @@
 /*
-** Copyright 1998 - 2011 S. Varshavchik.  See COPYING for
+** Copyright 1998 - 2026 S. Varshavchik.  See COPYING for
 ** distribution information.
 */
 
-#include	"rfc822.h"
-#include	<stdio.h>
-#include	<ctype.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<errno.h>
-#include	<courier-unicode.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <courier-unicode.h>
 
-#include	"rfc2047.h"
+#include "rfc2047.h"
 #include <idn2.h>
 
 #ifndef RFC2047_ENCODE_FOLDLENGTH
 #define	RFC2047_ENCODE_FOLDLENGTH	76
 #endif
 
-const char rfc2047_xdigit[]="0123456789ABCDEFabcdef";
-
-const unsigned char rfc2047_decode64tab[]={
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62,  0,  0,  0, 63,
-	52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0, 99,  0,  0,
-	 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0,
-	 0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-};
-
-
+const char rfc2047::xdigit[]="0123456789ABCDEFabcdef";
 
 static const char base64tab[]=
 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static int encodebase64(const char *ptr, size_t len, const char *charset,
-			int (*qp_allow)(char),
-			int (*func)(const char *, size_t, void *),
-			int *inappropriate,
-			void *arg)
+// Use RFC 2047 to encode a string using the base64 algorithm.
+static void encodebase64(std::string_view str,
+			std::string_view charset,
+			bool (*qp_allow)(char),
+			rfc2047::encoder &encoder,
+			bool &inappropriate)
 {
 	unsigned char ibuf[3];
 	char obuf[4];
-	int	rc;
 
-	if ((rc=(*func)("=?", 2, arg)) ||
-	    (rc=(*func)(charset, strlen(charset), arg))||
-	    (rc=(*func)("?B?", 3, arg)))
-		return rc;
+	encoder.encoded("=?");
+	encoder.encoded(charset);
+	encoder.encoded("?B?");
 
-	while (len)
+	while (str.size())
 	{
-		size_t n=len > 3 ? 3:len;
+		size_t n=str.size() > 3 ? 3:str.size();
 
-		ibuf[0]= ptr[0];
+		ibuf[0]= str[0];
 		if (n>1)
-			ibuf[1]=ptr[1];
+			ibuf[1]=str[1];
 		else
 			ibuf[1]=0;
 		if (n>2)
-			ibuf[2]=ptr[2];
+			ibuf[2]=str[2];
 		else
 			ibuf[2]=0;
-		ptr += n;
-		len -= n;
+		str.remove_prefix(n);
 
 		obuf[0] = base64tab[ ibuf[0]        >>2 ];
 		obuf[1] = base64tab[(ibuf[0] & 0x03)<<4|ibuf[1]>>4];
@@ -84,13 +58,10 @@ static int encodebase64(const char *ptr, size_t len, const char *charset,
 		if (n < 3)
 			obuf[3] = '=';
 
-		if ((rc=(*func)(obuf, 4, arg)))
-			return rc;
+		encoder.encoded({obuf, 4});
 	}
 
-	if ((rc=(*func)("?=", 2, arg)))
-		return rc;
-	return 0;
+	encoder.encoded("?=");
 }
 
 #define ISSPACE(i) ((i)=='\t' || (i)=='\r' || (i)=='\n' || (i)==' ')
@@ -98,138 +69,115 @@ static int encodebase64(const char *ptr, size_t len, const char *charset,
 	((c) < 0x20 || (c) > 0x7F || (c) == '"' || \
 	 (c) == '_' || (c) == '=' || (c) == '?' || !(*qp_allow)((char)c))
 
-/*
-** Encode a character stream using quoted-printable encoding.
-*/
-static int encodeqp(const char *ptr, size_t len,
-		    const char *charset,
-		    int (*qp_allow)(char),
-		    int (*func)(const char *, size_t, void *),
-		    int *inappropriate,
-		    void *arg)
+// Use RFC 2047 to encode a string using the quoted-printable algorithm.
+
+static void encodeqp(std::string_view str,
+		    std::string_view charset,
+		    bool (*qp_allow)(char),
+		    rfc2047::encoder &encoder,
+		    bool &inappropriate)
 {
 	size_t i;
-	int rc;
 	char buf[3];
 
-	if ((rc=(*func)("=?", 2, arg)) ||
-	    (rc=(*func)(charset, strlen(charset), arg))||
-	    (rc=(*func)("?Q?", 3, arg)))
-		return rc;
+	encoder.encoded("=?");
+	encoder.encoded(charset);
+	encoder.encoded("?Q?");
 
-	for (i=0; i<len; ++i)
+	for (i=0; i<str.size(); ++i)
 	{
 		size_t j;
 
-		for (j=i; j<len; ++j)
+		for (j=i; j<str.size(); ++j)
 		{
-			if (ptr[j] == ' ' || DOENCODEWORD(ptr[j]))
+			if (str[j] == ' ' || DOENCODEWORD(str[j]))
 				break;
 		}
 
 		if (j > i)
 		{
-			rc=(*func)(ptr+i, j-i, arg);
+			encoder.encoded(str.substr(i, j-i));
 
-			if (rc)
-				return rc;
-			if (j >= len)
+			if (j >= str.size())
 				break;
 		}
 		i=j;
 
-		if (ptr[i] == ' ')
-			rc=(*func)("_", 1, arg);
+		if (str[i] == ' ')
+			encoder.encoded("_");
 		else
 		{
 			if (i == 0)
 			{
-				/* The preceding char was ? so we can't follow
-				** it with a = */
-				*inappropriate=1;
-				return 0;
+				// The preceding char was ? so we can't follow
+				// it with a = 
+				inappropriate=true;
+				return;
 			}
 
 			buf[0]='=';
-			buf[1]=rfc2047_xdigit[ ( ptr[i] >> 4) & 0x0F ];
-			buf[2]=rfc2047_xdigit[ ptr[i] & 0x0F ];
+			buf[1]=rfc2047::xdigit[ ( str[i] >> 4) & 0x0F ];
+			buf[2]=rfc2047::xdigit[ str[i] & 0x0F ];
 
-			rc=(*func)(buf, 3, arg);
+			encoder.encoded({buf, 3});
 		}
-
-		if (rc)
-			return rc;
 	}
 
-	return (*func)("?=", 2, arg);
+	encoder.encoded("?=");
 }
 
-/*
-** Calculate whether the next word should be RFC2047-encoded.
-**
-** Returns 0 if not, 1 if any character in the next word is flagged by
-** DOENCODEWORD().
-*/
+// Use RFC 2047 to calculate whether the next word should be RFC2047-encoded.
+//
+// Returns false if not, true if any character in the next word is flagged by
+// DOENCODEWORD().
+//
+// word_ptr: On entry: points to the starting offset of word in str.
+//           On exit: points to the end of the word in str.
 
-static int encode_word(const char32_t *uc,
-		       size_t ucsize,
-		       int (*qp_allow)(char),
-
-		       /*
-		       ** Points to the starting offset of word in uc.
-		       ** At exit, points to the end of the word in uc.
-		       */
-		       size_t *word_ptr)
+static bool encode_word(std::u32string_view str,
+		       bool (*qp_allow)(char),
+		       size_t &word_ptr)
 {
 	size_t i;
-	int encode=0;
+	bool encode=false;
 
-	for (i=*word_ptr; i<ucsize; ++i)
+	for (i=word_ptr; i<str.size(); ++i)
 	{
-		if (ISSPACE(uc[i]))
+		if (ISSPACE(str[i]))
 			break;
 
-		if (DOENCODEWORD(uc[i]))
-			encode=1;
+		if (DOENCODEWORD(str[i]))
+			encode=true;
 	}
 
-	*word_ptr=i;
+	word_ptr=i;
 	return encode;
 }
 
-/*
-** Calculate whether the next sequence of words should be RFC2047-encoded.
-**
-** Whatever encode_word() returns for the first word, look at the next word
-** and keep going as long as encode_word() keeps returning the same value.
-*/
+// Use RFC 2047 to calculate whether the next sequence of words should be RFC2047-encoded.
+//
+// Whatever encode_word() returns for the first word, look at the next word
+// and keep going as long as encode_word() keeps returning the same value.
 
-static int encode_words(const char32_t *uc,
-			size_t ucsize,
-			int (*qp_allow)(char),
-
-			/*
-			** Points to the starting offset of words in uc.
-			** At exit, points to the end of the words in uc.
-			*/
-
-			size_t *word_ptr)
+static bool encode_words(std::u32string_view str,
+			bool (*qp_allow)(char),
+			size_t &word_ptr)
 {
-	size_t i= *word_ptr, j, k;
+	size_t i= word_ptr, j, k;
 
-	int flag=encode_word(uc, ucsize, qp_allow, &i);
+	bool flag=encode_word(str, qp_allow, i);
 
 	if (!flag)
 	{
-		*word_ptr=i;
+		word_ptr=i;
 		return flag;
 	}
 
 	j=i;
 
-	while (j < ucsize)
+	while (j < str.size())
 	{
-		if (ISSPACE(uc[j]))
+		if (ISSPACE(str[j]))
 		{
 			++j;
 			continue;
@@ -237,63 +185,128 @@ static int encode_words(const char32_t *uc,
 
 		k=j;
 
-		if (!encode_word(uc, ucsize, qp_allow, &k))
+		if (!encode_word(str, qp_allow, k))
 			break;
 		i=j=k;
 	}
 
-	*word_ptr=i;
+	word_ptr=i;
 	return flag;
 }
 
-/*
-** Encode a sequence of words.
-*/
-static int do_encode_words_method(const char32_t *uc,
-				  size_t ucsize,
-				  const char *charset,
-				  int (*qp_allow)(char),
-				  size_t offset,
-				  int (*encoder)(const char *ptr, size_t len,
-						 const char *charset,
-						 int (*qp_allow)(char),
-						 int (*func)(const char *,
-							     size_t, void *),
-						 int *inappropriate,
-						 void *arg),
-				  int (*func)(const char *, size_t, void *),
-				  int *inappropriate,
-				  void *arg)
-{
-	char    *p;
-	size_t  psize;
-	int rc;
-	int first=1;
+namespace {
 
-	while (ucsize)
+	// Convert all or a part of the unicode string that's passed into
+	// rfc2047::encode() into the requested character set.
+
+	struct fromu_impl : public unicode::iconvert::fromu {
+
+		// The buffer where the converted string is stored.
+
+		std::string buffer;
+
+		// Any errors encountered during conversion.
+
+		bool errflag=false;
+
+		// Callback from unicode::iconvert::fromu - appends the
+		// converted chunk to the buffer.
+
+		int converted(const char *p, size_t n) override
+		{
+			buffer.insert(buffer.end(), p, p+n);
+			return 0;
+		}
+
+		// Convert a unicode string to the given character set.
+
+		std::string convert(
+			std::u32string_view str,
+			const std::string &charset,
+			bool &errflag
+		)
+		{
+			buffer.clear();
+
+			if (!begin(charset))
+			{
+				errflag=true;
+				begin(unicode::iso_8859_1);
+			}
+			operator()(str.data(), str.size());
+
+			bool end_errflag=false;
+			end(end_errflag);
+			errflag=errflag || end_errflag;
+
+			if (!buffer.empty() && buffer.back() == 0)
+				buffer.pop_back();
+
+			return buffer;
+		}
+	};
+}
+
+// Encode a sequence of words.
+
+static void do_encode_words_method(
+	std::u32string_view uc,
+	const std::string &charset,
+	bool (*qp_allow)(char),
+
+	// Reduce the maximum length of the encoded words by the
+	// offset amount.  Used when encoding a header. The first line of the
+	// header needs to have some room for the header name.
+
+	size_t offset,
+
+	// The encoding function to use, encodeqp or encodebase64.
+
+	void (*encoding_func)(
+		std::string_view str,
+		std::string_view charset,
+		bool (*qp_allow)(char),
+		rfc2047::encoder &encoder,
+		bool &inappropriate
+	),
+
+	// Conversion buffer.
+
+	fromu_impl &fromu,
+	rfc2047::encoder &encoder,
+
+	// This passed to the encoding function.  It's true if the
+	// encoding function wants to say that the encoding is
+	// inappropriate.
+
+	bool &inappropriate,
+	bool &errflag
+)
+{
+	bool first=true;
+
+	while (uc.size())
 	{
 		size_t j;
 		size_t i;
 
 		if (!first)
-		{
-			rc=(*func)(" ", 1, arg);
+			encoder.encoded(" ");
+		first=false;
 
-			if (rc)
-				return rc;
-		}
-		first=0;
+		// We are estimating here, we'll ass-ume that each unicode
+		// character will be encoded into two octets. This is close
+		// enough for determining if we'll exceed the
+		// RFC2047_ENCODE_FOLDLENGTH.
 
 		j=(RFC2047_ENCODE_FOLDLENGTH-offset)/2;
 
-		if (j >= ucsize)
-			j=ucsize;
+		if (j >= uc.size())
+			j=uc.size();
 		else
 		{
-			/*
-			** Do not split rfc2047-encoded works across a
-			** grapheme break.
-			*/
+			// Do not split rfc2047-encoded works across a
+			// grapheme break.
 
 			for (i=j; i > 0; --i)
 				if (unicode_grapheme_break(uc[i-1], uc[i]))
@@ -303,170 +316,136 @@ static int do_encode_words_method(const char32_t *uc,
 				}
 		}
 
-		if ((rc=unicode_convert_fromu_tobuf(uc, j, charset,
-						      &p, &psize,
-						      NULL)) != 0)
-			return rc;
+		fromu.convert({uc.data(), j}, charset, errflag);
 
-
-		if (psize && p[psize-1] == 0)
-			--psize;
-
-		rc=(*encoder)(p, psize, charset, qp_allow,
-			      func, inappropriate, arg);
-		free(p);
-		if (rc)
-			return rc;
+		(*encoding_func)(fromu.buffer, charset, qp_allow,
+			      encoder, inappropriate);
 		offset=0;
-		ucsize -= j;
-		uc += j;
+		uc.remove_prefix(j);
 	}
-	return 0;
 }
 
-static int cnt_conv(const char *dummy, size_t n, void *arg)
-{
-	*(size_t *)arg += n;
-	return 0;
-}
+// Encode, or not encode, words.
 
-/*
-** Encode, or not encode, words.
-*/
-
-static int do_encode_words(const char32_t *uc,
-			   size_t ucsize,
-			   const char *charset,
-			   int flag,
-			   int (*qp_allow)(char),
+static bool do_encode_words(std::u32string_view uc,
+			   const std::string &charset,
+			   bool flag,
+			   bool (*qp_allow)(char),
 			   size_t offset,
-			   int (*func)(const char *, size_t, void *),
-			   void *arg)
+			   rfc2047::encoder &encoder,
+			   fromu_impl &fromu)
 {
-	char    *p;
-	size_t  psize;
-	int rc;
-	size_t b64len, qlen;
-	int inappropriate_q;
-	int inappropriate_b64;
-	/*
-	** Convert from unicode
-	*/
+	bool inappropriate_q;
+	bool inappropriate_b64;
 
-	if ((rc=unicode_convert_fromu_tobuf(uc, ucsize, charset,
-					      &p, &psize,
-					      NULL)) != 0)
-		return rc;
+	// Convert from unicode
 
-	if (psize && p[psize-1] == 0)
-		--psize;
+	bool errflag=false;
 
 	if (!flag) /* If not converting, then the job is done */
 	{
-		rc=(*func)(p, psize, arg);
-		free(p);
-		return rc;
+		fromu.convert(uc, charset, errflag);
+
+		encoder.encoded(fromu.buffer);
+		return errflag;
 	}
-	free(p);
 
-	/*
-	** Try first quoted-printable, then base64, then pick whichever
-	** one gives the shortest results.
-	*/
-	qlen=0;
-	b64len=0;
-	inappropriate_q=0;
-	inappropriate_b64=0;
+	// Try first quoted-printable, then base64, then pick whichever
+	// one gives the shortest results.
 
-	rc=do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				  &encodeqp, cnt_conv,
-				  &inappropriate_q,
-				  &qlen);
-	if (rc)
-		return rc;
+	rfc2047::encode_estimate qlen, b64len;
+	inappropriate_q=false;
+	inappropriate_b64=false;
 
-	rc=do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				  &encodebase64, cnt_conv,
-				  &inappropriate_b64, &b64len);
-	if (rc)
-		return rc;
+	do_encode_words_method(
+		uc, charset, qp_allow, offset,
+		&encodeqp, fromu, qlen,
+		inappropriate_q, errflag
+	);
 
-	return do_encode_words_method(uc, ucsize, charset, qp_allow, offset,
-				      (qlen < b64len
-				       && inappropriate_q == 0)
-				      ? encodeqp:encodebase64,
-				      func,
-				      &inappropriate_q, // Doesn't matter
-				      arg);
+	do_encode_words_method(
+		uc, charset, qp_allow, offset,
+		&encodebase64, fromu, b64len,
+		inappropriate_b64, errflag
+	);
+
+	do_encode_words_method(
+		uc, charset, qp_allow, offset,
+		(qlen.length < b64len.length && !inappropriate_q)
+			? encodeqp:encodebase64,
+			fromu, encoder,
+			inappropriate_q, // Doesn't matter
+			errflag
+	);
+
+	return errflag;
 }
 
 /*
 ** RFC2047-encoding pass.
 */
-int rfc2047_encode_callback(const char32_t *uc,
-			    size_t ucsize,
-			    const char *charset,
-			    int (*qp_allow)(char),
-			    int (*func)(const char *, size_t, void *),
-			    void *arg)
+
+bool rfc2047::encoder::operator()(
+	std::u32string_view str,
+	const std::string &charset,
+	bool (*qp_allow)(char)
+)
 {
-	int	rc;
 	size_t	i;
-	int	flag;
+	bool errflag=false;
 
-	size_t	offset=27; /* FIXME: initial offset for line length */
+	size_t	offset=27; // FIXME: initial offset for line length
 
-	while (ucsize)
+	fromu_impl fromu;
+
+	while (!str.empty())
 	{
-		/* Pass along all the whitespace */
+		// Pass along all the whitespace
 
-		if (ISSPACE(*uc))
+		if (ISSPACE(str.front()))
 		{
-			char c= *uc++;
-			--ucsize;
+			char c= str.front();
+			str.remove_prefix(1);
 
-			if ((rc=(*func)(&c, 1, arg)) != 0)
-				return rc;
+			encoded({&c, 1});
 			continue;
 		}
 
 		i=0;
 
-		/* Check if the next word needs to be encoded, or not. */
+		// Check if the next word needs to be encoded, or not.
 
-		flag=encode_words(uc, ucsize, qp_allow, &i);
+		bool flag=encode_words(str, qp_allow, i);
 
-		/*
-		** Then proceed to encode, or not encode, the following words.
-		*/
+		// Then proceed to encode, or not encode, the following words.
 
-		if ((rc=do_encode_words(uc, i, charset, flag,
-					qp_allow, offset,
-					func, arg)) != 0)
-			return rc;
+		errflag |= do_encode_words(
+			str.substr(0, i), charset, flag,
+			qp_allow, offset,
+			*this, fromu
+		);
 
 		offset=0;
-		uc += i;
-		ucsize -= i;
+		str.remove_prefix(i);
 	}
 
-	return 0;
+	return errflag;
 }
 
 
-int rfc2047_qp_allow_any(char c)
+bool rfc2047::qp_allow_any(char c)
 {
-	return 1;
+	return true;
 }
 
-int rfc2047_qp_allow_comment(char c)
+bool rfc2047::qp_allow_comment(char c)
 {
 	if (c == '(' || c == ')' || c == '"')
-		return 0;
-	return 1;
+		return false;
+	return true;
 }
 
-int rfc2047_qp_allow_word(char c)
+bool rfc2047::qp_allow_word(char c)
 {
 	return strchr(base64tab, c) != NULL ||
 	       strchr("*-=_", c) != NULL;

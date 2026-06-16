@@ -903,7 +903,7 @@ void rfc2045::reply::mkforward(out_closure_t &&out_closure,
 						std::string{charset.begin(),
 							    charset.end()}
 						: "utf-8",
-						rfc2047_qp_allow_any
+						rfc2047::qp_allow_any
 					);
 
 				out_closure("Content-Description: ");

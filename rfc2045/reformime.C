@@ -844,7 +844,7 @@ static int main2(const char *mimecharset, int argc, char **argv)
 		const auto &[str, error]=rfc2047::encode(
 			hdr.begin(),
 			hdr.end(),
-			mimecharset, rfc2047_qp_allow_any);
+			mimecharset, rfc2047::qp_allow_any);
 
 		if (!error)
 		{

@@ -42,16 +42,16 @@ template<typename out_iter_type> auto tokens::unicode_address(
 
 	domain.reserve(s.size()-p+16);
 
-	auto b=s.begin();
+	// Ass-ume that the username is in UTF-8
+	auto username=unicode::iconvert::tou::convert(
+		std::string{s}.substr(0, p),
+		unicode::utf_8
+	).first;
 
-	while (p)
-	{
-		*iter++=static_cast<char32_t>(static_cast<unsigned char>(*b++));
-		--p;
+	for (char32_t c:username)
+		*iter++=c;
 
-	}
-
-	domain.append(b, s.end());
+	domain.append(s.begin()+p, s.end());
 
 	auto us=idn2unicode(domain);
 
@@ -758,7 +758,7 @@ struct rfc822::address::do_encode : do_print {
 					std::back_inserter(s));
 
 				s=rfc2047::encode(s, charset,
-						  rfc2047_qp_allow_word).first;
+						  rfc2047::qp_allow_word).first;
 
 				if (t.type == '(')
 					*iter++='(';
