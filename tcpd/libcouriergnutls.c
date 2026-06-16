@@ -2065,7 +2065,7 @@ void tls_dump_connection_info(ssl_handle ssl,
 	(*dump_func)("\n", 1, dump_arg);
 
 	{
-		char buf[10];
+		char buf[20];
 
 		(*dump_func)("Bits: ", -1, dump_arg);
 
@@ -2253,7 +2253,7 @@ static void gen_encryption_desc(gnutls_session_t session,
 						  int cnt, void *),
 				void *dump_arg)
 {
-	char buf[10];
+	char buf[20];
 
 	(*dump_func)(gnutls_protocol_get_name(gnutls_protocol_get_version(session)),
 		     -1, dump_arg);
