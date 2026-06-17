@@ -1,0 +1,91 @@
+
+
+
+    
+    <title>Ultimate Email Parser  Link Rewriter Validation Suite v5</title>
+
+
+    <h1>Ultimate Email Parser  Link Rewriter Validation Suite v5</h1>
+    <p>Your tree-based parser must strip CSS, destroy forms, block JavaScript, prevent thread freezing, and rewrite whitelisted links accurately.</p>
+
+    
+    <div>
+        <h2>1. Harmless Protocol Rewriting</h2>
+        <p>Your parser should intercept these valid schemes and prepend or rewrite them to your safe redirect sandbox.</p>
+        
+        
+        <span class="urlhost">[example.com]</span><a href="http://redirect?https%3A%2F%2Fexample%2Ecom" target="_blank" title="https://example.com">Standard Secure HTTPS Link</a>
+        <span class="urlhost">[example.net]</span><a href="http://redirect?http%3A%2F%2Fexample%2Enet" target="_blank" title="http://example.net">Standard Unencrypted HTTP Link</a>
+        
+        
+        <a href="http://mailto?support%40example%2Eorg%26subject%3DHelp">Contact Support (Mailto)</a>
+        <a href="http://mailto?infosec%40example%2Ecom%2Cadmin%40%3A%2F%2Fexample%2Ecom">Complex Multi-recipient Mailto</a>
+        <a>Call Support (Tel)</a>
+        <a>Usenet News Scheme</a>
+
+        
+        
+        <a>Percent-Encoded HTTPS Scheme</a>
+        <span class="urlhost">[%2F%2Fexample.com%2Fencoded-slashes]</span><a href="http://redirect?https%3A%252F%252Fexample%2Ecom%252Fencoded%2Dslashes" target="_blank" title="https:%2F%2Fexample.com%2Fencoded-slashes">Percent-Encoded Slashes</a>
+
+        
+        
+        <span class="urlhost">[xn--exmple-cua.com]</span><a href="http://redirect?https%3A%2F%2Fxn%2D%2Dexmple%2Dcua%2Ecom" target="_blank" title="https://xn--exmple-cua.com">Internationalized Domain (Unicode: exämple.com)</a>
+        <span class="urlhost">[xn--exmple-eua.com]</span><a href="http://redirect?https%3A%2F%2Fxn%2D%2Dexmple%2Deua%2Ecom" target="_blank" title="https://xn--exmple-eua.com">Internationalized Domain (Punycode: xn--exmple-eua.com)</a>
+    </div>
+
+    
+    <div>
+        <h2>2. Malicious and Obfuscated Link Bypasses</h2>
+        <p>Your parser must strip or completely neutralize these targets. They should never resolve to a valid sandbox redirect.</p>
+        
+        
+        <a>Protocol-Relative Anchor Link</a>
+
+        
+        <span class="urlhost">[\\example.com\malware]</span><a href="http://redirect?https%3A%5C%5Cexample%2Ecom%5Cmalware" target="_blank" title="https:\\example.com\malware">Mixed Slash Link Target</a>
+
+        
+        <a>Malicious JavaScript Link</a>
+        
+        
+        <a>Encoded JavaScript Link</a>
+    </div>
+
+    
+    <div>
+        <h2>3. Data-URI and Base64 Obfuscation</h2>
+        <a>Base64 Data Link (Must not execute or pass through)</a>
+        <img alt="Base64 SVG Test" />
+        <p>Data-URI CSS Check</p>
+    </div>
+
+    
+    <div>
+        <h2>4. Advanced Node Map and Attribute Normalization</h2>
+        <img />
+        <img />
+
+        
+        
+            
+        
+    </div>
+
+    
+    <div>
+        <h2>5. Thread Exhaustion: Sibling Proliferation</h2>
+        <ul>
+            <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li><li>7</li><li>8</li><li>9</li><li>10</li>
+            <li>11</li><li>12</li><li>13</li><li>14</li><li>15</li><li>16</li><li>17</li><li>18</li><li>19</li><li>20</li>
+            <li>21</li><li>22</li><li>23</li><li>24</li><li>25</li><li>26</li><li>27</li><li>28</li><li>29</li><li>30</li>
+        </ul>
+    </div>
+
+    
+    <div>
+        <h2>6. Allowed Content Control Baseline</h2>
+        <p>This <b>bold text</b>, <i>italic text</i>, and <u>underlined text</u> must render exactly as intended with zero active styles.</p>
+    </div>
+
+

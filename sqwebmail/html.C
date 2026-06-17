@@ -181,7 +181,7 @@ struct htmlfilter_info {
 	*/
 
 	const struct taginfo *open_elements[128];
-	size_t n_open_elements;
+	size_t n_open_elements=0;
 
 	/*
 	** How many elements have been open since the first element whose

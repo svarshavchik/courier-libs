@@ -2356,7 +2356,8 @@ static MSGINFO maildir_ngetinfo(const char *filename,
 
 				addr.display_name(
 					unicode::utf_8,
-					std::back_inserter(fromheader)
+					std::back_inserter(fromheader),
+					true
 				);
 			}
 

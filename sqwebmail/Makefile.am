@@ -248,9 +248,13 @@ testlogindomainlist_SOURCES=testlogindomainlist.c logindomainlist.c
 
 check-am:
 	./testhtml <$(srcdir)/testhtml.tst | diff -U 3 $(srcdir)/testhtml.txt -
+	./testhtml <$(srcdir)/testhtml2.tst | diff -U 3 $(srcdir)/testhtml2.txt -
 	test -x ./testispell || exit 0; \
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
-		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testispell
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testispell || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testhtml <$(srcdir)/testhtml.tst >/dev/null || exit 1; \
+		valgrind --tool=memcheck --leak-check=yes --error-exitcode=1 ./testhtml <$(srcdir)/testhtml2.tst >/dev/null || exit 1
+
 	@SHELL@ $(srcdir)/testlogindomainlist.sh | diff -U 3 $(srcdir)/testlogindomainlist.txt -
 	./testpref
 	test "`which valgrind 2>/dev/null`" != "" || exit 0; set -evx; \
