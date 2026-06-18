@@ -76,7 +76,9 @@ EXTRA_DIST=$(DOCS) sqwebmail.pamconf sqwebmail-system-auth.pamconf\
 	 sqwebmail-common.pamconf sqwebmail-system-auth2.pamconf\
            strdup.c strcasecmp.c strncasecmp.c sv-make_timezonelist.pl\
            $(ISPELLSOURCES) testispell.C \
-	testhtml.tst testhtml.txt testlogindomainlist.sh testlogindomainlist.txt
+	testhtml.tst testhtml.txt \
+	testhtml2.tst testhtml2.txt \
+	testlogindomainlist.sh testlogindomainlist.txt
 
 testhtml_SOURCES=testhtml.C
 testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
