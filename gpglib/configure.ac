@@ -20,7 +20,7 @@ AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_CC
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX_17
+AX_CXX_COMPILE_STDCXX_17([ext], [mandatory])
 LT_INIT
 AC_PROG_LN_S
 AC_ARG_WITH(gpg2,[ --with-gpg2       Use gpg2 instead of gpg ], [gpg2_option="$withval"], [gpg2_option=])

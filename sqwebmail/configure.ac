@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2023 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
-AC_INIT([sqwebmail],[6.3.1],[courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[7.0.0],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
@@ -18,7 +18,7 @@ dnl Checks for programs.
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX_17
+AX_CXX_COMPILE_STDCXX_17([ext], [mandatory])
 LT_INIT
 
 if test "$GCC" = yes ; then

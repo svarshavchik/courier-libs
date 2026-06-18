@@ -1,3 +1,5 @@
+7.0.0
+
 2026-06-14  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Implement a warning about text/plain content in an unknown
@@ -10,8 +12,6 @@
 	iso-8859-1 instead of refusing to show them at all.
 
 2026-04-24  Sam Varshavchik  <mrsam@courier-mta.com>
-
-	* Fedora 44: workaround for the autoconf-archive.gcc 16 issue.
 
 	* Fixes for allowing -Wall -Werror compiler flags. Drop conflicting
 	workarounds for pre-C90 support.
