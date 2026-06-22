@@ -36,6 +36,7 @@ endif
 #
 
 noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
+	$(TESTISPELL) \
 	testhtml \
 	testaddressbook \
 	testpref \
