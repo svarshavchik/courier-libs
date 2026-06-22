@@ -192,11 +192,17 @@ int Search::find(const char *str, const char *expr, const char *opts,
 
 int Search::findinline(Message &msg, const char *expr, foreach_t *foreachp)
 {
+	bool done=false;
+
 	rfc2045::mime_decoder decoder{
-		[this]
+		[this, &done]
 		(const char *ptr, size_t n)
 		{
-			search_cb(ptr, n);
+			if (done)
+				return;
+
+			if (search_cb(ptr, n))
+				done=true;
 		},
 		msg,
 		unicode::utf_8
@@ -271,8 +277,11 @@ int Search::search_cb(const char *ptr, size_t cnt)
 							ovector_count,
 							foreachp_arg);
 					if (!foreachp_arg)
+					{
+						current_line.clear();
 						// Stop searching now
 						return (-1);
+					}
 				}
 			}
 			else	if (VerboseLevel() > 2)

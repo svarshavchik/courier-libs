@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2023 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
-AC_INIT([sqwebmail],[7.0.0],[courier-sqwebmail@lists.sourceforge.net])
+AC_INIT([sqwebmail],[7.0.1],[courier-sqwebmail@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 

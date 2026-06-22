@@ -22,13 +22,20 @@ pkglibexec_PROGRAMS=sqwebpasswd
 DOCS=SECURITY BUGS TODO SECURITY.html BUGS.html TODO.html
 noinst_DATA=$(DOCS) TIMEZONELIST
 
+EXTRA_PROGRAMS=testispell
+
+if ISPELL
+TESTISPELL = testispell
+else
+TESTISPELL =
+endif
+
 #
 #  Because cgibindir is not based on prefix, we must conditionally install
 #  bin_PROGRAMS in install-exec-local, otherwise make distcheck will fail.
 #
 
 noinst_PROGRAMS=sqwebmail sqwebmaild showmsg2html \
-	testispell \
 	testhtml \
 	testaddressbook \
 	testpref \
@@ -84,11 +91,9 @@ testhtml_SOURCES=testhtml.C
 testhtml_DEPENDENCIES=libwebmail.la $(COMMONDEPENDENCIES)
 testhtml_LDADD=libwebmail.la $(COMMONLDADD)
 
-if ISPELL
 testispell_SOURCES=testispell.C
 testispell_DEPENDENCIES=$(COMMONDEPENDENCIES)
 testispell_LDADD=$(COMMONLDADD)
-endif
 
 testaddressbook_SOURCES=\
 	newmsg_createaddrheader.C \

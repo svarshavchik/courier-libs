@@ -1,3 +1,10 @@
+7.0.1
+
+2026-06-21  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Makefile.am (testispell_SOURCES): Fix compilation if ispell is not
+	installed.
+
 7.0.0
 
 2026-06-14  Sam Varshavchik  <mrsam@courier-mta.com>

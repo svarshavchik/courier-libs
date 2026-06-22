@@ -2,7 +2,7 @@ dnl
 dnl Copyright 1998 - 2022 S. Varshavchik.  See COPYING for
 dnl distribution information.
 
-AC_INIT([maildrop],[4.0.0],[courier-users@lists.sourceforge.net])
+AC_INIT([maildrop],[4.0.1],[courier-users@lists.sourceforge.net])
 
 >confdefs.h  # Kill PACKAGE_ macros
 
