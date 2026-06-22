@@ -410,10 +410,14 @@ one
 two
 EOF
 cat >testsuite.recipe <<EOF
+
 foreach /Header: (.*)/
 {
   echo "Matched: \$MATCH (\$MATCH1)"
 }
+
+/^(Header:) (.*)/
+echo "Matched: \$MATCH (\$MATCH1) (\$MATCH2)"
 
 if (lookup("one", "testsuite.chk", ""))
 {
