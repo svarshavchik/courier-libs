@@ -2000,3 +2000,47 @@
 001699 Y005 OK FETCH completed.
 001700 * BYE Courier-IMAP server shutting down
 001701 YDONE OK LOGOUT completed
+001702 * PREAUTH Ready.
+001703 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001704 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001705 * 2 EXISTS
+001706 * 0 RECENT
+001707 * OK [UIDVALIDITY] Ok
+001708 * OK [MYRIGHTS "acdilrsw"] ACL
+001709 CAP001 OK [READ-WRITE] Ok
+001710 CAP002 NO Error in IMAP command received by server.
+001711 * BYE Courier-IMAP server shutting down
+001712 CAP003 OK LOGOUT completed
+001713 * PREAUTH Ready.
+001714 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001715 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001716 * 2 EXISTS
+001717 * 0 RECENT
+001718 * OK [UIDVALIDITY] Ok
+001719 * OK [MYRIGHTS "acdilrsw"] ACL
+001720 CAP1101 OK [READ-WRITE] Ok
+001721 CAP1102 NO Error in IMAP command received by server.
+001722 * BYE Courier-IMAP server shutting down
+001723 CAP1103 OK LOGOUT completed
+001724 * PREAUTH Ready.
+001725 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001726 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001727 * 2 EXISTS
+001728 * 0 RECENT
+001729 * OK [UIDVALIDITY] Ok
+001730 * OK [MYRIGHTS "acdilrsw"] ACL
+001731 CAP201 OK [READ-WRITE] Ok
+001732 CAP202 NO Error in IMAP command received by server.
+001733 * BYE Courier-IMAP server shutting down
+001734 CAP203 OK LOGOUT completed
+001735 * PREAUTH Ready.
+001736 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001737 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001738 * 2 EXISTS
+001739 * 0 RECENT
+001740 * OK [UIDVALIDITY] Ok
+001741 * OK [MYRIGHTS "acdilrsw"] ACL
+001742 CAP301 OK [READ-WRITE] Ok
+001743 CAP302 NO Error in IMAP command received by server.
+001744 * BYE Courier-IMAP server shutting down
+001745 CAP303 OK LOGOUT completed

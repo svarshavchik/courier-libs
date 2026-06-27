@@ -1324,4 +1324,35 @@ Y006 NOOP
 Y005 FETCH 2 (RFC822.HEADER FLAGS)
 YDONE LOGOUT
 EOF
-rm -rf confmdtest
+
+echo "CAP001 SELECT INBOX" >cmd
+echo -n "CAP002 SEARCH " >>cmd
+dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\0' '(' >>cmd
+echo -n 'ALL' >>cmd
+dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\0' ')' >>cmd
+echo >>cmd
+echo "CAP003 LOGOUT" >>cmd
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE confmdtest <cmd
+
+echo "CAP1101 SELECT INBOX" >cmd
+echo -n "CAP1102 SEARCH " >>cmd
+dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\0' '\012' | sed 's/^/ALL/' | tr '\012' ' ' >>cmd
+echo >>cmd
+echo "CAP1103 LOGOUT" >>cmd
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE confmdtest <cmd
+
+echo "CAP201 SELECT INBOX" >cmd
+echo -n "CAP202 SORT (" >>cmd
+dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\0' '\012' | sed 's/^/TO/' | tr '\012' ' ' >>cmd
+echo ') "UTF-8" ALL'>>cmd
+echo "CAP203 LOGOUT" >>cmd
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE confmdtest <cmd
+
+echo "CAP301 SELECT INBOX" >cmd
+echo -n 'CAP302 THREAD REFERENCES "UTF-8" (' >>cmd
+dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\0' '\012' | sed 's/^/ALL/' | tr '\012' ' ' >>cmd
+echo ')'>>cmd
+echo "CAP303 LOGOUT" >>cmd
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE confmdtest <cmd
+
+rm -rf cmd confmdtest
