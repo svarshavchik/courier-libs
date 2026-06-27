@@ -5038,8 +5038,14 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 			return (0);
 		}
 
-		auto si=cs.alloc_parsesearch();
+		searchiter si;
 
+		try {
+			si=cs.alloc_parsesearch();
+		} catch (...)
+		{
+			si=cs.searchlist.end();
+		}
 		if (si == cs.searchlist.end())
 		{
 			return (-1);
@@ -5128,20 +5134,27 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		auto si=cs.alloc_parsesearch();
+		searchiter si;
 
-		if (si == cs.searchlist.end())
+		try {
+			si=cs.alloc_parsesearch();
+
+			if (si == cs.searchlist.end())
+			{
+				return (-1);
+			}
+
+			si=cs.alloc_searchextra(si, thread_type);
+
+			if (currenttoken()->tokentype != IT_EOL)
+			{
+				return (-1);
+			}
+
+		} catch (...)
 		{
 			return (-1);
 		}
-
-		si=cs.alloc_searchextra(si, thread_type);
-
-		if (currenttoken()->tokentype != IT_EOL)
-		{
-			return (-1);
-		}
-
 		if (!validate_charset(tag, charset))
 		{
 			return (0);
@@ -5190,6 +5203,8 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 				return (-1);
 			}
 
+			if (ts.size() > 1000)
+				return -1;
 			if (curtoken->tokenbuf == "SUBJECT")
 			{
 				st=search_orderedsubj;
@@ -5247,20 +5262,26 @@ extern "C" int do_imap_command(const char *tag, int *flushflag)
 		charset=curtoken->tokenbuf;
 		curtoken=nexttoken();
 
-		auto si=cs.alloc_parsesearch();
+		searchiter si;
 
-		if (si == cs.searchlist.end())
-		{
+		try {
+			si=cs.alloc_parsesearch();
+
+			if (si == cs.searchlist.end())
+			{
+				return (-1);
+			}
+
+			for (auto b=ts.begin(), e=ts.end(); b != e;)
+			{
+				--e;
+
+				si=cs.alloc_searchextra(si, *e);
+			}
+			ts.clear();
+		} catch (...) {
 			return (-1);
 		}
-
-		for (auto b=ts.begin(), e=ts.end(); b != e;)
-		{
-			--e;
-
-			si=cs.alloc_searchextra(si, *e);
-		}
-		ts.clear();
 
 		if (currenttoken()->tokentype != IT_EOL)
 		{

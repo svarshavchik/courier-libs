@@ -108,6 +108,7 @@ struct searchinfo {
 
 class contentsearch {
 
+	size_t counter=0;
 public:
 
 	std::list<searchinfo> searchlist;

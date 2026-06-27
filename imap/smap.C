@@ -3779,7 +3779,14 @@ void smap()
 			contentsearch cs;
 			struct smap1_search_results searchResults;
 
-			auto si=createSearch(cs, &ptr);
+			searchiter si;
+
+			try {
+				si=createSearch(cs, &ptr);
+			} catch (...) {
+				si=cs.searchlist.end();
+				errno=ENOMEM;
+			}
 
 			if (si == cs.searchlist.end())
 			{

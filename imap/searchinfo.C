@@ -25,6 +25,8 @@ searchiter contentsearch::alloc_search()
 {
 	searchlist.emplace_front(searchlist);
 
+	if (searchlist.size() > 1000)
+		throw 0; // Caught in caller.
 	return searchlist.begin();
 }
 
@@ -98,11 +100,15 @@ searchiter contentsearch::alloc_search_key()
 
 	if (t->tokentype == IT_LPAREN)
 	{
+		if (++counter > 1000)
+			return (searchlist.end());
+
 		nexttoken();
 		if ((si=alloc_search_andlist()) == searchlist.end() ||
 			currenttoken()->tokentype != IT_RPAREN)
 			return (searchlist.end());
 		nexttoken();
+		--counter;
 		return (si);
 	}
 
