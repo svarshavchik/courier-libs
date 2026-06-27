@@ -34,9 +34,19 @@ rfc822::fdstreambuf rfc822::fdstreambuf::tmpfile()
 
 rfc822::fdstreambuf rfc822::fdstreambuf::tmpfile(const char *tmpdir)
 {
+#ifndef O_TMPFILE
+	std::string s{tmpdir};
+
+	s += "/tmp.XXXXXX";
+	rfc822::fdstreambuf r{mkstemp(s.data())};
+	unlink(s.c_str());
+
+	return r;
+#else
 	return rfc822::fdstreambuf{
 		open(tmpdir, O_TMPFILE|O_RDWR|O_EXCL, 0600)
 	};
+#endif
 }
 
 rfc822::fdstreambuf &rfc822::fdstreambuf::operator=(fdstreambuf &&o) noexcept
