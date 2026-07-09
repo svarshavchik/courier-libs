@@ -934,7 +934,7 @@ void folder_initnextprev(const char *dir, size_t pos)
 	static std::string filename;
 	int fd;
 
-	unsigned long last_message_searched=0;
+	size_t  last_message_searched=0;
 
 	cgi_put(MIMEGPGFILENAME, "");
 
