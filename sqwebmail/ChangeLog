@@ -1,3 +1,12 @@
+7.0.3
+
+2026-07-09  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix a compilation error in maildirwatch.h on some platforms.
+
+	* folder.C (folder_contents): Fix bad Javascript generated on 32-bit
+	platforms.
+
 7.0.2
 
 2026-06-27  Sam Varshavchik  <mrsam@courier-mta.com>

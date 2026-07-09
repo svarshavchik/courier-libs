@@ -152,9 +152,13 @@ FormatMbox	format_mbox;
 		Maildir	deliver_maildir;
 		rfc822::fdstreambuf	deliver_file;
 
+		auto end=maildrop.msgptr->msgsize();
+
+		if (end < 0)
+			return -1;
+
 		if ( deliver_maildir.MaildirOpen(
-			     mailbox, deliver_file,
-			     maildrop.msgptr->rfc2045p.endbody) < 0)
+			     mailbox, deliver_file, end) < 0)
 		{
 			throw 75;
 		}

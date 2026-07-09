@@ -532,7 +532,7 @@ void folder_contents(const char *dir, size_t pos)
 		puts("/* <![CDATA[ */");
 		puts("function setAll(input, chk) {");
 		printf("for (i = %ld; i <= %ld; i++) {\n",
-			(long)pos, highend);
+		       (long)pos, (long)highend);
 		puts("if (document.getElementById) e = document.getElementById('MOVE-' + i);");
 		puts("else if (document.all) e = document['MOVE-' + i];");
 		puts("if (e != null) { e.checked = chk; e.onchange(); }} }");

@@ -487,6 +487,36 @@ length("abc")
 exit
 EOF
 $VALGRIND ./maildrop -V 9 ./testsuite.recipe 2>&1 <testsuite.msg
+
+rm -rf testsuite.maildir
+../maildir/maildirmake testsuite.maildir
+
+cat >testsuite.msg <<EOF
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=aaa
+
+--aaa
+Content-Type: text/plain
+
+--aaa--
+
+Junk following the closing MIME delimiter.
+EOF
+
+cat >testsuite.recipe <<EOF
+to "./testsuite.maildir"
+EOF
+
+$VALGRIND ./maildrop -A 'Subject: interesting' testsuite.recipe <testsuite.msg
+echo testsuite.maildir/new/* | cut -d, -f2-
+
+rm -f testsuite.maildir/new/*
+
+dd if=/dev/zero bs=32768 count=1 2>/dev/null | tr '\0' '\012' >>testsuite.msg
+
+$VALGRIND ./maildrop -A 'Subject: interesting' testsuite.recipe <testsuite.msg
+echo testsuite.maildir/new/* | cut -d, -f2-
+
 rm -f testsuite.recipe
 rm -f testsuite.msg
 rm -f testsuite.lock

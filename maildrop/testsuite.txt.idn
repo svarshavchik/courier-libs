@@ -584,3 +584,5 @@ Tokenized eof
 ./testsuite.recipe(15): Operation on: 7 and 1 - subtract, result is 6
 ./testsuite.recipe(16): Operation on: abc - strlength.
 ./testsuite.recipe(16): Operation: strlength=3
+S=168
+S=32936

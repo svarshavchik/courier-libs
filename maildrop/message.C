@@ -146,6 +146,32 @@ void Message::Rewind()
 	pubseekpos(0);
 }
 
+std::streampos Message::msgsize()
+{
+	std::streampos p;
+
+	if (mio.fileno() < 0)
+	{
+		p=buffer.size();
+	}
+	else
+	{
+		auto old_pos=mio.pubseekoff(0, std::ios_base::cur);
+
+		if (old_pos < 0)
+			return -1;
+
+		p=mio.pubseekoff(0, std::ios_base::end);
+
+		if (p == -1)
+			return p;
+		mio.pubseekpos(old_pos);
+	}
+	p += extra_headers.size();
+
+	return p;
+}
+
 Message::int_type Message::underflow()
 {
 	if (mio.fileno() < 0)

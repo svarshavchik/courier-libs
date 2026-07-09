@@ -80,6 +80,7 @@ will be escaped.  See the code for more info.
 #define	maildircache_h
 
 #include	<time.h>
+#include	<unistd.h>
 #include	<string>
 #include	<functional>
 

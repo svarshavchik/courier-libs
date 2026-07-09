@@ -95,6 +95,7 @@ public:
 
 	int_type underflow() override;
 	void setmsgsize();
+	std::streampos msgsize();
 
 	// API translator for rfc2045 functions
 
