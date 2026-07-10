@@ -2151,8 +2151,8 @@ static void dodirscan(const char *folder,
 		    c_stat.st_mtime > cur_stat.st_mtime &&
 		    fgets(buf, sizeof(buf), fp))
 		{
-			size_t n;
-			size_t o;
+			unsigned long n;
+			unsigned long o;
 
 			if ((p=parse_ul(buf, &n)) && (p=parse_ul(p, &o)))
 			{
