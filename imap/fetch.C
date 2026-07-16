@@ -815,13 +815,17 @@ off_t cache_phys_chars;
 	if (p && strcmp(p, "TEXT") == 0)
 	{
 		start_seek_pos=mimep->startbody;
-		cnt=mimep->endbody - mimep->startbody + mimep->nbodylines;
+		cnt=mimep->rfc822_body_size();
 	}
 	else if (p && strcmp(p, "HEADER") == 0)
 	{
 		start_seek_pos=mimep->startpos;
 		cnt= mimep->startbody - mimep->startpos + (mimep->nlines -
 			mimep->nbodylines);
+
+		if (mimep->startbody == mimep->endbody &&
+		    mimep->no_terminating_nl && cnt)
+			--cnt;
 	}
 	else if (p && strcmp(p, "HEADER.FIELDS") == 0)
 	{
@@ -845,13 +849,13 @@ off_t cache_phys_chars;
 	{
 		start_seek_pos=mimep->startpos;
 
-		cnt= mimep->endbody - mimep->startpos + mimep->nlines;
+		cnt=mimep->rfc822_size();
 	}
 	else	/* Last possibility: entire body */
 	{
 		start_seek_pos=mimep->startbody;
 
-		cnt= mimep->endbody - mimep->startbody + mimep->nbodylines;
+		cnt=mimep->rfc822_body_size();
 	}
 
 	skipping=0;

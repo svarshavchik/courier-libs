@@ -2044,3 +2044,46 @@
 001743 CAP302 NO Error in IMAP command received by server.
 001744 * BYE Courier-IMAP server shutting down
 001745 CAP303 OK LOGOUT completed
+001746 * PREAUTH Ready.
+001747 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001748 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001749 * 1 EXISTS
+001750 * 1 RECENT
+001751 * OK [UIDVALIDITY] Ok
+001752 * OK [MYRIGHTS "acdilrsw"] ACL
+001753 NOEOL1 OK [READ-WRITE] Ok
+001754 * 1 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7bit" 4 0 NIL NIL NIL))
+001755 NOEOL2 OK FETCH completed.
+001756 * 1 FETCH (BODY[] {17}
+001757 To: mrsam
+001758 
+001759 test)
+001760 * 1 FETCH (FLAGS (\Seen \Recent))
+001761 NOEOL3 OK FETCH completed.
+001762 * 1 FETCH (BODY[TEXT] {4}
+001763 test)
+001764 NOEOL4 OK FETCH completed.
+001765 * 1 FETCH (BODY[HEADER] {13}
+001766 To: mrsam
+001767 
+001768 )
+001769 NOEOL5 OK FETCH completed.
+001770 * PREAUTH Ready.
+001771 * FLAGS (\Draft \Answered \Flagged \Deleted \Seen \Recent)
+001772 * OK [PERMANENTFLAGS (\Draft \Answered \Flagged \Deleted \Seen)] Limited
+001773 * 1 EXISTS
+001774 * 1 RECENT
+001775 * OK [UIDVALIDITY] Ok
+001776 * OK [MYRIGHTS "acdilrsw"] ACL
+001777 NOEOL6 OK [READ-WRITE] Ok
+001778 * 1 FETCH (BODYSTRUCTURE ("text" "plain" NIL NIL NIL "7bit" 0 0 NIL NIL NIL))
+001779 NOEOL7 OK FETCH completed.
+001780 * 1 FETCH (BODY[] {9}
+001781 To: mrsam)
+001782 NOEOL8 OK FETCH completed.
+001783 * 1 FETCH (BODY[TEXT] {0}
+001784 )
+001785 NOEOL9 OK FETCH completed.
+001786 * 1 FETCH (BODY[HEADER] {9}
+001787 To: mrsam)
+001788 NOEOL10 OK FETCH completed.

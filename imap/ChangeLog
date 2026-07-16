@@ -1,3 +1,10 @@
+6.0.3
+
+2026-07-15  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* fetch.C (dofetchmsgbody): Handle files that don't end in a newline,
+	gracefully.
+
 6.0.2
 
 2026-06-27  Sam Varshavchik  <mrsam@courier-mta.com>

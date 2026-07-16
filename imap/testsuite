@@ -1356,3 +1356,29 @@ echo "CAP303 LOGOUT" >>cmd
 env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE confmdtest <cmd
 
 rm -rf cmd confmdtest
+
+../maildir/maildirmake.tst confmdtest || exit 1
+echo 'To: mrsam' >confmdtest/new/msg1
+echo '' >>confmdtest/new/msg1
+echo 'test' | tr -d '\012' >>confmdtest/new/msg1
+
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
+NOEOL1 SELECT INBOX
+NOEOL2 FETCH 1 (bodystructure)
+NOEOL3 FETCH 1 body[]
+NOEOL4 FETCH 1 body[text]
+NOEOL5 FETCH 1 body[header]
+EOF
+rm -rf confmdtest
+
+../maildir/maildirmake.tst confmdtest || exit 1
+echo 'To: mrsam' | tr -d '\012' >confmdtest/new/msg1
+
+env IMAP_BROKENUIDV=1 MAILDIR=confmdtest $IMAPINVOKE <<EOF
+NOEOL6 SELECT INBOX
+NOEOL7 FETCH 1 (bodystructure)
+NOEOL8 FETCH 1 body.peek[]
+NOEOL9 FETCH 1 body.peek[text]
+NOEOL10 FETCH 1 body.peek[header]
+EOF
+rm -rf confmdtest

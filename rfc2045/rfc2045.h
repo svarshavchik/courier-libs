@@ -1034,7 +1034,7 @@ public:
 
 		if (crlf)
 			s += nlines;
-		if (no_terminating_nl && s)
+		if (no_terminating_nl && crlf && s)
 			--s;
 		return s;
 	}
@@ -1046,7 +1046,7 @@ public:
 		if (crlf)
 			s += nbodylines;
 
-		if (no_terminating_nl && s)
+		if (no_terminating_nl && crlf && s)
 			--s;
 		return s;
 	}
@@ -1580,6 +1580,11 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 	// Buffered contents of the current line being processed
 	std::string buffer;
 
+	// Whether the current line ended with NL
+
+	// This is used to detect messages that don't end in NL
+	bool buffer_has_trailing_nl{true};
+
 	// If a logical line in a quoted-printable MIME entity exceeds these
 	// number of characters, this set the RFC2045_ERRLONGQUOTEDPRINTABLE
 	// flag.
@@ -1758,8 +1763,10 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 
 		char prev_ch=0;
 
+		bool read_something=false;
 		while (b != e)
 		{
+			read_something=true;
 			if constexpr (!crlf)
 			{
 				if (buffer.size() == 1024)
@@ -1794,6 +1801,14 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 			}
 		}
 
+		// If we got here and we read_something this means that the
+		// last line does not end in a newline.
+		//
+		// If we got here and we didn't read_something, this means that
+		// we were already at EOF when we_do_current_line.
+
+		if (read_something)
+			buffer_has_trailing_nl=false;
 		return buffer.end();
 	}
 
@@ -2217,6 +2232,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 	std::string line;
 
 	bool duplicate_content=false;
+	iter.buffer_has_trailing_nl=true; // Reset for a clean slate
 	while (iter.in_header())
 	{
 		auto [name, header]=iter.next_folded_header_line(*this, line);
@@ -2560,6 +2576,9 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			  &has8bitcontentchar:&has8bitbody)
 		);
 	}
+
+	if (!parent_entity && !iter.buffer_has_trailing_nl)
+		no_terminating_nl=true;
 }
 
 /* Push interface for the rfc2045 parser
