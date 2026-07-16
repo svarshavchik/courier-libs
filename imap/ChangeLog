@@ -19,6 +19,7 @@
 	* searchinfo.C: Hard cap on limit-less IMAP constructs, to return
 	an error instead of exhausting stack or heap.
 
+	Reported-By: Tristan Madani
 6.0.0
 
 2026-05-24  Sam Varshavchik  <mrsam@courier-mta.com>
