@@ -187,7 +187,7 @@ static char *authresp(const char *s, void *dummy)
 	if (p > buf && p[-1] == '\r')	--p;
 	*p=0;
 
-	return (buf);
+	return (strdup(buf)); // TODO: fix when authlib is C++.
 }
 
 struct pop3proxyinfo {

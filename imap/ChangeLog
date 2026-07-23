@@ -1,3 +1,9 @@
+6.0.4
+
+2026-07-22  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* pop3: fix crash during SASL CRAM authentication.
+
 6.0.3
 
 2026-07-15  Sam Varshavchik  <mrsam@courier-mta.com>
