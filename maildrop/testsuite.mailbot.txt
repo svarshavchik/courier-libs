@@ -743,3 +743,53 @@ Content-Transfer-Encoding: 8bit
 > This is a flowed message. This is a flowed message.
 
 
+Precedence: junk
+Auto-Submitted: auto-replied
+Subject: Re: 
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+@ writes:
+
+> Test with empty subject
+
+
+Precedence: junk
+Auto-Submitted: auto-replied
+Subject:  (fwd)
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+
+
+--- Forwarded message ---
+Subject: Re:
+
+Test with empty subject
+Precedence: junk
+Auto-Submitted: auto-replied
+Subject: Re: 
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+@ writes:
+
+> Test with empty subject
+
+
+Precedence: junk
+Auto-Submitted: auto-replied
+Subject:  (fwd)
+Mime-Version: 1.0
+Content-Type: text/plain; format=flowed; delsp=yes; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+
+
+
+--- Forwarded message ---
+Subject: Re: 
+
+Test with empty subject

@@ -509,4 +509,25 @@ echo 'This is a flowed message. This is a flowed message. This is a flowed messa
 echo 'This is a flowed message. This is a flowed message.' >>testmailbot.msg
 
 run -T reply cat <testmailbot.msg
+
+cat >testmailbot.msg <<EOF
+Subject: Re:
+
+Test with empty subject
+EOF
+
+run -T reply cat <testmailbot.msg
+run -T forward cat <testmailbot.msg
+
+rm -f testmailbot.msg
+
+echo "Subject: Re: " >testmailbot.msg
+cat >>testmailbot.msg <<EOF
+
+Test with empty subject
+EOF
+
+run -T reply cat <testmailbot.msg
+run -T forward cat <testmailbot.msg
+
 rm -f testmailbot.msg
