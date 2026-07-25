@@ -1,3 +1,11 @@
+7.0.4
+
+2026-07-24  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix UB when subject is just a re or a fwd
+
+	Reported-By: kstoianov-ship-it
+
 7.0.3
 
 2026-07-09  Sam Varshavchik  <mrsam@courier-mta.com>

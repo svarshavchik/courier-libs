@@ -156,6 +156,9 @@ static std::tuple<std::string_view, int> stripsubj(
 			for (;;)
 			{
 				int flag=0;
+
+				if (p.empty())
+					break;
 				/*
 				**
 				** (3) Remove all prefix text of the subject
