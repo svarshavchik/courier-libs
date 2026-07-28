@@ -4,7 +4,7 @@
 
 OPTIONS=""
 export OPTIONS
-TZ=EST5EDT
+TZ=America/New_York
 export TZ
 if test "$PERL" = ""
 then
