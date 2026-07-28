@@ -1,6 +1,6 @@
 2026-07-27  Sam Varshavchik  <mrsam@courier-mta.com>
 
-	* packaging/debian/control/rules: explicit Rules-Requires-Root:
+	* packaging/debian/control: explicit Rules-Requires-Root:
 
 	* testsuite (TZ): Replace old UNIX TZ with Olsen.
 
