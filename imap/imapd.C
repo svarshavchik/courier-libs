@@ -476,13 +476,15 @@ maildir_info_and_mailbox get_maildir_info_and_mailbox(const std::string &str)
 
 static int decode_date_time(std::string &str, time_t *tret)
 {
-
 	/* Convert to format rfc822_parsedt likes */
+
+	bool first=true;
 
 	for (auto &c:str)
 	{
-		if (c == ' ')
+		if (!first && c == ' ')
 			break;
+		first=false;
 
 		if (c == '-')
 			c=' ';

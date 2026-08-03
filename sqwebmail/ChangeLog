@@ -1,3 +1,5 @@
+7.0.5
+
 2026-07-27  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* packaging/debian/control (Build-Depends): Explicit dependency
