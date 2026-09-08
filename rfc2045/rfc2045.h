@@ -1681,8 +1681,6 @@ struct rfc2045::entity::line_iter<crlf>::iter : entity_parse_meta {
 			{
 				boundary_chk_buf.assign(p+2, q);
 
-				tolowercase(boundary_chk_buf);
-
 				for (auto e:parsing_entities)
 				{
 					auto b=e->content_type_boundary();
@@ -2260,7 +2258,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 			has_content_type_header=true;
 
 			content_type.lowercase_value("charset");
-			content_type.lowercase_value("boundary");
+			// boundary is case sensitive
 			content_type.lowercase_value("format");
 			content_type.lowercase_value("delsp");
 		}

@@ -1199,7 +1199,7 @@ void testmimeparse()
 		// Test 13
 		{
 			"Mime-Version: 1.0\n"
-			"Content-Type: multipart/mixed; boundary=AAA\n"
+			"Content-Type: multipart/mixed; boundary=aaa\n"
 			"\n"
 			"--aaa\n"
 			"Content-Type: text/plain\n"
@@ -1239,7 +1239,7 @@ void testmimeparse()
 		// Test 14
 		{
 			"Mime-Version: 1.0\n"
-			"Content-Type: multipart/mixed; boundary=aaa\n"
+			"Content-Type: multipart/mixed; boundary=AAA\n"
 			"\n"
 			"--AAA\n"
 			"Content-Type: text/plain; charset=utf-8\n"
@@ -1248,7 +1248,7 @@ void testmimeparse()
 			"испытание\n"
 			"Test\n"
 			"\n"
-			"--aaa--\n",
+			"--AAA--\n",
 			0    , // startpos
 			63   , // startbody
 			175  , // endbody
@@ -1256,7 +1256,7 @@ void testmimeparse()
 			8    , // nbodylines
 			1    , // mime1
 			0, "multipart/mixed", "iso-8859-1",
-			"aaa", cte::eightbit,
+			"AAA", cte::eightbit,
 			0, // has8bitheader
 			1, // has8bitbody
 			1, // has8bitcontentchar
@@ -1397,7 +1397,7 @@ void testmimeparse()
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-			"aa", cte::eightbit,
+			"AA", cte::eightbit,
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
@@ -1410,7 +1410,7 @@ void testmimeparse()
 					0    , // nbodylines
 					1    , // mime1
 					RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-					"aa1", cte::sevenbit,
+					"AA1", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
 					0  // has8bitcontentchar
@@ -1441,7 +1441,7 @@ void testmimeparse()
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-			"aa11", cte::eightbit,
+			"AA11", cte::eightbit,
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
@@ -1454,7 +1454,7 @@ void testmimeparse()
 					0    , // nbodylines
 					1    , // mime1
 					RFC2045_ERRBADBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-					"aa1", cte::sevenbit,
+					"AA1", cte::sevenbit,
 					0, // has8bitheader
 					0, // has8bitbody
 					0  // has8bitcontentchar
@@ -1485,7 +1485,7 @@ void testmimeparse()
 			4    , // nbodylines
 			1    , // mime1
 			RFC2045_ERRWRONGBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-			"aa11", cte::eightbit,
+			"AA11", cte::eightbit,
 			0, // has8bitheader
 			0, // has8bitbody
 			0, // has8bitcontentchar
@@ -1498,7 +1498,7 @@ void testmimeparse()
 					0    , // nbodylines
 					1    , // mime1
 					RFC2045_ERRWRONGBOUNDARY|RFC2045_ERRFATAL, "multipart/mixed", "iso-8859-1",
-					"aa12", cte::eightbit,
+					"AA12", cte::eightbit,
 					0, // has8bitheader
 					0, // has8bitbody
 					0  // has8bitcontentchar
