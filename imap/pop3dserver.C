@@ -882,7 +882,7 @@ static void acctout(const char *disc)
 		strlen(num1)+strlen(num2)+strlen(num3)+
 		strlen(numAR)+strlen(numAS)+200);	/* Should be enough */
 
-	p="disc";
+	p=disc;
 	p += msg2;
 	p += authaddr;
 	p += msg3;

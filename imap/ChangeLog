@@ -1,3 +1,7 @@
+2026-09-26  "Andrey V. Malyshev" <amal@krasn.ru>
+
+	* pop3dserver.C: Fix typo in syslog messages.
+
 2026-09-14  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* imap.cnf, pop3d.cnf: updated OpenSSL defaults.
