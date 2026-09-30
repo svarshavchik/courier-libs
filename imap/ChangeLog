@@ -1,3 +1,5 @@
+6.0.7
+
 2026-09-26  "Andrey V. Malyshev" <amal@krasn.ru>
 
 	* pop3dserver.C: Fix typo in syslog messages.
