@@ -2526,7 +2526,14 @@ void rfc2045::entity::parse(line_iter_type &iter)
 
 			// We know that the line starts with --, at least.
 
-			if (e-b >= 4 && e[-2] == '-' && e[-1] == '-')
+			// Closing delimiter only if "--" immediately follows
+			// the boundary (RFC 2046 5.1.1). The boundary itself
+			// may end in '-', as Foxmail's do.
+
+			auto bl=content_type_boundary().size();
+
+			if (static_cast<size_t>(e-b) >= bl+4 &&
+			    b[bl+2] == '-' && b[bl+3] == '-')
 			{
 				// Terminating boundary delimiter. We'll
 				// consume it, below, then swallow things up
@@ -2535,7 +2542,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				multipart_ongoing=false;
 				break;
 			}
-
+			
 			iter.consume_line_and_update_position(
 				*this,
 				cte::sevenbit,
