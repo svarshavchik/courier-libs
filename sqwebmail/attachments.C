@@ -454,7 +454,7 @@ void attach_delete(const char *draft)
 
 static int isbinary;
 static rfc822::fdstreambuf attachfd;
-static const char *cgi_attachname, *cgi_attachfilename;
+static std::string cgi_attachname, cgi_attachfilename;
 
 static int upload_start(const char *name, const char *filename, void *dummy)
 {
@@ -755,12 +755,12 @@ int attach_upload(
 	}
 
 	{
-		const char *cp=strrchr(cgi_attachfilename, '/');
+		const char *cp=strrchr(cgi_attachfilename.c_str(), '/');
 
 		if (cp)
 			++cp;
 		else
-			cp=cgi_attachfilename;
+			cp=cgi_attachfilename.c_str();
 
 		rfc2231::attr_encode(
 			"filename",
@@ -806,15 +806,15 @@ int attach_upload(
 	{
 		std::string_view pp;
 
-		mimetype=calc_mime_type(cgi_attachfilename);
+		mimetype=calc_mime_type(cgi_attachfilename.c_str());
 		argvec[2]=mimetype.data();
 
 		static char Nopt_str[]="-N";
 		argvec[3]=Nopt_str;
 
 		static char filename_dat[]="filename.dat";
-		argvec[4]=cgi_attachfilename ?
-			(char *)cgi_attachfilename:filename_dat;
+		argvec[4]=!cgi_attachfilename.empty() ?
+			cgi_attachfilename.data():filename_dat;
 		n=5;
 
 		pp=*cgi("attach_inline") ?
@@ -1013,8 +1013,8 @@ int	quotaflag=0;
         else
         {
                 http_redirect_argss(
-                  (quotaflag ? "&form=attachments&pos=%s&draft=%s&error=quota":
-                  "&form=attachments&pos=%s&draft=%s"), cgi("pos"),
+                  (quotaflag ? "&form=attachments&pos=@&draft=@&error=quota":
+                  "&form=attachments&pos=@&draft=@"), cgi("pos"),
                   draft);
         }
 }

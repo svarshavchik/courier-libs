@@ -11,7 +11,7 @@
 #ifdef __cplusplus
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <typeinfo>
 #include <iostream>
 
@@ -62,7 +62,7 @@ std::string cgi_cookie(std::string_view);
 // we preserve the order of arguments as they appear in the query string,
 // while std::unordered_multimap does not guarantee any order.
 
-extern std::unordered_map<std::string, std::vector<std::string>> cgi_arglist;
+extern std::map<std::string, std::vector<std::string>> cgi_arglist;
 extern void cgi_put(std::string_view, std::string_view);
 extern void cgi_setup();
 extern void cgi_cleanup();

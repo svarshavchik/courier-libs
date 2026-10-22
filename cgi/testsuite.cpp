@@ -88,7 +88,7 @@ int main()
 	cgi_setup();
 
 	if (cgi_arglist !=
-		std::unordered_map<std::string,
+		std::map<std::string,
 		std::vector<std::string>>{{"param1", {"value1", "value2 space"}},
 		{"param2", {"val:1"}}}
 		)
@@ -127,7 +127,7 @@ int main()
 	cgi_setup();
 
 	if (cgi_arglist !=
-		std::unordered_map<std::string,
+		std::map<std::string,
 		std::vector<std::string>>{
 			{"param1", {"value1", "value2 space"}},
 			{"param2", {"val:1"}}}
@@ -179,7 +179,7 @@ int main()
 	cgi_setup();
 
 	if (cgi_arglist !=
-		std::unordered_map<std::string,
+		std::map<std::string,
 		std::vector<std::string>>{
 			{"param1", {"value1", "value2 space"}},
 			{"param2", {"val:1"}}}
@@ -209,7 +209,7 @@ int main()
 		[](void *vp) {
 			reinterpret_cast<std::string*>(vp)->append("<EOF>", 5);
 		},
-		0,
+		1,
 		&filecontents
 	) != 0)
 	{
@@ -265,7 +265,7 @@ int main()
 		},
 		[](void *vp) {
 		},
-		0,
+		1,
 		&filecontents
 	    ) != 0)
 	{

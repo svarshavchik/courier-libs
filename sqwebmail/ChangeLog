@@ -1,3 +1,9 @@
+7.0.7
+
+2026-10-22  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fix several issues with adding attachments.
+
 7.0.6
 
 2026-09-08  Sam Varshavchik  <mrsam@courier-mta.com>

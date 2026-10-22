@@ -62,7 +62,8 @@ static void enomem()
 	error("Out of memory.");
 }
 
-std::unordered_map<std::string, std::vector<std::string>> cgi_arglist;
+// cgi_put() should not invalidate existing args, hence std::map
+std::map<std::string, std::vector<std::string>> cgi_arglist;
 
 static size_t cgi_maxarg()
 {
@@ -403,7 +404,7 @@ int cgi_getfiles( int (*start_file)(const char *, const char *, void *),
 		if (disposition != "form-data" || filename.empty())
 			continue;
 
-		if (n++ != filenum)
+		if (++n != filenum)
 			continue;
 
 		if ((*start_file)(name.c_str(), filename.c_str(), voidarg))
