@@ -65,10 +65,10 @@ namespace rfc2045 {
 
 	class entity;
 	class entity_info;
-	class entity_parse_meta;
+	struct entity_parse_meta;
 	class entity_parser_base;
 	template<bool crlf> class entity_parser;
-	class headers_base;
+	struct headers_base;
 	struct reply;
 	enum class replymode_t;
 
@@ -2542,7 +2542,7 @@ void rfc2045::entity::parse(line_iter_type &iter)
 				multipart_ongoing=false;
 				break;
 			}
-			
+
 			iter.consume_line_and_update_position(
 				*this,
 				cte::sevenbit,
