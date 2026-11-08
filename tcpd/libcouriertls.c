@@ -1847,12 +1847,20 @@ static time_t asn1toTime(ASN1_TIME *asn1Time)
 	struct tm tm;
 	int offset;
 
-	if (asn1Time == NULL || asn1Time->length < 13)
+#if HAVE_OPENSSL110
+#define TIME_LEN ASN1_STRING_length(asn1Time)
+#define TIME_DATA(n) (ASN1_STRING_get0_data(asn1Time)[n])
+#else
+#define TIME_LEN (asn1Time->length)
+#define TIME_DATA(n) (asn1Time->data[n])
+#endif
+
+	if (asn1Time == NULL || TIME_LEN < 13)
 		return 0;
 
 	memset(&tm, 0, sizeof(tm));
 
-#define N2(n)	((asn1Time->data[n]-'0')*10 + asn1Time->data[(n)+1]-'0')
+#define N2(n)	((TIME_DATA(n)-'0')*10 + TIME_DATA((n)+1)-'0')
 
 #define CPY(f,n) (tm.f=N2(n))
 
@@ -1870,14 +1878,14 @@ static time_t asn1toTime(ASN1_TIME *asn1Time)
 
 	offset=0;
 
-	if (asn1Time->data[12] != 'Z')
+	if (TIME_DATA(12) != 'Z')
 	{
-		if (asn1Time->length < 17)
+		if (TIME_LEN < 17)
 			return 0;
 
 		offset=N2(13)*3600+N2(15)*60;
 
-		if (asn1Time->data[12] == '-')
+		if (TIME_DATA(12) == '-')
 			offset= -offset;
 	}
 
@@ -1892,7 +1900,7 @@ static void dump_x509(X509 *x509,
 		      void (*dump_func)(const char *, int cnt, void *),
 		      void *dump_arg)
 {
-	X509_NAME *subj=X509_get_subject_name(x509);
+	const X509_NAME *subj=X509_get_subject_name(x509);
 	int nentries, j;
 	time_t timestamp;
 	STACK_OF(GENERAL_NAME) *subject_alt_names;
@@ -1908,9 +1916,9 @@ static void dump_x509(X509 *x509,
 	for (j=0; j<nentries; j++)
 	{
 		const char *obj_name;
-		X509_NAME_ENTRY *e;
-		ASN1_OBJECT *o;
-		ASN1_STRING *d;
+		const X509_NAME_ENTRY *e;
+		const ASN1_OBJECT *o;
+		const ASN1_STRING *d;
 
 		int dlen;
 		const unsigned char *ddata;

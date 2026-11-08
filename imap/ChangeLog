@@ -1,3 +1,7 @@
+2026-11-07  Sam Varshavchik  <mrsam@courier-mta.com>
+
+	* Fedora 45/OpenSSL 4.x update.
+
 2026-09-30  Sam Varshavchik  <mrsam@courier-mta.com>
 
 	* Fix rare testsuite failure.
